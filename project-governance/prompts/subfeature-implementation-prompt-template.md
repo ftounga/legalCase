@@ -74,7 +74,7 @@ Backend (si applicable) :
 - Service (logique métier, filtre workspace_id)
 - Repository (requêtes JPA)
 - DTOs (request et response séparés)
-- Migration Flyway si changement de schéma
+- Migration Liquibase si changement de schéma
 - Tests unitaires (NomServiceTest.java) — couvrant tous les cas du plan de test
 - Tests d'intégration (NomControllerIT.java) — couvrant tous les endpoints + isolation workspace
 
@@ -103,7 +103,7 @@ VÉRIFICATION FINALE :
 Avant de répondre, vérifie que :
 - Chaque critère d'acceptation est couvert par le code ou un test
 - L'isolation workspace est testée
-- La migration Flyway est présente si nécessaire
+- La migration Liquibase est présente si nécessaire
 - Aucune stacktrace ne peut être exposée
 ```
 
@@ -114,6 +114,6 @@ Avant de répondre, vérifie que :
 À l'issue de cette conversation :
 - Code complet de la subfeature (backend et/ou frontend selon la stack)
 - Tests unitaires et d'intégration couvrant le plan de test
-- Migration Flyway si applicable
+- Migration Liquibase si applicable
 - Explication des décisions techniques prises
 - La subfeature est prête pour `review-prompt-template.md`

@@ -35,8 +35,8 @@ Si un item est rouge → résoudre avant de commencer.
 
 ## Migration base de données
 
-- [ ] Si un changement de schéma est nécessaire : la migration Flyway est planifiée
-- [ ] Le nommage de la migration est conforme : `V{version}__{description}.sql`
+- [ ] Si un changement de schéma est nécessaire : la migration Liquibase est planifiée
+- [ ] Le nommage de la migration est conforme : `{NNN}-{description}.xml`
 - [ ] La migration est réversible ou un plan de rollback est documenté
 
 ## Branche Git

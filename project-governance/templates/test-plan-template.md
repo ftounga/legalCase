@@ -22,7 +22,7 @@ YYYY-MM-DD
 
 - [ ] Service métier : [NomDuService]
 - [ ] Endpoint : [METHODE /api/v1/resource]
-- [ ] Migration SQL : [V{version}__description.sql]
+- [ ] Migration SQL : [{NNN}-{description}.xml]
 - [ ] Composant Angular : [NomDuComposant]
 - [ ] Job asynchrone : [type de job]
 - [ ] Pipeline IA (niveau) : chunk / document / dossier

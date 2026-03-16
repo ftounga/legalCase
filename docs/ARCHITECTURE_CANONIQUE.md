@@ -117,14 +117,17 @@ Un utilisateur peut appartenir à un ou plusieurs workspaces.
 
 La stack est volontairement simple et maîtrisée.
 
-Frontend  
-Angular
+Frontend
+Angular 19
 
-Backend  
-Spring Boot
+Backend
+Spring Boot 3.5 / Java 21
 
-Base de données  
-PostgreSQL
+Base de données
+PostgreSQL (production) — H2 en mémoire (dev/test)
+
+Migrations de schéma
+Liquibase (XML, versionné dans `db/changelog/migrations/`)
 
 Authentification  
 Spring Security + OAuth2 / OIDC

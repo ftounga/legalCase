@@ -127,7 +127,7 @@ Notes :
 |-------|-----------|-------|
 | [table] | INSERT / SELECT / UPDATE | [précision] |
 
-### Migration Flyway
+### Migration Liquibase
 
 - [ ] Oui — `V{version}__[description].sql`
 - [ ] Non applicable

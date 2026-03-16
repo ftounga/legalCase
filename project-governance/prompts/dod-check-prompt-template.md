@@ -83,8 +83,8 @@ Catégories à vérifier :
    - Couverture de tous les critères d'acceptation
 
 3. Base de données
-   - Migration Flyway présente si changement de schéma
-   - Nommage Flyway respecté (V{version}__{description}.sql)
+   - Migration Liquibase présente si changement de schéma
+   - Nommage Liquibase respecté ({NNN}-{description}.xml)
    - Aucune modification manuelle de schéma hors migration
 
 4. Review

@@ -140,6 +140,48 @@ Référence : [fichier de gouvernance concerné]
 
 ---
 
+## Commandes de développement
+
+### Démarrer le backend
+```bash
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+- Port : 8080
+- Profil dev : H2 en mémoire, console H2 activée, Liquibase appliqué au démarrage
+
+### Démarrer le frontend
+```bash
+source ~/.nvm/nvm.sh && nvm use 22
+cd frontend && npm start
+```
+- Port : 4200
+- Node 22 requis (géré via nvm)
+
+### Démarrer PostgreSQL (prod locale)
+```bash
+docker compose up -d
+```
+- Port : 5432
+- DB : `legalcasedb` / User : `legalcase` / Password : `legalcase`
+
+### Accès base de données H2 (dev uniquement)
+- URL : http://localhost:8080/h2-console
+- JDBC URL : `jdbc:h2:mem:legalcasedb`
+- Utilisateur : `sa` / Mot de passe : (vide)
+
+### Builder le backend sans tests
+```bash
+cd backend && ./mvnw clean package -DskipTests
+```
+
+### Builder le frontend
+```bash
+source ~/.nvm/nvm.sh && nvm use 22
+cd frontend && npm run build
+```
+
+---
+
 ## Priorité
 
 ```

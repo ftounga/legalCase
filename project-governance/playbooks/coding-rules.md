@@ -131,8 +131,10 @@ src/app/
 
 ### Migrations
 
-- Toutes les migrations via Flyway
-- Nommage : `V{version}__{description}.sql` (ex: `V1__create_users.sql`)
+- Toutes les migrations via Liquibase
+- Nommage : `{NNN}-{description}.xml` (ex: `001-init-schema.xml`, `002-add-casefile.xml`)
+- Emplacement : `src/main/resources/db/changelog/migrations/`
+- Inclus via `db.changelog-master.xml` avec `<includeAll>`
 - Une migration = un changement cohérent
 - Jamais de migration destructive sans migration de sauvegarde préalable
 - Pas de modification d'une migration déjà appliquée en production

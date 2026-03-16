@@ -45,7 +45,7 @@
 - [Description du changement]
 
 ### Base de données
-- [Migration Flyway : V{version}__description.sql]
+- [Migration Liquibase : {NNN}-{description}.xml]
 - [Nouvelle table / colonne / index]
 
 ---

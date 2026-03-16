@@ -24,7 +24,7 @@ Tous les items doivent être verts.
 
 ## Base de données
 
-- [ ] Si une migration Flyway est présente : elle a été testée en local sur une base propre
+- [ ] Si une migration Liquibase est présente : elle a été testée en local sur une base propre
 - [ ] La migration ne casse pas les données existantes
 - [ ] Les index et FK sont en place
 

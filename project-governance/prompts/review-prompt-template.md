@@ -74,7 +74,7 @@ Vérifier sur chaque accès aux données :
 Vérifier le respect du layering Controller → Service → Repository.
 Vérifier que la logique métier est dans le Service, pas dans le Controller.
 Vérifier les conventions de nommage (coding-rules.md).
-Vérifier la présence de la migration Flyway si le schéma a changé.
+Vérifier la présence de la migration Liquibase si le schéma a changé.
 
 Étape 5 — Tests
 Vérifier que les tests unitaires couvrent les cas du plan de test.

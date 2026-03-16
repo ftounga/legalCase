@@ -43,7 +43,7 @@ Les items marqués **BLOQUANT** empêchent le merge.
 ## Architecture — BLOQUANT
 
 - [ ] Aucune logique métier dans les controllers ou entités (**BLOQUANT**)
-- [ ] Migration Flyway présente si changement de schéma (**BLOQUANT** si absente)
+- [ ] Migration Liquibase présente si changement de schéma (**BLOQUANT** si absente)
 - [ ] Aucun traitement IA synchrone (**BLOQUANT**)
 - [ ] Le build et la CI sont verts (**BLOQUANT**)
 

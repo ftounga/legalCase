@@ -31,7 +31,7 @@ Ces critères empêchent le merge. Aucune exception.
 
 ### Architecture
 - [ ] **BLOQUANT** — De la logique métier dans un controller ou une entité JPA
-- [ ] **BLOQUANT** — Une migration Flyway absente alors qu'un changement de schéma est fait
+- [ ] **BLOQUANT** — Une migration Liquibase absente alors qu'un changement de schéma est fait
 - [ ] **BLOQUANT** — Un traitement IA lancé de façon synchrone
 
 ### Build

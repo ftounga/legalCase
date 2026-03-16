@@ -33,8 +33,8 @@ Un seul critère rouge = la subfeature n'est pas Done.
 
 ## Critères — Base de données
 
-- [ ] La migration Flyway est présente si un changement de schéma est requis
-- [ ] La migration suit le format de nommage `V{version}__{description}.sql`
+- [ ] La migration Liquibase est présente si un changement de schéma est requis
+- [ ] La migration suit le format de nommage `{NNN}-{description}.xml`
 - [ ] Les FK et index sont en place sur les colonnes critiques
 - [ ] La migration est réversible ou une stratégie de rollback est documentée
 
