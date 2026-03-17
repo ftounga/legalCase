@@ -155,11 +155,22 @@ Référence : [fichier de gouvernance concerné]
 ## Commandes de développement
 
 ### Démarrer le backend
+
+**Profil `dev` (H2 en mémoire — pas besoin de Docker)**
 ```bash
+source .env.local
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
-- Port : 8080
-- Profil dev : H2 en mémoire, console H2 activée, Liquibase appliqué au démarrage
+- Port : 8080 | Base : H2 en mémoire (données perdues à chaque redémarrage)
+- Console H2 : http://localhost:8080/h2-console
+
+**Profil `local` (PostgreSQL + MinIO via docker compose)**
+```bash
+source .env.local
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+- Port : 8080 | Base : PostgreSQL (données persistantes)
+- Requiert : `docker compose up -d`
 
 ### Démarrer le frontend
 ```bash
