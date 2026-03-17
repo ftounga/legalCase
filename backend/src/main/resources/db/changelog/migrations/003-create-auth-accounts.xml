@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="003-create-auth-accounts" author="legalcase">
+        <comment>Create auth_accounts table</comment>
+        <createTable tableName="auth_accounts">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_auth_accounts_user" references="users(id)"/>
+            </column>
+            <column name="provider" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_user_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_email" type="VARCHAR(255)"/>
+            <column name="access_scope" type="VARCHAR(500)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="auth_accounts" indexName="idx_auth_accounts_provider_user_id" unique="true">
+            <column name="provider"/>
+            <column name="provider_user_id"/>
+        </createIndex>
+
+        <createIndex tableName="auth_accounts" indexName="idx_auth_accounts_user_id">
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

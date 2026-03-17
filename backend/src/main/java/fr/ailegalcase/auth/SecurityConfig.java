@@ -13,9 +13,11 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
+    private final CustomOidcUserService customOidcUserService;
 
-    public SecurityConfig(ObjectMapper objectMapper) {
+    public SecurityConfig(ObjectMapper objectMapper, CustomOidcUserService customOidcUserService) {
         this.objectMapper = objectMapper;
+        this.customOidcUserService = customOidcUserService;
     }
 
     @Bean
@@ -34,7 +36,11 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
-            .oauth2Login(Customizer.withDefaults())
+            .oauth2Login(oauth2 -> oauth2
+                .userInfoEndpoint(userInfo -> userInfo
+                    .oidcUserService(customOidcUserService)
+                )
+            )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new UnauthorizedEntryPoint(objectMapper))
             );
