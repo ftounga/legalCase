@@ -66,6 +66,23 @@ Un seul critère rouge = la subfeature n'est pas Done.
 
 ---
 
+## Critères — Frontend
+
+> S'applique à toute subfeature ou feature comportant un écran utilisateur visible.
+> Si la subfeature est purement backend (pas d'écran), cocher N/A explicitement.
+
+- [ ] Un composant Angular est créé pour chaque écran décrit dans la mini-spec
+- [ ] Le composant respecte le layout défini dans `docs/DESIGN_SYSTEM.md` (header, sidenav, padding)
+- [ ] Les couleurs, polices et espacements respectent le Design System (palette, typographie, multiples de 8px)
+- [ ] Les appels API passent par un service Angular dédié (jamais d'HttpClient dans un composant)
+- [ ] Les erreurs API sont affichées via `MatSnackBar` (jamais `alert()`)
+- [ ] Les formulaires utilisent `mat-form-field appearance="outline"` avec `mat-error`
+- [ ] Les listes utilisent `mat-table` avec `mat-paginator`
+- [ ] L'écran est protégé par un `AuthGuard` si l'accès requiert une authentification
+- [ ] Le routage est déclaré dans `app.routes.ts`
+
+---
+
 ## Critères — Sécurité
 
 - [ ] Aucune donnée sensible (token, mot de passe, clé API) dans le code ou les logs

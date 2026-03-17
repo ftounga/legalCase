@@ -1,0 +1,42 @@
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xl);
+
+  .page-title {
+    margin: 0;
+  }
+}
+
+.case-files-table {
+  width: 100%;
+  background: var(--color-surface);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  .mat-mdc-row:hover {
+    background-color: var(--color-background);
+  }
+}
+
+.case-file-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.no-data-cell {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+mat-paginator {
+  background: var(--color-surface);
+  border-radius: 0 0 8px 8px;
+}

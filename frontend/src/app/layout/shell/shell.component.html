@@ -1,0 +1,34 @@
+<div class="shell-wrapper">
+  <mat-toolbar class="shell-header">
+    <img src="/legalcase-logo.png" alt="AI LegalCase" class="logo" />
+    @if (workspace()) {
+      <span class="workspace-name">{{ workspace()!.name }}</span>
+    }
+    <span class="header-spacer"></span>
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="Menu utilisateur">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <div class="user-email-label">{{ auth.currentUser()?.email }}</div>
+      <button mat-menu-item (click)="auth.logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Se déconnecter</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="shell-body">
+    <mat-sidenav mode="side" opened class="shell-sidenav">
+      <mat-nav-list>
+        <a mat-list-item routerLink="/case-files" routerLinkActive="sidenav-active">
+          <mat-icon matListItemIcon>folder_open</mat-icon>
+          <span matListItemTitle>Dossiers</span>
+        </a>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content class="shell-content">
+      <router-outlet />
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>

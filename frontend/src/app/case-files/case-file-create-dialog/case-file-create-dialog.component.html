@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Nouveau dossier</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="create-form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Titre</mat-label>
+      <input matInput formControlName="title" placeholder="Ex : Licenciement Dupont" required />
+      @if (form.controls.title.hasError('required')) {
+        <mat-error>Le titre est obligatoire</mat-error>
+      }
+      @if (form.controls.title.hasError('maxlength')) {
+        <mat-error>Le titre ne doit pas dépasser 255 caractères</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="4"
+                placeholder="Contexte du dossier (optionnel)"></textarea>
+      @if (form.controls.description.hasError('maxlength')) {
+        <mat-error>La description ne doit pas dépasser 2000 caractères</mat-error>
+      }
+    </mat-form-field>
+
+    <p class="domain-info">
+      <mat-icon>info_outline</mat-icon>
+      Domaine : Droit du travail (seul domaine disponible en V1)
+    </p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="saving">Annuler</button>
+  <button mat-flat-button color="primary" (click)="submit()" [disabled]="form.invalid || saving">
+    @if (saving) { Création... } @else { Créer le dossier }
+  </button>
+</mat-dialog-actions>
