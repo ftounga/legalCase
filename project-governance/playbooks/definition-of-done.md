@@ -20,7 +20,7 @@ Un seul critère rouge = la subfeature n'est pas Done.
 
 ---
 
-## Critères — Tests
+## Critères — Tests backend
 
 - [ ] Tests unitaires présents sur la logique métier du service
 - [ ] Tests d'intégration présents sur les endpoints exposés
@@ -28,6 +28,17 @@ Un seul critère rouge = la subfeature n'est pas Done.
 - [ ] L'isolation workspace est testée (un workspace ne peut pas voir les données d'un autre)
 - [ ] Tous les tests passent (aucun test ignoré ou commenté)
 - [ ] Le plan de test de la mini-spec est couvert
+
+## Critères — Tests frontend
+
+> S'applique à toute subfeature avec composant Angular. Cocher N/A si purement backend.
+
+- [ ] Un fichier `.spec.ts` existe pour chaque composant et service créé ou modifié
+- [ ] Le composant se crée sans erreur (`should create` passant)
+- [ ] Les interactions utilisateur clés sont testées (clic bouton, soumission formulaire)
+- [ ] Les cas d'erreur API sont testés (service renvoie une erreur → comportement attendu)
+- [ ] Les services Angular sont testés avec `HttpClientTestingModule` (requêtes émises, réponses mappées)
+- [ ] Tous les tests Karma passent (`npm test -- --watch=false`)
 
 ---
 
