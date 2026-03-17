@@ -129,7 +129,7 @@ PostgreSQL (production) — H2 en mémoire (dev/test)
 Migrations de schéma
 Liquibase (XML, versionné dans `db/changelog/migrations/`)
 
-Authentification  
+Authentification
 Spring Security + OAuth2 / OIDC
 
 Providers OAuth V1 :
@@ -141,9 +141,16 @@ Stockage fichiers
 
 Object storage compatible S3.
 
+Queue asynchrone
+
+RabbitMQ — utilisé à partir de F-08 (appels LLM).
+`@Async` Spring conservé pour F-06 (extraction) et F-07 (chunking) — traitements locaux courts.
+
 Intégration IA
 
-Appels à un provider LLM via API.
+Provider : **Anthropic** (Claude).
+Appels via API HTTP REST (RestClient Spring).
+Modèle V1 : `claude-sonnet-4-6`.
 
 Les traitements IA sont obligatoirement **asynchrones**.
 
@@ -468,7 +475,7 @@ Le pipeline IA comporte trois niveaux.
 
 ## Niveau 1 — chunk
 
-Analyse de chaque segment.
+Analyse de chaque segment par le LLM.
 
 Table :
 
@@ -476,13 +483,17 @@ chunk_analyses
 
 Champs :
 
-document_chunk_id  
-model_name  
-prompt_version  
-summary  
-facts  
-legal_points  
-risks
+id
+chunk_id (FK → document_chunks)
+analysis_status (PENDING, PROCESSING, DONE, FAILED)
+analysis_result (TEXT — JSON retourné par le LLM)
+model_used
+prompt_tokens
+completion_tokens
+created_at
+updated_at
+
+Déclenchement : message RabbitMQ publié après chunking — consumer @RabbitListener appelle Anthropic API.
 
 ---
 
