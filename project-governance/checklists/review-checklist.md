@@ -49,6 +49,19 @@ Les items marqués **BLOQUANT** empêchent le merge.
 
 ---
 
+## Design System — BLOQUANT si composant frontend présent
+
+- [ ] Couleurs utilisées conformes à `docs/DESIGN_SYSTEM.md` (**BLOQUANT** si hors palette)
+- [ ] Polices conformes : Inter, Merriweather, JetBrains Mono uniquement (**BLOQUANT**)
+- [ ] Composants Angular Material utilisés selon les règles du design system (**BLOQUANT**)
+- [ ] Espacements multiples de 4px (**BLOQUANT** si non respecté)
+- [ ] Pas de `window.alert()`, `window.confirm()` ou `window.prompt()` (**BLOQUANT**)
+- [ ] Notifications via `MatSnackBar`, confirmations destructives via `MatDialog`
+- [ ] Tables avec `mat-paginator` si liste de données
+- [ ] Formulaires avec `mat-form-field` appearance `outline` et `mat-error` pour les erreurs
+
+---
+
 ## Qualité — Non bloquant
 
 - [ ] Le nommage respecte les coding rules

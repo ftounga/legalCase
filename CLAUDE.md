@@ -7,21 +7,22 @@ Lire ces documents avant toute réponse impliquant du code, une spec ou une déc
 ### Architecture
 1. `docs/ARCHITECTURE_CANONIQUE.md` — source de vérité architecture (obligatoire)
 2. `docs/OPEN_QUESTIONS.md` — registre des sujets non tranchés (obligatoire)
+3. `docs/DESIGN_SYSTEM.md` — charte graphique et règles UI (obligatoire pour tout travail frontend)
 
 ### Process
-3. `project-governance/playbooks/feature-lifecycle.md` — cycle de vie des features
-4. `project-governance/playbooks/definition-of-done.md` — critères de complétion
-5. `project-governance/playbooks/coding-rules.md` — conventions de code
-6. `project-governance/playbooks/review-rules.md` — critères de review
-7. `project-governance/playbooks/testing-strategy.md` — stratégie de test
+4. `project-governance/playbooks/feature-lifecycle.md` — cycle de vie des features
+5. `project-governance/playbooks/definition-of-done.md` — critères de complétion
+6. `project-governance/playbooks/coding-rules.md` — conventions de code
+7. `project-governance/playbooks/review-rules.md` — critères de review
+8. `project-governance/playbooks/testing-strategy.md` — stratégie de test
 
 ### Checklists (à appliquer à chaque étape)
-8. `project-governance/checklists/readiness-checklist.md` — avant de démarrer le dev
-9. `project-governance/checklists/review-checklist.md` — avant toute PR
-10. `project-governance/checklists/release-checklist.md` — avant tout merge
+9. `project-governance/checklists/readiness-checklist.md` — avant de démarrer le dev
+10. `project-governance/checklists/review-checklist.md` — avant toute PR
+11. `project-governance/checklists/release-checklist.md` — avant tout merge
 
 ### Optionnel
-11. `docs/PRODUCT_SPEC.md` si présent
+12. `docs/PRODUCT_SPEC.md` si présent
 
 ---
 
@@ -101,6 +102,8 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Incohérence avec `ARCHITECTURE_CANONIQUE.md` | BLOCAGE — signaler la divergence |
 | Traitement IA demandé de façon synchrone | REFUS — rappeler la règle async |
 | Accès données sans filtre `workspace_id` | REFUS — rappeler la règle d'isolation |
+| Composant frontend utilisant couleurs/polices hors `DESIGN_SYSTEM.md` | BLOCAGE — signaler la divergence |
+| Ecran produit sans header/layout conforme au design system | BLOCAGE — signaler la divergence |
 
 **Format de refus standard :**
 ```

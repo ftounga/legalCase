@@ -1,0 +1,146 @@
+@use '@angular/material' as mat;
+
+// ─── Palette primaire : Bleu marine #1A3A5C ───────────────────────────────
+$primary-palette: mat.m2-define-palette((
+  50:  #e3eaf2,
+  100: #b9cbdf,
+  200: #8ba9ca,
+  300: #5d87b5,
+  400: #3a6da5,
+  500: #1A3A5C,
+  600: #163354,
+  700: #122b4a,
+  800: #0e2341,
+  900: #081630,
+  contrast: (
+    50:  rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: rgba(0,0,0,0.87),
+    300: white,
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+), 500, 300, 700);
+
+// ─── Palette accent : Or juridique #C9973A ────────────────────────────────
+$accent-palette: mat.m2-define-palette((
+  50:  #fdf4e7,
+  100: #fae3c3,
+  200: #f7d09b,
+  300: #f4bd73,
+  400: #f1ae55,
+  500: #C9973A,
+  600: #c08934,
+  700: #b3782c,
+  800: #a66824,
+  900: #8f4b16,
+  contrast: (
+    50:  rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: rgba(0,0,0,0.87),
+    300: rgba(0,0,0,0.87),
+    400: rgba(0,0,0,0.87),
+    500: rgba(0,0,0,0.87),
+    600: rgba(0,0,0,0.87),
+    700: white,
+    800: white,
+    900: white,
+  )
+), 500, 300, 700);
+
+// ─── Palette warn : Rouge sobre #C0392B ───────────────────────────────────
+$warn-palette: mat.m2-define-palette(mat.$m2-red-palette, 700);
+
+// ─── Thème Angular Material ───────────────────────────────────────────────
+$theme: mat.m2-define-light-theme((
+  color: (
+    primary: $primary-palette,
+    accent:  $accent-palette,
+    warn:    $warn-palette,
+  ),
+  typography: mat.m2-define-typography-config(
+    $font-family: 'Inter, sans-serif',
+  ),
+  density: 0,
+));
+
+@include mat.all-component-themes($theme);
+
+// ─── Variables CSS globales ───────────────────────────────────────────────
+:root {
+  --color-primary:        #1A3A5C;
+  --color-accent:         #C9973A;
+  --color-background:     #F5F6FA;
+  --color-surface:        #FFFFFF;
+  --color-error:          #C0392B;
+  --color-success:        #27AE60;
+  --color-text-primary:   #1C2B3A;
+  --color-text-secondary: #6B7A8D;
+  --color-divider:        #E0E4EA;
+
+  --font-heading:  'Merriweather', serif;
+  --font-body:     'Inter', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+
+  --spacing-xs:  4px;
+  --spacing-sm:  8px;
+  --spacing-md:  16px;
+  --spacing-lg:  24px;
+  --spacing-xl:  32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+}
+
+// ─── Reset et base ────────────────────────────────────────────────────────
+html, body {
+  height: 100%;
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+// ─── Typographie globale ──────────────────────────────────────────────────
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  color: var(--color-text-primary);
+}
+
+h1 { font-size: 32px; font-weight: 700; }
+h2 { font-size: 24px; font-weight: 700; }
+h3 { font-size: 20px; font-weight: 600; }
+h4 { font-size: 18px; font-weight: 600; }
+
+// ─── Utilitaires globaux ──────────────────────────────────────────────────
+.text-secondary {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 12px;
+
+  &--success { background: #E8F5E9; color: var(--color-success); }
+  &--warning { background: #FFF8E1; color: #F9A825; }
+  &--error   { background: #FFEBEE; color: var(--color-error); }
+  &--neutral { background: #F5F5F5; color: var(--color-text-secondary); }
+}
+
+// ─── Surcharge Angular Material ───────────────────────────────────────────
+.mat-mdc-card {
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}

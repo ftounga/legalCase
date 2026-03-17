@@ -18,6 +18,7 @@ Implémenter les subfeatures frontend (composants Angular, services, routing) en
 
 - `CLAUDE.md`
 - `docs/ARCHITECTURE_CANONIQUE.md`
+- `docs/DESIGN_SYSTEM.md` — **obligatoire avant tout travail sur un écran**
 - `project-governance/playbooks/coding-rules.md`
 - `project-governance/playbooks/testing-strategy.md`
 - `project-governance/playbooks/definition-of-done.md`
@@ -63,13 +64,17 @@ Implémenter les subfeatures frontend (composants Angular, services, routing) en
 
 ## Ce que le frontend-agent doit faire
 
-1. **Lire la mini-spec et le contrat API complets** avant d'écrire la moindre ligne
-2. **Créer un service dédié** pour chaque ressource API consommée
-3. **Gérer tous les codes HTTP** définis dans le plan de test (succès + erreurs)
-4. **Afficher un message explicite** à l'utilisateur en cas d'erreur (403, 404, 500)
-5. **Utiliser `AsyncPipe`** pour les observables dans les templates
-6. **Écrire les tests** en même temps que le code
-7. **Signaler** toute ambiguïté dans le contrat API avant d'implémenter
+1. **Lire la mini-spec, le contrat API et `docs/DESIGN_SYSTEM.md`** avant d'écrire la moindre ligne
+2. **Appliquer la palette de couleurs** définie dans le design system — aucune couleur hors palette
+3. **Utiliser uniquement les polices** Inter, Merriweather, JetBrains Mono
+4. **Utiliser les composants Angular Material** selon les règles du design system (apparence, comportement)
+5. **Respecter le layout** : header 64px, side nav 240px, footer 48px, padding contenu 24px
+6. **Créer un service dédié** pour chaque ressource API consommée
+7. **Gérer tous les codes HTTP** définis dans le plan de test (succès + erreurs)
+8. **Afficher un message explicite** à l'utilisateur en cas d'erreur via `MatSnackBar`
+9. **Utiliser `AsyncPipe`** pour les observables dans les templates
+10. **Écrire les tests** en même temps que le code
+11. **Signaler** toute ambiguïté dans le contrat API ou le design system avant d'implémenter
 
 ---
 
@@ -83,6 +88,11 @@ Implémenter les subfeatures frontend (composants Angular, services, routing) en
 - Implémenter une logique d'authentification — c'est dans `core/auth/`
 - Modifier le comportement d'un composant partagé (`shared/`) sans vérifier l'impact
 - Passer à la subfeature suivante sans avoir écrit les tests de la subfeature en cours
+- Utiliser une couleur hors palette du design system
+- Utiliser `window.alert()`, `window.confirm()` ou `window.prompt()`
+- Utiliser une police non définie dans le design system
+- Créer une table sans pagination (`mat-paginator`)
+- Créer un formulaire avec une apparence autre que `outline` sur les `mat-form-field`
 
 ---
 

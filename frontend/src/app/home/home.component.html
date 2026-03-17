@@ -1,0 +1,34 @@
+<div class="home-container">
+  <mat-card class="home-card">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>gavel</mat-icon>
+      <mat-card-title>AI LegalCase</mat-card-title>
+      <mat-card-subtitle>Plateforme LegalTech pour avocats</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="backend-status">
+        <h3>Statut du backend</h3>
+
+        <ng-container *ngIf="health$ | async as health; else loading">
+          <ng-container *ngIf="health; else error">
+            <div class="status-ok">
+              <mat-icon>check_circle</mat-icon>
+              <span>{{ health.message }}</span>
+            </div>
+          </ng-container>
+          <ng-template #error>
+            <div class="status-error">
+              <mat-icon>error</mat-icon>
+              <span>Backend inaccessible — démarrez Spring Boot sur le port 8080</span>
+            </div>
+          </ng-template>
+        </ng-container>
+
+        <ng-template #loading>
+          <mat-spinner diameter="32"></mat-spinner>
+        </ng-template>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
