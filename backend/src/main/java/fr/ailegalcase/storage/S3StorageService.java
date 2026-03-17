@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
@@ -54,6 +55,13 @@ public class S3StorageService implements StorageService {
                 RequestBody.fromInputStream(inputStream, contentLength)
         );
         return key;
+    }
+
+    @Override
+    public byte[] download(String key) {
+        return s3Client.getObjectAsBytes(
+                GetObjectRequest.builder().bucket(props.getBucket()).key(key).build()
+        ).asByteArray();
     }
 
     @Override

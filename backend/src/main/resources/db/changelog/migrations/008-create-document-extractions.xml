@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="008-create-document-extractions" author="legalcase">
+        <createTable tableName="document_extractions">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="document_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_extraction_document"
+                             references="documents(id)"/>
+            </column>
+            <column name="extraction_status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="extracted_text" type="TEXT"/>
+            <column name="extraction_metadata" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="document_extractions" indexName="idx_document_extractions_document_id">
+            <column name="document_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

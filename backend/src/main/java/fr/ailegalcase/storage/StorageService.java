@@ -23,4 +23,12 @@ public interface StorageService {
      * @return a presigned URL string
      */
     String presignedDownloadUrl(String key, int expirationMinutes);
+
+    /**
+     * Download a file from object storage and return its content as a byte array.
+     *
+     * @param key the object key in the bucket
+     * @return the file content as bytes
+     */
+    byte[] download(String key);
 }

@@ -402,13 +402,24 @@ Document uploadé.
 
 Champs :
 
-id  
-case_file_id  
-original_filename  
-mime_type  
-storage_path  
-file_size  
-upload_status
+id
+case_file_id
+uploaded_by_user_id
+original_filename
+content_type
+file_size
+storage_key
+created_at
+
+Types acceptés (V1) :
+
+application/pdf
+application/msword
+application/vnd.openxmlformats-officedocument.wordprocessingml.document
+text/plain
+
+Taille maximale : 50 Mo
+Format storage_key : {workspaceId}/{caseFileId}/{UUID}/{sanitized_filename}
 
 ---
 
@@ -420,10 +431,15 @@ Texte extrait du document.
 
 Champs :
 
-document_id  
-extraction_status  
-extracted_text  
+id
+document_id
+extraction_status
+extracted_text
 extraction_metadata
+created_at
+updated_at
+
+Valeurs extraction_status : PENDING, PROCESSING, DONE, FAILED
 
 ---
 

@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,7 +16,7 @@ import { Document } from '../../core/models/document.model';
   selector: 'app-case-file-detail',
   standalone: true,
   imports: [
-    RouterLink, DatePipe, DecimalPipe,
+    RouterLink, DatePipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule
   ],

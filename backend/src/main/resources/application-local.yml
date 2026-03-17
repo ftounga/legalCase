@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/legalcasedb
+    driver-class-name: org.postgresql.Driver
+    username: legalcase
+    password: legalcase
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+storage:
+  s3:
+    endpoint: http://localhost:9000
+    access-key: minio
+    secret-key: minio123
+    bucket: legalcase-dev
+    path-style-access: true
+
+logging:
+  level:
+    fr.ailegalcase: DEBUG
+    liquibase: INFO

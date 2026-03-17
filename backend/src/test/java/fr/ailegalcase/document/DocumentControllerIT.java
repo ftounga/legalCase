@@ -52,8 +52,10 @@ class DocumentControllerIT {
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired private CaseFileRepository caseFileRepository;
     @Autowired private DocumentRepository documentRepository;
+    @Autowired private DocumentExtractionRepository documentExtractionRepository;
 
     @MockBean private StorageService storageService;
+    @MockBean private ExtractionService extractionService;
 
     private OAuth2AuthenticationToken auth;
     private UUID caseFileId;
@@ -61,6 +63,7 @@ class DocumentControllerIT {
 
     @BeforeEach
     void setUp() {
+        documentExtractionRepository.deleteAll();
         documentRepository.deleteAll();
         caseFileRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
