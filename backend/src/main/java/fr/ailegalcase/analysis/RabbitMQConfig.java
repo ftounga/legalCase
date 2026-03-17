@@ -1,0 +1,36 @@
+package fr.ailegalcase.analysis;
+
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+@Configuration
+@Profile("local")
+public class RabbitMQConfig {
+
+    public static final String CHUNK_ANALYSIS_QUEUE = "chunk.analysis";
+    public static final String CHUNK_ANALYSIS_EXCHANGE = "chunk.analysis.exchange";
+    public static final String CHUNK_ANALYSIS_ROUTING_KEY = "chunk.analysis";
+
+    @Bean
+    public Queue chunkAnalysisQueue() {
+        return new Queue(CHUNK_ANALYSIS_QUEUE, true);
+    }
+
+    @Bean
+    public DirectExchange chunkAnalysisExchange() {
+        return new DirectExchange(CHUNK_ANALYSIS_EXCHANGE);
+    }
+
+    @Bean
+    public Binding chunkAnalysisBinding(Queue chunkAnalysisQueue, DirectExchange chunkAnalysisExchange) {
+        return BindingBuilder
+                .bind(chunkAnalysisQueue)
+                .to(chunkAnalysisExchange)
+                .with(CHUNK_ANALYSIS_ROUTING_KEY);
+    }
+}

@@ -5,20 +5,17 @@ Ces questions sont à trancher au fil du développement, au moment où chaque su
 ---
 
 ## Provider LLM
-Quel provider LLM est ciblé ?
-- OpenAI
-- Anthropic (Claude)
-- Azure OpenAI
-- Autre
+~~Quel provider LLM est ciblé ?~~
+**Tranché le 2026-03-17** — Anthropic (Claude). SDK Java officiel (`anthropic-sdk-java`).
 
 ---
 
 ## Système de queue / jobs asynchrones
-Quel mécanisme pour orchestrer les jobs asynchrones ?
-- Spring Batch
-- RabbitMQ
-- Redis (avec Spring Data Redis ou Redisson)
-- Autre
+~~Quel mécanisme pour orchestrer les jobs asynchrones ?~~
+**Tranché le 2026-03-17** — RabbitMQ à partir de F-08 (appels LLM).
+- `@Async` Spring conservé pour F-06 (extraction) et F-07 (chunking) — traitement local, durée < 5s, pas d'API externe.
+- RabbitMQ pour F-08+ — appels Anthropic : latence variable, rate limit, retry nécessaire, concurrence à contrôler.
+- Ligne de partage : traitement local rapide → `@Async` / appel LLM externe → RabbitMQ.
 
 ---
 

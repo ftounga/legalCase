@@ -12,6 +12,12 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
 storage:
   s3:
     endpoint: http://localhost:9000
