@@ -1,6 +1,7 @@
 package fr.ailegalcase.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -14,10 +15,14 @@ public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
     private final CustomOidcUserService customOidcUserService;
+    private final String frontendUrl;
 
-    public SecurityConfig(ObjectMapper objectMapper, CustomOidcUserService customOidcUserService) {
+    public SecurityConfig(ObjectMapper objectMapper,
+                          CustomOidcUserService customOidcUserService,
+                          @Value("${app.frontend-url}") String frontendUrl) {
         this.objectMapper = objectMapper;
         this.customOidcUserService = customOidcUserService;
+        this.frontendUrl = frontendUrl;
     }
 
     @Bean
@@ -40,6 +45,7 @@ public class SecurityConfig {
                 .userInfoEndpoint(userInfo -> userInfo
                     .oidcUserService(customOidcUserService)
                 )
+                .defaultSuccessUrl(frontendUrl, true)
             )
             .logout(logout -> logout
                 .logoutUrl("/api/logout")

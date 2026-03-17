@@ -25,6 +25,9 @@ spring:
             user-info-uri: https://graph.microsoft.com/oidc/userinfo
             user-name-attribute: sub
 
+app:
+  frontend-url: http://localhost:4200
+
 server:
   port: 8080
 
