@@ -25,18 +25,25 @@ class AnthropicServiceTest {
         service = new AnthropicService("claude-sonnet-4-6", builder);
     }
 
-    // U-01 : texte valide → appel API et retour du JSON
+    // U-01 : texte valide → appel API et retour du JSON avec tokens
     @Test
-    void analyzeChunk_validText_returnsJsonFromApi() {
+    void analyzeChunk_validText_returnsResultFromApi() {
         server.expect(requestTo("https://api.anthropic.com/v1/messages"))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withSuccess("""
-                        {"content": [{"type": "text", "text": "{\\"faits\\": [\\"fait1\\"]}"}]}
+                        {
+                          "content": [{"type": "text", "text": "{\\"faits\\": [\\"fait1\\"]}"}],
+                          "model": "claude-sonnet-4-6-20241022",
+                          "usage": {"input_tokens": 150, "output_tokens": 80}
+                        }
                         """, MediaType.APPLICATION_JSON));
 
-        String result = service.analyzeChunk("Texte juridique de test.");
+        AnthropicResult result = service.analyzeChunk("Texte juridique de test.");
 
-        assertThat(result).isEqualTo("{\"faits\": [\"fait1\"]}");
+        assertThat(result.content()).isEqualTo("{\"faits\": [\"fait1\"]}");
+        assertThat(result.modelUsed()).isEqualTo("claude-sonnet-4-6-20241022");
+        assertThat(result.promptTokens()).isEqualTo(150);
+        assertThat(result.completionTokens()).isEqualTo(80);
         server.verify();
     }
 

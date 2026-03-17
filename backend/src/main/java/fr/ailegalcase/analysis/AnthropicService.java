@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +48,7 @@ public class AnthropicService {
         this.restClient = builder.baseUrl("https://api.anthropic.com").build();
     }
 
-    public String analyzeChunk(String chunkText) {
+    public AnthropicResult analyzeChunk(String chunkText) {
         if (chunkText == null || chunkText.isBlank()) {
             throw new IllegalArgumentException("chunkText must not be empty");
         }
@@ -68,12 +69,18 @@ public class AnthropicService {
                 .retrieve()
                 .body(AnthropicResponse.class);
 
-        String result = response.content().get(0).text();
-        log.debug("Anthropic response received ({} chars)", result.length());
-        return result;
+        String content = response.content().get(0).text();
+        log.debug("Anthropic response received ({} chars, {} prompt tokens, {} completion tokens)",
+                content.length(), response.usage().inputTokens(), response.usage().outputTokens());
+
+        return new AnthropicResult(content, response.model(),
+                response.usage().inputTokens(), response.usage().outputTokens());
     }
 
-    private record AnthropicResponse(List<ContentBlock> content) {
+    private record AnthropicResponse(List<ContentBlock> content, String model, Usage usage) {
         private record ContentBlock(String type, String text) {}
+        private record Usage(
+                @JsonProperty("input_tokens") int inputTokens,
+                @JsonProperty("output_tokens") int outputTokens) {}
     }
 }
