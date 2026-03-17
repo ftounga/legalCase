@@ -24,9 +24,22 @@ spring:
             jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
             user-info-uri: https://graph.microsoft.com/oidc/userinfo
             user-name-attribute: sub
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
 
 app:
   frontend-url: http://localhost:4200
+
+storage:
+  s3:
+    endpoint: ${S3_ENDPOINT:}
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY:minio}
+    secret-key: ${S3_SECRET_KEY:minio123}
+    bucket: ${S3_BUCKET:legalcase-dev}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:true}
 
 server:
   port: 8080

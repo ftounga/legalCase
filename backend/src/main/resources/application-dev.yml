@@ -21,6 +21,14 @@ logging:
     fr.ailegalcase: DEBUG
     liquibase: INFO
 
+storage:
+  s3:
+    endpoint: http://localhost:9000
+    access-key: minio
+    secret-key: minio123
+    bucket: legalcase-dev
+    path-style-access: true
+
 # OAuth2 credentials — variables d'environnement requises en dev :
 # GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET  → Google Cloud Console
 # MICROSOFT_CLIENT_ID / MICROSOFT_CLIENT_SECRET → Azure App Registrations

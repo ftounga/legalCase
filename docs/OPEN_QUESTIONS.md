@@ -38,6 +38,20 @@ L'isolation par workspace est-elle assurée par :
 
 ---
 
+## Provider de stockage objet (production)
+
+Quel provider S3-compatible sera utilisé en production ?
+- **Option A — Scaleway Object Storage** (hébergeur français, RGPD natif, ~0,01€/Go/mois) ← recommandé pour cabinets FR
+- **Option B — OVH Object Storage** (hébergeur français, RGPD natif, tarif similaire)
+- **Option C — AWS S3** (pay-per-use, région EU possible)
+- **Option D — MinIO auto-hébergé** (souveraineté totale, on-premise)
+
+> En développement : MinIO Docker (décidé le 2026-03-17).
+> Le code est identique quelle que soit l'option prod — seules les variables d'environnement changent.
+> À trancher avant la mise en production.
+
+---
+
 ## Conventions de nommage
 ~~À stabiliser quand le code prend forme~~
 **Tranchée le 2026-03-17** — Défini dans `project-governance/playbooks/coding-rules.md` :
