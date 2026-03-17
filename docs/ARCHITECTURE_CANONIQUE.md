@@ -327,12 +327,13 @@ Identité externe OAuth.
 
 Champs :
 
-id  
-user_id  
-provider  
-provider_user_id  
-provider_email  
+id
+user_id
+provider
+provider_user_id
+provider_email
 access_scope
+created_at
 
 ## workspaces
 
