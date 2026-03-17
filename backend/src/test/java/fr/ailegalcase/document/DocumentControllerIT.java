@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -222,7 +223,44 @@ class DocumentControllerIT {
                 .andExpect(jsonPath("$.originalFilename").value("courrier.docx"));
     }
 
-    // I-08 : GET liste vide → []
+    // I-08 : GET /{docId}/download → 302 avec Location header
+    @Test
+    void download_existingDoc_returns302() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "contrat.pdf", "application/pdf", "PDF content".getBytes());
+
+        String uploadResponse = mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file).with(authentication(auth)))
+                .andReturn().getResponse().getContentAsString();
+
+        String docId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(uploadResponse).get("id").asText();
+
+        when(storageService.presignedDownloadUrl(anyString(), any(Integer.class)))
+                .thenReturn("http://minio:9000/legalcase-dev/some-key?X-Amz-Signature=abc");
+
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents/" + docId + "/download")
+                        .with(authentication(auth)))
+                .andExpect(status().isFound())
+                .andExpect(header().exists("Location"));
+    }
+
+    // I-09 : download sans auth → 401
+    @Test
+    void download_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents/" + UUID.randomUUID() + "/download"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // I-10 : download doc inconnu → 404
+    @Test
+    void download_unknownDoc_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents/" + UUID.randomUUID() + "/download")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-11 : GET liste vide → []
     @Test
     void list_noDocs_returnsEmptyArray() throws Exception {
         mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents")

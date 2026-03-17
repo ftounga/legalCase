@@ -1,12 +1,15 @@
 package fr.ailegalcase.document;
 
 import fr.ailegalcase.shared.OAuthProviderResolver;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
 import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +30,19 @@ public class DocumentController {
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         return documentService.list(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
+    }
+
+    @GetMapping("/{documentId}/download")
+    public ResponseEntity<Void> download(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        String url = documentService.downloadUrl(caseFileId, documentId, oidcUser,
+                OAuthProviderResolver.resolve(principal));
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, url)
+                .build();
     }
 
     @PostMapping(consumes = "multipart/form-data")

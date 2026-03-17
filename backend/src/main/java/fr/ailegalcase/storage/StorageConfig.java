@@ -7,6 +7,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
 
@@ -19,6 +20,25 @@ public class StorageConfig {
                 .region(Region.of(props.getRegion()))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey())));
+
+        if (props.getEndpoint() != null && !props.getEndpoint().isBlank()) {
+            builder.endpointOverride(URI.create(props.getEndpoint()))
+                   .serviceConfiguration(S3Configuration.builder()
+                           .pathStyleAccessEnabled(props.isPathStyleAccess())
+                           .build());
+        }
+
+        return builder.build();
+    }
+
+    @Bean
+    public S3Presigner s3Presigner(StorageProperties props) {
+        var creds = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey()));
+
+        var builder = S3Presigner.builder()
+                .region(Region.of(props.getRegion()))
+                .credentialsProvider(creds);
 
         if (props.getEndpoint() != null && !props.getEndpoint().isBlank()) {
             builder.endpointOverride(URI.create(props.getEndpoint()))

@@ -49,6 +49,24 @@ public class DocumentService {
         this.storageService = storageService;
     }
 
+    private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 15;
+
+    @Transactional(readOnly = true)
+    public String downloadUrl(UUID caseFileId, UUID documentId, OidcUser oidcUser, String provider) {
+        User user = resolveUser(oidcUser, provider);
+        Workspace workspace = resolveWorkspace(user);
+        resolveCaseFile(caseFileId, workspace); // isolation check
+
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found"));
+
+        if (!document.getCaseFile().getId().equals(caseFileId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found");
+        }
+
+        return storageService.presignedDownloadUrl(document.getStorageKey(), PRESIGNED_URL_EXPIRATION_MINUTES);
+    }
+
     @Transactional(readOnly = true)
     public List<DocumentResponse> list(UUID caseFileId, OidcUser oidcUser, String provider) {
         User user = resolveUser(oidcUser, provider);

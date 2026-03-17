@@ -20,4 +20,8 @@ export class DocumentService {
     formData.append('file', file);
     return this.http.post<Document>(this.apiUrl(caseFileId), formData);
   }
+
+  downloadUrl(caseFileId: string, documentId: string): string {
+    return `${this.apiUrl(caseFileId)}/${documentId}/download`;
+  }
 }

@@ -14,4 +14,13 @@ public interface StorageService {
      * @return the storage key used
      */
     String upload(String key, InputStream inputStream, String contentType, long contentLength);
+
+    /**
+     * Generate a presigned URL to download an object.
+     *
+     * @param key              the object key in the bucket
+     * @param expirationMinutes how long the URL is valid
+     * @return a presigned URL string
+     */
+    String presignedDownloadUrl(String key, int expirationMinutes);
 }

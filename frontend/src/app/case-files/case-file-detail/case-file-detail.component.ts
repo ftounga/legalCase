@@ -31,7 +31,7 @@ export class CaseFileDetailComponent implements OnInit {
   loading = signal(true);
   uploading = signal(false);
 
-  readonly docColumns = ['name', 'type', 'size', 'date'];
+  readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
 
   constructor(
     private route: ActivatedRoute,
@@ -39,6 +39,10 @@ export class CaseFileDetailComponent implements OnInit {
     private documentService: DocumentService,
     private snackBar: MatSnackBar
   ) {}
+
+  downloadUrl(doc: Document): string {
+    return this.documentService.downloadUrl(this.caseFile()!.id, doc.id);
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;

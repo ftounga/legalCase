@@ -28,11 +28,12 @@ describe('CaseFileDetailComponent', () => {
 
   beforeEach(async () => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
-    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload']);
+    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
     documentServiceSpy.list.and.returnValue(of([mockDocument]));
+    documentServiceSpy.downloadUrl.and.returnValue('/api/v1/case-files/cf1/documents/doc1/download');
 
     await TestBed.configureTestingModule({
       imports: [CaseFileDetailComponent],
@@ -112,6 +113,11 @@ describe('CaseFileDetailComponent', () => {
 
   it('formatSize — mégaoctets', () => {
     expect(component.formatSize(5 * 1024 * 1024)).toBe('5.0 Mo');
+  });
+
+  it('downloadUrl — retourne l\'URL de téléchargement', () => {
+    const url = component.downloadUrl(mockDocument);
+    expect(url).toBe('/api/v1/case-files/cf1/documents/doc1/download');
   });
 
   it('statusLabel OPEN → "Ouvert"', () => {

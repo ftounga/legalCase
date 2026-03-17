@@ -40,4 +40,9 @@ describe('DocumentService', () => {
     expect(req.request.body instanceof FormData).toBeTrue();
     req.flush(mockDocument);
   });
+
+  it('downloadUrl — retourne l\'URL correcte', () => {
+    expect(service.downloadUrl('cf1', 'doc1'))
+      .toBe('/api/v1/case-files/cf1/documents/doc1/download');
+  });
 });

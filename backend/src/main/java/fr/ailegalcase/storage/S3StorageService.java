@@ -7,6 +7,10 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+
+import java.time.Duration;
 
 import java.io.InputStream;
 
@@ -16,10 +20,12 @@ public class S3StorageService implements StorageService {
     private static final Logger log = LoggerFactory.getLogger(S3StorageService.class);
 
     private final S3Client s3Client;
+    private final S3Presigner presigner;
     private final StorageProperties props;
 
-    public S3StorageService(S3Client s3Client, StorageProperties props) {
+    public S3StorageService(S3Client s3Client, S3Presigner presigner, StorageProperties props) {
         this.s3Client = s3Client;
+        this.presigner = presigner;
         this.props = props;
     }
 
@@ -48,5 +54,14 @@ public class S3StorageService implements StorageService {
                 RequestBody.fromInputStream(inputStream, contentLength)
         );
         return key;
+    }
+
+    @Override
+    public String presignedDownloadUrl(String key, int expirationMinutes) {
+        var presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofMinutes(expirationMinutes))
+                .getObjectRequest(r -> r.bucket(props.getBucket()).key(key))
+                .build();
+        return presigner.presignGetObject(presignRequest).url().toString();
     }
 }
