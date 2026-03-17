@@ -39,7 +39,8 @@ L'isolation par workspace est-elle assurée par :
 ---
 
 ## Conventions de nommage
-À stabiliser quand le code prend forme :
-- Structure des packages Java (ex: `fr.ailegalcase.workspace`, `fr.ailegalcase.casefile`...)
-- Nommage des composants Angular
-- Conventions SQL (déjà posées dans ARCHITECTURE_CANONIQUE)
+~~À stabiliser quand le code prend forme~~
+**Tranchée le 2026-03-17** — Défini dans `project-governance/playbooks/coding-rules.md` :
+- Packages Java : `fr.ailegalcase.{workspace,casefile,document,analysis,auth,billing,shared}`
+- Nommage Angular : kebab-case composants, PascalCase classes/services
+- Conventions SQL : déjà posées dans ARCHITECTURE_CANONIQUE

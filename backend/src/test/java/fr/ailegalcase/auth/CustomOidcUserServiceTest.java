@@ -1,5 +1,6 @@
 package fr.ailegalcase.auth;
 
+import fr.ailegalcase.workspace.WorkspaceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,13 +29,16 @@ class CustomOidcUserServiceTest {
     private AuthAccountRepository authAccountRepository;
 
     @Mock
+    private WorkspaceService workspaceService;
+
+    @Mock
     private OidcUser oidcUser;
 
     private CustomOidcUserService service;
 
     @BeforeEach
     void setUp() {
-        service = new CustomOidcUserService(userRepository, authAccountRepository);
+        service = new CustomOidcUserService(userRepository, authAccountRepository, workspaceService);
     }
 
     // U-01 : premier login — claims complets → user + auth_account créés
