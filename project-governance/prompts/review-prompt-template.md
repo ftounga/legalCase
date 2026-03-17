@@ -28,11 +28,12 @@ LECTURE OBLIGATOIRE avant toute réponse :
 Lis les fichiers suivants dans le repo courant :
 1. CLAUDE.md
 2. docs/ARCHITECTURE_CANONIQUE.md
-3. project-governance/playbooks/coding-rules.md
-4. project-governance/playbooks/review-rules.md
-5. project-governance/playbooks/testing-strategy.md
-6. project-governance/checklists/review-checklist.md
-7. ai-skills/review-checklist-runner.md
+3. docs/PRODUCT_SPEC.md
+4. project-governance/playbooks/coding-rules.md
+5. project-governance/playbooks/review-rules.md
+6. project-governance/playbooks/testing-strategy.md
+7. project-governance/checklists/review-checklist.md
+8. ai-skills/review-checklist-runner.md
 
 ---
 

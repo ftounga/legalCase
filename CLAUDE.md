@@ -6,8 +6,9 @@ Lire ces documents avant toute réponse impliquant du code, une spec ou une déc
 
 ### Architecture
 1. `docs/ARCHITECTURE_CANONIQUE.md` — source de vérité architecture (obligatoire)
-2. `docs/OPEN_QUESTIONS.md` — registre des sujets non tranchés (obligatoire)
-3. `docs/DESIGN_SYSTEM.md` — charte graphique et règles UI (obligatoire pour tout travail frontend)
+2. `docs/PRODUCT_SPEC.md` — source de vérité fonctionnelle — liste officielle des features (obligatoire)
+3. `docs/OPEN_QUESTIONS.md` — registre des sujets non tranchés (obligatoire)
+4. `docs/DESIGN_SYSTEM.md` — charte graphique et règles UI (obligatoire pour tout travail frontend)
 
 ### Process
 4. `project-governance/playbooks/feature-lifecycle.md` — cycle de vie des features
@@ -59,6 +60,11 @@ Ce cycle est non négociable. Chaque étape a ses prérequis. Aucune étape ne p
 - Toute décision touchant à `docs/OPEN_QUESTIONS.md` doit être explicitement posée avant implémentation
 - Ne jamais implémenter silencieusement une solution à un sujet ouvert
 
+### Features — règle d'existence
+- Toute feature implémentée doit être référencée dans `docs/PRODUCT_SPEC.md`
+- Toute nouvelle feature doit être ajoutée à `docs/PRODUCT_SPEC.md` et validée avant tout dev
+- Le statut de chaque feature dans `docs/PRODUCT_SPEC.md` doit être maintenu à jour
+
 ---
 
 ## Détection des demandes multi-features
@@ -100,6 +106,7 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Subfeature estimée > 2 jours | REFUS — demander un redécoupage |
 | Question ouverte non tranchée et bloquante | BLOCAGE — signaler, ne pas avancer |
 | Incohérence avec `ARCHITECTURE_CANONIQUE.md` | BLOCAGE — signaler la divergence |
+| Feature non référencée dans `PRODUCT_SPEC.md` | REFUS — ajouter la feature au PRODUCT_SPEC avant tout dev |
 | Traitement IA demandé de façon synchrone | REFUS — rappeler la règle async |
 | Accès données sans filtre `workspace_id` | REFUS — rappeler la règle d'isolation |
 | Composant frontend utilisant couleurs/polices hors `DESIGN_SYSTEM.md` | BLOCAGE — signaler la divergence |

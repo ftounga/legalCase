@@ -25,21 +25,22 @@ LECTURE OBLIGATOIRE avant toute réponse :
 Lis les fichiers suivants dans le repo courant dans cet ordre :
 1. CLAUDE.md
 2. docs/ARCHITECTURE_CANONIQUE.md
-3. docs/OPEN_QUESTIONS.md
-4. project-governance/playbooks/feature-lifecycle.md
-5. project-governance/playbooks/coding-rules.md
-6. project-governance/playbooks/review-rules.md
-7. project-governance/playbooks/testing-strategy.md
-8. project-governance/playbooks/definition-of-done.md
-9. project-governance/checklists/readiness-checklist.md
-10. project-governance/checklists/review-checklist.md
-11. project-governance/checklists/release-checklist.md
-12. project-governance/templates/feature-template.md
-13. project-governance/templates/subfeature-template.md
-14. project-governance/templates/test-plan-template.md
-15. ai-skills/feature-splitter.md
-16. ai-skills/story-writer.md
-17. ai-skills/test-case-generator.md
+3. docs/PRODUCT_SPEC.md
+4. docs/OPEN_QUESTIONS.md
+5. project-governance/playbooks/feature-lifecycle.md
+6. project-governance/playbooks/coding-rules.md
+7. project-governance/playbooks/review-rules.md
+8. project-governance/playbooks/testing-strategy.md
+9. project-governance/playbooks/definition-of-done.md
+10. project-governance/checklists/readiness-checklist.md
+11. project-governance/checklists/review-checklist.md
+12. project-governance/checklists/release-checklist.md
+13. project-governance/templates/feature-template.md
+14. project-governance/templates/subfeature-template.md
+15. project-governance/templates/test-plan-template.md
+16. ai-skills/feature-splitter.md
+17. ai-skills/story-writer.md
+18. ai-skills/test-case-generator.md
 
 Ne commence à travailler qu'une fois ces documents lus.
 

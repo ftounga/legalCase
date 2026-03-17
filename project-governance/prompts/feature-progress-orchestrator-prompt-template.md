@@ -25,13 +25,14 @@ LECTURE OBLIGATOIRE avant toute réponse :
 Lis les fichiers suivants dans le repo courant dans cet ordre :
 1. CLAUDE.md
 2. docs/ARCHITECTURE_CANONIQUE.md
-3. docs/OPEN_QUESTIONS.md
-4. project-governance/playbooks/feature-lifecycle.md
-5. project-governance/playbooks/definition-of-done.md
-6. project-governance/checklists/readiness-checklist.md
-7. project-governance/checklists/review-checklist.md
-8. project-governance/checklists/release-checklist.md
-9. project-governance/templates/subfeature-template.md
+3. docs/PRODUCT_SPEC.md
+4. docs/OPEN_QUESTIONS.md
+5. project-governance/playbooks/feature-lifecycle.md
+6. project-governance/playbooks/definition-of-done.md
+7. project-governance/checklists/readiness-checklist.md
+8. project-governance/checklists/review-checklist.md
+9. project-governance/checklists/release-checklist.md
+10. project-governance/templates/subfeature-template.md
 
 Ne commence à travailler qu'une fois ces documents lus.
 
