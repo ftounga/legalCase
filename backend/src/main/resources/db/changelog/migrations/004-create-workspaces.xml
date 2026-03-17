@@ -21,6 +21,7 @@
                              foreignKeyName="fk_workspaces_owner_user_id"
                              references="users(id)"/>
             </column>
+            <column name="billing_email" type="varchar(255)"/>
             <column name="plan_code" type="varchar(50)">
                 <constraints nullable="false"/>
             </column>

@@ -28,6 +28,8 @@ public class Workspace {
     @JoinColumn(name = "owner_user_id", nullable = false)
     private User owner;
 
+    private String billingEmail;
+
     @Column(nullable = false, length = 50)
     private String planCode;
 
