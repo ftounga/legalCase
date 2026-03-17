@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.UUID;
+
 @Service
 public class CaseFileService {
 
@@ -74,5 +76,28 @@ public class CaseFileService {
         return caseFileRepository.findByWorkspace(workspace, pageable)
                 .map(cf -> new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
                         cf.getDescription(), cf.getStatus(), cf.getCreatedAt()));
+    }
+
+    @Transactional(readOnly = true)
+    public CaseFileResponse getById(UUID id, OidcUser oidcUser, String provider) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getUser();
+
+        Workspace workspace = workspaceMemberRepository
+                .findFirstByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getWorkspace();
+
+        CaseFile caseFile = caseFileRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
+
+        if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
+        }
+
+        return new CaseFileResponse(caseFile.getId(), caseFile.getTitle(), caseFile.getLegalDomain(),
+                caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt());
     }
 }
