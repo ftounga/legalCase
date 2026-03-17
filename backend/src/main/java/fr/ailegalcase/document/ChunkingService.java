@@ -2,6 +2,7 @@ package fr.ailegalcase.document;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,11 +23,14 @@ public class ChunkingService {
 
     private final DocumentExtractionRepository extractionRepository;
     private final DocumentChunkRepository chunkRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ChunkingService(DocumentExtractionRepository extractionRepository,
-                           DocumentChunkRepository chunkRepository) {
+                           DocumentChunkRepository chunkRepository,
+                           ApplicationEventPublisher eventPublisher) {
         this.extractionRepository = extractionRepository;
         this.chunkRepository = chunkRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Async
@@ -45,8 +49,11 @@ public class ChunkingService {
         DocumentExtraction extractionRef = extractionRepository.getReferenceById(extractionId);
         List<DocumentChunk> chunks = buildChunks(extractedText, extractionRef);
 
-        chunkRepository.saveAll(chunks);
-        log.info("Chunking done for extraction {} — {} chunks created", extractionId, chunks.size());
+        List<DocumentChunk> saved = chunkRepository.saveAll(chunks);
+        log.info("Chunking done for extraction {} — {} chunks created", extractionId, saved.size());
+
+        List<UUID> chunkIds = saved.stream().map(DocumentChunk::getId).toList();
+        eventPublisher.publishEvent(new ChunkingDoneEvent(extractionId, chunkIds));
     }
 
     private List<DocumentChunk> buildChunks(String text, DocumentExtraction extraction) {

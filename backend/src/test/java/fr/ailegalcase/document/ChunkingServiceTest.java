@@ -1,6 +1,7 @@
 package fr.ailegalcase.document;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.UUID;
 
@@ -14,8 +15,10 @@ class ChunkingServiceTest {
             mock(DocumentExtractionRepository.class);
     private final DocumentChunkRepository chunkRepository =
             mock(DocumentChunkRepository.class);
+    private final ApplicationEventPublisher eventPublisher =
+            mock(ApplicationEventPublisher.class);
 
-    private final ChunkingService service = new ChunkingService(extractionRepository, chunkRepository);
+    private final ChunkingService service = new ChunkingService(extractionRepository, chunkRepository, eventPublisher);
 
     // U-01 : texte < 1000 chars → 1 chunk
     @Test
