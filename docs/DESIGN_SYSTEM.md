@@ -15,9 +15,13 @@ Toute divergence doit être explicitement signalée et validée.
 Ni startup flashy, ni logiciel d'entreprise froid. Crédibilité et clarté avant tout.
 
 **Logo** :
-- Symbole : balance de justice stylisée + initiales "LC"
-- Texte : `AI` en or (`#C9973A`) — `LegalCase` en bleu marine (`#1A3A5C`)
-- Police du logotype : Merriweather Bold
+- Fichier : `frontend/public/legalcase-logo.png` (1536×1024px, fond blanc)
+- Symbole : bouclier bleu marine avec maillet doré en 3D
+- Texte : `LEGAL` en bleu marine — `CASE` en or
+- Largeur d'affichage standard : 220px dans les cartes / pages d'accueil
+- Largeur dans le header : 140px maximum
+- Ne pas recadrer, déformer, recolorer ou modifier le logo
+- Fond blanc ou très clair uniquement (pas de logo sur fond sombre sans version adaptée)
 
 ---
 

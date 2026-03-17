@@ -1,14 +1,14 @@
 <div class="home-container">
   <mat-card class="home-card">
-    <mat-card-header>
-      <mat-icon mat-card-avatar>gavel</mat-icon>
-      <mat-card-title>AI LegalCase</mat-card-title>
-      <mat-card-subtitle>Plateforme LegalTech pour avocats</mat-card-subtitle>
-    </mat-card-header>
+    <div class="home-card__logo">
+      <img src="legalcase-logo.png" alt="AI LegalCase" class="logo-img" />
+    </div>
 
     <mat-card-content>
+      <p class="home-card__subtitle">Plateforme LegalTech pour avocats</p>
+
       <div class="backend-status">
-        <h3>Statut du backend</h3>
+        <p class="backend-status__label">Statut du backend</p>
 
         <ng-container *ngIf="health$ | async as health; else loading">
           <ng-container *ngIf="health; else error">
