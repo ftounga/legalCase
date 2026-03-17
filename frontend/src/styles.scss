@@ -144,3 +144,19 @@ h4 { font-size: 18px; font-weight: 600; }
 .mat-mdc-form-field {
   width: 100%;
 }
+
+// ─── Snackbar globaux ─────────────────────────────────────────────────────
+.snack-success .mdc-snackbar__surface {
+  background-color: var(--color-success) !important;
+  color: white !important;
+}
+
+.snack-error .mdc-snackbar__surface {
+  background-color: var(--color-error) !important;
+  color: white !important;
+}
+
+// ─── Table hover ──────────────────────────────────────────────────────────
+.mat-mdc-row:hover .mat-mdc-cell {
+  background-color: var(--color-background);
+}

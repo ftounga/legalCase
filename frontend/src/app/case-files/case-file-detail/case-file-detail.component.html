@@ -1,0 +1,35 @@
+@if (loading()) {
+  <div class="loading-state">Chargement...</div>
+} @else if (caseFile()) {
+  <div class="detail-header">
+    <button mat-button routerLink="/case-files" class="back-btn">
+      <mat-icon>arrow_back</mat-icon>
+      Retour aux dossiers
+    </button>
+    <div class="title-row">
+      <h1 class="page-title">{{ caseFile()!.title }}</h1>
+      <span class="badge badge--success">{{ statusLabel(caseFile()!.status) }}</span>
+    </div>
+  </div>
+
+  <mat-card class="detail-card">
+    <mat-card-content>
+      <div class="detail-field">
+        <span class="field-label">Domaine juridique</span>
+        <span class="field-value">{{ caseFile()!.legalDomain }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="field-label">Créé le</span>
+        <span class="field-value">{{ caseFile()!.createdAt | date:'dd/MM/yyyy à HH:mm' }}</span>
+      </div>
+      @if (caseFile()!.description) {
+        <div class="detail-field">
+          <span class="field-label">Description</span>
+          <p class="field-value description">{{ caseFile()!.description }}</p>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+} @else {
+  <p class="no-data">Dossier introuvable.</p>
+}

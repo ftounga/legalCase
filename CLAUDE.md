@@ -111,6 +111,8 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Accès données sans filtre `workspace_id` | REFUS — rappeler la règle d'isolation |
 | Composant frontend utilisant couleurs/polices hors `DESIGN_SYSTEM.md` | BLOCAGE — signaler la divergence |
 | Ecran produit sans header/layout conforme au design system | BLOCAGE — signaler la divergence |
+| Feature avec écran utilisateur marquée `Terminée` sans composant Angular implémenté | REFUS — implémenter les écrans manquants avant de marquer Terminée |
+| Subfeature backend mergée sans subfeature frontend planifiée (si la feature a une UI) | BLOCAGE — planifier et créer la subfeature frontend correspondante avant de continuer |
 
 **Format de refus standard :**
 ```

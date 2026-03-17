@@ -1,0 +1,22 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <mat-card-content>
+      <img src="/legalcase-logo.png" alt="AI LegalCase" class="login-logo" />
+      <h1 class="login-title">Bienvenue sur AI LegalCase</h1>
+      <p class="login-subtitle">Connectez-vous pour accéder à vos dossiers</p>
+
+      <mat-divider class="login-divider" />
+
+      <div class="login-buttons">
+        <button mat-flat-button color="primary" class="login-btn" (click)="auth.loginWithGoogle()">
+          <mat-icon>login</mat-icon>
+          Se connecter avec Google
+        </button>
+        <button mat-stroked-button class="login-btn" (click)="auth.loginWithMicrosoft()">
+          <mat-icon>business_center</mat-icon>
+          Se connecter avec Microsoft
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

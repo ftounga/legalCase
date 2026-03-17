@@ -20,7 +20,7 @@ Un seul critère rouge = la subfeature n'est pas Done.
 
 ---
 
-## Critères — Tests
+## Critères — Tests backend
 
 - [ ] Tests unitaires présents sur la logique métier du service
 - [ ] Tests d'intégration présents sur les endpoints exposés
@@ -28,6 +28,17 @@ Un seul critère rouge = la subfeature n'est pas Done.
 - [ ] L'isolation workspace est testée (un workspace ne peut pas voir les données d'un autre)
 - [ ] Tous les tests passent (aucun test ignoré ou commenté)
 - [ ] Le plan de test de la mini-spec est couvert
+
+## Critères — Tests frontend
+
+> S'applique à toute subfeature avec composant Angular. Cocher N/A si purement backend.
+
+- [ ] Un fichier `.spec.ts` existe pour chaque composant et service créé ou modifié
+- [ ] Le composant se crée sans erreur (`should create` passant)
+- [ ] Les interactions utilisateur clés sont testées (clic bouton, soumission formulaire)
+- [ ] Les cas d'erreur API sont testés (service renvoie une erreur → comportement attendu)
+- [ ] Les services Angular sont testés avec `HttpClientTestingModule` (requêtes émises, réponses mappées)
+- [ ] Tous les tests Karma passent (`npm test -- --watch=false`)
 
 ---
 
@@ -63,6 +74,23 @@ Un seul critère rouge = la subfeature n'est pas Done.
 - [ ] Si une décision d'architecture est prise : un ADR est créé (`project-governance/templates/adr-template.md`)
 - [ ] Si une question ouverte est tranchée : `docs/OPEN_QUESTIONS.md` est mis à jour
 - [ ] Si une nouvelle table est ajoutée : `docs/ARCHITECTURE_CANONIQUE.md` est mis à jour
+
+---
+
+## Critères — Frontend
+
+> S'applique à toute subfeature ou feature comportant un écran utilisateur visible.
+> Si la subfeature est purement backend (pas d'écran), cocher N/A explicitement.
+
+- [ ] Un composant Angular est créé pour chaque écran décrit dans la mini-spec
+- [ ] Le composant respecte le layout défini dans `docs/DESIGN_SYSTEM.md` (header, sidenav, padding)
+- [ ] Les couleurs, polices et espacements respectent le Design System (palette, typographie, multiples de 8px)
+- [ ] Les appels API passent par un service Angular dédié (jamais d'HttpClient dans un composant)
+- [ ] Les erreurs API sont affichées via `MatSnackBar` (jamais `alert()`)
+- [ ] Les formulaires utilisent `mat-form-field appearance="outline"` avec `mat-error`
+- [ ] Les listes utilisent `mat-table` avec `mat-paginator`
+- [ ] L'écran est protégé par un `AuthGuard` si l'accès requiert une authentification
+- [ ] Le routage est déclaré dans `app.routes.ts`
 
 ---
 
