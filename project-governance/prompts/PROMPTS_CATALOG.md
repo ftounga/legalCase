@@ -27,6 +27,8 @@ Objectif : garantir que le framework de gouvernance s'applique de façon cohére
 | **subfeature-implementation** | Implémenter une subfeature déjà Ready for Dev | Quand la mini-spec est validée et le dev peut démarrer | `subfeature-implementation-prompt-template.md` |
 | **review** | Effectuer une review selon les checklists du projet | Quand une PR est ouverte et doit être reviewée | `review-prompt-template.md` |
 | **dod-check** | Vérifier la Definition of Done | Avant tout merge — validation finale de complétude | `dod-check-prompt-template.md` |
+| **feature-progress-orchestrator** | Reprendre une feature en cours et identifier la prochaine étape exacte | Quand tu reviens sur une feature après une interruption ou que tu ne sais plus où tu en es | `feature-progress-orchestrator-prompt-template.md` |
+| **next-subfeature** | Passer à la subfeature suivante après clôture de la précédente | Une fois la subfeature courante mergée et son DoD vérifié — pour démarrer le cycle de la suivante | `next-subfeature-prompt-template.md` |
 
 ---
 
@@ -37,7 +39,10 @@ feature-kickoff
   → subfeature-implementation   (quand mini-spec validée)
     → review                    (quand code produit)
       → dod-check               (avant merge)
+        → next-subfeature       (subfeature suivante du même feature)
+          → subfeature-implementation → review → dod-check → ...
 
+feature-progress-orchestrator   (reprise après interruption — détecte où on en est)
 feature-audit                   (à tout moment pour tester le framework)
 prompt-generator                (pour créer un prompt sur mesure)
 ```
