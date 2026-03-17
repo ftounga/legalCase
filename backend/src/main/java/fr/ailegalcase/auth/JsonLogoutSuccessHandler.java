@@ -20,8 +20,7 @@ public class JsonLogoutSuccessHandler implements LogoutSuccessHandler {
     @Override
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response,
                                 Authentication authentication) throws IOException {
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("application/json;charset=UTF-8");
-        objectMapper.writeValue(response.getWriter(), Map.of("message", "Logged out successfully"));
+        JsonResponseWriter.write(response, objectMapper, HttpServletResponse.SC_OK,
+                Map.of("message", "Logged out successfully"));
     }
 }
