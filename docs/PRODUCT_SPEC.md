@@ -43,7 +43,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
-| F-03 | Création de dossier | Formulaire de création : titre, domaine juridique (EMPLOYMENT_LAW en V1), description optionnelle. | `À spécifier` |
+| F-03 | Création de dossier | Formulaire de création : titre, domaine juridique (EMPLOYMENT_LAW en V1), description optionnelle. | `Terminée` |
 | F-04 | Liste & consultation des dossiers | Dashboard principal. Liste paginée des dossiers du workspace. Navigation vers un dossier. Statuts visibles. | `À spécifier` |
 
 ### Bloc 3 — Documents
