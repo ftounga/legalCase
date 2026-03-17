@@ -44,7 +44,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-03 | Création de dossier | Formulaire de création : titre, domaine juridique (EMPLOYMENT_LAW en V1), description optionnelle. | `Terminée` |
-| F-04 | Liste & consultation des dossiers | Dashboard principal. Liste paginée des dossiers du workspace. Navigation vers un dossier. Statuts visibles. | `À spécifier` |
+| F-04 | Liste & consultation des dossiers | Dashboard principal. Liste paginée des dossiers du workspace. Navigation vers un dossier. Statuts visibles. | `Terminée` |
 
 ### Bloc 3 — Documents
 
@@ -117,3 +117,5 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-17 | Création initiale — 17 features V1 définies | Product owner |
 | 2026-03-17 | F-01 marquée Terminée — 5 subfeatures mergées sur master | Product owner |
 | 2026-03-17 | F-02 marquée Terminée — 2 subfeatures mergées sur master | Product owner |
+| 2026-03-17 | F-03 marquée Terminée — SF-03-01 mergée sur master | Product owner |
+| 2026-03-17 | F-04 marquée Terminée — SF-04-01 (liste) + SF-04-02 (get by id) mergées sur master | Product owner |
