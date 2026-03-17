@@ -1,9 +1,7 @@
 package fr.ailegalcase.auth;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import fr.ailegalcase.shared.OAuthProviderResolver;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -18,8 +16,6 @@ import java.security.Principal;
 @RequestMapping("/api")
 public class MeController {
 
-    private static final Logger log = LoggerFactory.getLogger(MeController.class);
-
     private final AuthAccountRepository authAccountRepository;
 
     public MeController(AuthAccountRepository authAccountRepository) {
@@ -29,7 +25,7 @@ public class MeController {
     @GetMapping("/me")
     @Transactional(readOnly = true)
     public MeResponse me(@AuthenticationPrincipal OidcUser oidcUser, Principal principal) {
-        String provider = resolveProvider(principal);
+        String provider = OAuthProviderResolver.resolve(principal);
 
         AuthAccount account = authAccountRepository
                 .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
@@ -41,12 +37,4 @@ public class MeController {
                 user.getLastName(), account.getProvider());
     }
 
-    // Kept in controller — single-line logic not worth a dedicated service in V1
-    private String resolveProvider(Principal principal) {
-        if (principal instanceof OAuth2AuthenticationToken token) {
-            return token.getAuthorizedClientRegistrationId().toUpperCase();
-        }
-        log.warn("Unexpected principal type in /api/me: {}", principal != null ? principal.getClass().getName() : "null");
-        return "UNKNOWN";
-    }
 }
