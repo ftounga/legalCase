@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,6 +47,15 @@ public class DocumentService {
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.storageService = storageService;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DocumentResponse> list(UUID caseFileId, OidcUser oidcUser, String provider) {
+        User user = resolveUser(oidcUser, provider);
+        Workspace workspace = resolveWorkspace(user);
+        CaseFile caseFile = resolveCaseFile(caseFileId, workspace);
+        return documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional

@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -219,6 +220,49 @@ class DocumentControllerIT {
                         .with(authentication(auth)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.originalFilename").value("courrier.docx"));
+    }
+
+    // I-08 : GET liste vide → []
+    @Test
+    void list_noDocs_returnsEmptyArray() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    // I-09 : GET liste avec docs → retourne les documents
+    @Test
+    void list_withDocs_returnsItems() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "contrat.pdf", "application/pdf", "PDF content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file).with(authentication(auth)));
+
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].originalFilename").value("contrat.pdf"))
+                .andExpect(jsonPath("$[0].contentType").value("application/pdf"))
+                .andExpect(jsonPath("$[0].caseFileId").value(caseFileId.toString()));
+    }
+
+    // I-10 : GET liste sans auth → 401
+    @Test
+    void list_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // I-11 : GET liste — dossier d'un autre workspace → 404
+    @Test
+    void list_otherWorkspaceCaseFile_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + otherCaseFileId + "/documents")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

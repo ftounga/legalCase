@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,6 +19,14 @@ public class DocumentController {
 
     public DocumentController(DocumentService documentService) {
         this.documentService = documentService;
+    }
+
+    @GetMapping
+    public List<DocumentResponse> list(
+            @PathVariable UUID caseFileId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return documentService.list(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
     }
 
     @PostMapping(consumes = "multipart/form-data")
