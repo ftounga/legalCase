@@ -1,5 +1,7 @@
 package fr.ailegalcase.auth;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -15,6 +17,8 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api")
 public class MeController {
+
+    private static final Logger log = LoggerFactory.getLogger(MeController.class);
 
     private final AuthAccountRepository authAccountRepository;
 
@@ -37,10 +41,12 @@ public class MeController {
                 user.getLastName(), account.getProvider());
     }
 
+    // Kept in controller — single-line logic not worth a dedicated service in V1
     private String resolveProvider(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken token) {
             return token.getAuthorizedClientRegistrationId().toUpperCase();
         }
+        log.warn("Unexpected principal type in /api/me: {}", principal != null ? principal.getClass().getName() : "null");
         return "UNKNOWN";
     }
 }
