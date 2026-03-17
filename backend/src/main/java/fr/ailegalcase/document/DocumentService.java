@@ -7,6 +7,7 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.storage.StorageService;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -36,17 +37,20 @@ public class DocumentService {
     private final AuthAccountRepository authAccountRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final StorageService storageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DocumentService(DocumentRepository documentRepository,
                            CaseFileRepository caseFileRepository,
                            AuthAccountRepository authAccountRepository,
                            WorkspaceMemberRepository workspaceMemberRepository,
-                           StorageService storageService) {
+                           StorageService storageService,
+                           ApplicationEventPublisher eventPublisher) {
         this.documentRepository = documentRepository;
         this.caseFileRepository = caseFileRepository;
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.storageService = storageService;
+        this.eventPublisher = eventPublisher;
     }
 
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 15;
@@ -101,6 +105,7 @@ public class DocumentService {
         document.setFileSize(file.getSize());
         document.setStorageKey(storageKey);
         documentRepository.save(document);
+        eventPublisher.publishEvent(new DocumentUploadedEvent(document.getId(), storageKey, file.getContentType()));
 
         return toResponse(document);
     }
