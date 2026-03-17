@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,15 +24,18 @@ public class ChunkAnalysisService {
     private final RabbitTemplate rabbitTemplate;
     private final DocumentChunkRepository chunkRepository;
     private final ChunkAnalysisRepository analysisRepository;
+    private final DocumentAnalysisRepository documentAnalysisRepository;
     private final AnthropicService anthropicService;
 
     public ChunkAnalysisService(RabbitTemplate rabbitTemplate,
                                 DocumentChunkRepository chunkRepository,
                                 ChunkAnalysisRepository analysisRepository,
+                                DocumentAnalysisRepository documentAnalysisRepository,
                                 AnthropicService anthropicService) {
         this.rabbitTemplate = rabbitTemplate;
         this.chunkRepository = chunkRepository;
         this.analysisRepository = analysisRepository;
+        this.documentAnalysisRepository = documentAnalysisRepository;
         this.anthropicService = anthropicService;
     }
 
@@ -85,5 +89,34 @@ public class ChunkAnalysisService {
         }
 
         analysisRepository.save(analysis);
+
+        if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
+            triggerDocumentAnalysisIfReady(chunk.getExtraction().getId());
+        }
+    }
+
+    private void triggerDocumentAnalysisIfReady(UUID extractionId) {
+        long totalChunks = chunkRepository.countByExtractionId(extractionId);
+        long doneAnalyses = analysisRepository.countByChunkExtractionIdAndAnalysisStatus(
+                extractionId, AnalysisStatus.DONE);
+
+        if (totalChunks != doneAnalyses) {
+            return;
+        }
+
+        boolean alreadyTriggered = documentAnalysisRepository.existsByExtractionIdAndAnalysisStatusIn(
+                extractionId, List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING, AnalysisStatus.DONE));
+
+        if (alreadyTriggered) {
+            log.debug("DocumentAnalysis already exists for extraction {} — skipping", extractionId);
+            return;
+        }
+
+        log.info("All chunks DONE for extraction {} — triggering document analysis", extractionId);
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.DOCUMENT_ANALYSIS_EXCHANGE,
+                RabbitMQConfig.DOCUMENT_ANALYSIS_ROUTING_KEY,
+                new DocumentAnalysisMessage(extractionId)
+        );
     }
 }

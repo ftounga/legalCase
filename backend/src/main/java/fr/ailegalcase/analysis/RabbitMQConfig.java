@@ -21,6 +21,10 @@ public class RabbitMQConfig {
     public static final String CHUNK_ANALYSIS_EXCHANGE = "chunk.analysis.exchange";
     public static final String CHUNK_ANALYSIS_ROUTING_KEY = "chunk.analysis";
 
+    public static final String DOCUMENT_ANALYSIS_QUEUE = "document.analysis";
+    public static final String DOCUMENT_ANALYSIS_EXCHANGE = "document.analysis.exchange";
+    public static final String DOCUMENT_ANALYSIS_ROUTING_KEY = "document.analysis";
+
     @Bean
     public Queue chunkAnalysisQueue() {
         return new Queue(CHUNK_ANALYSIS_QUEUE, true);
@@ -37,6 +41,24 @@ public class RabbitMQConfig {
                 .bind(chunkAnalysisQueue)
                 .to(chunkAnalysisExchange)
                 .with(CHUNK_ANALYSIS_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue documentAnalysisQueue() {
+        return new Queue(DOCUMENT_ANALYSIS_QUEUE, true);
+    }
+
+    @Bean
+    public DirectExchange documentAnalysisExchange() {
+        return new DirectExchange(DOCUMENT_ANALYSIS_EXCHANGE);
+    }
+
+    @Bean
+    public Binding documentAnalysisBinding(Queue documentAnalysisQueue, DirectExchange documentAnalysisExchange) {
+        return BindingBuilder
+                .bind(documentAnalysisQueue)
+                .to(documentAnalysisExchange)
+                .with(DOCUMENT_ANALYSIS_ROUTING_KEY);
     }
 
     @Bean

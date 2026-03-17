@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, UUID> {
     List<DocumentChunk> findByExtractionOrderByChunkIndex(DocumentExtraction extraction);
+
+    long countByExtractionId(UUID extractionId);
 }

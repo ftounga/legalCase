@@ -8,4 +8,8 @@ import java.util.UUID;
 public interface ChunkAnalysisRepository extends JpaRepository<ChunkAnalysis, UUID> {
 
     List<ChunkAnalysis> findByChunkId(UUID chunkId);
+
+    long countByChunkExtractionIdAndAnalysisStatus(UUID extractionId, AnalysisStatus status);
+
+    List<ChunkAnalysis> findByChunkExtractionIdAndAnalysisStatus(UUID extractionId, AnalysisStatus status);
 }
