@@ -1,5 +1,6 @@
 package fr.ailegalcase.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -10,6 +11,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final ObjectMapper objectMapper;
+
+    public SecurityConfig(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -29,7 +36,7 @@ public class SecurityConfig {
             )
             .oauth2Login(Customizer.withDefaults())
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(new UnauthorizedEntryPoint())
+                .authenticationEntryPoint(new UnauthorizedEntryPoint(objectMapper))
             );
         return http.build();
     }
