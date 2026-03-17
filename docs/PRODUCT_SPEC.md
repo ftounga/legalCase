@@ -37,7 +37,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-01 | Authentification OAuth2 | Login Google + Microsoft. Aucun mot de passe local. Spring Security + OAuth2/OIDC. | `Terminée` |
-| F-02 | Onboarding & workspace | Premier login → création automatique user + workspace + rôle OWNER. Redirection dashboard. | `À spécifier` |
+| F-02 | Onboarding & workspace | Premier login → création automatique user + workspace + rôle OWNER. Redirection dashboard. | `Terminée` |
 
 ### Bloc 2 — Gestion des dossiers
 
@@ -116,3 +116,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |------|-------------|------------|
 | 2026-03-17 | Création initiale — 17 features V1 définies | Product owner |
 | 2026-03-17 | F-01 marquée Terminée — 5 subfeatures mergées sur master | Product owner |
+| 2026-03-17 | F-02 marquée Terminée — 2 subfeatures mergées sur master | Product owner |
