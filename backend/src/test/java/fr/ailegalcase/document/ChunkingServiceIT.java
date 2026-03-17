@@ -14,13 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = {
         "spring.security.oauth2.client.registration.google.client-id=test-google-id",
@@ -28,9 +25,10 @@ import static org.mockito.Mockito.when;
         "spring.security.oauth2.client.registration.microsoft.client-id=test-microsoft-id",
         "spring.security.oauth2.client.registration.microsoft.client-secret=test-microsoft-secret"
 })
-class ExtractionServiceIT {
+class ChunkingServiceIT {
 
-    @Autowired private ExtractionService extractionService;
+    @Autowired private ChunkingService chunkingService;
+    @Autowired private DocumentChunkRepository chunkRepository;
     @Autowired private DocumentExtractionRepository extractionRepository;
     @Autowired private DocumentRepository documentRepository;
     @Autowired private UserRepository userRepository;
@@ -40,13 +38,12 @@ class ExtractionServiceIT {
     @Autowired private CaseFileRepository caseFileRepository;
 
     @MockBean private StorageService storageService;
-    @MockBean private ChunkingService chunkingService;
 
-    private UUID documentId;
-    private String storageKey;
+    private UUID extractionId;
 
     @BeforeEach
     void setUp() {
+        chunkRepository.deleteAll();
         extractionRepository.deleteAll();
         documentRepository.deleteAll();
         caseFileRepository.deleteAll();
@@ -56,19 +53,19 @@ class ExtractionServiceIT {
         userRepository.deleteAll();
 
         User user = new User();
-        user.setEmail("extraction-test@example.com");
+        user.setEmail("chunk-test@example.com");
         user.setStatus("ACTIVE");
         userRepository.save(user);
 
         AuthAccount account = new AuthAccount();
         account.setUser(user);
         account.setProvider("GOOGLE");
-        account.setProviderUserId("extraction-sub");
+        account.setProviderUserId("chunk-sub");
         authAccountRepository.save(account);
 
         Workspace workspace = new Workspace();
-        workspace.setName("extraction-test@example.com");
-        workspace.setSlug("extraction-slug-" + System.currentTimeMillis());
+        workspace.setName("chunk-test@example.com");
+        workspace.setSlug("chunk-slug-" + System.currentTimeMillis());
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
@@ -83,7 +80,7 @@ class ExtractionServiceIT {
         CaseFile caseFile = new CaseFile();
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
-        caseFile.setTitle("Dossier extraction test");
+        caseFile.setTitle("Dossier chunking test");
         caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
@@ -94,52 +91,47 @@ class ExtractionServiceIT {
         document.setOriginalFilename("test.txt");
         document.setContentType("text/plain");
         document.setFileSize(100L);
-        storageKey = workspace.getId() + "/" + caseFile.getId() + "/uuid/test.txt";
-        document.setStorageKey(storageKey);
+        document.setStorageKey("ws/cf/uuid/test.txt");
         documentRepository.save(document);
-        documentId = document.getId();
+
+        DocumentExtraction extraction = new DocumentExtraction();
+        extraction.setDocument(document);
+        extraction.setExtractionStatus(ExtractionStatus.DONE);
+        extractionRepository.save(extraction);
+        extractionId = extraction.getId();
     }
 
-    // E-01 : extraction TXT réussie → status DONE, texte non vide
+    // C-01 : texte court → 1 chunk en base
     @Test
-    void extract_validTxt_createsDoneExtraction() {
-        String content = "Contrat de travail. Monsieur Dupont est licencié.";
-        when(storageService.download(anyString()))
-                .thenReturn(content.getBytes(StandardCharsets.UTF_8));
+    void chunk_shortText_saves1ChunkToDb() {
+        chunkingService.chunk(extractionId, "Contrat de travail. Licenciement abusif.");
 
-        extractionService.extract(documentId, storageKey, "text/plain");
-
-        Optional<DocumentExtraction> result = extractionRepository.findByDocumentId(documentId);
-        assertThat(result).isPresent();
-        assertThat(result.get().getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
-        assertThat(result.get().getExtractedText()).contains("Dupont");
-        assertThat(result.get().getExtractionMetadata()).contains("charCount");
+        List<DocumentChunk> chunks = chunkRepository.findAll();
+        assertThat(chunks).hasSize(1);
+        assertThat(chunks.get(0).getChunkIndex()).isEqualTo(0);
+        assertThat(chunks.get(0).getChunkText()).contains("Contrat");
+        assertThat(chunks.get(0).getTokenCount()).isPositive();
+        assertThat(chunks.get(0).getChunkMetadata()).contains("startChar");
     }
 
-    // E-02 : échec download → status FAILED
+    // C-02 : texte long → plusieurs chunks
     @Test
-    void extract_storageFailure_createsFailedExtraction() {
-        when(storageService.download(anyString()))
-                .thenThrow(new RuntimeException("Storage unavailable"));
+    void chunk_longText_savesMultipleChunks() {
+        String text = "mot ".repeat(500); // ~2000 chars
 
-        extractionService.extract(documentId, storageKey, "text/plain");
+        chunkingService.chunk(extractionId, text);
 
-        Optional<DocumentExtraction> result = extractionRepository.findByDocumentId(documentId);
-        assertThat(result).isPresent();
-        assertThat(result.get().getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
-        assertThat(result.get().getExtractionMetadata()).contains("error");
+        List<DocumentChunk> chunks = chunkRepository.findAll();
+        assertThat(chunks.size()).isGreaterThan(1);
+        assertThat(chunks).isSortedAccordingTo(
+                java.util.Comparator.comparingInt(DocumentChunk::getChunkIndex));
     }
 
-    // E-03 : type non supporté → status FAILED
+    // C-03 : texte vide → aucun chunk
     @Test
-    void extract_unsupportedContentType_createsFailedExtraction() {
-        when(storageService.download(anyString()))
-                .thenReturn("some bytes".getBytes());
+    void chunk_emptyText_savesNoChunks() {
+        chunkingService.chunk(extractionId, "");
 
-        extractionService.extract(documentId, storageKey, "image/png");
-
-        Optional<DocumentExtraction> result = extractionRepository.findByDocumentId(documentId);
-        assertThat(result).isPresent();
-        assertThat(result.get().getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(chunkRepository.findAll()).isEmpty();
     }
 }
