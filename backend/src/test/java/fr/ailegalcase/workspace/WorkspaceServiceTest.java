@@ -21,11 +21,14 @@ class WorkspaceServiceTest {
     @Mock
     private WorkspaceMemberRepository workspaceMemberRepository;
 
+    @Mock
+    private fr.ailegalcase.auth.AuthAccountRepository authAccountRepository;
+
     private WorkspaceService service;
 
     @BeforeEach
     void setUp() {
-        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository);
+        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository, authAccountRepository);
     }
 
     // U-01 : premier login → workspace + membre OWNER créés

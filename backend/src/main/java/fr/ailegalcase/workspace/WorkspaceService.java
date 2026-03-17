@@ -1,8 +1,12 @@
 package fr.ailegalcase.workspace;
 
+import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -11,11 +15,14 @@ public class WorkspaceService {
 
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final AuthAccountRepository authAccountRepository;
 
     public WorkspaceService(WorkspaceRepository workspaceRepository,
-                            WorkspaceMemberRepository workspaceMemberRepository) {
+                            WorkspaceMemberRepository workspaceMemberRepository,
+                            AuthAccountRepository authAccountRepository) {
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
+        this.authAccountRepository = authAccountRepository;
     }
 
     @Transactional
@@ -37,5 +44,21 @@ public class WorkspaceService {
         member.setUser(user);
         member.setMemberRole("OWNER");
         workspaceMemberRepository.save(member);
+    }
+
+    @Transactional(readOnly = true)
+    public WorkspaceResponse getCurrentWorkspace(OidcUser oidcUser, String provider) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getUser();
+
+        Workspace workspace = workspaceMemberRepository
+                .findFirstByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getWorkspace();
+
+        return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
+                workspace.getPlanCode(), workspace.getStatus());
     }
 }
