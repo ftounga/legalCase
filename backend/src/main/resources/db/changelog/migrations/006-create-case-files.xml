@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="006-create-case-files" author="ailegalcase">
+        <createTable tableName="case_files">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_case_files_workspace_id"
+                             references="workspaces(id)"/>
+            </column>
+            <column name="created_by_user_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_case_files_created_by_user_id"
+                             references="users(id)"/>
+            </column>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="legal_domain" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(2000)"/>
+            <column name="created_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="case_files" indexName="idx_case_files_workspace_id">
+            <column name="workspace_id"/>
+        </createIndex>
+
+        <createIndex tableName="case_files" indexName="idx_case_files_created_by_user_id">
+            <column name="created_by_user_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
