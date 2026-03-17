@@ -10,6 +10,7 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,13 +29,16 @@ public class ExtractionService {
     private final DocumentRepository documentRepository;
     private final DocumentExtractionRepository extractionRepository;
     private final StorageService storageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ExtractionService(DocumentRepository documentRepository,
                              DocumentExtractionRepository extractionRepository,
-                             StorageService storageService) {
+                             StorageService storageService,
+                             ApplicationEventPublisher eventPublisher) {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
         this.storageService = storageService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Async
@@ -74,6 +78,10 @@ public class ExtractionService {
         }
 
         extractionRepository.save(extraction);
+
+        if (extraction.getExtractionStatus() == ExtractionStatus.DONE) {
+            eventPublisher.publishEvent(new ExtractionDoneEvent(extraction.getId(), extraction.getExtractedText()));
+        }
     }
 
     private String parseText(byte[] fileBytes, String contentType) throws Exception {

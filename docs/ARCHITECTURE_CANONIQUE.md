@@ -445,17 +445,20 @@ Valeurs extraction_status : PENDING, PROCESSING, DONE, FAILED
 
 ## document_chunks
 
-Segments textuels.
+Segments textuels issus du chunking.
 
 Champs :
 
-document_id  
-chunk_index  
-chunk_text  
-token_count  
+id
+extraction_id
+chunk_index
+chunk_text
+token_count
 chunk_metadata
+created_at
 
-Le découpage permet l’analyse LLM.
+Paramètres V1 : taille 1000 caractères, overlap 200 caractères
+token_count : approximation chunk_text.length() / 4
 
 ---
 
