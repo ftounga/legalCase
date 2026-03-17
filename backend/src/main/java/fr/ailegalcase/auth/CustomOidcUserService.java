@@ -31,6 +31,7 @@ public class CustomOidcUserService extends OidcUserService {
         return findOrCreateUser(oidcUser, provider, scopes);
     }
 
+    // package-private for testing
     OidcUser findOrCreateUser(OidcUser oidcUser, String provider, Set<String> scopes) {
         String providerUserId = oidcUser.getSubject();
         if (providerUserId == null || providerUserId.isBlank()) {
