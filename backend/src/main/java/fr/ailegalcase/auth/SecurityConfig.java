@@ -41,6 +41,12 @@ public class SecurityConfig {
                     .oidcUserService(customOidcUserService)
                 )
             )
+            .logout(logout -> logout
+                .logoutUrl("/api/logout")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+                .logoutSuccessHandler(new JsonLogoutSuccessHandler(objectMapper))
+            )
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(new UnauthorizedEntryPoint(objectMapper))
             );
