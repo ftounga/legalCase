@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -129,6 +130,42 @@ class CaseFileControllerIT {
                         .content("""
                                 {"title":"Test","legalDomain":"EMPLOYMENT_LAW"}
                                 """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // I-05 : GET liste vide → 200 + page vide
+    @Test
+    void list_emptyWorkspace_returns200WithEmptyPage() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    // I-06 : GET liste avec dossiers → retourne les dossiers du workspace
+    @Test
+    void list_withCaseFiles_returnsItems() throws Exception {
+        mockMvc.perform(post("/api/v1/case-files")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Dossier A","legalDomain":"EMPLOYMENT_LAW","description":"Desc"}
+                                """)
+                        .with(authentication(auth)));
+
+        mockMvc.perform(get("/api/v1/case-files")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Dossier A"))
+                .andExpect(jsonPath("$.content[0].status").value("OPEN"));
+    }
+
+    // I-07 : GET sans auth → 401
+    @Test
+    void list_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files"))
                 .andExpect(status().isUnauthorized());
     }
 

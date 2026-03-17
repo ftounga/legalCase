@@ -4,6 +4,8 @@ import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -55,5 +57,22 @@ public class CaseFileService {
 
         return new CaseFileResponse(caseFile.getId(), caseFile.getTitle(), caseFile.getLegalDomain(),
                 caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CaseFileResponse> list(OidcUser oidcUser, String provider, Pageable pageable) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getUser();
+
+        Workspace workspace = workspaceMemberRepository
+                .findFirstByUser(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getWorkspace();
+
+        return caseFileRepository.findByWorkspace(workspace, pageable)
+                .map(cf -> new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
+                        cf.getDescription(), cf.getStatus(), cf.getCreatedAt()));
     }
 }
