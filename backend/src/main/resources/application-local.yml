@@ -18,6 +18,10 @@ spring:
     username: guest
     password: guest
 
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY}
+  model: claude-sonnet-4-6
+
 storage:
   s3:
     endpoint: http://localhost:9000
