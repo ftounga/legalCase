@@ -36,4 +36,11 @@ public class CaseFileController {
                                        @PageableDefault(size = 20) Pageable pageable) {
         return caseFileService.list(oidcUser, OAuthProviderResolver.resolve(principal), pageable);
     }
+
+    @GetMapping("/{id}")
+    public CaseFileResponse getById(@PathVariable java.util.UUID id,
+                                    @AuthenticationPrincipal OidcUser oidcUser,
+                                    Principal principal) {
+        return caseFileService.getById(id, oidcUser, OAuthProviderResolver.resolve(principal));
+    }
 }

@@ -133,6 +133,42 @@ class CaseFileControllerIT {
                 .andExpect(status().isUnauthorized());
     }
 
+    // I-08 : GET /{id} → 200 avec le dossier
+    @Test
+    void getById_existingCaseFile_returns200() throws Exception {
+        String createResponse = mockMvc.perform(post("/api/v1/case-files")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Dossier GetById","legalDomain":"EMPLOYMENT_LAW"}
+                                """)
+                        .with(authentication(auth)))
+                .andReturn().getResponse().getContentAsString();
+
+        String id = new com.fasterxml.jackson.databind.ObjectMapper().readTree(createResponse).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/case-files/" + id)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.title").value("Dossier GetById"))
+                .andExpect(jsonPath("$.status").value("OPEN"));
+    }
+
+    // I-09 : GET /{id} inconnu → 404
+    @Test
+    void getById_unknownId_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + java.util.UUID.randomUUID())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-10 : GET /{id} sans auth → 401
+    @Test
+    void getById_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + java.util.UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
     // I-05 : GET liste vide → 200 + page vide
     @Test
     void list_emptyWorkspace_returns200WithEmptyPage() throws Exception {
