@@ -89,6 +89,21 @@
       </table>
     </mat-card>
   }
+  @if (analysisJobs().length > 0) {
+    <div class="section-header">
+      <h2 class="section-title">Analyse IA</h2>
+    </div>
+    <mat-card class="analysis-card">
+      @for (job of analysisJobs(); track job.jobType) {
+        <div class="analysis-job-row">
+          <span class="job-label">{{ jobTypeLabel(job.jobType) }}</span>
+          <span class="badge {{ jobStatusClass(job.status) }}">{{ jobStatusLabel(job.status) }}</span>
+          <mat-progress-bar mode="determinate" [value]="job.progressPercentage" class="job-progress-bar"></mat-progress-bar>
+          <span class="job-percentage">{{ job.progressPercentage }}%</span>
+        </div>
+      }
+    </mat-card>
+  }
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }

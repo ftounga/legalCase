@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -6,11 +6,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
+import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
+import { AnalysisJob } from '../../core/models/analysis-job.model';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -18,31 +21,31 @@ import { Document } from '../../core/models/document.model';
   imports: [
     RouterLink, DatePipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatProgressSpinnerModule
+    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
 })
-export class CaseFileDetailComponent implements OnInit {
+export class CaseFileDetailComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   caseFile = signal<CaseFile | null>(null);
   documents = signal<Document[]>([]);
+  analysisJobs = signal<AnalysisJob[]>([]);
   loading = signal(true);
   uploading = signal(false);
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
 
+  private pollingInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private caseFileService: CaseFileService,
     private documentService: DocumentService,
+    private analysisJobService: AnalysisJobService,
     private snackBar: MatSnackBar
   ) {}
-
-  downloadUrl(doc: Document): string {
-    return this.documentService.downloadUrl(this.caseFile()!.id, doc.id);
-  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
@@ -51,6 +54,7 @@ export class CaseFileDetailComponent implements OnInit {
         this.caseFile.set(cf);
         this.loading.set(false);
         this.loadDocuments(id);
+        this.loadAnalysisJobs(id);
       },
       error: () => {
         this.loading.set(false);
@@ -61,6 +65,10 @@ export class CaseFileDetailComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
   loadDocuments(caseFileId: string): void {
     this.documentService.list(caseFileId).subscribe({
       next: docs => this.documents.set(docs),
@@ -68,6 +76,78 @@ export class CaseFileDetailComponent implements OnInit {
         duration: 4000, panelClass: ['snack-error']
       })
     });
+  }
+
+  loadAnalysisJobs(caseFileId: string): void {
+    this.analysisJobService.getJobs(caseFileId).subscribe({
+      next: jobs => {
+        this.analysisJobs.set(jobs);
+        this.managePolling(caseFileId, jobs);
+      },
+      error: () => {
+        // Silencieux — pas de section Analyse IA affichée
+      }
+    });
+  }
+
+  private managePolling(caseFileId: string, jobs: AnalysisJob[]): void {
+    const hasPendingOrProcessing = jobs.some(
+      j => j.status === 'PENDING' || j.status === 'PROCESSING'
+    );
+
+    if (hasPendingOrProcessing && !this.pollingInterval) {
+      this.pollingInterval = setInterval(() => {
+        this.analysisJobService.getJobs(caseFileId).subscribe({
+          next: updated => {
+            this.analysisJobs.set(updated);
+            const stillRunning = updated.some(
+              j => j.status === 'PENDING' || j.status === 'PROCESSING'
+            );
+            if (!stillRunning) {
+              this.stopPolling();
+            }
+          }
+        });
+      }, 5000);
+    } else if (!hasPendingOrProcessing) {
+      this.stopPolling();
+    }
+  }
+
+  private stopPolling(): void {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  jobTypeLabel(jobType: string): string {
+    const labels: Record<string, string> = {
+      CHUNK_ANALYSIS: 'Analyse des segments',
+      DOCUMENT_ANALYSIS: 'Analyse des documents',
+      CASE_ANALYSIS: 'Synthèse du dossier'
+    };
+    return labels[jobType] ?? jobType;
+  }
+
+  jobStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      PENDING: 'En attente',
+      PROCESSING: 'En cours',
+      DONE: 'Terminé',
+      FAILED: 'Erreur'
+    };
+    return labels[status] ?? status;
+  }
+
+  jobStatusClass(status: string): string {
+    const classes: Record<string, string> = {
+      PENDING: 'badge--warning',
+      PROCESSING: 'badge--success',
+      DONE: 'badge--success',
+      FAILED: 'badge--error'
+    };
+    return classes[status] ?? '';
   }
 
   triggerUpload(): void {
@@ -89,6 +169,7 @@ export class CaseFileDetailComponent implements OnInit {
           duration: 3000, panelClass: ['snack-success']
         });
         input.value = '';
+        this.loadAnalysisJobs(caseFileId);
       },
       error: () => {
         this.uploading.set(false);
@@ -98,6 +179,10 @@ export class CaseFileDetailComponent implements OnInit {
         input.value = '';
       }
     });
+  }
+
+  downloadUrl(doc: Document): string {
+    return this.documentService.downloadUrl(this.caseFile()!.id, doc.id);
   }
 
   formatSize(bytes: number): string {

@@ -104,6 +104,41 @@
   width: 100%;
 }
 
+.analysis-card {
+  padding: var(--spacing-lg);
+}
+
+.analysis-job-row {
+  display: grid;
+  grid-template-columns: 200px auto 1fr 48px;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-divider);
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.job-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.job-progress-bar {
+  border-radius: 4px;
+}
+
+.job-percentage {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
 .type-badge {
   font-size: 11px;
   font-weight: 600;
