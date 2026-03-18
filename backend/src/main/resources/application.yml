@@ -48,6 +48,8 @@ app:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    price-id-starter: ${STRIPE_PRICE_ID_STARTER:}
+    price-id-pro: ${STRIPE_PRICE_ID_PRO:}
 
 storage:
   s3:
