@@ -58,6 +58,22 @@ Quel provider S3-compatible sera utilisé en production ?
 
 ---
 
+## Modèle multi-workspace (F-17)
+~~Un utilisateur peut-il appartenir à plusieurs workspaces ? Comment est résolu le contexte workspace ?~~
+**Tranché le 2026-03-18** — Multi-workspace avec flag `is_primary` sur `workspace_members`.
+- À la création de compte : workspace personnel créé, `is_primary = true`
+- Lors d'une invitation acceptée : workspace invitant → `is_primary = true`, ancien → `is_primary = false`
+- Tous les `findFirstByUser` remplacés par `findByUserAndIsPrimaryTrue`
+- Écran de changement de workspace inclus dans F-17 (pas différé en V2)
+
+## Invitation workspace (F-17)
+~~L'invitation requiert-elle un compte existant ou un flow email avec token ?~~
+**Tranché le 2026-03-18** — Invitation par email avec token (Option B).
+- Token généré, email envoyé avec lien vers le frontend (`/invite?token=xxx`)
+- Frontend stocke le token, user se connecte via OAuth, frontend appelle `POST /api/v1/workspace/invitations/accept`
+- Fonctionne que l'invité ait déjà un compte ou non
+- Provider email V1 : à trancher en SF-17-03 (Spring Mail SMTP recommandé)
+
 ## Conventions de nommage
 ~~À stabiliser quand le code prend forme~~
 **Tranchée le 2026-03-17** — Défini dans `project-governance/playbooks/coding-rules.md` :

@@ -82,7 +82,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
-| F-17 | Gestion des membres workspace | Invitations, attribution des rôles (OWNER, ADMIN, LAWYER, MEMBER), révocation. | `À spécifier` |
+| F-17 | Gestion des membres workspace | Invitations, attribution des rôles (OWNER, ADMIN, LAWYER, MEMBER), révocation. Multi-workspace avec is_primary. Invitation par email avec token. Workspace switcher. | `En cours` |
 
 ### Bloc 8 — Administration
 
