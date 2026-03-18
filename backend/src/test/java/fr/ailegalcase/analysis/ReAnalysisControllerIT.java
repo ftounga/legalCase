@@ -4,6 +4,8 @@ import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.DocumentChunkRepository;
@@ -59,9 +61,11 @@ class ReAnalysisControllerIT {
     @Autowired private DocumentChunkRepository documentChunkRepository;
     @Autowired private DocumentExtractionRepository documentExtractionRepository;
     @Autowired private DocumentRepository documentRepository;
+    @Autowired private SubscriptionRepository subscriptionRepository;
 
     private OAuth2AuthenticationToken auth;
     private CaseFile caseFile;
+    private Workspace workspace;
 
     @BeforeEach
     void setUp() {
@@ -76,6 +80,7 @@ class ReAnalysisControllerIT {
         documentRepository.deleteAll();
         caseFileRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
+        subscriptionRepository.deleteAll();
         workspaceRepository.deleteAll();
         authAccountRepository.deleteAll();
         userRepository.deleteAll();
@@ -91,7 +96,7 @@ class ReAnalysisControllerIT {
         account.setProviderUserId("google-reanalysis-sub");
         authAccountRepository.save(account);
 
-        Workspace workspace = new Workspace();
+        workspace = new Workspace();
         workspace.setName("reanalysis-test@example.com");
         workspace.setSlug("reanalysis-slug-" + System.currentTimeMillis());
         workspace.setOwner(user);
@@ -171,6 +176,36 @@ class ReAnalysisControllerIT {
     void reAnalyze_withoutAuth_returns401() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", caseFile.getId()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // I-05 : plan STARTER avec subscription → 402
+    @Test
+    void reAnalyze_starterPlan_returns402() throws Exception {
+        Subscription subscription = new Subscription();
+        subscription.setWorkspaceId(workspace.getId());
+        subscription.setPlanCode("STARTER");
+        subscription.setStatus("ACTIVE");
+        subscription.setStartedAt(Instant.now());
+        subscriptionRepository.save(subscription);
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isPaymentRequired());
+    }
+
+    // I-06 : plan PRO avec subscription → 202
+    @Test
+    void reAnalyze_proPlan_returns202() throws Exception {
+        Subscription subscription = new Subscription();
+        subscription.setWorkspaceId(workspace.getId());
+        subscription.setPlanCode("PRO");
+        subscription.setStatus("ACTIVE");
+        subscription.setStartedAt(Instant.now());
+        subscriptionRepository.save(subscription);
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isAccepted());
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

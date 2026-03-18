@@ -2,6 +2,7 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
@@ -23,17 +24,20 @@ public class ReAnalysisCommandService {
     private final AuthAccountRepository authAccountRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final PlanLimitService planLimitService;
 
     public ReAnalysisCommandService(CaseFileRepository caseFileRepository,
                                     AnalysisJobRepository analysisJobRepository,
                                     AuthAccountRepository authAccountRepository,
                                     WorkspaceMemberRepository workspaceMemberRepository,
-                                    RabbitTemplate rabbitTemplate) {
+                                    RabbitTemplate rabbitTemplate,
+                                    PlanLimitService planLimitService) {
         this.caseFileRepository = caseFileRepository;
         this.analysisJobRepository = analysisJobRepository;
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.rabbitTemplate = rabbitTemplate;
+        this.planLimitService = planLimitService;
     }
 
     @Transactional
@@ -53,6 +57,11 @@ public class ReAnalysisCommandService {
 
         if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
+        }
+
+        if (!planLimitService.isEnrichedAnalysisAllowedForWorkspace(workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                    "La re-analyse enrichie est réservée au plan Pro.");
         }
 
         AnalysisJob job = analysisJobRepository

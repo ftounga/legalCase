@@ -37,4 +37,14 @@ public class PlanLimitService {
                 .map(sub -> getMaxDocumentsPerCaseFile(sub.getPlanCode()))
                 .orElse(Integer.MAX_VALUE);
     }
+
+    public boolean isEnrichedAnalysisAllowed(String planCode) {
+        return "PRO".equals(planCode);
+    }
+
+    public boolean isEnrichedAnalysisAllowedForWorkspace(UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(sub -> isEnrichedAnalysisAllowed(sub.getPlanCode()))
+                .orElse(true);
+    }
 }
