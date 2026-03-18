@@ -577,7 +577,7 @@ Les réponses déclenchent une **nouvelle synthèse enrichie**.
 
 # 15 — Gestion des jobs
 
-Les analyses sont asynchrones.
+Les analyses sont asynchrones. Chaque niveau du pipeline (chunk, document, dossier) dispose d'un job de suivi associé à un dossier.
 
 Table :
 
@@ -585,13 +585,27 @@ analysis_jobs
 
 Champs :
 
-case_file_id  
-job_type  
-status  
-started_at  
-finished_at  
-error_message  
-progress_percentage
+id (UUID PK)
+case_file_id (FK → case_files)
+job_type (CHUNK_ANALYSIS | DOCUMENT_ANALYSIS | CASE_ANALYSIS)
+status (PENDING | PROCESSING | DONE | FAILED)
+total_items (nombre total d'items à traiter)
+processed_items (nombre d'items traités)
+error_message (nullable — renseigné en cas de FAILED)
+created_at
+updated_at
+
+Unicité : (case_file_id, job_type) — un seul job actif par case et par niveau.
+
+Cycle de vie :
+- PENDING → créé au déclenchement du niveau (onChunkingDone, consumeDocumentAnalysis, consumeCaseAnalysis)
+- PROCESSING → mis à jour au démarrage du traitement
+- DONE → tous les items traités avec succès
+- FAILED → erreur non récupérée
+
+Notes :
+- processed_items est recalculé depuis la base (count of DONE items) pour garantir la cohérence en cas de retry
+- Pour CHUNK_ANALYSIS : totalItems est cumulé par extraction (plusieurs documents = plusieurs onChunkingDone)
 
 ---
 

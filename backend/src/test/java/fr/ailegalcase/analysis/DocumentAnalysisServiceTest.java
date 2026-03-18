@@ -29,14 +29,16 @@ class DocumentAnalysisServiceTest {
     private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
+    private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
 
     private final DocumentAnalysisService service = new DocumentAnalysisService(
             chunkAnalysisRepository, documentAnalysisRepository, extractionRepository,
-            documentRepository, caseAnalysisRepository, rabbitTemplate, anthropicService);
+            documentRepository, caseAnalysisRepository, rabbitTemplate,
+            anthropicService, analysisJobRepository);
 
-    // U-01 : analyses de chunks valides → DocumentAnalysis DONE + trigger case analysis
+    // U-01 : analyses de chunks valides → DocumentAnalysis DONE + trigger case analysis + job créé
     @Test
-    void consumeDocumentAnalysis_validChunkAnalyses_persistsDoneAnalysis() {
+    void consumeDocumentAnalysis_validChunkAnalyses_persistsDoneAnalysisAndCreatesJob() {
         UUID extractionId = UUID.randomUUID();
         UUID caseFileId = UUID.randomUUID();
 
@@ -54,13 +56,21 @@ class DocumentAnalysisServiceTest {
         ChunkAnalysis ca0 = chunkAnalysis(chunk0, "{\"faits\":[\"fait1\"]}");
         ChunkAnalysis ca1 = chunkAnalysis(chunk1, "{\"faits\":[\"fait2\"]}");
 
+        AnalysisJob job = new AnalysisJob();
+        job.setTotalItems(1);
+        job.setProcessedItems(0);
+
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca0, ca1));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-sonnet-4-6", 200, 100));
-        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
         when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))
@@ -73,28 +83,46 @@ class DocumentAnalysisServiceTest {
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(captor.getValue().getAnalysisResult()).isEqualTo("{\"faits\":[\"synthese\"]}");
 
-        // Tous les documents DONE → CaseAnalysisMessage publié
         verify(rabbitTemplate).convertAndSend(
                 eq(RabbitMQConfig.CASE_ANALYSIS_EXCHANGE),
                 eq(RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY),
                 any(CaseAnalysisMessage.class)
         );
+
+        // Job DOCUMENT_ANALYSIS mis à jour : processedItems=1, status=DONE
+        ArgumentCaptor<AnalysisJob> jobCaptor = ArgumentCaptor.forClass(AnalysisJob.class);
+        verify(analysisJobRepository, atLeastOnce()).save(jobCaptor.capture());
+        List<AnalysisJob> savedJobs = jobCaptor.getAllValues();
+        AnalysisJob finalJob = savedJobs.get(savedJobs.size() - 1);
+        assertThat(finalJob.getProcessedItems()).isEqualTo(1);
+        assertThat(finalJob.getStatus()).isEqualTo(AnalysisStatus.DONE);
     }
 
     // U-02 : erreur Anthropic → DocumentAnalysis FAILED (pas de trigger)
     @Test
     void consumeDocumentAnalysis_anthropicError_persistsFailedAnalysis() {
         UUID extractionId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
 
         DocumentChunk chunk = chunkWithIndex(0);
         ChunkAnalysis ca = chunkAnalysis(chunk, "{\"faits\":[]}");
 
+        Document document = new Document();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(caseFileId);
+        document.setCaseFile(caseFile);
+
         DocumentExtraction extraction = new DocumentExtraction();
-        extraction.setDocument(new Document());
+        extraction.setDocument(document);
 
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any())).thenThrow(new RuntimeException("API error"));
 
@@ -103,7 +131,7 @@ class DocumentAnalysisServiceTest {
         ArgumentCaptor<DocumentAnalysis> captor = ArgumentCaptor.forClass(DocumentAnalysis.class);
         verify(documentAnalysisRepository, times(3)).save(captor.capture());
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
-        verifyNoInteractions(rabbitTemplate);
+        verify(rabbitTemplate, never()).convertAndSend(any(), any(), any(CaseAnalysisMessage.class));
     }
 
     // U-03 : aucune chunk_analysis DONE → aucune DocumentAnalysis créée
@@ -141,6 +169,11 @@ class DocumentAnalysisServiceTest {
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca1, ca0)); // ordre inversé intentionnel
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
@@ -178,10 +211,14 @@ class DocumentAnalysisServiceTest {
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(3L);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
-        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(3L);
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L); // 1 DONE sur 3
 
@@ -214,10 +251,14 @@ class DocumentAnalysisServiceTest {
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
-        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
         when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))

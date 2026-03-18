@@ -3,6 +3,7 @@ package fr.ailegalcase.analysis;
 import fr.ailegalcase.document.ChunkingDoneEvent;
 import fr.ailegalcase.document.DocumentChunk;
 import fr.ailegalcase.document.DocumentChunkRepository;
+import fr.ailegalcase.document.DocumentExtractionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -26,17 +27,23 @@ public class ChunkAnalysisService {
     private final ChunkAnalysisRepository analysisRepository;
     private final DocumentAnalysisRepository documentAnalysisRepository;
     private final AnthropicService anthropicService;
+    private final AnalysisJobRepository analysisJobRepository;
+    private final DocumentExtractionRepository extractionRepository;
 
     public ChunkAnalysisService(RabbitTemplate rabbitTemplate,
                                 DocumentChunkRepository chunkRepository,
                                 ChunkAnalysisRepository analysisRepository,
                                 DocumentAnalysisRepository documentAnalysisRepository,
-                                AnthropicService anthropicService) {
+                                AnthropicService anthropicService,
+                                AnalysisJobRepository analysisJobRepository,
+                                DocumentExtractionRepository extractionRepository) {
         this.rabbitTemplate = rabbitTemplate;
         this.chunkRepository = chunkRepository;
         this.analysisRepository = analysisRepository;
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.anthropicService = anthropicService;
+        this.analysisJobRepository = analysisJobRepository;
+        this.extractionRepository = extractionRepository;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -50,6 +57,22 @@ public class ChunkAnalysisService {
                     new ChunkAnalysisMessage(chunkId)
             );
         }
+
+        UUID caseFileId = extractionRepository.findCaseFileIdById(event.extractionId()).orElse(null);
+        if (caseFileId == null) return;
+
+        AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS)
+                .orElseGet(() -> {
+                    AnalysisJob j = new AnalysisJob();
+                    j.setCaseFileId(caseFileId);
+                    j.setJobType(JobType.CHUNK_ANALYSIS);
+                    j.setStatus(AnalysisStatus.PENDING);
+                    j.setTotalItems(0);
+                    j.setProcessedItems(0);
+                    return j;
+                });
+        job.setTotalItems(job.getTotalItems() + event.chunkIds().size());
+        analysisJobRepository.save(job);
     }
 
     @RabbitListener(queues = RabbitMQConfig.CHUNK_ANALYSIS_QUEUE)
@@ -91,8 +114,24 @@ public class ChunkAnalysisService {
         analysisRepository.save(analysis);
 
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
+            updateChunkJob(chunk.getExtraction().getId());
             triggerDocumentAnalysisIfReady(chunk.getExtraction().getId());
         }
+    }
+
+    private void updateChunkJob(UUID extractionId) {
+        UUID caseFileId = extractionRepository.findCaseFileIdById(extractionId).orElse(null);
+        if (caseFileId == null) return;
+
+        analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS).ifPresent(job -> {
+            long done = analysisRepository.countByChunkExtractionDocumentCaseFileIdAndAnalysisStatus(
+                    caseFileId, AnalysisStatus.DONE);
+            job.setProcessedItems((int) done);
+            if (job.getTotalItems() > 0 && done >= job.getTotalItems()) {
+                job.setStatus(AnalysisStatus.DONE);
+            }
+            analysisJobRepository.save(job);
+        });
     }
 
     private void triggerDocumentAnalysisIfReady(UUID extractionId) {

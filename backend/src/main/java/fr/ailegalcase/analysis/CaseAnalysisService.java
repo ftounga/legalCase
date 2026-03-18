@@ -31,15 +31,18 @@ public class CaseAnalysisService {
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
     private final AnthropicService anthropicService;
+    private final AnalysisJobRepository analysisJobRepository;
 
     public CaseAnalysisService(DocumentAnalysisRepository documentAnalysisRepository,
                                CaseAnalysisRepository caseAnalysisRepository,
                                CaseFileRepository caseFileRepository,
-                               AnthropicService anthropicService) {
+                               AnthropicService anthropicService,
+                               AnalysisJobRepository analysisJobRepository) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.anthropicService = anthropicService;
+        this.analysisJobRepository = analysisJobRepository;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE)
@@ -59,6 +62,18 @@ public class CaseAnalysisService {
             log.error("CaseFile {} not found — case analysis skipped", caseFileId);
             return;
         }
+
+        AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS)
+                .orElseGet(() -> {
+                    AnalysisJob j = new AnalysisJob();
+                    j.setCaseFileId(caseFileId);
+                    j.setJobType(JobType.CASE_ANALYSIS);
+                    j.setProcessedItems(0);
+                    return j;
+                });
+        job.setStatus(AnalysisStatus.PROCESSING);
+        job.setTotalItems(1);
+        analysisJobRepository.save(job);
 
         CaseAnalysis analysis = new CaseAnalysis();
         analysis.setCaseFile(caseFile);
@@ -83,6 +98,13 @@ public class CaseAnalysisService {
         }
 
         caseAnalysisRepository.save(analysis);
+
+        job.setProcessedItems(1);
+        job.setStatus(analysis.getAnalysisStatus());
+        if (analysis.getAnalysisStatus() == AnalysisStatus.FAILED) {
+            job.setErrorMessage("Case analysis failed");
+        }
+        analysisJobRepository.save(job);
     }
 
     private String buildAggregatedPrompt(List<DocumentAnalysis> documentAnalyses) {

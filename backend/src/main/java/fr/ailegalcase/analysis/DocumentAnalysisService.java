@@ -35,6 +35,7 @@ public class DocumentAnalysisService {
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final RabbitTemplate rabbitTemplate;
     private final AnthropicService anthropicService;
+    private final AnalysisJobRepository analysisJobRepository;
 
     public DocumentAnalysisService(ChunkAnalysisRepository chunkAnalysisRepository,
                                    DocumentAnalysisRepository documentAnalysisRepository,
@@ -42,7 +43,8 @@ public class DocumentAnalysisService {
                                    DocumentRepository documentRepository,
                                    CaseAnalysisRepository caseAnalysisRepository,
                                    RabbitTemplate rabbitTemplate,
-                                   AnthropicService anthropicService) {
+                                   AnthropicService anthropicService,
+                                   AnalysisJobRepository analysisJobRepository) {
         this.chunkAnalysisRepository = chunkAnalysisRepository;
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.extractionRepository = extractionRepository;
@@ -50,6 +52,7 @@ public class DocumentAnalysisService {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.anthropicService = anthropicService;
+        this.analysisJobRepository = analysisJobRepository;
     }
 
     @RabbitListener(queues = RabbitMQConfig.DOCUMENT_ANALYSIS_QUEUE)
@@ -69,6 +72,9 @@ public class DocumentAnalysisService {
             log.error("Extraction {} not found — document analysis skipped", extractionId);
             return;
         }
+
+        UUID caseFileId = extractionRepository.findCaseFileIdById(extractionId).orElse(null);
+        createOrResetDocumentAnalysisJob(caseFileId);
 
         DocumentAnalysis analysis = new DocumentAnalysis();
         analysis.setDocument(extraction.getDocument());
@@ -96,8 +102,40 @@ public class DocumentAnalysisService {
         documentAnalysisRepository.save(analysis);
 
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
+            updateDocumentAnalysisJob(caseFileId);
             triggerCaseAnalysisIfReady(extraction.getDocument().getCaseFile().getId());
         }
+    }
+
+    private void createOrResetDocumentAnalysisJob(UUID caseFileId) {
+        if (caseFileId == null) return;
+
+        long totalDocs = documentRepository.countByCaseFileId(caseFileId);
+        AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS)
+                .orElseGet(() -> {
+                    AnalysisJob j = new AnalysisJob();
+                    j.setCaseFileId(caseFileId);
+                    j.setJobType(JobType.DOCUMENT_ANALYSIS);
+                    j.setProcessedItems(0);
+                    return j;
+                });
+        job.setStatus(AnalysisStatus.PENDING);
+        job.setTotalItems((int) totalDocs);
+        analysisJobRepository.save(job);
+    }
+
+    private void updateDocumentAnalysisJob(UUID caseFileId) {
+        if (caseFileId == null) return;
+
+        analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS).ifPresent(job -> {
+            long done = documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(
+                    caseFileId, AnalysisStatus.DONE);
+            job.setProcessedItems((int) done);
+            if (job.getTotalItems() > 0 && done >= job.getTotalItems()) {
+                job.setStatus(AnalysisStatus.DONE);
+            }
+            analysisJobRepository.save(job);
+        });
     }
 
     private void triggerCaseAnalysisIfReady(UUID caseFileId) {
