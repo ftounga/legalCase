@@ -39,7 +39,7 @@ export class WorkspaceBillingComponent implements OnInit {
     {
       code: 'PRO',
       label: 'Pro',
-      price: '99 €',
+      price: '129 €',
       period: '/ mois',
       features: ['20 dossiers actifs', 'Documents illimités', 'Analyse IA complète', 'Re-analyse enrichie', 'Questions interactives']
     }
