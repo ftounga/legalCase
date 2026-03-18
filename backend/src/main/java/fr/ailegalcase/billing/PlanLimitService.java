@@ -7,8 +7,10 @@ import java.util.UUID;
 @Service
 public class PlanLimitService {
 
+    private static final int FREE_MAX_OPEN_CASE_FILES = 1;
     private static final int STARTER_MAX_OPEN_CASE_FILES = 3;
     private static final int PRO_MAX_OPEN_CASE_FILES = 20;
+    private static final int FREE_MAX_DOCUMENTS_PER_CASE_FILE = 3;
     private static final int STARTER_MAX_DOCUMENTS_PER_CASE_FILE = 5;
     private static final int PRO_MAX_DOCUMENTS_PER_CASE_FILE = 30;
 
@@ -19,7 +21,9 @@ public class PlanLimitService {
     }
 
     public int getMaxOpenCaseFiles(String planCode) {
-        return "PRO".equals(planCode) ? PRO_MAX_OPEN_CASE_FILES : STARTER_MAX_OPEN_CASE_FILES;
+        if ("PRO".equals(planCode)) return PRO_MAX_OPEN_CASE_FILES;
+        if ("FREE".equals(planCode)) return FREE_MAX_OPEN_CASE_FILES;
+        return STARTER_MAX_OPEN_CASE_FILES;
     }
 
     public int getMaxOpenCaseFilesForWorkspace(UUID workspaceId) {
@@ -29,7 +33,9 @@ public class PlanLimitService {
     }
 
     public int getMaxDocumentsPerCaseFile(String planCode) {
-        return "PRO".equals(planCode) ? PRO_MAX_DOCUMENTS_PER_CASE_FILE : STARTER_MAX_DOCUMENTS_PER_CASE_FILE;
+        if ("PRO".equals(planCode)) return PRO_MAX_DOCUMENTS_PER_CASE_FILE;
+        if ("FREE".equals(planCode)) return FREE_MAX_DOCUMENTS_PER_CASE_FILE;
+        return STARTER_MAX_DOCUMENTS_PER_CASE_FILE;
     }
 
     public int getMaxDocumentsPerCaseFileForWorkspace(UUID workspaceId) {

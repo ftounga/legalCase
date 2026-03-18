@@ -30,4 +30,10 @@ public class Subscription {
     private Instant startedAt;
 
     private Instant expiresAt;
+
+    @Column(length = 255)
+    private String stripeCustomerId;
+
+    @Column(length = 255)
+    private String stripeSubscriptionId;
 }

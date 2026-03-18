@@ -26,6 +26,11 @@ class PlanLimitServiceTest {
     }
 
     @Test
+    void getMaxOpenCaseFiles_free_returns1() {
+        assertThat(service.getMaxOpenCaseFiles("FREE")).isEqualTo(1);
+    }
+
+    @Test
     void getMaxOpenCaseFiles_starter_returns3() {
         assertThat(service.getMaxOpenCaseFiles("STARTER")).isEqualTo(3);
     }

@@ -26,13 +26,15 @@ class WorkspaceServiceGetCurrentTest {
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private fr.ailegalcase.billing.SubscriptionRepository subscriptionRepository;
+    @Mock private fr.ailegalcase.billing.StripeCustomerService stripeCustomerService;
     @Mock private OidcUser oidcUser;
 
     private WorkspaceService service;
 
     @BeforeEach
     void setUp() {
-        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository, authAccountRepository, subscriptionRepository);
+        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository,
+                authAccountRepository, subscriptionRepository, stripeCustomerService);
     }
 
     // U-01 : utilisateur avec workspace → retourne WorkspaceResponse
