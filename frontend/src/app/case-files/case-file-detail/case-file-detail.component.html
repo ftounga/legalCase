@@ -168,6 +168,18 @@
       }
     </mat-card>
   }
+  @if (questions().length > 0) {
+    <div class="section-header">
+      <h2 class="section-title">Questions IA</h2>
+    </div>
+    <mat-card class="questions-card">
+      <ol class="questions-list">
+        @for (q of questions(); track q.orderIndex) {
+          <li class="question-item">{{ q.questionText }}</li>
+        }
+      </ol>
+    </mat-card>
+  }
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }
