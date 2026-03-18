@@ -40,8 +40,9 @@ export class CaseFileCreateDialogComponent {
       description: this.form.value.description || undefined
     }).subscribe({
       next: caseFile => this.dialogRef.close(caseFile),
-      error: () => {
+      error: (err: any) => {
         this.saving = false;
+        if (err.status === 402) return;
         this.snackBar.open('Erreur lors de la création du dossier', 'Fermer', {
           duration: 4000,
           panelClass: ['snack-error']

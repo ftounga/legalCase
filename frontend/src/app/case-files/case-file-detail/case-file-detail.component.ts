@@ -175,8 +175,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         ));
         this.submittingAnswer.set(null);
       },
-      error: () => {
+      error: (err: any) => {
         this.submittingAnswer.set(null);
+        if (err.status === 402) return;
         this.snackBar.open('Erreur lors de la soumission de la réponse', 'Fermer', {
           duration: 4000, panelClass: ['snack-error']
         });
@@ -193,8 +194,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.reAnalyzing.set(false);
         this.loadAnalysisJobs(caseFileId);
       },
-      error: () => {
+      error: (err: any) => {
         this.reAnalyzing.set(false);
+        if (err.status === 402) return;
         this.snackBar.open('Erreur lors du déclenchement de la re-analyse', 'Fermer', {
           duration: 4000, panelClass: ['snack-error']
         });
@@ -265,12 +267,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         input.value = '';
         this.loadAnalysisJobs(caseFileId);
       },
-      error: () => {
+      error: (err: any) => {
         this.uploading.set(false);
+        input.value = '';
+        if (err.status === 402) return;
         this.snackBar.open("Erreur lors de l'upload. Vérifiez le type et la taille du fichier (max 50 Mo).", 'Fermer', {
           duration: 5000, panelClass: ['snack-error']
         });
-        input.value = '';
       }
     });
   }
