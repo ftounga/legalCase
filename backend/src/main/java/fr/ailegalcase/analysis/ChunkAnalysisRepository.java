@@ -12,4 +12,6 @@ public interface ChunkAnalysisRepository extends JpaRepository<ChunkAnalysis, UU
     long countByChunkExtractionIdAndAnalysisStatus(UUID extractionId, AnalysisStatus status);
 
     List<ChunkAnalysis> findByChunkExtractionIdAndAnalysisStatus(UUID extractionId, AnalysisStatus status);
+
+    long countByChunkExtractionDocumentCaseFileIdAndAnalysisStatus(UUID caseFileId, AnalysisStatus status);
 }

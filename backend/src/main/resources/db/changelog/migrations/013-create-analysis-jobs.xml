@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="013-create-analysis-jobs" author="ailegalcase">
+        <createTable tableName="analysis_jobs">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="job_type" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_items" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processed_items" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_message" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="analysis_jobs"
+                baseColumnNames="case_file_id"
+                referencedTableName="case_files"
+                referencedColumnNames="id"
+                constraintName="fk_analysis_jobs_case_file"/>
+
+        <addUniqueConstraint
+                tableName="analysis_jobs"
+                columnNames="case_file_id, job_type"
+                constraintName="uq_analysis_jobs_case_file_job_type"/>
+
+        <createIndex tableName="analysis_jobs" indexName="idx_analysis_jobs_case_file_id">
+            <column name="case_file_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
