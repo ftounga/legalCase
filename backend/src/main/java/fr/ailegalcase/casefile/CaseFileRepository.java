@@ -15,4 +15,6 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
 
     @Query("SELECT c.createdBy.id FROM CaseFile c WHERE c.id = :id")
     Optional<UUID> findCreatedByUserIdById(@Param("id") UUID id);
+
+    long countByWorkspace_IdAndStatus(UUID workspaceId, String status);
 }
