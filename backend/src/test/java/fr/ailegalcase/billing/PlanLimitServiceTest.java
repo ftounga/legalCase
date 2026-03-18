@@ -6,6 +6,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,6 +27,8 @@ class PlanLimitServiceTest {
         service = new PlanLimitService(subscriptionRepository);
     }
 
+    // --- getMaxOpenCaseFiles ---
+
     @Test
     void getMaxOpenCaseFiles_free_returns1() {
         assertThat(service.getMaxOpenCaseFiles("FREE")).isEqualTo(1);
@@ -43,6 +47,56 @@ class PlanLimitServiceTest {
     @Test
     void getMaxOpenCaseFiles_unknown_returnsStarterDefault() {
         assertThat(service.getMaxOpenCaseFiles("UNKNOWN")).isEqualTo(3);
+    }
+
+    // --- isExpiredFree ---
+
+    @Test
+    void isExpiredFree_freeExpired_returnsTrue() {
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
+        assertThat(service.isExpiredFree(sub)).isTrue();
+    }
+
+    @Test
+    void isExpiredFree_freeNotExpired_returnsFalse() {
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        assertThat(service.isExpiredFree(sub)).isFalse();
+    }
+
+    @Test
+    void isExpiredFree_starterWithPastExpiresAt_returnsFalse() {
+        Subscription sub = new Subscription();
+        sub.setPlanCode("STARTER");
+        sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
+        assertThat(service.isExpiredFree(sub)).isFalse();
+    }
+
+    // --- getMaxOpenCaseFilesForWorkspace avec expiration ---
+
+    @Test
+    void getMaxOpenCaseFilesForWorkspace_freeExpired_returns0() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(0);
+    }
+
+    @Test
+    void getMaxOpenCaseFilesForWorkspace_freeActive_returns1() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(1);
     }
 
     @Test
@@ -71,5 +125,31 @@ class PlanLimitServiceTest {
         when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
         assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(Integer.MAX_VALUE);
+    }
+
+    // --- getMaxDocumentsPerCaseFileForWorkspace avec expiration ---
+
+    @Test
+    void getMaxDocumentsPerCaseFileForWorkspace_freeExpired_returns0() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+
+        assertThat(service.getMaxDocumentsPerCaseFileForWorkspace(workspaceId)).isEqualTo(0);
+    }
+
+    // --- isEnrichedAnalysisAllowedForWorkspace avec expiration ---
+
+    @Test
+    void isEnrichedAnalysisAllowedForWorkspace_freeExpired_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+
+        assertThat(service.isEnrichedAnalysisAllowedForWorkspace(workspaceId)).isFalse();
     }
 }
