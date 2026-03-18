@@ -4,4 +4,5 @@ export interface Workspace {
   slug: string;
   planCode: string;
   status: string;
+  expiresAt?: string | null;
 }

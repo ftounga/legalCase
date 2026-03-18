@@ -1,0 +1,56 @@
+<div class="billing-container">
+  <h1 class="billing-title">Abonnement</h1>
+  <p class="billing-subtitle">Choisissez le plan adapté à votre cabinet.</p>
+
+  @if (isExpired()) {
+    <div class="expired-banner">
+      <mat-icon>warning</mat-icon>
+      <span>Votre essai gratuit a expiré. Passez au plan Starter pour continuer à créer des dossiers.</span>
+    </div>
+  }
+
+  <div class="plans-grid">
+    @for (plan of plans; track plan.code) {
+      <div class="plan-card" [class.plan-card--current]="isCurrentPlan(plan.code)" [class.plan-card--featured]="plan.code === 'PRO'">
+        @if (plan.code === 'PRO') {
+          <div class="plan-badge">Recommandé</div>
+        }
+        <div class="plan-header">
+          <h2 class="plan-name">{{ plan.label }}</h2>
+          <div class="plan-price">
+            <span class="plan-price-amount">{{ plan.price }}</span>
+            <span class="plan-price-period">{{ plan.period }}</span>
+          </div>
+        </div>
+        <ul class="plan-features">
+          @for (feature of plan.features; track feature) {
+            <li>
+              <mat-icon class="feature-icon">check_circle</mat-icon>
+              {{ feature }}
+            </li>
+          }
+        </ul>
+        <div class="plan-action">
+          @if (isCurrentPlan(plan.code)) {
+            <div class="plan-current-label">
+              <mat-icon>verified</mat-icon>
+              Plan actuel
+            </div>
+          } @else if (plan.code !== 'FREE') {
+            <button mat-flat-button
+              [class.btn-primary]="plan.code === 'STARTER'"
+              [class.btn-gold]="plan.code === 'PRO'"
+              [disabled]="upgrading() !== null"
+              (click)="upgrade(plan.code)">
+              @if (upgrading() === plan.code) {
+                <mat-spinner diameter="18" />
+              } @else {
+                Passer au plan {{ plan.label }}
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

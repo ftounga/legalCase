@@ -12,6 +12,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceInvitationService } from '../../core/services/workspace-invitation.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.component';
+import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
 
 @Component({
   selector: 'app-shell',
@@ -19,7 +20,8 @@ import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatSidenavModule, MatListModule,
-    MatIconModule, MatButtonModule, MatMenuModule
+    MatIconModule, MatButtonModule, MatMenuModule,
+    TrialBannerComponent
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'
