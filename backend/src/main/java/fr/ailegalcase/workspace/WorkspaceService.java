@@ -85,7 +85,11 @@ public class WorkspaceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 
+        Instant expiresAt = subscriptionRepository.findByWorkspaceId(workspace.getId())
+                .map(Subscription::getExpiresAt)
+                .orElse(null);
+
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
-                workspace.getPlanCode(), workspace.getStatus());
+                workspace.getPlanCode(), workspace.getStatus(), expiresAt);
     }
 }

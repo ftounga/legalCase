@@ -26,6 +26,11 @@ export const routes: Routes = [
         path: 'workspace/members',
         loadComponent: () => import('./workspace/workspace-members/workspace-members.component')
           .then(m => m.WorkspaceMembersComponent)
+      },
+      {
+        path: 'workspace/billing',
+        loadComponent: () => import('./workspace/workspace-billing/workspace-billing.component')
+          .then(m => m.WorkspaceBillingComponent)
       }
     ]
   },

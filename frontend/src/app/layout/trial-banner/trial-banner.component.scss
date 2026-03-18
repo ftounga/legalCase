@@ -1,0 +1,48 @@
+.trial-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #EBF2FA;
+  border-bottom: 1px solid #b8d0e8;
+  padding: 10px 24px;
+  font-size: 14px;
+  color: #1A3A5C;
+
+  &--expired {
+    background: #fff3cd;
+    border-bottom-color: #ffc107;
+    color: #856404;
+
+    .banner-icon { color: #ffc107; }
+    .banner-btn { color: #856404; border-color: #ffc107; }
+  }
+}
+
+.banner-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: #1A3A5C;
+  flex-shrink: 0;
+}
+
+.banner-message {
+  flex: 1;
+}
+
+.banner-btn {
+  white-space: nowrap;
+  font-size: 13px;
+  color: #1A3A5C;
+  border-color: #1A3A5C;
+  height: 32px;
+  line-height: 30px;
+}
+
+.banner-close {
+  margin-left: 4px;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  flex-shrink: 0;
+}

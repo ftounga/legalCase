@@ -28,10 +28,15 @@
           <mat-icon matListItemIcon>group</mat-icon>
           <span matListItemTitle>Membres</span>
         </a>
+        <a mat-list-item routerLink="/workspace/billing" routerLinkActive="sidenav-active">
+          <mat-icon matListItemIcon>credit_card</mat-icon>
+          <span matListItemTitle>Abonnement</span>
+        </a>
       </mat-nav-list>
     </mat-sidenav>
 
     <mat-sidenav-content class="shell-content">
+      <app-trial-banner [workspace]="workspace()" />
       <router-outlet />
     </mat-sidenav-content>
   </mat-sidenav-container>

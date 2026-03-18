@@ -1,0 +1,16 @@
+@if (visible()) {
+  <div class="trial-banner" [class.trial-banner--expired]="isExpired()">
+    <mat-icon class="banner-icon">{{ isExpired() ? 'warning' : 'schedule' }}</mat-icon>
+    <span class="banner-message">
+      @if (isExpired()) {
+        Votre essai gratuit a expiré. Passez au plan Starter pour continuer.
+      } @else {
+        Votre essai gratuit expire le {{ expiresAt() }}.
+      }
+    </span>
+    <button mat-stroked-button class="banner-btn" (click)="goToPlans()">Voir les plans</button>
+    <button mat-icon-button class="banner-close" (click)="dismiss()" aria-label="Fermer">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+}
