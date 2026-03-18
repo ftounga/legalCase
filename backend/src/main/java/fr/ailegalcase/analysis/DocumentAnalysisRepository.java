@@ -10,4 +10,8 @@ public interface DocumentAnalysisRepository extends JpaRepository<DocumentAnalys
     List<DocumentAnalysis> findByExtractionId(UUID extractionId);
 
     boolean existsByExtractionIdAndAnalysisStatusIn(UUID extractionId, List<AnalysisStatus> statuses);
+
+    long countByDocumentCaseFileIdAndAnalysisStatus(UUID caseFileId, AnalysisStatus status);
+
+    List<DocumentAnalysis> findByDocumentCaseFileIdAndAnalysisStatus(UUID caseFileId, AnalysisStatus status);
 }
