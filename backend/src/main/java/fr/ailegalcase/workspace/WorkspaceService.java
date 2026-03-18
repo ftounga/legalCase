@@ -2,12 +2,15 @@ package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -16,13 +19,16 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final AuthAccountRepository authAccountRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     public WorkspaceService(WorkspaceRepository workspaceRepository,
                             WorkspaceMemberRepository workspaceMemberRepository,
-                            AuthAccountRepository authAccountRepository) {
+                            AuthAccountRepository authAccountRepository,
+                            SubscriptionRepository subscriptionRepository) {
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.authAccountRepository = authAccountRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     @Transactional
@@ -44,6 +50,13 @@ public class WorkspaceService {
         member.setUser(user);
         member.setMemberRole("OWNER");
         workspaceMemberRepository.save(member);
+
+        Subscription subscription = new Subscription();
+        subscription.setWorkspaceId(workspace.getId());
+        subscription.setPlanCode("STARTER");
+        subscription.setStatus("ACTIVE");
+        subscription.setStartedAt(Instant.now());
+        subscriptionRepository.save(subscription);
     }
 
     @Transactional(readOnly = true)

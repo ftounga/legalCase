@@ -2,6 +2,8 @@ package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -26,6 +28,9 @@ class WorkspaceServiceIT {
 
     @Autowired
     private WorkspaceMemberRepository workspaceMemberRepository;
+
+    @Autowired
+    private SubscriptionRepository subscriptionRepository;
 
     private User savedUser(String email) {
         User user = new User();
@@ -75,5 +80,23 @@ class WorkspaceServiceIT {
 
         assertThat(workspaceRepository.findAll()).hasSize(1);
         assertThat(workspaceMemberRepository.findAll()).hasSize(1);
+        assertThat(subscriptionRepository.findAll()).hasSize(1);
+    }
+
+    // I-04 : subscription STARTER ACTIVE créée avec le workspace
+    @Test
+    void createDefaultWorkspace_createsStarterSubscription() {
+        User user = savedUser("sub@example.com");
+
+        workspaceService.createDefaultWorkspace(user);
+
+        Workspace workspace = workspaceRepository.findAll().get(0);
+        List<Subscription> subs = subscriptionRepository.findAll();
+        assertThat(subs).hasSize(1);
+        assertThat(subs.get(0).getWorkspaceId()).isEqualTo(workspace.getId());
+        assertThat(subs.get(0).getPlanCode()).isEqualTo("STARTER");
+        assertThat(subs.get(0).getStatus()).isEqualTo("ACTIVE");
+        assertThat(subs.get(0).getStartedAt()).isNotNull();
+        assertThat(subs.get(0).getExpiresAt()).isNull();
     }
 }

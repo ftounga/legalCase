@@ -1,6 +1,8 @@
 package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,11 +26,14 @@ class WorkspaceServiceTest {
     @Mock
     private fr.ailegalcase.auth.AuthAccountRepository authAccountRepository;
 
+    @Mock
+    private SubscriptionRepository subscriptionRepository;
+
     private WorkspaceService service;
 
     @BeforeEach
     void setUp() {
-        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository, authAccountRepository);
+        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository, authAccountRepository, subscriptionRepository);
     }
 
     // U-01 : premier login → workspace + membre OWNER créés
@@ -54,6 +59,13 @@ class WorkspaceServiceTest {
         verify(workspaceMemberRepository).save(memberCaptor.capture());
         assertThat(memberCaptor.getValue().getMemberRole()).isEqualTo("OWNER");
         assertThat(memberCaptor.getValue().getUser()).isEqualTo(user);
+
+        ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
+        verify(subscriptionRepository).save(subscriptionCaptor.capture());
+        assertThat(subscriptionCaptor.getValue().getPlanCode()).isEqualTo("STARTER");
+        assertThat(subscriptionCaptor.getValue().getStatus()).isEqualTo("ACTIVE");
+        assertThat(subscriptionCaptor.getValue().getStartedAt()).isNotNull();
+        assertThat(subscriptionCaptor.getValue().getExpiresAt()).isNull();
     }
 
     // U-02 : login suivant (workspace existant) → aucune création
@@ -68,5 +80,6 @@ class WorkspaceServiceTest {
 
         verify(workspaceRepository, never()).save(any());
         verify(workspaceMemberRepository, never()).save(any());
+        verify(subscriptionRepository, never()).save(any());
     }
 }

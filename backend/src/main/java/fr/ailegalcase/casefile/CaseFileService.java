@@ -2,6 +2,7 @@ package fr.ailegalcase.casefile;
 
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.data.domain.Page;
@@ -22,13 +23,16 @@ public class CaseFileService {
     private final CaseFileRepository caseFileRepository;
     private final AuthAccountRepository authAccountRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final PlanLimitService planLimitService;
 
     public CaseFileService(CaseFileRepository caseFileRepository,
                            AuthAccountRepository authAccountRepository,
-                           WorkspaceMemberRepository workspaceMemberRepository) {
+                           WorkspaceMemberRepository workspaceMemberRepository,
+                           PlanLimitService planLimitService) {
         this.caseFileRepository = caseFileRepository;
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
+        this.planLimitService = planLimitService;
     }
 
     @Transactional
@@ -47,6 +51,13 @@ public class CaseFileService {
                 .findFirstByUser(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
+
+        long openCount = caseFileRepository.countByWorkspace_IdAndStatus(workspace.getId(), "OPEN");
+        int maxOpen = planLimitService.getMaxOpenCaseFilesForWorkspace(workspace.getId());
+        if (openCount >= maxOpen) {
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                    "Limite de dossiers actifs atteinte pour votre plan.");
+        }
 
         CaseFile caseFile = new CaseFile();
         caseFile.setWorkspace(workspace);
