@@ -3,6 +3,7 @@ import { CaseFileDetailComponent } from './case-file-detail.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
+import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -10,6 +11,7 @@ import { of, throwError } from 'rxjs';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
+import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 
 const mockCaseFile: CaseFile = {
   id: 'cf1', title: 'Dossier A', legalDomain: 'EMPLOYMENT_LAW',
@@ -33,18 +35,21 @@ describe('CaseFileDetailComponent', () => {
   let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
   let documentServiceSpy: jasmine.SpyObj<DocumentService>;
   let analysisJobServiceSpy: jasmine.SpyObj<AnalysisJobService>;
+  let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
 
   beforeEach(async () => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
+    caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
     documentServiceSpy.list.and.returnValue(of([mockDocument]));
     documentServiceSpy.downloadUrl.and.returnValue('/api/v1/case-files/cf1/documents/doc1/download');
     analysisJobServiceSpy.getJobs.and.returnValue(of([]));
+    caseAnalysisServiceSpy.getAnalysis.and.returnValue(throwError(() => new Error('404')));
 
     await TestBed.configureTestingModule({
       imports: [CaseFileDetailComponent],
@@ -52,6 +57,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: CaseFileService, useValue: caseFileServiceSpy },
         { provide: DocumentService, useValue: documentServiceSpy },
         { provide: AnalysisJobService, useValue: analysisJobServiceSpy },
+        { provide: CaseAnalysisService, useValue: caseAnalysisServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
@@ -167,5 +173,68 @@ describe('CaseFileDetailComponent', () => {
     expect(component.jobStatusClass('PROCESSING')).toBe('badge--success');
     expect(component.jobStatusClass('PENDING')).toBe('badge--warning');
     expect(component.jobStatusClass('FAILED')).toBe('badge--error');
+  });
+
+  // --- Tests SF-12-02 : section Synthèse ---
+
+  it('section Synthèse absente si synthesis() est null', () => {
+    fixture.detectChanges();
+    const section = fixture.nativeElement.querySelector('.synthesis-card');
+    expect(section).toBeNull();
+  });
+
+  it('section Synthèse présente si synthesis() non null', () => {
+    const mockSynthesis: CaseAnalysisResult = {
+      status: 'DONE',
+      timeline: [{ date: '2024-01-15', evenement: 'Embauche' }],
+      faits: ['fait1'],
+      pointsJuridiques: ['point1'],
+      risques: ['risque1'],
+      questionsOuvertes: ['question1'],
+      modelUsed: 'claude-sonnet-4-6',
+      updatedAt: '2026-03-18T10:00:00Z'
+    };
+    component.synthesis.set(mockSynthesis);
+    fixture.detectChanges();
+
+    const section = fixture.nativeElement.querySelector('.synthesis-card');
+    expect(section).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('.synthesis-section').length).toBe(5);
+  });
+
+  it('timeline masquée si tableau vide', () => {
+    const mockSynthesis: CaseAnalysisResult = {
+      status: 'DONE',
+      timeline: [],
+      faits: ['fait1'],
+      pointsJuridiques: [],
+      risques: [],
+      questionsOuvertes: [],
+      modelUsed: null,
+      updatedAt: null
+    };
+    component.synthesis.set(mockSynthesis);
+    fixture.detectChanges();
+
+    const timelineEntries = fixture.nativeElement.querySelectorAll('.timeline-entry');
+    expect(timelineEntries.length).toBe(0);
+  });
+
+  it('sous-section masquée si liste vide', () => {
+    const mockSynthesis: CaseAnalysisResult = {
+      status: 'DONE',
+      timeline: [],
+      faits: [],
+      pointsJuridiques: [],
+      risques: [],
+      questionsOuvertes: ['question1'],
+      modelUsed: null,
+      updatedAt: null
+    };
+    component.synthesis.set(mockSynthesis);
+    fixture.detectChanges();
+
+    // Seule la section questionsOuvertes est affichée
+    expect(fixture.nativeElement.querySelectorAll('.synthesis-section').length).toBe(1);
   });
 });
