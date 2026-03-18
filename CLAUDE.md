@@ -45,7 +45,7 @@ Ce cycle est non négociable. Chaque étape produit un artefact visible dans la 
 **Sans l'artefact de l'étape N, l'étape N+1 est refusée.**
 
 ```
-[1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push → [6] Merge
+[1] Mini-spec → [2] Readiness → [3] Dev → [4] Review → [5] Push + Release checklist + PR (atomique) → [6] Docs post-merge
 ```
 
 ### Étape 1 — Mini-spec (ARTEFACT : document SF-XX rempli)
@@ -92,19 +92,30 @@ Les items bloquants doivent être corrigés avant le push. Un item non bloquant 
 
 ---
 
-### Étape 5 — Push et PR
+### Étape 5 — Push, Release checklist et PR (étape atomique, non séparable)
 
-Après review PASS :
-- `git push -u origin feat/SF-XX-YY-nom-court`
-- Afficher le template PR rempli dans la conversation (titre, corps, checklist)
+Ces trois actions forment un bloc indivisible exécuté dans cet ordre exact :
 
----
+1. `git push -u origin feat/SF-XX-YY-nom-court`
+2. Passer `project-governance/checklists/release-checklist.md` item par item et afficher le résultat avec verdict PASS / FAIL — **ARTEFACT obligatoire**
+3. Afficher le template PR rempli dans la conversation (titre, corps, checklist)
 
-### Étape 6 — Release checklist (ARTEFACT : checklist passée avant merge)
+L'utilisateur ne voit le template PR qu'après avoir vu la release checklist. Il n'y a pas d'étape 6 séparée.
 
-Avant de merger, passer `project-governance/checklists/release-checklist.md` et afficher le résultat.
+**REFUS si** : le push est effectué sans que la release checklist soit produite dans la même réponse.
 
-**REFUS si** : le merge est effectué sans que la release checklist ait été passée dans cette conversation.
+**REFUS si** : une nouvelle subfeature démarre alors que la release checklist de la subfeature précédente n'a pas été passée dans cette conversation.
+
+### Étape 6 — Mise à jour documentation post-merge (ARTEFACT : PRODUCT_SPEC.md à jour)
+
+Dès que l'utilisateur confirme le merge ("mergé", "PR mergée", ou équivalent) :
+
+1. Mettre à jour le statut de la feature parente dans `docs/PRODUCT_SPEC.md` si toutes ses subfeatures sont Done
+2. Ajouter une ligne dans l'historique des évolutions de `docs/PRODUCT_SPEC.md`
+3. Si une nouvelle table a été créée : vérifier et mettre à jour `docs/ARCHITECTURE_CANONIQUE.md`
+4. Commiter ces mises à jour directement sur master
+
+**REFUS si** : la feature parente est complète et PRODUCT_SPEC.md n'a pas été mis à jour avant de démarrer la feature suivante.
 
 ---
 
@@ -121,7 +132,9 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Feature non découpée en subfeatures | REFUS — demander le découpage (`feature-splitter`) |
 | Subfeature estimée > 2 jours | REFUS — demander un redécoupage |
 | `git push` sans review checklist passée dans la conversation | REFUS — passer la review checklist d'abord |
-| Merge sans release checklist passée dans la conversation | REFUS — passer la release checklist d'abord |
+| Push sans release checklist produite dans la même réponse | REFUS — release checklist fait partie du même bloc que le push |
+| Démarrage d'une nouvelle subfeature sans release checklist passée pour la précédente | REFUS — produire la release checklist avant de continuer |
+| Merge confirmé sans mise à jour PRODUCT_SPEC.md si feature parente complète | REFUS — mettre à jour PRODUCT_SPEC.md d'abord |
 | Question ouverte non tranchée et bloquante | BLOCAGE — signaler, ne pas avancer |
 | Incohérence avec `ARCHITECTURE_CANONIQUE.md` | BLOCAGE — signaler la divergence |
 | Feature non référencée dans `PRODUCT_SPEC.md` | REFUS — ajouter la feature au PRODUCT_SPEC avant tout dev |
