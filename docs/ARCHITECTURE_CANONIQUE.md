@@ -680,21 +680,26 @@ Champs :
 
 id (UUID PK)
 workspace_id (UUID FK → workspaces, unique)
-plan_code (varchar 20 — valeurs : STARTER, PRO)
+plan_code (varchar 20 — valeurs : FREE, STARTER, PRO)
 status (varchar 20 — valeur initiale : ACTIVE)
 started_at (timestamptz, non nullable)
 expires_at (timestamptz, nullable — null = pas d'expiration)
+stripe_customer_id (varchar 255, nullable)
+stripe_subscription_id (varchar 255, nullable)
 
 Plans V1 :
 
+FREE — 1 dossier actif max, 3 documents/dossier, re-analyse enrichie non disponible, durée 14 jours
 STARTER — 3 dossiers actifs max, 5 documents/dossier, re-analyse enrichie non disponible
 PRO — 20 dossiers actifs max, 30 documents/dossier, re-analyse enrichie disponible
 
 Règles :
 
 - Un workspace a au plus une subscription (contrainte unique sur workspace_id)
-- Créée automatiquement au plan STARTER lors de la création du workspace (WorkspaceService)
+- Créée automatiquement au plan FREE lors de la création du workspace (WorkspaceService), expires_at = now() + 14j
 - Fail open : absence de subscription = accès autorisé (Integer.MAX_VALUE)
+- stripe_customer_id : créé via Stripe API à la création du workspace, fail-open (null si Stripe indisponible)
+- stripe_subscription_id : rempli par le webhook Stripe lors du paiement (SF-19-03)
 
 ---
 
