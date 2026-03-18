@@ -3,6 +3,7 @@ package fr.ailegalcase.analysis;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
@@ -31,6 +32,7 @@ public class AnthropicService {
     private final RestClient restClient;
     private final String model;
 
+    @Autowired
     public AnthropicService(@Value("${anthropic.api-key}") String apiKey,
                             @Value("${anthropic.model:claude-sonnet-4-6}") String model,
                             RestClient.Builder builder) {
