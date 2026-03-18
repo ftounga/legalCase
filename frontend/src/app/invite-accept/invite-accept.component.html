@@ -1,0 +1,23 @@
+<div class="invite-page">
+  <div class="invite-card">
+    <img src="/legalcase-logo.png" alt="AI LegalCase" class="logo" />
+
+    @if (state === 'loading') {
+      <mat-spinner diameter="40" />
+      <p>Vérification de l'invitation...</p>
+    }
+
+    @if (state === 'success') {
+      <div class="success-icon">✓</div>
+      <h2>Invitation acceptée !</h2>
+      <p>Vous rejoignez le workspace. Redirection en cours...</p>
+    }
+
+    @if (state === 'error') {
+      <div class="error-icon">✗</div>
+      <h2>Invitation invalide</h2>
+      <p>{{ errorMessage }}</p>
+      <button mat-flat-button color="primary" (click)="goToLogin()">Retour à l'accueil</button>
+    }
+  </div>
+</div>

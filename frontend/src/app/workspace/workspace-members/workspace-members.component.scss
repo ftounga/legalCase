@@ -1,0 +1,88 @@
+.members-page {
+  padding: 24px;
+  max-width: 1280px;
+  background: #F5F6FA;
+  min-height: 100%;
+
+  .page-header {
+    margin-bottom: 24px;
+
+    h2 {
+      font-family: 'Merriweather', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1C2B3A;
+      margin: 0;
+    }
+  }
+
+  .section-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    margin-bottom: 16px;
+
+    h3 {
+      font-family: 'Merriweather', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1C2B3A;
+      margin: 0 0 16px 0;
+    }
+  }
+
+  .members-table {
+    width: 100%;
+
+    .mat-mdc-row:hover {
+      background: #F5F6FA;
+    }
+  }
+
+  .empty-state {
+    color: #6B7A8D;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 8px 0;
+    margin: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+
+    &--owner { background: #E8F5E9; color: #27AE60; }
+    &--admin { background: #EEF2F7; color: #1A3A5C; }
+    &--lawyer { background: #FFF8E1; color: #F9A825; }
+    &--member { background: #F5F5F5; color: #6B7A8D; }
+    &--pending { background: #FFF8E1; color: #F9A825; }
+  }
+
+  .invite-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    button {
+      margin-top: 4px;
+      height: 56px;
+    }
+  }
+
+  .loading-center {
+    display: flex;
+    justify-content: center;
+    padding: 48px;
+  }
+}

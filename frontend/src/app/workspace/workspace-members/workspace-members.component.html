@@ -1,0 +1,124 @@
+<div class="members-page">
+  <div class="page-header">
+    <h2>Membres du workspace</h2>
+  </div>
+
+  @if (loading) {
+    <div class="loading-center">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else {
+    <!-- Membres -->
+    <section class="section-card">
+      <h3>Membres actifs</h3>
+      <table mat-table [dataSource]="members" class="members-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Nom</th>
+          <td mat-cell *matCellDef="let m">{{ memberName(m) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef>Email</th>
+          <td mat-cell *matCellDef="let m">{{ m.email }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="role">
+          <th mat-header-cell *matHeaderCellDef>Rôle</th>
+          <td mat-cell *matCellDef="let m">
+            <span class="badge" [class]="roleBadgeClass(m.memberRole)">{{ roleLabel(m.memberRole) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="joinedAt">
+          <th mat-header-cell *matHeaderCellDef>Ajouté le</th>
+          <td mat-cell *matCellDef="let m">{{ m.createdAt | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let m">
+            @if (!isCurrentUser(m) && m.memberRole !== 'OWNER') {
+              <button mat-icon-button color="warn" (click)="removeMember(m)" aria-label="Retirer ce membre">
+                <mat-icon>person_remove</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="memberColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: memberColumns;"></tr>
+      </table>
+      @if (members.length === 0) {
+        <p class="empty-state">Aucun membre.</p>
+      }
+    </section>
+
+    <!-- Invitations en attente -->
+    <section class="section-card">
+      <h3>Invitations en attente</h3>
+      <table mat-table [dataSource]="invitations" class="members-table">
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef>Email</th>
+          <td mat-cell *matCellDef="let i">{{ i.email }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="role">
+          <th mat-header-cell *matHeaderCellDef>Rôle</th>
+          <td mat-cell *matCellDef="let i">
+            <span class="badge badge--pending">{{ roleLabel(i.role) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="expiresAt">
+          <th mat-header-cell *matHeaderCellDef>Expire le</th>
+          <td mat-cell *matCellDef="let i">{{ i.expiresAt | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let i">
+            <button mat-icon-button color="warn" (click)="revokeInvitation(i)" aria-label="Révoquer">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="invitationColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: invitationColumns;"></tr>
+      </table>
+      @if (invitations.length === 0) {
+        <p class="empty-state">Aucune invitation en attente.</p>
+      }
+    </section>
+
+    <!-- Formulaire invitation -->
+    <section class="section-card">
+      <h3>Inviter un membre</h3>
+      <form [formGroup]="inviteForm" (ngSubmit)="sendInvitation()" class="invite-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Adresse email</mat-label>
+          <input matInput formControlName="email" type="email" placeholder="avocat@cabinet.fr" />
+          @if (inviteForm.get('email')?.hasError('required') && inviteForm.get('email')?.touched) {
+            <mat-error>L'email est requis</mat-error>
+          }
+          @if (inviteForm.get('email')?.hasError('email') && inviteForm.get('email')?.touched) {
+            <mat-error>Email invalide</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Rôle</mat-label>
+          <mat-select formControlName="role">
+            <mat-option value="ADMIN">Admin</mat-option>
+            <mat-option value="LAWYER">Avocat</mat-option>
+            <mat-option value="MEMBER">Membre</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="inviting || inviteForm.invalid">
+          @if (inviting) { <mat-spinner diameter="20" /> } @else { Envoyer l'invitation }
+        </button>
+      </form>
+    </section>
+  }
+</div>
