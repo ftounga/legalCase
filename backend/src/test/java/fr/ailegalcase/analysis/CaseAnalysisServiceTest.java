@@ -5,6 +5,7 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.Document;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,10 +23,11 @@ class CaseAnalysisServiceTest {
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
+    private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
-            anthropicService, analysisJobRepository);
+            anthropicService, analysisJobRepository, rabbitTemplate);
 
     // U-01 : analyses de documents valides → CaseAnalysis DONE + job DONE
     @Test
@@ -93,7 +95,32 @@ class CaseAnalysisServiceTest {
         assertThat(jobCaptor.getValue().getErrorMessage()).isNotNull();
     }
 
-    // U-03 : aucune document_analysis DONE → aucune CaseAnalysis créée
+    // U-03 : CASE_ANALYSIS DONE → publie un message AiQuestionGenerationMessage
+    @Test
+    void consumeCaseAnalysis_done_publishesQuestionGenerationMessage() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        DocumentAnalysis da = documentAnalysis("{\"faits\":[]}", Instant.now());
+
+        when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(List.of(da));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(anthropicService.analyzeChunk(any())).thenReturn(
+                new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
+
+        verify(rabbitTemplate).convertAndSend(
+                RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,
+                RabbitMQConfig.AI_QUESTION_GENERATION_ROUTING_KEY,
+                new AiQuestionGenerationMessage(caseFileId));
+    }
+
+    // U-04 : aucune document_analysis DONE → aucune CaseAnalysis créée
     @Test
     void consumeCaseAnalysis_noDocumentAnalyses_noCaseAnalysisCreated() {
         UUID caseFileId = UUID.randomUUID();

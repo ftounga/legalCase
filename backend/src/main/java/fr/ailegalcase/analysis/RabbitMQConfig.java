@@ -29,6 +29,10 @@ public class RabbitMQConfig {
     public static final String CASE_ANALYSIS_EXCHANGE = "case.analysis.exchange";
     public static final String CASE_ANALYSIS_ROUTING_KEY = "case.analysis";
 
+    public static final String AI_QUESTION_GENERATION_QUEUE = "ai.question.generation";
+    public static final String AI_QUESTION_GENERATION_EXCHANGE = "ai.question.generation.exchange";
+    public static final String AI_QUESTION_GENERATION_ROUTING_KEY = "ai.question.generation";
+
     @Bean
     public Queue chunkAnalysisQueue() {
         return new Queue(CHUNK_ANALYSIS_QUEUE, true);
@@ -81,6 +85,25 @@ public class RabbitMQConfig {
                 .bind(caseAnalysisQueue)
                 .to(caseAnalysisExchange)
                 .with(CASE_ANALYSIS_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue aiQuestionGenerationQueue() {
+        return new Queue(AI_QUESTION_GENERATION_QUEUE, true);
+    }
+
+    @Bean
+    public DirectExchange aiQuestionGenerationExchange() {
+        return new DirectExchange(AI_QUESTION_GENERATION_EXCHANGE);
+    }
+
+    @Bean
+    public Binding aiQuestionGenerationBinding(Queue aiQuestionGenerationQueue,
+                                               DirectExchange aiQuestionGenerationExchange) {
+        return BindingBuilder
+                .bind(aiQuestionGenerationQueue)
+                .to(aiQuestionGenerationExchange)
+                .with(AI_QUESTION_GENERATION_ROUTING_KEY);
     }
 
     @Bean

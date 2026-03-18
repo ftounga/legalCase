@@ -5,6 +5,7 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -33,17 +34,20 @@ public class CaseAnalysisService {
     private final CaseFileRepository caseFileRepository;
     private final AnthropicService anthropicService;
     private final AnalysisJobRepository analysisJobRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     public CaseAnalysisService(DocumentAnalysisRepository documentAnalysisRepository,
                                CaseAnalysisRepository caseAnalysisRepository,
                                CaseFileRepository caseFileRepository,
                                AnthropicService anthropicService,
-                               AnalysisJobRepository analysisJobRepository) {
+                               AnalysisJobRepository analysisJobRepository,
+                               RabbitTemplate rabbitTemplate) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.anthropicService = anthropicService;
         this.analysisJobRepository = analysisJobRepository;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE)
@@ -106,6 +110,13 @@ public class CaseAnalysisService {
             job.setErrorMessage("Case analysis failed");
         }
         analysisJobRepository.save(job);
+
+        if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,
+                    RabbitMQConfig.AI_QUESTION_GENERATION_ROUTING_KEY,
+                    new AiQuestionGenerationMessage(caseFileId));
+        }
     }
 
     private String buildAggregatedPrompt(List<DocumentAnalysis> documentAnalyses) {
