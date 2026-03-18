@@ -30,6 +30,10 @@ storage:
     bucket: legalcase-dev
     path-style-access: true
 
+app:
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+
 logging:
   level:
     fr.ailegalcase: DEBUG
