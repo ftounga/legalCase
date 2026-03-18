@@ -14,6 +14,8 @@ import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
+import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
+import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
@@ -41,6 +43,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
   uploading = signal(false);
+  submittingAnswer = signal<string | null>(null);
+  reAnalyzing = signal(false);
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
 
@@ -53,6 +57,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
     private aiQuestionService: AiQuestionService,
+    private aiQuestionAnswerService: AiQuestionAnswerService,
+    private reAnalysisService: ReAnalysisService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -141,6 +147,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (questionGenerationDone) {
           this.loadQuestions(caseFileId);
         }
+        const enrichedAnalysisDone = this.analysisJobs().some(
+          j => j.jobType === 'ENRICHED_ANALYSIS' && j.status === 'DONE'
+        );
+        if (enrichedAnalysisDone) {
+          this.loadSynthesis(caseFileId);
+          this.loadQuestions(caseFileId);
+        }
       }
     }
   }
@@ -150,6 +163,47 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       next: qs => this.questions.set(qs),
       error: () => { /* silencieux */ }
     });
+  }
+
+  submitAnswer(question: AiQuestion, answerText: string): void {
+    if (!answerText.trim()) return;
+    this.submittingAnswer.set(question.id);
+    this.aiQuestionAnswerService.submitAnswer(question.id, answerText.trim()).subscribe({
+      next: () => {
+        this.questions.update(qs => qs.map(q =>
+          q.id === question.id ? { ...q, answerText: answerText.trim() } : q
+        ));
+        this.submittingAnswer.set(null);
+      },
+      error: () => {
+        this.submittingAnswer.set(null);
+        this.snackBar.open('Erreur lors de la soumission de la réponse', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  reAnalyze(): void {
+    const caseFileId = this.caseFile()?.id;
+    if (!caseFileId) return;
+    this.reAnalyzing.set(true);
+    this.reAnalysisService.reAnalyze(caseFileId).subscribe({
+      next: () => {
+        this.reAnalyzing.set(false);
+        this.loadAnalysisJobs(caseFileId);
+      },
+      error: () => {
+        this.reAnalyzing.set(false);
+        this.snackBar.open('Erreur lors du déclenchement de la re-analyse', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  hasAnsweredQuestions(): boolean {
+    return this.questions().some(q => q.answerText !== null);
   }
 
   loadSynthesis(caseFileId: string): void {
@@ -164,7 +218,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       CHUNK_ANALYSIS: 'Analyse des segments',
       DOCUMENT_ANALYSIS: 'Analyse des documents',
       CASE_ANALYSIS: 'Synthèse du dossier',
-      QUESTION_GENERATION: 'Génération des questions'
+      QUESTION_GENERATION: 'Génération des questions',
+      ENRICHED_ANALYSIS: 'Re-synthèse enrichie'
     };
     return labels[jobType] ?? jobType;
   }

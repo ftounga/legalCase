@@ -5,6 +5,8 @@ import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
+import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
+import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -39,6 +41,8 @@ describe('CaseFileDetailComponent', () => {
   let analysisJobServiceSpy: jasmine.SpyObj<AnalysisJobService>;
   let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
   let aiQuestionServiceSpy: jasmine.SpyObj<AiQuestionService>;
+  let aiQuestionAnswerServiceSpy: jasmine.SpyObj<AiQuestionAnswerService>;
+  let reAnalysisServiceSpy: jasmine.SpyObj<ReAnalysisService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
 
   beforeEach(async () => {
@@ -47,6 +51,8 @@ describe('CaseFileDetailComponent', () => {
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
     aiQuestionServiceSpy = jasmine.createSpyObj('AiQuestionService', ['getQuestions']);
+    aiQuestionAnswerServiceSpy = jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']);
+    reAnalysisServiceSpy = jasmine.createSpyObj('ReAnalysisService', ['reAnalyze']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
@@ -55,6 +61,8 @@ describe('CaseFileDetailComponent', () => {
     analysisJobServiceSpy.getJobs.and.returnValue(of([]));
     caseAnalysisServiceSpy.getAnalysis.and.returnValue(throwError(() => new Error('404')));
     aiQuestionServiceSpy.getQuestions.and.returnValue(of([]));
+    aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(of(undefined));
+    reAnalysisServiceSpy.reAnalyze.and.returnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [CaseFileDetailComponent],
@@ -64,6 +72,8 @@ describe('CaseFileDetailComponent', () => {
         { provide: AnalysisJobService, useValue: analysisJobServiceSpy },
         { provide: CaseAnalysisService, useValue: caseAnalysisServiceSpy },
         { provide: AiQuestionService, useValue: aiQuestionServiceSpy },
+        { provide: AiQuestionAnswerService, useValue: aiQuestionAnswerServiceSpy },
+        { provide: ReAnalysisService, useValue: reAnalysisServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
@@ -236,16 +246,14 @@ describe('CaseFileDetailComponent', () => {
 
   it('section Questions IA présente si questions() non vide', () => {
     const mockQuestions: AiQuestion[] = [
-      { orderIndex: 0, questionText: 'Question A ?' },
-      { orderIndex: 1, questionText: 'Question B ?' }
+      { id: 'q1', orderIndex: 0, questionText: 'Question A ?', answerText: null },
+      { id: 'q2', orderIndex: 1, questionText: 'Question B ?', answerText: null }
     ];
     component.questions.set(mockQuestions);
     fixture.detectChanges();
 
     const items = fixture.nativeElement.querySelectorAll('.question-item');
     expect(items.length).toBe(2);
-    expect(items[0].textContent.trim()).toBe('Question A ?');
-    expect(items[1].textContent.trim()).toBe('Question B ?');
   });
 
   it('loadQuestions — erreur API → questions() reste vide', () => {
@@ -256,6 +264,81 @@ describe('CaseFileDetailComponent', () => {
 
   it('jobTypeLabel — QUESTION_GENERATION retourne le bon libellé', () => {
     expect(component.jobTypeLabel('QUESTION_GENERATION')).toBe('Génération des questions');
+  });
+
+  it('jobTypeLabel — ENRICHED_ANALYSIS retourne le bon libellé', () => {
+    expect(component.jobTypeLabel('ENRICHED_ANALYSIS')).toBe('Re-synthèse enrichie');
+  });
+
+  // --- Tests SF-14-03 : réponses + bouton Re-analyser ---
+
+  it('question sans réponse — affiche le formulaire de réponse', () => {
+    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
+    component.questions.set([mockQ]);
+    fixture.detectChanges();
+
+    const textarea = fixture.nativeElement.querySelector('.answer-textarea');
+    expect(textarea).not.toBeNull();
+  });
+
+  it('question avec réponse — affiche la réponse, pas de formulaire', () => {
+    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: 'Ma réponse' };
+    component.questions.set([mockQ]);
+    fixture.detectChanges();
+
+    const textarea = fixture.nativeElement.querySelector('.answer-textarea');
+    const answerText = fixture.nativeElement.querySelector('.answer-text');
+    expect(textarea).toBeNull();
+    expect(answerText).not.toBeNull();
+    expect(answerText.textContent.trim()).toBe('Ma réponse');
+  });
+
+  it('bouton Re-analyser absent si aucune question avec réponse', () => {
+    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
+    component.questions.set([mockQ]);
+    fixture.detectChanges();
+
+    expect(component.hasAnsweredQuestions()).toBeFalse();
+  });
+
+  it('bouton Re-analyser présent si au moins une question avec réponse', () => {
+    const mockQs: AiQuestion[] = [
+      { id: 'q1', orderIndex: 0, questionText: 'Question 1 ?', answerText: 'Réponse' },
+      { id: 'q2', orderIndex: 1, questionText: 'Question 2 ?', answerText: null }
+    ];
+    component.questions.set(mockQs);
+    fixture.detectChanges();
+
+    expect(component.hasAnsweredQuestions()).toBeTrue();
+  });
+
+  it('submitAnswer — erreur API → snackbar affiché', () => {
+    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
+    component.questions.set([mockQ]);
+    aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(throwError(() => new Error('500')));
+
+    component.submitAnswer(mockQ, 'Ma réponse');
+
+    expect(snackBarSpy.open).toHaveBeenCalled();
+    expect(component.submittingAnswer()).toBeNull();
+  });
+
+  it('submitAnswer — succès → réponse mise à jour dans le signal', () => {
+    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
+    component.questions.set([mockQ]);
+    aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(of(undefined));
+
+    component.submitAnswer(mockQ, 'Ma réponse');
+
+    expect(component.questions()[0].answerText).toBe('Ma réponse');
+    expect(component.submittingAnswer()).toBeNull();
+  });
+
+  it('reAnalyze — erreur API → snackbar affiché', () => {
+    reAnalysisServiceSpy.reAnalyze.and.returnValue(throwError(() => new Error('500')));
+    component.reAnalyze();
+    expect(snackBarSpy.open).toHaveBeenCalled();
+    expect(component.reAnalyzing()).toBeFalse();
   });
 
   it('sous-section masquée si liste vide', () => {
