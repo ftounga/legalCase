@@ -205,6 +205,55 @@
       }
     </mat-card>
   }
+  <!-- Section Consommation LLM -->
+  <div class="section-header">
+    <h2 class="section-title">Consommation LLM</h2>
+  </div>
+  <mat-card class="usage-card">
+    <table mat-table [dataSource]="usageDataSource" class="usage-table">
+      <ng-container matColumnDef="eventType">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let e">{{ e.eventType }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tokensInput">
+        <th mat-header-cell *matHeaderCellDef>Tokens input</th>
+        <td mat-cell *matCellDef="let e">{{ e.tokensInput | number }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tokensOutput">
+        <th mat-header-cell *matHeaderCellDef>Tokens output</th>
+        <td mat-cell *matCellDef="let e">{{ e.tokensOutput | number }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="estimatedCost">
+        <th mat-header-cell *matHeaderCellDef>Coût estimé</th>
+        <td mat-cell *matCellDef="let e">€{{ e.estimatedCost | number:'1.6-6' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="createdAt">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let e">{{ e.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="usageColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: usageColumns;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell no-data-cell" [attr.colspan]="usageColumns.length">
+          Aucun événement de consommation pour ce dossier.
+        </td>
+      </tr>
+    </table>
+    @if (usageEvents().length > 0) {
+      <div class="totals-row">
+        <span class="totals-label">Total</span>
+        <span class="totals-value">{{ usageTotals().tokensInput | number }} tokens in</span>
+        <span class="totals-value">{{ usageTotals().tokensOutput | number }} tokens out</span>
+        <span class="totals-value">€{{ usageTotals().estimatedCost | number:'1.6-6' }}</span>
+      </div>
+    }
+    <mat-paginator #usagePaginator [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons></mat-paginator>
+  </mat-card>
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }

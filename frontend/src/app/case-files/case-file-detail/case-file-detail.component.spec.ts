@@ -7,6 +7,7 @@ import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
+import { UsageEventService } from '../../core/services/usage-event.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -16,6 +17,7 @@ import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { UsageEvent } from '../../core/models/usage-event.model';
 
 const mockCaseFile: CaseFile = {
   id: 'cf1', title: 'Dossier A', legalDomain: 'EMPLOYMENT_LAW',
@@ -43,6 +45,7 @@ describe('CaseFileDetailComponent', () => {
   let aiQuestionServiceSpy: jasmine.SpyObj<AiQuestionService>;
   let aiQuestionAnswerServiceSpy: jasmine.SpyObj<AiQuestionAnswerService>;
   let reAnalysisServiceSpy: jasmine.SpyObj<ReAnalysisService>;
+  let usageEventServiceSpy: jasmine.SpyObj<UsageEventService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
 
   beforeEach(async () => {
@@ -53,6 +56,7 @@ describe('CaseFileDetailComponent', () => {
     aiQuestionServiceSpy = jasmine.createSpyObj('AiQuestionService', ['getQuestions']);
     aiQuestionAnswerServiceSpy = jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']);
     reAnalysisServiceSpy = jasmine.createSpyObj('ReAnalysisService', ['reAnalyze']);
+    usageEventServiceSpy = jasmine.createSpyObj('UsageEventService', ['getUsageEvents']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
@@ -63,6 +67,7 @@ describe('CaseFileDetailComponent', () => {
     aiQuestionServiceSpy.getQuestions.and.returnValue(of([]));
     aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(of(undefined));
     reAnalysisServiceSpy.reAnalyze.and.returnValue(of(undefined));
+    usageEventServiceSpy.getUsageEvents.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [CaseFileDetailComponent],
@@ -74,6 +79,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: AiQuestionService, useValue: aiQuestionServiceSpy },
         { provide: AiQuestionAnswerService, useValue: aiQuestionAnswerServiceSpy },
         { provide: ReAnalysisService, useValue: reAnalysisServiceSpy },
+        { provide: UsageEventService, useValue: usageEventServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
@@ -339,6 +345,54 @@ describe('CaseFileDetailComponent', () => {
     component.reAnalyze();
     expect(snackBarSpy.open).toHaveBeenCalled();
     expect(component.reAnalyzing()).toBeFalse();
+  });
+
+  // --- Tests SF-15-04 : section Consommation LLM ---
+
+  it('usageEvents() vide au départ — message vide affiché', () => {
+    fixture.detectChanges();
+    const noDataRow = fixture.nativeElement.querySelector('.no-data-cell');
+    expect(noDataRow).not.toBeNull();
+    expect(noDataRow.textContent).toContain('Aucun événement de consommation');
+  });
+
+  it('loadUsage — alimente usageEvents() et usageDataSource', () => {
+    const mockEvents: UsageEvent[] = [
+      { id: 'u1', eventType: 'CHUNK_ANALYSIS', tokensInput: 100, tokensOutput: 50, estimatedCost: 0.000123, createdAt: '2026-03-18T10:00:00Z' },
+      { id: 'u2', eventType: 'CASE_ANALYSIS', tokensInput: 200, tokensOutput: 80, estimatedCost: 0.000456, createdAt: '2026-03-18T11:00:00Z' }
+    ];
+    usageEventServiceSpy.getUsageEvents.and.returnValue(of(mockEvents));
+    component.loadUsage('cf1');
+    fixture.detectChanges();
+
+    expect(component.usageEvents().length).toBe(2);
+    expect(component.usageDataSource.data.length).toBe(2);
+  });
+
+  it('usageTotals — calcule les totaux correctement', () => {
+    const mockEvents: UsageEvent[] = [
+      { id: 'u1', eventType: 'CHUNK_ANALYSIS', tokensInput: 100, tokensOutput: 50, estimatedCost: 0.0001, createdAt: '2026-03-18T10:00:00Z' },
+      { id: 'u2', eventType: 'CASE_ANALYSIS', tokensInput: 200, tokensOutput: 80, estimatedCost: 0.0002, createdAt: '2026-03-18T11:00:00Z' }
+    ];
+    component.usageEvents.set(mockEvents);
+
+    expect(component.usageTotals().tokensInput).toBe(300);
+    expect(component.usageTotals().tokensOutput).toBe(130);
+    expect(component.usageTotals().estimatedCost).toBeCloseTo(0.0003, 6);
+  });
+
+  it('loadUsage — erreur 403 → snackbar "Accès non autorisé."', () => {
+    const error = { status: 403 };
+    usageEventServiceSpy.getUsageEvents.and.returnValue(throwError(() => error));
+    component.loadUsage('cf1');
+    expect(snackBarSpy.open).toHaveBeenCalledWith('Accès non autorisé.', 'Fermer', jasmine.any(Object));
+  });
+
+  it('loadUsage — erreur 500 → snackbar "Impossible de charger la consommation."', () => {
+    const error = { status: 500 };
+    usageEventServiceSpy.getUsageEvents.and.returnValue(throwError(() => error));
+    component.loadUsage('cf1');
+    expect(snackBarSpy.open).toHaveBeenCalledWith('Impossible de charger la consommation.', 'Fermer', jasmine.any(Object));
   });
 
   it('sous-section masquée si liste vide', () => {

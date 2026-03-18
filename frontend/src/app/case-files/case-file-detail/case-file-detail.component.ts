@@ -1,10 +1,11 @@
-import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DatePipe, UpperCasePipe } from '@angular/common';
+import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -16,37 +17,52 @@ import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
+import { UsageEventService } from '../../core/services/usage-event.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { UsageEvent } from '../../core/models/usage-event.model';
 
 @Component({
   selector: 'app-case-file-detail',
   standalone: true,
   imports: [
-    RouterLink, DatePipe, UpperCasePipe,
+    RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule, MatDividerModule
+    MatTableModule, MatPaginatorModule, MatProgressSpinnerModule, MatProgressBarModule, MatDividerModule
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
 })
-export class CaseFileDetailComponent implements OnInit, OnDestroy {
+export class CaseFileDetailComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('usagePaginator') usagePaginator!: MatPaginator;
 
   caseFile = signal<CaseFile | null>(null);
   documents = signal<Document[]>([]);
   analysisJobs = signal<AnalysisJob[]>([]);
   synthesis = signal<CaseAnalysisResult | null>(null);
   questions = signal<AiQuestion[]>([]);
+  usageEvents = signal<UsageEvent[]>([]);
   loading = signal(true);
   uploading = signal(false);
   submittingAnswer = signal<string | null>(null);
   reAnalyzing = signal(false);
 
+  usageDataSource = new MatTableDataSource<UsageEvent>([]);
+  usageTotals = computed(() => {
+    const events = this.usageEvents();
+    return {
+      tokensInput: events.reduce((s, e) => s + e.tokensInput, 0),
+      tokensOutput: events.reduce((s, e) => s + e.tokensOutput, 0),
+      estimatedCost: events.reduce((s, e) => s + e.estimatedCost, 0)
+    };
+  });
+
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
+  readonly usageColumns = ['eventType', 'tokensInput', 'tokensOutput', 'estimatedCost', 'createdAt'];
 
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -59,6 +75,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private aiQuestionService: AiQuestionService,
     private aiQuestionAnswerService: AiQuestionAnswerService,
     private reAnalysisService: ReAnalysisService,
+    private usageEventService: UsageEventService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -70,6 +87,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.loadDocuments(id);
         this.loadAnalysisJobs(id);
+        this.loadUsage(id);
       },
       error: () => {
         this.loading.set(false);
@@ -78,6 +96,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  ngAfterViewInit(): void {
+    this.usageDataSource.paginator = this.usagePaginator;
   }
 
   ngOnDestroy(): void {
@@ -204,6 +226,21 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   hasAnsweredQuestions(): boolean {
     return this.questions().some(q => q.answerText !== null);
+  }
+
+  loadUsage(caseFileId: string): void {
+    this.usageEventService.getUsageEvents(caseFileId).subscribe({
+      next: events => {
+        this.usageEvents.set(events);
+        this.usageDataSource.data = events;
+      },
+      error: err => {
+        const msg = err.status === 403
+          ? 'Accès non autorisé.'
+          : 'Impossible de charger la consommation.';
+        this.snackBar.open(msg, 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+      }
+    });
   }
 
   loadSynthesis(caseFileId: string): void {
