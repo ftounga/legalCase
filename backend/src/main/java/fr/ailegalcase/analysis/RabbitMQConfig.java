@@ -33,6 +33,10 @@ public class RabbitMQConfig {
     public static final String AI_QUESTION_GENERATION_EXCHANGE = "ai.question.generation.exchange";
     public static final String AI_QUESTION_GENERATION_ROUTING_KEY = "ai.question.generation";
 
+    public static final String RE_ANALYSIS_QUEUE = "re.analysis";
+    public static final String RE_ANALYSIS_EXCHANGE = "re.analysis.exchange";
+    public static final String RE_ANALYSIS_ROUTING_KEY = "re.analysis";
+
     @Bean
     public Queue chunkAnalysisQueue() {
         return new Queue(CHUNK_ANALYSIS_QUEUE, true);
@@ -104,6 +108,24 @@ public class RabbitMQConfig {
                 .bind(aiQuestionGenerationQueue)
                 .to(aiQuestionGenerationExchange)
                 .with(AI_QUESTION_GENERATION_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue reAnalysisQueue() {
+        return new Queue(RE_ANALYSIS_QUEUE, true);
+    }
+
+    @Bean
+    public DirectExchange reAnalysisExchange() {
+        return new DirectExchange(RE_ANALYSIS_EXCHANGE);
+    }
+
+    @Bean
+    public Binding reAnalysisBinding(Queue reAnalysisQueue, DirectExchange reAnalysisExchange) {
+        return BindingBuilder
+                .bind(reAnalysisQueue)
+                .to(reAnalysisExchange)
+                .with(RE_ANALYSIS_ROUTING_KEY);
     }
 
     @Bean

@@ -1,0 +1,158 @@
+package fr.ailegalcase.analysis;
+
+import fr.ailegalcase.casefile.CaseFile;
+import fr.ailegalcase.casefile.CaseFileRepository;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+class EnrichedAnalysisServiceTest {
+
+    private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
+    private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
+    private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
+    private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
+    private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
+    private final AnthropicService anthropicService = mock(AnthropicService.class);
+
+    private final EnrichedAnalysisService service = new EnrichedAnalysisService(
+            caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
+            aiQuestionAnswerRepository, analysisJobRepository, anthropicService);
+
+    // U-01 : nominal — synthèse enrichie DONE, job DONE
+    @Test
+    void consumeReAnalysis_nominal_persistsDoneAnalysisAndJob() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{\"faits\":[\"fait1\"]}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        AiQuestion q = answeredQuestion(caseFileId, "Question ?");
+        AiQuestionAnswer answer = new AiQuestionAnswer();
+        answer.setAnswerText("Ma réponse");
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of(q));
+        when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
+                .thenReturn(Optional.of(answer));
+        when(anthropicService.analyzeChunk(any())).thenReturn(
+                new AnthropicResult("{\"faits\":[\"enrichi\"]}", "claude-sonnet-4-6", 400, 200));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(2)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(captor.getValue().getAnalysisResult()).isEqualTo("{\"faits\":[\"enrichi\"]}");
+
+        ArgumentCaptor<AnalysisJob> jobCaptor = ArgumentCaptor.forClass(AnalysisJob.class);
+        verify(analysisJobRepository, times(1)).save(jobCaptor.capture());
+        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(jobCaptor.getValue().getProcessedItems()).isEqualTo(1);
+    }
+
+    // U-02 : erreur LLM → analyse FAILED, job FAILED
+    @Test
+    void consumeReAnalysis_anthropicError_persistsFailedAnalysisAndJob() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeChunk(any())).thenThrow(new RuntimeException("API error"));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(2)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
+
+        ArgumentCaptor<AnalysisJob> jobCaptor = ArgumentCaptor.forClass(AnalysisJob.class);
+        verify(analysisJobRepository).save(jobCaptor.capture());
+        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.FAILED);
+        assertThat(jobCaptor.getValue().getErrorMessage()).isNotNull();
+    }
+
+    // U-03 : pas de CaseAnalysis DONE → job FAILED, aucune analyse créée
+    @Test
+    void consumeReAnalysis_noPreviousAnalysis_jobFailed() {
+        UUID caseFileId = UUID.randomUUID();
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.empty());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        verify(caseAnalysisRepository, never()).save(any());
+        ArgumentCaptor<AnalysisJob> jobCaptor = ArgumentCaptor.forClass(AnalysisJob.class);
+        verify(analysisJobRepository).save(jobCaptor.capture());
+        assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.FAILED);
+    }
+
+    // U-04 : buildEnrichedPrompt contient la synthèse précédente et les Q&R
+    @Test
+    void buildEnrichedPrompt_containsPreviousAnalysisAndQA() {
+        UUID caseFileId = UUID.randomUUID();
+        AiQuestion q = answeredQuestion(caseFileId, "Question test ?");
+        AiQuestionAnswer answer = new AiQuestionAnswer();
+        answer.setAnswerText("Réponse test");
+
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of(q));
+        when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
+                .thenReturn(Optional.of(answer));
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{\"faits\":[\"fait1\"]}");
+
+        assertThat(prompt).contains("{\"faits\":[\"fait1\"]}");
+        assertThat(prompt).contains("Question test ?");
+        assertThat(prompt).contains("Réponse test");
+        assertThat(prompt).contains("Synthèse précédente");
+        assertThat(prompt).contains("Questions et réponses");
+    }
+
+    // U-05 : SYSTEM_PROMPT contient les champs clés
+    @Test
+    void systemPrompt_containsRequiredFields() {
+        assertThat(EnrichedAnalysisService.SYSTEM_PROMPT).contains("timeline");
+        assertThat(EnrichedAnalysisService.SYSTEM_PROMPT).contains("faits");
+        assertThat(EnrichedAnalysisService.SYSTEM_PROMPT).contains("enrichie");
+    }
+
+    private AiQuestion answeredQuestion(UUID caseFileId, String text) {
+        fr.ailegalcase.casefile.CaseFile cf = new fr.ailegalcase.casefile.CaseFile();
+        AiQuestion q = new AiQuestion();
+        q.setId(UUID.randomUUID());
+        q.setCaseFile(cf);
+        q.setQuestionText(text);
+        q.setOrderIndex(0);
+        q.setStatus("ANSWERED");
+        return q;
+    }
+}
