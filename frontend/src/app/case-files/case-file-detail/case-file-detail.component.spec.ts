@@ -4,6 +4,7 @@ import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { AiQuestionService } from '../../core/services/ai-question.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -12,6 +13,7 @@ import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
 
 const mockCaseFile: CaseFile = {
   id: 'cf1', title: 'Dossier A', legalDomain: 'EMPLOYMENT_LAW',
@@ -36,6 +38,7 @@ describe('CaseFileDetailComponent', () => {
   let documentServiceSpy: jasmine.SpyObj<DocumentService>;
   let analysisJobServiceSpy: jasmine.SpyObj<AnalysisJobService>;
   let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
+  let aiQuestionServiceSpy: jasmine.SpyObj<AiQuestionService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
 
   beforeEach(async () => {
@@ -43,6 +46,7 @@ describe('CaseFileDetailComponent', () => {
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
+    aiQuestionServiceSpy = jasmine.createSpyObj('AiQuestionService', ['getQuestions']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
@@ -50,6 +54,7 @@ describe('CaseFileDetailComponent', () => {
     documentServiceSpy.downloadUrl.and.returnValue('/api/v1/case-files/cf1/documents/doc1/download');
     analysisJobServiceSpy.getJobs.and.returnValue(of([]));
     caseAnalysisServiceSpy.getAnalysis.and.returnValue(throwError(() => new Error('404')));
+    aiQuestionServiceSpy.getQuestions.and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [CaseFileDetailComponent],
@@ -58,6 +63,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: DocumentService, useValue: documentServiceSpy },
         { provide: AnalysisJobService, useValue: analysisJobServiceSpy },
         { provide: CaseAnalysisService, useValue: caseAnalysisServiceSpy },
+        { provide: AiQuestionService, useValue: aiQuestionServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
@@ -218,6 +224,38 @@ describe('CaseFileDetailComponent', () => {
 
     const timelineEntries = fixture.nativeElement.querySelectorAll('.timeline-entry');
     expect(timelineEntries.length).toBe(0);
+  });
+
+  // --- Tests SF-13-03 : section Questions IA ---
+
+  it('section Questions IA absente si questions() vide', () => {
+    fixture.detectChanges();
+    const section = fixture.nativeElement.querySelector('.questions-card');
+    expect(section).toBeNull();
+  });
+
+  it('section Questions IA présente si questions() non vide', () => {
+    const mockQuestions: AiQuestion[] = [
+      { orderIndex: 0, questionText: 'Question A ?' },
+      { orderIndex: 1, questionText: 'Question B ?' }
+    ];
+    component.questions.set(mockQuestions);
+    fixture.detectChanges();
+
+    const items = fixture.nativeElement.querySelectorAll('.question-item');
+    expect(items.length).toBe(2);
+    expect(items[0].textContent.trim()).toBe('Question A ?');
+    expect(items[1].textContent.trim()).toBe('Question B ?');
+  });
+
+  it('loadQuestions — erreur API → questions() reste vide', () => {
+    aiQuestionServiceSpy.getQuestions.and.returnValue(throwError(() => new Error('500')));
+    component.loadQuestions('cf1');
+    expect(component.questions()).toEqual([]);
+  });
+
+  it('jobTypeLabel — QUESTION_GENERATION retourne le bon libellé', () => {
+    expect(component.jobTypeLabel('QUESTION_GENERATION')).toBe('Génération des questions');
   });
 
   it('sous-section masquée si liste vide', () => {

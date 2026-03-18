@@ -13,10 +13,12 @@ import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { AiQuestionService } from '../../core/services/ai-question.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -36,6 +38,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   documents = signal<Document[]>([]);
   analysisJobs = signal<AnalysisJob[]>([]);
   synthesis = signal<CaseAnalysisResult | null>(null);
+  questions = signal<AiQuestion[]>([]);
   loading = signal(true);
   uploading = signal(false);
 
@@ -49,6 +52,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private documentService: DocumentService,
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
+    private aiQuestionService: AiQuestionService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -131,8 +135,21 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (caseAnalysisDone) {
           this.loadSynthesis(caseFileId);
         }
+        const questionGenerationDone = this.analysisJobs().some(
+          j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE'
+        );
+        if (questionGenerationDone) {
+          this.loadQuestions(caseFileId);
+        }
       }
     }
+  }
+
+  loadQuestions(caseFileId: string): void {
+    this.aiQuestionService.getQuestions(caseFileId).subscribe({
+      next: qs => this.questions.set(qs),
+      error: () => { /* silencieux */ }
+    });
   }
 
   loadSynthesis(caseFileId: string): void {
@@ -146,7 +163,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const labels: Record<string, string> = {
       CHUNK_ANALYSIS: 'Analyse des segments',
       DOCUMENT_ANALYSIS: 'Analyse des documents',
-      CASE_ANALYSIS: 'Synthèse du dossier'
+      CASE_ANALYSIS: 'Synthèse du dossier',
+      QUESTION_GENERATION: 'Génération des questions'
     };
     return labels[jobType] ?? jobType;
   }
