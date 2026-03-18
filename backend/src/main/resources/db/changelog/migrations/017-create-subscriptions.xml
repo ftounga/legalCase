@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="017-1" author="system">
+        <createTable tableName="subscriptions">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="plan_code" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="timestamptz"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="subscriptions"
+                baseColumnNames="workspace_id"
+                referencedTableName="workspaces"
+                referencedColumnNames="id"
+                constraintName="fk_subscriptions_workspace_id"/>
+    </changeSet>
+
+</databaseChangeLog>

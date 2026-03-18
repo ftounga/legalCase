@@ -25,13 +25,14 @@ class WorkspaceServiceGetCurrentTest {
     @Mock private WorkspaceRepository workspaceRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private fr.ailegalcase.billing.SubscriptionRepository subscriptionRepository;
     @Mock private OidcUser oidcUser;
 
     private WorkspaceService service;
 
     @BeforeEach
     void setUp() {
-        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository, authAccountRepository);
+        service = new WorkspaceService(workspaceRepository, workspaceMemberRepository, authAccountRepository, subscriptionRepository);
     }
 
     // U-01 : utilisateur avec workspace → retourne WorkspaceResponse
