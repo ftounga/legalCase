@@ -36,6 +36,11 @@ export const routes: Routes = [
         path: 'workspace/billing',
         loadComponent: () => import('./workspace/workspace-billing/workspace-billing.component')
           .then(m => m.WorkspaceBillingComponent)
+      },
+      {
+        path: 'workspace/admin',
+        loadComponent: () => import('./workspace/workspace-admin/workspace-admin.component')
+          .then(m => m.WorkspaceAdminComponent)
       }
     ]
   },
