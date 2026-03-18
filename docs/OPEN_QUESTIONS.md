@@ -74,6 +74,16 @@ Quel provider S3-compatible sera utilisé en production ?
 - Fonctionne que l'invité ait déjà un compte ou non
 - Provider email V1 : à trancher en SF-17-03 (Spring Mail SMTP recommandé)
 
+## Intégration paiement Stripe (F-19)
+~~Stripe différé post-V1 ?~~
+**Tranché le 2026-03-18** — Stripe intégré en V1 (F-19). Objectif : les utilisateurs peuvent payer dès le déploiement V1.
+- Stripe Checkout (hosted) pour FREE→Starter et Starter→Pro
+- Webhook Stripe pour mise à jour automatique du `plan_code` en base
+- `stripe_customer_id` et `stripe_subscription_id` à ajouter sur la table `subscriptions`
+- Clés Stripe test en local, clés prod à configurer avant déploiement
+
+---
+
 ## Plan tarifaire — modèle FREE trial (F-16 évolution)
 **Tranché le 2026-03-18** — Ajout d'un plan FREE en trial 14 jours.
 

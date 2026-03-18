@@ -90,6 +90,12 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 |----|---------|-------------|--------|
 | F-18 | Page d'administration | Tableau de bord admin : consommation LLM par dossier/user, gestion des membres, statut du plan. Accès OWNER/ADMIN uniquement. | `À spécifier` |
 
+### Bloc 9 — Paiement
+
+| ID | Feature | Description | Statut |
+|----|---------|-------------|--------|
+| F-19 | Intégration paiement Stripe | Checkout Stripe pour passage FREE→Starter et Starter→Pro. Webhook Stripe pour mise à jour automatique du plan. Page pricing frontend. Bannière upgrade. Gestion plan FREE trial 14j. | `À spécifier` |
+
 ---
 
 ## Ordre d'implémentation recommandé
@@ -108,11 +114,11 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-19 | Droit de l'immigration | V2 | Nouveau domaine juridique — nouveaux prompts LLM |
-| F-20 | Droit immobilier | V3 | Nouveau domaine juridique — nouveaux prompts LLM |
-| F-21 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
-| F-22 | Collaboration avancée | V2+ | Partage de dossiers entre membres, commentaires |
-| F-23 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
+| F-20 | Droit de l'immigration | V2 | Nouveau domaine juridique — nouveaux prompts LLM |
+| F-21 | Droit immobilier | V3 | Nouveau domaine juridique — nouveaux prompts LLM |
+| F-22 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
+| F-23 | Collaboration avancée | V2+ | Partage de dossiers entre membres, commentaires |
+| F-24 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
 
 ---
 
