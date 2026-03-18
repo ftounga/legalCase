@@ -4,8 +4,8 @@ import { AiQuestionService } from './ai-question.service';
 import { AiQuestion } from '../models/ai-question.model';
 
 const mockQuestions: AiQuestion[] = [
-  { orderIndex: 0, questionText: 'Question A ?' },
-  { orderIndex: 1, questionText: 'Question B ?' }
+  { id: 'q1', orderIndex: 0, questionText: 'Question A ?', answerText: null },
+  { id: 'q2', orderIndex: 1, questionText: 'Question B ?', answerText: 'Réponse B' }
 ];
 
 describe('AiQuestionService', () => {

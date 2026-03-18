@@ -171,13 +171,38 @@
   @if (questions().length > 0) {
     <div class="section-header">
       <h2 class="section-title">Questions IA</h2>
+      @if (hasAnsweredQuestions()) {
+        <button mat-raised-button color="accent" (click)="reAnalyze()" [disabled]="reAnalyzing()">
+          @if (reAnalyzing()) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+          } @else {
+            <mat-icon>auto_fix_high</mat-icon>
+          }
+          Re-analyser
+        </button>
+      }
     </div>
     <mat-card class="questions-card">
-      <ol class="questions-list">
-        @for (q of questions(); track q.orderIndex) {
-          <li class="question-item">{{ q.questionText }}</li>
-        }
-      </ol>
+      @for (q of questions(); track q.id) {
+        <div class="question-item">
+          <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
+          @if (q.answerText) {
+            <p class="answer-text">{{ q.answerText }}</p>
+          } @else {
+            <div class="answer-form">
+              <textarea #answerInput class="answer-textarea" placeholder="Votre réponse..." rows="2"></textarea>
+              <button mat-stroked-button color="primary"
+                      [disabled]="submittingAnswer() === q.id"
+                      (click)="submitAnswer(q, answerInput.value)">
+                @if (submittingAnswer() === q.id) {
+                  <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                }
+                Répondre
+              </button>
+            </div>
+          }
+        </div>
+      }
     </mat-card>
   }
 } @else {
