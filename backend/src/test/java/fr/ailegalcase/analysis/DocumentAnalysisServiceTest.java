@@ -30,11 +30,13 @@ class DocumentAnalysisServiceTest {
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
+    private final UsageEventService usageEventService = mock(UsageEventService.class);
+    private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
 
     private final DocumentAnalysisService service = new DocumentAnalysisService(
             chunkAnalysisRepository, documentAnalysisRepository, extractionRepository,
             documentRepository, caseAnalysisRepository, rabbitTemplate,
-            anthropicService, analysisJobRepository);
+            anthropicService, analysisJobRepository, usageEventService, caseFileRepository);
 
     // U-01 : analyses de chunks valides → DocumentAnalysis DONE + trigger case analysis + job créé
     @Test
@@ -60,10 +62,13 @@ class DocumentAnalysisServiceTest {
         job.setTotalItems(1);
         job.setProcessedItems(0);
 
+        UUID userId = UUID.randomUUID();
+
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca0, ca1));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
                 .thenReturn(Optional.of(job));
@@ -96,6 +101,9 @@ class DocumentAnalysisServiceTest {
         AnalysisJob finalJob = savedJobs.get(savedJobs.size() - 1);
         assertThat(finalJob.getProcessedItems()).isEqualTo(1);
         assertThat(finalJob.getStatus()).isEqualTo(AnalysisStatus.DONE);
+
+        // Usage enregistré
+        verify(usageEventService).record(caseFileId, userId, JobType.DOCUMENT_ANALYSIS, 200, 100);
     }
 
     // U-02 : erreur Anthropic → DocumentAnalysis FAILED (pas de trigger)

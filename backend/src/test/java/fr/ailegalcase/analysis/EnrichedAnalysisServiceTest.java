@@ -21,15 +21,17 @@ class EnrichedAnalysisServiceTest {
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
+    private final UsageEventService usageEventService = mock(UsageEventService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
-            aiQuestionAnswerRepository, analysisJobRepository, anthropicService);
+            aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService);
 
     // U-01 : nominal — synthèse enrichie DONE, job DONE
     @Test
     void consumeReAnalysis_nominal_persistsDoneAnalysisAndJob() {
         UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         CaseFile caseFile = new CaseFile();
 
         CaseAnalysis previousAnalysis = new CaseAnalysis();
@@ -46,6 +48,7 @@ class EnrichedAnalysisServiceTest {
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(previousAnalysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of(q));
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
@@ -64,6 +67,9 @@ class EnrichedAnalysisServiceTest {
         verify(analysisJobRepository, times(1)).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(jobCaptor.getValue().getProcessedItems()).isEqualTo(1);
+
+        // Usage enregistré
+        verify(usageEventService).record(caseFileId, userId, JobType.ENRICHED_ANALYSIS, 400, 200);
     }
 
     // U-02 : erreur LLM → analyse FAILED, job FAILED

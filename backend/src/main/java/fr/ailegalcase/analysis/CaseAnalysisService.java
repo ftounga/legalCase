@@ -35,19 +35,22 @@ public class CaseAnalysisService {
     private final AnthropicService anthropicService;
     private final AnalysisJobRepository analysisJobRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final UsageEventService usageEventService;
 
     public CaseAnalysisService(DocumentAnalysisRepository documentAnalysisRepository,
                                CaseAnalysisRepository caseAnalysisRepository,
                                CaseFileRepository caseFileRepository,
                                AnthropicService anthropicService,
                                AnalysisJobRepository analysisJobRepository,
-                               RabbitTemplate rabbitTemplate) {
+                               RabbitTemplate rabbitTemplate,
+                               UsageEventService usageEventService) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.anthropicService = anthropicService;
         this.analysisJobRepository = analysisJobRepository;
         this.rabbitTemplate = rabbitTemplate;
+        this.usageEventService = usageEventService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE)
@@ -116,6 +119,11 @@ public class CaseAnalysisService {
                     RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,
                     RabbitMQConfig.AI_QUESTION_GENERATION_ROUTING_KEY,
                     new AiQuestionGenerationMessage(caseFileId));
+            int promptTokens = analysis.getPromptTokens();
+            int completionTokens = analysis.getCompletionTokens();
+            caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
+                usageEventService.record(caseFileId, userId, JobType.CASE_ANALYSIS,
+                        promptTokens, completionTokens));
         }
     }
 
