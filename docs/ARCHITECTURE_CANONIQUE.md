@@ -499,7 +499,7 @@ Déclenchement : message RabbitMQ publié après chunking — consumer @RabbitLi
 
 ## Niveau 2 — document
 
-Synthèse du document.
+Synthèse du document. Déclenchée quand toutes les chunk_analyses du document sont DONE.
 
 Table :
 
@@ -507,18 +507,24 @@ document_analyses
 
 Champs :
 
-document_id  
-summary  
-extracted_facts  
-legal_points  
-detected_risks  
-contradictions
+id
+document_id (FK → documents)
+extraction_id (FK → document_extractions)
+analysis_status (PENDING, PROCESSING, DONE, FAILED)
+analysis_result (TEXT — JSON retourné par le LLM)
+model_used
+prompt_tokens
+completion_tokens
+created_at
+updated_at
+
+Idempotence : existsByExtractionIdAndAnalysisStatusIn(PENDING, PROCESSING, DONE) avant déclenchement.
 
 ---
 
 ## Niveau 3 — dossier
 
-Synthèse globale.
+Synthèse globale. Déclenchée quand toutes les document_analyses du dossier sont DONE.
 
 Table :
 
@@ -526,12 +532,17 @@ case_analyses
 
 Champs :
 
-case_file_id  
-summary  
-timeline  
-key_legal_issues  
-risk_analysis  
-open_questions
+id
+case_file_id (FK → case_files)
+analysis_status (PENDING, PROCESSING, DONE, FAILED)
+analysis_result (TEXT — JSON retourné par le LLM)
+model_used
+prompt_tokens
+completion_tokens
+created_at
+updated_at
+
+Idempotence : existsByCaseFileIdAndAnalysisStatusIn(PENDING, PROCESSING, DONE) avant déclenchement.
 
 ---
 
