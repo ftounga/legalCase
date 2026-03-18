@@ -2,6 +2,7 @@ package fr.ailegalcase.billing;
 
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -26,9 +27,15 @@ public class PlanLimitService {
         return STARTER_MAX_OPEN_CASE_FILES;
     }
 
+    public boolean isExpiredFree(Subscription sub) {
+        return "FREE".equals(sub.getPlanCode())
+                && sub.getExpiresAt() != null
+                && Instant.now().isAfter(sub.getExpiresAt());
+    }
+
     public int getMaxOpenCaseFilesForWorkspace(UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
-                .map(sub -> getMaxOpenCaseFiles(sub.getPlanCode()))
+                .map(sub -> isExpiredFree(sub) ? 0 : getMaxOpenCaseFiles(sub.getPlanCode()))
                 .orElse(Integer.MAX_VALUE);
     }
 
@@ -40,7 +47,7 @@ public class PlanLimitService {
 
     public int getMaxDocumentsPerCaseFileForWorkspace(UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
-                .map(sub -> getMaxDocumentsPerCaseFile(sub.getPlanCode()))
+                .map(sub -> isExpiredFree(sub) ? 0 : getMaxDocumentsPerCaseFile(sub.getPlanCode()))
                 .orElse(Integer.MAX_VALUE);
     }
 
@@ -50,7 +57,7 @@ public class PlanLimitService {
 
     public boolean isEnrichedAnalysisAllowedForWorkspace(UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
-                .map(sub -> isEnrichedAnalysisAllowed(sub.getPlanCode()))
+                .map(sub -> !isExpiredFree(sub) && isEnrichedAnalysisAllowed(sub.getPlanCode()))
                 .orElse(true);
     }
 }
