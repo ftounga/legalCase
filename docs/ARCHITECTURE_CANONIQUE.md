@@ -621,12 +621,19 @@ suivi consommation LLM.
 
 Champs :
 
-user_id  
-case_file_id  
-event_type  
-tokens_input  
-tokens_output  
-estimated_cost
+id (UUID PK)
+user_id (FK → users)
+case_file_id (FK → case_files)
+event_type (varchar 30 — valeurs : CHUNK_ANALYSIS, DOCUMENT_ANALYSIS, CASE_ANALYSIS, ENRICHED_ANALYSIS)
+tokens_input (int)
+tokens_output (int)
+estimated_cost (decimal 12,6)
+created_at (timestamptz)
+
+Index :
+
+idx_usage_events_case_file_id
+idx_usage_events_user_id
 
 ---
 
@@ -638,16 +645,23 @@ subscriptions
 
 Champs :
 
-workspace_id  
-plan_code  
-billing_status  
-current_period_start  
-current_period_end
+id (UUID PK)
+workspace_id (UUID FK → workspaces, unique)
+plan_code (varchar 20 — valeurs : STARTER, PRO)
+status (varchar 20 — valeur initiale : ACTIVE)
+started_at (timestamptz, non nullable)
+expires_at (timestamptz, nullable — null = pas d'expiration)
 
 Plans V1 :
 
-Starter  
-Pro
+STARTER — 3 dossiers actifs max, 5 documents/dossier, re-analyse enrichie non disponible
+PRO — 20 dossiers actifs max, 30 documents/dossier, re-analyse enrichie disponible
+
+Règles :
+
+- Un workspace a au plus une subscription (contrainte unique sur workspace_id)
+- Créée automatiquement au plan STARTER lors de la création du workspace (WorkspaceService)
+- Fail open : absence de subscription = accès autorisé (Integer.MAX_VALUE)
 
 ---
 
