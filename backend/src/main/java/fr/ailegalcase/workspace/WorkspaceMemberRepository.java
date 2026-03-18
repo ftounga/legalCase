@@ -7,5 +7,5 @@ import java.util.Optional;
 
 public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember, WorkspaceMemberId> {
     boolean existsByUser(User user);
-    Optional<WorkspaceMember> findFirstByUser(User user);
+    Optional<WorkspaceMember> findByUserAndPrimaryTrue(User user);
 }

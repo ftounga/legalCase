@@ -44,7 +44,7 @@ public class AiQuestionQueryService {
                 .getUser();
 
         Workspace workspace = workspaceMemberRepository
-                .findFirstByUser(user)
+                .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 

@@ -104,6 +104,8 @@ class AiQuestionAnswerControllerIT {
         member.setWorkspace(workspace);
         member.setUser(user);
         member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        member.setPrimary(true);
         workspaceMemberRepository.save(member);
 
         caseFile = new CaseFile();

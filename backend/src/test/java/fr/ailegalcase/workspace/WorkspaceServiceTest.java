@@ -59,6 +59,7 @@ class WorkspaceServiceTest {
         verify(workspaceMemberRepository).save(memberCaptor.capture());
         assertThat(memberCaptor.getValue().getMemberRole()).isEqualTo("OWNER");
         assertThat(memberCaptor.getValue().getUser()).isEqualTo(user);
+        assertThat(memberCaptor.getValue().isPrimary()).isTrue();
 
         ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
         verify(subscriptionRepository).save(subscriptionCaptor.capture());

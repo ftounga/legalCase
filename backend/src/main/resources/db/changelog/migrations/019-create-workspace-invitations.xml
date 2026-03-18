@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="019-1" author="system">
+        <createTable tableName="workspace_invitations">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="invited_by_user_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token" type="varchar(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="workspace_invitations"
+                baseColumnNames="workspace_id"
+                referencedTableName="workspaces"
+                referencedColumnNames="id"
+                constraintName="fk_workspace_invitations_workspace_id"/>
+
+        <addForeignKeyConstraint
+                baseTableName="workspace_invitations"
+                baseColumnNames="invited_by_user_id"
+                referencedTableName="users"
+                referencedColumnNames="id"
+                constraintName="fk_workspace_invitations_invited_by_user_id"/>
+
+        <createIndex tableName="workspace_invitations" indexName="idx_workspace_invitations_token">
+            <column name="token"/>
+        </createIndex>
+
+        <createIndex tableName="workspace_invitations" indexName="idx_workspace_invitations_workspace_id">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

@@ -65,7 +65,7 @@ class WorkspaceServiceGetCurrentTest {
         when(oidcUser.getSubject()).thenReturn("google-sub-123");
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sub-123"))
                 .thenReturn(Optional.of(account));
-        when(workspaceMemberRepository.findFirstByUser(user)).thenReturn(Optional.of(member));
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
 
         WorkspaceResponse response = service.getCurrentWorkspace(oidcUser, "GOOGLE");
 
@@ -84,7 +84,7 @@ class WorkspaceServiceGetCurrentTest {
         when(oidcUser.getSubject()).thenReturn("google-sub-123");
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sub-123"))
                 .thenReturn(Optional.of(account));
-        when(workspaceMemberRepository.findFirstByUser(user)).thenReturn(Optional.empty());
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getCurrentWorkspace(oidcUser, "GOOGLE"))
                 .isInstanceOf(ResponseStatusException.class)

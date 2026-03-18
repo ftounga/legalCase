@@ -49,6 +49,7 @@ public class WorkspaceService {
         member.setWorkspace(workspace);
         member.setUser(user);
         member.setMemberRole("OWNER");
+        member.setPrimary(true);
         workspaceMemberRepository.save(member);
 
         Subscription subscription = new Subscription();
@@ -67,7 +68,7 @@ public class WorkspaceService {
                 .getUser();
 
         Workspace workspace = workspaceMemberRepository
-                .findFirstByUser(user)
+                .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 

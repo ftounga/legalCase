@@ -28,6 +28,9 @@ public class WorkspaceMember {
     @Column(nullable = false, length = 50)
     private String memberRole;
 
+    @Column(name = "is_primary", nullable = false)
+    private boolean primary;
+
     @Column(nullable = false)
     private Instant createdAt;
 

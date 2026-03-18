@@ -38,7 +38,7 @@ public class AiQuestionAnswerCommandService {
                 .getUser();
 
         var workspace = workspaceMemberRepository
-                .findFirstByUser(user)
+                .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 

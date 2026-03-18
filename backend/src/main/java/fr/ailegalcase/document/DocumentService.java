@@ -144,7 +144,7 @@ public class DocumentService {
 
     private Workspace resolveWorkspace(User user) {
         return workspaceMemberRepository
-                .findFirstByUser(user)
+                .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
     }

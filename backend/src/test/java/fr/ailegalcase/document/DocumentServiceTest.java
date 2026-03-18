@@ -70,7 +70,7 @@ class DocumentServiceTest {
         when(oidcUser.getSubject()).thenReturn("sub-123");
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-123"))
                 .thenReturn(Optional.of(account));
-        when(workspaceMemberRepository.findFirstByUser(user)).thenReturn(Optional.of(member));
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
         when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
         lenient().when(storageService.upload(anyString(), any(), anyString(), anyLong()))
                 .thenReturn(null);

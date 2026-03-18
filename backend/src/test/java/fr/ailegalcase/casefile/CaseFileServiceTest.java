@@ -61,7 +61,7 @@ class CaseFileServiceTest {
         when(oidcUser.getSubject()).thenReturn("sub-123");
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-123"))
                 .thenReturn(Optional.of(account));
-        when(workspaceMemberRepository.findFirstByUser(user)).thenReturn(Optional.of(member));
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
         lenient().when(caseFileRepository.save(any(CaseFile.class))).thenAnswer(inv -> inv.getArgument(0));
         return workspace;
     }

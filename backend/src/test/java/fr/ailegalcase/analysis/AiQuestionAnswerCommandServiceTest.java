@@ -127,7 +127,7 @@ class AiQuestionAnswerCommandServiceTest {
         member.setUser(user);
         when(authAccountRepository.findByProviderAndProviderUserId(any(), any()))
                 .thenReturn(Optional.of(account));
-        when(workspaceMemberRepository.findFirstByUser(user))
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user))
                 .thenReturn(Optional.of(member));
     }
 }
