@@ -8,12 +8,15 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDividerModule } from '@angular/material/divider';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
+import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
+import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -21,7 +24,7 @@ import { AnalysisJob } from '../../core/models/analysis-job.model';
   imports: [
     RouterLink, DatePipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule
+    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule, MatDividerModule
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
@@ -32,6 +35,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   caseFile = signal<CaseFile | null>(null);
   documents = signal<Document[]>([]);
   analysisJobs = signal<AnalysisJob[]>([]);
+  synthesis = signal<CaseAnalysisResult | null>(null);
   loading = signal(true);
   uploading = signal(false);
 
@@ -44,6 +48,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private caseFileService: CaseFileService,
     private documentService: DocumentService,
     private analysisJobService: AnalysisJobService,
+    private caseAnalysisService: CaseAnalysisService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -118,7 +123,23 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
+      const caseFileId = this.caseFile()?.id;
+      if (caseFileId) {
+        const caseAnalysisDone = this.analysisJobs().some(
+          j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE'
+        );
+        if (caseAnalysisDone) {
+          this.loadSynthesis(caseFileId);
+        }
+      }
     }
+  }
+
+  loadSynthesis(caseFileId: string): void {
+    this.caseAnalysisService.getAnalysis(caseFileId).subscribe({
+      next: result => this.synthesis.set(result),
+      error: () => { /* silencieux */ }
+    });
   }
 
   jobTypeLabel(jobType: string): string {
