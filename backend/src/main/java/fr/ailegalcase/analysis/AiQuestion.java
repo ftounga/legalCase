@@ -31,6 +31,9 @@ public class AiQuestion {
     @Column(name = "status", nullable = false, length = 20)
     private String status = "PENDING";
 
+    @Column(name = "answered_at")
+    private Instant answeredAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

@@ -19,15 +19,18 @@ import java.util.UUID;
 public class AiQuestionQueryService {
 
     private final AiQuestionRepository aiQuestionRepository;
+    private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
     private final CaseFileRepository caseFileRepository;
     private final AuthAccountRepository authAccountRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public AiQuestionQueryService(AiQuestionRepository aiQuestionRepository,
+                                  AiQuestionAnswerRepository aiQuestionAnswerRepository,
                                   CaseFileRepository caseFileRepository,
                                   AuthAccountRepository authAccountRepository,
                                   WorkspaceMemberRepository workspaceMemberRepository) {
         this.aiQuestionRepository = aiQuestionRepository;
+        this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
         this.caseFileRepository = caseFileRepository;
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -53,7 +56,13 @@ public class AiQuestionQueryService {
         }
 
         return aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId).stream()
-                .map(AiQuestionResponse::from)
+                .map(q -> {
+                    String answerText = aiQuestionAnswerRepository
+                            .findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId())
+                            .map(AiQuestionAnswer::getAnswerText)
+                            .orElse(null);
+                    return AiQuestionResponse.from(q, answerText);
+                })
                 .toList();
     }
 }
