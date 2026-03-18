@@ -74,6 +74,24 @@ Quel provider S3-compatible sera utilisé en production ?
 - Fonctionne que l'invité ait déjà un compte ou non
 - Provider email V1 : à trancher en SF-17-03 (Spring Mail SMTP recommandé)
 
+## Plan tarifaire — modèle FREE trial (F-16 évolution)
+**Tranché le 2026-03-18** — Ajout d'un plan FREE en trial 14 jours.
+
+| Limite | FREE (14j) | Starter | Pro |
+|--------|-----------|---------|-----|
+| Dossiers actifs | 1 | 3 | 20 |
+| Documents par dossier | 3 | 5 | 30 |
+| Re-analyse enrichie | Non | Non | Oui |
+| Durée | 14 jours | Illimité | Illimité |
+
+- **À la création du workspace** : plan FREE attribué, `expires_at = created_at + 14j`
+- **À expiration** : lecture seule des dossiers existants (pas de blocage total), gates sur création/upload/re-analyse
+- **Upsell Starter** : proposé à la connexion quand le plan FREE est expiré
+- **Upsell Pro** : proposé au moment où l'utilisateur tente de dépasser un quota Starter (sur les 402 actuels)
+- **Bannière owner** : affichée une fois par session (localStorage flag), quand le quota est atteint ou proche (≥ 80%)
+
+---
+
 ## Conventions de nommage
 ~~À stabiliser quand le code prend forme~~
 **Tranchée le 2026-03-17** — Défini dans `project-governance/playbooks/coding-rules.md` :
