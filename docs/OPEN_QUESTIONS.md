@@ -49,6 +49,15 @@ Quel provider S3-compatible sera utilisé en production ?
 
 ---
 
+## Déclenchement de la re-synthèse enrichie (F-14)
+~~Quand la re-synthèse est-elle déclenchée après les réponses avocat ?~~
+**Tranché le 2026-03-18** — Option C : re-synthèse à la demande via bouton "Re-analyser".
+- L'avocat répond aux questions à son rythme (sans contrainte de toutes répondre)
+- Un bouton "Re-analyser" déclenche manuellement la re-synthèse enrichie
+- POST `/api/v1/case-files/{id}/re-analyze` → message RabbitMQ → nouveau job ENRICHED_ANALYSIS
+
+---
+
 ## Conventions de nommage
 ~~À stabiliser quand le code prend forme~~
 **Tranchée le 2026-03-17** — Défini dans `project-governance/playbooks/coding-rules.md` :
