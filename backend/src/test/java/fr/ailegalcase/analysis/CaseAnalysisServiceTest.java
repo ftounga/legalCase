@@ -105,7 +105,15 @@ class CaseAnalysisServiceTest {
         verifyNoInteractions(caseAnalysisRepository, anthropicService, caseFileRepository, analysisJobRepository);
     }
 
-    // U-04 : le prompt agrège les documents dans l'ordre chronologique
+    // U-04 : le SYSTEM_PROMPT contient le champ timeline
+    @Test
+    void systemPrompt_containsTimelineField() {
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("timeline");
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("date");
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("evenement");
+    }
+
+    // U-06 : le prompt agrège les documents dans l'ordre chronologique
     @Test
     void consumeCaseAnalysis_promptContainsDocumentsInChronologicalOrder() {
         UUID caseFileId = UUID.randomUUID();

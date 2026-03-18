@@ -24,7 +24,8 @@ public class CaseAnalysisService {
             Tu reçois les analyses de plusieurs documents d'un dossier juridique.
             Produis une synthèse globale du dossier en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
+            La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
             """;
 
     private final DocumentAnalysisRepository documentAnalysisRepository;
