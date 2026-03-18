@@ -44,6 +44,10 @@ app:
   frontend-url: http://localhost:4200
   mail:
     enabled: false
+  stripe:
+    enabled: false
+    secret-key: ${STRIPE_SECRET_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
 
 storage:
   s3:
