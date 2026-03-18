@@ -362,16 +362,49 @@ Relation utilisateur workspace.
 
 Champs :
 
-workspace_id  
-user_id  
-member_role
+workspace_id (PK, FK → workspaces)
+user_id (PK, FK → users)
+member_role (varchar 50)
+is_primary (boolean, NOT NULL, DEFAULT TRUE)
+created_at (timestamptz)
 
 Roles possibles :
 
-OWNER  
-ADMIN  
-LAWYER  
+OWNER
+ADMIN
+LAWYER
 MEMBER
+
+Règle `is_primary` :
+- Un utilisateur peut appartenir à plusieurs workspaces.
+- `is_primary = true` désigne le workspace actif par défaut (résolu à chaque requête).
+- Le premier workspace créé lors de l'onboarding a `is_primary = true`.
+
+## workspace_invitations
+
+Invitation à rejoindre un workspace par email.
+
+Champs :
+
+id (UUID PK)
+workspace_id (UUID, FK → workspaces)
+invited_by_user_id (UUID, FK → users)
+email (varchar 255)
+role (varchar 50)
+token (varchar 255, UNIQUE)
+status (varchar 20 — valeurs : PENDING, ACCEPTED, EXPIRED, REVOKED)
+expires_at (timestamptz)
+created_at (timestamptz)
+
+Index :
+
+idx_workspace_invitations_token
+idx_workspace_invitations_workspace_id
+
+Règles :
+- Une seule invitation PENDING par (workspace_id, email).
+- Le token est généré côté backend (UUID aléatoire), passé en query param lors du login OAuth.
+- Après acceptation, `status → ACCEPTED` et l'utilisateur est ajouté en tant que member.
 
 ---
 

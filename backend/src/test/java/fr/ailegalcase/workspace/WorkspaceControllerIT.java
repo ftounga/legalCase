@@ -72,6 +72,8 @@ class WorkspaceControllerIT {
         member.setWorkspace(workspace);
         member.setUser(user);
         member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        member.setPrimary(true);
         workspaceMemberRepository.save(member);
 
         OAuth2AuthenticationToken auth = buildGoogleAuth("google-ws-sub", "workspace-test@example.com");

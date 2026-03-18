@@ -75,6 +75,8 @@ class CaseFileControllerIT {
         member.setWorkspace(workspace);
         member.setUser(user);
         member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        member.setPrimary(true);
         workspaceMemberRepository.save(member);
 
         auth = buildGoogleAuth("google-cf-sub", "casefile-test@example.com");

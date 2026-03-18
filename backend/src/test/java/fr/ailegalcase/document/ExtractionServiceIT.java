@@ -78,6 +78,8 @@ class ExtractionServiceIT {
         member.setWorkspace(workspace);
         member.setUser(user);
         member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        member.setPrimary(true);
         workspaceMemberRepository.save(member);
 
         CaseFile caseFile = new CaseFile();

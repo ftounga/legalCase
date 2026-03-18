@@ -94,6 +94,8 @@ class CaseAnalysisControllerIT {
         member.setWorkspace(workspace);
         member.setUser(user);
         member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        member.setPrimary(true);
         workspaceMemberRepository.save(member);
 
         caseFile = new CaseFile();
@@ -180,6 +182,8 @@ class CaseAnalysisControllerIT {
         otherMember.setWorkspace(otherWorkspace);
         otherMember.setUser(otherUser);
         otherMember.setMemberRole("OWNER");
+        otherMember.setPrimary(true);
+        otherMember.setPrimary(true);
         workspaceMemberRepository.save(otherMember);
 
         CaseFile otherCaseFile = new CaseFile();
