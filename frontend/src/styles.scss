@@ -156,6 +156,11 @@ h4 { font-size: 18px; font-weight: 600; }
   color: white !important;
 }
 
+.snack-upgrade .mdc-snackbar__surface {
+  background-color: #1A3A5C !important;
+  color: white !important;
+}
+
 // ─── Table hover ──────────────────────────────────────────────────────────
 .mat-mdc-row:hover .mat-mdc-cell {
   background-color: var(--color-background);
