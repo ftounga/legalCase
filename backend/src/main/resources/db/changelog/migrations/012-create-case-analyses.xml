@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="012-create-case-analyses" author="legalcase">
+        <createTable tableName="case_analyses">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_case_analysis_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="analysis_status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="analysis_result" type="TEXT"/>
+            <column name="model_used" type="VARCHAR(100)"/>
+            <column name="prompt_tokens" type="INTEGER"/>
+            <column name="completion_tokens" type="INTEGER"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="case_analyses" indexName="idx_case_analyses_case_file_id">
+            <column name="case_file_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
