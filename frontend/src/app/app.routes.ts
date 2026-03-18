@@ -21,8 +21,18 @@ export const routes: Routes = [
         path: 'case-files/:id',
         loadComponent: () => import('./case-files/case-file-detail/case-file-detail.component')
           .then(m => m.CaseFileDetailComponent)
+      },
+      {
+        path: 'workspace/members',
+        loadComponent: () => import('./workspace/workspace-members/workspace-members.component')
+          .then(m => m.WorkspaceMembersComponent)
       }
     ]
+  },
+  {
+    path: 'invite',
+    loadComponent: () => import('./invite-accept/invite-accept.component')
+      .then(m => m.InviteAcceptComponent)
   },
   { path: '**', redirectTo: 'login' }
 ];
