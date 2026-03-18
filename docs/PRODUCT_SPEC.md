@@ -75,7 +75,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
-| F-15 | Suivi consommation LLM | Traçabilité des tokens et coûts LLM par dossier et par user. Table `usage_events`. | `À spécifier` |
+| F-15 | Suivi consommation LLM | Traçabilité des tokens et coûts LLM par dossier et par user. Table `usage_events`. | `Terminée` |
 | F-16 | Gestion des abonnements | Plans Starter et Pro. Table `subscriptions`. Contrôle d'accès selon le plan. | `À spécifier` |
 
 ### Bloc 7 — Workspace
@@ -83,6 +83,12 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-17 | Gestion des membres workspace | Invitations, attribution des rôles (OWNER, ADMIN, LAWYER, MEMBER), révocation. | `À spécifier` |
+
+### Bloc 8 — Administration
+
+| ID | Feature | Description | Statut |
+|----|---------|-------------|--------|
+| F-18 | Page d'administration | Écran admin : visualisation de la consommation LLM par dossier, gestion des utilisateurs, supervision globale du workspace. Accès restreint aux rôles OWNER/ADMIN. | `À spécifier` |
 
 ---
 
@@ -93,7 +99,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
                                               ↓
                                    F-08 → F-09 → F-10 → F-11 → F-12 → F-13 → F-14
                                               ↓
-                                   F-15, F-16, F-17 (parallélisables)
+                                   F-15, F-16, F-17, F-18 (parallélisables)
 ```
 
 ---
@@ -102,11 +108,11 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-18 | Droit de l'immigration | V2 | Nouveau domaine juridique — nouveaux prompts LLM |
-| F-19 | Droit immobilier | V3 | Nouveau domaine juridique — nouveaux prompts LLM |
-| F-20 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
-| F-21 | Collaboration avancée | V2+ | Partage de dossiers entre membres, commentaires |
-| F-22 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
+| F-19 | Droit de l'immigration | V2 | Nouveau domaine juridique — nouveaux prompts LLM |
+| F-20 | Droit immobilier | V3 | Nouveau domaine juridique — nouveaux prompts LLM |
+| F-21 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
+| F-22 | Collaboration avancée | V2+ | Partage de dossiers entre membres, commentaires |
+| F-23 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
 
 ---
 
@@ -128,3 +134,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-18 | F-11 Terminée — SF-11-01 (infra analysis_jobs) + SF-11-02 (API REST) + SF-11-03 (frontend) mergées | Product owner |
 | 2026-03-18 | F-10 évolution — SF-10-03 : ajout champ timeline au prompt CaseAnalysis (requis pour F-12) | Product owner |
 | 2026-03-18 | F-12 Terminée — SF-10-03 (timeline prompt) + SF-12-01 (API REST) + SF-12-02 (frontend) mergées | Product owner |
+| 2026-03-18 | F-13 Terminée — SF-13-01 (infra ai_questions) + SF-13-02 (AiQuestionService) + SF-13-03 (frontend) mergées | Product owner |
+| 2026-03-18 | F-14 Terminée — SF-14-01 (infra ai_question_answers) + SF-14-02 (EnrichedAnalysisService) + SF-14-03 (frontend) mergées | Product owner |
+| 2026-03-18 | F-15 Terminée — SF-15-01 (infra usage_events) + SF-15-02 (intégration pipeline) + SF-15-03 (API REST) mergées. Affichage frontend différé en F-18 (admin). | Product owner |
+| 2026-03-18 | F-18 ajoutée (Bloc 8 Administration) — backlog décalé F-19→F-23 en conséquence | Product owner |
