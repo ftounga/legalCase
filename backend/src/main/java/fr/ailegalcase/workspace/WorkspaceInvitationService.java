@@ -24,15 +24,18 @@ public class WorkspaceInvitationService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final WorkspaceRepository workspaceRepository;
     private final AuthAccountRepository authAccountRepository;
+    private final EmailService emailService;
 
     public WorkspaceInvitationService(WorkspaceInvitationRepository workspaceInvitationRepository,
                                       WorkspaceMemberRepository workspaceMemberRepository,
                                       WorkspaceRepository workspaceRepository,
-                                      AuthAccountRepository authAccountRepository) {
+                                      AuthAccountRepository authAccountRepository,
+                                      EmailService emailService) {
         this.workspaceInvitationRepository = workspaceInvitationRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.workspaceRepository = workspaceRepository;
         this.authAccountRepository = authAccountRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -64,6 +67,8 @@ public class WorkspaceInvitationService {
         invitation.setStatus(STATUS_PENDING);
         invitation.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
         workspaceInvitationRepository.save(invitation);
+
+        emailService.sendInvitation(invitation.getEmail(), workspace.getName(), invitation.getToken());
 
         return toResponse(invitation);
     }

@@ -25,6 +25,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +34,7 @@ class WorkspaceInvitationServiceTest {
     @Mock private WorkspaceInvitationRepository workspaceInvitationRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private WorkspaceRepository workspaceRepository;
+    @Mock private EmailService emailService;
     @Mock private AuthAccountRepository authAccountRepository;
 
     private WorkspaceInvitationService service;
@@ -40,7 +42,7 @@ class WorkspaceInvitationServiceTest {
     @BeforeEach
     void setUp() {
         service = new WorkspaceInvitationService(workspaceInvitationRepository, workspaceMemberRepository,
-                workspaceRepository, authAccountRepository);
+                workspaceRepository, authAccountRepository, emailService);
     }
 
     // U-01 : createInvitation — token généré, status PENDING, expiry +7j
@@ -170,6 +172,47 @@ class WorkspaceInvitationServiceTest {
         assertThatThrownBy(() -> service.acceptInvitation(new AcceptInvitationRequest("token"), buildOidcUser("sub-other", "other@example.com"), "GOOGLE"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
+    }
+
+    // U-07 : createInvitation — email envoyé après save
+    @Test
+    void createInvitation_emailSentAfterSave() {
+        User owner = buildUser("owner@example.com");
+        Workspace workspace = buildWorkspace();
+        WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
+
+        setupAuth(owner, "sub-owner");
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
+        when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
+        when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
+        when(workspaceInvitationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.createInvitation(new WorkspaceInvitationRequest("invitee@example.com", "LAWYER"),
+                buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE");
+
+        verify(emailService).sendInvitation(eq("invitee@example.com"), eq(workspace.getName()), any());
+    }
+
+    // U-08 : createInvitation — échec SMTP → invitation créée quand même (fail-open géré dans EmailService)
+    @Test
+    void createInvitation_emailServiceCalledEvenIfSmtpFails() {
+        User owner = buildUser("owner@example.com");
+        Workspace workspace = buildWorkspace();
+        WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
+
+        setupAuth(owner, "sub-owner");
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
+        when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
+        when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
+        when(workspaceInvitationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doNothing().when(emailService).sendInvitation(any(), any(), any());
+
+        WorkspaceInvitationResponse response = service.createInvitation(
+                new WorkspaceInvitationRequest("invitee@example.com", "LAWYER"),
+                buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE");
+
+        assertThat(response.status()).isEqualTo("PENDING");
+        verify(workspaceInvitationRepository).save(any());
     }
 
     // Helpers

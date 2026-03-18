@@ -28,9 +28,22 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 55MB
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 app:
   frontend-url: http://localhost:4200
+  mail:
+    enabled: false
 
 storage:
   s3:
