@@ -36,17 +36,20 @@ public class AiQuestionService {
     private final AiQuestionRepository aiQuestionRepository;
     private final AnalysisJobRepository analysisJobRepository;
     private final AnthropicService anthropicService;
+    private final UsageEventService usageEventService;
 
     public AiQuestionService(CaseAnalysisRepository caseAnalysisRepository,
                              CaseFileRepository caseFileRepository,
                              AiQuestionRepository aiQuestionRepository,
                              AnalysisJobRepository analysisJobRepository,
-                             AnthropicService anthropicService) {
+                             AnthropicService anthropicService,
+                             UsageEventService usageEventService) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
         this.analysisJobRepository = analysisJobRepository;
         this.anthropicService = anthropicService;
+        this.usageEventService = usageEventService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.AI_QUESTION_GENERATION_QUEUE)
@@ -82,9 +85,10 @@ public class AiQuestionService {
         job.setTotalItems(1);
         analysisJobRepository.save(job);
 
+        AnthropicResult result = null;
         try {
             String prompt = caseAnalysis.getAnalysisResult();
-            AnthropicResult result = anthropicService.analyzeChunk(prompt);
+            result = anthropicService.analyzeChunk(prompt);
             List<String> questions = parseQuestions(result.content());
 
             for (int i = 0; i < questions.size(); i++) {
@@ -105,6 +109,13 @@ public class AiQuestionService {
         }
 
         analysisJobRepository.save(job);
+
+        if (job.getStatus() == AnalysisStatus.DONE && result != null) {
+            final AnthropicResult finalResult = result;
+            caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
+                usageEventService.record(caseFileId, userId, JobType.QUESTION_GENERATION,
+                        finalResult.promptTokens(), finalResult.completionTokens()));
+        }
     }
 
     static List<String> parseQuestions(String json) {

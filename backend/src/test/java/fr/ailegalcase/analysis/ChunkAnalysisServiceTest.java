@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.ChunkingDoneEvent;
 import fr.ailegalcase.document.DocumentChunk;
 import fr.ailegalcase.document.DocumentChunkRepository;
@@ -27,10 +28,13 @@ class ChunkAnalysisServiceTest {
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final DocumentExtractionRepository extractionRepository = mock(DocumentExtractionRepository.class);
+    private final UsageEventService usageEventService = mock(UsageEventService.class);
+    private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
 
     private final ChunkAnalysisService service = new ChunkAnalysisService(
             rabbitTemplate, chunkRepository, analysisRepository, documentAnalysisRepository,
-            anthropicService, analysisJobRepository, extractionRepository);
+            anthropicService, analysisJobRepository, extractionRepository,
+            usageEventService, caseFileRepository);
 
     // U-01 : onChunkingDone publie 1 message par chunk + crée le job
     @Test
@@ -80,6 +84,8 @@ class ChunkAnalysisServiceTest {
         job.setTotalItems(1);
         job.setProcessedItems(0);
 
+        UUID userId = UUID.randomUUID();
+
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any())).thenReturn(
@@ -90,6 +96,7 @@ class ChunkAnalysisServiceTest {
         when(documentAnalysisRepository.existsByExtractionIdAndAnalysisStatusIn(eq(extractionId), any()))
                 .thenReturn(false);
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
                 .thenReturn(Optional.of(job));
         when(analysisRepository.countByChunkExtractionDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
@@ -120,6 +127,9 @@ class ChunkAnalysisServiceTest {
         verify(analysisJobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().getProcessedItems()).isEqualTo(1);
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.DONE);
+
+        // Usage enregistré
+        verify(usageEventService).record(caseFileId, userId, JobType.CHUNK_ANALYSIS, 100, 50);
     }
 
     // U-03 : erreur Anthropic → analyse FAILED (pas de job update ni trigger)

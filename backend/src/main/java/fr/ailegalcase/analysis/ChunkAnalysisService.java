@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.ChunkingDoneEvent;
 import fr.ailegalcase.document.DocumentChunk;
 import fr.ailegalcase.document.DocumentChunkRepository;
@@ -29,6 +30,8 @@ public class ChunkAnalysisService {
     private final AnthropicService anthropicService;
     private final AnalysisJobRepository analysisJobRepository;
     private final DocumentExtractionRepository extractionRepository;
+    private final UsageEventService usageEventService;
+    private final CaseFileRepository caseFileRepository;
 
     public ChunkAnalysisService(RabbitTemplate rabbitTemplate,
                                 DocumentChunkRepository chunkRepository,
@@ -36,7 +39,9 @@ public class ChunkAnalysisService {
                                 DocumentAnalysisRepository documentAnalysisRepository,
                                 AnthropicService anthropicService,
                                 AnalysisJobRepository analysisJobRepository,
-                                DocumentExtractionRepository extractionRepository) {
+                                DocumentExtractionRepository extractionRepository,
+                                UsageEventService usageEventService,
+                                CaseFileRepository caseFileRepository) {
         this.rabbitTemplate = rabbitTemplate;
         this.chunkRepository = chunkRepository;
         this.analysisRepository = analysisRepository;
@@ -44,6 +49,8 @@ public class ChunkAnalysisService {
         this.anthropicService = anthropicService;
         this.analysisJobRepository = analysisJobRepository;
         this.extractionRepository = extractionRepository;
+        this.usageEventService = usageEventService;
+        this.caseFileRepository = caseFileRepository;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -114,8 +121,15 @@ public class ChunkAnalysisService {
         analysisRepository.save(analysis);
 
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
-            updateChunkJob(chunk.getExtraction().getId());
-            triggerDocumentAnalysisIfReady(chunk.getExtraction().getId());
+            UUID extractionId = chunk.getExtraction().getId();
+            updateChunkJob(extractionId);
+            triggerDocumentAnalysisIfReady(extractionId);
+            int promptTokens = analysis.getPromptTokens();
+            int completionTokens = analysis.getCompletionTokens();
+            extractionRepository.findCaseFileIdById(extractionId).ifPresent(caseFileId ->
+                caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
+                    usageEventService.record(caseFileId, userId, JobType.CHUNK_ANALYSIS,
+                            promptTokens, completionTokens)));
         }
     }
 

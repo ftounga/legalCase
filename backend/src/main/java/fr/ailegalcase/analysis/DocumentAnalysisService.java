@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.DocumentExtraction;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
@@ -36,6 +37,8 @@ public class DocumentAnalysisService {
     private final RabbitTemplate rabbitTemplate;
     private final AnthropicService anthropicService;
     private final AnalysisJobRepository analysisJobRepository;
+    private final UsageEventService usageEventService;
+    private final CaseFileRepository caseFileRepository;
 
     public DocumentAnalysisService(ChunkAnalysisRepository chunkAnalysisRepository,
                                    DocumentAnalysisRepository documentAnalysisRepository,
@@ -44,7 +47,9 @@ public class DocumentAnalysisService {
                                    CaseAnalysisRepository caseAnalysisRepository,
                                    RabbitTemplate rabbitTemplate,
                                    AnthropicService anthropicService,
-                                   AnalysisJobRepository analysisJobRepository) {
+                                   AnalysisJobRepository analysisJobRepository,
+                                   UsageEventService usageEventService,
+                                   CaseFileRepository caseFileRepository) {
         this.chunkAnalysisRepository = chunkAnalysisRepository;
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.extractionRepository = extractionRepository;
@@ -53,6 +58,8 @@ public class DocumentAnalysisService {
         this.rabbitTemplate = rabbitTemplate;
         this.anthropicService = anthropicService;
         this.analysisJobRepository = analysisJobRepository;
+        this.usageEventService = usageEventService;
+        this.caseFileRepository = caseFileRepository;
     }
 
     @RabbitListener(queues = RabbitMQConfig.DOCUMENT_ANALYSIS_QUEUE)
@@ -104,6 +111,13 @@ public class DocumentAnalysisService {
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
             updateDocumentAnalysisJob(caseFileId);
             triggerCaseAnalysisIfReady(extraction.getDocument().getCaseFile().getId());
+            if (caseFileId != null) {
+                int promptTokens = analysis.getPromptTokens();
+                int completionTokens = analysis.getCompletionTokens();
+                caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
+                    usageEventService.record(caseFileId, userId, JobType.DOCUMENT_ANALYSIS,
+                            promptTokens, completionTokens));
+            }
         }
     }
 

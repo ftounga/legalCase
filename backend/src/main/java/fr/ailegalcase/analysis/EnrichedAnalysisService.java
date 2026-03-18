@@ -33,19 +33,22 @@ public class EnrichedAnalysisService {
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
     private final AnalysisJobRepository analysisJobRepository;
     private final AnthropicService anthropicService;
+    private final UsageEventService usageEventService;
 
     public EnrichedAnalysisService(CaseAnalysisRepository caseAnalysisRepository,
                                    CaseFileRepository caseFileRepository,
                                    AiQuestionRepository aiQuestionRepository,
                                    AiQuestionAnswerRepository aiQuestionAnswerRepository,
                                    AnalysisJobRepository analysisJobRepository,
-                                   AnthropicService anthropicService) {
+                                   AnthropicService anthropicService,
+                                   UsageEventService usageEventService) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
         this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
         this.analysisJobRepository = analysisJobRepository;
         this.anthropicService = anthropicService;
+        this.usageEventService = usageEventService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE)
@@ -112,6 +115,14 @@ public class EnrichedAnalysisService {
             job.setErrorMessage("Enriched analysis failed");
         }
         analysisJobRepository.save(job);
+
+        if (enrichedAnalysis.getAnalysisStatus() == AnalysisStatus.DONE) {
+            int promptTokens = enrichedAnalysis.getPromptTokens();
+            int completionTokens = enrichedAnalysis.getCompletionTokens();
+            caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
+                usageEventService.record(caseFileId, userId, JobType.ENRICHED_ANALYSIS,
+                        promptTokens, completionTokens));
+        }
     }
 
     String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult) {

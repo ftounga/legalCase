@@ -24,15 +24,17 @@ class CaseAnalysisServiceTest {
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
+    private final UsageEventService usageEventService = mock(UsageEventService.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
-            anthropicService, analysisJobRepository, rabbitTemplate);
+            anthropicService, analysisJobRepository, rabbitTemplate, usageEventService);
 
     // U-01 : analyses de documents valides → CaseAnalysis DONE + job DONE
     @Test
     void consumeCaseAnalysis_validDocumentAnalyses_persistsDoneAnalysisAndJob() {
         UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         CaseFile caseFile = new CaseFile();
 
         DocumentAnalysis da0 = documentAnalysis("{\"faits\":[\"fait1\"]}", Instant.now().minusSeconds(10));
@@ -41,6 +43,7 @@ class CaseAnalysisServiceTest {
         when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(List.of(da0, da1));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-sonnet-4-6", 300, 150));
@@ -64,6 +67,9 @@ class CaseAnalysisServiceTest {
         AnalysisJob finalJob = jobCaptor.getValue();
         assertThat(finalJob.getStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(finalJob.getProcessedItems()).isEqualTo(1);
+
+        // Usage enregistré
+        verify(usageEventService).record(caseFileId, userId, JobType.CASE_ANALYSIS, 300, 150);
     }
 
     // U-02 : erreur Anthropic → CaseAnalysis FAILED + job FAILED

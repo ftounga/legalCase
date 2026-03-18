@@ -21,15 +21,17 @@ class AiQuestionServiceTest {
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
+    private final UsageEventService usageEventService = mock(UsageEventService.class);
 
     private final AiQuestionService service = new AiQuestionService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
-            analysisJobRepository, anthropicService);
+            analysisJobRepository, anthropicService, usageEventService);
 
     // U-01 : génération nominale → questions persistées, job DONE
     @Test
     void consumeQuestionGeneration_nominal_persistsQuestionsAndJobDone() {
         UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         CaseFile caseFile = new CaseFile();
 
         CaseAnalysis analysis = new CaseAnalysis();
@@ -39,6 +41,7 @@ class AiQuestionServiceTest {
         when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -60,6 +63,9 @@ class AiQuestionServiceTest {
         AnalysisJob finalJob = jobCaptor.getValue();
         assertThat(finalJob.getStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(finalJob.getProcessedItems()).isEqualTo(1);
+
+        // Usage enregistré
+        verify(usageEventService).record(caseFileId, userId, JobType.QUESTION_GENERATION, 100, 50);
     }
 
     // U-02 : erreur LLM → job FAILED, aucune question persistée
