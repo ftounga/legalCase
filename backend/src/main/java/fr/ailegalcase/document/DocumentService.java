@@ -2,6 +2,7 @@ package fr.ailegalcase.document;
 
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.storage.StorageService;
@@ -38,19 +39,22 @@ public class DocumentService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PlanLimitService planLimitService;
 
     public DocumentService(DocumentRepository documentRepository,
                            CaseFileRepository caseFileRepository,
                            AuthAccountRepository authAccountRepository,
                            WorkspaceMemberRepository workspaceMemberRepository,
                            StorageService storageService,
-                           ApplicationEventPublisher eventPublisher) {
+                           ApplicationEventPublisher eventPublisher,
+                           PlanLimitService planLimitService) {
         this.documentRepository = documentRepository;
         this.caseFileRepository = caseFileRepository;
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.storageService = storageService;
         this.eventPublisher = eventPublisher;
+        this.planLimitService = planLimitService;
     }
 
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 15;
@@ -87,6 +91,13 @@ public class DocumentService {
         User user = resolveUser(oidcUser, provider);
         Workspace workspace = resolveWorkspace(user);
         CaseFile caseFile = resolveCaseFile(caseFileId, workspace);
+
+        long docCount = documentRepository.countByCaseFileId(caseFileId);
+        int maxDocs = planLimitService.getMaxDocumentsPerCaseFileForWorkspace(workspace.getId());
+        if (docCount >= maxDocs) {
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                    "Limite de documents atteinte pour votre plan.");
+        }
 
         String storageKey = buildStorageKey(workspace.getId(), caseFileId, file.getOriginalFilename());
 

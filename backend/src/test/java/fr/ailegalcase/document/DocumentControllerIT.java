@@ -4,6 +4,8 @@ import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.storage.StorageService;
@@ -25,6 +27,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -53,6 +57,7 @@ class DocumentControllerIT {
     @Autowired private CaseFileRepository caseFileRepository;
     @Autowired private DocumentRepository documentRepository;
     @Autowired private DocumentExtractionRepository documentExtractionRepository;
+    @Autowired private SubscriptionRepository subscriptionRepository;
 
     @MockBean private StorageService storageService;
     @MockBean private ExtractionService extractionService;
@@ -67,6 +72,7 @@ class DocumentControllerIT {
         documentRepository.deleteAll();
         caseFileRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
+        subscriptionRepository.deleteAll();
         workspaceRepository.deleteAll();
         authAccountRepository.deleteAll();
         userRepository.deleteAll();
@@ -96,6 +102,13 @@ class DocumentControllerIT {
         member.setUser(user);
         member.setMemberRole("OWNER");
         workspaceMemberRepository.save(member);
+
+        Subscription subscription = new Subscription();
+        subscription.setWorkspaceId(workspace.getId());
+        subscription.setPlanCode("STARTER");
+        subscription.setStatus("ACTIVE");
+        subscription.setStartedAt(Instant.now());
+        subscriptionRepository.save(subscription);
 
         // Case file belonging to this workspace
         CaseFile caseFile = new CaseFile();
@@ -304,6 +317,26 @@ class DocumentControllerIT {
         mockMvc.perform(get("/api/v1/case-files/" + otherCaseFileId + "/documents")
                         .with(authentication(auth)))
                 .andExpect(status().isNotFound());
+    }
+
+    // I-12 : quota documents atteint (5/5 Starter) → 402
+    @Test
+    void upload_documentQuotaReached_returns402() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "doc" + i + ".pdf", "application/pdf", ("PDF " + i).getBytes());
+            mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                            .file(file)
+                            .with(authentication(auth)))
+                    .andExpect(status().isCreated());
+        }
+
+        MockMultipartFile sixthFile = new MockMultipartFile(
+                "file", "doc6.pdf", "application/pdf", "PDF 6".getBytes());
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(sixthFile)
+                        .with(authentication(auth)))
+                .andExpect(status().isPaymentRequired());
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
