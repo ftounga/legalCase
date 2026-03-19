@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .userInfoEndpoint(userInfo -> userInfo
                     .oidcUserService(customOidcUserService)
                 )
-                .defaultSuccessUrl(frontendUrl, true)
+                .defaultSuccessUrl(frontendUrl + "/case-files", true)
             )
             .logout(logout -> logout
                 .logoutUrl("/api/logout")
