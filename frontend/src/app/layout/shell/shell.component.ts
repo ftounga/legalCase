@@ -6,6 +6,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
@@ -21,6 +22,7 @@ import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
     RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatSidenavModule, MatListModule,
     MatIconModule, MatButtonModule, MatMenuModule,
+    MatProgressSpinnerModule,
     TrialBannerComponent
   ],
   templateUrl: './shell.component.html',
@@ -28,6 +30,7 @@ import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
 })
 export class ShellComponent implements OnInit {
   workspace = signal<Workspace | null>(null);
+  ready = signal(false);
 
   constructor(
     readonly auth: AuthService,
@@ -37,12 +40,8 @@ export class ShellComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.workspaceService.getCurrentWorkspace().subscribe({
-      next: ws => this.workspace.set(ws),
-      error: () => {}
-    });
-
     const pendingToken = localStorage.getItem(PENDING_INVITATION_TOKEN_KEY);
+
     if (pendingToken) {
       localStorage.removeItem(PENDING_INVITATION_TOKEN_KEY);
       this.invitationService.acceptInvitation(pendingToken).subscribe({
@@ -50,17 +49,24 @@ export class ShellComponent implements OnInit {
           this.snackBar.open('Invitation acceptée — bienvenue dans le workspace !', 'Fermer', {
             duration: 6000, panelClass: ['snack-success']
           });
-          this.workspaceService.getCurrentWorkspace().subscribe({
-            next: ws => this.workspace.set(ws),
-            error: () => {}
-          });
+          this.loadWorkspace();
         },
         error: () => {
           this.snackBar.open('Lien d\'invitation invalide ou expiré.', 'Fermer', {
             duration: 6000, panelClass: ['snack-error']
           });
+          this.loadWorkspace();
         }
       });
+    } else {
+      this.loadWorkspace();
     }
+  }
+
+  private loadWorkspace(): void {
+    this.workspaceService.getCurrentWorkspace().subscribe({
+      next: ws => { this.workspace.set(ws); this.ready.set(true); },
+      error: () => this.ready.set(true)
+    });
   }
 }
