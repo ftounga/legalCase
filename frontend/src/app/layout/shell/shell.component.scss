@@ -52,6 +52,13 @@
   padding: var(--spacing-lg);
 }
 
+.shell-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
 .user-email-label {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: 12px;

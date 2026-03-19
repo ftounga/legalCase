@@ -40,8 +40,14 @@
     </mat-sidenav>
 
     <mat-sidenav-content class="shell-content">
-      <app-trial-banner [workspace]="workspace()" />
-      <router-outlet />
+      @if (ready()) {
+        <app-trial-banner [workspace]="workspace()" />
+        <router-outlet />
+      } @else {
+        <div class="shell-loading">
+          <mat-spinner diameter="40" />
+        </div>
+      }
     </mat-sidenav-content>
   </mat-sidenav-container>
 </div>
