@@ -28,6 +28,9 @@ public class User {
     private String status;
 
     @Column(nullable = false)
+    private boolean isSuperAdmin;
+
+    @Column(nullable = false)
     private Instant createdAt;
 
     @Column(nullable = false)
