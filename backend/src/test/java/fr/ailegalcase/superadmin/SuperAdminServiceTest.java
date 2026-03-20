@@ -158,6 +158,40 @@ class SuperAdminServiceTest {
                 .hasMessageContaining("Super-admin access required");
     }
 
+    // U-09 : listAllUsers — super-admin → retourne tous les users avec workspaceCount
+    @Test
+    void listAllUsers_asSuperAdmin_returnsAllUsers() {
+        User caller = buildUser(true);
+        AuthAccount account = buildAccount(caller, "google-sa-users-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sa-users-sub"))
+                .thenReturn(Optional.of(account));
+
+        User u1 = buildUser(false);
+        User u2 = buildUser(false);
+        when(userRepository.findAll()).thenReturn(List.of(u1, u2));
+        when(workspaceMemberRepository.findByUser(u1)).thenReturn(List.of(new WorkspaceMember()));
+        when(workspaceMemberRepository.findByUser(u2)).thenReturn(List.of());
+
+        List<SuperAdminUserResponse> result = service.listAllUsers(buildOidcUser("google-sa-users-sub"), "GOOGLE");
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).workspaceCount()).isEqualTo(1);
+        assertThat(result.get(1).workspaceCount()).isZero();
+    }
+
+    // U-10 : listAllUsers — non super-admin → 403
+    @Test
+    void listAllUsers_withoutSuperAdmin_throws403() {
+        User caller = buildUser(false);
+        AuthAccount account = buildAccount(caller, "google-regular-users-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-regular-users-sub"))
+                .thenReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> service.listAllUsers(buildOidcUser("google-regular-users-sub"), "GOOGLE"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Super-admin access required");
+    }
+
     // U-06 : deleteUser — utilisateur inexistant → 404
     @Test
     void deleteUser_unknownUser_throws404() {

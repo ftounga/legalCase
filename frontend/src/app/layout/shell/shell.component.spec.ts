@@ -200,3 +200,47 @@ describe('ShellComponent — workspace switcher', () => {
     expect(component.workspace()).toEqual(ws1);
   }));
 });
+
+describe('ShellComponent — lien super-admin', () => {
+  let fixture: ComponentFixture<ShellComponent>;
+
+  async function setupWithSuperAdmin(isSuperAdmin: boolean) {
+    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace']);
+    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
+    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+
+    const authServiceStub = {
+      currentUser: signal<any>({ id: 'u-1', email: 'user@test.com', isSuperAdmin }),
+      logout: () => {}
+    };
+    const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
+
+    await TestBed.configureTestingModule({
+      imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
+      providers: [
+        provideHttpClient(),
+        { provide: AuthService, useValue: authServiceStub },
+        { provide: WorkspaceService, useValue: workspaceService },
+        { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
+        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ShellComponent);
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+  }
+
+  // T-09 : lien super-admin visible si isSuperAdmin = true
+  it('affiche le lien Super-admin si isSuperAdmin = true', fakeAsync(async () => {
+    await setupWithSuperAdmin(true);
+    expect(fixture.nativeElement.textContent).toContain('Super-admin');
+  }));
+
+  // T-10 : lien super-admin absent si isSuperAdmin = false
+  it('n\'affiche pas le lien Super-admin si isSuperAdmin = false', fakeAsync(async () => {
+    await setupWithSuperAdmin(false);
+    expect(fixture.nativeElement.textContent).not.toContain('Super-admin');
+  }));
+});

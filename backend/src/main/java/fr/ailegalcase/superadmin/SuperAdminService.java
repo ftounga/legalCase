@@ -220,6 +220,24 @@ public class SuperAdminService {
         workspaceRepository.delete(workspace);
     }
 
+    @Transactional(readOnly = true)
+    public List<SuperAdminUserResponse> listAllUsers(OidcUser oidcUser, String provider) {
+        User caller = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .getUser();
+
+        if (!caller.isSuperAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super-admin access required");
+        }
+
+        return userRepository.findAll().stream()
+                .map(u -> new SuperAdminUserResponse(
+                        u.getId(), u.getEmail(), u.getFirstName(), u.getLastName(),
+                        workspaceMemberRepository.findByUser(u).size()))
+                .toList();
+    }
+
     @Transactional
     public void deleteUser(OidcUser oidcUser, String provider, UUID userId) {
         User caller = authAccountRepository

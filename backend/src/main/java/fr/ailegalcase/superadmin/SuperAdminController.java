@@ -48,6 +48,13 @@ public class SuperAdminController {
         superAdminService.deleteWorkspace(oidcUser, OAuthProviderResolver.resolve(principal), id);
     }
 
+    @GetMapping("/users")
+    public List<SuperAdminUserResponse> listUsers(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return superAdminService.listAllUsers(oidcUser, OAuthProviderResolver.resolve(principal));
+    }
+
     @DeleteMapping("/users/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(

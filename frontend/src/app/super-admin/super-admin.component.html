@@ -1,0 +1,105 @@
+<div class="super-admin-page">
+  <h1 class="page-title">Super-administration</h1>
+
+  @if (loading()) {
+    <div class="loading-center">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else {
+    <!-- Workspaces -->
+    <mat-card class="section-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>domain</mat-icon>
+          Workspaces
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="workspaceRows()" class="full-width-table">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Nom</th>
+            <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+          </ng-container>
+          <ng-container matColumnDef="plan">
+            <th mat-header-cell *matHeaderCellDef>Plan</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="plan-badge plan-badge--{{ row.planCode | lowercase }}">{{ planLabel(row.planCode) }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="members">
+            <th mat-header-cell *matHeaderCellDef>Membres</th>
+            <td mat-cell *matCellDef="let row">{{ row.memberCount }}</td>
+          </ng-container>
+          <ng-container matColumnDef="tokensInput">
+            <th mat-header-cell *matHeaderCellDef>Tokens in</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalTokensInput | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="tokensOutput">
+            <th mat-header-cell *matHeaderCellDef>Tokens out</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalTokensOutput | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="cost">
+            <th mat-header-cell *matHeaderCellDef>Coût ($)</th>
+            <td mat-cell *matCellDef="let row">{{ row.totalCost | number:'1.4-4' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Créé le</th>
+            <td mat-cell *matCellDef="let row">{{ row.createdAt | date:'dd/MM/yyyy' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let row">
+              <button mat-icon-button color="warn" (click)="confirmDeleteWorkspace(row)" aria-label="Supprimer le workspace">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="workspaceColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: workspaceColumns;"></tr>
+        </table>
+        @if (workspaceRows().length === 0) {
+          <p class="empty-state">Aucun workspace.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Utilisateurs -->
+    <mat-card class="section-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>people</mat-icon>
+          Utilisateurs
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="users()" class="full-width-table">
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef>Email</th>
+            <td mat-cell *matCellDef="let user">{{ user.email }}</td>
+          </ng-container>
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Nom</th>
+            <td mat-cell *matCellDef="let user">{{ userDisplayName(user) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="workspaces">
+            <th mat-header-cell *matHeaderCellDef>Workspaces</th>
+            <td mat-cell *matCellDef="let user">{{ user.workspaceCount }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let user">
+              <button mat-icon-button color="warn" (click)="confirmDeleteUser(user)" aria-label="Supprimer l'utilisateur">
+                <mat-icon>person_remove</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="userColumns"></tr>
+          <tr mat-row *matRowDef="let user; columns: userColumns;"></tr>
+        </table>
+        @if (users().length === 0) {
+          <p class="empty-state">Aucun utilisateur.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</div>
