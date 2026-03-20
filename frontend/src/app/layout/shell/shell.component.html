@@ -2,7 +2,26 @@
   <mat-toolbar class="shell-header">
     <img src="/legalcase-logo.png" alt="AI LegalCase" class="logo" />
     @if (workspace()) {
-      <span class="workspace-name">{{ workspace()!.name }}</span>
+      @if (workspaces().length > 1) {
+        <button mat-button [matMenuTriggerFor]="wsMenu" class="workspace-switcher">
+          <span>{{ workspace()!.name }}</span>
+          <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+        <mat-menu #wsMenu="matMenu">
+          @for (ws of workspaces(); track ws.id) {
+            <button mat-menu-item (click)="switchTo(ws)" [class.ws-active]="ws.primary">
+              @if (ws.primary) {
+                <mat-icon>check</mat-icon>
+              } @else {
+                <mat-icon></mat-icon>
+              }
+              {{ ws.name }}
+            </button>
+          }
+        </mat-menu>
+      } @else {
+        <span class="workspace-name">{{ workspace()!.name }}</span>
+      }
     }
     <span class="header-spacer"></span>
     <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="Menu utilisateur">

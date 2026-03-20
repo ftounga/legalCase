@@ -78,7 +78,7 @@ public class WorkspaceService {
                 });
 
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
-                workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt());
+                workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt(), true);
     }
 
     @Transactional
@@ -135,6 +135,52 @@ public class WorkspaceService {
                 .orElse(null);
 
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
-                workspace.getPlanCode(), workspace.getStatus(), expiresAt);
+                workspace.getPlanCode(), workspace.getStatus(), expiresAt, true);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<WorkspaceResponse> listUserWorkspaces(OidcUser oidcUser, String provider) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .getUser();
+
+        return workspaceMemberRepository.findByUser(user).stream()
+                .map(member -> {
+                    Workspace ws = member.getWorkspace();
+                    Instant expiresAt = subscriptionRepository.findByWorkspaceId(ws.getId())
+                            .map(Subscription::getExpiresAt).orElse(null);
+                    return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(),
+                            ws.getPlanCode(), ws.getStatus(), expiresAt, member.isPrimary());
+                })
+                .toList();
+    }
+
+    @Transactional
+    public WorkspaceResponse switchWorkspace(OidcUser oidcUser, String provider, UUID targetWorkspaceId) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .getUser();
+
+        WorkspaceMember target = workspaceMemberRepository
+                .findByWorkspace_IdAndUser_Id(targetWorkspaceId, user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a member of this workspace"));
+
+        workspaceMemberRepository.findByUserAndPrimaryTrue(user)
+                .ifPresent(current -> {
+                    current.setPrimary(false);
+                    workspaceMemberRepository.save(current);
+                });
+
+        target.setPrimary(true);
+        workspaceMemberRepository.save(target);
+
+        Workspace ws = target.getWorkspace();
+        Instant expiresAt = subscriptionRepository.findByWorkspaceId(ws.getId())
+                .map(Subscription::getExpiresAt).orElse(null);
+
+        return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(),
+                ws.getPlanCode(), ws.getStatus(), expiresAt, true);
     }
 }

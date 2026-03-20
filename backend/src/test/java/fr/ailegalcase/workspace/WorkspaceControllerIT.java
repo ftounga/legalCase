@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -198,6 +199,203 @@ class WorkspaceControllerIT {
                         .content("{\"name\": \"Nouveau Workspace\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isConflict());
+    }
+
+    // I-07 : GET /api/v1/workspaces → liste les workspaces de l'utilisateur avec primary correct
+    @Test
+    void listWorkspaces_returnsAllUserWorkspaces() throws Exception {
+        User user = new User();
+        user.setEmail("list-ws@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-list-sub");
+        authAccountRepository.save(account);
+
+        Workspace ws1 = new Workspace();
+        ws1.setName("Workspace Principal");
+        ws1.setSlug("slug-list-1-" + System.currentTimeMillis());
+        ws1.setOwner(user);
+        ws1.setPlanCode("FREE");
+        ws1.setStatus("ACTIVE");
+        workspaceRepository.save(ws1);
+
+        WorkspaceMember m1 = new WorkspaceMember();
+        m1.setWorkspace(ws1);
+        m1.setUser(user);
+        m1.setMemberRole("OWNER");
+        m1.setPrimary(true);
+        workspaceMemberRepository.save(m1);
+
+        Workspace ws2 = new Workspace();
+        ws2.setName("Workspace Secondaire");
+        ws2.setSlug("slug-list-2-" + System.currentTimeMillis());
+        ws2.setOwner(user);
+        ws2.setPlanCode("FREE");
+        ws2.setStatus("ACTIVE");
+        workspaceRepository.save(ws2);
+
+        WorkspaceMember m2 = new WorkspaceMember();
+        m2.setWorkspace(ws2);
+        m2.setUser(user);
+        m2.setMemberRole("MEMBER");
+        m2.setPrimary(false);
+        workspaceMemberRepository.save(m2);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-list-sub", "list-ws@example.com");
+
+        mockMvc.perform(get("/api/v1/workspaces")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.name == 'Workspace Principal')].primary").value(true))
+                .andExpect(jsonPath("$[?(@.name == 'Workspace Secondaire')].primary").value(false));
+    }
+
+    // I-08 : POST /api/v1/workspaces/{id}/switch → 200, is_primary basculé
+    @Test
+    void switchWorkspace_validTarget_switchesPrimary() throws Exception {
+        User user = new User();
+        user.setEmail("switch@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-switch-sub");
+        authAccountRepository.save(account);
+
+        Workspace ws1 = new Workspace();
+        ws1.setName("WS Primary");
+        ws1.setSlug("slug-sw1-" + System.currentTimeMillis());
+        ws1.setOwner(user);
+        ws1.setPlanCode("FREE");
+        ws1.setStatus("ACTIVE");
+        workspaceRepository.save(ws1);
+
+        WorkspaceMember m1 = new WorkspaceMember();
+        m1.setWorkspace(ws1);
+        m1.setUser(user);
+        m1.setMemberRole("OWNER");
+        m1.setPrimary(true);
+        workspaceMemberRepository.save(m1);
+
+        Workspace ws2 = new Workspace();
+        ws2.setName("WS Secondaire");
+        ws2.setSlug("slug-sw2-" + System.currentTimeMillis());
+        ws2.setOwner(user);
+        ws2.setPlanCode("FREE");
+        ws2.setStatus("ACTIVE");
+        workspaceRepository.save(ws2);
+
+        WorkspaceMember m2 = new WorkspaceMember();
+        m2.setWorkspace(ws2);
+        m2.setUser(user);
+        m2.setMemberRole("MEMBER");
+        m2.setPrimary(false);
+        workspaceMemberRepository.save(m2);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-switch-sub", "switch@example.com");
+
+        mockMvc.perform(post("/api/v1/workspaces/" + ws2.getId() + "/switch")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("WS Secondaire"))
+                .andExpect(jsonPath("$.primary").value(true));
+    }
+
+    // I-09 : POST /api/v1/workspaces/{id}/switch → 403 si non membre
+    @Test
+    void switchWorkspace_notMember_returns403() throws Exception {
+        User user = new User();
+        user.setEmail("notmember@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-notmember-sub");
+        authAccountRepository.save(account);
+
+        Workspace ownWs = new Workspace();
+        ownWs.setName("Own WS");
+        ownWs.setSlug("slug-own-" + System.currentTimeMillis());
+        ownWs.setOwner(user);
+        ownWs.setPlanCode("FREE");
+        ownWs.setStatus("ACTIVE");
+        workspaceRepository.save(ownWs);
+
+        WorkspaceMember m = new WorkspaceMember();
+        m.setWorkspace(ownWs);
+        m.setUser(user);
+        m.setMemberRole("OWNER");
+        m.setPrimary(true);
+        workspaceMemberRepository.save(m);
+
+        // Workspace d'un autre user
+        User otherUser = new User();
+        otherUser.setEmail("other@example.com");
+        otherUser.setStatus("ACTIVE");
+        userRepository.save(otherUser);
+
+        Workspace otherWs = new Workspace();
+        otherWs.setName("Other WS");
+        otherWs.setSlug("slug-other-" + System.currentTimeMillis());
+        otherWs.setOwner(otherUser);
+        otherWs.setPlanCode("FREE");
+        otherWs.setStatus("ACTIVE");
+        workspaceRepository.save(otherWs);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-notmember-sub", "notmember@example.com");
+
+        mockMvc.perform(post("/api/v1/workspaces/" + otherWs.getId() + "/switch")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-10 : POST /api/v1/workspaces/{id}/switch → 403 si workspace inexistant
+    @Test
+    void switchWorkspace_unknownWorkspace_returns403() throws Exception {
+        User user = new User();
+        user.setEmail("unknown-ws@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-unknown-sub");
+        authAccountRepository.save(account);
+
+        Workspace ownWs = new Workspace();
+        ownWs.setName("Own WS");
+        ownWs.setSlug("slug-unk-" + System.currentTimeMillis());
+        ownWs.setOwner(user);
+        ownWs.setPlanCode("FREE");
+        ownWs.setStatus("ACTIVE");
+        workspaceRepository.save(ownWs);
+
+        WorkspaceMember m = new WorkspaceMember();
+        m.setWorkspace(ownWs);
+        m.setUser(user);
+        m.setMemberRole("OWNER");
+        m.setPrimary(true);
+        workspaceMemberRepository.save(m);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-unknown-sub", "unknown-ws@example.com");
+
+        mockMvc.perform(post("/api/v1/workspaces/" + UUID.randomUUID() + "/switch")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isForbidden());
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
