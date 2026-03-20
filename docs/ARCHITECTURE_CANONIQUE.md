@@ -320,12 +320,13 @@ Représente une personne physique.
 
 Champs :
 
-id  
-email  
-first_name  
-last_name  
-status  
-created_at  
+id
+email
+first_name
+last_name
+status
+is_super_admin (boolean, NOT NULL, DEFAULT FALSE)
+created_at
 updated_at
 
 ## auth_accounts
