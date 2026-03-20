@@ -3,6 +3,7 @@ package fr.ailegalcase.billing;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.Subscription;
 import com.stripe.param.CustomerCreateParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,21 @@ public class StripeCustomerService {
         } catch (StripeException e) {
             log.warn("Failed to create Stripe customer for workspace {} ({}): {}", workspaceId, email, e.getMessage());
             return Optional.empty();
+        }
+    }
+
+    public void cancelSubscription(String stripeSubscriptionId) {
+        if (!stripeEnabled) {
+            log.debug("Stripe disabled — skipping subscription cancellation for {}", stripeSubscriptionId);
+            return;
+        }
+        try {
+            Stripe.apiKey = secretKey;
+            Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+            subscription.cancel();
+        } catch (StripeException e) {
+            log.warn("Failed to cancel Stripe subscription {}: {}", stripeSubscriptionId, e.getMessage());
+            throw new RuntimeException("Stripe cancellation failed", e);
         }
     }
 }

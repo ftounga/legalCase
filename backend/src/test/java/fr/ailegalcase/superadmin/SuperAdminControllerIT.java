@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -29,7 +30,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -305,6 +308,121 @@ class SuperAdminControllerIT {
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.workspaceName == 'Cabinet Sans Usage')].totalCost").value(0));
+    }
+
+    // I-08 : DELETE /api/v1/super-admin/workspaces/{id} → 204, workspace supprimé
+    @Test
+    void deleteWorkspace_withSuperAdmin_returns204AndDeletesWorkspace() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-del@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-del-sub");
+        authAccountRepository.save(account);
+
+        User owner = new User();
+        owner.setEmail("owner-del@example.com");
+        owner.setStatus("ACTIVE");
+        userRepository.save(owner);
+
+        Workspace ws = new Workspace();
+        ws.setName("Cabinet À Supprimer");
+        ws.setSlug("cabinet-a-supprimer-" + System.currentTimeMillis());
+        ws.setOwner(owner);
+        ws.setPlanCode("FREE");
+        ws.setStatus("ACTIVE");
+        workspaceRepository.save(ws);
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(ws);
+        member.setUser(owner);
+        member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        workspaceMemberRepository.save(member);
+
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(ws);
+        caseFile.setCreatedBy(owner);
+        caseFile.setTitle("Dossier À Supprimer");
+        caseFile.setLegalDomain("EMPLOYMENT_LAW");
+        caseFile.setStatus("ACTIVE");
+        caseFileRepository.save(caseFile);
+
+        UUID wsId = ws.getId();
+        UUID cfId = caseFile.getId();
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-del-sub", "superadmin-del@example.com");
+
+        mockMvc.perform(delete("/api/v1/super-admin/workspaces/" + wsId)
+                        .with(authentication(auth)))
+                .andExpect(status().isNoContent());
+
+        assertThat(workspaceRepository.findById(wsId)).isEmpty();
+        assertThat(caseFileRepository.findById(cfId)).isEmpty();
+    }
+
+    // I-09 : DELETE /api/v1/super-admin/workspaces/{uuid-inexistant} → 404
+    @Test
+    void deleteWorkspace_unknownId_returns404() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-404@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-404-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-404-sub", "superadmin-404@example.com");
+
+        mockMvc.perform(delete("/api/v1/super-admin/workspaces/" + UUID.randomUUID())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-10 : DELETE /api/v1/super-admin/workspaces/{id} avec non super-admin → 403
+    @Test
+    void deleteWorkspace_withoutSuperAdmin_returns403() throws Exception {
+        User regular = new User();
+        regular.setEmail("regular-del@example.com");
+        regular.setStatus("ACTIVE");
+        regular.setSuperAdmin(false);
+        userRepository.save(regular);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(regular);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-regular-del-sub");
+        authAccountRepository.save(account);
+
+        User owner = new User();
+        owner.setEmail("owner-del2@example.com");
+        owner.setStatus("ACTIVE");
+        userRepository.save(owner);
+
+        Workspace ws = new Workspace();
+        ws.setName("Cabinet Non Supprimable");
+        ws.setSlug("cabinet-non-supprimable-" + System.currentTimeMillis());
+        ws.setOwner(owner);
+        ws.setPlanCode("FREE");
+        ws.setStatus("ACTIVE");
+        workspaceRepository.save(ws);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-regular-del-sub", "regular-del@example.com");
+
+        mockMvc.perform(delete("/api/v1/super-admin/workspaces/" + ws.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isForbidden());
+
+        assertThat(workspaceRepository.findById(ws.getId())).isPresent();
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

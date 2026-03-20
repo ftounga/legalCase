@@ -11,4 +11,6 @@ public interface WorkspaceInvitationRepository extends JpaRepository<WorkspaceIn
     boolean existsByWorkspaceIdAndEmailAndStatus(UUID workspaceId, String email, String status);
     List<WorkspaceInvitation> findByWorkspaceIdAndStatus(UUID workspaceId, String status);
     Optional<WorkspaceInvitation> findByIdAndWorkspaceId(UUID id, UUID workspaceId);
+
+    void deleteByWorkspaceId(UUID workspaceId);
 }

@@ -11,6 +11,8 @@ public interface UsageEventRepository extends JpaRepository<UsageEvent, UUID> {
     List<UsageEvent> findByCaseFileIdOrderByCreatedAtDesc(UUID caseFileId);
     List<UsageEvent> findByCaseFileIdIn(Collection<UUID> caseFileIds);
 
+    void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
+
     @Query(value = """
             SELECT cf.workspace_id,
                    COALESCE(SUM(u.tokens_input), 0)    AS total_tokens_input,
