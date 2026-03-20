@@ -9,6 +9,7 @@ import fr.ailegalcase.analysis.DocumentAnalysisRepository;
 import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.auth.UserRepository;
 import fr.ailegalcase.billing.Subscription;
 import fr.ailegalcase.billing.StripeCustomerService;
 import fr.ailegalcase.billing.SubscriptionRepository;
@@ -19,6 +20,7 @@ import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceInvitationRepository;
+import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import fr.ailegalcase.workspace.WorkspaceRepository;
 import org.slf4j.Logger;
@@ -43,6 +45,7 @@ public class SuperAdminService {
     private static final Logger log = LoggerFactory.getLogger(SuperAdminService.class);
 
     private final AuthAccountRepository authAccountRepository;
+    private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final WorkspaceInvitationRepository workspaceInvitationRepository;
@@ -61,6 +64,7 @@ public class SuperAdminService {
     private final AnalysisJobRepository analysisJobRepository;
 
     public SuperAdminService(AuthAccountRepository authAccountRepository,
+                             UserRepository userRepository,
                              WorkspaceRepository workspaceRepository,
                              WorkspaceMemberRepository workspaceMemberRepository,
                              WorkspaceInvitationRepository workspaceInvitationRepository,
@@ -78,6 +82,7 @@ public class SuperAdminService {
                              CaseAnalysisRepository caseAnalysisRepository,
                              AnalysisJobRepository analysisJobRepository) {
         this.authAccountRepository = authAccountRepository;
+        this.userRepository = userRepository;
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.workspaceInvitationRepository = workspaceInvitationRepository;
@@ -213,6 +218,41 @@ public class SuperAdminService {
         });
 
         workspaceRepository.delete(workspace);
+    }
+
+    @Transactional
+    public void deleteUser(OidcUser oidcUser, String provider, UUID userId) {
+        User caller = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .getUser();
+
+        if (!caller.isSuperAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super-admin access required");
+        }
+
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        List<WorkspaceMember> memberships = workspaceMemberRepository.findByUser(target);
+
+        for (WorkspaceMember membership : memberships) {
+            if ("OWNER".equals(membership.getMemberRole())) {
+                UUID workspaceId = membership.getWorkspace().getId();
+                long ownerCount = workspaceMemberRepository.findByWorkspace_Id(workspaceId).stream()
+                        .filter(m -> "OWNER".equals(m.getMemberRole()))
+                        .count();
+                if (ownerCount == 1) {
+                    deleteWorkspace(oidcUser, provider, workspaceId);
+                    continue;
+                }
+            }
+            workspaceMemberRepository.delete(membership);
+        }
+
+        workspaceInvitationRepository.deleteByInvitedByUserId(userId);
+        authAccountRepository.deleteByUser(target);
+        userRepository.delete(target);
     }
 
     private static UUID toUUID(Object obj) {

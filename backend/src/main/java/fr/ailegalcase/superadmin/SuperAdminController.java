@@ -47,4 +47,13 @@ public class SuperAdminController {
             @PathVariable UUID id) {
         superAdminService.deleteWorkspace(oidcUser, OAuthProviderResolver.resolve(principal), id);
     }
+
+    @DeleteMapping("/users/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteUser(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal,
+            @PathVariable UUID id) {
+        superAdminService.deleteUser(oidcUser, OAuthProviderResolver.resolve(principal), id);
+    }
 }
