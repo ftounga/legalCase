@@ -13,109 +13,75 @@
         <p class="text-secondary">Contactez le propriétaire de votre workspace pour obtenir les droits d'accès.</p>
       </mat-card-content>
     </mat-card>
-  } @else if (summary()) {
-    <!-- Résumé global -->
-    <div class="summary-cards">
-      <mat-card class="summary-card">
-        <mat-card-content>
-          <div class="summary-label">Tokens envoyés</div>
-          <div class="summary-value">{{ summary()!.totalTokensInput | number }}</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card class="summary-card">
-        <mat-card-content>
-          <div class="summary-label">Tokens reçus</div>
-          <div class="summary-value">{{ summary()!.totalTokensOutput | number }}</div>
-        </mat-card-content>
-      </mat-card>
-      <mat-card class="summary-card">
-        <mat-card-content>
-          <div class="summary-label">Coût estimé total</div>
-          <div class="summary-value accent">{{ summary()!.totalCost | number:'1.4-4' }} $</div>
-        </mat-card-content>
-      </mat-card>
-    </div>
+  } @else if (workspace()) {
 
-    <!-- Par dossier -->
-    <mat-card class="table-card">
+    <!-- Section Plan -->
+    <mat-card class="section-card">
       <mat-card-header>
-        <mat-card-title>Consommation par dossier</mat-card-title>
+        <mat-card-title>
+          <mat-icon>credit_card</mat-icon>
+          Abonnement
+        </mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <table mat-table [dataSource]="caseFileDataSource" matSort #caseFileSort="matSort" class="full-width">
-          <ng-container matColumnDef="caseFileTitle">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Dossier</th>
-            <td mat-cell *matCellDef="let row">{{ row.caseFileTitle }}</td>
-          </ng-container>
-          <ng-container matColumnDef="tokensInput">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Tokens envoyés</th>
-            <td mat-cell *matCellDef="let row">{{ row.tokensInput | number }}</td>
-          </ng-container>
-          <ng-container matColumnDef="tokensOutput">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Tokens reçus</th>
-            <td mat-cell *matCellDef="let row">{{ row.tokensOutput | number }}</td>
-          </ng-container>
-          <ng-container matColumnDef="totalCost">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Coût ($)</th>
-            <td mat-cell *matCellDef="let row">{{ row.totalCost | number:'1.4-4' }}</td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="caseFileColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: caseFileColumns;"></tr>
-
-          <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell no-data" [attr.colspan]="caseFileColumns.length">Aucune donnée</td>
-          </tr>
-        </table>
-        <mat-paginator #caseFilePaginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons />
+        <div class="plan-info">
+          <div class="plan-row">
+            <span class="plan-label">Plan actuel</span>
+            <span class="plan-value">{{ workspace()!.planCode }}</span>
+          </div>
+          <div class="plan-row">
+            <span class="plan-label">Quota dossiers</span>
+            <span class="plan-value">{{ getPlanQuota(workspace()!.planCode) }}</span>
+          </div>
+          @if (isTrial(workspace()!)) {
+            <div class="plan-row">
+              <span class="plan-label">Fin d'essai</span>
+              <span class="plan-value trial-date">{{ workspace()!.expiresAt | date:'dd/MM/yyyy' }}</span>
+            </div>
+          }
+        </div>
+        <a mat-stroked-button routerLink="/workspace/billing" class="billing-link">
+          <mat-icon>open_in_new</mat-icon>
+          Gérer l'abonnement
+        </a>
       </mat-card-content>
     </mat-card>
 
-    <!-- Par utilisateur -->
-    <mat-card class="table-card">
+    <!-- Section Membres -->
+    <mat-card class="section-card">
       <mat-card-header>
-        <mat-card-title>Consommation par utilisateur</mat-card-title>
+        <mat-card-title>
+          <mat-icon>group</mat-icon>
+          Membres ({{ members().length }})
+        </mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <table mat-table [dataSource]="userDataSource" matSort #userSort="matSort" class="full-width">
-          <ng-container matColumnDef="userEmail">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Utilisateur</th>
-            <td mat-cell *matCellDef="let row">{{ row.userEmail }}</td>
+        <table mat-table [dataSource]="members()" class="members-table">
+          <ng-container matColumnDef="email">
+            <th mat-header-cell *matHeaderCellDef>Utilisateur</th>
+            <td mat-cell *matCellDef="let m">{{ m.email }}</td>
           </ng-container>
-          <ng-container matColumnDef="tokensInput">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Tokens envoyés</th>
-            <td mat-cell *matCellDef="let row">{{ row.tokensInput | number }}</td>
-          </ng-container>
-          <ng-container matColumnDef="tokensOutput">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Tokens reçus</th>
-            <td mat-cell *matCellDef="let row">{{ row.tokensOutput | number }}</td>
-          </ng-container>
-          <ng-container matColumnDef="totalCost">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Coût ($)</th>
-            <td mat-cell *matCellDef="let row">{{ row.totalCost | number:'1.4-4' }}</td>
+          <ng-container matColumnDef="role">
+            <th mat-header-cell *matHeaderCellDef>Rôle</th>
+            <td mat-cell *matCellDef="let m">
+              <span class="role-badge role-{{ m.memberRole.toLowerCase() }}">{{ m.memberRole }}</span>
+            </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="userColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: userColumns;"></tr>
+          <tr mat-header-row *matHeaderRowDef="memberColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: memberColumns;"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell no-data" [attr.colspan]="userColumns.length">Aucune donnée</td>
+            <td class="mat-cell no-data" [attr.colspan]="memberColumns.length">Aucun membre</td>
           </tr>
         </table>
-        <mat-paginator #userPaginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons />
+
+        <a mat-stroked-button routerLink="/workspace/members" class="members-link">
+          <mat-icon>manage_accounts</mat-icon>
+          Gérer les membres
+        </a>
       </mat-card-content>
     </mat-card>
 
-    <!-- Liens rapides -->
-    <div class="quick-links">
-      <a routerLink="/workspace/members" class="quick-link">
-        <mat-icon>group</mat-icon>
-        Gérer les membres
-      </a>
-      <a routerLink="/workspace/billing" class="quick-link">
-        <mat-icon>credit_card</mat-icon>
-        Gérer l'abonnement
-      </a>
-    </div>
   }
 </div>

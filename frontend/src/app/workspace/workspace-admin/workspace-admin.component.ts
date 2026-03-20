@@ -1,72 +1,79 @@
-import { Component, OnInit, signal, ViewChild } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { Component, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
-import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatSortModule, MatSort } from '@angular/material/sort';
-import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { RouterLink } from '@angular/router';
-import { AdminUsageService } from '../../core/services/admin-usage.service';
-import { WorkspaceUsageSummary, CaseFileUsageSummary, UserUsageSummary } from '../../core/models/workspace-usage-summary.model';
+import { DatePipe } from '@angular/common';
+import { forkJoin } from 'rxjs';
+import { WorkspaceService } from '../../core/services/workspace.service';
+import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
+import { Workspace } from '../../core/models/workspace.model';
+import { WorkspaceMember } from '../../core/models/workspace-member.model';
+
+const PLAN_QUOTA: Record<string, number | null> = {
+  FREE: null,
+  STARTER: 3,
+  PRO: 20
+};
 
 @Component({
   selector: 'app-workspace-admin',
   standalone: true,
   imports: [
-    DecimalPipe,
-    MatCardModule, MatTableModule, MatSortModule, MatPaginatorModule,
-    MatProgressSpinnerModule, MatIconModule, RouterLink
+    DatePipe, RouterLink,
+    MatCardModule, MatTableModule, MatProgressSpinnerModule,
+    MatIconModule, MatButtonModule, MatChipsModule
   ],
   templateUrl: './workspace-admin.component.html',
   styleUrl: './workspace-admin.component.scss'
 })
 export class WorkspaceAdminComponent implements OnInit {
-  @ViewChild('caseFilePaginator') caseFilePaginator!: MatPaginator;
-  @ViewChild('userPaginator') userPaginator!: MatPaginator;
-  @ViewChild('caseFileSort') caseFileSort!: MatSort;
-  @ViewChild('userSort') userSort!: MatSort;
-
-  summary = signal<WorkspaceUsageSummary | null>(null);
+  workspace = signal<Workspace | null>(null);
+  members = signal<WorkspaceMember[]>([]);
   loading = signal(true);
   accessDenied = signal(false);
 
-  caseFileDataSource = new MatTableDataSource<CaseFileUsageSummary>([]);
-  userDataSource = new MatTableDataSource<UserUsageSummary>([]);
-
-  readonly caseFileColumns = ['caseFileTitle', 'tokensInput', 'tokensOutput', 'totalCost'];
-  readonly userColumns = ['userEmail', 'tokensInput', 'tokensOutput', 'totalCost'];
+  readonly memberColumns = ['email', 'role'];
 
   constructor(
-    private adminUsageService: AdminUsageService,
+    private workspaceService: WorkspaceService,
+    private memberService: WorkspaceMemberService,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
-    this.adminUsageService.getSummary().subscribe({
-      next: data => {
-        this.summary.set(data);
-        this.caseFileDataSource.data = data.byCaseFile;
-        this.userDataSource.data = data.byUser;
+    forkJoin({
+      workspace: this.workspaceService.getCurrentWorkspace(),
+      members: this.memberService.getMembers()
+    }).subscribe({
+      next: ({ workspace, members }) => {
+        this.workspace.set(workspace);
+        this.members.set(members);
         this.loading.set(false);
-        setTimeout(() => {
-          this.caseFileDataSource.paginator = this.caseFilePaginator;
-          this.caseFileDataSource.sort = this.caseFileSort;
-          this.userDataSource.paginator = this.userPaginator;
-          this.userDataSource.sort = this.userSort;
-        });
       },
       error: (err: any) => {
         this.loading.set(false);
         if (err.status === 403) {
           this.accessDenied.set(true);
         } else {
-          this.snackBar.open('Erreur lors du chargement des données d\'administration', 'Fermer', {
+          this.snackBar.open('Erreur lors du chargement des données', 'Fermer', {
             duration: 4000, panelClass: ['snack-error']
           });
         }
       }
     });
+  }
+
+  getPlanQuota(planCode: string): string {
+    const quota = PLAN_QUOTA[planCode];
+    return quota !== null && quota !== undefined ? `${quota} dossiers` : 'Essai gratuit';
+  }
+
+  isTrial(workspace: Workspace): boolean {
+    return workspace.planCode === 'FREE' && !!workspace.expiresAt;
   }
 }

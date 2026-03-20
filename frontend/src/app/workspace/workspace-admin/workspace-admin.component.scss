@@ -31,46 +31,100 @@
   }
 }
 
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+.section-card {
   margin-bottom: 24px;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
 
-.summary-card {
-  .summary-label {
-    font-size: 14px;
-    color: var(--color-text-secondary);
-    margin-bottom: 8px;
-  }
-
-  .summary-value {
-    font-family: var(--font-mono);
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-
-    &.accent {
-      color: var(--color-accent);
+    mat-icon {
+      color: var(--color-primary);
     }
   }
 }
 
-.table-card {
-  margin-bottom: 24px;
+.plan-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 
-  mat-card-title {
-    font-size: 16px;
+.plan-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-divider);
+
+  &:last-child {
+    border-bottom: none;
   }
 }
 
-.full-width {
+.plan-label {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.plan-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+
+  &.trial-date {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+}
+
+.billing-link,
+.members-link {
+  margin-top: 8px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+  }
+}
+
+.members-table {
   width: 100%;
+  margin-bottom: 16px;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+
+  &.role-owner {
+    background: #e8f0fe;
+    color: #1a3a5c;
+  }
+
+  &.role-admin {
+    background: #fef3e2;
+    color: #c9973a;
+  }
+
+  &.role-lawyer {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &.role-member {
+    background: #f5f5f5;
+    color: #6b7a8d;
+  }
 }
 
 .no-data {
@@ -78,35 +132,4 @@
   padding: 32px;
   color: var(--color-text-secondary);
   font-style: italic;
-}
-
-.quick-links {
-  display: flex;
-  gap: 16px;
-  margin-top: 8px;
-
-  .quick-link {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: var(--color-surface);
-    border: 1px solid var(--color-divider);
-    border-radius: 8px;
-    color: var(--color-primary);
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background 0.15s;
-
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
-    &:hover {
-      background: var(--color-background);
-    }
-  }
 }
