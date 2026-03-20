@@ -2,39 +2,49 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { WorkspaceAdminComponent } from './workspace-admin.component';
-import { AdminUsageService } from '../../core/services/admin-usage.service';
+import { WorkspaceService } from '../../core/services/workspace.service';
+import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { WorkspaceUsageSummary } from '../../core/models/workspace-usage-summary.model';
+import { Workspace } from '../../core/models/workspace.model';
+import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { provideRouter } from '@angular/router';
 
-const mockSummary: WorkspaceUsageSummary = {
-  totalTokensInput: 1500,
-  totalTokensOutput: 600,
-  totalCost: 0.0062,
-  byUser: [{ userId: 'u1', userEmail: 'alice@test.com', tokensInput: 1500, tokensOutput: 600, totalCost: 0.0062 }],
-  byCaseFile: [{ caseFileId: 'cf1', caseFileTitle: 'Dossier Licenciement', tokensInput: 1500, tokensOutput: 600, totalCost: 0.0062 }]
+const mockWorkspace: Workspace = {
+  id: 'ws-1', name: 'Cabinet Alpha', slug: 'alpha',
+  planCode: 'STARTER', status: 'ACTIVE'
 };
 
-const emptySummary: WorkspaceUsageSummary = {
-  totalTokensInput: 0, totalTokensOutput: 0, totalCost: 0,
-  byUser: [], byCaseFile: []
+const mockWorkspaceFreeWithExpiry: Workspace = {
+  id: 'ws-2', name: 'Cabinet Beta', slug: 'beta',
+  planCode: 'FREE', status: 'ACTIVE',
+  expiresAt: '2026-04-01T00:00:00Z'
 };
+
+const mockMembers: WorkspaceMember[] = [
+  { userId: 'u1', email: 'alice@test.com', firstName: null, lastName: null, memberRole: 'OWNER', createdAt: '2026-01-01T00:00:00Z' },
+  { userId: 'u2', email: 'bob@test.com', firstName: null, lastName: null, memberRole: 'LAWYER', createdAt: '2026-01-01T00:00:00Z' }
+];
 
 describe('WorkspaceAdminComponent', () => {
   let component: WorkspaceAdminComponent;
   let fixture: ComponentFixture<WorkspaceAdminComponent>;
-  let adminUsageService: jasmine.SpyObj<AdminUsageService>;
+  let workspaceService: jasmine.SpyObj<WorkspaceService>;
+  let memberService: jasmine.SpyObj<WorkspaceMemberService>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
 
-  async function setup(serviceReturn: any) {
-    adminUsageService = jasmine.createSpyObj('AdminUsageService', ['getSummary']);
+  async function setup(wsReturn: any, membersReturn: any) {
+    workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
+    memberService = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
-    adminUsageService.getSummary.and.returnValue(serviceReturn);
+
+    workspaceService.getCurrentWorkspace.and.returnValue(wsReturn);
+    memberService.getMembers.and.returnValue(membersReturn);
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceAdminComponent, NoopAnimationsModule],
       providers: [
-        { provide: AdminUsageService, useValue: adminUsageService },
+        { provide: WorkspaceService, useValue: workspaceService },
+        { provide: WorkspaceMemberService, useValue: memberService },
         { provide: MatSnackBar, useValue: snackBar },
         provideRouter([])
       ]
@@ -47,42 +57,41 @@ describe('WorkspaceAdminComponent', () => {
     fixture.detectChanges();
   }
 
-  // T-01 : affiche les totaux quand l'API retourne des données
-  it('affiche les totaux avec des données', fakeAsync(async () => {
-    await setup(of(mockSummary));
-    const cards = fixture.nativeElement.querySelectorAll('.summary-card');
-    expect(cards.length).toBe(3);
-    expect(fixture.nativeElement.textContent).toContain('1,500');
-  }));
+  // T-01 : chargement nominal — plan et membres affichés
+  it('affiche le plan et les membres au chargement nominal', fakeAsync(async () => {
+    await setup(of(mockWorkspace), of(mockMembers));
 
-  // T-02 : affiche les 2 tableaux avec les bonnes colonnes
-  it('affiche les 2 tableaux mat-table', fakeAsync(async () => {
-    await setup(of(mockSummary));
-    const tables = fixture.nativeElement.querySelectorAll('table[mat-table]');
-    expect(tables.length).toBe(2);
-    expect(fixture.nativeElement.textContent).toContain('Dossier Licenciement');
+    expect(component.loading()).toBeFalse();
+    expect(component.workspace()).toEqual(mockWorkspace);
+    expect(component.members().length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('STARTER');
     expect(fixture.nativeElement.textContent).toContain('alice@test.com');
+    expect(fixture.nativeElement.textContent).toContain('bob@test.com');
   }));
 
-  // T-03 : affiche le message accès réservé si 403
-  it('affiche le message accès réservé si 403', fakeAsync(async () => {
-    await setup(throwError(() => ({ status: 403 })));
+  // T-02 : 403 → accessDenied = true, message affiché
+  it('affiche le message accès refusé si 403', fakeAsync(async () => {
+    await setup(throwError(() => ({ status: 403 })), of(mockMembers));
+
     expect(component.accessDenied()).toBeTrue();
     expect(fixture.nativeElement.textContent).toContain('Accès réservé');
   }));
 
-  // T-04 : affiche un snackbar d'erreur si 500
-  it('affiche un snackbar si erreur 500', fakeAsync(async () => {
-    await setup(throwError(() => ({ status: 500 })));
+  // T-03 : erreur réseau → snackbar erreur
+  it('affiche un snackbar si erreur réseau', fakeAsync(async () => {
+    await setup(throwError(() => ({ status: 500 })), of(mockMembers));
+
     expect(snackBar.open).toHaveBeenCalledWith(
       jasmine.stringContaining('Erreur'), jasmine.any(String), jasmine.any(Object)
     );
+    expect(component.accessDenied()).toBeFalse();
   }));
 
-  // T-05 : affiche état vide si listes vides
-  it('affiche Aucune donnée si listes vides', fakeAsync(async () => {
-    await setup(of(emptySummary));
-    const noCells = fixture.nativeElement.querySelectorAll('.no-data');
-    expect(noCells.length).toBe(2);
+  // T-04 : plan FREE avec date d'expiration → date affichée
+  it('affiche la date d\'expiration trial si plan FREE avec expiresAt', fakeAsync(async () => {
+    await setup(of(mockWorkspaceFreeWithExpiry), of(mockMembers));
+
+    expect(component.isTrial(mockWorkspaceFreeWithExpiry)).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Fin d\'essai');
   }));
 });
