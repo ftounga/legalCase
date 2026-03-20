@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.security.Principal;
 
@@ -25,16 +27,25 @@ public class MeController {
     @GetMapping("/me")
     @Transactional(readOnly = true)
     public MeResponse me(@AuthenticationPrincipal OidcUser oidcUser, Principal principal) {
-        String provider = OAuthProviderResolver.resolve(principal);
+        if (oidcUser != null) {
+            String provider = OAuthProviderResolver.resolve(principal);
+            AuthAccount account = authAccountRepository
+                    .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                    .orElseThrow(() -> new OAuth2AuthenticationException(
+                            new OAuth2Error("account_not_found"), "Auth account not found"));
+            User user = account.getUser();
+            return new MeResponse(user.getId(), user.getEmail(), user.getFirstName(),
+                    user.getLastName(), account.getProvider(), user.isSuperAdmin());
+        }
 
+        // Session LOCAL (UsernamePasswordAuthenticationToken) — principal.getName() = email
+        String email = principal.getName();
         AuthAccount account = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new OAuth2AuthenticationException(
-                        new OAuth2Error("account_not_found"), "Auth account not found"));
-
+                .findByProviderAndProviderUserId("LOCAL", email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session invalide."));
         User user = account.getUser();
         return new MeResponse(user.getId(), user.getEmail(), user.getFirstName(),
-                user.getLastName(), account.getProvider(), user.isSuperAdmin());
+                user.getLastName(), "LOCAL", user.isSuperAdmin());
     }
 
 }

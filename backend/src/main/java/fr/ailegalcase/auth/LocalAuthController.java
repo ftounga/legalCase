@@ -1,5 +1,7 @@
 package fr.ailegalcase.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,14 @@ public class LocalAuthController {
 
     public LocalAuthController(LocalAuthService localAuthService) {
         this.localAuthService = localAuthService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<MeResponse> login(@Valid @RequestBody LocalLoginRequest request,
+                                            HttpServletRequest httpRequest,
+                                            HttpServletResponse httpResponse) {
+        MeResponse response = localAuthService.login(request, httpRequest, httpResponse);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/register")

@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/v1/stripe/webhook").permitAll()
-                .requestMatchers("/api/v1/auth/register", "/api/v1/auth/verify-email").permitAll()
+                .requestMatchers("/api/v1/auth/register", "/api/v1/auth/verify-email", "/api/v1/auth/login").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
