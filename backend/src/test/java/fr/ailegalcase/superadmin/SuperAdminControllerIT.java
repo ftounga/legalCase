@@ -425,6 +425,112 @@ class SuperAdminControllerIT {
         assertThat(workspaceRepository.findById(ws.getId())).isPresent();
     }
 
+    // I-11 : DELETE /api/v1/super-admin/users/{id} → 204, user + auth_accounts supprimés
+    @Test
+    void deleteUser_withSuperAdmin_returns204AndDeletesUser() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-delusr@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount saAccount = new AuthAccount();
+        saAccount.setUser(superAdmin);
+        saAccount.setProvider("GOOGLE");
+        saAccount.setProviderUserId("google-superadmin-delusr-sub");
+        authAccountRepository.save(saAccount);
+
+        User target = new User();
+        target.setEmail("target-delusr@example.com");
+        target.setStatus("ACTIVE");
+        target.setSuperAdmin(false);
+        userRepository.save(target);
+
+        AuthAccount targetAccount = new AuthAccount();
+        targetAccount.setUser(target);
+        targetAccount.setProvider("GOOGLE");
+        targetAccount.setProviderUserId("google-target-delusr-sub");
+        authAccountRepository.save(targetAccount);
+
+        Workspace ws = new Workspace();
+        ws.setName("Cabinet Target User");
+        ws.setSlug("cabinet-target-user-" + System.currentTimeMillis());
+        ws.setOwner(target);
+        ws.setPlanCode("FREE");
+        ws.setStatus("ACTIVE");
+        workspaceRepository.save(ws);
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(ws);
+        member.setUser(target);
+        member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        workspaceMemberRepository.save(member);
+
+        UUID targetId = target.getId();
+        UUID wsId = ws.getId();
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-delusr-sub", "superadmin-delusr@example.com");
+
+        mockMvc.perform(delete("/api/v1/super-admin/users/" + targetId)
+                        .with(authentication(auth)))
+                .andExpect(status().isNoContent());
+
+        assertThat(userRepository.findById(targetId)).isEmpty();
+        assertThat(workspaceRepository.findById(wsId)).isEmpty();
+    }
+
+    // I-12 : DELETE /api/v1/super-admin/users/{uuid-inexistant} → 404
+    @Test
+    void deleteUser_unknownId_returns404() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-delusr404@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-delusr404-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-delusr404-sub", "superadmin-delusr404@example.com");
+
+        mockMvc.perform(delete("/api/v1/super-admin/users/" + UUID.randomUUID())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-13 : DELETE /api/v1/super-admin/users/{id} avec non super-admin → 403
+    @Test
+    void deleteUser_withoutSuperAdmin_returns403() throws Exception {
+        User regular = new User();
+        regular.setEmail("regular-delusr@example.com");
+        regular.setStatus("ACTIVE");
+        regular.setSuperAdmin(false);
+        userRepository.save(regular);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(regular);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-regular-delusr-sub");
+        authAccountRepository.save(account);
+
+        User target = new User();
+        target.setEmail("target-delusr2@example.com");
+        target.setStatus("ACTIVE");
+        userRepository.save(target);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-regular-delusr-sub", "regular-delusr@example.com");
+
+        mockMvc.perform(delete("/api/v1/super-admin/users/" + target.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isForbidden());
+
+        assertThat(userRepository.findById(target.getId())).isPresent();
+    }
+
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
         Map<String, Object> claims = Map.of(
                 "sub", sub,

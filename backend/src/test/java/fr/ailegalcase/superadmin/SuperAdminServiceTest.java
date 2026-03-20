@@ -4,8 +4,11 @@ import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.auth.UserRepository;
 import fr.ailegalcase.billing.SubscriptionRepository;
+import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
+import fr.ailegalcase.workspace.WorkspaceInvitationRepository;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import fr.ailegalcase.workspace.WorkspaceRepository;
@@ -29,16 +32,32 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SuperAdminServiceTest {
 
     @Mock AuthAccountRepository authAccountRepository;
+    @Mock UserRepository userRepository;
     @Mock WorkspaceRepository workspaceRepository;
     @Mock WorkspaceMemberRepository workspaceMemberRepository;
+    @Mock WorkspaceInvitationRepository workspaceInvitationRepository;
     @Mock SubscriptionRepository subscriptionRepository;
     @Mock UsageEventRepository usageEventRepository;
+    @Mock CaseFileRepository caseFileRepository;
+    @Mock fr.ailegalcase.document.DocumentRepository documentRepository;
+    @Mock fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository;
+    @Mock fr.ailegalcase.document.DocumentChunkRepository documentChunkRepository;
+    @Mock fr.ailegalcase.analysis.ChunkAnalysisRepository chunkAnalysisRepository;
+    @Mock fr.ailegalcase.analysis.DocumentAnalysisRepository documentAnalysisRepository;
+    @Mock fr.ailegalcase.analysis.AiQuestionRepository aiQuestionRepository;
+    @Mock fr.ailegalcase.analysis.AiQuestionAnswerRepository aiQuestionAnswerRepository;
+    @Mock fr.ailegalcase.analysis.CaseAnalysisRepository caseAnalysisRepository;
+    @Mock fr.ailegalcase.analysis.AnalysisJobRepository analysisJobRepository;
+    @Mock fr.ailegalcase.billing.StripeCustomerService stripeCustomerService;
     @InjectMocks SuperAdminService service;
 
     // U-01 : listAllWorkspaces avec super-admin → retourne la liste de tous les workspaces
@@ -139,6 +158,71 @@ class SuperAdminServiceTest {
                 .hasMessageContaining("Super-admin access required");
     }
 
+    // U-06 : deleteUser — utilisateur inexistant → 404
+    @Test
+    void deleteUser_unknownUser_throws404() {
+        User caller = buildUser(true);
+        AuthAccount account = buildAccount(caller, "google-sa-delusr-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sa-delusr-sub"))
+                .thenReturn(Optional.of(account));
+
+        UUID unknownId = UUID.randomUUID();
+        when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteUser(buildOidcUser("google-sa-delusr-sub"), "GOOGLE", unknownId))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("User not found");
+    }
+
+    // U-07 : deleteUser — utilisateur non-OWNER → membership seule supprimée, workspace intact
+    @Test
+    void deleteUser_nonOwnerMember_deletesMembershipOnly() {
+        User caller = buildUser(true);
+        AuthAccount account = buildAccount(caller, "google-sa-delusr2-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sa-delusr2-sub"))
+                .thenReturn(Optional.of(account));
+
+        User target = buildUser(false);
+        when(userRepository.findById(target.getId())).thenReturn(Optional.of(target));
+
+        Workspace ws = buildWorkspace("Cabinet Avocat");
+        WorkspaceMember membership = buildMembership(ws, target, "LAWYER");
+        when(workspaceMemberRepository.findByUser(target)).thenReturn(List.of(membership));
+
+        service.deleteUser(buildOidcUser("google-sa-delusr2-sub"), "GOOGLE", target.getId());
+
+        verify(workspaceMemberRepository).delete(membership);
+        verify(workspaceRepository, never()).delete(any());
+        verify(authAccountRepository).deleteByUser(target);
+        verify(userRepository).delete(target);
+    }
+
+    // U-08 : deleteUser — utilisateur sole OWNER → workspace supprimé en cascade
+    @Test
+    void deleteUser_soleOwner_deletesWorkspaceCascade() {
+        User caller = buildUser(true);
+        AuthAccount callerAccount = buildAccount(caller, "google-sa-delusr3-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sa-delusr3-sub"))
+                .thenReturn(Optional.of(callerAccount));
+
+        User target = buildUser(false);
+        when(userRepository.findById(target.getId())).thenReturn(Optional.of(target));
+
+        Workspace ws = buildWorkspace("Cabinet Sole Owner");
+        WorkspaceMember ownerMembership = buildMembership(ws, target, "OWNER");
+        when(workspaceMemberRepository.findByUser(target)).thenReturn(List.of(ownerMembership));
+        when(workspaceMemberRepository.findByWorkspace_Id(ws.getId())).thenReturn(List.of(ownerMembership));
+        when(workspaceRepository.findById(ws.getId())).thenReturn(Optional.of(ws));
+        when(caseFileRepository.findByWorkspace_Id(ws.getId())).thenReturn(List.of());
+        when(subscriptionRepository.findByWorkspaceId(ws.getId())).thenReturn(Optional.empty());
+
+        service.deleteUser(buildOidcUser("google-sa-delusr3-sub"), "GOOGLE", target.getId());
+
+        verify(workspaceRepository).delete(ws);
+        verify(authAccountRepository).deleteByUser(target);
+        verify(userRepository).delete(target);
+    }
+
     private User buildUser(boolean superAdmin) {
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -164,6 +248,15 @@ class SuperAdminServiceTest {
         ws.setPlanCode("STARTER");
         ws.setStatus("ACTIVE");
         return ws;
+    }
+
+    private WorkspaceMember buildMembership(Workspace ws, User user, String role) {
+        WorkspaceMember m = new WorkspaceMember();
+        m.setWorkspace(ws);
+        m.setUser(user);
+        m.setMemberRole(role);
+        m.setPrimary(true);
+        return m;
     }
 
     private OidcUser buildOidcUser(String sub) {

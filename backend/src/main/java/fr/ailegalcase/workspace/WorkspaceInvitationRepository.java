@@ -13,4 +13,6 @@ public interface WorkspaceInvitationRepository extends JpaRepository<WorkspaceIn
     Optional<WorkspaceInvitation> findByIdAndWorkspaceId(UUID id, UUID workspaceId);
 
     void deleteByWorkspaceId(UUID workspaceId);
+
+    void deleteByInvitedByUserId(UUID invitedByUserId);
 }

@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface AuthAccountRepository extends JpaRepository<AuthAccount, UUID> {
 
     Optional<AuthAccount> findByProviderAndProviderUserId(String provider, String providerUserId);
+
+    void deleteByUser(User user);
 }
