@@ -90,7 +90,13 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 |----|---------|-------------|--------|
 | F-18 | Page d'administration | Tableau de bord admin : consommation LLM par dossier/user, gestion des membres, statut du plan. Accès OWNER/ADMIN uniquement. | `Terminée` |
 
-### Bloc 9 — Paiement
+### Bloc 9 — Super-administration plateforme
+
+| ID | Feature | Description | Statut |
+|----|---------|-------------|--------|
+| F-25 | Super-admin plateforme | Tableau de bord super-admin : vue de tous les workspaces, consommation LLM par workspace, suppression workspace (cascade dossiers + membres exclusifs + annulation Stripe), suppression utilisateur (tous ses workspaces). Accès `is_super_admin` uniquement. Route `/super-admin`, lien header conditionnel. | `À spécifier` |
+
+### Bloc 10 — Paiement
 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
@@ -105,7 +111,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
                                               ↓
                                    F-08 → F-09 → F-10 → F-11 → F-12 → F-13 → F-14
                                               ↓
-                                   F-15, F-16, F-17, F-18 (parallélisables)
+                                   F-15, F-16, F-17, F-18, F-25 (parallélisables)
 ```
 
 ---
@@ -160,3 +166,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-20 | F-02 SF-02-03 mergée — nom workspace obligatoire à l'onboarding : suppression auto-création, POST /api/v1/workspaces, authGuard → /onboarding si 404, OnboardingComponent, 22 tests | Product owner |
 | 2026-03-20 | F-17 SF-17-06 mergée — workspace switcher : GET /api/v1/workspaces, POST /{id}/switch (403 si non membre), dropdown header si >1 workspace, WorkspaceResponse+primary, 18 tests | Product owner |
 | 2026-03-20 | F-18 SF-18-03 mergée — refactoring page admin : suppression tokens/coûts, ajout section Plan (plan, quota, expiry trial) + section Membres (email, rôle, lien /workspace/members), 4 tests Karma | Product owner |
+| 2026-03-20 | F-25 ajoutée en V1 (Bloc 9 Super-administration plateforme) — super-admin is_super_admin, tous les workspaces, consommation LLM, suppression workspace/utilisateur, route /super-admin | Product owner |
