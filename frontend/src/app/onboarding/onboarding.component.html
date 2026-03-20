@@ -1,0 +1,33 @@
+<div class="onboarding-wrapper">
+  <mat-card class="onboarding-card">
+    <mat-card-header>
+      <mat-card-title>Bienvenue sur AI LegalCase</mat-card-title>
+      <mat-card-subtitle>Donnez un nom à votre espace de travail pour commencer</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nom du cabinet / workspace</mat-label>
+          <input matInput formControlName="name" placeholder="Ex : Cabinet Dupont & Associés" autocomplete="off" />
+          @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+            <mat-error>Le nom est obligatoire</mat-error>
+          } @else if (form.get('name')?.hasError('minlength') && form.get('name')?.touched) {
+            <mat-error>Le nom doit contenir au moins 2 caractères</mat-error>
+          } @else if (form.get('name')?.hasError('maxlength') && form.get('name')?.touched) {
+            <mat-error>Le nom ne peut pas dépasser 100 caractères</mat-error>
+          }
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit"
+                [disabled]="form.invalid || saving" class="submit-btn">
+          @if (saving) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Créer mon workspace
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
