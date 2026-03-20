@@ -8,10 +8,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "auth_accounts")
+@Table(name = "password_reset_tokens")
 @Getter
 @Setter
-public class AuthAccount {
+public class PasswordResetToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -21,21 +21,13 @@ public class AuthAccount {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 50)
-    private String provider;
+    @Column(nullable = false, unique = true)
+    private String token;
 
     @Column(nullable = false)
-    private String providerUserId;
+    private Instant expiresAt;
 
-    private String providerEmail;
-
-    @Column(length = 500)
-    private String accessScope;
-
-    private String passwordHash;
-
-    @Column(nullable = false)
-    private boolean emailVerified = true;
+    private Instant usedAt;
 
     @Column(nullable = false)
     private Instant createdAt;
