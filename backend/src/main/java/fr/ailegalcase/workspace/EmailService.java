@@ -16,13 +16,43 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final boolean mailEnabled;
     private final String frontendUrl;
+    private final String mailFrom;
 
     public EmailService(JavaMailSender mailSender,
                         @Value("${app.mail.enabled:false}") boolean mailEnabled,
-                        @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
+                        @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
+                        @Value("${app.mail.from:${spring.mail.username:}}") String mailFrom) {
         this.mailSender = mailSender;
         this.mailEnabled = mailEnabled;
         this.frontendUrl = frontendUrl;
+        this.mailFrom = mailFrom;
+    }
+
+    public void sendEmailVerification(String toEmail, String token) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — email verification skipped for {}", toEmail);
+            return;
+        }
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Validez votre adresse email — AI LegalCase");
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "Merci de vous être inscrit(e) sur AI LegalCase.\n\n" +
+                    "Cliquez sur le lien ci-dessous pour valider votre adresse email :\n" +
+                    frontendUrl + "/verify-email?token=" + token + "\n\n" +
+                    "Ce lien expire dans 24 heures.\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Email verification sent to {}", toEmail);
+        } catch (MailException e) {
+            log.error("Failed to send email verification to {} — {}", toEmail, e.getMessage());
+            throw e;
+        }
     }
 
     public void sendInvitation(String toEmail, String workspaceName, String token) {
@@ -33,6 +63,7 @@ public class EmailService {
 
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
             message.setTo(toEmail);
             message.setSubject("Invitation à rejoindre " + workspaceName + " sur AI LegalCase");
             message.setText(
