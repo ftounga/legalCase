@@ -5,4 +5,5 @@ export interface Workspace {
   planCode: string;
   status: string;
   expiresAt?: string | null;
+  primary?: boolean;
 }

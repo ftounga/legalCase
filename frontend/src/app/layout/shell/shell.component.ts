@@ -1,5 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
@@ -30,13 +30,15 @@ import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
 })
 export class ShellComponent implements OnInit {
   workspace = signal<Workspace | null>(null);
+  workspaces = signal<Workspace[]>([]);
   ready = signal(false);
 
   constructor(
     readonly auth: AuthService,
     private workspaceService: WorkspaceService,
     private invitationService: WorkspaceInvitationService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -63,10 +65,35 @@ export class ShellComponent implements OnInit {
     }
   }
 
+  switchTo(ws: Workspace): void {
+    if (ws.primary) return;
+    this.workspaceService.switchWorkspace(ws.id).subscribe({
+      next: newWs => {
+        this.workspace.set(newWs);
+        this.workspaces.update(list => list.map(w => ({ ...w, primary: w.id === newWs.id })));
+        this.router.navigate(['/case-files']);
+      },
+      error: () => this.snackBar.open('Erreur lors du changement de workspace.', 'Fermer', {
+        duration: 4000, panelClass: ['snack-error']
+      })
+    });
+  }
+
   private loadWorkspace(): void {
     this.workspaceService.getCurrentWorkspace().subscribe({
-      next: ws => { this.workspace.set(ws); this.ready.set(true); },
+      next: ws => {
+        this.workspace.set(ws);
+        this.loadWorkspaceList();
+        this.ready.set(true);
+      },
       error: () => this.ready.set(true)
+    });
+  }
+
+  private loadWorkspaceList(): void {
+    this.workspaceService.listWorkspaces().subscribe({
+      next: list => this.workspaces.set(list),
+      error: () => {}
     });
   }
 }

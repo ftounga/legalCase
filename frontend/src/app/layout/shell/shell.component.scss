@@ -52,6 +52,21 @@
   padding: var(--spacing-lg);
 }
 
+.workspace-switcher {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ws-active {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
 .shell-loading {
   display: flex;
   justify-content: center;

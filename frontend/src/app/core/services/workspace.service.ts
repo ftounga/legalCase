@@ -16,4 +16,12 @@ export class WorkspaceService {
   createWorkspace(name: string): Observable<Workspace> {
     return this.http.post<Workspace>(this.apiUrl, { name });
   }
+
+  listWorkspaces(): Observable<Workspace[]> {
+    return this.http.get<Workspace[]>(this.apiUrl);
+  }
+
+  switchWorkspace(id: string): Observable<Workspace> {
+    return this.http.post<Workspace>(`${this.apiUrl}/${id}/switch`, {});
+  }
 }
