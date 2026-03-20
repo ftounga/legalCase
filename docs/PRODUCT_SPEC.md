@@ -37,7 +37,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-01 | Authentification OAuth2 | Login Google + Microsoft. Aucun mot de passe local. Spring Security + OAuth2/OIDC. | `Terminée` |
-| F-02 | Onboarding & workspace | Premier login → création automatique user + workspace + rôle OWNER. Redirection dashboard. | `Terminée` |
+| F-02 | Onboarding & workspace | Premier login → création user. Formulaire obligatoire de nom workspace avant accès au dashboard. | `Terminée` |
 
 ### Bloc 2 — Gestion des dossiers
 
@@ -157,3 +157,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-19 | F-18 SF-18-01 mergée — API REST GET /api/v1/admin/usage, agrégation par user/dossier, accès OWNER/ADMIN, 13 tests. F-18 marquée En cours | Product owner |
 | 2026-03-19 | F-18 SF-18-02 mergée — page admin frontend, tableaux triables/paginés par dossier et user, gestion 403, 7 tests Karma. F-18 marquée Terminée | Product owner |
 | 2026-03-19 | F-17 SF-17-05 mergée — fix race condition acceptation invitation : ShellComponent bloque router-outlet (ready signal) jusqu'au reload workspace post-acceptation, fail-open, 4 tests Karma | Product owner |
+| 2026-03-20 | F-02 SF-02-03 mergée — nom workspace obligatoire à l'onboarding : suppression auto-création, POST /api/v1/workspaces, authGuard → /onboarding si 404, OnboardingComponent, 22 tests | Product owner |
