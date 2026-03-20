@@ -1,6 +1,5 @@
 package fr.ailegalcase.auth;
 
-import fr.ailegalcase.workspace.WorkspaceService;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -16,14 +15,11 @@ public class CustomOidcUserService extends OidcUserService {
 
     private final UserRepository userRepository;
     private final AuthAccountRepository authAccountRepository;
-    private final WorkspaceService workspaceService;
 
     public CustomOidcUserService(UserRepository userRepository,
-                                 AuthAccountRepository authAccountRepository,
-                                 WorkspaceService workspaceService) {
+                                 AuthAccountRepository authAccountRepository) {
         this.userRepository = userRepository;
         this.authAccountRepository = authAccountRepository;
-        this.workspaceService = workspaceService;
     }
 
     @Override
@@ -63,7 +59,6 @@ public class CustomOidcUserService extends OidcUserService {
         user.setLastName(oidcUser.getFamilyName());
         user.setStatus("ACTIVE");
         userRepository.save(user);
-        workspaceService.createDefaultWorkspace(user);
 
         AuthAccount account = new AuthAccount();
         account.setUser(user);

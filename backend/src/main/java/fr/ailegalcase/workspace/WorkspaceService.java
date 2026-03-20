@@ -37,6 +37,51 @@ public class WorkspaceService {
     }
 
     @Transactional
+    public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .getUser();
+
+        if (workspaceMemberRepository.existsByUser(user)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "User already has a workspace");
+        }
+
+        Workspace workspace = new Workspace();
+        workspace.setName(name.strip());
+        workspace.setSlug(UUID.randomUUID().toString());
+        workspace.setOwner(user);
+        workspace.setPlanCode("FREE");
+        workspace.setStatus("ACTIVE");
+        workspaceRepository.save(workspace);
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(workspace);
+        member.setUser(user);
+        member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        workspaceMemberRepository.save(member);
+
+        Instant now = Instant.now();
+        Subscription subscription = new Subscription();
+        subscription.setWorkspaceId(workspace.getId());
+        subscription.setPlanCode("FREE");
+        subscription.setStatus("ACTIVE");
+        subscription.setStartedAt(now);
+        subscription.setExpiresAt(now.plus(14, ChronoUnit.DAYS));
+        subscriptionRepository.save(subscription);
+
+        stripeCustomerService.createCustomer(user.getEmail(), workspace.getId())
+                .ifPresent(customerId -> {
+                    subscription.setStripeCustomerId(customerId);
+                    subscriptionRepository.save(subscription);
+                });
+
+        return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
+                workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt());
+    }
+
+    @Transactional
     public void createDefaultWorkspace(User user) {
         if (workspaceMemberRepository.existsByUser(user)) {
             return;

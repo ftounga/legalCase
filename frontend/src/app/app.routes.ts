@@ -45,6 +45,11 @@ export const routes: Routes = [
     ]
   },
   {
+    path: 'onboarding',
+    loadComponent: () => import('./onboarding/onboarding.component')
+      .then(m => m.OnboardingComponent)
+  },
+  {
     path: 'invite',
     loadComponent: () => import('./invite-accept/invite-accept.component')
       .then(m => m.InviteAcceptComponent)
