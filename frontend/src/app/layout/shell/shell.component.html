@@ -55,6 +55,12 @@
           <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
           <span matListItemTitle>Administration</span>
         </a>
+        @if (auth.currentUser()?.isSuperAdmin) {
+          <a mat-list-item routerLink="/super-admin" routerLinkActive="sidenav-active">
+            <mat-icon matListItemIcon>security</mat-icon>
+            <span matListItemTitle>Super-admin</span>
+          </a>
+        }
       </mat-nav-list>
     </mat-sidenav>
 

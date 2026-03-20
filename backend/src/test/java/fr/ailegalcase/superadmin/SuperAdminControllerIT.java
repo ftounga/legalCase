@@ -425,7 +425,52 @@ class SuperAdminControllerIT {
         assertThat(workspaceRepository.findById(ws.getId())).isPresent();
     }
 
-    // I-11 : DELETE /api/v1/super-admin/users/{id} → 204, user + auth_accounts supprimés
+    // I-11 : GET /api/v1/super-admin/users avec super-admin → 200, liste des users
+    @Test
+    void listUsers_withSuperAdmin_returns200() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-listusers@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-listusers-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-listusers-sub", "superadmin-listusers@example.com");
+
+        mockMvc.perform(get("/api/v1/super-admin/users")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    // I-12 : GET /api/v1/super-admin/users avec non super-admin → 403
+    @Test
+    void listUsers_withoutSuperAdmin_returns403() throws Exception {
+        User regular = new User();
+        regular.setEmail("regular-listusers@example.com");
+        regular.setStatus("ACTIVE");
+        regular.setSuperAdmin(false);
+        userRepository.save(regular);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(regular);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-regular-listusers-sub");
+        authAccountRepository.save(account);
+
+        mockMvc.perform(get("/api/v1/super-admin/users")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(buildGoogleAuth("google-regular-listusers-sub", "regular-listusers@example.com"))))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-13 : DELETE /api/v1/super-admin/users/{id} → 204, user + auth_accounts supprimés
     @Test
     void deleteUser_withSuperAdmin_returns204AndDeletesUser() throws Exception {
         User superAdmin = new User();

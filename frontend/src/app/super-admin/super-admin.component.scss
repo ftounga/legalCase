@@ -1,0 +1,61 @@
+.super-admin-page {
+  padding: 24px;
+  max-width: 1280px;
+
+  .page-title {
+    font-family: Merriweather, serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1C2B3A;
+    margin-bottom: 24px;
+  }
+
+  .loading-center {
+    display: flex;
+    justify-content: center;
+    padding: 48px 0;
+  }
+
+  .section-card {
+    margin-bottom: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: Merriweather, serif;
+      font-size: 18px;
+      color: #1C2B3A;
+
+      mat-icon {
+        color: #1A3A5C;
+      }
+    }
+  }
+
+  .full-width-table {
+    width: 100%;
+  }
+
+  .plan-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+
+    &--free { background: #FFF8E1; color: #F9A825; }
+    &--starter { background: #E3F2FD; color: #1565C0; }
+    &--pro { background: #E8F5E9; color: #27AE60; }
+  }
+
+  .empty-state {
+    color: #6B7A8D;
+    font-size: 14px;
+    padding: 16px 0;
+    text-align: center;
+  }
+}

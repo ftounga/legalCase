@@ -22,7 +22,7 @@ describe('AuthService', () => {
   });
 
   it('loadCurrentUser — success → sets currentUser signal', () => {
-    const user: User = { id: 'u1', email: 'a@b.com', firstName: 'A', lastName: 'B', provider: 'GOOGLE' };
+    const user: User = { id: 'u1', email: 'a@b.com', firstName: 'A', lastName: 'B', provider: 'GOOGLE', isSuperAdmin: false };
     service.loadCurrentUser().subscribe(result => {
       expect(result).toEqual(user);
       expect(service.currentUser()).toEqual(user);

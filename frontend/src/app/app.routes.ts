@@ -41,6 +41,11 @@ export const routes: Routes = [
         path: 'workspace/admin',
         loadComponent: () => import('./workspace/workspace-admin/workspace-admin.component')
           .then(m => m.WorkspaceAdminComponent)
+      },
+      {
+        path: 'super-admin',
+        loadComponent: () => import('./super-admin/super-admin.component')
+          .then(m => m.SuperAdminComponent)
       }
     ]
   },

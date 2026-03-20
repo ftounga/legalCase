@@ -49,7 +49,7 @@ describe('InviteAcceptComponent', () => {
   });
 
   it('token présent, user connecté → accepte invitation → state success', () => {
-    const user = { id: 'u1', email: 'alice@test.com', firstName: null, lastName: null, provider: 'GOOGLE' };
+    const user = { id: 'u1', email: 'alice@test.com', firstName: null, lastName: null, provider: 'GOOGLE', isSuperAdmin: false };
     authService.loadCurrentUser.and.returnValue(of(user));
     invitationService.acceptInvitation.and.returnValue(of(undefined as unknown as void));
     createComponent('tok123');
@@ -57,7 +57,7 @@ describe('InviteAcceptComponent', () => {
   });
 
   it('token présent, user connecté, erreur 409 → state error avec message expiré', () => {
-    const user = { id: 'u1', email: 'alice@test.com', firstName: null, lastName: null, provider: 'GOOGLE' };
+    const user = { id: 'u1', email: 'alice@test.com', firstName: null, lastName: null, provider: 'GOOGLE', isSuperAdmin: false };
     authService.loadCurrentUser.and.returnValue(of(user));
     invitationService.acceptInvitation.and.returnValue(throwError(() => ({ status: 409 })));
     createComponent('tok123');

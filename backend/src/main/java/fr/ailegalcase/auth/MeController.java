@@ -34,7 +34,7 @@ public class MeController {
 
         User user = account.getUser();
         return new MeResponse(user.getId(), user.getEmail(), user.getFirstName(),
-                user.getLastName(), account.getProvider());
+                user.getLastName(), account.getProvider(), user.isSuperAdmin());
     }
 
 }
