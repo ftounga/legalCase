@@ -1,5 +1,6 @@
 package fr.ailegalcase.superadmin;
 
+import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
@@ -19,6 +20,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ class SuperAdminServiceTest {
     @Mock WorkspaceRepository workspaceRepository;
     @Mock WorkspaceMemberRepository workspaceMemberRepository;
     @Mock SubscriptionRepository subscriptionRepository;
+    @Mock UsageEventRepository usageEventRepository;
     @InjectMocks SuperAdminService service;
 
     // U-01 : listAllWorkspaces avec super-admin → retourne la liste de tous les workspaces
@@ -59,6 +62,52 @@ class SuperAdminServiceTest {
         assertThat(result.get(0).name()).isEqualTo("Cabinet Alpha");
         assertThat(result.get(0).memberCount()).isEqualTo(2);
         assertThat(result.get(0).expiresAt()).isNull();
+    }
+
+    // U-03 : getUsageByWorkspace super-admin → agrégation correcte par workspace
+    @Test
+    void getUsageByWorkspace_asSuperAdmin_returnsAggregatedUsage() {
+        User user = buildUser(true);
+        AuthAccount account = buildAccount(user, "google-sa-usage-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sa-usage-sub"))
+                .thenReturn(Optional.of(account));
+
+        UUID wsId = UUID.randomUUID();
+        Workspace ws = buildWorkspace("Cabinet Usage");
+        ws.setId(wsId);
+        when(workspaceRepository.findAll()).thenReturn(List.of(ws));
+
+        Object[] row = new Object[]{wsId.toString(), 5000L, 2000L, new BigDecimal("0.042000")};
+        when(usageEventRepository.aggregateByWorkspaceId()).thenReturn(List.<Object[]>of(row));
+
+        List<SuperAdminUsageResponse> result = service.getUsageByWorkspace(
+                buildOidcUser("google-sa-usage-sub"), "GOOGLE");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).workspaceName()).isEqualTo("Cabinet Usage");
+        assertThat(result.get(0).totalTokensInput()).isEqualTo(5000L);
+        assertThat(result.get(0).totalTokensOutput()).isEqualTo(2000L);
+        assertThat(result.get(0).totalCost()).isEqualByComparingTo(new BigDecimal("0.042000"));
+    }
+
+    // U-04 : getUsageByWorkspace workspace sans usage → totalCost = 0
+    @Test
+    void getUsageByWorkspace_workspaceWithNoUsage_returnsZeros() {
+        User user = buildUser(true);
+        AuthAccount account = buildAccount(user, "google-sa-empty-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sa-empty-sub"))
+                .thenReturn(Optional.of(account));
+
+        Workspace ws = buildWorkspace("Cabinet Vide");
+        when(workspaceRepository.findAll()).thenReturn(List.of(ws));
+        when(usageEventRepository.aggregateByWorkspaceId()).thenReturn(List.<Object[]>of());
+
+        List<SuperAdminUsageResponse> result = service.getUsageByWorkspace(
+                buildOidcUser("google-sa-empty-sub"), "GOOGLE");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).totalTokensInput()).isZero();
+        assertThat(result.get(0).totalCost()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     // U-02 : listAllWorkspaces sans super-admin → 403
