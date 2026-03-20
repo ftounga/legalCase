@@ -1,15 +1,21 @@
 package fr.ailegalcase.superadmin;
 
+import fr.ailegalcase.analysis.UsageEvent;
+import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.casefile.CaseFile;
+import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import fr.ailegalcase.workspace.WorkspaceRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.math.BigDecimal;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -41,6 +47,8 @@ class SuperAdminControllerIT {
     @Autowired private AuthAccountRepository authAccountRepository;
     @Autowired private WorkspaceRepository workspaceRepository;
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
+    @Autowired private CaseFileRepository caseFileRepository;
+    @Autowired private UsageEventRepository usageEventRepository;
 
     // I-01 : GET /api/v1/super-admin/workspaces sans auth → 401
     @Test
@@ -170,6 +178,133 @@ class SuperAdminControllerIT {
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.name == 'Cabinet Deux Membres')].memberCount").value(2));
+    }
+
+    // I-05 : GET /api/v1/super-admin/usage → 403 non super-admin
+    @Test
+    void getUsage_withoutSuperAdmin_returns403() throws Exception {
+        User user = new User();
+        user.setEmail("regular-usage@example.com");
+        user.setStatus("ACTIVE");
+        user.setSuperAdmin(false);
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-regular-usage-sub");
+        authAccountRepository.save(account);
+
+        mockMvc.perform(get("/api/v1/super-admin/usage")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(buildGoogleAuth("google-regular-usage-sub", "regular-usage@example.com"))))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-06 : GET /api/v1/super-admin/usage → 200 avec données agrégées correctes
+    @Test
+    void getUsage_withSuperAdmin_returnsAggregatedData() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-usage@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-usage-sub");
+        authAccountRepository.save(account);
+
+        User owner = new User();
+        owner.setEmail("owner-usage@example.com");
+        owner.setStatus("ACTIVE");
+        userRepository.save(owner);
+
+        Workspace ws = new Workspace();
+        ws.setName("Cabinet Usage IT");
+        ws.setSlug("cabinet-usage-it-" + System.currentTimeMillis());
+        ws.setOwner(owner);
+        ws.setPlanCode("PRO");
+        ws.setStatus("ACTIVE");
+        workspaceRepository.save(ws);
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(ws);
+        member.setUser(owner);
+        member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        workspaceMemberRepository.save(member);
+
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(ws);
+        caseFile.setCreatedBy(owner);
+        caseFile.setTitle("Dossier Test Usage");
+        caseFile.setLegalDomain("EMPLOYMENT_LAW");
+        caseFile.setStatus("ACTIVE");
+        caseFileRepository.save(caseFile);
+
+        UsageEvent event = new UsageEvent();
+        event.setCaseFileId(caseFile.getId());
+        event.setUserId(owner.getId());
+        event.setEventType(fr.ailegalcase.analysis.JobType.CHUNK_ANALYSIS);
+        event.setTokensInput(1000);
+        event.setTokensOutput(500);
+        event.setEstimatedCost(new BigDecimal("0.012000"));
+        usageEventRepository.save(event);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-usage-sub", "superadmin-usage@example.com");
+
+        mockMvc.perform(get("/api/v1/super-admin/usage")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.workspaceName == 'Cabinet Usage IT')].totalTokensInput").value(1000))
+                .andExpect(jsonPath("$[?(@.workspaceName == 'Cabinet Usage IT')].totalTokensOutput").value(500));
+    }
+
+    // I-07 : workspace sans usage_events → totalCost = 0
+    @Test
+    void getUsage_workspaceWithNoEvents_returnsTotalCostZero() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-empty@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-empty-sub");
+        authAccountRepository.save(account);
+
+        User owner = new User();
+        owner.setEmail("owner-empty@example.com");
+        owner.setStatus("ACTIVE");
+        userRepository.save(owner);
+
+        Workspace ws = new Workspace();
+        ws.setName("Cabinet Sans Usage");
+        ws.setSlug("cabinet-sans-usage-" + System.currentTimeMillis());
+        ws.setOwner(owner);
+        ws.setPlanCode("FREE");
+        ws.setStatus("ACTIVE");
+        workspaceRepository.save(ws);
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(ws);
+        member.setUser(owner);
+        member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        workspaceMemberRepository.save(member);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-empty-sub", "superadmin-empty@example.com");
+
+        mockMvc.perform(get("/api/v1/super-admin/usage")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.workspaceName == 'Cabinet Sans Usage')].totalCost").value(0));
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

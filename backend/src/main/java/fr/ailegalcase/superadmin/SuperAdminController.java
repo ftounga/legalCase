@@ -26,4 +26,11 @@ public class SuperAdminController {
             Principal principal) {
         return superAdminService.listAllWorkspaces(oidcUser, OAuthProviderResolver.resolve(principal));
     }
+
+    @GetMapping("/usage")
+    public List<SuperAdminUsageResponse> getUsage(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return superAdminService.getUsageByWorkspace(oidcUser, OAuthProviderResolver.resolve(principal));
+    }
 }
