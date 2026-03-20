@@ -21,14 +21,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CustomOidcUserServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private AuthAccountRepository authAccountRepository;
-
-    @Mock
-    private OidcUser oidcUser;
+    @Mock private UserRepository userRepository;
+    @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private OidcUser oidcUser;
 
     private CustomOidcUserService service;
 
@@ -37,7 +32,7 @@ class CustomOidcUserServiceTest {
         service = new CustomOidcUserService(userRepository, authAccountRepository);
     }
 
-    // U-01 : premier login — claims complets → user + auth_account créés
+    // U-01 : premier login OAuth, email inconnu → User + AuthAccount créés
     @Test
     void findOrCreateUser_firstLogin_createsUserAndAuthAccount() {
         when(oidcUser.getSubject()).thenReturn("google-sub-123");
@@ -46,6 +41,7 @@ class CustomOidcUserServiceTest {
         when(oidcUser.getFamilyName()).thenReturn("Doe");
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sub-123"))
                 .thenReturn(Optional.empty());
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
         when(authAccountRepository.save(any(AuthAccount.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -65,7 +61,7 @@ class CustomOidcUserServiceTest {
         assertThat(accountCaptor.getValue().getProviderEmail()).isEqualTo("john@example.com");
     }
 
-    // U-02 : login existant — aucun doublon créé
+    // U-02 : login OAuth existant (même sub) → aucun doublon créé
     @Test
     void findOrCreateUser_existingLogin_doesNotCreateDuplicate() {
         when(oidcUser.getSubject()).thenReturn("google-sub-123");
@@ -100,26 +96,63 @@ class CustomOidcUserServiceTest {
                 .hasMessageContaining("email");
     }
 
-    // U-05 : deux providers, même email → deux users distincts créés
+    // U-05 : fusion OAuth→LOCAL — email LOCAL existant → User réutilisé, seul AuthAccount OAuth créé
     @Test
-    void findOrCreateUser_twoProviders_sameEmail_createsTwoUsers() {
+    void findOrCreateUser_localUserExists_fusesAccount() {
+        User existingUser = new User();
+        existingUser.setEmail("local@example.com");
+        existingUser.setStatus("ACTIVE");
+
+        when(oidcUser.getSubject()).thenReturn("google-sub-fusion");
+        when(oidcUser.getEmail()).thenReturn("local@example.com");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sub-fusion"))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByEmail("local@example.com")).thenReturn(Optional.of(existingUser));
+        when(authAccountRepository.save(any(AuthAccount.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.findOrCreateUser(oidcUser, "GOOGLE", Set.of("openid"));
+
+        // Pas de création de User (déjà existant)
+        verify(userRepository, never()).save(any());
+
+        // AuthAccount OAuth créé et rattaché au User existant
+        ArgumentCaptor<AuthAccount> accountCaptor = ArgumentCaptor.forClass(AuthAccount.class);
+        verify(authAccountRepository).save(accountCaptor.capture());
+        assertThat(accountCaptor.getValue().getProvider()).isEqualTo("GOOGLE");
+        assertThat(accountCaptor.getValue().getUser()).isSameAs(existingUser);
+    }
+
+    // U-06 : deux providers OAuth, même email inconnu → 1 User créé au 1er login, fusion au 2nd
+    @Test
+    void findOrCreateUser_twoOAuthProvidersSameEmail_sharesSameUser() {
         when(oidcUser.getEmail()).thenReturn("john@example.com");
         when(oidcUser.getSubject()).thenReturn("google-sub-123");
+        when(oidcUser.getGivenName()).thenReturn("John");
+        when(oidcUser.getFamilyName()).thenReturn("Doe");
         when(authAccountRepository.findByProviderAndProviderUserId(eq("GOOGLE"), eq("google-sub-123")))
                 .thenReturn(Optional.empty());
+        // Premier login : email inconnu → crée User
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.empty());
 
+        User createdUser = new User();
+        createdUser.setEmail("john@example.com");
+        when(userRepository.save(any(User.class))).thenReturn(createdUser);
+        when(authAccountRepository.save(any(AuthAccount.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.findOrCreateUser(oidcUser, "GOOGLE", Set.of("openid"));
+
+        // Deuxième login MS avec même email → fusion : User existant trouvé
         OidcUser msUser = mock(OidcUser.class);
         when(msUser.getSubject()).thenReturn("ms-sub-456");
         when(msUser.getEmail()).thenReturn("john@example.com");
         when(authAccountRepository.findByProviderAndProviderUserId(eq("MICROSOFT"), eq("ms-sub-456")))
                 .thenReturn(Optional.empty());
+        when(userRepository.findByEmail("john@example.com")).thenReturn(Optional.of(createdUser));
 
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(authAccountRepository.save(any(AuthAccount.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        service.findOrCreateUser(oidcUser, "GOOGLE", Set.of("openid"));
         service.findOrCreateUser(msUser, "MICROSOFT", Set.of("openid"));
 
-        verify(userRepository, times(2)).save(any(User.class));
+        // User créé une seule fois (premier login) ; fusion au second
+        verify(userRepository, times(1)).save(any(User.class));
+        verify(authAccountRepository, times(2)).save(any(AuthAccount.class));
     }
 }

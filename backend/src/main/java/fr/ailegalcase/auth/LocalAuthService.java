@@ -1,15 +1,22 @@
 package fr.ailegalcase.auth;
 
 import fr.ailegalcase.workspace.EmailService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -33,6 +40,40 @@ public class LocalAuthService {
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+    }
+
+    private static final String INVALID_CREDENTIALS = "Identifiants invalides.";
+    private static final HttpSessionSecurityContextRepository SESSION_REPO =
+            new HttpSessionSecurityContextRepository();
+
+    @Transactional(readOnly = true)
+    public MeResponse login(LocalLoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        String email = request.email().toLowerCase().trim();
+
+        AuthAccount account = authAccountRepository
+                .findByProviderAndProviderUserId("LOCAL", email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS));
+
+        if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_CREDENTIALS);
+        }
+
+        if (!account.isEmailVerified()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Veuillez valider votre email avant de vous connecter.");
+        }
+
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+
+        var context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        SESSION_REPO.saveContext(context, httpRequest, httpResponse);
+
+        User user = account.getUser();
+        return new MeResponse(user.getId(), user.getEmail(), user.getFirstName(),
+                user.getLastName(), "LOCAL", user.isSuperAdmin());
     }
 
     @Transactional

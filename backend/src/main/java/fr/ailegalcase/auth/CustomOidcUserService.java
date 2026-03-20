@@ -46,25 +46,29 @@ public class CustomOidcUserService extends OidcUserService {
         }
 
         authAccountRepository.findByProviderAndProviderUserId(provider, providerUserId)
-                .orElseGet(() -> createUser(oidcUser, provider, providerUserId, scopes));
+                .orElseGet(() -> createOrFuseUser(oidcUser, provider, providerUserId, scopes));
 
         return oidcUser;
     }
 
-    private AuthAccount createUser(OidcUser oidcUser, String provider,
-                                   String providerUserId, Set<String> scopes) {
-        User user = new User();
-        user.setEmail(oidcUser.getEmail());
-        user.setFirstName(oidcUser.getGivenName());
-        user.setLastName(oidcUser.getFamilyName());
-        user.setStatus("ACTIVE");
-        userRepository.save(user);
+    private AuthAccount createOrFuseUser(OidcUser oidcUser, String provider,
+                                         String providerUserId, Set<String> scopes) {
+        String email = oidcUser.getEmail().toLowerCase().trim();
+        // Fusion : si un User avec cet email existe déjà (compte LOCAL), on y rattache le compte OAuth
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
+            User newUser = new User();
+            newUser.setEmail(email);
+            newUser.setFirstName(oidcUser.getGivenName());
+            newUser.setLastName(oidcUser.getFamilyName());
+            newUser.setStatus("ACTIVE");
+            return userRepository.save(newUser);
+        });
 
         AuthAccount account = new AuthAccount();
         account.setUser(user);
         account.setProvider(provider);
         account.setProviderUserId(providerUserId);
-        account.setProviderEmail(oidcUser.getEmail());
+        account.setProviderEmail(email);
         account.setAccessScope(scopes != null ? String.join(" ", scopes) : null);
         return authAccountRepository.save(account);
     }
