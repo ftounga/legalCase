@@ -110,6 +110,22 @@ class SuperAdminServiceTest {
         assertThat(result.get(0).totalCost()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
+    // U-05 : deleteWorkspace — workspace inexistant → 404
+    @Test
+    void deleteWorkspace_unknownWorkspace_throws404() {
+        User user = buildUser(true);
+        AuthAccount account = buildAccount(user, "google-sa-del-sub");
+        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sa-del-sub"))
+                .thenReturn(Optional.of(account));
+
+        UUID unknownId = UUID.randomUUID();
+        when(workspaceRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteWorkspace(buildOidcUser("google-sa-del-sub"), "GOOGLE", unknownId))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Workspace not found");
+    }
+
     // U-02 : listAllWorkspaces sans super-admin → 403
     @Test
     void listAllWorkspaces_withoutSuperAdmin_throws403() {

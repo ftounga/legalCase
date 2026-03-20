@@ -1,14 +1,19 @@
 package fr.ailegalcase.superadmin;
 
 import fr.ailegalcase.shared.OAuthProviderResolver;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/super-admin")
@@ -32,5 +37,14 @@ public class SuperAdminController {
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         return superAdminService.getUsageByWorkspace(oidcUser, OAuthProviderResolver.resolve(principal));
+    }
+
+    @DeleteMapping("/workspaces/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteWorkspace(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal,
+            @PathVariable UUID id) {
+        superAdminService.deleteWorkspace(oidcUser, OAuthProviderResolver.resolve(principal), id);
     }
 }
