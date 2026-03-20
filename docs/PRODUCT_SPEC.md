@@ -100,7 +100,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
-| F-26 | Auth locale (email/mot de passe) | Inscription email/mot de passe (nom, prénom, email, mdp) + validation email 24h. Connexion locale. Fusion automatique si email OAuth existant. Mot de passe oublié (reset token 24h). Coexistence avec OAuth2 Google/Microsoft. Page auth redessinée : onglets Se connecter / S'inscrire, formulaires + OAuth. | `À spécifier` |
+| F-26 | Auth locale (email/mot de passe) | Inscription email/mot de passe (nom, prénom, email, mdp) + validation email 24h. Connexion locale. Fusion automatique si email OAuth existant. Mot de passe oublié (reset token 24h). Coexistence avec OAuth2 Google/Microsoft. Page auth redessinée : onglets Se connecter / S'inscrire, formulaires + OAuth. | `En cours` |
 
 ### Bloc 11 — Paiement
 
@@ -179,3 +179,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-20 | F-25 SF-25-04 mergée — DELETE /api/v1/super-admin/users/{id}, suppression user de tous ses workspaces, cascade sole-owner, 21 tests | Product owner |
 | 2026-03-20 | F-25 SF-25-05 mergée — page /super-admin, lien header conditionnel, GET /api/v1/super-admin/users, isSuperAdmin dans /api/me, 27 tests backend + 14 Karma. F-25 marquée Terminée | Product owner |
 | 2026-03-21 | F-26 créée (Bloc 10 Auth locale) — inscription email/mdp, validation email 24h, login local, fusion OAuth, reset mdp 24h, refonte page auth. 5 subfeatures planifiées (SF-26-01 à SF-26-05) | Product owner |
+| 2026-03-21 | F-26 SF-26-01 mergée — migration 022 : password_hash + email_verified sur auth_accounts, tables email_verification_tokens + password_reset_tokens, entités et repositories JPA, 7 tests intégration. F-26 marquée En cours | Product owner |

@@ -284,9 +284,11 @@ Le modèle de données comporte quatre zones.
 
 ## Identité
 
-users  
-auth_accounts  
-workspaces  
+users
+auth_accounts
+email_verification_tokens
+password_reset_tokens
+workspaces
 workspace_members
 
 ## Métier juridique
@@ -331,17 +333,45 @@ updated_at
 
 ## auth_accounts
 
-Identité externe OAuth.
+Identité externe OAuth ou compte LOCAL.
 
 Champs :
 
 id
 user_id
-provider
-provider_user_id
+provider (GOOGLE, MICROSOFT, LOCAL)
+provider_user_id (pour LOCAL : email de l'utilisateur)
 provider_email
 access_scope
+password_hash (VARCHAR 255, nullable — rempli uniquement pour provider=LOCAL)
+email_verified (boolean, NOT NULL, DEFAULT TRUE — false pour les comptes LOCAL non encore vérifiés)
 created_at
+
+## email_verification_tokens
+
+Token de validation d'email pour les comptes LOCAL (expiration 24h).
+
+Champs :
+
+id (UUID PK)
+user_id (UUID, FK → users.id, NOT NULL)
+token (VARCHAR 255, UNIQUE, NOT NULL)
+expires_at (timestamptz, NOT NULL)
+used_at (timestamptz, nullable — rempli après usage pour audit)
+created_at (timestamptz, NOT NULL)
+
+## password_reset_tokens
+
+Token de réinitialisation de mot de passe (expiration 24h).
+
+Champs :
+
+id (UUID PK)
+user_id (UUID, FK → users.id, NOT NULL)
+token (VARCHAR 255, UNIQUE, NOT NULL)
+expires_at (timestamptz, NOT NULL)
+used_at (timestamptz, nullable — rempli après usage pour audit)
+created_at (timestamptz, NOT NULL)
 
 ## workspaces
 
