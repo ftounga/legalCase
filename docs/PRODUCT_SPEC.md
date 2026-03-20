@@ -170,3 +170,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-20 | F-25 SF-25-01 mergée — colonne is_super_admin sur users (migration 021), SuperAdminService + Controller, GET /api/v1/super-admin/workspaces (memberCount, expiresAt), 6 tests. F-25 marquée En cours | Product owner |
 | 2026-03-20 | F-25 SF-25-02 mergée — GET /api/v1/super-admin/usage, agrégation tokens/coûts par workspace via SQL natif, workspace sans usage → 0, conversion UUID H2, 11 tests | Product owner |
 | 2026-03-20 | F-25 SF-25-03 mergée — DELETE /api/v1/super-admin/workspaces/{id}, suppression cascade atomique (15 tables), Stripe cancel fail-open, 15 tests | Product owner |
+| 2026-03-20 | F-25 SF-25-04 mergée — DELETE /api/v1/super-admin/users/{id}, suppression user de tous ses workspaces, cascade sole-owner, 21 tests | Product owner |
