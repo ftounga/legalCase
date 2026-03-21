@@ -4,45 +4,129 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--spacing-md);
 }
 
 .login-card {
-  width: 440px;
+  width: 480px;
+  max-width: 100%;
   padding: var(--spacing-xl);
   text-align: center;
 }
 
 .login-logo {
   width: 220px;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
-.login-title {
-  font-family: var(--font-heading);
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-sm) 0;
+.auth-tabs {
+  text-align: left;
 }
 
-.login-subtitle {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--spacing-xl) 0;
+.tab-content {
+  padding-top: var(--spacing-lg);
 }
 
-.login-divider {
-  margin-bottom: var(--spacing-xl);
-}
-
-.login-buttons {
+.oauth-buttons {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
-.login-btn {
+.oauth-btn {
   height: 48px;
   font-size: 14px;
   font-weight: 500;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-lg) 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-divider);
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.name-row {
+  display: flex;
+  gap: var(--spacing-sm);
+
+  .half-width {
+    flex: 1;
+  }
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-error {
+  font-size: 13px;
+  color: var(--color-error);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.form-success {
+  font-size: 13px;
+  color: var(--color-success);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.forgot-section {
+  margin-top: var(--spacing-md);
+  text-align: center;
+}
+
+.forgot-link {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.forgot-form {
+  margin-top: var(--spacing-sm);
+  text-align: left;
+}
+
+.success-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: #f0faf4;
+  border-radius: 8px;
+  color: var(--color-success);
+  text-align: center;
+
+  .success-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--color-text-primary);
+  }
 }

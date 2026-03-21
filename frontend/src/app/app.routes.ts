@@ -59,5 +59,15 @@ export const routes: Routes = [
     loadComponent: () => import('./invite-accept/invite-accept.component')
       .then(m => m.InviteAcceptComponent)
   },
+  {
+    path: 'verify-email',
+    loadComponent: () => import('./auth/verify-email/verify-email.component')
+      .then(m => m.VerifyEmailComponent)
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./auth/reset-password/reset-password.component')
+      .then(m => m.ResetPasswordComponent)
+  },
   { path: '**', redirectTo: '' }
 ];
