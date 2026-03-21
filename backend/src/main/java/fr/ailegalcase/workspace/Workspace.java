@@ -31,6 +31,9 @@ public class Workspace {
     private String billingEmail;
 
     @Column(nullable = false, length = 50)
+    private String legalDomain;
+
+    @Column(nullable = false, length = 50)
     private String planCode;
 
     @Column(nullable = false, length = 50)

@@ -72,6 +72,8 @@ class ExtractionServiceIT {
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -86,7 +88,6 @@ class ExtractionServiceIT {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier extraction test");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
 

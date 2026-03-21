@@ -38,7 +38,7 @@ public class WorkspaceService {
     }
 
     @Transactional
-    public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name, Principal principal) {
+    public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name, String legalDomain, Principal principal) {
         User user = resolveUser(oidcUser, provider, principal);
 
         if (workspaceMemberRepository.existsByUser(user)) {
@@ -49,6 +49,7 @@ public class WorkspaceService {
         workspace.setName(name.strip());
         workspace.setSlug(UUID.randomUUID().toString());
         workspace.setOwner(user);
+        workspace.setLegalDomain(legalDomain);
         workspace.setPlanCode("FREE");
         workspace.setStatus("ACTIVE");
         workspaceRepository.save(workspace);
@@ -89,6 +90,7 @@ public class WorkspaceService {
         workspace.setName(user.getEmail());
         workspace.setSlug(UUID.randomUUID().toString());
         workspace.setOwner(user);
+        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspace.setPlanCode("FREE");
         workspace.setStatus("ACTIVE");
         workspaceRepository.save(workspace);

@@ -60,6 +60,7 @@ class AuthAccountRepositoryIT {
         user.setLastName("Doe");
         user.setStatus("ACTIVE");
 
+
         User saved = userRepository.save(user);
         Optional<User> found = userRepository.findById(saved.getId());
 

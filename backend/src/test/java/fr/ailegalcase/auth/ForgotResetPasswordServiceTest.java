@@ -47,6 +47,7 @@ class ForgotResetPasswordServiceTest {
         user.setEmail(email);
         user.setStatus("ACTIVE");
 
+
         AuthAccount account = new AuthAccount();
         account.setUser(user);
         account.setProvider("LOCAL");

@@ -4,6 +4,7 @@ import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.workspace.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ class CaseFileControllerIT {
     @Autowired private WorkspaceRepository workspaceRepository;
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired private CaseFileRepository caseFileRepository;
+    @Autowired private SubscriptionRepository subscriptionRepository;
 
     private OAuth2AuthenticationToken auth;
 
@@ -48,6 +50,7 @@ class CaseFileControllerIT {
     void setUp() {
         caseFileRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
+        subscriptionRepository.deleteAll();
         workspaceRepository.deleteAll();
         authAccountRepository.deleteAll();
         userRepository.deleteAll();
@@ -67,8 +70,10 @@ class CaseFileControllerIT {
         workspace.setName("casefile-test@example.com");
         workspace.setSlug("cf-slug-" + System.currentTimeMillis());
         workspace.setOwner(user);
+        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -88,12 +93,12 @@ class CaseFileControllerIT {
         mockMvc.perform(post("/api/v1/case-files")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Licenciement Dupont","legalDomain":"EMPLOYMENT_LAW","description":"Test"}
+                                {"title":"Licenciement Dupont","description":"Test"}
                                 """)
                         .with(authentication(auth)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Licenciement Dupont"))
-                .andExpect(jsonPath("$.legalDomain").value("EMPLOYMENT_LAW"))
+                .andExpect(jsonPath("$.legalDomain").value("DROIT_DU_TRAVAIL"))
                 .andExpect(jsonPath("$.status").value("OPEN"))
                 .andExpect(jsonPath("$.id").isNotEmpty());
     }
@@ -103,25 +108,10 @@ class CaseFileControllerIT {
     void create_missingTitle_returns400() throws Exception {
         mockMvc.perform(post("/api/v1/case-files")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"legalDomain":"EMPLOYMENT_LAW"}
-                                """)
+                        .content("{}")
                         .with(authentication(auth)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("title is required"));
-    }
-
-    // I-03 : legalDomain invalide → 400
-    @Test
-    void create_invalidLegalDomain_returns400() throws Exception {
-        mockMvc.perform(post("/api/v1/case-files")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"title":"Test","legalDomain":"IMMIGRATION_LAW"}
-                                """)
-                        .with(authentication(auth)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Only EMPLOYMENT_LAW is supported in V1"));
     }
 
     // I-04 : sans auth → 401
@@ -130,7 +120,7 @@ class CaseFileControllerIT {
         mockMvc.perform(post("/api/v1/case-files")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Test","legalDomain":"EMPLOYMENT_LAW"}
+                                {"title":"Test"}
                                 """))
                 .andExpect(status().isUnauthorized());
     }
@@ -141,7 +131,7 @@ class CaseFileControllerIT {
         String createResponse = mockMvc.perform(post("/api/v1/case-files")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Dossier GetById","legalDomain":"EMPLOYMENT_LAW"}
+                                {"title":"Dossier GetById"}
                                 """)
                         .with(authentication(auth)))
                 .andReturn().getResponse().getContentAsString();
@@ -188,7 +178,7 @@ class CaseFileControllerIT {
         mockMvc.perform(post("/api/v1/case-files")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Dossier A","legalDomain":"EMPLOYMENT_LAW","description":"Desc"}
+                                {"title":"Dossier A","description":"Desc"}
                                 """)
                         .with(authentication(auth)));
 

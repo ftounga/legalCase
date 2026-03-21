@@ -50,6 +50,7 @@ class LocalLoginServiceTest {
         user.setLastName("Dupont");
         user.setStatus("ACTIVE");
 
+
         AuthAccount account = new AuthAccount();
         account.setUser(user);
         account.setProvider("LOCAL");

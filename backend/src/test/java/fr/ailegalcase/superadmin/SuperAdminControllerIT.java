@@ -109,6 +109,7 @@ class SuperAdminControllerIT {
         ws.setOwner(owner);
         ws.setPlanCode("STARTER");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -158,6 +159,7 @@ class SuperAdminControllerIT {
         ws.setOwner(owner);
         ws.setPlanCode("PRO");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws);
 
         WorkspaceMember m1 = new WorkspaceMember();
@@ -230,6 +232,7 @@ class SuperAdminControllerIT {
         ws.setOwner(owner);
         ws.setPlanCode("PRO");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -243,7 +246,6 @@ class SuperAdminControllerIT {
         caseFile.setWorkspace(ws);
         caseFile.setCreatedBy(owner);
         caseFile.setTitle("Dossier Test Usage");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("ACTIVE");
         caseFileRepository.save(caseFile);
 
@@ -292,6 +294,7 @@ class SuperAdminControllerIT {
         ws.setOwner(owner);
         ws.setPlanCode("FREE");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -336,6 +339,7 @@ class SuperAdminControllerIT {
         ws.setOwner(owner);
         ws.setPlanCode("FREE");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -349,7 +353,6 @@ class SuperAdminControllerIT {
         caseFile.setWorkspace(ws);
         caseFile.setCreatedBy(owner);
         caseFile.setTitle("Dossier À Supprimer");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("ACTIVE");
         caseFileRepository.save(caseFile);
 
@@ -414,6 +417,7 @@ class SuperAdminControllerIT {
         ws.setOwner(owner);
         ws.setPlanCode("FREE");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws);
 
         OAuth2AuthenticationToken auth = buildGoogleAuth("google-regular-del-sub", "regular-del@example.com");
@@ -503,6 +507,7 @@ class SuperAdminControllerIT {
         ws.setOwner(target);
         ws.setPlanCode("FREE");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws);
 
         WorkspaceMember member = new WorkspaceMember();

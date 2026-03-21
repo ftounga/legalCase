@@ -95,6 +95,8 @@ class DocumentControllerIT {
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -117,7 +119,6 @@ class DocumentControllerIT {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier test upload");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
         caseFileId = caseFile.getId();
@@ -140,7 +141,6 @@ class DocumentControllerIT {
         otherCaseFile.setWorkspace(otherWorkspace);
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier autre workspace");
-        otherCaseFile.setLegalDomain("EMPLOYMENT_LAW");
         otherCaseFile.setStatus("OPEN");
         caseFileRepository.save(otherCaseFile);
         otherCaseFileId = otherCaseFile.getId();

@@ -47,8 +47,11 @@ class CaseFileServiceTest {
         workspace.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
         workspace.setName("test");
         workspace.setSlug("slug");
+        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
 
         WorkspaceMember member = new WorkspaceMember();
         member.setUser(user);
@@ -66,19 +69,21 @@ class CaseFileServiceTest {
         mockUserAndWorkspace();
         when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(0L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
-        CaseFileRequest request = new CaseFileRequest("Licenciement Dupont", "EMPLOYMENT_LAW", "Description");
+        CaseFileRequest request = new CaseFileRequest("Licenciement Dupont", "Description");
 
         CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
         assertThat(response.title()).isEqualTo("Licenciement Dupont");
-        assertThat(response.legalDomain()).isEqualTo("EMPLOYMENT_LAW");
+        assertThat(response.legalDomain()).isEqualTo("DROIT_DU_TRAVAIL");
         assertThat(response.status()).isEqualTo("OPEN");
     }
 
-    // U-02 : legalDomain invalide → 400
+    // U-02 : workspace avec domaine non supporté → 400
     @Test
-    void create_invalidLegalDomain_throws400() {
-        CaseFileRequest request = new CaseFileRequest("Title", "IMMIGRATION_LAW", null);
+    void create_unsupportedWorkspaceDomain_throws400() {
+        Workspace workspace = mockUserAndWorkspace();
+        workspace.setLegalDomain("DROIT_IMMIGRATION");
+        CaseFileRequest request = new CaseFileRequest("Title", null);
 
         assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -91,7 +96,7 @@ class CaseFileServiceTest {
         mockUserAndWorkspace();
         when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(0L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
-        CaseFileRequest request = new CaseFileRequest("  Titre avec espaces  ", "EMPLOYMENT_LAW", null);
+        CaseFileRequest request = new CaseFileRequest("  Titre avec espaces  ", null);
 
         CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
@@ -104,7 +109,7 @@ class CaseFileServiceTest {
         mockUserAndWorkspace();
         when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(3L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
-        CaseFileRequest request = new CaseFileRequest("Nouveau dossier", "EMPLOYMENT_LAW", null);
+        CaseFileRequest request = new CaseFileRequest("Nouveau dossier", null);
 
         assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -117,7 +122,7 @@ class CaseFileServiceTest {
         mockUserAndWorkspace();
         when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(2L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
-        CaseFileRequest request = new CaseFileRequest("Dossier 3", "EMPLOYMENT_LAW", null);
+        CaseFileRequest request = new CaseFileRequest("Dossier 3", null);
 
         CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
@@ -130,7 +135,7 @@ class CaseFileServiceTest {
         mockUserAndWorkspace();
         when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(10L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(Integer.MAX_VALUE);
-        CaseFileRequest request = new CaseFileRequest("Dossier sans sub", "EMPLOYMENT_LAW", null);
+        CaseFileRequest request = new CaseFileRequest("Dossier sans sub", null);
 
         CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 

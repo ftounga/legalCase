@@ -19,7 +19,7 @@ import java.util.UUID;
 @Service
 public class CaseFileService {
 
-    private static final String SUPPORTED_LEGAL_DOMAIN = "EMPLOYMENT_LAW";
+    private static final String SUPPORTED_LEGAL_DOMAIN = "DROIT_DU_TRAVAIL";
 
     private final CaseFileRepository caseFileRepository;
     private final CurrentUserResolver currentUserResolver;
@@ -38,17 +38,17 @@ public class CaseFileService {
 
     @Transactional
     public CaseFileResponse create(CaseFileRequest request, OidcUser oidcUser, String provider, Principal principal) {
-        if (!SUPPORTED_LEGAL_DOMAIN.equals(request.legalDomain())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Only EMPLOYMENT_LAW is supported in V1");
-        }
-
         User user = currentUserResolver.resolve(oidcUser, provider, principal);
 
         Workspace workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
+
+        if (!SUPPORTED_LEGAL_DOMAIN.equals(workspace.getLegalDomain())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Seul le droit du travail est supporté en V1");
+        }
 
         long openCount = caseFileRepository.countByWorkspace_IdAndStatus(workspace.getId(), "OPEN");
         int maxOpen = planLimitService.getMaxOpenCaseFilesForWorkspace(workspace.getId());
@@ -61,7 +61,7 @@ public class CaseFileService {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
         caseFile.setTitle(request.title().trim());
-        caseFile.setLegalDomain(request.legalDomain());
+        caseFile.setLegalDomain(workspace.getLegalDomain());
         caseFile.setDescription(request.description());
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
