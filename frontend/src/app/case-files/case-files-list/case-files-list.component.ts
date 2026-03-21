@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { NgClass, DatePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
@@ -8,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
+import { WorkspaceService } from '../../core/services/workspace.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseFileCreateDialogComponent } from '../case-file-create-dialog/case-file-create-dialog.component';
 
@@ -28,14 +30,23 @@ export class CaseFilesListComponent implements OnInit {
   pageSize = 20;
   pageIndex = 0;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private caseFileService: CaseFileService,
+    private workspaceService: WorkspaceService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     this.loadCaseFiles();
+    this.workspaceService.workspaceSwitched$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.pageIndex = 0;
+        this.loadCaseFiles();
+      });
   }
 
   loadCaseFiles(): void {

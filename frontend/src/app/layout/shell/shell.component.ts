@@ -71,6 +71,7 @@ export class ShellComponent implements OnInit {
       next: newWs => {
         this.workspace.set(newWs);
         this.workspaces.update(list => list.map(w => ({ ...w, primary: w.id === newWs.id })));
+        this.workspaceService.notifyWorkspaceSwitched();
         this.router.navigate(['/case-files']);
       },
       error: () => this.snackBar.open('Erreur lors du changement de workspace.', 'Fermer', {

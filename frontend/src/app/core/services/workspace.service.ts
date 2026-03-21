@@ -1,11 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { Workspace } from '../models/workspace.model';
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceService {
   private readonly apiUrl = '/api/v1/workspaces';
+
+  private readonly workspaceSwitchedSource = new Subject<void>();
+  readonly workspaceSwitched$ = this.workspaceSwitchedSource.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -23,5 +26,9 @@ export class WorkspaceService {
 
   switchWorkspace(id: string): Observable<Workspace> {
     return this.http.post<Workspace>(`${this.apiUrl}/${id}/switch`, {});
+  }
+
+  notifyWorkspaceSwitched(): void {
+    this.workspaceSwitchedSource.next();
   }
 }
