@@ -28,7 +28,7 @@ describe('InviteAcceptComponent', () => {
   }
 
   beforeEach(() => {
-    authService = jasmine.createSpyObj('AuthService', ['loadCurrentUser', 'loginWithGoogle']);
+    authService = jasmine.createSpyObj('AuthService', ['loadCurrentUser']);
     invitationService = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
     router = jasmine.createSpyObj('Router', ['navigate']);
     TestBed.resetTestingModule();
@@ -40,12 +40,12 @@ describe('InviteAcceptComponent', () => {
     expect(component.state).toBe('error');
   });
 
-  it('token présent, user non connecté → stocke token et appelle loginWithGoogle', () => {
+  it('token présent, user non connecté → stocke token et redirige vers /login', () => {
     authService.loadCurrentUser.and.returnValue(of(null));
     spyOn(localStorage, 'setItem');
     createComponent('tok123');
     expect(localStorage.setItem).toHaveBeenCalledWith(PENDING_INVITATION_TOKEN_KEY, 'tok123');
-    expect(authService.loginWithGoogle).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
   it('token présent, user connecté → accepte invitation → state success', () => {

@@ -36,7 +36,7 @@ export class InviteAcceptComponent implements OnInit {
     this.auth.loadCurrentUser().subscribe(user => {
       if (!user) {
         localStorage.setItem(PENDING_INVITATION_TOKEN_KEY, token);
-        this.auth.loginWithGoogle();
+        this.router.navigate(['/login']);
         return;
       }
 
@@ -60,6 +60,6 @@ export class InviteAcceptComponent implements OnInit {
   }
 
   goToLogin(): void {
-    this.auth.loginWithGoogle();
+    this.router.navigate(['/login']);
   }
 }
