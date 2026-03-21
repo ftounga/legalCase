@@ -100,7 +100,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
-| F-26 | Auth locale (email/mot de passe) | Inscription email/mot de passe (nom, prénom, email, mdp) + validation email 24h. Connexion locale. Fusion automatique si email OAuth existant. Mot de passe oublié (reset token 24h). Coexistence avec OAuth2 Google/Microsoft. Page auth redessinée : onglets Se connecter / S'inscrire, formulaires + OAuth. | `En cours` |
+| F-26 | Auth locale (email/mot de passe) | Inscription email/mot de passe (nom, prénom, email, mdp) + validation email 24h. Connexion locale. Fusion automatique si email OAuth existant. Mot de passe oublié (reset token 24h). Coexistence avec OAuth2 Google/Microsoft. Page auth redessinée : onglets Se connecter / S'inscrire, formulaires + OAuth. | `Terminée` |
 
 ### Bloc 11 — Paiement
 
@@ -183,3 +183,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-21 | F-26 SF-26-02 mergée — POST /api/v1/auth/register + GET /api/v1/auth/verify-email (publics), BCrypt, token 24h, email fail-open, 20 tests | Product owner |
 | 2026-03-21 | F-26 SF-26-03 mergée — POST /api/v1/auth/login, /api/me LOCAL, fusion OAuth→LOCAL dans CustomOidcUserService, 18 tests | Product owner |
 | 2026-03-21 | F-26 SF-26-04 mergée — POST /api/v1/auth/forgot-password (fail-silent) + POST /api/v1/auth/reset-password, BCrypt, token 24h, 16 tests | Product owner |
+| 2026-03-21 | F-26 SF-26-05 mergée — refonte page auth : LoginComponent (onglets Se connecter/S'inscrire, OAuth + local), VerifyEmailComponent, ResetPasswordComponent, AuthService étendu, 16 tests Karma. F-26 marquée Terminée | Product owner |
