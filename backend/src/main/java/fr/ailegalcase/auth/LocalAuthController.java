@@ -27,6 +27,19 @@ public class LocalAuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        localAuthService.forgotPassword(request);
+        return ResponseEntity.ok(Map.of("message",
+                "Si un compte existe pour cet email, vous recevrez un lien de réinitialisation."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        localAuthService.resetPassword(request);
+        return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès."));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
         localAuthService.register(request);

@@ -28,6 +28,7 @@ class LocalAuthServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private EmailVerificationTokenRepository emailVerificationTokenRepository;
+    @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private EmailService emailService;
 
@@ -36,7 +37,8 @@ class LocalAuthServiceTest {
     @BeforeEach
     void setUp() {
         service = new LocalAuthService(userRepository, authAccountRepository,
-                emailVerificationTokenRepository, passwordEncoder, emailService);
+                emailVerificationTokenRepository, passwordResetTokenRepository,
+                passwordEncoder, emailService);
     }
 
     private RegisterRequest validRequest() {

@@ -27,17 +27,20 @@ public class LocalAuthService {
     private final UserRepository userRepository;
     private final AuthAccountRepository authAccountRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
     public LocalAuthService(UserRepository userRepository,
                             AuthAccountRepository authAccountRepository,
                             EmailVerificationTokenRepository emailVerificationTokenRepository,
+                            PasswordResetTokenRepository passwordResetTokenRepository,
                             PasswordEncoder passwordEncoder,
                             EmailService emailService) {
         this.userRepository = userRepository;
         this.authAccountRepository = authAccountRepository;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
     }
@@ -113,6 +116,49 @@ public class LocalAuthService {
         } catch (Exception e) {
             log.error("Failed to send verification email to {} — inscription réussie malgré tout", email, e);
         }
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        String email = request.email().toLowerCase().trim();
+
+        authAccountRepository.findByProviderAndProviderUserId("LOCAL", email).ifPresent(account -> {
+            String token = UUID.randomUUID().toString();
+            PasswordResetToken resetToken = new PasswordResetToken();
+            resetToken.setUser(account.getUser());
+            resetToken.setToken(token);
+            resetToken.setExpiresAt(Instant.now().plusSeconds(86400));
+            passwordResetTokenRepository.save(resetToken);
+
+            try {
+                emailService.sendPasswordReset(email, token);
+            } catch (Exception e) {
+                log.error("Failed to send password reset email to {} — demande enregistrée malgré tout", email, e);
+            }
+        });
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.token())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token invalide ou inconnu."));
+
+        if (resetToken.getUsedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce lien de réinitialisation a déjà été utilisé.");
+        }
+
+        if (Instant.now().isAfter(resetToken.getExpiresAt())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ce lien de réinitialisation a expiré.");
+        }
+
+        resetToken.setUsedAt(Instant.now());
+        passwordResetTokenRepository.save(resetToken);
+
+        AuthAccount account = authAccountRepository
+                .findByProviderAndProviderUserId("LOCAL", resetToken.getUser().getEmail())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Compte associé introuvable."));
+        account.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        authAccountRepository.save(account);
     }
 
     @Transactional

@@ -55,6 +55,34 @@ public class EmailService {
         }
     }
 
+    public void sendPasswordReset(String toEmail, String token) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — password reset email skipped for {}", toEmail);
+            return;
+        }
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Réinitialisation de votre mot de passe — AI LegalCase");
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "Vous avez demandé la réinitialisation de votre mot de passe sur AI LegalCase.\n\n" +
+                    "Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :\n" +
+                    frontendUrl + "/reset-password?token=" + token + "\n\n" +
+                    "Ce lien expire dans 24 heures.\n\n" +
+                    "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Password reset email sent to {}", toEmail);
+        } catch (MailException e) {
+            log.error("Failed to send password reset email to {} — {}", toEmail, e.getMessage());
+            throw e;
+        }
+    }
+
     public void sendInvitation(String toEmail, String workspaceName, String token) {
         if (!mailEnabled) {
             log.debug("Mail disabled — invitation email skipped for {}", toEmail);
