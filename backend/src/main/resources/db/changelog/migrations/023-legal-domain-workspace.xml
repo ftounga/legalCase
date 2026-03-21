@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Ajout du domaine juridique sur le workspace -->
+    <changeSet id="023-1" author="ailegalcase">
+        <addColumn tableName="workspaces">
+            <column name="legal_domain" type="varchar(50)" defaultValue="DROIT_DU_TRAVAIL">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Renommage des données existantes EMPLOYMENT_LAW → DROIT_DU_TRAVAIL -->
+    <changeSet id="023-2" author="ailegalcase">
+        <update tableName="case_files">
+            <column name="legal_domain" value="DROIT_DU_TRAVAIL"/>
+            <where>legal_domain = 'EMPLOYMENT_LAW'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

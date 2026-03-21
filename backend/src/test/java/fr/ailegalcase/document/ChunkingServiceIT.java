@@ -69,6 +69,8 @@ class ChunkingServiceIT {
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -83,7 +85,6 @@ class ChunkingServiceIT {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier chunking test");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
 

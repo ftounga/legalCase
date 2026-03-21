@@ -103,6 +103,7 @@ class CustomOidcUserServiceTest {
         existingUser.setEmail("local@example.com");
         existingUser.setStatus("ACTIVE");
 
+
         when(oidcUser.getSubject()).thenReturn("google-sub-fusion");
         when(oidcUser.getEmail()).thenReturn("local@example.com");
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-sub-fusion"))

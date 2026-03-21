@@ -98,6 +98,8 @@ class AiQuestionAnswerControllerIT {
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -112,7 +114,6 @@ class AiQuestionAnswerControllerIT {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Réponse");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
 
@@ -199,7 +200,6 @@ class AiQuestionAnswerControllerIT {
         otherCaseFile.setWorkspace(otherWorkspace);
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre");
-        otherCaseFile.setLegalDomain("EMPLOYMENT_LAW");
         otherCaseFile.setStatus("OPEN");
         caseFileRepository.save(otherCaseFile);
 

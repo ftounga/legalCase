@@ -75,6 +75,8 @@ class UsageEventControllerIT {
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -89,7 +91,6 @@ class UsageEventControllerIT {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Usage");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
 
@@ -168,7 +169,6 @@ class UsageEventControllerIT {
         otherCaseFile.setWorkspace(otherWorkspace);
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre Workspace");
-        otherCaseFile.setLegalDomain("EMPLOYMENT_LAW");
         otherCaseFile.setStatus("OPEN");
         caseFileRepository.save(otherCaseFile);
 

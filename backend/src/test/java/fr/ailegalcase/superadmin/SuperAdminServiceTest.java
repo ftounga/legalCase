@@ -281,6 +281,7 @@ class SuperAdminServiceTest {
         ws.setSlug("cabinet-alpha");
         ws.setPlanCode("STARTER");
         ws.setStatus("ACTIVE");
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
         return ws;
     }
 

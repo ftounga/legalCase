@@ -66,6 +66,8 @@ class WorkspaceMemberControllerIT {
         workspace.setOwner(owner);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember ownerMember = new WorkspaceMember();

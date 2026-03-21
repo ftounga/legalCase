@@ -199,7 +199,6 @@ class AdminUsageServiceTest {
         cf.setId(id);
         cf.setWorkspace(ws);
         cf.setTitle(title);
-        cf.setLegalDomain("EMPLOYMENT_LAW");
         cf.setStatus("OPEN");
         return cf;
     }

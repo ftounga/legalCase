@@ -48,6 +48,8 @@ class WorkspaceServiceGetCurrentTest {
         workspace.setSlug("some-slug");
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
 
         try {
             var idField = Workspace.class.getDeclaredField("id");

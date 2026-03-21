@@ -76,6 +76,8 @@ class AdminUsageControllerIT {
         workspace.setOwner(ownerUser);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -89,7 +91,6 @@ class AdminUsageControllerIT {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(ownerUser);
         caseFile.setTitle("Dossier Admin Test");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
 

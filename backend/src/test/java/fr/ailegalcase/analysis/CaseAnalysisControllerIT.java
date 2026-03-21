@@ -88,6 +88,8 @@ class CaseAnalysisControllerIT {
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+       workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -102,7 +104,6 @@ class CaseAnalysisControllerIT {
         caseFile.setWorkspace(workspace);
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Analyse");
-        caseFile.setLegalDomain("EMPLOYMENT_LAW");
         caseFile.setStatus("OPEN");
         caseFileRepository.save(caseFile);
 
@@ -190,7 +191,6 @@ class CaseAnalysisControllerIT {
         otherCaseFile.setWorkspace(otherWorkspace);
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre Workspace");
-        otherCaseFile.setLegalDomain("EMPLOYMENT_LAW");
         otherCaseFile.setStatus("OPEN");
         caseFileRepository.save(otherCaseFile);
 

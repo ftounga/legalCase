@@ -68,6 +68,8 @@ class WorkspaceControllerIT {
         workspace.setOwner(user);
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
+        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -108,7 +110,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"Cabinet Martin\"}")
+                        .content("{\"name\": \"Cabinet Martin\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Cabinet Martin"))
@@ -134,7 +136,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"\"}")
+                        .content("{\"name\": \"\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isBadRequest());
     }
@@ -158,7 +160,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"" + longName + "\"}")
+                        .content("{\"name\": \"" + longName + "\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isBadRequest());
     }
@@ -183,6 +185,8 @@ class WorkspaceControllerIT {
         workspace.setOwner(user);
         workspace.setPlanCode("FREE");
         workspace.setStatus("ACTIVE");
+        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+
         workspaceRepository.save(workspace);
 
         WorkspaceMember member = new WorkspaceMember();
@@ -196,7 +200,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"Nouveau Workspace\"}")
+                        .content("{\"name\": \"Nouveau Workspace\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isConflict());
     }
@@ -221,6 +225,7 @@ class WorkspaceControllerIT {
         ws1.setOwner(user);
         ws1.setPlanCode("FREE");
         ws1.setStatus("ACTIVE");
+        ws1.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws1);
 
         WorkspaceMember m1 = new WorkspaceMember();
@@ -236,6 +241,7 @@ class WorkspaceControllerIT {
         ws2.setOwner(user);
         ws2.setPlanCode("FREE");
         ws2.setStatus("ACTIVE");
+        ws2.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws2);
 
         WorkspaceMember m2 = new WorkspaceMember();
@@ -276,6 +282,7 @@ class WorkspaceControllerIT {
         ws1.setOwner(user);
         ws1.setPlanCode("FREE");
         ws1.setStatus("ACTIVE");
+        ws1.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws1);
 
         WorkspaceMember m1 = new WorkspaceMember();
@@ -291,6 +298,7 @@ class WorkspaceControllerIT {
         ws2.setOwner(user);
         ws2.setPlanCode("FREE");
         ws2.setStatus("ACTIVE");
+        ws2.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ws2);
 
         WorkspaceMember m2 = new WorkspaceMember();
@@ -330,6 +338,7 @@ class WorkspaceControllerIT {
         ownWs.setOwner(user);
         ownWs.setPlanCode("FREE");
         ownWs.setStatus("ACTIVE");
+        ownWs.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ownWs);
 
         WorkspaceMember m = new WorkspaceMember();
@@ -351,6 +360,7 @@ class WorkspaceControllerIT {
         otherWs.setOwner(otherUser);
         otherWs.setPlanCode("FREE");
         otherWs.setStatus("ACTIVE");
+        otherWs.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWs);
 
         OAuth2AuthenticationToken auth = buildGoogleAuth("google-notmember-sub", "notmember@example.com");
@@ -381,6 +391,7 @@ class WorkspaceControllerIT {
         ownWs.setOwner(user);
         ownWs.setPlanCode("FREE");
         ownWs.setStatus("ACTIVE");
+        ownWs.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(ownWs);
 
         WorkspaceMember m = new WorkspaceMember();

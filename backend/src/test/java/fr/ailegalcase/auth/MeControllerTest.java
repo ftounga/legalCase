@@ -45,6 +45,7 @@ class MeControllerTest {
         user.setLastName("Doe");
         user.setStatus("ACTIVE");
 
+
         AuthAccount account = new AuthAccount();
         account.setUser(user);
         account.setProvider("GOOGLE");
