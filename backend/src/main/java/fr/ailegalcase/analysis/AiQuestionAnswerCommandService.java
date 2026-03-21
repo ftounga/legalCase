@@ -1,7 +1,7 @@
 package fr.ailegalcase.analysis;
 
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -17,25 +18,22 @@ public class AiQuestionAnswerCommandService {
 
     private final AiQuestionRepository aiQuestionRepository;
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
-    private final AuthAccountRepository authAccountRepository;
+    private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public AiQuestionAnswerCommandService(AiQuestionRepository aiQuestionRepository,
                                           AiQuestionAnswerRepository aiQuestionAnswerRepository,
-                                          AuthAccountRepository authAccountRepository,
+                                          CurrentUserResolver currentUserResolver,
                                           WorkspaceMemberRepository workspaceMemberRepository) {
         this.aiQuestionRepository = aiQuestionRepository;
         this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
-        this.authAccountRepository = authAccountRepository;
+        this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
     }
 
     @Transactional
-    public void answer(UUID questionId, String answerText, OidcUser oidcUser, String provider) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    public void answer(UUID questionId, String answerText, OidcUser oidcUser, String provider, Principal principal) {
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
 
         var workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)

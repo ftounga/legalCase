@@ -26,13 +26,13 @@ public class WorkspaceInvitationController {
                                               @AuthenticationPrincipal OidcUser oidcUser,
                                               Principal principal) {
         return workspaceInvitationService.createInvitation(request, oidcUser,
-                OAuthProviderResolver.resolve(principal));
+                OAuthProviderResolver.resolve(principal), principal);
     }
 
     @GetMapping("/api/v1/workspaces/current/invitations")
     public List<WorkspaceInvitationResponse> list(@AuthenticationPrincipal OidcUser oidcUser,
                                                   Principal principal) {
-        return workspaceInvitationService.listInvitations(oidcUser, OAuthProviderResolver.resolve(principal));
+        return workspaceInvitationService.listInvitations(oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
     @DeleteMapping("/api/v1/workspaces/current/invitations/{id}")
@@ -40,7 +40,7 @@ public class WorkspaceInvitationController {
     public void revoke(@PathVariable UUID id,
                        @AuthenticationPrincipal OidcUser oidcUser,
                        Principal principal) {
-        workspaceInvitationService.revokeInvitation(id, oidcUser, OAuthProviderResolver.resolve(principal));
+        workspaceInvitationService.revokeInvitation(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
     @PostMapping("/api/v1/workspace/invitations/accept")
@@ -48,6 +48,6 @@ public class WorkspaceInvitationController {
     public void accept(@Valid @RequestBody AcceptInvitationRequest request,
                        @AuthenticationPrincipal OidcUser oidcUser,
                        Principal principal) {
-        workspaceInvitationService.acceptInvitation(request, oidcUser, OAuthProviderResolver.resolve(principal));
+        workspaceInvitationService.acceptInvitation(request, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

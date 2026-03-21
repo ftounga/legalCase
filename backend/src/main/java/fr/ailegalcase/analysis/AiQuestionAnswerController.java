@@ -27,6 +27,6 @@ public class AiQuestionAnswerController {
             @Valid @RequestBody AiQuestionAnswerRequest request,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        commandService.answer(questionId, request.answerText(), oidcUser, OAuthProviderResolver.resolve(principal));
+        commandService.answer(questionId, request.answerText(), oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

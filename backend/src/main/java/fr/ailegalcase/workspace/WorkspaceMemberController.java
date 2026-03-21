@@ -23,7 +23,7 @@ public class WorkspaceMemberController {
     @GetMapping
     public List<WorkspaceMemberResponse> list(@AuthenticationPrincipal OidcUser oidcUser,
                                               Principal principal) {
-        return workspaceMemberService.listMembers(oidcUser, OAuthProviderResolver.resolve(principal));
+        return workspaceMemberService.listMembers(oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
     @DeleteMapping("/{userId}")
@@ -31,6 +31,6 @@ public class WorkspaceMemberController {
     public void remove(@PathVariable UUID userId,
                        @AuthenticationPrincipal OidcUser oidcUser,
                        Principal principal) {
-        workspaceMemberService.removeMember(userId, oidcUser, OAuthProviderResolver.resolve(principal));
+        workspaceMemberService.removeMember(userId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

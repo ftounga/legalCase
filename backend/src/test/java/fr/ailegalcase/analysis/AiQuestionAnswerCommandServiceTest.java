@@ -1,9 +1,8 @@
 package fr.ailegalcase.analysis;
 
-import fr.ailegalcase.auth.AuthAccount;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -24,11 +23,11 @@ class AiQuestionAnswerCommandServiceTest {
 
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
-    private final AuthAccountRepository authAccountRepository = mock(AuthAccountRepository.class);
+    private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
 
     private final AiQuestionAnswerCommandService service = new AiQuestionAnswerCommandService(
-            aiQuestionRepository, aiQuestionAnswerRepository, authAccountRepository, workspaceMemberRepository);
+            aiQuestionRepository, aiQuestionAnswerRepository, currentUserResolver, workspaceMemberRepository);
 
     private final OidcUser oidcUser = mock(OidcUser.class);
 
@@ -46,9 +45,8 @@ class AiQuestionAnswerCommandServiceTest {
         when(aiQuestionRepository.findById(questionId)).thenReturn(Optional.of(question));
         when(aiQuestionAnswerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(oidcUser.getSubject()).thenReturn("sub");
 
-        service.answer(questionId, "Ma réponse", oidcUser, "GOOGLE");
+        service.answer(questionId, "Ma réponse", oidcUser, "GOOGLE", null);
 
         ArgumentCaptor<AiQuestionAnswer> answerCaptor = ArgumentCaptor.forClass(AiQuestionAnswer.class);
         verify(aiQuestionAnswerRepository).save(answerCaptor.capture());
@@ -69,9 +67,8 @@ class AiQuestionAnswerCommandServiceTest {
         Workspace workspace = workspace(workspaceId);
         setupAuth(user, workspace);
         when(aiQuestionRepository.findById(any())).thenReturn(Optional.empty());
-        when(oidcUser.getSubject()).thenReturn("sub");
 
-        assertThatThrownBy(() -> service.answer(UUID.randomUUID(), "réponse", oidcUser, "GOOGLE"))
+        assertThatThrownBy(() -> service.answer(UUID.randomUUID(), "réponse", oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
     }
@@ -90,9 +87,8 @@ class AiQuestionAnswerCommandServiceTest {
 
         setupAuth(user, myWorkspace);
         when(aiQuestionRepository.findById(questionId)).thenReturn(Optional.of(question));
-        when(oidcUser.getSubject()).thenReturn("sub");
 
-        assertThatThrownBy(() -> service.answer(questionId, "réponse", oidcUser, "GOOGLE"))
+        assertThatThrownBy(() -> service.answer(questionId, "réponse", oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
     }
@@ -120,13 +116,10 @@ class AiQuestionAnswerCommandServiceTest {
     }
 
     private void setupAuth(User user, Workspace workspace) {
-        AuthAccount account = new AuthAccount();
-        account.setUser(user);
         WorkspaceMember member = new WorkspaceMember();
         member.setWorkspace(workspace);
         member.setUser(user);
-        when(authAccountRepository.findByProviderAndProviderUserId(any(), any()))
-                .thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user))
                 .thenReturn(Optional.of(member));
     }

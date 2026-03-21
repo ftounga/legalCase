@@ -1,10 +1,10 @@
 package fr.ailegalcase.document;
 
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.storage.StorageService;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -35,7 +36,7 @@ public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final CaseFileRepository caseFileRepository;
-    private final AuthAccountRepository authAccountRepository;
+    private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
@@ -43,14 +44,14 @@ public class DocumentService {
 
     public DocumentService(DocumentRepository documentRepository,
                            CaseFileRepository caseFileRepository,
-                           AuthAccountRepository authAccountRepository,
+                           CurrentUserResolver currentUserResolver,
                            WorkspaceMemberRepository workspaceMemberRepository,
                            StorageService storageService,
                            ApplicationEventPublisher eventPublisher,
                            PlanLimitService planLimitService) {
         this.documentRepository = documentRepository;
         this.caseFileRepository = caseFileRepository;
-        this.authAccountRepository = authAccountRepository;
+        this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.storageService = storageService;
         this.eventPublisher = eventPublisher;
@@ -60,8 +61,8 @@ public class DocumentService {
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 15;
 
     @Transactional(readOnly = true)
-    public String downloadUrl(UUID caseFileId, UUID documentId, OidcUser oidcUser, String provider) {
-        User user = resolveUser(oidcUser, provider);
+    public String downloadUrl(UUID caseFileId, UUID documentId, OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(user);
         resolveCaseFile(caseFileId, workspace); // isolation check
 
@@ -76,8 +77,8 @@ public class DocumentService {
     }
 
     @Transactional(readOnly = true)
-    public List<DocumentResponse> list(UUID caseFileId, OidcUser oidcUser, String provider) {
-        User user = resolveUser(oidcUser, provider);
+    public List<DocumentResponse> list(UUID caseFileId, OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(user);
         CaseFile caseFile = resolveCaseFile(caseFileId, workspace);
         return documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)
@@ -85,10 +86,10 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentResponse upload(UUID caseFileId, MultipartFile file, OidcUser oidcUser, String provider) {
+    public DocumentResponse upload(UUID caseFileId, MultipartFile file, OidcUser oidcUser, String provider, Principal principal) {
         validateFile(file);
 
-        User user = resolveUser(oidcUser, provider);
+        User user = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(user);
         CaseFile caseFile = resolveCaseFile(caseFileId, workspace);
 
@@ -135,11 +136,8 @@ public class DocumentService {
         }
     }
 
-    private User resolveUser(OidcUser oidcUser, String provider) {
-        return authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {
+        return currentUserResolver.resolve(oidcUser, provider, principal);
     }
 
     private Workspace resolveWorkspace(User user) {

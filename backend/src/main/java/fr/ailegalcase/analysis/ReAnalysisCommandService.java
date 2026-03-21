@@ -1,10 +1,10 @@
 package fr.ailegalcase.analysis;
 
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.util.UUID;
 
 @Service
@@ -21,31 +22,28 @@ public class ReAnalysisCommandService {
 
     private final CaseFileRepository caseFileRepository;
     private final AnalysisJobRepository analysisJobRepository;
-    private final AuthAccountRepository authAccountRepository;
+    private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final RabbitTemplate rabbitTemplate;
     private final PlanLimitService planLimitService;
 
     public ReAnalysisCommandService(CaseFileRepository caseFileRepository,
                                     AnalysisJobRepository analysisJobRepository,
-                                    AuthAccountRepository authAccountRepository,
+                                    CurrentUserResolver currentUserResolver,
                                     WorkspaceMemberRepository workspaceMemberRepository,
                                     RabbitTemplate rabbitTemplate,
                                     PlanLimitService planLimitService) {
         this.caseFileRepository = caseFileRepository;
         this.analysisJobRepository = analysisJobRepository;
-        this.authAccountRepository = authAccountRepository;
+        this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.planLimitService = planLimitService;
     }
 
     @Transactional
-    public void triggerReAnalysis(UUID caseFileId, OidcUser oidcUser, String provider) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    public void triggerReAnalysis(UUID caseFileId, OidcUser oidcUser, String provider, Principal principal) {
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
 
         Workspace workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)

@@ -29,7 +29,7 @@ public class DocumentController {
             @PathVariable UUID caseFileId,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return documentService.list(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
+        return documentService.list(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
     @GetMapping("/{documentId}/download")
@@ -39,7 +39,7 @@ public class DocumentController {
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         String url = documentService.downloadUrl(caseFileId, documentId, oidcUser,
-                OAuthProviderResolver.resolve(principal));
+                OAuthProviderResolver.resolve(principal), principal);
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, url)
                 .build();
@@ -52,6 +52,6 @@ public class DocumentController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return documentService.upload(caseFileId, file, oidcUser, OAuthProviderResolver.resolve(principal));
+        return documentService.upload(caseFileId, file, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

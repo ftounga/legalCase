@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -37,11 +38,8 @@ public class WorkspaceService {
     }
 
     @Transactional
-    public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
 
         if (workspaceMemberRepository.existsByUser(user)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "User already has a workspace");
@@ -118,12 +116,23 @@ public class WorkspaceService {
                 });
     }
 
-    @Transactional(readOnly = true)
-    public WorkspaceResponse getCurrentWorkspace(OidcUser oidcUser, String provider) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+    private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {
+        if (oidcUser != null) {
+            return authAccountRepository
+                    .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                    .getUser();
+        }
+        // Auth locale : principal.getName() = email
+        return authAccountRepository
+                .findByProviderAndProviderUserId("LOCAL", principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Session invalide"))
                 .getUser();
+    }
+
+    @Transactional(readOnly = true)
+    public WorkspaceResponse getCurrentWorkspace(OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
 
         Workspace workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)
@@ -139,11 +148,8 @@ public class WorkspaceService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<WorkspaceResponse> listUserWorkspaces(OidcUser oidcUser, String provider) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    public java.util.List<WorkspaceResponse> listUserWorkspaces(OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
 
         return workspaceMemberRepository.findByUser(user).stream()
                 .map(member -> {
@@ -157,11 +163,8 @@ public class WorkspaceService {
     }
 
     @Transactional
-    public WorkspaceResponse switchWorkspace(OidcUser oidcUser, String provider, UUID targetWorkspaceId) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    public WorkspaceResponse switchWorkspace(OidcUser oidcUser, String provider, UUID targetWorkspaceId, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
 
         WorkspaceMember target = workspaceMemberRepository
                 .findByWorkspace_IdAndUser_Id(targetWorkspaceId, user.getId())

@@ -22,7 +22,7 @@ class EmailServiceTest {
     // U-01 : mail activé → JavaMailSender.send() appelé avec les bons paramètres
     @Test
     void sendInvitation_whenEnabled_sendsEmail() {
-        EmailService service = new EmailService(mailSender, true, "http://localhost:4200");
+        EmailService service = new EmailService(mailSender, true, "http://localhost:4200", "noreply@test.com");
 
         service.sendInvitation("invitee@example.com", "Mon Cabinet", "tok-123");
 
@@ -37,7 +37,7 @@ class EmailServiceTest {
     // U-02 : mail désactivé → JavaMailSender.send() non appelé
     @Test
     void sendInvitation_whenDisabled_doesNotSend() {
-        EmailService service = new EmailService(mailSender, false, "http://localhost:4200");
+        EmailService service = new EmailService(mailSender, false, "http://localhost:4200", "noreply@test.com");
 
         service.sendInvitation("invitee@example.com", "Mon Cabinet", "tok-123");
 
@@ -47,7 +47,7 @@ class EmailServiceTest {
     // U-03 : SMTP échoue → pas d'exception propagée (fail-open)
     @Test
     void sendInvitation_smtpFailure_doesNotThrow() {
-        EmailService service = new EmailService(mailSender, true, "http://localhost:4200");
+        EmailService service = new EmailService(mailSender, true, "http://localhost:4200", "noreply@test.com");
         doThrow(new MailSendException("SMTP error")).when(mailSender).send(any(SimpleMailMessage.class));
 
         assertThatNoException().isThrownBy(

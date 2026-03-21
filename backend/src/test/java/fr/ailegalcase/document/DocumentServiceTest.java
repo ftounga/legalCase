@@ -1,11 +1,10 @@
 package fr.ailegalcase.document;
 
-import fr.ailegalcase.auth.AuthAccount;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -35,7 +34,7 @@ class DocumentServiceTest {
 
     @Mock private DocumentRepository documentRepository;
     @Mock private CaseFileRepository caseFileRepository;
-    @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private fr.ailegalcase.storage.StorageService storageService;
     @Mock private ApplicationEventPublisher eventPublisher;
@@ -50,7 +49,7 @@ class DocumentServiceTest {
     @BeforeEach
     void setUp() {
         service = new DocumentService(documentRepository, caseFileRepository,
-                authAccountRepository, workspaceMemberRepository,
+                currentUserResolver, workspaceMemberRepository,
                 storageService, eventPublisher, planLimitService);
     }
 
@@ -61,15 +60,11 @@ class DocumentServiceTest {
         CaseFile caseFile = new CaseFile();
         caseFile.setWorkspace(workspace);
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(user);
         WorkspaceMember member = new WorkspaceMember();
         member.setUser(user);
         member.setWorkspace(workspace);
 
-        when(oidcUser.getSubject()).thenReturn("sub-123");
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-123"))
-                .thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
         when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
         lenient().when(storageService.upload(anyString(), any(), anyString(), anyLong()))
@@ -88,7 +83,7 @@ class DocumentServiceTest {
 
         MockMultipartFile file = new MockMultipartFile("file", "doc.pdf", "application/pdf", "content".getBytes());
 
-        service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE");
+        service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE", null);
 
         verify(storageService).upload(anyString(), any(), anyString(), anyLong());
     }
@@ -102,7 +97,7 @@ class DocumentServiceTest {
 
         MockMultipartFile file = new MockMultipartFile("file", "doc.pdf", "application/pdf", "content".getBytes());
 
-        assertThatThrownBy(() -> service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE"))
+        assertThatThrownBy(() -> service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     var rse = (ResponseStatusException) ex;
@@ -121,7 +116,7 @@ class DocumentServiceTest {
 
         MockMultipartFile file = new MockMultipartFile("file", "doc.pdf", "application/pdf", "content".getBytes());
 
-        service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE");
+        service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE", null);
 
         verify(storageService).upload(anyString(), any(), anyString(), anyLong());
     }

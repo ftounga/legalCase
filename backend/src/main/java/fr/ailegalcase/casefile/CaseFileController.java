@@ -27,20 +27,20 @@ public class CaseFileController {
     public CaseFileResponse create(@Valid @RequestBody CaseFileRequest request,
                                    @AuthenticationPrincipal OidcUser oidcUser,
                                    Principal principal) {
-        return caseFileService.create(request, oidcUser, OAuthProviderResolver.resolve(principal));
+        return caseFileService.create(request, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
     @GetMapping
     public Page<CaseFileResponse> list(@AuthenticationPrincipal OidcUser oidcUser,
                                        Principal principal,
                                        @PageableDefault(size = 20) Pageable pageable) {
-        return caseFileService.list(oidcUser, OAuthProviderResolver.resolve(principal), pageable);
+        return caseFileService.list(oidcUser, OAuthProviderResolver.resolve(principal), pageable, principal);
     }
 
     @GetMapping("/{id}")
     public CaseFileResponse getById(@PathVariable java.util.UUID id,
                                     @AuthenticationPrincipal OidcUser oidcUser,
                                     Principal principal) {
-        return caseFileService.getById(id, oidcUser, OAuthProviderResolver.resolve(principal));
+        return caseFileService.getById(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

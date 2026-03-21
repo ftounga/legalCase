@@ -1,8 +1,7 @@
 package fr.ailegalcase.workspace;
 
-import fr.ailegalcase.auth.AuthAccount;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,13 +27,13 @@ import static org.mockito.Mockito.*;
 class WorkspaceMemberServiceTest {
 
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
-    @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private CurrentUserResolver currentUserResolver;
 
     private WorkspaceMemberService service;
 
     @BeforeEach
     void setUp() {
-        service = new WorkspaceMemberService(workspaceMemberRepository, authAccountRepository);
+        service = new WorkspaceMemberService(workspaceMemberRepository, currentUserResolver);
     }
 
     // U-01 : listMembers retourne les membres du workspace courant
@@ -44,13 +43,11 @@ class WorkspaceMemberServiceTest {
         Workspace workspace = buildWorkspace();
         WorkspaceMember member = buildMember(workspace, user, "OWNER");
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(user);
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub1")).thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
         when(workspaceMemberRepository.findByWorkspace_Id(workspace.getId())).thenReturn(List.of(member));
 
-        List<WorkspaceMemberResponse> result = service.listMembers(buildOidcUser("sub1", "u1@example.com"), "GOOGLE");
+        List<WorkspaceMemberResponse> result = service.listMembers(buildOidcUser("sub1", "u1@example.com"), "GOOGLE", null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).memberRole()).isEqualTo("OWNER");
@@ -66,14 +63,12 @@ class WorkspaceMemberServiceTest {
         WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
         WorkspaceMember targetMember = buildMember(workspace, target, "LAWYER");
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(owner);
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-owner")).thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(owner);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), target.getId())).thenReturn(Optional.of(targetMember));
 
-        service.removeMember(target.getId(), buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE");
+        service.removeMember(target.getId(), buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null);
 
         verify(workspaceMemberRepository).delete(targetMember);
     }
@@ -85,13 +80,11 @@ class WorkspaceMemberServiceTest {
         Workspace workspace = buildWorkspace();
         WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(owner);
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-owner")).thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(owner);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
 
-        assertThatThrownBy(() -> service.removeMember(owner.getId(), buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE"))
+        assertThatThrownBy(() -> service.removeMember(owner.getId(), buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }
@@ -104,13 +97,11 @@ class WorkspaceMemberServiceTest {
         Workspace workspace = buildWorkspace();
         WorkspaceMember adminMember = buildMember(workspace, admin, "ADMIN");
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(admin);
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-admin")).thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(admin);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(admin)).thenReturn(Optional.of(adminMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), admin.getId())).thenReturn(Optional.of(adminMember));
 
-        assertThatThrownBy(() -> service.removeMember(target.getId(), buildOidcUser("sub-admin", "admin@example.com"), "GOOGLE"))
+        assertThatThrownBy(() -> service.removeMember(target.getId(), buildOidcUser("sub-admin", "admin@example.com"), "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }

@@ -27,6 +27,6 @@ public class AnalysisJobController {
             @PathVariable UUID caseFileId,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return analysisJobQueryService.listJobs(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
+        return analysisJobQueryService.listJobs(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

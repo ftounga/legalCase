@@ -4,8 +4,8 @@ import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.slf4j.Logger;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.util.Set;
 
 @Service
@@ -32,7 +33,7 @@ public class StripeCheckoutService {
     private final String frontendUrl;
     private final SubscriptionRepository subscriptionRepository;
     private final StripeCustomerService stripeCustomerService;
-    private final AuthAccountRepository authAccountRepository;
+    private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public StripeCheckoutService(
@@ -43,7 +44,7 @@ public class StripeCheckoutService {
             @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
             SubscriptionRepository subscriptionRepository,
             StripeCustomerService stripeCustomerService,
-            AuthAccountRepository authAccountRepository,
+            CurrentUserResolver currentUserResolver,
             WorkspaceMemberRepository workspaceMemberRepository) {
         this.stripeEnabled = stripeEnabled;
         this.secretKey = secretKey;
@@ -52,12 +53,12 @@ public class StripeCheckoutService {
         this.frontendUrl = frontendUrl;
         this.subscriptionRepository = subscriptionRepository;
         this.stripeCustomerService = stripeCustomerService;
-        this.authAccountRepository = authAccountRepository;
+        this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
     }
 
     @Transactional
-    public String createCheckoutSession(String planCode, OidcUser oidcUser, String provider) {
+    public String createCheckoutSession(String planCode, OidcUser oidcUser, String provider, Principal principal) {
         if (!stripeEnabled) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Stripe is not enabled");
         }
@@ -65,10 +66,7 @@ public class StripeCheckoutService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid plan code: " + planCode);
         }
 
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
 
         Workspace workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)

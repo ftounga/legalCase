@@ -69,7 +69,7 @@ class WorkspaceServiceGetCurrentTest {
                 .thenReturn(Optional.of(account));
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
 
-        WorkspaceResponse response = service.getCurrentWorkspace(oidcUser, "GOOGLE");
+        WorkspaceResponse response = service.getCurrentWorkspace(oidcUser, "GOOGLE", null);
 
         assertThat(response.name()).isEqualTo("john@example.com");
         assertThat(response.planCode()).isEqualTo("STARTER");
@@ -88,7 +88,7 @@ class WorkspaceServiceGetCurrentTest {
                 .thenReturn(Optional.of(account));
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getCurrentWorkspace(oidcUser, "GOOGLE"))
+        assertThatThrownBy(() -> service.getCurrentWorkspace(oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(NOT_FOUND));

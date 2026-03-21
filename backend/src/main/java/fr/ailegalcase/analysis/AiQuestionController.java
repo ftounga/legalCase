@@ -27,6 +27,6 @@ public class AiQuestionController {
             @PathVariable UUID caseFileId,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return aiQuestionQueryService.listQuestions(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
+        return aiQuestionQueryService.listQuestions(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

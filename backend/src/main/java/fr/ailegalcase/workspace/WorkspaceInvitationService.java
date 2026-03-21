@@ -1,13 +1,14 @@
 package fr.ailegalcase.workspace;
 
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -23,25 +24,25 @@ public class WorkspaceInvitationService {
     private final WorkspaceInvitationRepository workspaceInvitationRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final WorkspaceRepository workspaceRepository;
-    private final AuthAccountRepository authAccountRepository;
+    private final CurrentUserResolver currentUserResolver;
     private final EmailService emailService;
 
     public WorkspaceInvitationService(WorkspaceInvitationRepository workspaceInvitationRepository,
                                       WorkspaceMemberRepository workspaceMemberRepository,
                                       WorkspaceRepository workspaceRepository,
-                                      AuthAccountRepository authAccountRepository,
+                                      CurrentUserResolver currentUserResolver,
                                       EmailService emailService) {
         this.workspaceInvitationRepository = workspaceInvitationRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.workspaceRepository = workspaceRepository;
-        this.authAccountRepository = authAccountRepository;
+        this.currentUserResolver = currentUserResolver;
         this.emailService = emailService;
     }
 
     @Transactional
     public WorkspaceInvitationResponse createInvitation(WorkspaceInvitationRequest request,
-                                                        OidcUser oidcUser, String provider) {
-        User requestingUser = resolveUser(oidcUser, provider);
+                                                        OidcUser oidcUser, String provider, Principal principal) {
+        User requestingUser = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(requestingUser);
 
         WorkspaceMember requestingMember = workspaceMemberRepository
@@ -74,8 +75,8 @@ public class WorkspaceInvitationService {
     }
 
     @Transactional(readOnly = true)
-    public List<WorkspaceInvitationResponse> listInvitations(OidcUser oidcUser, String provider) {
-        User requestingUser = resolveUser(oidcUser, provider);
+    public List<WorkspaceInvitationResponse> listInvitations(OidcUser oidcUser, String provider, Principal principal) {
+        User requestingUser = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(requestingUser);
 
         WorkspaceMember requestingMember = workspaceMemberRepository
@@ -93,8 +94,8 @@ public class WorkspaceInvitationService {
     }
 
     @Transactional
-    public void revokeInvitation(UUID invitationId, OidcUser oidcUser, String provider) {
-        User requestingUser = resolveUser(oidcUser, provider);
+    public void revokeInvitation(UUID invitationId, OidcUser oidcUser, String provider, Principal principal) {
+        User requestingUser = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(requestingUser);
 
         WorkspaceMember requestingMember = workspaceMemberRepository
@@ -119,8 +120,8 @@ public class WorkspaceInvitationService {
     }
 
     @Transactional
-    public void acceptInvitation(AcceptInvitationRequest request, OidcUser oidcUser, String provider) {
-        User user = resolveUser(oidcUser, provider);
+    public void acceptInvitation(AcceptInvitationRequest request, OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
 
         WorkspaceInvitation invitation = workspaceInvitationRepository
                 .findByToken(request.token())
@@ -159,11 +160,8 @@ public class WorkspaceInvitationService {
         workspaceInvitationRepository.save(invitation);
     }
 
-    private User resolveUser(OidcUser oidcUser, String provider) {
-        return authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {
+        return currentUserResolver.resolve(oidcUser, provider, principal);
     }
 
     private Workspace resolveWorkspace(User user) {

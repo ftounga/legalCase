@@ -1,13 +1,14 @@
 package fr.ailegalcase.workspace;
 
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,17 +16,17 @@ import java.util.UUID;
 public class WorkspaceMemberService {
 
     private final WorkspaceMemberRepository workspaceMemberRepository;
-    private final AuthAccountRepository authAccountRepository;
+    private final CurrentUserResolver currentUserResolver;
 
     public WorkspaceMemberService(WorkspaceMemberRepository workspaceMemberRepository,
-                                  AuthAccountRepository authAccountRepository) {
+                                  CurrentUserResolver currentUserResolver) {
         this.workspaceMemberRepository = workspaceMemberRepository;
-        this.authAccountRepository = authAccountRepository;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @Transactional(readOnly = true)
-    public List<WorkspaceMemberResponse> listMembers(OidcUser oidcUser, String provider) {
-        User user = resolveUser(oidcUser, provider);
+    public List<WorkspaceMemberResponse> listMembers(OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(user);
 
         return workspaceMemberRepository.findByWorkspace_Id(workspace.getId()).stream()
@@ -40,8 +41,8 @@ public class WorkspaceMemberService {
     }
 
     @Transactional
-    public void removeMember(UUID targetUserId, OidcUser oidcUser, String provider) {
-        User requestingUser = resolveUser(oidcUser, provider);
+    public void removeMember(UUID targetUserId, OidcUser oidcUser, String provider, Principal principal) {
+        User requestingUser = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(requestingUser);
 
         WorkspaceMember requestingMember = workspaceMemberRepository
@@ -63,11 +64,8 @@ public class WorkspaceMemberService {
         workspaceMemberRepository.delete(targetMember);
     }
 
-    private User resolveUser(OidcUser oidcUser, String provider) {
-        return authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+    private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {
+        return currentUserResolver.resolve(oidcUser, provider, principal);
     }
 
     private Workspace resolveWorkspace(User user) {

@@ -1,9 +1,8 @@
 package fr.ailegalcase.casefile;
 
-import fr.ailegalcase.auth.AuthAccount;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -30,7 +29,7 @@ import static org.springframework.http.HttpStatus.PAYMENT_REQUIRED;
 class CaseFileServiceTest {
 
     @Mock private CaseFileRepository caseFileRepository;
-    @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private PlanLimitService planLimitService;
     @Mock private OidcUser oidcUser;
@@ -39,7 +38,7 @@ class CaseFileServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CaseFileService(caseFileRepository, authAccountRepository, workspaceMemberRepository, planLimitService);
+        service = new CaseFileService(caseFileRepository, currentUserResolver, workspaceMemberRepository, planLimitService);
     }
 
     private Workspace mockUserAndWorkspace() {
@@ -51,16 +50,11 @@ class CaseFileServiceTest {
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(user);
-
         WorkspaceMember member = new WorkspaceMember();
         member.setUser(user);
         member.setWorkspace(workspace);
 
-        when(oidcUser.getSubject()).thenReturn("sub-123");
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-123"))
-                .thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
         lenient().when(caseFileRepository.save(any(CaseFile.class))).thenAnswer(inv -> inv.getArgument(0));
         return workspace;
@@ -69,12 +63,12 @@ class CaseFileServiceTest {
     // U-01 : création valide → CaseFileResponse retourné
     @Test
     void create_validRequest_returnsCaseFileResponse() {
-        Workspace workspace = mockUserAndWorkspace();
+        mockUserAndWorkspace();
         when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(0L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("Licenciement Dupont", "EMPLOYMENT_LAW", "Description");
 
-        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE");
+        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
         assertThat(response.title()).isEqualTo("Licenciement Dupont");
         assertThat(response.legalDomain()).isEqualTo("EMPLOYMENT_LAW");
@@ -86,7 +80,7 @@ class CaseFileServiceTest {
     void create_invalidLegalDomain_throws400() {
         CaseFileRequest request = new CaseFileRequest("Title", "IMMIGRATION_LAW", null);
 
-        assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE"))
+        assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(BAD_REQUEST));
     }
@@ -99,7 +93,7 @@ class CaseFileServiceTest {
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("  Titre avec espaces  ", "EMPLOYMENT_LAW", null);
 
-        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE");
+        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
         assertThat(response.title()).isEqualTo("Titre avec espaces");
     }
@@ -112,7 +106,7 @@ class CaseFileServiceTest {
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("Nouveau dossier", "EMPLOYMENT_LAW", null);
 
-        assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE"))
+        assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(PAYMENT_REQUIRED));
     }
@@ -125,7 +119,7 @@ class CaseFileServiceTest {
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("Dossier 3", "EMPLOYMENT_LAW", null);
 
-        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE");
+        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
         assertThat(response).isNotNull();
     }
@@ -138,7 +132,7 @@ class CaseFileServiceTest {
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(Integer.MAX_VALUE);
         CaseFileRequest request = new CaseFileRequest("Dossier sans sub", "EMPLOYMENT_LAW", null);
 
-        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE");
+        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
         assertThat(response).isNotNull();
     }

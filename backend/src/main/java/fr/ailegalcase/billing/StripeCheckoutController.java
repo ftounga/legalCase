@@ -28,7 +28,7 @@ public class StripeCheckoutController {
             Principal principal) {
 
         String checkoutUrl = checkoutService.createCheckoutSession(
-                request.planCode(), oidcUser, OAuthProviderResolver.resolve(principal));
+                request.planCode(), oidcUser, OAuthProviderResolver.resolve(principal), principal);
         return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
     }
 

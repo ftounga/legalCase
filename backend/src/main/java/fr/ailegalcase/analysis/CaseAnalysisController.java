@@ -26,6 +26,6 @@ public class CaseAnalysisController {
             @PathVariable UUID caseFileId,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return caseAnalysisQueryService.getAnalysis(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
+        return caseAnalysisQueryService.getAnalysis(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

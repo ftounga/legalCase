@@ -25,6 +25,6 @@ public class ReAnalysisController {
             @PathVariable UUID caseFileId,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        reAnalysisCommandService.triggerReAnalysis(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
+        reAnalysisCommandService.triggerReAnalysis(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

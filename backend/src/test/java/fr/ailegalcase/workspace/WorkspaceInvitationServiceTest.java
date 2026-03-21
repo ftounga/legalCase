@@ -1,8 +1,7 @@
 package fr.ailegalcase.workspace;
 
-import fr.ailegalcase.auth.AuthAccount;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,14 +34,14 @@ class WorkspaceInvitationServiceTest {
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private WorkspaceRepository workspaceRepository;
     @Mock private EmailService emailService;
-    @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private CurrentUserResolver currentUserResolver;
 
     private WorkspaceInvitationService service;
 
     @BeforeEach
     void setUp() {
         service = new WorkspaceInvitationService(workspaceInvitationRepository, workspaceMemberRepository,
-                workspaceRepository, authAccountRepository, emailService);
+                workspaceRepository, currentUserResolver, emailService);
     }
 
     // U-01 : createInvitation — token généré, status PENDING, expiry +7j
@@ -52,14 +51,14 @@ class WorkspaceInvitationServiceTest {
         Workspace workspace = buildWorkspace();
         WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
 
-        setupAuth(owner, "sub-owner");
+        setupAuth(owner);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
         when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
         when(workspaceInvitationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         WorkspaceInvitationRequest request = new WorkspaceInvitationRequest("invitee@example.com", "LAWYER");
-        WorkspaceInvitationResponse response = service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE");
+        WorkspaceInvitationResponse response = service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null);
 
         ArgumentCaptor<WorkspaceInvitation> captor = ArgumentCaptor.forClass(WorkspaceInvitation.class);
         verify(workspaceInvitationRepository).save(captor.capture());
@@ -77,13 +76,13 @@ class WorkspaceInvitationServiceTest {
         Workspace workspace = buildWorkspace();
         WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
 
-        setupAuth(owner, "sub-owner");
+        setupAuth(owner);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
         when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(true);
 
         WorkspaceInvitationRequest request = new WorkspaceInvitationRequest("invitee@example.com", "LAWYER");
-        assertThatThrownBy(() -> service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE"))
+        assertThatThrownBy(() -> service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("409");
     }
@@ -103,14 +102,14 @@ class WorkspaceInvitationServiceTest {
         invitation.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
         invitation.setWorkspaceId(targetWorkspace.getId());
 
-        setupAuth(invitee, "sub-invitee");
+        setupAuth(invitee);
         when(workspaceInvitationRepository.findByToken("valid-token")).thenReturn(Optional.of(invitation));
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(invitee)).thenReturn(Optional.of(existingPrimary));
         when(workspaceRepository.findById(targetWorkspace.getId())).thenReturn(Optional.of(targetWorkspace));
         when(workspaceMemberRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(workspaceInvitationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.acceptInvitation(new AcceptInvitationRequest("valid-token"), buildOidcUser("sub-invitee", "invitee@example.com"), "GOOGLE");
+        service.acceptInvitation(new AcceptInvitationRequest("valid-token"), buildOidcUser("sub-invitee", "invitee@example.com"), "GOOGLE", null);
 
         assertThat(existingPrimary.isPrimary()).isFalse();
         verify(workspaceMemberRepository, times(2)).save(any());
@@ -128,10 +127,10 @@ class WorkspaceInvitationServiceTest {
         invitation.setStatus("PENDING");
         invitation.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
 
-        setupAuth(invitee, "sub-invitee");
+        setupAuth(invitee);
         when(workspaceInvitationRepository.findByToken("expired-token")).thenReturn(Optional.of(invitation));
 
-        assertThatThrownBy(() -> service.acceptInvitation(new AcceptInvitationRequest("expired-token"), buildOidcUser("sub-invitee", "invitee@example.com"), "GOOGLE"))
+        assertThatThrownBy(() -> service.acceptInvitation(new AcceptInvitationRequest("expired-token"), buildOidcUser("sub-invitee", "invitee@example.com"), "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("409");
     }
@@ -147,10 +146,10 @@ class WorkspaceInvitationServiceTest {
         invitation.setStatus("ACCEPTED");
         invitation.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
 
-        setupAuth(invitee, "sub-invitee");
+        setupAuth(invitee);
         when(workspaceInvitationRepository.findByToken("used-token")).thenReturn(Optional.of(invitation));
 
-        assertThatThrownBy(() -> service.acceptInvitation(new AcceptInvitationRequest("used-token"), buildOidcUser("sub-invitee", "invitee@example.com"), "GOOGLE"))
+        assertThatThrownBy(() -> service.acceptInvitation(new AcceptInvitationRequest("used-token"), buildOidcUser("sub-invitee", "invitee@example.com"), "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("409");
     }
@@ -166,10 +165,10 @@ class WorkspaceInvitationServiceTest {
         invitation.setStatus("PENDING");
         invitation.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
 
-        setupAuth(other, "sub-other");
+        setupAuth(other);
         when(workspaceInvitationRepository.findByToken("token")).thenReturn(Optional.of(invitation));
 
-        assertThatThrownBy(() -> service.acceptInvitation(new AcceptInvitationRequest("token"), buildOidcUser("sub-other", "other@example.com"), "GOOGLE"))
+        assertThatThrownBy(() -> service.acceptInvitation(new AcceptInvitationRequest("token"), buildOidcUser("sub-other", "other@example.com"), "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }
@@ -181,14 +180,14 @@ class WorkspaceInvitationServiceTest {
         Workspace workspace = buildWorkspace();
         WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
 
-        setupAuth(owner, "sub-owner");
+        setupAuth(owner);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
         when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
         when(workspaceInvitationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.createInvitation(new WorkspaceInvitationRequest("invitee@example.com", "LAWYER"),
-                buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE");
+                buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null);
 
         verify(emailService).sendInvitation(eq("invitee@example.com"), eq(workspace.getName()), any());
     }
@@ -200,7 +199,7 @@ class WorkspaceInvitationServiceTest {
         Workspace workspace = buildWorkspace();
         WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
 
-        setupAuth(owner, "sub-owner");
+        setupAuth(owner);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
         when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
         when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
@@ -209,7 +208,7 @@ class WorkspaceInvitationServiceTest {
 
         WorkspaceInvitationResponse response = service.createInvitation(
                 new WorkspaceInvitationRequest("invitee@example.com", "LAWYER"),
-                buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE");
+                buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null);
 
         assertThat(response.status()).isEqualTo("PENDING");
         verify(workspaceInvitationRepository).save(any());
@@ -244,10 +243,8 @@ class WorkspaceInvitationServiceTest {
         return m;
     }
 
-    private void setupAuth(User user, String sub) {
-        AuthAccount account = new AuthAccount();
-        account.setUser(user);
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", sub)).thenReturn(Optional.of(account));
+    private void setupAuth(User user) {
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
     }
 
     private OidcUser buildOidcUser(String sub, String email) {

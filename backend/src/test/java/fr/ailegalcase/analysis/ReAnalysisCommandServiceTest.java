@@ -1,11 +1,10 @@
 package fr.ailegalcase.analysis;
 
-import fr.ailegalcase.auth.AuthAccount;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -31,7 +30,7 @@ class ReAnalysisCommandServiceTest {
 
     @Mock private CaseFileRepository caseFileRepository;
     @Mock private AnalysisJobRepository analysisJobRepository;
-    @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private RabbitTemplate rabbitTemplate;
     @Mock private PlanLimitService planLimitService;
@@ -45,7 +44,7 @@ class ReAnalysisCommandServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReAnalysisCommandService(caseFileRepository, analysisJobRepository,
-                authAccountRepository, workspaceMemberRepository, rabbitTemplate, planLimitService);
+                currentUserResolver, workspaceMemberRepository, rabbitTemplate, planLimitService);
     }
 
     private void mockUserWorkspaceAndCaseFile() {
@@ -55,15 +54,11 @@ class ReAnalysisCommandServiceTest {
         CaseFile caseFile = new CaseFile();
         caseFile.setWorkspace(workspace);
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(user);
         WorkspaceMember member = new WorkspaceMember();
         member.setUser(user);
         member.setWorkspace(workspace);
 
-        when(oidcUser.getSubject()).thenReturn("sub-123");
-        when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "sub-123"))
-                .thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
         when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
         lenient().when(analysisJobRepository.findByCaseFileIdAndJobType(any(), any()))
@@ -77,7 +72,7 @@ class ReAnalysisCommandServiceTest {
         mockUserWorkspaceAndCaseFile();
         when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
 
-        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE");
+        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
 
         verify(rabbitTemplate).convertAndSend(
                 eq(RabbitMQConfig.RE_ANALYSIS_EXCHANGE),
@@ -91,7 +86,7 @@ class ReAnalysisCommandServiceTest {
         mockUserWorkspaceAndCaseFile();
         when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE"))
+        assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> {
                     var rse = (ResponseStatusException) ex;
@@ -107,7 +102,7 @@ class ReAnalysisCommandServiceTest {
         mockUserWorkspaceAndCaseFile();
         when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
 
-        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE");
+        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
 
         verify(rabbitTemplate).convertAndSend(
                 eq(RabbitMQConfig.RE_ANALYSIS_EXCHANGE),

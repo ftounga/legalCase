@@ -1,8 +1,8 @@
 package fr.ailegalcase.casefile;
 
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.data.domain.Page;
@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.security.Principal;
 import java.util.UUID;
 
 @Service
@@ -21,31 +22,28 @@ public class CaseFileService {
     private static final String SUPPORTED_LEGAL_DOMAIN = "EMPLOYMENT_LAW";
 
     private final CaseFileRepository caseFileRepository;
-    private final AuthAccountRepository authAccountRepository;
+    private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final PlanLimitService planLimitService;
 
     public CaseFileService(CaseFileRepository caseFileRepository,
-                           AuthAccountRepository authAccountRepository,
+                           CurrentUserResolver currentUserResolver,
                            WorkspaceMemberRepository workspaceMemberRepository,
                            PlanLimitService planLimitService) {
         this.caseFileRepository = caseFileRepository;
-        this.authAccountRepository = authAccountRepository;
+        this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.planLimitService = planLimitService;
     }
 
     @Transactional
-    public CaseFileResponse create(CaseFileRequest request, OidcUser oidcUser, String provider) {
+    public CaseFileResponse create(CaseFileRequest request, OidcUser oidcUser, String provider, Principal principal) {
         if (!SUPPORTED_LEGAL_DOMAIN.equals(request.legalDomain())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Only EMPLOYMENT_LAW is supported in V1");
         }
 
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
-                .getUser();
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
 
         Workspace workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)
@@ -73,11 +71,8 @@ public class CaseFileService {
     }
 
     @Transactional(readOnly = true)
-    public Page<CaseFileResponse> list(OidcUser oidcUser, String provider, Pageable pageable) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
-                .getUser();
+    public Page<CaseFileResponse> list(OidcUser oidcUser, String provider, Pageable pageable, Principal principal) {
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
 
         Workspace workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)
@@ -90,11 +85,8 @@ public class CaseFileService {
     }
 
     @Transactional(readOnly = true)
-    public CaseFileResponse getById(UUID id, OidcUser oidcUser, String provider) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
-                .getUser();
+    public CaseFileResponse getById(UUID id, OidcUser oidcUser, String provider, Principal principal) {
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
 
         Workspace workspace = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)

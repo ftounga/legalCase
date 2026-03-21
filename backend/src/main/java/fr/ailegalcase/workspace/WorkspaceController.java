@@ -23,12 +23,12 @@ public class WorkspaceController {
 
     @GetMapping("/current")
     public WorkspaceResponse current(@AuthenticationPrincipal OidcUser oidcUser, Principal principal) {
-        return workspaceService.getCurrentWorkspace(oidcUser, OAuthProviderResolver.resolve(principal));
+        return workspaceService.getCurrentWorkspace(oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
     @GetMapping
     public List<WorkspaceResponse> list(@AuthenticationPrincipal OidcUser oidcUser, Principal principal) {
-        return workspaceService.listUserWorkspaces(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase());
+        return workspaceService.listUserWorkspaces(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), principal);
     }
 
     @PostMapping
@@ -36,13 +36,13 @@ public class WorkspaceController {
     public WorkspaceResponse create(@AuthenticationPrincipal OidcUser oidcUser,
                                     Principal principal,
                                     @Valid @RequestBody CreateWorkspaceRequest request) {
-        return workspaceService.createWorkspace(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), request.name());
+        return workspaceService.createWorkspace(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), request.name(), principal);
     }
 
     @PostMapping("/{id}/switch")
     public WorkspaceResponse switchWorkspace(@AuthenticationPrincipal OidcUser oidcUser,
                                              Principal principal,
                                              @PathVariable UUID id) {
-        return workspaceService.switchWorkspace(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), id);
+        return workspaceService.switchWorkspace(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), id, principal);
     }
 }

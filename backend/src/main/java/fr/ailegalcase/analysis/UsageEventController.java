@@ -27,6 +27,6 @@ public class UsageEventController {
             @PathVariable UUID caseFileId,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return usageEventQueryService.listEvents(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal));
+        return usageEventQueryService.listEvents(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

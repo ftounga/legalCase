@@ -3,9 +3,8 @@ package fr.ailegalcase.billing;
 import com.stripe.exception.AuthenticationException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
-import fr.ailegalcase.auth.AuthAccount;
-import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -32,7 +31,7 @@ class StripeCheckoutServiceTest {
 
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private StripeCustomerService stripeCustomerService;
-    @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private OidcUser oidcUser;
 
@@ -53,16 +52,11 @@ class StripeCheckoutServiceTest {
         member.setUser(user);
         member.setWorkspace(workspace);
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(user);
-
         sub = new Subscription();
         sub.setWorkspaceId(workspaceId);
         sub.setStripeCustomerId("cus_existing");
 
-        lenient().when(oidcUser.getSubject()).thenReturn("oauth-sub");
-        lenient().when(authAccountRepository.findByProviderAndProviderUserId(any(), any()))
-                .thenReturn(Optional.of(account));
+        lenient().when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         lenient().when(workspaceMemberRepository.findByUserAndPrimaryTrue(any()))
                 .thenReturn(Optional.of(member));
         lenient().when(subscriptionRepository.findByWorkspaceId(workspaceId))
@@ -75,7 +69,7 @@ class StripeCheckoutServiceTest {
                 "price_starter", "price_pro",
                 "http://localhost:4200",
                 subscriptionRepository, stripeCustomerService,
-                authAccountRepository, workspaceMemberRepository);
+                currentUserResolver, workspaceMemberRepository);
     }
 
     // U-01 : Stripe désactivé → 503
@@ -83,7 +77,7 @@ class StripeCheckoutServiceTest {
     void createCheckoutSession_stripeDisabled_throws503() {
         StripeCheckoutService service = buildService(false);
 
-        assertThatThrownBy(() -> service.createCheckoutSession("STARTER", oidcUser, "google"))
+        assertThatThrownBy(() -> service.createCheckoutSession("STARTER", oidcUser, "google", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                 .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
@@ -94,7 +88,7 @@ class StripeCheckoutServiceTest {
     void createCheckoutSession_invalidPlanCode_throws400() {
         StripeCheckoutService service = buildService(true);
 
-        assertThatThrownBy(() -> service.createCheckoutSession("UNKNOWN", oidcUser, "google"))
+        assertThatThrownBy(() -> service.createCheckoutSession("UNKNOWN", oidcUser, "google", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                 .isEqualTo(HttpStatus.BAD_REQUEST);
@@ -112,7 +106,7 @@ class StripeCheckoutServiceTest {
             sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
                     .thenReturn(mockSession);
 
-            String url = service.createCheckoutSession("STARTER", oidcUser, "google");
+            String url = service.createCheckoutSession("STARTER", oidcUser, "google", null);
 
             assertThat(url).isEqualTo("https://checkout.stripe.com/starter");
         }
@@ -130,7 +124,7 @@ class StripeCheckoutServiceTest {
             sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
                     .thenReturn(mockSession);
 
-            String url = service.createCheckoutSession("PRO", oidcUser, "google");
+            String url = service.createCheckoutSession("PRO", oidcUser, "google", null);
 
             assertThat(url).isEqualTo("https://checkout.stripe.com/pro");
         }
@@ -152,7 +146,7 @@ class StripeCheckoutServiceTest {
             sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
                     .thenReturn(mockSession);
 
-            service.createCheckoutSession("STARTER", oidcUser, "google");
+            service.createCheckoutSession("STARTER", oidcUser, "google", null);
 
             verify(stripeCustomerService).createCustomer(any(), eq(workspaceId));
             verify(subscriptionRepository, atLeastOnce()).save(sub);
@@ -168,7 +162,7 @@ class StripeCheckoutServiceTest {
             sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
                     .thenThrow(new AuthenticationException("Invalid key", "req_x", null, 401));
 
-            assertThatThrownBy(() -> service.createCheckoutSession("STARTER", oidcUser, "google"))
+            assertThatThrownBy(() -> service.createCheckoutSession("STARTER", oidcUser, "google", null))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.BAD_GATEWAY);
