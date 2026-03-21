@@ -19,6 +19,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  globalSetup: './global-setup.ts',
   // Ne pas démarrer les serveurs — ils doivent tourner indépendamment
   // Lancer : backend (8080) + frontend (4200) avant les tests
 });
