@@ -379,12 +379,13 @@ Client SaaS.
 
 Champs :
 
-id  
-name  
-slug  
-billing_email  
-owner_user_id  
-plan_code  
+id
+name
+slug
+billing_email
+owner_user_id
+legal_domain (varchar 50, NOT NULL, DEFAULT 'DROIT_DU_TRAVAIL' — valeurs : DROIT_DU_TRAVAIL, DROIT_IMMIGRATION, DROIT_IMMOBILIER)
+plan_code
 status
 
 ## workspace_members
