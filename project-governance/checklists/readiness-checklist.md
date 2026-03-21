@@ -25,6 +25,19 @@ Si un item est rouge → résoudre avant de commencer.
 
 ---
 
+## Analyse d'impact — préoccupations transversales
+
+- [ ] La section "Analyse d'impact" du `subfeature-template.md` est remplie
+- [ ] Si auth / Principal est coché : tous les endpoints utilisant `@AuthenticationPrincipal` sont listés et un test de non-régression est prévu pour chacun
+- [ ] Si workspace context est coché : tous les composants consommant le contexte workspace sont listés
+- [ ] Si plans / limites est coché : les gates impactées sont identifiées
+- [ ] Si navigation / routing est coché : les guards et redirections existants sont vérifiés
+- [ ] Les smoke tests E2E concernés sont identifiés dans la mini-spec
+
+> Si une préoccupation transversale est cochée sans liste de composants impactés → la subfeature n'est pas `ready`.
+
+---
+
 ## Architecture & dépendances
 
 - [ ] Les tables impactées sont identifiées et cohérentes avec `docs/ARCHITECTURE_CANONIQUE.md`

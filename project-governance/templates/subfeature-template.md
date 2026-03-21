@@ -160,6 +160,39 @@ Notes :
 
 ---
 
+## Analyse d'impact
+
+### Préoccupations transversales touchées
+
+> Cocher chaque préoccupation que cette subfeature modifie ou étend.
+> Si au moins une case est cochée → remplir obligatoirement le tableau ci-dessous.
+
+- [ ] **Auth / Principal** — touche `@AuthenticationPrincipal`, le contexte de sécurité, ou l'identité de l'utilisateur
+- [ ] **Workspace context** — touche la résolution du workspace courant, `workspace_id`, ou les membres
+- [ ] **Plans / limites** — touche `PlanLimitService`, les gates, ou les quotas
+- [ ] **Navigation / routing frontend** — touche les routes Angular, les guards, ou les redirections
+- [ ] **Aucune préoccupation transversale** — subfeature isolée, impact limité à son périmètre
+
+### Composants / endpoints existants potentiellement impactés
+
+> À remplir si au moins une case est cochée ci-dessus.
+> Lister explicitement ce qui pourrait casser chez les consommateurs existants.
+
+| Composant / Endpoint | Impact potentiel | Test de non-régression prévu |
+|----------------------|-----------------|------------------------------|
+| [ex: WorkspaceController] | [ex: utilise OidcUser — à vérifier avec le nouveau type d'auth] | [ex: IT avec le nouveau provider] |
+| [ex: CaseFilesListComponent] | [ex: réagit au contexte workspace — à vérifier après changement] | [ex: smoke test workspace switch] |
+
+### Smoke tests E2E concernés
+
+> Lister les smoke tests de `e2e/smoke/` qui doivent passer **sans régression** après cette subfeature.
+> Si un smoke test échoue après merge → la subfeature est bloquante.
+
+- [ ] `e2e/smoke/[fichier]` — `[nom du test]` — [raison]
+- [ ] Aucun smoke test concerné (justification : [raison])
+
+---
+
 ## Dépendances
 
 ### Subfeatures bloquantes

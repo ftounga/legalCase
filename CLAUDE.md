@@ -144,6 +144,8 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Ecran produit sans header/layout conforme au design system | BLOCAGE — signaler la divergence |
 | Feature avec écran utilisateur marquée `Terminée` sans composant Angular implémenté | REFUS — implémenter les écrans manquants avant de marquer Terminée |
 | Subfeature backend mergée sans subfeature frontend planifiée (si la feature a une UI) | BLOCAGE — planifier et créer la subfeature frontend correspondante avant de continuer |
+| Préoccupation transversale cochée sans liste de composants impactés dans la mini-spec | BLOCAGE — compléter l'analyse d'impact avant de continuer |
+| Smoke tests E2E échouent après implémentation d'une préoccupation transversale | BLOCAGE — corriger avant push |
 
 **Format de refus standard :**
 ```
@@ -175,6 +177,41 @@ Features identifiées : [liste des features détectées]
 Action requise : Séparer en features indépendantes et traiter chacune séparément.
 Référence : CLAUDE.md — Détection des demandes multi-features
 ```
+
+---
+
+## Préoccupations transversales — règle anti-régression
+
+Certaines modifications impactent silencieusement des composants existants qui n'ont pas été touchés.
+Ces **préoccupations transversales** doivent être traitées explicitement à chaque subfeature.
+
+### Déclencheurs obligatoires
+
+| Préoccupation | Exemples concrets | Action requise |
+|--------------|------------------|----------------|
+| **Auth / Principal** | Nouveau type d'auth, modification du Principal, changement de session | Lister tous les `@AuthenticationPrincipal` existants. Vérifier que chacun supporte le nouveau type. Ajouter test de non-régression. |
+| **Workspace context** | Nouveau moyen de résoudre le workspace, changement de `workspace_id` | Lister tous les composants qui résolvent le workspace. Vérifier leur comportement. |
+| **Plans / limites** | Nouveau plan, changement de quota, nouveau gate | Lister tous les appels à `PlanLimitService`. Vérifier les gates. |
+| **Navigation / routing** | Nouvelle route, guard modifié, redirection ajoutée | Vérifier tous les chemins de navigation existants. Lancer les smoke tests. |
+
+### Règle de blocage automatique
+
+Si une subfeature coche une préoccupation transversale dans sa mini-spec **sans liste de composants impactés** → BLOCAGE.
+Si les smoke tests E2E échouent après l'implémentation → BLOCAGE avant push.
+
+### Suite de smoke tests E2E
+
+Les tests de non-régression automatiques sont dans `e2e/smoke/`.
+Lancer avant tout push touchant une préoccupation transversale :
+
+```bash
+cd e2e && npm test
+```
+
+Les smoke tests couvrent les chemins critiques d'intégration :
+- `auth.spec.ts` — login local, login OAuth, logout, redirect non-authentifié
+- `workspace.spec.ts` — switch workspace → rechargement des dossiers
+- `navigation.spec.ts` — invitation → /login, guards, redirections
 
 ---
 

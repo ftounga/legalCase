@@ -38,6 +38,13 @@ Les items marqués **BLOQUANT** empêchent le merge.
 - [ ] Tous les tests passent (**BLOQUANT** si échec)
 - [ ] Les cas d'erreur du plan de test sont couverts (**BLOQUANT** si manquants)
 
+## Régressions — BLOQUANT si préoccupation transversale cochée
+
+- [ ] Si auth / Principal touché : les smoke tests `e2e/smoke/auth.spec.ts` passent (**BLOQUANT**)
+- [ ] Si workspace context touché : les smoke tests `e2e/smoke/workspace.spec.ts` passent (**BLOQUANT**)
+- [ ] Si navigation / routing touché : les smoke tests `e2e/smoke/navigation.spec.ts` passent (**BLOQUANT**)
+- [ ] Aucune préoccupation transversale cochée → item non applicable
+
 ---
 
 ## Architecture — BLOQUANT
