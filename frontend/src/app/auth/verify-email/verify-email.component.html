@@ -1,0 +1,28 @@
+<div class="verify-page">
+  <mat-card class="verify-card">
+    <mat-card-content>
+      <img src="/legalcase-logo.png" alt="AI LegalCase" class="verify-logo" />
+
+      @if (loading()) {
+        <div class="state-center">
+          <mat-spinner diameter="40" />
+          <p class="state-text">Validation en cours…</p>
+        </div>
+      } @else if (success()) {
+        <div class="state-center">
+          <mat-icon class="icon-success">check_circle</mat-icon>
+          <h2 class="state-title">Email validé !</h2>
+          <p class="state-text">Votre adresse email a été confirmée. Vous pouvez maintenant vous connecter.</p>
+          <a mat-flat-button color="primary" routerLink="/login">Se connecter</a>
+        </div>
+      } @else {
+        <div class="state-center">
+          <mat-icon class="icon-error">error_outline</mat-icon>
+          <h2 class="state-title">Lien invalide</h2>
+          <p class="state-text">{{ errorMessage() }}</p>
+          <a mat-stroked-button routerLink="/login">Retour à la connexion</a>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

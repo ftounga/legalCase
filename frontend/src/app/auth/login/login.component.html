@@ -2,21 +2,154 @@
   <mat-card class="login-card">
     <mat-card-content>
       <img src="/legalcase-logo.png" alt="AI LegalCase" class="login-logo" />
-      <h1 class="login-title">Bienvenue sur AI LegalCase</h1>
-      <p class="login-subtitle">Connectez-vous pour accéder à vos dossiers</p>
 
-      <mat-divider class="login-divider" />
+      <mat-tab-group animationDuration="200ms" class="auth-tabs">
 
-      <div class="login-buttons">
-        <button mat-flat-button color="primary" class="login-btn" (click)="auth.loginWithGoogle()">
-          <mat-icon>login</mat-icon>
-          Se connecter avec Google
-        </button>
-        <button mat-stroked-button class="login-btn" (click)="auth.loginWithMicrosoft()">
-          <mat-icon>business_center</mat-icon>
-          Se connecter avec Microsoft
-        </button>
-      </div>
+        <!-- ===== ONGLET SE CONNECTER ===== -->
+        <mat-tab label="Se connecter">
+          <div class="tab-content">
+            <div class="oauth-buttons">
+              <button mat-flat-button color="primary" class="oauth-btn" (click)="auth.loginWithGoogle()">
+                <mat-icon>login</mat-icon>
+                Se connecter avec Google
+              </button>
+              <button mat-stroked-button class="oauth-btn" (click)="auth.loginWithMicrosoft()">
+                <mat-icon>business_center</mat-icon>
+                Se connecter avec Microsoft
+              </button>
+            </div>
+
+            <div class="separator"><span>ou</span></div>
+
+            <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" novalidate>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="email" autocomplete="email" />
+                <mat-error>Email invalide</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Mot de passe</mat-label>
+                <input matInput type="password" formControlName="password" autocomplete="current-password" />
+                <mat-error>Mot de passe obligatoire</mat-error>
+              </mat-form-field>
+
+              @if (loginError()) {
+                <p class="form-error">{{ loginError() }}</p>
+              }
+
+              <button mat-flat-button color="primary" type="submit" class="submit-btn"
+                      [disabled]="loginForm.invalid || loading()">
+                @if (loading()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Se connecter
+                }
+              </button>
+            </form>
+
+            <div class="forgot-section">
+              <button mat-button type="button" class="forgot-link" (click)="toggleForgot()">
+                Mot de passe oublié ?
+              </button>
+
+              @if (forgotVisible()) {
+                <div class="forgot-form">
+                  @if (forgotSuccess()) {
+                    <p class="form-success">
+                      Si un compte existe pour cet email, vous recevrez un lien de réinitialisation.
+                    </p>
+                  } @else {
+                    <form [formGroup]="forgotForm" (ngSubmit)="submitForgot()" novalidate>
+                      <mat-form-field appearance="outline" class="full-width">
+                        <mat-label>Votre email</mat-label>
+                        <input matInput type="email" formControlName="email" autocomplete="email" />
+                        <mat-error>Email invalide</mat-error>
+                      </mat-form-field>
+                      <button mat-stroked-button type="submit" class="full-width"
+                              [disabled]="forgotForm.invalid || loading()">
+                        Envoyer le lien
+                      </button>
+                    </form>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ===== ONGLET S'INSCRIRE ===== -->
+        <mat-tab label="S'inscrire">
+          <div class="tab-content">
+            <div class="oauth-buttons">
+              <button mat-flat-button color="primary" class="oauth-btn" (click)="auth.loginWithGoogle()">
+                <mat-icon>login</mat-icon>
+                S'inscrire avec Google
+              </button>
+              <button mat-stroked-button class="oauth-btn" (click)="auth.loginWithMicrosoft()">
+                <mat-icon>business_center</mat-icon>
+                S'inscrire avec Microsoft
+              </button>
+            </div>
+
+            <div class="separator"><span>ou</span></div>
+
+            @if (registerSuccess()) {
+              <div class="success-box">
+                <mat-icon class="success-icon">mark_email_read</mat-icon>
+                <p>Un email de validation a été envoyé. Vérifiez votre boîte mail pour activer votre compte.</p>
+              </div>
+            } @else {
+              <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" novalidate>
+                <div class="name-row">
+                  <mat-form-field appearance="outline" class="half-width">
+                    <mat-label>Prénom</mat-label>
+                    <input matInput formControlName="firstName" autocomplete="given-name" />
+                    <mat-error>Prénom obligatoire</mat-error>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="half-width">
+                    <mat-label>Nom</mat-label>
+                    <input matInput formControlName="lastName" autocomplete="family-name" />
+                    <mat-error>Nom obligatoire</mat-error>
+                  </mat-form-field>
+                </div>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Email</mat-label>
+                  <input matInput type="email" formControlName="email" autocomplete="email" />
+                  <mat-error>Email invalide</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Mot de passe</mat-label>
+                  <input matInput type="password" formControlName="password" autocomplete="new-password" />
+                  <mat-error>
+                    @if (registerForm.get('password')?.hasError('minlength')) {
+                      8 caractères minimum
+                    } @else {
+                      Mot de passe obligatoire
+                    }
+                  </mat-error>
+                </mat-form-field>
+
+                @if (registerError()) {
+                  <p class="form-error">{{ registerError() }}</p>
+                }
+
+                <button mat-flat-button color="primary" type="submit" class="submit-btn"
+                        [disabled]="registerForm.invalid || loading()">
+                  @if (loading()) {
+                    <mat-spinner diameter="20" />
+                  } @else {
+                    Créer mon compte
+                  }
+                </button>
+              </form>
+            }
+          </div>
+        </mat-tab>
+
+      </mat-tab-group>
     </mat-card-content>
   </mat-card>
 </div>
