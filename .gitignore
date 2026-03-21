@@ -1,0 +1,31 @@
+# Backend
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/.idea/
+backend/*.iml
+backend/*.iws
+backend/*.ipr
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+screenshoot
+
+# Env
+.env
+.env.local
+*.env
+
+# Landing page (artefact de démo, non versionné)
+landing/

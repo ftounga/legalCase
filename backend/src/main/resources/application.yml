@@ -44,6 +44,7 @@ app:
   frontend-url: http://localhost:4200
   mail:
     enabled: false
+    from: ${MAIL_FROM:${MAIL_USERNAME:}}
   stripe:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}
