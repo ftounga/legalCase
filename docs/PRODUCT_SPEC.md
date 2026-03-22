@@ -45,7 +45,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 |----|---------|-------------|--------|
 | F-03 | Création de dossier | Formulaire de création : titre, domaine juridique (EMPLOYMENT_LAW en V1), description optionnelle. | `Terminée` |
 | F-04 | Liste & consultation des dossiers | Dashboard principal. Liste paginée des dossiers du workspace. Navigation vers un dossier. Statuts visibles. | `Terminée` |
-| F-27 | Domaine juridique du workspace | Le workspace est lié à un unique domaine juridique, choisi à l'onboarding par l'owner. Renommage EMPLOYMENT_LAW → DROIT_DU_TRAVAIL. Modale de sélection avec 3 catégories (Droit du travail actif, Droit immigration + Droit immobilier en "bientôt disponible"). Les case files héritent du domaine du workspace. | `En cours` |
+| F-27 | Domaine juridique du workspace | Le workspace est lié à un unique domaine juridique, choisi à l'onboarding par l'owner. Renommage EMPLOYMENT_LAW → DROIT_DU_TRAVAIL. Modale de sélection avec 3 catégories (Droit du travail actif, Droit immigration + Droit immobilier en "bientôt disponible"). Les case files héritent du domaine du workspace. | `Terminée` |
 
 ### Bloc 3 — Documents
 
@@ -139,6 +139,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-22 | F-27 marquée Terminée — SF-27-01 (backend) + SF-27-02 (frontend modale onboarding) mergées | Product owner |
 | 2026-03-21 | F-27 ajoutée — domaine juridique workspace, renommage DROIT_DU_TRAVAIL, modale onboarding | Product owner |
 | 2026-03-17 | Création initiale — 17 features V1 définies | Product owner |
 | 2026-03-17 | F-01 marquée Terminée — 5 subfeatures mergées sur master | Product owner |
