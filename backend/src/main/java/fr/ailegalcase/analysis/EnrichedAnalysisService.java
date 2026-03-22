@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +53,7 @@ public class EnrichedAnalysisService {
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE)
+    @Transactional
     public void consumeReAnalysis(ReAnalysisMessage message) {
         UUID caseFileId = message.caseFileId();
 
@@ -95,8 +97,8 @@ public class EnrichedAnalysisService {
 
         try {
             String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult());
-            AnthropicResult result = anthropicService.analyzeChunk(prompt);
-            enrichedAnalysis.setAnalysisResult(result.content());
+            AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, prompt, 8192);
+            enrichedAnalysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content()));
             enrichedAnalysis.setModelUsed(result.modelUsed());
             enrichedAnalysis.setPromptTokens(result.promptTokens());
             enrichedAnalysis.setCompletionTokens(result.completionTokens());

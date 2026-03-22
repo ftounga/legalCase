@@ -126,7 +126,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
               j => j.status === 'PENDING' || j.status === 'PROCESSING'
             );
             const stillWaiting = updated.length === 0 && this.documents().length > 0 && !this.synthesis();
-            if (!stillRunning && !stillWaiting) {
+            const caseAnalysisDone = updated.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE');
+            const questionsDone = updated.some(j => j.jobType === 'QUESTION_GENERATION' && (j.status === 'DONE' || j.status === 'FAILED'));
+            const waitingForQuestions = caseAnalysisDone && !questionsDone;
+            if (!stillRunning && !stillWaiting && !waitingForQuestions) {
               this.stopPolling();
             }
           }
