@@ -9,6 +9,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -117,10 +119,15 @@ public class CaseAnalysisService {
         analysisJobRepository.save(job);
 
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
-            rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,
-                    RabbitMQConfig.AI_QUESTION_GENERATION_ROUTING_KEY,
-                    new AiQuestionGenerationMessage(caseFileId));
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,
+                            RabbitMQConfig.AI_QUESTION_GENERATION_ROUTING_KEY,
+                            new AiQuestionGenerationMessage(caseFileId));
+                }
+            });
             int promptTokens = analysis.getPromptTokens();
             int completionTokens = analysis.getCompletionTokens();
             caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
