@@ -122,7 +122,7 @@ public class AiQuestionService {
 
     static List<String> parseQuestions(String json) {
         try {
-            JsonNode root = MAPPER.readTree(json);
+            JsonNode root = MAPPER.readTree(CaseAnalysisResponse.stripMarkdownCodeBlock(json));
             JsonNode questionsNode = root.get("questions");
             if (questionsNode == null || !questionsNode.isArray()) return List.of();
             List<String> result = new ArrayList<>();

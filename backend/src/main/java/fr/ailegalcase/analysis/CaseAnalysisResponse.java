@@ -29,7 +29,7 @@ public record CaseAnalysisResponse(
         List<String> risques = List.of();
         List<String> questionsOuvertes = List.of();
 
-        String raw = analysis.getAnalysisResult();
+        String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
             try {
                 JsonNode root = MAPPER.readTree(raw);
@@ -63,6 +63,17 @@ public record CaseAnalysisResponse(
             if (item.isTextual()) result.add(item.asText());
         }
         return List.copyOf(result);
+    }
+
+    static String stripMarkdownCodeBlock(String raw) {
+        if (raw == null) return null;
+        String s = raw.strip();
+        if (s.startsWith("```")) {
+            int firstNewline = s.indexOf('\n');
+            if (firstNewline != -1) s = s.substring(firstNewline + 1);
+            if (s.endsWith("```")) s = s.substring(0, s.lastIndexOf("```")).strip();
+        }
+        return s;
     }
 
     private static List<TimelineEntry> extractTimeline(JsonNode root) {
