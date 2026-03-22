@@ -133,6 +133,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-22 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
 | F-23 | Collaboration avancée | V2+ | Partage de dossiers entre membres, commentaires |
 | F-24 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
+| F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
 
 ---
 
