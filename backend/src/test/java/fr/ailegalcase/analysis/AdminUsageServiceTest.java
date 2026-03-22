@@ -4,6 +4,7 @@ import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
@@ -25,6 +26,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class AdminUsageServiceTest {
@@ -34,9 +37,10 @@ class AdminUsageServiceTest {
     private final CaseFileRepository caseFileRepo = mock(CaseFileRepository.class);
     private final UsageEventRepository usageEventRepo = mock(UsageEventRepository.class);
     private final UserRepository userRepo = mock(UserRepository.class);
+    private final PlanLimitService planLimitService = mock(PlanLimitService.class);
 
     private final AdminUsageService service = new AdminUsageService(
-            authAccountRepo, memberRepo, caseFileRepo, usageEventRepo, userRepo);
+            authAccountRepo, memberRepo, caseFileRepo, usageEventRepo, userRepo, planLimitService);
 
     // U-01 : OWNER → retourne summary avec totaux corrects
     @Test
@@ -150,6 +154,22 @@ class AdminUsageServiceTest {
 
         assertThat(result.byCaseFile()).hasSize(2);
         assertThat(result.totalTokensInput()).isEqualTo(400);
+    }
+
+    // U-08 (SF-34-02) : monthlyTokensUsed et monthlyTokensBudget présents dans la réponse
+    @Test
+    void getWorkspaceSummary_returnsMonthlyTokensAndBudget() {
+        var ctx = buildContext("OWNER");
+        when(caseFileRepo.findByWorkspace_Id(ctx.workspace.getId())).thenReturn(List.of());
+        when(usageEventRepo.sumTokensByWorkspaceIdSince(eq(ctx.workspace.getId()), any(Instant.class)))
+                .thenReturn(123_456L);
+        when(planLimitService.getMonthlyTokenBudgetForWorkspace(ctx.workspace.getId()))
+                .thenReturn(3_000_000L);
+
+        WorkspaceUsageSummaryResponse result = service.getWorkspaceSummary(ctx.oidcUser, ctx.auth);
+
+        assertThat(result.monthlyTokensUsed()).isEqualTo(123_456L);
+        assertThat(result.monthlyTokensBudget()).isEqualTo(3_000_000L);
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────

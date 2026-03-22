@@ -8,5 +8,7 @@ public record WorkspaceUsageSummaryResponse(
         int totalTokensOutput,
         BigDecimal totalCost,
         List<UserUsageSummary> byUser,
-        List<CaseFileUsageSummary> byCaseFile
+        List<CaseFileUsageSummary> byCaseFile,
+        long monthlyTokensUsed,
+        long monthlyTokensBudget
 ) {}

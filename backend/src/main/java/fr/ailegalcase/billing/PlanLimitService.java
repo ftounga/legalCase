@@ -94,6 +94,12 @@ public class PlanLimitService {
                 .orElse(false);
     }
 
+    public long getMonthlyTokenBudgetForWorkspace(UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(sub -> getMonthlyTokenBudget(sub.getPlanCode()))
+                .orElse(0L);
+    }
+
     public boolean isEnrichedAnalysisAllowed(String planCode) {
         return "PRO".equals(planCode);
     }
