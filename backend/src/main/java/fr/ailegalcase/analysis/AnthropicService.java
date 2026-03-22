@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -68,19 +69,40 @@ public class AnthropicService {
                 "messages", List.of(Map.of("role", "user", "content", userMessage))
         );
 
-        AnthropicResponse response = restClient.post()
-                .uri("/v1/messages")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(body)
-                .retrieve()
-                .body(AnthropicResponse.class);
+        int[] backoffSeconds = {5, 15, 30, 60};
+        for (int attempt = 0; attempt <= backoffSeconds.length; attempt++) {
+            try {
+                AnthropicResponse response = restClient.post()
+                        .uri("/v1/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(body)
+                        .retrieve()
+                        .body(AnthropicResponse.class);
 
-        String content = response.content().get(0).text();
-        log.debug("Anthropic response received ({} chars, {} prompt tokens, {} completion tokens)",
-                content.length(), response.usage().inputTokens(), response.usage().outputTokens());
+                String content = response.content().get(0).text();
+                log.debug("Anthropic response received ({} chars, {} prompt tokens, {} completion tokens)",
+                        content.length(), response.usage().inputTokens(), response.usage().outputTokens());
 
-        return new AnthropicResult(content, response.model(),
-                response.usage().inputTokens(), response.usage().outputTokens());
+                return new AnthropicResult(content, response.model(),
+                        response.usage().inputTokens(), response.usage().outputTokens());
+
+            } catch (HttpServerErrorException e) {
+                boolean retryable = e.getStatusCode().value() == 529 || e.getStatusCode().value() == 529
+                        || e.getStatusCode().value() == 503 || e.getStatusCode().value() == 500;
+                if (retryable && attempt < backoffSeconds.length) {
+                    int wait = backoffSeconds[attempt];
+                    log.warn("Anthropic {} — tentative {}/{}, retry dans {}s", e.getStatusCode().value(),
+                            attempt + 1, backoffSeconds.length, wait);
+                    try { Thread.sleep(wait * 1000L); } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw e;
+                    }
+                } else {
+                    throw e;
+                }
+            }
+        }
+        throw new IllegalStateException("Unreachable");
     }
 
     private record AnthropicResponse(List<ContentBlock> content, String model, Usage usage) {
