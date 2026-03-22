@@ -3,6 +3,7 @@ package fr.ailegalcase.analysis;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
@@ -16,6 +17,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,17 +38,20 @@ public class AdminUsageService {
     private final CaseFileRepository caseFileRepository;
     private final UsageEventRepository usageEventRepository;
     private final UserRepository userRepository;
+    private final PlanLimitService planLimitService;
 
     public AdminUsageService(AuthAccountRepository authAccountRepository,
                              WorkspaceMemberRepository workspaceMemberRepository,
                              CaseFileRepository caseFileRepository,
                              UsageEventRepository usageEventRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             PlanLimitService planLimitService) {
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.caseFileRepository = caseFileRepository;
         this.usageEventRepository = usageEventRepository;
         this.userRepository = userRepository;
+        this.planLimitService = planLimitService;
     }
 
     @Transactional(readOnly = true)
@@ -63,10 +70,20 @@ public class AdminUsageService {
         }
 
         Workspace workspace = member.getWorkspace();
+        UUID workspaceId = workspace.getId();
 
-        List<CaseFile> caseFiles = caseFileRepository.findByWorkspace_Id(workspace.getId());
+        Instant startOfMonth = Instant.now()
+                .atOffset(ZoneOffset.UTC)
+                .with(TemporalAdjusters.firstDayOfMonth())
+                .withHour(0).withMinute(0).withSecond(0).withNano(0)
+                .toInstant();
+        long monthlyTokensUsed = usageEventRepository.sumTokensByWorkspaceIdSince(workspaceId, startOfMonth);
+        long monthlyTokensBudget = planLimitService.getMonthlyTokenBudgetForWorkspace(workspaceId);
+
+        List<CaseFile> caseFiles = caseFileRepository.findByWorkspace_Id(workspaceId);
         if (caseFiles.isEmpty()) {
-            return new WorkspaceUsageSummaryResponse(0, 0, BigDecimal.ZERO, List.of(), List.of());
+            return new WorkspaceUsageSummaryResponse(0, 0, BigDecimal.ZERO, List.of(), List.of(),
+                    monthlyTokensUsed, monthlyTokensBudget);
         }
 
         Set<UUID> caseFileIds = caseFiles.stream().map(CaseFile::getId).collect(Collectors.toSet());
@@ -75,7 +92,8 @@ public class AdminUsageService {
 
         List<UsageEvent> events = usageEventRepository.findByCaseFileIdIn(caseFileIds);
         if (events.isEmpty()) {
-            return new WorkspaceUsageSummaryResponse(0, 0, BigDecimal.ZERO, List.of(), List.of());
+            return new WorkspaceUsageSummaryResponse(0, 0, BigDecimal.ZERO, List.of(), List.of(),
+                    monthlyTokensUsed, monthlyTokensBudget);
         }
 
         // Totaux globaux
@@ -115,6 +133,7 @@ public class AdminUsageService {
                 ))
                 .toList();
 
-        return new WorkspaceUsageSummaryResponse(totalInput, totalOutput, totalCost, byUser, byCaseFile);
+        return new WorkspaceUsageSummaryResponse(totalInput, totalOutput, totalCost, byUser, byCaseFile,
+                monthlyTokensUsed, monthlyTokensBudget);
     }
 }

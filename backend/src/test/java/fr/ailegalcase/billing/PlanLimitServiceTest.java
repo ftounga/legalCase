@@ -262,4 +262,26 @@ class PlanLimitServiceTest {
 
         assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isFalse();
     }
+
+    // --- getMonthlyTokenBudgetForWorkspace ---
+
+    // U-06 (SF-34-02) : PRO → 20 000 000
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_pro_returns20M() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(workspaceId)).isEqualTo(20_000_000L);
+    }
+
+    // U-07 (SF-34-02) : sans souscription → 0 (illimité)
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_noSubscription_returns0() {
+        UUID workspaceId = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(workspaceId)).isEqualTo(0L);
+    }
 }

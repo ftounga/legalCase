@@ -20,4 +20,6 @@ export interface WorkspaceUsageSummary {
   totalCost: number;
   byUser: UserUsageSummary[];
   byCaseFile: CaseFileUsageSummary[];
+  monthlyTokensUsed: number;
+  monthlyTokensBudget: number;
 }

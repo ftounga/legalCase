@@ -133,3 +133,62 @@
   color: var(--color-text-secondary);
   font-style: italic;
 }
+
+.budget-unlimited {
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: 0;
+}
+
+.budget-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.budget-used {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.budget-sep {
+  color: var(--color-text-secondary);
+}
+
+.budget-total {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.budget-percent {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+
+  &.warn { color: #d32f2f; }
+  &.accent { color: #f57c00; }
+}
+
+.budget-bar {
+  border-radius: 4px;
+  height: 8px;
+  margin-bottom: 12px;
+}
+
+.budget-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #d32f2f;
+  font-size: 13px;
+  margin: 0;
+
+  .alert-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

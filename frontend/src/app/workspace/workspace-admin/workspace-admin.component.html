@@ -47,6 +47,43 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- Section Consommation tokens -->
+    @if (usage()) {
+      <mat-card class="section-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>bar_chart</mat-icon>
+            Consommation tokens ce mois
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (usage()!.monthlyTokensBudget === 0) {
+            <p class="budget-unlimited">Illimité (aucun abonnement actif)</p>
+          } @else {
+            <div class="budget-row">
+              <span class="budget-used">{{ formatTokens(usage()!.monthlyTokensUsed) }}</span>
+              <span class="budget-sep">/</span>
+              <span class="budget-total">{{ formatTokens(usage()!.monthlyTokensBudget) }} tokens</span>
+              <span class="budget-percent" [class.warn]="monthlyProgressPercent >= 80" [class.accent]="monthlyProgressPercent >= 60 && monthlyProgressPercent < 80">
+                {{ monthlyProgressPercent }}%
+              </span>
+            </div>
+            <mat-progress-bar
+              [value]="monthlyProgressPercent"
+              [color]="monthlyProgressColor"
+              class="budget-bar">
+            </mat-progress-bar>
+            @if (monthlyProgressPercent >= 80) {
+              <p class="budget-alert">
+                <mat-icon class="alert-icon">warning</mat-icon>
+                Budget proche ou atteint — les analyses peuvent être interrompues.
+              </p>
+            }
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+
     <!-- Section Membres -->
     <mat-card class="section-card">
       <mat-card-header>
