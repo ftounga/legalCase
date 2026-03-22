@@ -71,7 +71,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-12 | Restitution de l'analyse | Affichage structuré de la synthèse : timeline, faits, points juridiques, risques, questions ouvertes. | `Terminée` |
-| F-31 | Écran dédié synthèse | Page dédiée `/case-files/:id/synthesis` avec sections distinctes (Chronologie, Faits, Points juridiques, Risques, Questions ouvertes), navigation claire et bouton re-analyser. Remplace l'affichage inline dans la page dossier. | `En cours` |
+| F-31 | Écran dédié synthèse | Page dédiée `/case-files/:id/synthesis` avec sections distinctes (Chronologie, Faits, Points juridiques, Risques, Questions ouvertes), navigation claire et bouton re-analyser. Remplace l'affichage inline dans la page dossier. | `Terminée` |
 | F-13 | Questions IA interactives | L'IA génère des questions complémentaires après synthèse. Persistance dans `ai_questions`. | `Terminée` |
 | F-14 | Réponses avocat & re-synthèse | L'avocat répond aux questions IA. Persistance dans `ai_question_answers`. Déclenchement d'une nouvelle synthèse enrichie. | `Terminée` |
 
@@ -143,6 +143,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-22 | F-31 marquée Terminée — SF-31-01 mergée : SynthesisComponent écran dédié `/case-files/:id/synthesis`, 5 sections en cards, badge enrichi/initial, suppression bloc inline dans CaseFileDetailComponent | Product owner |
+| 2026-03-22 | F-31 ajoutée — écran dédié synthèse, remplacement du bloc inline trop dense dans la page dossier | Product owner |
 | 2026-03-22 | F-30 marquée Terminée — SF-30-01 mergée, concurrency=5 sur ChunkAnalysisService | Product owner |
 | 2026-03-22 | F-30 ajoutée — parallélisme pipeline IA, concurrence RabbitMQ pour réduire le temps d'analyse | Product owner |
 | 2026-03-22 | F-28 marquée Terminée — SF-28-01 (prompts compacts) + SF-28-02 (truncation Java déterministe) mergées | Product owner |
