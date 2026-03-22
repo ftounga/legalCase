@@ -155,9 +155,9 @@ Aucune.
 
 ## Notes et décisions
 
-**Pourquoi concurrency = 3 et pas plus ?**
+**Pourquoi concurrency = 5 ?**
 
-Avec le Tier 1 Anthropic (~50 req/min), 3 appels simultanés restent très en dessous des limites. Monter à 5 serait possible mais on préfère démarrer conservateur pour éviter les 529. Ajustable sans redéploiement via `application.properties` si nécessaire.
+Avec le Tier 1 Anthropic (~50 req/min), 5 appels simultanés restent très en dessous des limites. Le retry backoff exponentiel dans `AnthropicService.analyze()` gère les rares 529 — pas de raison de se brider. Donne ~1 min pour les chunks au lieu de ~5 min.
 
 **Pourquoi seulement ChunkAnalysisService ?**
 
