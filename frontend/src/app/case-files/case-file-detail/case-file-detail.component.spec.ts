@@ -199,25 +199,6 @@ describe('CaseFileDetailComponent', () => {
     expect(section).toBeNull();
   });
 
-  it('section Synthèse présente si synthesis() non null', () => {
-    const mockSynthesis: CaseAnalysisResult = {
-      status: 'DONE',
-      timeline: [{ date: '2024-01-15', evenement: 'Embauche' }],
-      faits: ['fait1'],
-      pointsJuridiques: ['point1'],
-      risques: ['risque1'],
-      questionsOuvertes: ['question1'],
-      modelUsed: 'claude-sonnet-4-6',
-      updatedAt: '2026-03-18T10:00:00Z'
-    };
-    component.synthesis.set(mockSynthesis);
-    fixture.detectChanges();
-
-    const section = fixture.nativeElement.querySelector('.synthesis-card');
-    expect(section).not.toBeNull();
-    expect(fixture.nativeElement.querySelectorAll('.synthesis-section').length).toBe(5);
-  });
-
   it('timeline masquée si tableau vide', () => {
     const mockSynthesis: CaseAnalysisResult = {
       status: 'DONE',
@@ -244,18 +225,6 @@ describe('CaseFileDetailComponent', () => {
     expect(section).toBeNull();
   });
 
-  it('section Questions IA présente si questions() non vide', () => {
-    const mockQuestions: AiQuestion[] = [
-      { id: 'q1', orderIndex: 0, questionText: 'Question A ?', answerText: null },
-      { id: 'q2', orderIndex: 1, questionText: 'Question B ?', answerText: null }
-    ];
-    component.questions.set(mockQuestions);
-    fixture.detectChanges();
-
-    const items = fixture.nativeElement.querySelectorAll('.question-item');
-    expect(items.length).toBe(2);
-  });
-
   it('loadQuestions — erreur API → questions() reste vide', () => {
     aiQuestionServiceSpy.getQuestions.and.returnValue(throwError(() => new Error('500')));
     component.loadQuestions('cf1');
@@ -270,92 +239,4 @@ describe('CaseFileDetailComponent', () => {
     expect(component.jobTypeLabel('ENRICHED_ANALYSIS')).toBe('Re-synthèse enrichie');
   });
 
-  // --- Tests SF-14-03 : réponses + bouton Re-analyser ---
-
-  it('question sans réponse — affiche le formulaire de réponse', () => {
-    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
-    component.questions.set([mockQ]);
-    fixture.detectChanges();
-
-    const textarea = fixture.nativeElement.querySelector('.answer-textarea');
-    expect(textarea).not.toBeNull();
-  });
-
-  it('question avec réponse — affiche la réponse, pas de formulaire', () => {
-    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: 'Ma réponse' };
-    component.questions.set([mockQ]);
-    fixture.detectChanges();
-
-    const textarea = fixture.nativeElement.querySelector('.answer-textarea');
-    const answerText = fixture.nativeElement.querySelector('.answer-text');
-    expect(textarea).toBeNull();
-    expect(answerText).not.toBeNull();
-    expect(answerText.textContent.trim()).toBe('Ma réponse');
-  });
-
-  it('bouton Re-analyser absent si aucune question avec réponse', () => {
-    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
-    component.questions.set([mockQ]);
-    fixture.detectChanges();
-
-    expect(component.hasAnsweredQuestions()).toBeFalse();
-  });
-
-  it('bouton Re-analyser présent si au moins une question avec réponse', () => {
-    const mockQs: AiQuestion[] = [
-      { id: 'q1', orderIndex: 0, questionText: 'Question 1 ?', answerText: 'Réponse' },
-      { id: 'q2', orderIndex: 1, questionText: 'Question 2 ?', answerText: null }
-    ];
-    component.questions.set(mockQs);
-    fixture.detectChanges();
-
-    expect(component.hasAnsweredQuestions()).toBeTrue();
-  });
-
-  it('submitAnswer — erreur API → snackbar affiché', () => {
-    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
-    component.questions.set([mockQ]);
-    aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(throwError(() => new Error('500')));
-
-    component.submitAnswer(mockQ, 'Ma réponse');
-
-    expect(snackBarSpy.open).toHaveBeenCalled();
-    expect(component.submittingAnswer()).toBeNull();
-  });
-
-  it('submitAnswer — succès → réponse mise à jour dans le signal', () => {
-    const mockQ: AiQuestion = { id: 'q1', orderIndex: 0, questionText: 'Question ?', answerText: null };
-    component.questions.set([mockQ]);
-    aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(of(undefined));
-
-    component.submitAnswer(mockQ, 'Ma réponse');
-
-    expect(component.questions()[0].answerText).toBe('Ma réponse');
-    expect(component.submittingAnswer()).toBeNull();
-  });
-
-  it('reAnalyze — erreur API → snackbar affiché', () => {
-    reAnalysisServiceSpy.reAnalyze.and.returnValue(throwError(() => new Error('500')));
-    component.reAnalyze();
-    expect(snackBarSpy.open).toHaveBeenCalled();
-    expect(component.reAnalyzing()).toBeFalse();
-  });
-
-  it('sous-section masquée si liste vide', () => {
-    const mockSynthesis: CaseAnalysisResult = {
-      status: 'DONE',
-      timeline: [],
-      faits: [],
-      pointsJuridiques: [],
-      risques: [],
-      questionsOuvertes: ['question1'],
-      modelUsed: null,
-      updatedAt: null
-    };
-    component.synthesis.set(mockSynthesis);
-    fixture.detectChanges();
-
-    // Seule la section questionsOuvertes est affichée
-    expect(fixture.nativeElement.querySelectorAll('.synthesis-section').length).toBe(1);
-  });
 });

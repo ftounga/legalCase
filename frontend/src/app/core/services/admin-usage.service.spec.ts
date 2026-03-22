@@ -8,7 +8,9 @@ const mockSummary: WorkspaceUsageSummary = {
   totalTokensOutput: 500,
   totalCost: 0.0045,
   byUser: [{ userId: 'u1', userEmail: 'test@test.com', tokensInput: 1000, tokensOutput: 500, totalCost: 0.0045 }],
-  byCaseFile: [{ caseFileId: 'cf1', caseFileTitle: 'Dossier A', tokensInput: 1000, tokensOutput: 500, totalCost: 0.0045 }]
+  byCaseFile: [{ caseFileId: 'cf1', caseFileTitle: 'Dossier A', tokensInput: 1000, tokensOutput: 500, totalCost: 0.0045 }],
+  monthlyTokensUsed: 0,
+  monthlyTokensBudget: 0
 };
 
 describe('AdminUsageService', () => {

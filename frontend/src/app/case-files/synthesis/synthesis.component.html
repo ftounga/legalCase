@@ -173,4 +173,60 @@
       }
     </div>
   }
+
+  <div class="chat-section">
+    <h2 class="chat-title">
+      <mat-icon>chat</mat-icon>
+      Chat avec le dossier
+    </h2>
+
+    @if (chatDisabled()) {
+      <div class="chat-disabled">
+        <mat-icon>info_outline</mat-icon>
+        <span>Synthèse requise pour utiliser le chat. Lancez une analyse d'abord.</span>
+      </div>
+    } @else {
+      <div class="chat-messages">
+        @if (chatMessages().length === 0) {
+          <p class="chat-empty">Aucun message. Posez votre première question.</p>
+        }
+        @for (msg of chatMessages(); track msg.id) {
+          <div class="chat-bubble chat-bubble--question">
+            <span class="chat-text">{{ msg.question }}</span>
+          </div>
+          <div class="chat-bubble chat-bubble--answer">
+            <span class="chat-text">{{ msg.answer }}</span>
+            <span class="chat-model-badge">{{ msg.modelUsed }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="chat-form">
+        <textarea
+          class="chat-input"
+          [(ngModel)]="chatQuestion"
+          placeholder="Posez votre question sur le dossier…"
+          rows="3"
+          [disabled]="chatLoading()"
+          (keydown.enter)="$event.preventDefault(); sendChatMessage()">
+        </textarea>
+        <div class="chat-actions">
+          <mat-checkbox [(ngModel)]="useEnriched" [disabled]="chatLoading()"
+                        matTooltip="Utilise Claude Sonnet (plan PRO requis). Sinon, Haiku est utilisé.">
+            Analyse approfondie
+          </mat-checkbox>
+          <button mat-flat-button color="primary"
+                  [disabled]="chatLoading() || !chatQuestion.trim()"
+                  (click)="sendChatMessage()">
+            @if (chatLoading()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>send</mat-icon>
+            }
+            Envoyer
+          </button>
+        </div>
+      </div>
+    }
+  </div>
 }
