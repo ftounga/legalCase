@@ -248,3 +248,138 @@
   display: inline-block;
   margin-right: 8px;
 }
+
+// Chat
+.chat-section {
+  margin-top: 32px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 20px 24px;
+}
+
+.chat-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: Merriweather, serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1C2B3A;
+  margin: 0 0 16px;
+
+  mat-icon {
+    color: #1A3A5C;
+  }
+}
+
+.chat-disabled {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6B7A8D;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  padding: 16px;
+  background: #F5F6FA;
+  border-radius: 6px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.chat-empty {
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  color: #6B7A8D;
+  text-align: center;
+  padding: 16px 0;
+  margin: 0;
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &--question {
+    align-self: flex-end;
+    background: #1A3A5C;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  &--answer {
+    align-self: flex-start;
+    background: #F5F6FA;
+    border: 1px solid #E0E4EA;
+    border-bottom-left-radius: 4px;
+  }
+}
+
+.chat-text {
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chat-model-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #6B7A8D;
+  align-self: flex-end;
+}
+
+.chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid #E0E4EA;
+  padding-top: 16px;
+}
+
+.chat-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #E0E4EA;
+  border-radius: 6px;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  color: #1C2B3A;
+  resize: vertical;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #1A3A5C;
+  }
+
+  &:disabled {
+    background: #F5F6FA;
+    color: #6B7A8D;
+  }
+}
+
+.chat-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}

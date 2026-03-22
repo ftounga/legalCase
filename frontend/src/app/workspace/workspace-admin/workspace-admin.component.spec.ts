@@ -4,10 +4,18 @@ import { of, throwError } from 'rxjs';
 import { WorkspaceAdminComponent } from './workspace-admin.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
+import { AdminUsageService } from '../../core/services/admin-usage.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Workspace } from '../../core/models/workspace.model';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
+import { WorkspaceUsageSummary } from '../../core/models/workspace-usage-summary.model';
 import { provideRouter } from '@angular/router';
+
+const mockUsageSummary: WorkspaceUsageSummary = {
+  totalTokensInput: 0, totalTokensOutput: 0, totalCost: 0,
+  byUser: [], byCaseFile: [],
+  monthlyTokensUsed: 0, monthlyTokensBudget: 0
+};
 
 const mockWorkspace: Workspace = {
   id: 'ws-1', name: 'Cabinet Alpha', slug: 'alpha',
@@ -30,21 +38,25 @@ describe('WorkspaceAdminComponent', () => {
   let fixture: ComponentFixture<WorkspaceAdminComponent>;
   let workspaceService: jasmine.SpyObj<WorkspaceService>;
   let memberService: jasmine.SpyObj<WorkspaceMemberService>;
+  let adminUsageService: jasmine.SpyObj<AdminUsageService>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
 
   async function setup(wsReturn: any, membersReturn: any) {
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
     memberService = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
+    adminUsageService = jasmine.createSpyObj('AdminUsageService', ['getSummary']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     workspaceService.getCurrentWorkspace.and.returnValue(wsReturn);
     memberService.getMembers.and.returnValue(membersReturn);
+    adminUsageService.getSummary.and.returnValue(of(mockUsageSummary));
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceAdminComponent, NoopAnimationsModule],
       providers: [
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceMemberService, useValue: memberService },
+        { provide: AdminUsageService, useValue: adminUsageService },
         { provide: MatSnackBar, useValue: snackBar },
         provideRouter([])
       ]

@@ -1,28 +1,34 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
+import { ChatService } from '../../core/services/chat.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { ChatMessage } from '../../core/models/chat-message.model';
 
 @Component({
   selector: 'app-synthesis',
   standalone: true,
   imports: [
-    RouterLink, DatePipe,
+    RouterLink, DatePipe, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatExpansionModule
+    MatProgressSpinnerModule, MatExpansionModule,
+    MatCheckboxModule, MatTooltipModule
   ],
   templateUrl: './synthesis.component.html',
   styleUrl: './synthesis.component.scss'
@@ -35,6 +41,12 @@ export class SynthesisComponent implements OnInit {
   reAnalyzing = signal(false);
   submittingAnswer = signal<string | null>(null);
 
+  chatMessages = signal<ChatMessage[]>([]);
+  chatLoading = signal(false);
+  chatDisabled = signal(false);
+  chatQuestion = '';
+  useEnriched = false;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -43,6 +55,7 @@ export class SynthesisComponent implements OnInit {
     private aiQuestionService: AiQuestionService,
     private aiQuestionAnswerService: AiQuestionAnswerService,
     private reAnalysisService: ReAnalysisService,
+    private chatService: ChatService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -53,6 +66,7 @@ export class SynthesisComponent implements OnInit {
         this.caseFile.set(cf);
         this.loadSynthesis(id);
         this.loadQuestions(id);
+        this.loadChatHistory(id);
       },
       error: () => {
         this.loading.set(false);
@@ -77,6 +91,45 @@ export class SynthesisComponent implements OnInit {
     this.aiQuestionService.getQuestions(id).subscribe({
       next: qs => this.questions.set(qs),
       error: () => {}
+    });
+  }
+
+  private loadChatHistory(id: string): void {
+    this.chatService.getHistory(id).subscribe({
+      next: msgs => this.chatMessages.set(msgs),
+      error: (err: any) => {
+        if (err.status === 424) {
+          this.chatDisabled.set(true);
+        }
+      }
+    });
+  }
+
+  sendChatMessage(): void {
+    const question = this.chatQuestion.trim();
+    if (!question || this.chatLoading()) return;
+    const id = this.caseFile()!.id;
+    this.chatLoading.set(true);
+    this.chatService.sendMessage(id, { question, useEnriched: this.useEnriched }).subscribe({
+      next: msg => {
+        this.chatMessages.update(msgs => [...msgs, msg]);
+        this.chatQuestion = '';
+        this.chatLoading.set(false);
+      },
+      error: (err: any) => {
+        this.chatLoading.set(false);
+        if (err.status === 402) {
+          this.snackBar.open('Limite de messages atteinte pour ce mois', 'Fermer', {
+            duration: 4000, panelClass: ['snack-error']
+          });
+        } else if (err.status === 424) {
+          this.chatDisabled.set(true);
+        } else {
+          this.snackBar.open("Erreur lors de l'envoi du message", 'Fermer', {
+            duration: 4000, panelClass: ['snack-error']
+          });
+        }
+      }
     });
   }
 
