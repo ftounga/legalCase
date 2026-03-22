@@ -90,7 +90,7 @@ public class AiQuestionService {
         AnthropicResult result = null;
         try {
             String prompt = caseAnalysis.getAnalysisResult();
-            result = anthropicService.analyzeChunk(prompt);
+            result = anthropicService.analyzeChunk(prompt, 4096);
             List<String> questions = parseQuestions(result.content());
 
             for (int i = 0; i < questions.size(); i++) {

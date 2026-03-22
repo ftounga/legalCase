@@ -51,6 +51,10 @@ public class AnthropicService {
     }
 
     public AnthropicResult analyzeChunk(String chunkText) {
+        return analyzeChunk(chunkText, 2048);
+    }
+
+    public AnthropicResult analyzeChunk(String chunkText, int maxTokens) {
         if (chunkText == null || chunkText.isBlank()) {
             throw new IllegalArgumentException("chunkText must not be empty");
         }
@@ -59,7 +63,7 @@ public class AnthropicService {
 
         Map<String, Object> body = Map.of(
                 "model", model,
-                "max_tokens", 2048,
+                "max_tokens", maxTokens,
                 "system", SYSTEM_PROMPT,
                 "messages", List.of(Map.of("role", "user", "content", chunkText))
         );
