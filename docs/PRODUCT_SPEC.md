@@ -143,6 +143,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-22 | F-31 SF-31-02 mergée — accordéon sur les sections synthèse, questions IA déplacées sur l'écran synthèse, bandeau compact sur page dossier | Product owner |
 | 2026-03-22 | F-31 marquée Terminée — SF-31-01 mergée : SynthesisComponent écran dédié `/case-files/:id/synthesis`, 5 sections en cards, badge enrichi/initial, suppression bloc inline dans CaseFileDetailComponent | Product owner |
 | 2026-03-22 | F-31 ajoutée — écran dédié synthèse, remplacement du bloc inline trop dense dans la page dossier | Product owner |
 | 2026-03-22 | F-30 marquée Terminée — SF-30-01 mergée, concurrency=5 sur ChunkAnalysisService | Product owner |
