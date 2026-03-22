@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 class EnrichedAnalysisServiceTest {
@@ -53,7 +54,7 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of(q));
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
                 .thenReturn(Optional.of(answer));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"enrichi\"]}", "claude-sonnet-4-6", 400, 200));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
@@ -89,7 +90,7 @@ class EnrichedAnalysisServiceTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyzeChunk(any())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
 
