@@ -16,8 +16,8 @@ export class WorkspaceService {
     return this.http.get<Workspace>(`${this.apiUrl}/current`);
   }
 
-  createWorkspace(name: string): Observable<Workspace> {
-    return this.http.post<Workspace>(this.apiUrl, { name });
+  createWorkspace(name: string, legalDomain: string): Observable<Workspace> {
+    return this.http.post<Workspace>(this.apiUrl, { name, legalDomain });
   }
 
   listWorkspaces(): Observable<Workspace[]> {

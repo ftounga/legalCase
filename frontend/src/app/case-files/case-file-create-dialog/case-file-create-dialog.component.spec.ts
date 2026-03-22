@@ -8,7 +8,7 @@ import { of, throwError } from 'rxjs';
 import { CaseFile } from '../../core/models/case-file.model';
 
 const mockCaseFile: CaseFile = {
-  id: 'cf1', title: 'Test', legalDomain: 'EMPLOYMENT_LAW',
+  id: 'cf1', title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL',
   description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z'
 };
 
@@ -59,7 +59,6 @@ describe('CaseFileCreateDialogComponent', () => {
     component.submit();
     expect(caseFileServiceSpy.create).toHaveBeenCalledWith({
       title: 'Licenciement Dupont',
-      legalDomain: 'EMPLOYMENT_LAW',
       description: undefined
     });
     expect(dialogRefSpy.close).toHaveBeenCalledWith(mockCaseFile);

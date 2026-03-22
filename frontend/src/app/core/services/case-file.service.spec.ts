@@ -5,7 +5,7 @@ import { Page } from '../models/page.model';
 import { CaseFile } from '../models/case-file.model';
 
 const mockCaseFile: CaseFile = {
-  id: 'cf1', title: 'Dossier A', legalDomain: 'EMPLOYMENT_LAW',
+  id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL',
   description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z'
 };
 
@@ -43,7 +43,7 @@ describe('CaseFileService', () => {
   });
 
   it('create — POST /api/v1/case-files', () => {
-    service.create({ title: 'Nouveau', legalDomain: 'EMPLOYMENT_LAW' })
+    service.create({ title: 'Nouveau' })
       .subscribe(result => expect(result).toEqual(mockCaseFile));
     const req = http.expectOne('/api/v1/case-files');
     expect(req.request.method).toBe('POST');

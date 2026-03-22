@@ -1,0 +1,93 @@
+.dialog-title {
+  font-family: 'Merriweather', serif;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.dialog-subtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0 0 24px;
+  padding: 0 24px;
+}
+
+.dialog-content {
+  padding: 0 24px 8px !important;
+  overflow: visible !important;
+}
+
+.domains-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.domain-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px 20px;
+  border: 2px solid var(--color-divider);
+  border-radius: 8px;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: center;
+  min-height: 160px;
+
+  &:hover:not(.domain-tile--disabled) {
+    border-color: var(--color-accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &--active {
+    border-color: var(--color-accent) !important;
+    border-width: 3px;
+    box-shadow: 0 4px 12px rgba(201, 151, 58, 0.2) !important;
+  }
+
+  &--disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+  }
+}
+
+.domain-icon {
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  color: var(--color-primary);
+
+  .domain-tile--active & {
+    color: var(--color-accent);
+  }
+}
+
+.domain-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.domain-subtitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.soon-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  background: #F5F5F5;
+  color: var(--color-text-secondary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}

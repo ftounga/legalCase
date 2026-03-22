@@ -9,6 +9,5 @@ export interface CaseFile {
 
 export interface CreateCaseFileRequest {
   title: string;
-  legalDomain: string;
   description?: string;
 }

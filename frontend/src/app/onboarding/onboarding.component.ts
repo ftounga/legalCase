@@ -5,9 +5,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { WorkspaceService } from '../core/services/workspace.service';
+import { DomainPickerDialogComponent } from './domain-picker-dialog/domain-picker-dialog.component';
 
 @Component({
   selector: 'app-onboarding',
@@ -28,6 +30,7 @@ export class OnboardingComponent {
     private fb: FormBuilder,
     private workspaceService: WorkspaceService,
     private router: Router,
+    private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {
     this.form = this.fb.group({
@@ -37,15 +40,26 @@ export class OnboardingComponent {
 
   submit(): void {
     if (this.form.invalid) return;
-    this.saving = true;
-    this.workspaceService.createWorkspace(this.form.value.name.trim()).subscribe({
-      next: () => this.router.navigate(['/case-files']),
-      error: () => {
-        this.saving = false;
-        this.snackBar.open('Erreur lors de la création du workspace. Veuillez réessayer.', 'Fermer', {
-          duration: 5000, panelClass: ['snack-error']
-        });
-      }
+    const name = this.form.value.name.trim();
+
+    const ref = this.dialog.open(DomainPickerDialogComponent, {
+      width: '640px',
+      data: { workspaceName: name },
+      disableClose: true
+    });
+
+    ref.afterClosed().subscribe((legalDomain: string | undefined) => {
+      if (!legalDomain) return;
+      this.saving = true;
+      this.workspaceService.createWorkspace(name, legalDomain).subscribe({
+        next: () => this.router.navigate(['/case-files']),
+        error: () => {
+          this.saving = false;
+          this.snackBar.open('Erreur lors de la création du workspace. Veuillez réessayer.', 'Fermer', {
+            duration: 5000, panelClass: ['snack-error']
+          });
+        }
+      });
     });
   }
 }

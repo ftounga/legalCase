@@ -23,7 +23,7 @@ describe('ShellComponent — invitation pendante', () => {
   let snackBar: jasmine.SpyObj<MatSnackBar>;
 
   beforeEach(async () => {
-    workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace']);
+    workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
     workspaceService.listWorkspaces.and.returnValue(of([ws1]));
     invitationService = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
@@ -117,7 +117,7 @@ describe('ShellComponent — workspace switcher', () => {
   let snackBar: jasmine.SpyObj<MatSnackBar>;
 
   beforeEach(async () => {
-    workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace']);
+    workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     const authServiceStub = { currentUser: signal(null), logout: () => {} };
@@ -205,7 +205,7 @@ describe('ShellComponent — lien super-admin', () => {
   let fixture: ComponentFixture<ShellComponent>;
 
   async function setupWithSuperAdmin(isSuperAdmin: boolean) {
-    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace']);
+    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
     workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
     workspaceService.listWorkspaces.and.returnValue(of([ws1]));
 
