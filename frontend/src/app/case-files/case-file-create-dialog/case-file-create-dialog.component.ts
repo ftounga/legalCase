@@ -36,7 +36,6 @@ export class CaseFileCreateDialogComponent {
     this.saving = true;
     this.caseFileService.create({
       title: this.form.value.title!,
-      legalDomain: 'EMPLOYMENT_LAW',
       description: this.form.value.description || undefined
     }).subscribe({
       next: caseFile => this.dialogRef.close(caseFile),

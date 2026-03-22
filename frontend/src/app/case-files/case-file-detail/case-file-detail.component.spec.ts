@@ -18,7 +18,7 @@ import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 
 const mockCaseFile: CaseFile = {
-  id: 'cf1', title: 'Dossier A', legalDomain: 'EMPLOYMENT_LAW',
+  id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL',
   description: 'Description test', status: 'OPEN', createdAt: '2026-03-17T10:00:00Z'
 };
 

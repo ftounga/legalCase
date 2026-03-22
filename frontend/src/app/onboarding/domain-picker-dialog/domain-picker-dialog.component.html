@@ -1,0 +1,28 @@
+<h2 mat-dialog-title class="dialog-title">Votre domaine principal</h2>
+<p class="dialog-subtitle">Choisissez le domaine juridique de <strong>{{ data.workspaceName }}</strong></p>
+
+<mat-dialog-content class="dialog-content">
+  <div class="domains-grid">
+    @for (domain of domains; track domain.key) {
+      <div
+        class="domain-tile"
+        [class.domain-tile--active]="domain.available && selected === domain.key"
+        [class.domain-tile--disabled]="!domain.available"
+        (click)="domain.available && (selected = domain.key)"
+      >
+        @if (!domain.available) {
+          <span class="soon-badge">Bientôt disponible</span>
+        }
+        <mat-icon class="domain-icon">{{ domain.icon }}</mat-icon>
+        <div class="domain-label">{{ domain.label }}</div>
+        <div class="domain-subtitle">{{ domain.subtitle }}</div>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" (click)="confirm()">
+    Confirmer
+  </button>
+</mat-dialog-actions>

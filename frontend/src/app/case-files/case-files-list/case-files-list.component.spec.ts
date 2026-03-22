@@ -5,12 +5,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { Page } from '../../core/models/page.model';
 import { CaseFile } from '../../core/models/case-file.model';
 
 const mockPage: Page<CaseFile> = {
-  content: [{ id: 'cf1', title: 'Dossier A', legalDomain: 'EMPLOYMENT_LAW', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z' }],
+  content: [{ id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z' }],
   totalElements: 1, totalPages: 1, size: 20, number: 0
 };
 
@@ -36,7 +38,9 @@ describe('CaseFilesListComponent', () => {
         { provide: MatDialog, useValue: dialogSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         provideRouter([]),
-        provideAnimationsAsync()
+        provideAnimationsAsync(),
+        provideHttpClient(),
+        provideHttpClientTesting()
       ]
     }).compileComponents();
     fixture = TestBed.createComponent(CaseFilesListComponent);
