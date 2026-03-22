@@ -65,7 +65,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | F-11 | Suivi des jobs asynchrones | Suivi de la progression des analyses en temps réel. Table `analysis_jobs`. Affichage statut et pourcentage. | `Terminée` |
 | F-28 | Scalabilité pipeline IA — résumés compacts | Les system prompts de DocumentAnalysisService et CaseAnalysisService imposent des contraintes de longueur explicites (nb max d'items par champ JSON) + truncation Java déterministe avant persistance. Garantit que l'input de chaque niveau reste borné quel que soit le nombre de documents uploadés. | `Terminée` |
 | F-30 | Parallélisme pipeline IA — concurrence RabbitMQ | Traitement parallèle des chunks via 5 consumers RabbitMQ concurrents. Réduit le temps d'analyse de ~6 min à ~2 min pour 3 documents. | `Terminée` |
-| F-32 | Optimisation coût LLM — modèle adaptatif par étape | Chunk + document analysis sur Claude Haiku (tâches simples, ~10x moins cher). Case analysis, question generation et enriched analysis restent sur Claude Sonnet (qualité critique). Réduction estimée ~80% des coûts LLM. Aucun impact fonctionnel visible. | `En cours` |
+| F-32 | Optimisation coût LLM — modèle adaptatif par étape | Chunk + document analysis sur Claude Haiku (tâches simples, ~10x moins cher). Case analysis, question generation et enriched analysis restent sur Claude Sonnet (qualité critique). Réduction estimée ~80% des coûts LLM. Aucun impact fonctionnel visible. | `Terminée` |
 
 ### Bloc 5 — Interaction avocat
 
@@ -147,6 +147,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-22 | F-32 Terminée — SF-32-01 mergée : Haiku sur chunk/document, Sonnet sur synthèses, réduction ~80% coûts LLM | Product owner |
 | 2026-03-22 | F-32 ajoutée — optimisation coût LLM modèle adaptatif (Haiku chunks/docs, Sonnet synthèses) | Product owner |
 | 2026-03-22 | F-33 ajoutée — limite re-analyses par dossier par plan, gate billing | Product owner |
 | 2026-03-22 | F-34 ajoutée — budget tokens mensuel par workspace, plafond et alertes | Product owner |
