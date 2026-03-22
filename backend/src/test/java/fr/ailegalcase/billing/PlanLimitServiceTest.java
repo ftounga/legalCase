@@ -2,6 +2,7 @@ package fr.ailegalcase.billing;
 
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.UsageEventRepository;
+import fr.ailegalcase.chat.ChatMessageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,11 +28,14 @@ class PlanLimitServiceTest {
     @Mock
     private UsageEventRepository usageEventRepository;
 
+    @Mock
+    private ChatMessageRepository chatMessageRepository;
+
     private PlanLimitService service;
 
     @BeforeEach
     void setUp() {
-        service = new PlanLimitService(subscriptionRepository, usageEventRepository);
+        service = new PlanLimitService(subscriptionRepository, usageEventRepository, chatMessageRepository);
     }
 
     // --- getMaxOpenCaseFiles ---
@@ -283,5 +287,42 @@ class PlanLimitServiceTest {
         when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
         assertThat(service.getMonthlyTokenBudgetForWorkspace(workspaceId)).isEqualTo(0L);
+    }
+
+    // --- isChatMessageLimitReached ---
+
+    // U-08 (SF-35-01) : PRO, sous la limite → false
+    @Test
+    void isChatMessageLimitReached_proUnderLimit_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(chatMessageRepository.countByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
+                .thenReturn(199L);
+
+        assertThat(service.isChatMessageLimitReached(workspaceId)).isFalse();
+    }
+
+    // U-09 (SF-35-01) : FREE, à la limite → true
+    @Test
+    void isChatMessageLimitReached_freeAtLimit_returnsTrue() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(chatMessageRepository.countByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
+                .thenReturn(10L);
+
+        assertThat(service.isChatMessageLimitReached(workspaceId)).isTrue();
+    }
+
+    // U-10 (SF-35-01) : sans souscription → false (fail open)
+    @Test
+    void isChatMessageLimitReached_noSubscription_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+
+        assertThat(service.isChatMessageLimitReached(workspaceId)).isFalse();
     }
 }
