@@ -2,6 +2,7 @@ package fr.ailegalcase.billing;
 
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.UsageEventRepository;
+import fr.ailegalcase.chat.ChatMessageRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -22,14 +23,20 @@ public class PlanLimitService {
     static final long FREE_MONTHLY_TOKEN_BUDGET    =   500_000L;
     static final long STARTER_MONTHLY_TOKEN_BUDGET = 3_000_000L;
     static final long PRO_MONTHLY_TOKEN_BUDGET     = 20_000_000L;
+    static final long FREE_MONTHLY_CHAT_LIMIT     =  10L;
+    static final long STARTER_MONTHLY_CHAT_LIMIT  =  50L;
+    static final long PRO_MONTHLY_CHAT_LIMIT      = 200L;
 
     private final SubscriptionRepository subscriptionRepository;
     private final UsageEventRepository usageEventRepository;
+    private final ChatMessageRepository chatMessageRepository;
 
     public PlanLimitService(SubscriptionRepository subscriptionRepository,
-                            UsageEventRepository usageEventRepository) {
+                            UsageEventRepository usageEventRepository,
+                            ChatMessageRepository chatMessageRepository) {
         this.subscriptionRepository = subscriptionRepository;
         this.usageEventRepository = usageEventRepository;
+        this.chatMessageRepository = chatMessageRepository;
     }
 
     public int getMaxOpenCaseFiles(String planCode) {
@@ -98,6 +105,27 @@ public class PlanLimitService {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
                 .map(sub -> getMonthlyTokenBudget(sub.getPlanCode()))
                 .orElse(0L);
+    }
+
+    long getMonthlyChatLimit(String planCode) {
+        if ("PRO".equals(planCode)) return PRO_MONTHLY_CHAT_LIMIT;
+        if ("FREE".equals(planCode)) return FREE_MONTHLY_CHAT_LIMIT;
+        return STARTER_MONTHLY_CHAT_LIMIT;
+    }
+
+    public boolean isChatMessageLimitReached(UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(sub -> {
+                    long limit = getMonthlyChatLimit(sub.getPlanCode());
+                    Instant startOfMonth = Instant.now()
+                            .atOffset(ZoneOffset.UTC)
+                            .with(TemporalAdjusters.firstDayOfMonth())
+                            .withHour(0).withMinute(0).withSecond(0).withNano(0)
+                            .toInstant();
+                    long used = chatMessageRepository.countByWorkspaceIdSince(workspaceId, startOfMonth);
+                    return used >= limit;
+                })
+                .orElse(false);
     }
 
     public boolean isEnrichedAnalysisAllowed(String planCode) {

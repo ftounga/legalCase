@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="024-create-chat-messages" author="ailegalcase">
+        <createTable tableName="chat_messages">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_chat_messages_case_file"
+                             references="case_files(id)" deleteCascade="true"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" foreignKeyName="fk_chat_messages_user"
+                             references="users(id)"/>
+            </column>
+            <column name="question" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="answer" type="TEXT"/>
+            <column name="model_used" type="VARCHAR(100)"/>
+            <column name="use_enriched" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="chat_messages" indexName="idx_chat_messages_case_file_id">
+            <column name="case_file_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
