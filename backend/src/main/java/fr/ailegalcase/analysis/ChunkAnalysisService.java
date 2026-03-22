@@ -82,7 +82,7 @@ public class ChunkAnalysisService {
         analysisJobRepository.save(job);
     }
 
-    @RabbitListener(queues = RabbitMQConfig.CHUNK_ANALYSIS_QUEUE)
+    @RabbitListener(queues = RabbitMQConfig.CHUNK_ANALYSIS_QUEUE, concurrency = "3")
     public void consumeChunkAnalysis(ChunkAnalysisMessage message) {
         UUID chunkId = message.chunkId();
 
