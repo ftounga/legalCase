@@ -3,9 +3,12 @@ package fr.ailegalcase.analysis;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.Document;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,6 +33,16 @@ class CaseAnalysisServiceTest {
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService);
 
+    @BeforeEach
+    void initTransactionSync() {
+        TransactionSynchronizationManager.initSynchronization();
+    }
+
+    @AfterEach
+    void clearTransactionSync() {
+        TransactionSynchronizationManager.clearSynchronization();
+    }
+
     // U-01 : analyses de documents valides → CaseAnalysis DONE + job DONE
     @Test
     void consumeCaseAnalysis_validDocumentAnalyses_persistsDoneAnalysisAndJob() {
@@ -45,7 +58,7 @@ class CaseAnalysisServiceTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-sonnet-4-6", 300, 150));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -84,7 +97,7 @@ class CaseAnalysisServiceTest {
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -112,13 +125,15 @@ class CaseAnalysisServiceTest {
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
+        // Simulate transaction commit to trigger afterCommit callbacks
+        TransactionSynchronizationManager.getSynchronizations().forEach(sync -> sync.afterCommit());
 
         verify(rabbitTemplate).convertAndSend(
                 RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,
@@ -162,7 +177,7 @@ class CaseAnalysisServiceTest {
                 .thenReturn(List.of(daLater, daEarlier)); // ordre inversé intentionnel
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -171,11 +186,21 @@ class CaseAnalysisServiceTest {
         service.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyzeChunk(promptCaptor.capture());
+        verify(anthropicService).analyze(any(), promptCaptor.capture(), anyInt());
         String prompt = promptCaptor.getValue();
         assertThat(prompt.indexOf("Document 0")).isLessThan(prompt.indexOf("Document 1"));
         assertThat(prompt).contains("{\"faits\":[\"A\"]}");
         assertThat(prompt.indexOf("{\"faits\":[\"A\"]}")).isLessThan(prompt.indexOf("{\"faits\":[\"B\"]}"));
+    }
+
+    // U-07 : le SYSTEM_PROMPT contient les contraintes de longueur SF-28-01
+    @Test
+    void systemPrompt_containsLengthConstraints() {
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 entrées timeline maximum");
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("7 faits maximum");
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 points_juridiques maximum");
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 risques maximum");
+        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 questions_ouvertes maximum");
     }
 
     // Helper

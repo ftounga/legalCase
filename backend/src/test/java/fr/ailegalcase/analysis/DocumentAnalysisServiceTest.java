@@ -74,7 +74,7 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.of(job));
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-sonnet-4-6", 200, 100));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
@@ -132,7 +132,7 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
 
@@ -183,7 +183,7 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
@@ -194,7 +194,7 @@ class DocumentAnalysisServiceTest {
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyzeChunk(promptCaptor.capture());
+        verify(anthropicService).analyze(any(), promptCaptor.capture(), anyInt());
         String prompt = promptCaptor.getValue();
         assertThat(prompt.indexOf("Chunk 0")).isLessThan(prompt.indexOf("Chunk 1"));
     }
@@ -225,7 +225,7 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L); // 1 DONE sur 3
@@ -265,7 +265,7 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
@@ -279,6 +279,15 @@ class DocumentAnalysisServiceTest {
                 eq(RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY),
                 any(CaseAnalysisMessage.class)
         );
+    }
+
+    // U-07 : le SYSTEM_PROMPT contient les contraintes de longueur SF-28-01
+    @Test
+    void systemPrompt_containsLengthConstraints() {
+        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("5 faits maximum");
+        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("3 points_juridiques maximum");
+        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("3 risques maximum");
+        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("3 questions_ouvertes maximum");
     }
 
     // Helpers

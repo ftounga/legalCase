@@ -28,6 +28,7 @@ public class DocumentAnalysisService {
             Produis une synthèse globale du document en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu : {"faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
+            Contraintes de longueur : 5 faits maximum, 3 points_juridiques maximum, 3 risques maximum, 3 questions_ouvertes maximum. Sois concis.
             """;
 
     private final ChunkAnalysisRepository chunkAnalysisRepository;
