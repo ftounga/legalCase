@@ -97,7 +97,7 @@ public class CaseAnalysisService {
 
         try {
             String aggregatedPrompt = buildAggregatedPrompt(documentAnalyses);
-            AnthropicResult result = anthropicService.analyzeChunk(aggregatedPrompt);
+            AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, aggregatedPrompt, 4096);
             analysis.setAnalysisResult(result.content());
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
