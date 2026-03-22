@@ -21,6 +21,7 @@ spring:
 anthropic:
   api-key: ${ANTHROPIC_API_KEY}
   model: claude-sonnet-4-6
+  model-fast: claude-haiku-4-5-20251001
 
 storage:
   s3:

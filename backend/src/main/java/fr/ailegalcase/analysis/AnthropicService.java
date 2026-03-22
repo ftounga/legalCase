@@ -32,12 +32,15 @@ public class AnthropicService {
 
     private final RestClient restClient;
     private final String model;
+    private final String modelFast;
 
     @Autowired
     public AnthropicService(@Value("${anthropic.api-key}") String apiKey,
                             @Value("${anthropic.model:claude-sonnet-4-6}") String model,
+                            @Value("${anthropic.model-fast:${anthropic.model:claude-sonnet-4-6}}") String modelFast,
                             RestClient.Builder builder) {
         this.model = model;
+        this.modelFast = modelFast;
         this.restClient = builder
                 .baseUrl("https://api.anthropic.com")
                 .defaultHeader("x-api-key", apiKey)
@@ -46,24 +49,33 @@ public class AnthropicService {
     }
 
     // Package-private constructor for unit tests
-    AnthropicService(String model, RestClient.Builder builder) {
+    AnthropicService(String model, String modelFast, RestClient.Builder builder) {
         this.model = model;
+        this.modelFast = modelFast;
         this.restClient = builder.baseUrl("https://api.anthropic.com").build();
     }
 
     public AnthropicResult analyzeChunk(String chunkText) {
-        return analyze(SYSTEM_PROMPT, chunkText, 2048);
+        return analyzeFast(SYSTEM_PROMPT, chunkText, 2048);
+    }
+
+    public AnthropicResult analyzeFast(String systemPrompt, String userMessage, int maxTokens) {
+        return doAnalyze(modelFast, systemPrompt, userMessage, maxTokens);
     }
 
     public AnthropicResult analyze(String systemPrompt, String userMessage, int maxTokens) {
+        return doAnalyze(model, systemPrompt, userMessage, maxTokens);
+    }
+
+    private AnthropicResult doAnalyze(String modelId, String systemPrompt, String userMessage, int maxTokens) {
         if (userMessage == null || userMessage.isBlank()) {
             throw new IllegalArgumentException("userMessage must not be empty");
         }
 
-        log.debug("Sending chunk ({} chars) to Anthropic model {}", userMessage.length(), model);
+        log.debug("Sending chunk ({} chars) to Anthropic model {}", userMessage.length(), modelId);
 
         Map<String, Object> body = Map.of(
-                "model", model,
+                "model", modelId,
                 "max_tokens", maxTokens,
                 "system", systemPrompt,
                 "messages", List.of(Map.of("role", "user", "content", userMessage))
