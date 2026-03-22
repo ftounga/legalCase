@@ -84,7 +84,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | F-16 | Gestion des abonnements | Plans Starter et Pro. Table `subscriptions`. Contrôle d'accès selon le plan. | `Terminée` |
 | F-33 | Limite de re-analyses par dossier | Gate billing : nombre maximum de re-analyses (ENRICHED_ANALYSIS) par dossier selon le plan (PRO = 5). Protège contre les dérapages de coût LLM sur les gros dossiers. | `Terminée` |
 | F-34 | Budget tokens mensuel par workspace | Plafond de tokens consommés par mois et par workspace selon le plan. Alerte super-admin si dépassement, blocage hard si seuil critique atteint. Visibilité en page admin. | `Terminée` |
-| F-35 | Chat libre sur dossier | L'avocat pose ses propres questions aux documents du dossier (mode RAG). Modèle adaptatif : Haiku pour questions factuelles, Sonnet pour analyses approfondies. Limite de messages/mois par plan. | `Planifiée` |
+| F-35 | Chat libre sur dossier | L'avocat pose ses propres questions aux documents du dossier (mode RAG). Modèle adaptatif : Haiku pour questions factuelles, Sonnet pour analyses approfondies. Limite de messages/mois par plan. | `En cours` |
 
 ### Bloc 7 — Workspace
 
@@ -154,6 +154,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-22 | F-32 ajoutée — optimisation coût LLM modèle adaptatif (Haiku chunks/docs, Sonnet synthèses) | Product owner |
 | 2026-03-22 | F-33 ajoutée — limite re-analyses par dossier par plan, gate billing | Product owner |
 | 2026-03-22 | F-34 ajoutée — budget tokens mensuel par workspace, plafond et alertes | Product owner |
+| 2026-03-22 | F-35 SF-35-01 mergée — backend chat : table chat_messages, ChatService/ChatController @Profile local, gates 402/424, Haiku/Sonnet adaptatif, limites FREE=10/STARTER=50/PRO=200 messages/mois | Product owner |
 | 2026-03-22 | F-35 ajoutée — chat libre sur dossier (RAG, modèle adaptatif, limites par plan) | Product owner |
 | 2026-03-22 | F-31 SF-31-02 mergée — accordéon sur les sections synthèse, questions IA déplacées sur l'écran synthèse, bandeau compact sur page dossier | Product owner |
 | 2026-03-22 | F-31 marquée Terminée — SF-31-01 mergée : SynthesisComponent écran dédié `/case-files/:id/synthesis`, 5 sections en cards, badge enrichi/initial, suppression bloc inline dans CaseFileDetailComponent | Product owner |

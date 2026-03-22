@@ -735,7 +735,39 @@ Règles :
 
 ---
 
-# 18 — Pipeline documentaire
+# 18 — Chat
+
+Table :
+
+chat_messages
+
+Champs :
+
+id (UUID PK — généré par JPA)
+case_file_id (UUID FK → case_files, cascade delete)
+user_id (UUID FK → users)
+question (TEXT, non nullable)
+answer (TEXT, nullable)
+model_used (varchar 100, nullable)
+use_enriched (boolean, non nullable, défaut false)
+created_at (timestamptz, non nullable)
+
+Règles :
+
+- Accès contrôlé : user doit appartenir au workspace propriétaire du dossier
+- Gate plan : isChatMessageLimitReached → 402 si limite mensuelle dépassée
+- Synthèse DONE requise → 424 si absente
+- Modèle : analyzeFast (Haiku) par défaut, analyze (Sonnet) si useEnriched=true et plan PRO
+- Limites mensuelles : FREE=10, STARTER=50, PRO=200 messages/mois
+- @Profile("local") — service et contrôleur inactifs en profil dev (H2)
+
+Index :
+
+idx_chat_messages_case_file_id
+
+---
+
+# 19 — Pipeline documentaire
 
 Étapes :
 
