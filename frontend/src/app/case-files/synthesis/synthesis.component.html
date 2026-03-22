@@ -1,0 +1,150 @@
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Chargement de la synthèse…</p>
+  </div>
+} @else if (!caseFile()) {
+  <div class="empty-state">
+    <mat-icon class="empty-icon">folder_off</mat-icon>
+    <p>Dossier introuvable.</p>
+    <a mat-button routerLink="/case-files">
+      <mat-icon>arrow_back</mat-icon>
+      Retour aux dossiers
+    </a>
+  </div>
+} @else if (!synthesis()) {
+  <div class="empty-state">
+    <mat-icon class="empty-icon">summarize</mat-icon>
+    <p>Synthèse non disponible.</p>
+    <a mat-button [routerLink]="['/case-files', caseFile()!.id]">
+      <mat-icon>arrow_back</mat-icon>
+      Retour au dossier
+    </a>
+  </div>
+} @else {
+  <div class="synthesis-header">
+    <a mat-button [routerLink]="['/case-files', caseFile()!.id]" class="back-btn">
+      <mat-icon>arrow_back</mat-icon>
+      Retour au dossier
+    </a>
+    <div class="title-row">
+      <h1 class="page-title">{{ caseFile()!.title }}</h1>
+      <span class="badge" [class.badge--accent]="hasAnsweredQuestions()" [class.badge--secondary]="!hasAnsweredQuestions()">
+        {{ hasAnsweredQuestions() ? 'Synthèse enrichie' : 'Synthèse initiale' }}
+      </span>
+    </div>
+    <div class="meta-row">
+      @if (synthesis()!.updatedAt) {
+        <span class="meta-date">
+          <mat-icon class="meta-icon">schedule</mat-icon>
+          Mis à jour le {{ synthesis()!.updatedAt | date:'dd/MM/yyyy à HH:mm' }}
+        </span>
+      }
+      @if (hasAnsweredQuestions()) {
+        <button mat-raised-button color="accent" (click)="reAnalyze()" [disabled]="reAnalyzing()">
+          @if (reAnalyzing()) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+          } @else {
+            <mat-icon>auto_fix_high</mat-icon>
+          }
+          Re-analyser
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="synthesis-sections">
+    @if (synthesis()!.timeline.length > 0) {
+      <mat-card class="section-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="section-icon section-icon--timeline">timeline</mat-icon>
+          <mat-card-title>Chronologie</mat-card-title>
+          <mat-card-subtitle>{{ synthesis()!.timeline.length }} événement(s)</mat-card-subtitle>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <div class="timeline">
+            @for (entry of synthesis()!.timeline; track entry.date) {
+              <div class="timeline-entry">
+                <span class="timeline-date">{{ entry.date }}</span>
+                <span class="timeline-event">{{ entry.evenement }}</span>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (synthesis()!.faits.length > 0) {
+      <mat-card class="section-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="section-icon section-icon--faits">gavel</mat-icon>
+          <mat-card-title>Faits</mat-card-title>
+          <mat-card-subtitle>{{ synthesis()!.faits.length }} élément(s)</mat-card-subtitle>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.faits; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (synthesis()!.pointsJuridiques.length > 0) {
+      <mat-card class="section-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="section-icon section-icon--juridique">balance</mat-icon>
+          <mat-card-title>Points juridiques</mat-card-title>
+          <mat-card-subtitle>{{ synthesis()!.pointsJuridiques.length }} point(s)</mat-card-subtitle>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.pointsJuridiques; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (synthesis()!.risques.length > 0) {
+      <mat-card class="section-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="section-icon section-icon--risques">warning_amber</mat-icon>
+          <mat-card-title>Risques</mat-card-title>
+          <mat-card-subtitle>{{ synthesis()!.risques.length }} risque(s)</mat-card-subtitle>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.risques; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (synthesis()!.questionsOuvertes.length > 0) {
+      <mat-card class="section-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar class="section-icon section-icon--questions">help_outline</mat-icon>
+          <mat-card-title>Questions ouvertes</mat-card-title>
+          <mat-card-subtitle>{{ synthesis()!.questionsOuvertes.length }} question(s)</mat-card-subtitle>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.questionsOuvertes; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}

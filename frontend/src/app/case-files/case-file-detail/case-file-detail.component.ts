@@ -15,7 +15,6 @@ import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
-import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
@@ -44,7 +43,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   loading = signal(true);
   uploading = signal(false);
   submittingAnswer = signal<string | null>(null);
-  reAnalyzing = signal(false);
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
 
@@ -58,7 +56,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private caseAnalysisService: CaseAnalysisService,
     private aiQuestionService: AiQuestionService,
     private aiQuestionAnswerService: AiQuestionAnswerService,
-    private reAnalysisService: ReAnalysisService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -190,25 +187,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.submittingAnswer.set(null);
         if (err.status === 402) return;
         this.snackBar.open('Erreur lors de la soumission de la réponse', 'Fermer', {
-          duration: 4000, panelClass: ['snack-error']
-        });
-      }
-    });
-  }
-
-  reAnalyze(): void {
-    const caseFileId = this.caseFile()?.id;
-    if (!caseFileId) return;
-    this.reAnalyzing.set(true);
-    this.reAnalysisService.reAnalyze(caseFileId).subscribe({
-      next: () => {
-        this.reAnalyzing.set(false);
-        this.loadAnalysisJobs(caseFileId);
-      },
-      error: (err: any) => {
-        this.reAnalyzing.set(false);
-        if (err.status === 402) return;
-        this.snackBar.open('Erreur lors du déclenchement de la re-analyse', 'Fermer', {
           duration: 4000, panelClass: ['snack-error']
         });
       }

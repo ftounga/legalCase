@@ -1,0 +1,176 @@
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 64px 24px;
+  color: #6B7A8D;
+
+  p {
+    font-family: Inter, sans-serif;
+    font-size: 16px;
+    margin: 0;
+  }
+}
+
+.empty-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #6B7A8D;
+}
+
+.synthesis-header {
+  margin-bottom: 24px;
+}
+
+.back-btn {
+  color: #6B7A8D;
+  margin-bottom: 8px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.page-title {
+  font-family: Merriweather, serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: #1C2B3A;
+  margin: 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+
+  &--accent {
+    background: #C9973A;
+    color: #fff;
+  }
+
+  &--secondary {
+    background: #E0E4EA;
+    color: #6B7A8D;
+  }
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  color: #6B7A8D;
+}
+
+.meta-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.btn-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.synthesis-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-card {
+  border-radius: 8px;
+
+  mat-card-header {
+    padding: 16px 16px 0;
+  }
+
+  mat-card-content {
+    padding: 16px;
+  }
+}
+
+.section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 20px;
+  color: #fff;
+
+  &--timeline { background: #1A3A5C; }
+  &--faits    { background: #2980B9; }
+  &--juridique { background: #8E44AD; }
+  &--risques  { background: #C0392B; }
+  &--questions { background: #C9973A; }
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.timeline-entry {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.timeline-date {
+  flex-shrink: 0;
+  min-width: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #C9973A;
+  padding-top: 2px;
+}
+
+.timeline-event {
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  color: #1C2B3A;
+  line-height: 1.5;
+}
+
+.synthesis-list {
+  margin: 4px 0 0;
+  padding-left: 20px;
+
+  li {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    color: #1C2B3A;
+    line-height: 1.6;
+    margin-bottom: 6px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}

@@ -124,81 +124,16 @@
       @if (synthesis()) {
         <div class="section-header">
           <h2 class="section-title">Synthèse</h2>
+          <a mat-raised-button color="primary" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+            <mat-icon>summarize</mat-icon>
+            Voir la synthèse
+          </a>
         </div>
-        <mat-card class="synthesis-card">
-          @if (synthesis()!.timeline.length > 0) {
-            <div class="synthesis-section">
-              <h3 class="synthesis-section-title">Chronologie</h3>
-              <div class="timeline">
-                @for (entry of synthesis()!.timeline; track entry.date) {
-                  <div class="timeline-entry">
-                    <span class="timeline-date">{{ entry.date }}</span>
-                    <span class="timeline-event">{{ entry.evenement }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-            <mat-divider></mat-divider>
-          }
-          @if (synthesis()!.faits.length > 0) {
-            <div class="synthesis-section">
-              <h3 class="synthesis-section-title">Faits</h3>
-              <ul class="synthesis-list">
-                @for (item of synthesis()!.faits; track item) {
-                  <li>{{ item }}</li>
-                }
-              </ul>
-            </div>
-            <mat-divider></mat-divider>
-          }
-          @if (synthesis()!.pointsJuridiques.length > 0) {
-            <div class="synthesis-section">
-              <h3 class="synthesis-section-title">Points juridiques</h3>
-              <ul class="synthesis-list">
-                @for (item of synthesis()!.pointsJuridiques; track item) {
-                  <li>{{ item }}</li>
-                }
-              </ul>
-            </div>
-            <mat-divider></mat-divider>
-          }
-          @if (synthesis()!.risques.length > 0) {
-            <div class="synthesis-section">
-              <h3 class="synthesis-section-title">Risques</h3>
-              <ul class="synthesis-list">
-                @for (item of synthesis()!.risques; track item) {
-                  <li>{{ item }}</li>
-                }
-              </ul>
-            </div>
-            <mat-divider></mat-divider>
-          }
-          @if (synthesis()!.questionsOuvertes.length > 0) {
-            <div class="synthesis-section">
-              <h3 class="synthesis-section-title">Questions ouvertes</h3>
-              <ul class="synthesis-list">
-                @for (item of synthesis()!.questionsOuvertes; track item) {
-                  <li>{{ item }}</li>
-                }
-              </ul>
-            </div>
-          }
-        </mat-card>
       }
 
       @if (questions().length > 0) {
         <div class="section-header">
           <h2 class="section-title">Questions IA</h2>
-          @if (hasAnsweredQuestions()) {
-            <button mat-raised-button color="accent" (click)="reAnalyze()" [disabled]="reAnalyzing()">
-              @if (reAnalyzing()) {
-                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-              } @else {
-                <mat-icon>auto_fix_high</mat-icon>
-              }
-              Re-analyser
-            </button>
-          }
         </div>
         <mat-card class="questions-card">
           @for (q of questions(); track q.id) {

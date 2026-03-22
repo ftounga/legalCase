@@ -28,6 +28,11 @@ export const routes: Routes = [
           .then(m => m.CaseFileDetailComponent)
       },
       {
+        path: 'case-files/:id/synthesis',
+        loadComponent: () => import('./case-files/synthesis/synthesis.component')
+          .then(m => m.SynthesisComponent)
+      },
+      {
         path: 'workspace/members',
         loadComponent: () => import('./workspace/workspace-members/workspace-members.component')
           .then(m => m.WorkspaceMembersComponent)
