@@ -83,7 +83,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | F-15 | Suivi consommation LLM | Traçabilité des tokens et coûts LLM par dossier et par user. Table `usage_events`. | `Terminée` |
 | F-16 | Gestion des abonnements | Plans Starter et Pro. Table `subscriptions`. Contrôle d'accès selon le plan. | `Terminée` |
 | F-33 | Limite de re-analyses par dossier | Gate billing : nombre maximum de re-analyses (ENRICHED_ANALYSIS) par dossier selon le plan (PRO = 5). Protège contre les dérapages de coût LLM sur les gros dossiers. | `Terminée` |
-| F-34 | Budget tokens mensuel par workspace | Plafond de tokens consommés par mois et par workspace selon le plan. Alerte super-admin si dépassement, blocage hard si seuil critique atteint. Visibilité en page admin. | `Planifiée` |
+| F-34 | Budget tokens mensuel par workspace | Plafond de tokens consommés par mois et par workspace selon le plan. Alerte super-admin si dépassement, blocage hard si seuil critique atteint. Visibilité en page admin. | `Terminée` |
 | F-35 | Chat libre sur dossier | L'avocat pose ses propres questions aux documents du dossier (mode RAG). Modèle adaptatif : Haiku pour questions factuelles, Sonnet pour analyses approfondies. Limite de messages/mois par plan. | `Planifiée` |
 
 ### Bloc 7 — Workspace
@@ -147,6 +147,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-22 | F-34 Terminée — SF-34-02 mergée : section budget mensuel dans page admin, barre de progression colorée, alerte ≥ 80 % | Product owner |
 | 2026-03-22 | F-34 SF-34-01 mergée — gate pipeline tokens mensuel (FREE 500K / STARTER 3M / PRO 20M), AnalysisStatus.SKIPPED, fail-open | Product owner |
 | 2026-03-22 | F-33 Terminée — SF-33-01 mergée : gate 402 si PRO ≥ 5 re-analyses par dossier, compteur via usage_events | Product owner |
 | 2026-03-22 | F-32 Terminée — SF-32-01 mergée : Haiku sur chunk/document, Sonnet sur synthèses, réduction ~80% coûts LLM | Product owner |
