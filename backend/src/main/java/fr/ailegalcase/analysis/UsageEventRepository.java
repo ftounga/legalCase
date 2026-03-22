@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface UsageEventRepository extends JpaRepository<UsageEvent, UUID> {
     List<UsageEvent> findByCaseFileIdOrderByCreatedAtDesc(UUID caseFileId);
+    long countByCaseFileIdAndEventType(UUID caseFileId, JobType eventType);
     List<UsageEvent> findByCaseFileIdIn(Collection<UUID> caseFileIds);
 
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
