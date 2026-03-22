@@ -132,31 +132,11 @@
       }
 
       @if (questions().length > 0) {
-        <div class="section-header">
-          <h2 class="section-title">Questions IA</h2>
-        </div>
-        <mat-card class="questions-card">
-          @for (q of questions(); track q.id) {
-            <div class="question-item">
-              <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
-              @if (q.answerText) {
-                <p class="answer-text">{{ q.answerText }}</p>
-              } @else {
-                <div class="answer-form">
-                  <textarea #answerInput class="answer-textarea" placeholder="Votre réponse..." rows="2"></textarea>
-                  <button mat-stroked-button color="primary"
-                          [disabled]="submittingAnswer() === q.id"
-                          (click)="submitAnswer(q, answerInput.value)">
-                    @if (submittingAnswer() === q.id) {
-                      <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-                    }
-                    Répondre
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </mat-card>
+        <a class="questions-banner" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+          <mat-icon>quiz</mat-icon>
+          {{ pendingQuestionsCount() }} question(s) IA en attente de réponse
+          <mat-icon class="banner-arrow">chevron_right</mat-icon>
+        </a>
       }
     </div>
   </div>
