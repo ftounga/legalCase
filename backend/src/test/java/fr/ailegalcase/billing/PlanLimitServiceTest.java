@@ -1,5 +1,7 @@
 package fr.ailegalcase.billing;
 
+import fr.ailegalcase.analysis.JobType;
+import fr.ailegalcase.analysis.UsageEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,11 +22,14 @@ class PlanLimitServiceTest {
     @Mock
     private SubscriptionRepository subscriptionRepository;
 
+    @Mock
+    private UsageEventRepository usageEventRepository;
+
     private PlanLimitService service;
 
     @BeforeEach
     void setUp() {
-        service = new PlanLimitService(subscriptionRepository);
+        service = new PlanLimitService(subscriptionRepository, usageEventRepository);
     }
 
     // --- getMaxOpenCaseFiles ---
@@ -151,5 +156,45 @@ class PlanLimitServiceTest {
         when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
 
         assertThat(service.isEnrichedAnalysisAllowedForWorkspace(workspaceId)).isFalse();
+    }
+
+    // --- isReAnalysisLimitReached ---
+
+    // U-03 : PRO, sous la limite → false
+    @Test
+    void isReAnalysisLimitReached_proUnderLimit_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, fr.ailegalcase.analysis.JobType.ENRICHED_ANALYSIS))
+                .thenReturn(4L);
+
+        assertThat(service.isReAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
+    }
+
+    // U-04 : PRO, à la limite → true
+    @Test
+    void isReAnalysisLimitReached_proAtLimit_returnsTrue() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, fr.ailegalcase.analysis.JobType.ENRICHED_ANALYSIS))
+                .thenReturn(5L);
+
+        assertThat(service.isReAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
+    }
+
+    // U-05 : sans subscription → false (fail open)
+    @Test
+    void isReAnalysisLimitReached_noSubscription_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+
+        assertThat(service.isReAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
     }
 }

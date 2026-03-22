@@ -62,6 +62,11 @@ public class ReAnalysisCommandService {
                     "La re-analyse enrichie est réservée au plan Pro.");
         }
 
+        if (planLimitService.isReAnalysisLimitReached(caseFileId, workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                    "Limite de re-analyses atteinte pour ce dossier.");
+        }
+
         AnalysisJob job = analysisJobRepository
                 .findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)
                 .orElseGet(() -> {
