@@ -5,11 +5,12 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
+import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
@@ -21,7 +22,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
   imports: [
     RouterLink, DatePipe,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatDividerModule
+    MatProgressSpinnerModule, MatExpansionModule
   ],
   templateUrl: './synthesis.component.html',
   styleUrl: './synthesis.component.scss'
@@ -32,6 +33,7 @@ export class SynthesisComponent implements OnInit {
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
   reAnalyzing = signal(false);
+  submittingAnswer = signal<string | null>(null);
 
   constructor(
     private route: ActivatedRoute,
@@ -39,6 +41,7 @@ export class SynthesisComponent implements OnInit {
     private caseFileService: CaseFileService,
     private caseAnalysisService: CaseAnalysisService,
     private aiQuestionService: AiQuestionService,
+    private aiQuestionAnswerService: AiQuestionAnswerService,
     private reAnalysisService: ReAnalysisService,
     private snackBar: MatSnackBar
   ) {}
@@ -79,6 +82,26 @@ export class SynthesisComponent implements OnInit {
 
   hasAnsweredQuestions(): boolean {
     return this.questions().some(q => q.answerText !== null);
+  }
+
+  submitAnswer(question: AiQuestion, answerText: string): void {
+    if (!answerText.trim()) return;
+    this.submittingAnswer.set(question.id);
+    this.aiQuestionAnswerService.submitAnswer(question.id, answerText.trim()).subscribe({
+      next: () => {
+        this.questions.update(qs => qs.map(q =>
+          q.id === question.id ? { ...q, answerText: answerText.trim() } : q
+        ));
+        this.submittingAnswer.set(null);
+      },
+      error: (err: any) => {
+        this.submittingAnswer.set(null);
+        if (err.status === 402) return;
+        this.snackBar.open('Erreur lors de la soumission de la réponse', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
   }
 
   reAnalyze(): void {

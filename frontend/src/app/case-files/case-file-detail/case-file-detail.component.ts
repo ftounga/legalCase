@@ -8,18 +8,16 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDividerModule } from '@angular/material/divider';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
-import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
+import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
-import { AiQuestion } from '../../core/models/ai-question.model';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -27,7 +25,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
   imports: [
     RouterLink, DatePipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule, MatDividerModule
+    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
@@ -42,7 +40,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
   uploading = signal(false);
-  submittingAnswer = signal<string | null>(null);
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
 
@@ -55,7 +52,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
     private aiQuestionService: AiQuestionService,
-    private aiQuestionAnswerService: AiQuestionAnswerService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -173,28 +169,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  submitAnswer(question: AiQuestion, answerText: string): void {
-    if (!answerText.trim()) return;
-    this.submittingAnswer.set(question.id);
-    this.aiQuestionAnswerService.submitAnswer(question.id, answerText.trim()).subscribe({
-      next: () => {
-        this.questions.update(qs => qs.map(q =>
-          q.id === question.id ? { ...q, answerText: answerText.trim() } : q
-        ));
-        this.submittingAnswer.set(null);
-      },
-      error: (err: any) => {
-        this.submittingAnswer.set(null);
-        if (err.status === 402) return;
-        this.snackBar.open('Erreur lors de la soumission de la réponse', 'Fermer', {
-          duration: 4000, panelClass: ['snack-error']
-        });
-      }
-    });
-  }
-
-  hasAnsweredQuestions(): boolean {
-    return this.questions().some(q => q.answerText !== null);
+  pendingQuestionsCount(): number {
+    return this.questions().filter(q => q.answerText === null).length;
   }
 
   loadSynthesis(caseFileId: string): void {

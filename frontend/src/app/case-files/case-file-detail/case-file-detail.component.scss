@@ -316,3 +316,35 @@
   padding: 2px 8px;
   border-radius: 4px;
 }
+
+.questions-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #FFF8EC;
+  border: 1px solid #C9973A;
+  border-radius: 8px;
+  color: #C9973A;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.15s;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .banner-arrow {
+    margin-left: auto;
+  }
+
+  &:hover {
+    background: #FFF0D0;
+  }
+}
