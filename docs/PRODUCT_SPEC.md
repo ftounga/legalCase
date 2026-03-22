@@ -147,6 +147,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-22 | F-34 SF-34-01 mergée — gate pipeline tokens mensuel (FREE 500K / STARTER 3M / PRO 20M), AnalysisStatus.SKIPPED, fail-open | Product owner |
 | 2026-03-22 | F-33 Terminée — SF-33-01 mergée : gate 402 si PRO ≥ 5 re-analyses par dossier, compteur via usage_events | Product owner |
 | 2026-03-22 | F-32 Terminée — SF-32-01 mergée : Haiku sur chunk/document, Sonnet sur synthèses, réduction ~80% coûts LLM | Product owner |
 | 2026-03-22 | F-32 ajoutée — optimisation coût LLM modèle adaptatif (Haiku chunks/docs, Sonnet synthèses) | Product owner |
