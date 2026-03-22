@@ -97,7 +97,7 @@ public class DocumentAnalysisService {
 
         try {
             String aggregatedPrompt = buildAggregatedPrompt(chunkAnalyses);
-            AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, aggregatedPrompt, 4096);
+            AnthropicResult result = anthropicService.analyzeFast(SYSTEM_PROMPT, aggregatedPrompt, 4096);
             analysis.setAnalysisResult(AnalysisJsonTruncator.truncateDocumentAnalysis(result.content()));
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());

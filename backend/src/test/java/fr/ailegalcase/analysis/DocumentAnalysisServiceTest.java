@@ -74,8 +74,8 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.of(job));
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
-                new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-sonnet-4-6", 200, 100));
+        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-haiku-4-5-20251001", 200, 100));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
         when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))
@@ -132,7 +132,7 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
 
@@ -183,8 +183,8 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
-                new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
+        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-haiku-4-5-20251001", 10, 5));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
@@ -194,7 +194,7 @@ class DocumentAnalysisServiceTest {
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyze(any(), promptCaptor.capture(), anyInt());
+        verify(anthropicService).analyzeFast(any(), promptCaptor.capture(), anyInt());
         String prompt = promptCaptor.getValue();
         assertThat(prompt.indexOf("Chunk 0")).isLessThan(prompt.indexOf("Chunk 1"));
     }
@@ -225,8 +225,8 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
-                new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
+        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-haiku-4-5-20251001", 10, 5));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L); // 1 DONE sur 3
 
@@ -265,8 +265,8 @@ class DocumentAnalysisServiceTest {
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
-                new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
+        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-haiku-4-5-20251001", 10, 5));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
         when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))

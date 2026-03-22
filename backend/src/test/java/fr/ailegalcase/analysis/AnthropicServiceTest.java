@@ -22,7 +22,7 @@ class AnthropicServiceTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        service = new AnthropicService("claude-sonnet-4-6", builder);
+        service = new AnthropicService("claude-sonnet-4-6", "claude-haiku-4-5-20251001", builder);
     }
 
     // U-01 : texte valide → appel API et retour du JSON avec tokens
