@@ -10,7 +10,9 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,9 @@ public class ExtractionService {
     private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
 
+    @Lazy @Autowired
+    private ExtractionService self;
+
     public ExtractionService(DocumentRepository documentRepository,
                              DocumentExtractionRepository extractionRepository,
                              StorageService storageService,
@@ -44,7 +49,7 @@ public class ExtractionService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onDocumentUploaded(DocumentUploadedEvent event) {
-        extract(event.documentId(), event.storageKey(), event.contentType());
+        self.extract(event.documentId(), event.storageKey(), event.contentType());
     }
 
     @Transactional

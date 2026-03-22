@@ -8,6 +8,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -54,6 +55,7 @@ public class CaseAnalysisService {
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE)
+    @Transactional
     public void consumeCaseAnalysis(CaseAnalysisMessage message) {
         UUID caseFileId = message.caseFileId();
 

@@ -18,7 +18,7 @@ class ChunkingServiceTest {
     private final ApplicationEventPublisher eventPublisher =
             mock(ApplicationEventPublisher.class);
 
-    private final ChunkingService service = new ChunkingService(extractionRepository, chunkRepository, eventPublisher);
+    private final ChunkingService service = new ChunkingService(extractionRepository, chunkRepository, eventPublisher, Runnable::run);
 
     // U-01 : texte < 1000 chars → 1 chunk
     @Test

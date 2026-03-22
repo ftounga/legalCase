@@ -2,8 +2,10 @@ package fr.ailegalcase.document;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -24,19 +26,24 @@ public class ChunkingService {
     private final DocumentExtractionRepository extractionRepository;
     private final DocumentChunkRepository chunkRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final TaskExecutor taskExecutor;
+
+    @Lazy @Autowired
+    private ChunkingService self;
 
     public ChunkingService(DocumentExtractionRepository extractionRepository,
                            DocumentChunkRepository chunkRepository,
-                           ApplicationEventPublisher eventPublisher) {
+                           ApplicationEventPublisher eventPublisher,
+                           TaskExecutor taskExecutor) {
         this.extractionRepository = extractionRepository;
         this.chunkRepository = chunkRepository;
         this.eventPublisher = eventPublisher;
+        this.taskExecutor = taskExecutor;
     }
 
-    @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onExtractionDone(ExtractionDoneEvent event) {
-        chunk(event.extractionId(), event.extractedText());
+        taskExecutor.execute(() -> self.chunk(event.extractionId(), event.extractedText()));
     }
 
     @Transactional

@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.Principal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -132,14 +133,20 @@ public class WorkspaceService {
                 .getUser();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public WorkspaceResponse getCurrentWorkspace(OidcUser oidcUser, String provider, Principal principal) {
         User user = resolveUser(oidcUser, provider, principal);
 
-        Workspace workspace = workspaceMemberRepository
+        WorkspaceMember member = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
-                .getWorkspace();
+                .orElseGet(() -> {
+                    List<WorkspaceMember> members = workspaceMemberRepository.findByUser(user);
+                    if (members.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found");
+                    WorkspaceMember fallback = members.get(0);
+                    fallback.setPrimary(true);
+                    return workspaceMemberRepository.save(fallback);
+                });
+        Workspace workspace = member.getWorkspace();
 
         Instant expiresAt = subscriptionRepository.findByWorkspaceId(workspace.getId())
                 .map(Subscription::getExpiresAt)
