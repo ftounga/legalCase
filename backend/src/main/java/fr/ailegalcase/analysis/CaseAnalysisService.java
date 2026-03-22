@@ -30,6 +30,7 @@ public class CaseAnalysisService {
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
             La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
+            Contraintes de longueur : 5 entrées timeline maximum, 7 faits maximum, 5 points_juridiques maximum, 5 risques maximum, 5 questions_ouvertes maximum. Sois concis.
             """;
 
     private final DocumentAnalysisRepository documentAnalysisRepository;

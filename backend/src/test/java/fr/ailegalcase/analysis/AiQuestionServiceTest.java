@@ -45,7 +45,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"questions\":[\"Q1 ?\",\"Q2 ?\",\"Q3 ?\"]}", "claude-sonnet-4-6", 100, 50));
         when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -83,7 +83,7 @@ class AiQuestionServiceTest {
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeQuestionGeneration(new AiQuestionGenerationMessage(caseFileId));
 
