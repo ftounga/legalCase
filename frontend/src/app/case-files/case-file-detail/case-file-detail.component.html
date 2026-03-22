@@ -12,199 +12,219 @@
     </div>
   </div>
 
-  <mat-card class="detail-card">
-    <mat-card-content>
-      <div class="detail-field">
-        <span class="field-label">Domaine juridique</span>
-        <span class="field-value">{{ caseFile()!.legalDomain }}</span>
-      </div>
-      <div class="detail-field">
-        <span class="field-label">Créé le</span>
-        <span class="field-value">{{ caseFile()!.createdAt | date:'dd/MM/yyyy à HH:mm' }}</span>
-      </div>
-      @if (caseFile()!.description) {
-        <div class="detail-field">
-          <span class="field-label">Description</span>
-          <p class="field-value description">{{ caseFile()!.description }}</p>
-        </div>
-      }
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Section Documents -->
-  <div class="section-header">
-    <h2 class="section-title">Documents</h2>
-    <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" hidden (change)="onFileSelected($event)">
-    <button mat-raised-button color="primary" (click)="triggerUpload()" [disabled]="uploading()">
-      @if (uploading()) {
-        <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-      } @else {
-        <mat-icon>upload_file</mat-icon>
-      }
-      Ajouter un document
-    </button>
-  </div>
-
-  @if (documents().length === 0) {
-    <div class="empty-docs">
-      <mat-icon class="empty-icon">folder_open</mat-icon>
-      <p>Aucun document dans ce dossier.</p>
-    </div>
-  } @else {
-    <mat-card class="docs-card">
-      <table mat-table [dataSource]="documents()" class="docs-table">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Nom</th>
-          <td mat-cell *matCellDef="let doc">{{ doc.originalFilename }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="type">
-          <th mat-header-cell *matHeaderCellDef>Type</th>
-          <td mat-cell *matCellDef="let doc">
-            <span class="type-badge">{{ doc.contentType.split('/')[1] | uppercase }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="size">
-          <th mat-header-cell *matHeaderCellDef>Taille</th>
-          <td mat-cell *matCellDef="let doc">{{ formatSize(doc.fileSize) }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="date">
-          <th mat-header-cell *matHeaderCellDef>Ajouté le</th>
-          <td mat-cell *matCellDef="let doc">{{ doc.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let doc">
-            <a mat-icon-button [href]="downloadUrl(doc)" target="_blank" title="Télécharger">
-              <mat-icon>download</mat-icon>
-            </a>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: docColumns;"></tr>
-      </table>
-    </mat-card>
-  }
-  @if (analysisJobs().length > 0) {
-    <div class="section-header">
-      <h2 class="section-title">Analyse IA</h2>
-    </div>
-    <mat-card class="analysis-card">
-      @for (job of analysisJobs(); track job.jobType) {
-        <div class="analysis-job-row">
-          <span class="job-label">{{ jobTypeLabel(job.jobType) }}</span>
-          <span class="badge {{ jobStatusClass(job.status) }}">{{ jobStatusLabel(job.status) }}</span>
-          <mat-progress-bar mode="determinate" [value]="job.progressPercentage" class="job-progress-bar"></mat-progress-bar>
-          <span class="job-percentage">{{ job.progressPercentage }}%</span>
-        </div>
-      }
-    </mat-card>
-  }
-  @if (synthesis()) {
-    <div class="section-header">
-      <h2 class="section-title">Synthèse</h2>
-    </div>
-    <mat-card class="synthesis-card">
-      @if (synthesis()!.timeline.length > 0) {
-        <div class="synthesis-section">
-          <h3 class="synthesis-section-title">Chronologie</h3>
-          <div class="timeline">
-            @for (entry of synthesis()!.timeline; track entry.date) {
-              <div class="timeline-entry">
-                <span class="timeline-date">{{ entry.date }}</span>
-                <span class="timeline-event">{{ entry.evenement }}</span>
-              </div>
-            }
+  <div class="detail-grid">
+    <!-- Colonne gauche : infos + documents -->
+    <div class="col-left">
+      <mat-card class="detail-card">
+        <mat-card-content>
+          <div class="detail-field">
+            <span class="field-label">Domaine juridique</span>
+            <span class="field-value">{{ caseFile()!.legalDomain }}</span>
           </div>
-        </div>
-        <mat-divider></mat-divider>
-      }
-      @if (synthesis()!.faits.length > 0) {
-        <div class="synthesis-section">
-          <h3 class="synthesis-section-title">Faits</h3>
-          <ul class="synthesis-list">
-            @for (item of synthesis()!.faits; track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </div>
-        <mat-divider></mat-divider>
-      }
-      @if (synthesis()!.pointsJuridiques.length > 0) {
-        <div class="synthesis-section">
-          <h3 class="synthesis-section-title">Points juridiques</h3>
-          <ul class="synthesis-list">
-            @for (item of synthesis()!.pointsJuridiques; track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </div>
-        <mat-divider></mat-divider>
-      }
-      @if (synthesis()!.risques.length > 0) {
-        <div class="synthesis-section">
-          <h3 class="synthesis-section-title">Risques</h3>
-          <ul class="synthesis-list">
-            @for (item of synthesis()!.risques; track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </div>
-        <mat-divider></mat-divider>
-      }
-      @if (synthesis()!.questionsOuvertes.length > 0) {
-        <div class="synthesis-section">
-          <h3 class="synthesis-section-title">Questions ouvertes</h3>
-          <ul class="synthesis-list">
-            @for (item of synthesis()!.questionsOuvertes; track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </div>
-      }
-    </mat-card>
-  }
-  @if (questions().length > 0) {
-    <div class="section-header">
-      <h2 class="section-title">Questions IA</h2>
-      @if (hasAnsweredQuestions()) {
-        <button mat-raised-button color="accent" (click)="reAnalyze()" [disabled]="reAnalyzing()">
-          @if (reAnalyzing()) {
-            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-          } @else {
-            <mat-icon>auto_fix_high</mat-icon>
-          }
-          Re-analyser
-        </button>
-      }
-    </div>
-    <mat-card class="questions-card">
-      @for (q of questions(); track q.id) {
-        <div class="question-item">
-          <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
-          @if (q.answerText) {
-            <p class="answer-text">{{ q.answerText }}</p>
-          } @else {
-            <div class="answer-form">
-              <textarea #answerInput class="answer-textarea" placeholder="Votre réponse..." rows="2"></textarea>
-              <button mat-stroked-button color="primary"
-                      [disabled]="submittingAnswer() === q.id"
-                      (click)="submitAnswer(q, answerInput.value)">
-                @if (submittingAnswer() === q.id) {
-                  <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-                }
-                Répondre
-              </button>
+          <div class="detail-field">
+            <span class="field-label">Créé le</span>
+            <span class="field-value">{{ caseFile()!.createdAt | date:'dd/MM/yyyy à HH:mm' }}</span>
+          </div>
+          @if (caseFile()!.description) {
+            <div class="detail-field">
+              <span class="field-label">Description</span>
+              <p class="field-value description">{{ caseFile()!.description }}</p>
             </div>
           }
+        </mat-card-content>
+      </mat-card>
+
+      <div class="section-header">
+        <h2 class="section-title">Documents</h2>
+        <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" hidden (change)="onFileSelected($event)">
+        <button mat-raised-button color="primary" (click)="triggerUpload()" [disabled]="uploading()">
+          @if (uploading()) {
+            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+          } @else {
+            <mat-icon>upload_file</mat-icon>
+          }
+          Ajouter un document
+        </button>
+      </div>
+
+      @if (documents().length === 0) {
+        <div class="empty-docs">
+          <mat-icon class="empty-icon">folder_open</mat-icon>
+          <p>Aucun document dans ce dossier.</p>
+        </div>
+      } @else {
+        <mat-card class="docs-card">
+          <table mat-table [dataSource]="documents()" class="docs-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Nom</th>
+              <td mat-cell *matCellDef="let doc">{{ doc.originalFilename }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let doc">
+                <span class="type-badge">{{ doc.contentType.split('/')[1] | uppercase }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="size">
+              <th mat-header-cell *matHeaderCellDef>Taille</th>
+              <td mat-cell *matCellDef="let doc">{{ formatSize(doc.fileSize) }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Ajouté le</th>
+              <td mat-cell *matCellDef="let doc">{{ doc.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let doc">
+                <a mat-icon-button [href]="downloadUrl(doc)" target="_blank" title="Télécharger">
+                  <mat-icon>download</mat-icon>
+                </a>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: docColumns;"></tr>
+          </table>
+        </mat-card>
+      }
+    </div>
+
+    <!-- Colonne droite : analyse IA -->
+    <div class="col-right">
+      @if (analysisJobs().length > 0) {
+        <div class="section-header section-header--first">
+          <h2 class="section-title">Analyse IA</h2>
+        </div>
+        <mat-card class="analysis-card">
+          @for (job of analysisJobs(); track job.jobType) {
+            <div class="analysis-job-row">
+              <span class="job-label">{{ jobTypeLabel(job.jobType) }}</span>
+              <span class="badge {{ jobStatusClass(job.status) }}">{{ jobStatusLabel(job.status) }}</span>
+              <mat-progress-bar mode="determinate" [value]="job.progressPercentage" class="job-progress-bar"></mat-progress-bar>
+              <span class="job-percentage">{{ job.progressPercentage }}%</span>
+            </div>
+          }
+        </mat-card>
+      } @else if (documents().length === 0) {
+        <div class="analysis-placeholder">
+          <mat-icon class="placeholder-icon">psychology</mat-icon>
+          <p>L'analyse IA démarrera après l'ajout du premier document.</p>
+        </div>
+      } @else {
+        <div class="analysis-placeholder">
+          <mat-spinner diameter="32"></mat-spinner>
+          <p>Analyse en cours de démarrage…</p>
         </div>
       }
-    </mat-card>
-  }
+
+      @if (synthesis()) {
+        <div class="section-header">
+          <h2 class="section-title">Synthèse</h2>
+        </div>
+        <mat-card class="synthesis-card">
+          @if (synthesis()!.timeline.length > 0) {
+            <div class="synthesis-section">
+              <h3 class="synthesis-section-title">Chronologie</h3>
+              <div class="timeline">
+                @for (entry of synthesis()!.timeline; track entry.date) {
+                  <div class="timeline-entry">
+                    <span class="timeline-date">{{ entry.date }}</span>
+                    <span class="timeline-event">{{ entry.evenement }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+            <mat-divider></mat-divider>
+          }
+          @if (synthesis()!.faits.length > 0) {
+            <div class="synthesis-section">
+              <h3 class="synthesis-section-title">Faits</h3>
+              <ul class="synthesis-list">
+                @for (item of synthesis()!.faits; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            </div>
+            <mat-divider></mat-divider>
+          }
+          @if (synthesis()!.pointsJuridiques.length > 0) {
+            <div class="synthesis-section">
+              <h3 class="synthesis-section-title">Points juridiques</h3>
+              <ul class="synthesis-list">
+                @for (item of synthesis()!.pointsJuridiques; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            </div>
+            <mat-divider></mat-divider>
+          }
+          @if (synthesis()!.risques.length > 0) {
+            <div class="synthesis-section">
+              <h3 class="synthesis-section-title">Risques</h3>
+              <ul class="synthesis-list">
+                @for (item of synthesis()!.risques; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            </div>
+            <mat-divider></mat-divider>
+          }
+          @if (synthesis()!.questionsOuvertes.length > 0) {
+            <div class="synthesis-section">
+              <h3 class="synthesis-section-title">Questions ouvertes</h3>
+              <ul class="synthesis-list">
+                @for (item of synthesis()!.questionsOuvertes; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </mat-card>
+      }
+
+      @if (questions().length > 0) {
+        <div class="section-header">
+          <h2 class="section-title">Questions IA</h2>
+          @if (hasAnsweredQuestions()) {
+            <button mat-raised-button color="accent" (click)="reAnalyze()" [disabled]="reAnalyzing()">
+              @if (reAnalyzing()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>auto_fix_high</mat-icon>
+              }
+              Re-analyser
+            </button>
+          }
+        </div>
+        <mat-card class="questions-card">
+          @for (q of questions(); track q.id) {
+            <div class="question-item">
+              <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
+              @if (q.answerText) {
+                <p class="answer-text">{{ q.answerText }}</p>
+              } @else {
+                <div class="answer-form">
+                  <textarea #answerInput class="answer-textarea" placeholder="Votre réponse..." rows="2"></textarea>
+                  <button mat-stroked-button color="primary"
+                          [disabled]="submittingAnswer() === q.id"
+                          (click)="submitAnswer(q, answerInput.value)">
+                    @if (submittingAnswer() === q.id) {
+                      <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                    }
+                    Répondre
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </mat-card>
+      }
+    </div>
+  </div>
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }

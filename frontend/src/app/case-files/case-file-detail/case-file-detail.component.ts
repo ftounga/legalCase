@@ -98,6 +98,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       next: jobs => {
         this.analysisJobs.set(jobs);
         this.managePolling(caseFileId, jobs);
+        if (jobs.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE')) {
+          this.loadSynthesis(caseFileId);
+        }
+        if (jobs.some(j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE')) {
+          this.loadQuestions(caseFileId);
+        }
       },
       error: () => {
         // Silencieux — pas de section Analyse IA affichée
@@ -109,8 +115,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const hasPendingOrProcessing = jobs.some(
       j => j.status === 'PENDING' || j.status === 'PROCESSING'
     );
+    const analysisStarting = jobs.length === 0 && this.documents().length > 0 && !this.synthesis();
 
-    if (hasPendingOrProcessing && !this.pollingInterval) {
+    if ((hasPendingOrProcessing || analysisStarting) && !this.pollingInterval) {
       this.pollingInterval = setInterval(() => {
         this.analysisJobService.getJobs(caseFileId).subscribe({
           next: updated => {
@@ -118,13 +125,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
             const stillRunning = updated.some(
               j => j.status === 'PENDING' || j.status === 'PROCESSING'
             );
-            if (!stillRunning) {
+            const stillWaiting = updated.length === 0 && this.documents().length > 0 && !this.synthesis();
+            if (!stillRunning && !stillWaiting) {
               this.stopPolling();
             }
           }
         });
-      }, 5000);
-    } else if (!hasPendingOrProcessing) {
+      }, 3000);
+    } else if (!hasPendingOrProcessing && !analysisStarting) {
       this.stopPolling();
     }
   }

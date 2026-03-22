@@ -25,6 +25,26 @@
   }
 }
 
+/* Layout 2 colonnes */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xl);
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.col-left,
+.col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Carte infos */
 .detail-card {
   padding: var(--spacing-lg);
 }
@@ -60,12 +80,17 @@
   }
 }
 
+/* Section headers */
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-top: var(--spacing-2xl);
   margin-bottom: var(--spacing-md);
+
+  &--first {
+    margin-top: 0;
+  }
 }
 
 .section-title {
@@ -80,6 +105,7 @@
   margin-right: var(--spacing-xs);
 }
 
+/* Documents */
 .empty-docs {
   display: flex;
   flex-direction: column;
@@ -104,6 +130,32 @@
   width: 100%;
 }
 
+/* Placeholder analyse IA */
+.analysis-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-divider);
+  border-radius: 8px;
+
+  .placeholder-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    opacity: 0.35;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    text-align: center;
+  }
+}
+
+/* Analyse IA */
 .analysis-card {
   padding: var(--spacing-lg);
 }
@@ -139,6 +191,7 @@
   text-align: right;
 }
 
+/* Synthèse */
 .synthesis-card {
   padding: var(--spacing-lg);
 }
@@ -199,6 +252,7 @@
   line-height: 1.5;
 }
 
+/* Questions IA */
 .questions-card {
   padding: var(--spacing-lg);
 }

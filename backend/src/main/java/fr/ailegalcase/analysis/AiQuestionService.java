@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,7 @@ public class AiQuestionService {
     }
 
     @RabbitListener(queues = RabbitMQConfig.AI_QUESTION_GENERATION_QUEUE)
+    @Transactional
     public void consumeQuestionGeneration(AiQuestionGenerationMessage message) {
         UUID caseFileId = message.caseFileId();
 
