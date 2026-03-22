@@ -66,12 +66,13 @@ class ReAnalysisCommandServiceTest {
         lenient().when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
-    // U-01 : plan PRO, sous la limite → re-analyse autorisée, RabbitMQ publié
+    // U-01 : plan PRO, sous la limite, budget non dépassé → re-analyse autorisée, RabbitMQ publié
     @Test
     void triggerReAnalysis_proPlan_publishesMessage() {
         mockUserWorkspaceAndCaseFile();
         when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
+        when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(false);
 
         service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
 
@@ -120,6 +121,7 @@ class ReAnalysisCommandServiceTest {
         mockUserWorkspaceAndCaseFile();
         when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
+        when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(false);
 
         service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
 
@@ -127,5 +129,23 @@ class ReAnalysisCommandServiceTest {
                 eq(RabbitMQConfig.RE_ANALYSIS_EXCHANGE),
                 eq(RabbitMQConfig.RE_ANALYSIS_ROUTING_KEY),
                 any(ReAnalysisMessage.class));
+    }
+
+    // U-06 : budget mensuel dépassé → 402, RabbitMQ non publié
+    @Test
+    void triggerReAnalysis_budgetExceeded_throws402() {
+        mockUserWorkspaceAndCaseFile();
+        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
+        when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
+        when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    var rse = (ResponseStatusException) ex;
+                    assert rse.getStatusCode() == PAYMENT_REQUIRED;
+                });
+
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
     }
 }

@@ -67,6 +67,11 @@ public class ReAnalysisCommandService {
                     "Limite de re-analyses atteinte pour ce dossier.");
         }
 
+        if (planLimitService.isMonthlyTokenBudgetExceeded(workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                    "Budget tokens mensuel dépassé.");
+        }
+
         AnalysisJob job = analysisJobRepository
                 .findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)
                 .orElseGet(() -> {

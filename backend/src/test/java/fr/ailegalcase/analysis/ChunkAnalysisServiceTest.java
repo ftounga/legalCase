@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.ChunkingDoneEvent;
 import fr.ailegalcase.document.DocumentChunk;
@@ -30,11 +31,12 @@ class ChunkAnalysisServiceTest {
     private final DocumentExtractionRepository extractionRepository = mock(DocumentExtractionRepository.class);
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
+    private final PlanLimitService planLimitService = mock(PlanLimitService.class);
 
     private final ChunkAnalysisService service = new ChunkAnalysisService(
             rabbitTemplate, chunkRepository, analysisRepository, documentAnalysisRepository,
             anthropicService, analysisJobRepository, extractionRepository,
-            usageEventService, caseFileRepository);
+            usageEventService, caseFileRepository, planLimitService);
 
     // U-01 : onChunkingDone publie 1 message par chunk + crée le job
     @Test

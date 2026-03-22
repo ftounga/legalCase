@@ -2,7 +2,9 @@ package fr.ailegalcase.analysis;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -24,4 +26,14 @@ public interface UsageEventRepository extends JpaRepository<UsageEvent, UUID> {
             GROUP BY cf.workspace_id
             """, nativeQuery = true)
     List<Object[]> aggregateByWorkspaceId();
+
+    @Query(value = """
+            SELECT COALESCE(SUM(u.tokens_input + u.tokens_output), 0)
+            FROM usage_events u
+            JOIN case_files cf ON cf.id = u.case_file_id
+            WHERE cf.workspace_id = :workspaceId
+              AND u.created_at >= :startOfMonth
+            """, nativeQuery = true)
+    long sumTokensByWorkspaceIdSince(@Param("workspaceId") UUID workspaceId,
+                                     @Param("startOfMonth") Instant startOfMonth);
 }
