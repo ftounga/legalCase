@@ -51,21 +51,21 @@ public class AnthropicService {
     }
 
     public AnthropicResult analyzeChunk(String chunkText) {
-        return analyzeChunk(chunkText, 2048);
+        return analyze(SYSTEM_PROMPT, chunkText, 2048);
     }
 
-    public AnthropicResult analyzeChunk(String chunkText, int maxTokens) {
-        if (chunkText == null || chunkText.isBlank()) {
-            throw new IllegalArgumentException("chunkText must not be empty");
+    public AnthropicResult analyze(String systemPrompt, String userMessage, int maxTokens) {
+        if (userMessage == null || userMessage.isBlank()) {
+            throw new IllegalArgumentException("userMessage must not be empty");
         }
 
-        log.debug("Sending chunk ({} chars) to Anthropic model {}", chunkText.length(), model);
+        log.debug("Sending chunk ({} chars) to Anthropic model {}", userMessage.length(), model);
 
         Map<String, Object> body = Map.of(
                 "model", model,
                 "max_tokens", maxTokens,
-                "system", SYSTEM_PROMPT,
-                "messages", List.of(Map.of("role", "user", "content", chunkText))
+                "system", systemPrompt,
+                "messages", List.of(Map.of("role", "user", "content", userMessage))
         );
 
         AnthropicResponse response = restClient.post()
