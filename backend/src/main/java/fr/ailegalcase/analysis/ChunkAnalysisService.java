@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.ChunkingDoneEvent;
 import fr.ailegalcase.document.DocumentChunk;
@@ -32,6 +33,7 @@ public class ChunkAnalysisService {
     private final DocumentExtractionRepository extractionRepository;
     private final UsageEventService usageEventService;
     private final CaseFileRepository caseFileRepository;
+    private final PlanLimitService planLimitService;
 
     public ChunkAnalysisService(RabbitTemplate rabbitTemplate,
                                 DocumentChunkRepository chunkRepository,
@@ -41,7 +43,8 @@ public class ChunkAnalysisService {
                                 AnalysisJobRepository analysisJobRepository,
                                 DocumentExtractionRepository extractionRepository,
                                 UsageEventService usageEventService,
-                                CaseFileRepository caseFileRepository) {
+                                CaseFileRepository caseFileRepository,
+                                PlanLimitService planLimitService) {
         this.rabbitTemplate = rabbitTemplate;
         this.chunkRepository = chunkRepository;
         this.analysisRepository = analysisRepository;
@@ -51,6 +54,7 @@ public class ChunkAnalysisService {
         this.extractionRepository = extractionRepository;
         this.usageEventService = usageEventService;
         this.caseFileRepository = caseFileRepository;
+        this.planLimitService = planLimitService;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -95,6 +99,21 @@ public class ChunkAnalysisService {
         if (chunk.getChunkText() == null || chunk.getChunkText().isBlank()) {
             log.warn("Chunk {} has empty text — analysis skipped", chunkId);
             return;
+        }
+
+        UUID caseFileIdForBudget = chunk.getExtraction() != null
+                ? extractionRepository.findCaseFileIdById(chunk.getExtraction().getId()).orElse(null)
+                : null;
+        if (caseFileIdForBudget != null) {
+            UUID workspaceIdForBudget = caseFileRepository.findWorkspaceIdById(caseFileIdForBudget).orElse(null);
+            if (workspaceIdForBudget != null && planLimitService.isMonthlyTokenBudgetExceeded(workspaceIdForBudget)) {
+                log.warn("Monthly token budget exceeded for workspace {} — chunk {} skipped", workspaceIdForBudget, chunkId);
+                ChunkAnalysis skipped = new ChunkAnalysis();
+                skipped.setChunk(chunk);
+                skipped.setAnalysisStatus(AnalysisStatus.SKIPPED);
+                analysisRepository.save(skipped);
+                return;
+            }
         }
 
         ChunkAnalysis analysis = new ChunkAnalysis();

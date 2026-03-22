@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -196,5 +198,68 @@ class PlanLimitServiceTest {
         when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
         assertThat(service.isReAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
+    }
+
+    // --- isMonthlyTokenBudgetExceeded ---
+
+    // U-01 : FREE sous budget → false
+    @Test
+    void isMonthlyTokenBudgetExceeded_freeUnderBudget_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
+                .thenReturn(499_999L);
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isFalse();
+    }
+
+    // U-02 : FREE au-dessus du budget → true
+    @Test
+    void isMonthlyTokenBudgetExceeded_freeOverBudget_returnsTrue() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
+                .thenReturn(500_000L);
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isTrue();
+    }
+
+    // U-03 : PRO sous budget → false
+    @Test
+    void isMonthlyTokenBudgetExceeded_proUnderBudget_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
+                .thenReturn(19_999_999L);
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isFalse();
+    }
+
+    // U-04 : PRO au-dessus du budget → true
+    @Test
+    void isMonthlyTokenBudgetExceeded_proOverBudget_returnsTrue() {
+        UUID workspaceId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
+                .thenReturn(20_000_000L);
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isTrue();
+    }
+
+    // U-05 : sans subscription → false (fail open)
+    @Test
+    void isMonthlyTokenBudgetExceeded_noSubscription_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isFalse();
     }
 }
