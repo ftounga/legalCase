@@ -162,7 +162,7 @@
 
 .analysis-job-row {
   display: grid;
-  grid-template-columns: 200px auto 1fr 48px;
+  grid-template-columns: 20px 1fr auto 120px 48px;
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-sm) 0;
@@ -172,6 +172,18 @@
     border-bottom: none;
     padding-bottom: 0;
   }
+}
+
+.job-spinner {
+  flex-shrink: 0;
+}
+
+.job-done-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--color-success, #38A169);
+  flex-shrink: 0;
 }
 
 .job-label {
@@ -315,6 +327,28 @@
   background: rgba(26, 58, 92, 0.08);
   padding: 2px 8px;
   border-radius: 4px;
+}
+
+.questions-generating {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.04);
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: var(--spacing-md);
+}
+
+.analyze-running {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: 14px;
 }
 
 .questions-banner {

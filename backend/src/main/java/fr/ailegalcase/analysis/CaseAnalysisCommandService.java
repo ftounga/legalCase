@@ -93,12 +93,20 @@ public class CaseAnalysisCommandService {
                     AnalysisJob j = new AnalysisJob();
                     j.setCaseFileId(caseFileId);
                     j.setJobType(JobType.CASE_ANALYSIS);
-                    j.setProcessedItems(0);
                     return j;
                 });
         job.setStatus(AnalysisStatus.PROCESSING);
         job.setTotalItems(1);
+        job.setProcessedItems(0);
         analysisJobRepository.save(job);
+
+        analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION)
+                .ifPresent(qgJob -> {
+                    qgJob.setStatus(AnalysisStatus.PENDING);
+                    qgJob.setProcessedItems(0);
+                    qgJob.setTotalItems(1);
+                    analysisJobRepository.save(qgJob);
+                });
 
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.CASE_ANALYSIS_EXCHANGE,

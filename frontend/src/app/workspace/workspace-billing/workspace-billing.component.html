@@ -23,10 +23,12 @@
           </div>
         </div>
         <ul class="plan-features">
-          @for (feature of plan.features; track feature) {
-            <li>
-              <mat-icon class="feature-icon">check_circle</mat-icon>
-              {{ feature }}
+          @for (feature of plan.features; track feature.label) {
+            <li [class.feature--excluded]="!feature.included">
+              <mat-icon class="feature-icon" [class.feature-icon--excluded]="!feature.included">
+                {{ feature.included ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+              {{ feature.label }}
             </li>
           }
         </ul>

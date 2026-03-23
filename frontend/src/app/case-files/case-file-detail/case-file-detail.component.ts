@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -42,8 +42,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   loading = signal(true);
   uploading = signal(false);
   analyzing = signal(false);
+  synthesisLoading = signal(false);
+  questionsLoading = signal(false);
+
+  // true between upload success and first backend confirmation that new doc analysis started
+  private docAnalysisPending = signal(false);
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
+  readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
 
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -89,11 +95,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadAnalysisJobs(caseFileId: string): void {
+  loadAnalysisJobs(caseFileId: string, forceStart = false): void {
     this.analysisJobService.getJobs(caseFileId).subscribe({
       next: jobs => {
-        this.analysisJobs.set(jobs);
-        this.managePolling(caseFileId, jobs);
+        // Don't overwrite the placeholder while waiting for the backend to pick up the new upload
+        if (jobs.length > 0 && !this.docAnalysisPending()) {
+          this.analysisJobs.set(jobs);
+        }
+        this.managePolling(caseFileId, jobs, forceStart);
         if (jobs.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE')) {
           this.loadSynthesis(caseFileId);
         }
@@ -107,15 +116,29 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  private managePolling(caseFileId: string, jobs: AnalysisJob[]): void {
+  private managePolling(caseFileId: string, jobs: AnalysisJob[], forceStart = false): void {
     const hasPendingOrProcessing = jobs.some(
       j => j.status === 'PENDING' || j.status === 'PROCESSING'
     );
 
-    if (hasPendingOrProcessing && !this.pollingInterval) {
+    if ((hasPendingOrProcessing || forceStart || this.docAnalysisPending()) && !this.pollingInterval) {
       this.pollingInterval = setInterval(() => {
         this.analysisJobService.getJobs(caseFileId).subscribe({
           next: updated => {
+            if (updated.length === 0) return; // pipeline not started yet — keep placeholders
+
+            // If we're waiting for the backend to pick up a new upload, check if it did.
+            // Confirmed only when totalItems reflects the current document count —
+            // this prevents false positives from stale PROCESSING responses in flight.
+            if (this.docAnalysisPending()) {
+              const docJob = updated.find(j => j.jobType === 'DOCUMENT_ANALYSIS');
+              const backendPickedUp = docJob && docJob.totalItems >= this.documents().length;
+              if (!backendPickedUp) {
+                return; // stale response — keep placeholder, keep polling
+              }
+              this.docAnalysisPending.set(false);
+            }
+
             this.analysisJobs.set(updated);
             const stillRunning = updated.some(
               j => j.status === 'PENDING' || j.status === 'PROCESSING'
@@ -129,12 +152,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           }
         });
       }, 3000);
-    } else if (!hasPendingOrProcessing) {
+    } else if (!hasPendingOrProcessing && !forceStart && !this.docAnalysisPending()) {
       this.stopPolling();
     }
   }
 
   canAnalyze(): boolean {
+    if (this.uploading()) return false;
+    if (this.docAnalysisPending()) return false;
     const jobs = this.analysisJobs();
     const docAnalysisDone = jobs.some(j => j.jobType === 'DOCUMENT_ANALYSIS' && j.status === 'DONE');
     const caseAnalysisActive = jobs.some(
@@ -149,6 +174,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     );
   }
 
+  questionGenerationRunning(): boolean {
+    return this.analysisJobs().some(
+      j => j.jobType === 'QUESTION_GENERATION' && (j.status === 'PENDING' || j.status === 'PROCESSING')
+    );
+  }
+
+  isJobActive(job: AnalysisJob): boolean {
+    return job.status === 'PENDING' || job.status === 'PROCESSING';
+  }
+
   triggerAnalysis(): void {
     const id = this.caseFile()?.id;
     if (!id) return;
@@ -156,6 +191,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.caseAnalysisCommandService.triggerAnalysis(id).subscribe({
       next: () => {
         this.analyzing.set(false);
+        this.synthesis.set(null);
+        this.questions.set([]);
         this.loadAnalysisJobs(id);
       },
       error: (err: any) => {
@@ -207,9 +244,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   }
 
   loadQuestions(caseFileId: string): void {
+    this.questionsLoading.set(true);
     this.aiQuestionService.getQuestions(caseFileId).subscribe({
-      next: qs => this.questions.set(qs),
-      error: () => { /* silencieux */ }
+      next: qs => { this.questions.set(qs); this.questionsLoading.set(false); },
+      error: () => { this.questionsLoading.set(false); }
     });
   }
 
@@ -274,7 +312,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           duration: 3000, panelClass: ['snack-success']
         });
         input.value = '';
-        this.loadAnalysisJobs(caseFileId);
+        this.docAnalysisPending.set(true);
+
+        const pending = (type: AnalysisJob['jobType']): AnalysisJob =>
+          ({ jobType: type, status: 'PENDING', totalItems: 0, processedItems: 0, progressPercentage: 0 });
+        this.analysisJobs.update(jobs => [
+          ...jobs.filter(j => j.jobType !== 'CHUNK_ANALYSIS' && j.jobType !== 'DOCUMENT_ANALYSIS'),
+          pending('DOCUMENT_ANALYSIS')
+        ]);
+        this.loadAnalysisJobs(caseFileId, true);
       },
       error: (err: any) => {
         this.uploading.set(false);
@@ -295,6 +341,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     if (bytes < 1024) return `${bytes} o`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  }
+
+  clampProgress(p: number): number {
+    return Math.min(100, Math.max(0, p));
   }
 
   statusLabel(status: string): string {

@@ -129,7 +129,16 @@
   font-size: 18px;
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
   color: #C9973A;
+
+  &--excluded {
+    color: #CBD5E0;
+  }
+}
+
+.feature--excluded {
+  color: #A0AEC0;
 }
 
 .plan-action {

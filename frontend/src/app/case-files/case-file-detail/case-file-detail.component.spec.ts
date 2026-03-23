@@ -180,7 +180,7 @@ describe('CaseFileDetailComponent', () => {
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('.analysis-job-row');
-    expect(rows.length).toBe(3);
+    expect(rows.length).toBe(2); // CHUNK_ANALYSIS masqué
   });
 
   it('jobTypeLabel — retourne le libellé correct par jobType', () => {

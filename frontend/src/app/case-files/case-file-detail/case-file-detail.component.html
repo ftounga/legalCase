@@ -110,14 +110,19 @@
         }
       </div>
 
-      @if (analysisJobs().length > 0) {
+      @if (visibleJobs().length > 0) {
         <mat-card class="analysis-card">
-          @for (job of analysisJobs(); track job.jobType) {
+          @for (job of visibleJobs(); track job.jobType) {
             <div class="analysis-job-row">
+              @if (isJobActive(job)) {
+                <mat-spinner diameter="16" class="job-spinner"></mat-spinner>
+              } @else {
+                <mat-icon class="job-done-icon">check_circle</mat-icon>
+              }
               <span class="job-label">{{ jobTypeLabel(job.jobType) }}</span>
               <span class="badge {{ jobStatusClass(job.status) }}">{{ jobStatusLabel(job.status) }}</span>
-              <mat-progress-bar mode="determinate" [value]="job.progressPercentage" class="job-progress-bar"></mat-progress-bar>
-              <span class="job-percentage">{{ job.progressPercentage }}%</span>
+              <mat-progress-bar mode="determinate" [value]="clampProgress(job.progressPercentage)" class="job-progress-bar"></mat-progress-bar>
+              <span class="job-percentage">{{ clampProgress(job.progressPercentage) }}%</span>
             </div>
           }
         </mat-card>
@@ -128,22 +133,36 @@
         </div>
       }
 
-      @if (synthesis()) {
+      @if (caseAnalysisRunning() || synthesis()) {
         <div class="section-header">
           <h2 class="section-title">Synthèse</h2>
-          <a mat-raised-button color="primary" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
-            <mat-icon>summarize</mat-icon>
-            Voir la synthèse
-          </a>
+          @if (caseAnalysisRunning()) {
+            <div class="analyze-running">
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Synthèse en cours…</span>
+            </div>
+          } @else {
+            <a mat-raised-button color="primary" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+              <mat-icon>summarize</mat-icon>
+              Voir la synthèse
+            </a>
+          }
         </div>
       }
 
-      @if (questions().length > 0) {
-        <a class="questions-banner" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
-          <mat-icon>quiz</mat-icon>
-          {{ pendingQuestionsCount() }} question(s) IA en attente de réponse
-          <mat-icon class="banner-arrow">chevron_right</mat-icon>
-        </a>
+      @if (questionGenerationRunning() || questions().length > 0) {
+        @if (questionGenerationRunning()) {
+          <div class="questions-generating">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Génération des questions IA…</span>
+          </div>
+        } @else {
+          <a class="questions-banner" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+            <mat-icon>quiz</mat-icon>
+            {{ pendingQuestionsCount() }} question(s) IA en attente de réponse
+            <mat-icon class="banner-arrow">chevron_right</mat-icon>
+          </a>
+        }
       }
     </div>
   </div>

@@ -133,6 +133,32 @@ class CaseAnalysisCommandServiceTest {
                 .hasMessageContaining("404");
     }
 
+    // C-08 : re-analyse — job QUESTION_GENERATION existant remis à PENDING
+    @Test
+    void triggerCaseAnalysis_resetsExistingQuestionGenerationJob() {
+        var ctx = buildContext();
+        when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(ctx.caseFileId()), any())).thenReturn(false);
+        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(ctx.caseFileId(), AnalysisStatus.DONE)).thenReturn(1L);
+        when(planLimitService.isCaseAnalysisLimitReached(ctx.caseFileId(), ctx.workspaceId())).thenReturn(false);
+        when(planLimitService.isMonthlyTokenBudgetExceeded(ctx.workspaceId())).thenReturn(false);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(ctx.caseFileId(), JobType.CASE_ANALYSIS)).thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AnalysisJob existingQgJob = new AnalysisJob();
+        existingQgJob.setCaseFileId(ctx.caseFileId());
+        existingQgJob.setJobType(JobType.QUESTION_GENERATION);
+        existingQgJob.setStatus(AnalysisStatus.DONE);
+        existingQgJob.setProcessedItems(1);
+        existingQgJob.setTotalItems(1);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(ctx.caseFileId(), JobType.QUESTION_GENERATION))
+                .thenReturn(Optional.of(existingQgJob));
+
+        service.triggerCaseAnalysis(ctx.caseFileId(), null, null, null);
+
+        org.assertj.core.api.Assertions.assertThat(existingQgJob.getStatus()).isEqualTo(AnalysisStatus.PENDING);
+        org.assertj.core.api.Assertions.assertThat(existingQgJob.getProcessedItems()).isZero();
+    }
+
     // ─── helpers ────────────────────────────────────────────────────────────
 
     private record Ctx(UUID caseFileId, UUID workspaceId) {}
