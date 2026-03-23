@@ -17,7 +17,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PlanLimitServiceTest {
@@ -324,5 +324,96 @@ class PlanLimitServiceTest {
         when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
 
         assertThat(service.isChatMessageLimitReached(workspaceId)).isFalse();
+    }
+
+    // --- isCaseAnalysisLimitReached ---
+
+    // U-11 : FREE sous la limite (1/2) → false
+    @Test
+    void isCaseAnalysisLimitReached_freeUnderLimit_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(1L);
+
+        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
+    }
+
+    // U-12 : FREE à la limite (2/2) → true
+    @Test
+    void isCaseAnalysisLimitReached_freeAtLimit_returnsTrue() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(2L);
+
+        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
+    }
+
+    // U-13 : STARTER sous la limite (4/5) → false
+    @Test
+    void isCaseAnalysisLimitReached_starterUnderLimit_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("STARTER");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(4L);
+
+        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
+    }
+
+    // U-14 : STARTER à la limite (5/5) → true
+    @Test
+    void isCaseAnalysisLimitReached_starterAtLimit_returnsTrue() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("STARTER");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(5L);
+
+        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
+    }
+
+    // U-15 : PRO → jamais atteint
+    @Test
+    void isCaseAnalysisLimitReached_pro_alwaysReturnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+
+        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
+        verify(usageEventRepository, never()).countByCaseFileIdAndEventType(any(), any());
+    }
+
+    // U-16 : FREE expiré → true immédiatement
+    @Test
+    void isCaseAnalysisLimitReached_expiredFree_returnsTrue() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().minusSeconds(3600));
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
+
+        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
+        verify(usageEventRepository, never()).countByCaseFileIdAndEventType(any(), any());
+    }
+
+    // U-17 : sans souscription → false (fail open)
+    @Test
+    void isCaseAnalysisLimitReached_noSubscription_returnsFalse() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+
+        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
     }
 }

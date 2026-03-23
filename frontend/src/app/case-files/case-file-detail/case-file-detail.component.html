@@ -95,10 +95,22 @@
 
     <!-- Colonne droite : analyse IA -->
     <div class="col-right">
+      <div class="section-header section-header--first">
+        <h2 class="section-title">Analyse IA</h2>
+        @if (caseAnalysisRunning() || analyzing()) {
+          <div class="analyze-running">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Analyse en cours…</span>
+          </div>
+        } @else if (canAnalyze()) {
+          <button mat-raised-button color="accent" (click)="triggerAnalysis()" [disabled]="analyzing()">
+            <mat-icon>auto_fix_high</mat-icon>
+            Analyser le dossier
+          </button>
+        }
+      </div>
+
       @if (analysisJobs().length > 0) {
-        <div class="section-header section-header--first">
-          <h2 class="section-title">Analyse IA</h2>
-        </div>
         <mat-card class="analysis-card">
           @for (job of analysisJobs(); track job.jobType) {
             <div class="analysis-job-row">
@@ -112,12 +124,7 @@
       } @else if (documents().length === 0) {
         <div class="analysis-placeholder">
           <mat-icon class="placeholder-icon">psychology</mat-icon>
-          <p>L'analyse IA démarrera après l'ajout du premier document.</p>
-        </div>
-      } @else {
-        <div class="analysis-placeholder">
-          <mat-spinner diameter="32"></mat-spinner>
-          <p>Analyse en cours de démarrage…</p>
+          <p>Ajoutez des documents, puis cliquez sur "Analyser le dossier".</p>
         </div>
       }
 

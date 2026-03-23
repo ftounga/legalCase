@@ -12,6 +12,7 @@ import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
@@ -40,6 +41,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
   uploading = signal(false);
+  analyzing = signal(false);
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
 
@@ -51,6 +53,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private documentService: DocumentService,
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
+    private caseAnalysisCommandService: CaseAnalysisCommandService,
     private aiQuestionService: AiQuestionService,
     private snackBar: MatSnackBar
   ) {}
@@ -108,9 +111,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const hasPendingOrProcessing = jobs.some(
       j => j.status === 'PENDING' || j.status === 'PROCESSING'
     );
-    const analysisStarting = jobs.length === 0 && this.documents().length > 0 && !this.synthesis();
 
-    if ((hasPendingOrProcessing || analysisStarting) && !this.pollingInterval) {
+    if (hasPendingOrProcessing && !this.pollingInterval) {
       this.pollingInterval = setInterval(() => {
         this.analysisJobService.getJobs(caseFileId).subscribe({
           next: updated => {
@@ -118,19 +120,61 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
             const stillRunning = updated.some(
               j => j.status === 'PENDING' || j.status === 'PROCESSING'
             );
-            const stillWaiting = updated.length === 0 && this.documents().length > 0 && !this.synthesis();
             const caseAnalysisDone = updated.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE');
             const questionsDone = updated.some(j => j.jobType === 'QUESTION_GENERATION' && (j.status === 'DONE' || j.status === 'FAILED'));
             const waitingForQuestions = caseAnalysisDone && !questionsDone;
-            if (!stillRunning && !stillWaiting && !waitingForQuestions) {
+            if (!stillRunning && !waitingForQuestions) {
               this.stopPolling();
             }
           }
         });
       }, 3000);
-    } else if (!hasPendingOrProcessing && !analysisStarting) {
+    } else if (!hasPendingOrProcessing) {
       this.stopPolling();
     }
+  }
+
+  canAnalyze(): boolean {
+    const jobs = this.analysisJobs();
+    const docAnalysisDone = jobs.some(j => j.jobType === 'DOCUMENT_ANALYSIS' && j.status === 'DONE');
+    const caseAnalysisActive = jobs.some(
+      j => j.jobType === 'CASE_ANALYSIS' && (j.status === 'PENDING' || j.status === 'PROCESSING')
+    );
+    return docAnalysisDone && !caseAnalysisActive;
+  }
+
+  caseAnalysisRunning(): boolean {
+    return this.analysisJobs().some(
+      j => j.jobType === 'CASE_ANALYSIS' && (j.status === 'PENDING' || j.status === 'PROCESSING')
+    );
+  }
+
+  triggerAnalysis(): void {
+    const id = this.caseFile()?.id;
+    if (!id) return;
+    this.analyzing.set(true);
+    this.caseAnalysisCommandService.triggerAnalysis(id).subscribe({
+      next: () => {
+        this.analyzing.set(false);
+        this.loadAnalysisJobs(id);
+      },
+      error: (err: any) => {
+        this.analyzing.set(false);
+        if (err.status === 402) {
+          this.snackBar.open("Limite d'analyses atteinte pour ce dossier. Passez au plan supérieur.", 'Fermer', {
+            duration: 5000, panelClass: ['snack-error']
+          });
+        } else if (err.status === 409) {
+          this.snackBar.open('Une analyse est déjà en cours.', 'Fermer', { duration: 4000 });
+        } else if (err.status === 422) {
+          this.snackBar.open('Aucun document analysé disponible.', 'Fermer', { duration: 4000 });
+        } else {
+          this.snackBar.open("Erreur lors du déclenchement de l'analyse.", 'Fermer', {
+            duration: 4000, panelClass: ['snack-error']
+          });
+        }
+      }
+    });
   }
 
   private stopPolling(): void {

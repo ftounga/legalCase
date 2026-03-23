@@ -7,7 +7,6 @@ import fr.ailegalcase.document.DocumentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +34,6 @@ public class DocumentAnalysisService {
     private final DocumentAnalysisRepository documentAnalysisRepository;
     private final DocumentExtractionRepository extractionRepository;
     private final DocumentRepository documentRepository;
-    private final CaseAnalysisRepository caseAnalysisRepository;
-    private final RabbitTemplate rabbitTemplate;
     private final AnthropicService anthropicService;
     private final AnalysisJobRepository analysisJobRepository;
     private final UsageEventService usageEventService;
@@ -46,8 +43,6 @@ public class DocumentAnalysisService {
                                    DocumentAnalysisRepository documentAnalysisRepository,
                                    DocumentExtractionRepository extractionRepository,
                                    DocumentRepository documentRepository,
-                                   CaseAnalysisRepository caseAnalysisRepository,
-                                   RabbitTemplate rabbitTemplate,
                                    AnthropicService anthropicService,
                                    AnalysisJobRepository analysisJobRepository,
                                    UsageEventService usageEventService,
@@ -56,8 +51,6 @@ public class DocumentAnalysisService {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.extractionRepository = extractionRepository;
         this.documentRepository = documentRepository;
-        this.caseAnalysisRepository = caseAnalysisRepository;
-        this.rabbitTemplate = rabbitTemplate;
         this.anthropicService = anthropicService;
         this.analysisJobRepository = analysisJobRepository;
         this.usageEventService = usageEventService;
@@ -113,7 +106,6 @@ public class DocumentAnalysisService {
 
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
             updateDocumentAnalysisJob(caseFileId);
-            triggerCaseAnalysisIfReady(extraction.getDocument().getCaseFile().getId());
             if (caseFileId != null) {
                 int promptTokens = analysis.getPromptTokens();
                 int completionTokens = analysis.getCompletionTokens();
@@ -155,30 +147,6 @@ public class DocumentAnalysisService {
         });
     }
 
-    private void triggerCaseAnalysisIfReady(UUID caseFileId) {
-        long totalDocuments = documentRepository.countByCaseFileId(caseFileId);
-        long doneAnalyses = documentAnalysisRepository
-                .countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE);
-
-        if (totalDocuments != doneAnalyses) {
-            return;
-        }
-
-        boolean alreadyTriggered = caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(
-                caseFileId, List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING, AnalysisStatus.DONE));
-
-        if (alreadyTriggered) {
-            log.debug("CaseAnalysis already exists for caseFile {} — skipping", caseFileId);
-            return;
-        }
-
-        log.info("All document analyses DONE for caseFile {} — triggering case analysis", caseFileId);
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.CASE_ANALYSIS_EXCHANGE,
-                RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY,
-                new CaseAnalysisMessage(caseFileId)
-        );
-    }
 
     private String buildAggregatedPrompt(List<ChunkAnalysis> chunkAnalyses) {
         return chunkAnalyses.stream()

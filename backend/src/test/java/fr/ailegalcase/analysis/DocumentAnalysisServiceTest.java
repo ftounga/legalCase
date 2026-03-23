@@ -9,7 +9,6 @@ import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 class DocumentAnalysisServiceTest {
@@ -26,8 +25,6 @@ class DocumentAnalysisServiceTest {
     private final DocumentAnalysisRepository documentAnalysisRepository = mock(DocumentAnalysisRepository.class);
     private final DocumentExtractionRepository extractionRepository = mock(DocumentExtractionRepository.class);
     private final DocumentRepository documentRepository = mock(DocumentRepository.class);
-    private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
-    private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final UsageEventService usageEventService = mock(UsageEventService.class);
@@ -35,10 +32,9 @@ class DocumentAnalysisServiceTest {
 
     private final DocumentAnalysisService service = new DocumentAnalysisService(
             chunkAnalysisRepository, documentAnalysisRepository, extractionRepository,
-            documentRepository, caseAnalysisRepository, rabbitTemplate,
-            anthropicService, analysisJobRepository, usageEventService, caseFileRepository);
+            documentRepository, anthropicService, analysisJobRepository, usageEventService, caseFileRepository);
 
-    // U-01 : analyses de chunks valides → DocumentAnalysis DONE + trigger case analysis + job créé
+    // U-01 : analyses de chunks valides → DocumentAnalysis DONE + job mis à jour + usage enregistré
     @Test
     void consumeDocumentAnalysis_validChunkAnalyses_persistsDoneAnalysisAndCreatesJob() {
         UUID extractionId = UUID.randomUUID();
@@ -78,8 +74,6 @@ class DocumentAnalysisServiceTest {
                 new AnthropicResult("{\"faits\":[\"synthese\"]}", "claude-haiku-4-5-20251001", 200, 100));
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
-        when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))
-                .thenReturn(false);
 
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
 
@@ -87,12 +81,6 @@ class DocumentAnalysisServiceTest {
         verify(documentAnalysisRepository, times(3)).save(captor.capture());
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(captor.getValue().getAnalysisResult()).isEqualTo("{\"faits\":[\"synthese\"]}");
-
-        verify(rabbitTemplate).convertAndSend(
-                eq(RabbitMQConfig.CASE_ANALYSIS_EXCHANGE),
-                eq(RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY),
-                any(CaseAnalysisMessage.class)
-        );
 
         // Job DOCUMENT_ANALYSIS mis à jour : processedItems=1, status=DONE
         ArgumentCaptor<AnalysisJob> jobCaptor = ArgumentCaptor.forClass(AnalysisJob.class);
@@ -139,7 +127,6 @@ class DocumentAnalysisServiceTest {
         ArgumentCaptor<DocumentAnalysis> captor = ArgumentCaptor.forClass(DocumentAnalysis.class);
         verify(documentAnalysisRepository, times(3)).save(captor.capture());
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
-        verify(rabbitTemplate, never()).convertAndSend(any(), any(), any(CaseAnalysisMessage.class));
     }
 
     // U-03 : aucune chunk_analysis DONE → aucune DocumentAnalysis créée
@@ -188,8 +175,6 @@ class DocumentAnalysisServiceTest {
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
-        when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))
-                .thenReturn(false);
 
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
 
@@ -199,89 +184,7 @@ class DocumentAnalysisServiceTest {
         assertThat(prompt.indexOf("Chunk 0")).isLessThan(prompt.indexOf("Chunk 1"));
     }
 
-    // U-05 : pas tous les documents DONE → aucun CaseAnalysisMessage publié
-    @Test
-    void triggerCaseAnalysis_notAllDocumentsDone_noCaseAnalysisMessagePublished() {
-        UUID extractionId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-
-        CaseFile caseFile = new CaseFile();
-        caseFile.setId(caseFileId);
-
-        Document document = new Document();
-        document.setCaseFile(caseFile);
-
-        DocumentExtraction extraction = new DocumentExtraction();
-        extraction.setDocument(document);
-
-        ChunkAnalysis ca = chunkAnalysis(chunkWithIndex(0), "{\"faits\":[]}");
-
-        when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
-                .thenReturn(List.of(ca));
-        when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
-        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
-        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(3L);
-        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
-                .thenReturn(Optional.empty());
-        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
-                new AnthropicResult("{}", "claude-haiku-4-5-20251001", 10, 5));
-        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
-                .thenReturn(1L); // 1 DONE sur 3
-
-        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
-
-        verify(rabbitTemplate, never()).convertAndSend(
-                eq(RabbitMQConfig.CASE_ANALYSIS_EXCHANGE),
-                eq(RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY),
-                any(CaseAnalysisMessage.class)
-        );
-    }
-
-    // U-06 : CaseAnalysis déjà existante → aucun CaseAnalysisMessage publié (idempotence)
-    @Test
-    void triggerCaseAnalysis_alreadyExists_noCaseAnalysisMessagePublished() {
-        UUID extractionId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-
-        CaseFile caseFile = new CaseFile();
-        caseFile.setId(caseFileId);
-
-        Document document = new Document();
-        document.setCaseFile(caseFile);
-
-        DocumentExtraction extraction = new DocumentExtraction();
-        extraction.setDocument(document);
-
-        ChunkAnalysis ca = chunkAnalysis(chunkWithIndex(0), "{\"faits\":[]}");
-
-        when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
-                .thenReturn(List.of(ca));
-        when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
-        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
-        when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
-        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
-                .thenReturn(Optional.empty());
-        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenReturn(
-                new AnthropicResult("{}", "claude-haiku-4-5-20251001", 10, 5));
-        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
-                .thenReturn(1L);
-        when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))
-                .thenReturn(true); // déjà déclenchée
-
-        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
-
-        verify(rabbitTemplate, never()).convertAndSend(
-                eq(RabbitMQConfig.CASE_ANALYSIS_EXCHANGE),
-                eq(RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY),
-                any(CaseAnalysisMessage.class)
-        );
-    }
-
-    // U-07 : le SYSTEM_PROMPT contient les contraintes de longueur SF-28-01
+    // U-05 : le SYSTEM_PROMPT contient les contraintes de longueur
     @Test
     void systemPrompt_containsLengthConstraints() {
         assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("5 faits maximum");

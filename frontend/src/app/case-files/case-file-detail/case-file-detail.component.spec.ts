@@ -4,6 +4,7 @@ import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
@@ -40,6 +41,7 @@ describe('CaseFileDetailComponent', () => {
   let documentServiceSpy: jasmine.SpyObj<DocumentService>;
   let analysisJobServiceSpy: jasmine.SpyObj<AnalysisJobService>;
   let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
+  let caseAnalysisCommandServiceSpy: jasmine.SpyObj<CaseAnalysisCommandService>;
   let aiQuestionServiceSpy: jasmine.SpyObj<AiQuestionService>;
   let aiQuestionAnswerServiceSpy: jasmine.SpyObj<AiQuestionAnswerService>;
   let reAnalysisServiceSpy: jasmine.SpyObj<ReAnalysisService>;
@@ -50,6 +52,7 @@ describe('CaseFileDetailComponent', () => {
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
+    caseAnalysisCommandServiceSpy = jasmine.createSpyObj('CaseAnalysisCommandService', ['triggerAnalysis']);
     aiQuestionServiceSpy = jasmine.createSpyObj('AiQuestionService', ['getQuestions']);
     aiQuestionAnswerServiceSpy = jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']);
     reAnalysisServiceSpy = jasmine.createSpyObj('ReAnalysisService', ['reAnalyze']);
@@ -63,6 +66,7 @@ describe('CaseFileDetailComponent', () => {
     aiQuestionServiceSpy.getQuestions.and.returnValue(of([]));
     aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(of(undefined));
     reAnalysisServiceSpy.reAnalyze.and.returnValue(of(undefined));
+    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [CaseFileDetailComponent],
@@ -71,6 +75,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: DocumentService, useValue: documentServiceSpy },
         { provide: AnalysisJobService, useValue: analysisJobServiceSpy },
         { provide: CaseAnalysisService, useValue: caseAnalysisServiceSpy },
+        { provide: CaseAnalysisCommandService, useValue: caseAnalysisCommandServiceSpy },
         { provide: AiQuestionService, useValue: aiQuestionServiceSpy },
         { provide: AiQuestionAnswerService, useValue: aiQuestionAnswerServiceSpy },
         { provide: ReAnalysisService, useValue: reAnalysisServiceSpy },
@@ -237,6 +242,60 @@ describe('CaseFileDetailComponent', () => {
 
   it('jobTypeLabel — ENRICHED_ANALYSIS retourne le bon libellé', () => {
     expect(component.jobTypeLabel('ENRICHED_ANALYSIS')).toBe('Re-synthèse enrichie');
+  });
+
+  // --- Tests SF-36-02 : bouton Analyser le dossier ---
+
+  it('canAnalyze — true si DOCUMENT_ANALYSIS DONE et pas de CASE_ANALYSIS actif', () => {
+    component.analysisJobs.set([
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 }
+    ]);
+    expect(component.canAnalyze()).toBeTrue();
+  });
+
+  it('canAnalyze — false si CASE_ANALYSIS PROCESSING', () => {
+    component.analysisJobs.set([
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 },
+      { jobType: 'CASE_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
+    ]);
+    expect(component.canAnalyze()).toBeFalse();
+  });
+
+  it('canAnalyze — false si aucun DOCUMENT_ANALYSIS DONE', () => {
+    component.analysisJobs.set([
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
+    ]);
+    expect(component.canAnalyze()).toBeFalse();
+  });
+
+  it('caseAnalysisRunning — true si CASE_ANALYSIS PENDING', () => {
+    component.analysisJobs.set([
+      { jobType: 'CASE_ANALYSIS', status: 'PENDING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
+    ]);
+    expect(component.caseAnalysisRunning()).toBeTrue();
+  });
+
+  it('triggerAnalysis — succès → service appelé + loadAnalysisJobs', () => {
+    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(of(undefined));
+    component.triggerAnalysis();
+    expect(caseAnalysisCommandServiceSpy.triggerAnalysis).toHaveBeenCalledWith('cf1');
+    expect(analysisJobServiceSpy.getJobs).toHaveBeenCalled();
+  });
+
+  it('triggerAnalysis — 402 → snackbar "Limite atteinte"', () => {
+    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(throwError(() => ({ status: 402 })));
+    component.triggerAnalysis();
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('Limite'), jasmine.any(String), jasmine.any(Object)
+    );
+  });
+
+  it('triggerAnalysis — 409 → snackbar "déjà en cours"', () => {
+    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(throwError(() => ({ status: 409 })));
+    component.triggerAnalysis();
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('cours'), jasmine.any(String), jasmine.any(Object)
+    );
   });
 
 });
