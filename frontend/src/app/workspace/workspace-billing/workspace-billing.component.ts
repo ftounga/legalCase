@@ -27,21 +27,45 @@ export class WorkspaceBillingComponent implements OnInit {
       label: 'Essai gratuit',
       price: '0 €',
       period: '14 jours',
-      features: ['1 dossier actif', '3 documents par dossier', 'Analyse IA complète', 'Questions interactives']
+      features: [
+        { label: '1 dossier actif',              included: true },
+        { label: '3 documents par dossier',       included: true },
+        { label: '2 analyses de dossier',         included: true },
+        { label: '10 messages chat / mois',       included: true },
+        { label: '500K tokens / mois',            included: true },
+        { label: 'Synthèse et questions IA',      included: true },
+        { label: 'Re-synthèse enrichie',          included: false },
+      ]
     },
     {
       code: 'STARTER',
       label: 'Starter',
       price: '49 €',
       period: '/ mois',
-      features: ['3 dossiers actifs', 'Documents illimités', 'Analyse IA complète', 'Questions interactives']
+      features: [
+        { label: '3 dossiers actifs',             included: true },
+        { label: '5 documents par dossier',       included: true },
+        { label: '5 analyses de dossier',         included: true },
+        { label: '50 messages chat / mois',       included: true },
+        { label: '3M tokens / mois',              included: true },
+        { label: 'Synthèse et questions IA',      included: true },
+        { label: 'Re-synthèse enrichie',          included: false },
+      ]
     },
     {
       code: 'PRO',
       label: 'Pro',
       price: '129 €',
       period: '/ mois',
-      features: ['20 dossiers actifs', 'Documents illimités', 'Analyse IA complète', 'Re-analyse enrichie', 'Questions interactives']
+      features: [
+        { label: '20 dossiers actifs',            included: true },
+        { label: '30 documents par dossier',      included: true },
+        { label: 'Analyses de dossier illimitées',included: true },
+        { label: '200 messages chat / mois',      included: true },
+        { label: '20M tokens / mois',             included: true },
+        { label: 'Synthèse et questions IA',      included: true },
+        { label: 'Re-synthèse enrichie (5/dossier)', included: true },
+      ]
     }
   ];
 

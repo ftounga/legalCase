@@ -130,6 +130,7 @@ public class DocumentAnalysisService {
                 });
         job.setStatus(AnalysisStatus.PENDING);
         job.setTotalItems((int) totalDocs);
+        job.setProcessedItems(0); // always reset — prevents stale count carrying over from previous batches
         analysisJobRepository.save(job);
     }
 
@@ -139,7 +140,9 @@ public class DocumentAnalysisService {
         analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS).ifPresent(job -> {
             long done = documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(
                     caseFileId, AnalysisStatus.DONE);
-            job.setProcessedItems((int) done);
+            // clamp to totalItems to prevent progressPercentage > 100 under race conditions
+            int clamped = (int) Math.min(done, job.getTotalItems());
+            job.setProcessedItems(clamped);
             if (job.getTotalItems() > 0 && done >= job.getTotalItems()) {
                 job.setStatus(AnalysisStatus.DONE);
             }
