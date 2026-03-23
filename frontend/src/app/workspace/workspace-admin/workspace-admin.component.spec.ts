@@ -5,10 +5,12 @@ import { WorkspaceAdminComponent } from './workspace-admin.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { AdminUsageService } from '../../core/services/admin-usage.service';
+import { AuditLogService } from '../../core/services/audit-log.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Workspace } from '../../core/models/workspace.model';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { WorkspaceUsageSummary } from '../../core/models/workspace-usage-summary.model';
+import { AuditLogEntry } from '../../core/models/audit-log-entry.model';
 import { provideRouter } from '@angular/router';
 
 const mockUsageSummary: WorkspaceUsageSummary = {
@@ -33,23 +35,30 @@ const mockMembers: WorkspaceMember[] = [
   { userId: 'u2', email: 'bob@test.com', firstName: null, lastName: null, memberRole: 'LAWYER', createdAt: '2026-01-01T00:00:00Z' }
 ];
 
+const mockAuditLogs: AuditLogEntry[] = [
+  { id: 'log-1', action: 'DOCUMENT_DELETED', userEmail: 'alice@test.com', caseFileId: 'cf-1', caseFileTitle: 'Licenciement Dupont', createdAt: '2026-03-24T10:00:00Z' }
+];
+
 describe('WorkspaceAdminComponent', () => {
   let component: WorkspaceAdminComponent;
   let fixture: ComponentFixture<WorkspaceAdminComponent>;
   let workspaceService: jasmine.SpyObj<WorkspaceService>;
   let memberService: jasmine.SpyObj<WorkspaceMemberService>;
   let adminUsageService: jasmine.SpyObj<AdminUsageService>;
+  let auditLogService: jasmine.SpyObj<AuditLogService>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
 
-  async function setup(wsReturn: any, membersReturn: any) {
+  async function setup(wsReturn: any, membersReturn: any, auditLogsReturn: any = of([])) {
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
     memberService = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
     adminUsageService = jasmine.createSpyObj('AdminUsageService', ['getSummary']);
+    auditLogService = jasmine.createSpyObj('AuditLogService', ['getAuditLogs']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     workspaceService.getCurrentWorkspace.and.returnValue(wsReturn);
     memberService.getMembers.and.returnValue(membersReturn);
     adminUsageService.getSummary.and.returnValue(of(mockUsageSummary));
+    auditLogService.getAuditLogs.and.returnValue(auditLogsReturn);
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceAdminComponent, NoopAnimationsModule],
@@ -57,6 +66,7 @@ describe('WorkspaceAdminComponent', () => {
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceMemberService, useValue: memberService },
         { provide: AdminUsageService, useValue: adminUsageService },
+        { provide: AuditLogService, useValue: auditLogService },
         { provide: MatSnackBar, useValue: snackBar },
         provideRouter([])
       ]
@@ -105,5 +115,22 @@ describe('WorkspaceAdminComponent', () => {
 
     expect(component.isTrial(mockWorkspaceFreeWithExpiry)).toBeTrue();
     expect(fixture.nativeElement.textContent).toContain('Fin d\'essai');
+  }));
+
+  // T-05 : journal d'actions visible si auditLogs non vide
+  it('affiche la section journal si auditLogs non vide', fakeAsync(async () => {
+    await setup(of(mockWorkspace), of(mockMembers), of(mockAuditLogs));
+
+    expect(component.auditLogs().length).toBe(1);
+    expect(fixture.nativeElement.textContent).toContain('Licenciement Dupont');
+    expect(fixture.nativeElement.textContent).toContain('DOCUMENT_DELETED');
+  }));
+
+  // T-06 : message "Aucune action" si liste vide
+  it('affiche le message Aucune action si auditLogs vide', fakeAsync(async () => {
+    await setup(of(mockWorkspace), of(mockMembers), of([]));
+
+    expect(component.auditLogs().length).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('Aucune action enregistrée');
   }));
 });
