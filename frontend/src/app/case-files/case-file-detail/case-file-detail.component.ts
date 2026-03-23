@@ -317,11 +317,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.caseAnalysisService.getAnalysis(caseFileId).subscribe({
       next: result => {
         this.synthesis.set(result);
-        // Reload questions for this specific version once synthesis id is known
+        // Reload questions for this specific version once synthesis id is known.
+        // Skip for ENRICHED synthesis: it has no questions of its own.
         const questionsDone = this.analysisJobs().some(
           j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE'
         );
-        if (questionsDone && result?.id) {
+        if (questionsDone && result?.id && result.analysisType !== 'ENRICHED') {
           this.loadQuestions(caseFileId, result.id);
         }
       },
