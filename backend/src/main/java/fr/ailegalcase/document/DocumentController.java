@@ -19,9 +19,11 @@ import java.util.UUID;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final DocumentDeleteService documentDeleteService;
 
-    public DocumentController(DocumentService documentService) {
+    public DocumentController(DocumentService documentService, DocumentDeleteService documentDeleteService) {
         this.documentService = documentService;
+        this.documentDeleteService = documentDeleteService;
     }
 
     @GetMapping
@@ -43,6 +45,17 @@ public class DocumentController {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, url)
                 .build();
+    }
+
+    @DeleteMapping("/{documentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        documentDeleteService.delete(caseFileId, documentId, oidcUser,
+                OAuthProviderResolver.resolve(principal), principal);
     }
 
     @PostMapping(consumes = "multipart/form-data")

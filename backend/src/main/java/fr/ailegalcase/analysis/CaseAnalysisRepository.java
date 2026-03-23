@@ -22,6 +22,9 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
     Optional<CaseAnalysis> findByCaseFileIdAndAnalysisStatusAndVersion(
             UUID caseFileId, AnalysisStatus analysisStatus, int version);
 
+    Optional<CaseAnalysis> findFirstByCaseFileIdAndAnalysisTypeAndVersionLessThanOrderByVersionDesc(
+            UUID caseFileId, AnalysisType analysisType, int version);
+
     @Query("SELECT COALESCE(MAX(ca.version), 0) FROM CaseAnalysis ca WHERE ca.caseFile.id = :caseFileId")
     int findMaxVersionByCaseFileId(@Param("caseFileId") UUID caseFileId);
 

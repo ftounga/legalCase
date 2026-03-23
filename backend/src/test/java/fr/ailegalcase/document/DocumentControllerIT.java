@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -36,8 +36,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
@@ -120,6 +118,7 @@ class DocumentControllerIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier test upload");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
         caseFileId = caseFile.getId();
 
@@ -135,6 +134,7 @@ class DocumentControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         CaseFile otherCaseFile = new CaseFile();
@@ -142,6 +142,7 @@ class DocumentControllerIT {
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier autre workspace");
         otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(otherCaseFile);
         otherCaseFileId = otherCaseFile.getId();
 
@@ -339,6 +340,52 @@ class DocumentControllerIT {
                         .file(sixthFile)
                         .with(authentication(auth)))
                 .andExpect(status().isPaymentRequired());
+    }
+
+    // I-13 : DELETE document valide → 204 et document supprimé
+    @Test
+    void delete_existingDoc_returns204() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "contrat.pdf", "application/pdf", "PDF content".getBytes());
+
+        String uploadResponse = mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file).with(authentication(auth)))
+                .andReturn().getResponse().getContentAsString();
+
+        String docId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(uploadResponse).get("id").asText();
+
+        mockMvc.perform(delete("/api/v1/case-files/" + caseFileId + "/documents/" + docId)
+                        .with(authentication(auth)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/case-files/" + caseFileId + "/documents")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    // I-14 : DELETE sans auth → 401
+    @Test
+    void delete_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(delete("/api/v1/case-files/" + caseFileId + "/documents/" + UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // I-15 : DELETE document inconnu → 404
+    @Test
+    void delete_unknownDoc_returns404() throws Exception {
+        mockMvc.perform(delete("/api/v1/case-files/" + caseFileId + "/documents/" + UUID.randomUUID())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-16 : DELETE document d'un autre workspace → 404 (isolation)
+    @Test
+    void delete_docInOtherWorkspace_returns404() throws Exception {
+        mockMvc.perform(delete("/api/v1/case-files/" + otherCaseFileId + "/documents/" + UUID.randomUUID())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

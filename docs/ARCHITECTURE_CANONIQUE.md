@@ -826,6 +826,35 @@ Principes V1 :
 
 ---
 
+# 21b — Audit Log
+
+Table :
+
+audit_logs
+
+Champs :
+
+id (UUID PK)
+workspace_id (UUID FK → workspaces, non nullable)
+user_id (UUID FK → users, non nullable)
+case_file_id (UUID FK → case_files, nullable)
+action (varchar 50, non nullable — ex. DOCUMENT_DELETED)
+metadata (CLOB, nullable — JSON contextuel)
+created_at (timestamptz, non nullable)
+
+Règles :
+
+- Créé par les services métier lors d'actions traçables (suppression de documents, etc.)
+- Lecture réservée aux rôles OWNER et ADMIN du workspace
+- Non modifiable, non supprimable par l'API
+
+Index :
+
+idx_audit_logs_workspace_id
+idx_audit_logs_case_file_id
+
+---
+
 # 22 — Observabilité
 
 Éléments à tracer :

@@ -22,17 +22,20 @@ public class AiQuestionQueryService {
     private final AiQuestionRepository aiQuestionRepository;
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
     private final CaseFileRepository caseFileRepository;
+    private final CaseAnalysisRepository caseAnalysisRepository;
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public AiQuestionQueryService(AiQuestionRepository aiQuestionRepository,
                                   AiQuestionAnswerRepository aiQuestionAnswerRepository,
                                   CaseFileRepository caseFileRepository,
+                                  CaseAnalysisRepository caseAnalysisRepository,
                                   CurrentUserResolver currentUserResolver,
                                   WorkspaceMemberRepository workspaceMemberRepository) {
         this.aiQuestionRepository = aiQuestionRepository;
         this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
         this.caseFileRepository = caseFileRepository;
+        this.caseAnalysisRepository = caseAnalysisRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
     }
@@ -74,7 +77,17 @@ public class AiQuestionQueryService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
         }
 
-        return aiQuestionRepository.findByCaseAnalysisIdOrderByOrderIndex(analysisId).stream()
+        // For ENRICHED versions, questions are linked to the preceding STANDARD version.
+        // Fall back to the most recent STANDARD version with version < enriched.version.
+        UUID targetAnalysisId = caseAnalysisRepository.findById(analysisId)
+                .filter(a -> a.getAnalysisType() == AnalysisType.ENRICHED)
+                .flatMap(enriched -> caseAnalysisRepository
+                        .findFirstByCaseFileIdAndAnalysisTypeAndVersionLessThanOrderByVersionDesc(
+                                caseFileId, AnalysisType.STANDARD, enriched.getVersion()))
+                .map(CaseAnalysis::getId)
+                .orElse(analysisId);
+
+        return aiQuestionRepository.findByCaseAnalysisIdOrderByOrderIndex(targetAnalysisId).stream()
                 .map(q -> toResponse(q))
                 .toList();
     }

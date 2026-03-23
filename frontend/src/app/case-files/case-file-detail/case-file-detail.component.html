@@ -104,10 +104,15 @@
     <div class="col-right">
       <div class="section-header section-header--first">
         <h2 class="section-title">Analyse IA</h2>
-        @if (caseAnalysisRunning() || analyzing()) {
+        @if (fullAnalysisRunning()) {
           <div class="analyze-running">
             <mat-spinner diameter="20"></mat-spinner>
             <span>Analyse en cours…</span>
+          </div>
+        } @else if (enrichedAnalysisRunning()) {
+          <div class="analyze-running">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Re-synthèse enrichie en cours…</span>
           </div>
         } @else if (docAnalysisRunning()) {
           <div class="analyze-running">
