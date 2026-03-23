@@ -3,8 +3,6 @@ package fr.ailegalcase.audit;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -31,9 +29,7 @@ public class AuditLog {
     @Column(nullable = false, length = 50)
     private String action;
 
-    @Lob
-    @JdbcTypeCode(SqlTypes.CLOB)
-    @Column
+    @Column(columnDefinition = "text")
     private String metadata;
 
     @Column(nullable = false)
