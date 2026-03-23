@@ -1,6 +1,8 @@
 package fr.ailegalcase.analysis;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,6 +15,15 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
 
     Optional<CaseAnalysis> findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
             UUID caseFileId, AnalysisStatus analysisStatus);
+
+    List<CaseAnalysis> findByCaseFileIdAndAnalysisStatusOrderByVersionDesc(
+            UUID caseFileId, AnalysisStatus analysisStatus);
+
+    Optional<CaseAnalysis> findByCaseFileIdAndAnalysisStatusAndVersion(
+            UUID caseFileId, AnalysisStatus analysisStatus, int version);
+
+    @Query("SELECT COALESCE(MAX(ca.version), 0) FROM CaseAnalysis ca WHERE ca.caseFile.id = :caseFileId")
+    int findMaxVersionByCaseFileId(@Param("caseFileId") UUID caseFileId);
 
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
 }

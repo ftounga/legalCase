@@ -54,13 +54,36 @@ public class AiQuestionQueryService {
         }
 
         return aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId).stream()
-                .map(q -> {
-                    String answerText = aiQuestionAnswerRepository
-                            .findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId())
-                            .map(AiQuestionAnswer::getAnswerText)
-                            .orElse(null);
-                    return AiQuestionResponse.from(q, answerText);
-                })
+                .map(q -> toResponse(q))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AiQuestionResponse> listQuestionsByAnalysisId(UUID caseFileId, UUID analysisId, OidcUser oidcUser, String provider, Principal principal) {
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
+
+        Workspace workspace = workspaceMemberRepository
+                .findByUserAndPrimaryTrue(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getWorkspace();
+
+        CaseFile caseFile = caseFileRepository.findById(caseFileId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
+
+        if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
+        }
+
+        return aiQuestionRepository.findByCaseAnalysisIdOrderByOrderIndex(analysisId).stream()
+                .map(q -> toResponse(q))
+                .toList();
+    }
+
+    private AiQuestionResponse toResponse(AiQuestion q) {
+        String answerText = aiQuestionAnswerRepository
+                .findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId())
+                .map(AiQuestionAnswer::getAnswerText)
+                .orElse(null);
+        return AiQuestionResponse.from(q, answerText);
     }
 }

@@ -144,6 +144,36 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("Questions et réponses");
     }
 
+    // U-06 : enriched analysis → analysisType = ENRICHED, version = max + 1
+    @Test
+    void consumeReAnalysis_setsEnrichedTypeAndIncrementsVersion() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId)).thenReturn(1);
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeastOnce()).save(captor.capture());
+        CaseAnalysis saved = captor.getAllValues().get(0);
+        assertThat(saved.getAnalysisType()).isEqualTo(AnalysisType.ENRICHED);
+        assertThat(saved.getVersion()).isEqualTo(2);
+    }
+
     // U-05 : SYSTEM_PROMPT contient les champs clés
     @Test
     void systemPrompt_containsRequiredFields() {

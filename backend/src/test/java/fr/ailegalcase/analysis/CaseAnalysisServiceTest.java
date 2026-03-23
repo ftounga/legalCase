@@ -203,6 +203,58 @@ class CaseAnalysisServiceTest {
         assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 questions_ouvertes maximum");
     }
 
+    // U-08 : première analyse → version = 1, analysisType = STANDARD
+    @Test
+    void consumeCaseAnalysis_firstAnalysis_setsVersionOneAndStandardType() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        DocumentAnalysis da = documentAnalysis("{\"faits\":[]}", Instant.now());
+
+        when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(List.of(da));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId)).thenReturn(0);
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeastOnce()).save(captor.capture());
+        CaseAnalysis saved = captor.getAllValues().get(0);
+        assertThat(saved.getVersion()).isEqualTo(1);
+        assertThat(saved.getAnalysisType()).isEqualTo(AnalysisType.STANDARD);
+    }
+
+    // U-09 : re-analyse → version = max + 1
+    @Test
+    void consumeCaseAnalysis_reAnalysis_incrementsVersion() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        DocumentAnalysis da = documentAnalysis("{\"faits\":[]}", Instant.now());
+
+        when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(List.of(da));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId)).thenReturn(2);
+        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeastOnce()).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getVersion()).isEqualTo(3);
+    }
+
     // Helper
     private DocumentAnalysis documentAnalysis(String result, Instant createdAt) {
         DocumentAnalysis da = new DocumentAnalysis();
