@@ -17,7 +17,7 @@ import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { ChatService } from '../../core/services/chat.service';
 import { CaseFile } from '../../core/models/case-file.model';
-import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
+import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
 
@@ -36,6 +36,7 @@ import { ChatMessage } from '../../core/models/chat-message.model';
 export class SynthesisComponent implements OnInit {
   caseFile = signal<CaseFile | null>(null);
   synthesis = signal<CaseAnalysisResult | null>(null);
+  versions = signal<CaseAnalysisVersionSummary[]>([]);
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
   reAnalyzing = signal(false);
@@ -64,8 +65,7 @@ export class SynthesisComponent implements OnInit {
     this.caseFileService.getById(id).subscribe({
       next: cf => {
         this.caseFile.set(cf);
-        this.loadSynthesis(id);
-        this.loadQuestions(id);
+        this.loadVersions(id);
         this.loadChatHistory(id);
       },
       error: () => {
@@ -75,11 +75,16 @@ export class SynthesisComponent implements OnInit {
     });
   }
 
-  private loadSynthesis(id: string): void {
-    this.caseAnalysisService.getAnalysis(id).subscribe({
-      next: result => {
-        this.synthesis.set(result);
-        this.loading.set(false);
+  private loadVersions(caseFileId: string): void {
+    this.caseAnalysisService.getVersions(caseFileId).subscribe({
+      next: versions => {
+        this.versions.set(versions);
+        if (versions.length > 0) {
+          this.loadSynthesisForVersion(caseFileId, versions[0].version);
+          this.loadQuestionsForVersion(caseFileId, versions[0].id);
+        } else {
+          this.loading.set(false);
+        }
       },
       error: () => {
         this.loading.set(false);
@@ -87,11 +92,43 @@ export class SynthesisComponent implements OnInit {
     });
   }
 
-  private loadQuestions(id: string): void {
-    this.aiQuestionService.getQuestions(id).subscribe({
+  loadSynthesisForVersion(caseFileId: string, version: number): void {
+    this.caseAnalysisService.getByVersion(caseFileId, version).subscribe({
+      next: result => {
+        this.synthesis.set(result);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.snackBar.open('Erreur lors du chargement de la version', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+      }
+    });
+  }
+
+  loadQuestionsForVersion(caseFileId: string, analysisId: string): void {
+    this.aiQuestionService.getQuestionsByAnalysisId(caseFileId, analysisId).subscribe({
       next: qs => this.questions.set(qs),
       error: () => {}
     });
+  }
+
+  onVersionChange(versionNumber: number): void {
+    const caseFileId = this.caseFile()?.id;
+    if (!caseFileId) return;
+    const selected = this.versions().find(v => v.version === versionNumber);
+    if (!selected) return;
+    this.synthesis.set(null);
+    this.questions.set([]);
+    this.loadSynthesisForVersion(caseFileId, selected.version);
+    this.loadQuestionsForVersion(caseFileId, selected.id);
+  }
+
+  versionLabel(v: CaseAnalysisVersionSummary): string {
+    return v.analysisType === 'ENRICHED' ? `v${v.version} — Enrichie` : `v${v.version}`;
+  }
+
+  isEnriched(): boolean {
+    return this.synthesis()?.analysisType === 'ENRICHED';
   }
 
   private loadChatHistory(id: string): void {

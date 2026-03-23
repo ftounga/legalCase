@@ -10,4 +10,10 @@ export class AiQuestionService {
   getQuestions(caseFileId: string): Observable<AiQuestion[]> {
     return this.http.get<AiQuestion[]>(`/api/v1/case-files/${caseFileId}/ai-questions`);
   }
+
+  getQuestionsByAnalysisId(caseFileId: string, analysisId: string): Observable<AiQuestion[]> {
+    return this.http.get<AiQuestion[]>(`/api/v1/case-files/${caseFileId}/ai-questions`, {
+      params: { analysisId }
+    });
+  }
 }

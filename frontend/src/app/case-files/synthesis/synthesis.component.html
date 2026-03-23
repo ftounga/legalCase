@@ -12,7 +12,7 @@
       Retour aux dossiers
     </a>
   </div>
-} @else if (!synthesis()) {
+} @else if (versions().length === 0) {
   <div class="empty-state">
     <mat-icon class="empty-icon">summarize</mat-icon>
     <p>Synthèse non disponible.</p>
@@ -29,107 +29,127 @@
     </a>
     <div class="title-row">
       <h1 class="page-title">{{ caseFile()!.title }}</h1>
-      <span class="badge" [class.badge--accent]="hasAnsweredQuestions()" [class.badge--secondary]="!hasAnsweredQuestions()">
-        {{ hasAnsweredQuestions() ? 'Synthèse enrichie' : 'Synthèse initiale' }}
+      <span class="badge" [class.badge--accent]="isEnriched()" [class.badge--secondary]="!isEnriched()">
+        {{ isEnriched() ? 'Synthèse enrichie' : 'Synthèse initiale' }}
       </span>
     </div>
-    @if (synthesis()!.updatedAt) {
-      <span class="meta-date">
-        <mat-icon class="meta-icon">schedule</mat-icon>
-        Mis à jour le {{ synthesis()!.updatedAt | date:'dd/MM/yyyy à HH:mm' }}
-      </span>
-    }
+
+    <div class="version-row">
+      @if (versions().length === 1) {
+        <span class="version-label">{{ versionLabel(versions()[0]) }}</span>
+      } @else {
+        <div class="version-selector-wrap">
+          <mat-icon class="version-icon">history</mat-icon>
+          <select class="version-select"
+                  [value]="synthesis()?.version"
+                  (change)="onVersionChange(+$any($event.target).value)">
+            @for (v of versions(); track v.version) {
+              <option [value]="v.version">{{ versionLabel(v) }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (synthesis()?.updatedAt) {
+        <span class="meta-date">
+          <mat-icon class="meta-icon">schedule</mat-icon>
+          {{ synthesis()!.updatedAt | date:'dd/MM/yyyy à HH:mm' }}
+        </span>
+      }
+    </div>
   </div>
 
-  <mat-accordion class="synthesis-accordion" multi>
-    @if (synthesis()!.timeline.length > 0) {
-      <mat-expansion-panel expanded>
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <mat-icon class="panel-icon panel-icon--timeline">timeline</mat-icon>
-            Chronologie
-          </mat-panel-title>
-          <mat-panel-description>{{ synthesis()!.timeline.length }} événement(s)</mat-panel-description>
-        </mat-expansion-panel-header>
-        <div class="timeline">
-          @for (entry of synthesis()!.timeline; track entry.date) {
-            <div class="timeline-entry">
-              <span class="timeline-date">{{ entry.date }}</span>
-              <span class="timeline-event">{{ entry.evenement }}</span>
-            </div>
-          }
-        </div>
-      </mat-expansion-panel>
-    }
+  @if (synthesis()) {
+    <mat-accordion class="synthesis-accordion" multi>
+      @if (synthesis()!.timeline.length > 0) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--timeline">timeline</mat-icon>
+              Chronologie
+            </mat-panel-title>
+            <mat-panel-description>{{ synthesis()!.timeline.length }} événement(s)</mat-panel-description>
+          </mat-expansion-panel-header>
+          <div class="timeline">
+            @for (entry of synthesis()!.timeline; track entry.date) {
+              <div class="timeline-entry">
+                <span class="timeline-date">{{ entry.date }}</span>
+                <span class="timeline-event">{{ entry.evenement }}</span>
+              </div>
+            }
+          </div>
+        </mat-expansion-panel>
+      }
 
-    @if (synthesis()!.faits.length > 0) {
-      <mat-expansion-panel expanded>
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <mat-icon class="panel-icon panel-icon--faits">gavel</mat-icon>
-            Faits
-          </mat-panel-title>
-          <mat-panel-description>{{ synthesis()!.faits.length }} élément(s)</mat-panel-description>
-        </mat-expansion-panel-header>
-        <ol class="synthesis-list">
-          @for (item of synthesis()!.faits; track $index) {
-            <li>{{ item }}</li>
-          }
-        </ol>
-      </mat-expansion-panel>
-    }
+      @if (synthesis()!.faits.length > 0) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--faits">gavel</mat-icon>
+              Faits
+            </mat-panel-title>
+            <mat-panel-description>{{ synthesis()!.faits.length }} élément(s)</mat-panel-description>
+          </mat-expansion-panel-header>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.faits; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-expansion-panel>
+      }
 
-    @if (synthesis()!.pointsJuridiques.length > 0) {
-      <mat-expansion-panel expanded>
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <mat-icon class="panel-icon panel-icon--juridique">balance</mat-icon>
-            Points juridiques
-          </mat-panel-title>
-          <mat-panel-description>{{ synthesis()!.pointsJuridiques.length }} point(s)</mat-panel-description>
-        </mat-expansion-panel-header>
-        <ol class="synthesis-list">
-          @for (item of synthesis()!.pointsJuridiques; track $index) {
-            <li>{{ item }}</li>
-          }
-        </ol>
-      </mat-expansion-panel>
-    }
+      @if (synthesis()!.pointsJuridiques.length > 0) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--juridique">balance</mat-icon>
+              Points juridiques
+            </mat-panel-title>
+            <mat-panel-description>{{ synthesis()!.pointsJuridiques.length }} point(s)</mat-panel-description>
+          </mat-expansion-panel-header>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.pointsJuridiques; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-expansion-panel>
+      }
 
-    @if (synthesis()!.risques.length > 0) {
-      <mat-expansion-panel expanded>
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <mat-icon class="panel-icon panel-icon--risques">warning_amber</mat-icon>
-            Risques
-          </mat-panel-title>
-          <mat-panel-description>{{ synthesis()!.risques.length }} risque(s)</mat-panel-description>
-        </mat-expansion-panel-header>
-        <ol class="synthesis-list">
-          @for (item of synthesis()!.risques; track $index) {
-            <li>{{ item }}</li>
-          }
-        </ol>
-      </mat-expansion-panel>
-    }
+      @if (synthesis()!.risques.length > 0) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--risques">warning_amber</mat-icon>
+              Risques
+            </mat-panel-title>
+            <mat-panel-description>{{ synthesis()!.risques.length }} risque(s)</mat-panel-description>
+          </mat-expansion-panel-header>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.risques; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-expansion-panel>
+      }
 
-    @if (synthesis()!.questionsOuvertes.length > 0) {
-      <mat-expansion-panel expanded>
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <mat-icon class="panel-icon panel-icon--questions">help_outline</mat-icon>
-            Questions ouvertes
-          </mat-panel-title>
-          <mat-panel-description>{{ synthesis()!.questionsOuvertes.length }} question(s)</mat-panel-description>
-        </mat-expansion-panel-header>
-        <ol class="synthesis-list">
-          @for (item of synthesis()!.questionsOuvertes; track $index) {
-            <li>{{ item }}</li>
-          }
-        </ol>
-      </mat-expansion-panel>
-    }
-  </mat-accordion>
+      @if (synthesis()!.questionsOuvertes.length > 0) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--questions">help_outline</mat-icon>
+              Questions ouvertes
+            </mat-panel-title>
+            <mat-panel-description>{{ synthesis()!.questionsOuvertes.length }} question(s)</mat-panel-description>
+          </mat-expansion-panel-header>
+          <ol class="synthesis-list">
+            @for (item of synthesis()!.questionsOuvertes; track $index) {
+              <li>{{ item }}</li>
+            }
+          </ol>
+        </mat-expansion-panel>
+      }
+    </mat-accordion>
+  }
 
   @if (questions().length > 0) {
     <div class="questions-section">
