@@ -148,6 +148,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-23 | F-36 fix mergé — reset processedItems, clamping progress, docAnalysisPending UX, visibleJobs, spinners états, quotas plans landing+billing | Product owner |
 | 2026-03-23 | F-36 Terminée — SF-36-01 + SF-36-02 mergées : trigger manuel case analysis, endpoint POST /analyze, gate FREE=2/STARTER=5/PRO=illimité, bouton "Analyser le dossier" dans CaseFileDetailComponent, suppression auto-trigger | Product owner |
 | 2026-03-22 | F-35 Terminée — SF-35-02 mergée : panneau chat dans SynthesisComponent, bulles question/réponse, checkbox analyse approfondie, gestion 402/424 | Product owner |
 | 2026-03-22 | F-34 Terminée — SF-34-02 mergée : section budget mensuel dans page admin, barre de progression colorée, alerte ≥ 80 % | Product owner |
