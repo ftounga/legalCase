@@ -148,9 +148,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (jobs.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE')) {
           this.loadSynthesis(caseFileId);
         }
-        if (jobs.some(j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE')) {
-          this.loadQuestions(caseFileId, this.synthesis()?.id);
-        }
       },
       error: () => {
         // Silencieux — pas de section Analyse IA affichée
@@ -304,12 +301,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (caseAnalysisDone) {
           this.loadSynthesis(caseFileId);
         }
-        const questionGenerationDone = this.analysisJobs().some(
-          j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE'
-        );
-        if (questionGenerationDone) {
-          this.loadQuestions(caseFileId, this.synthesis()?.id);
-        }
         const enrichedAnalysisDone = this.analysisJobs().some(
           j => j.jobType === 'ENRICHED_ANALYSIS' && j.status === 'DONE'
         );
@@ -421,6 +412,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  canUpload(): boolean {
+    return !this.uploading() && !this.fullAnalysisRunning() && !this.enrichedAnalysisRunning();
   }
 
   canDeleteDocument(): boolean {

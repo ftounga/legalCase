@@ -37,7 +37,7 @@
       <div class="section-header">
         <h2 class="section-title">Documents</h2>
         <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" hidden (change)="onFileSelected($event)">
-        <button mat-raised-button color="primary" (click)="triggerUpload()" [disabled]="uploading()">
+        <button mat-raised-button color="primary" (click)="triggerUpload()" [disabled]="!canUpload()">
           @if (uploading()) {
             <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
           } @else {
