@@ -85,6 +85,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | F-33 | Limite de re-analyses par dossier | Gate billing : nombre maximum de re-analyses (ENRICHED_ANALYSIS) par dossier selon le plan (PRO = 5). Protège contre les dérapages de coût LLM sur les gros dossiers. | `Terminée` |
 | F-34 | Budget tokens mensuel par workspace | Plafond de tokens consommés par mois et par workspace selon le plan. Alerte super-admin si dépassement, blocage hard si seuil critique atteint. Visibilité en page admin. | `Terminée` |
 | F-35 | Chat libre sur dossier | L'avocat pose ses propres questions aux documents du dossier (mode RAG). Modèle adaptatif : Haiku pour questions factuelles, Sonnet pour analyses approfondies. Limite de messages/mois par plan. | `Terminée` |
+| F-36 | Déclenchement manuel de l'analyse dossier | L'analyse dossier (case analysis) est déclenchée manuellement via un bouton, pas automatiquement après le dernier document. Gate billing sur le nombre d'analyses par dossier selon le plan (FREE=2, STARTER=5, PRO=illimité). Permet d'uploader tous les documents avant d'analyser, et de re-analyser après ajout de nouveaux documents. | `En cours` |
 
 ### Bloc 7 — Workspace
 

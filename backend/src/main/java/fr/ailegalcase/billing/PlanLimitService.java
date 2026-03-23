@@ -20,6 +20,8 @@ public class PlanLimitService {
     private static final int STARTER_MAX_DOCUMENTS_PER_CASE_FILE = 5;
     private static final int PRO_MAX_DOCUMENTS_PER_CASE_FILE = 30;
     static final int PRO_MAX_RE_ANALYSES_PER_CASE_FILE = 5;
+    static final int FREE_MAX_CASE_ANALYSES_PER_CASE_FILE     = 2;
+    static final int STARTER_MAX_CASE_ANALYSES_PER_CASE_FILE  = 5;
     static final long FREE_MONTHLY_TOKEN_BUDGET    =   500_000L;
     static final long STARTER_MONTHLY_TOKEN_BUDGET = 3_000_000L;
     static final long PRO_MONTHLY_TOKEN_BUDGET     = 20_000_000L;
@@ -116,6 +118,7 @@ public class PlanLimitService {
     public boolean isChatMessageLimitReached(UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
                 .map(sub -> {
+                    if (isExpiredFree(sub)) return true;
                     long limit = getMonthlyChatLimit(sub.getPlanCode());
                     Instant startOfMonth = Instant.now()
                             .atOffset(ZoneOffset.UTC)
@@ -124,6 +127,20 @@ public class PlanLimitService {
                             .toInstant();
                     long used = chatMessageRepository.countByWorkspaceIdSince(workspaceId, startOfMonth);
                     return used >= limit;
+                })
+                .orElse(false);
+    }
+
+    public boolean isCaseAnalysisLimitReached(UUID caseFileId, UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(sub -> {
+                    if (isExpiredFree(sub)) return true;
+                    if ("PRO".equals(sub.getPlanCode())) return false;
+                    int max = "FREE".equals(sub.getPlanCode())
+                            ? FREE_MAX_CASE_ANALYSES_PER_CASE_FILE
+                            : STARTER_MAX_CASE_ANALYSES_PER_CASE_FILE;
+                    long count = usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS);
+                    return count >= max;
                 })
                 .orElse(false);
     }
