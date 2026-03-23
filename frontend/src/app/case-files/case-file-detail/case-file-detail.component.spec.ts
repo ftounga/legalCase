@@ -206,6 +206,9 @@ describe('CaseFileDetailComponent', () => {
 
   it('timeline masquée si tableau vide', () => {
     const mockSynthesis: CaseAnalysisResult = {
+      id: 'analysis-1',
+      version: 1,
+      analysisType: 'STANDARD',
       status: 'DONE',
       timeline: [],
       faits: ['fait1'],

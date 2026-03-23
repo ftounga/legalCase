@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { CaseAnalysisResult } from '../models/case-analysis.model';
+import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../models/case-analysis.model';
 
 @Injectable({ providedIn: 'root' })
 export class CaseAnalysisService {
@@ -9,5 +9,13 @@ export class CaseAnalysisService {
 
   getAnalysis(caseFileId: string): Observable<CaseAnalysisResult> {
     return this.http.get<CaseAnalysisResult>(`/api/v1/case-files/${caseFileId}/case-analysis`);
+  }
+
+  getVersions(caseFileId: string): Observable<CaseAnalysisVersionSummary[]> {
+    return this.http.get<CaseAnalysisVersionSummary[]>(`/api/v1/case-files/${caseFileId}/case-analysis/versions`);
+  }
+
+  getByVersion(caseFileId: string, version: number): Observable<CaseAnalysisResult> {
+    return this.http.get<CaseAnalysisResult>(`/api/v1/case-files/${caseFileId}/case-analysis/versions/${version}`);
   }
 }

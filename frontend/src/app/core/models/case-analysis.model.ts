@@ -4,6 +4,9 @@ export interface TimelineEntry {
 }
 
 export interface CaseAnalysisResult {
+  id: string;
+  version: number;
+  analysisType: 'STANDARD' | 'ENRICHED';
   status: string;
   timeline: TimelineEntry[];
   faits: string[];
@@ -12,4 +15,11 @@ export interface CaseAnalysisResult {
   questionsOuvertes: string[];
   modelUsed: string | null;
   updatedAt: string | null;
+}
+
+export interface CaseAnalysisVersionSummary {
+  id: string;
+  version: number;
+  analysisType: 'STANDARD' | 'ENRICHED';
+  updatedAt: string;
 }
