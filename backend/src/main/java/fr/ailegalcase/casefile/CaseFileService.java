@@ -67,7 +67,8 @@ public class CaseFileService {
         caseFileRepository.save(caseFile);
 
         return new CaseFileResponse(caseFile.getId(), caseFile.getTitle(), caseFile.getLegalDomain(),
-                caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt());
+                caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt(),
+                caseFile.getLastDocumentDeletedAt());
     }
 
     @Transactional(readOnly = true)
@@ -81,7 +82,8 @@ public class CaseFileService {
 
         return caseFileRepository.findByWorkspace(workspace, pageable)
                 .map(cf -> new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
-                        cf.getDescription(), cf.getStatus(), cf.getCreatedAt()));
+                        cf.getDescription(), cf.getStatus(), cf.getCreatedAt(),
+                        cf.getLastDocumentDeletedAt()));
     }
 
     @Transactional(readOnly = true)
@@ -101,6 +103,7 @@ public class CaseFileService {
         }
 
         return new CaseFileResponse(caseFile.getId(), caseFile.getTitle(), caseFile.getLegalDomain(),
-                caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt());
+                caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt(),
+                caseFile.getLastDocumentDeletedAt());
     }
 }

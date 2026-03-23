@@ -87,6 +87,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | F-35 | Chat libre sur dossier | L'avocat pose ses propres questions aux documents du dossier (mode RAG). Modèle adaptatif : Haiku pour questions factuelles, Sonnet pour analyses approfondies. Limite de messages/mois par plan. | `Terminée` |
 | F-36 | Déclenchement manuel de l'analyse dossier | L'analyse dossier (case analysis) est déclenchée manuellement via un bouton, pas automatiquement après le dernier document. Gate billing sur le nombre d'analyses par dossier selon le plan (FREE=2, STARTER=5, PRO=illimité). Permet d'uploader tous les documents avant d'analyser, et de re-analyser après ajout de nouveaux documents. | `Terminée` |
 | F-37 | Versioning des synthèses | Chaque déclenchement d'analyse produit une nouvelle version numérotée de la synthèse (v1, v2…). La re-synthèse enrichie est une version distincte avec badge « Enrichie ». L'écran Synthèse affiche un sélecteur de version. Chaque version a ses propres questions IA isolées. Le chat libre (RAG) n'est pas lié aux versions. | `Terminée` |
+| F-38 | Suppression de documents | L'avocat peut supprimer un document d'un dossier. La synthèse existante est signalée comme périmée avec un message adaptatif (ajouts / suppressions / les deux). Table audit_logs : traçabilité des actions sensibles (suppression, upload…) consultable par owner/admin dans l'écran Administration. | `En cours` |
 
 ### Bloc 7 — Workspace
 

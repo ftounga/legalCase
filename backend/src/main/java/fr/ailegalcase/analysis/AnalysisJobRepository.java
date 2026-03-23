@@ -13,5 +13,7 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, UUID> 
 
     List<AnalysisJob> findByCaseFileId(UUID caseFileId);
 
+    boolean existsByCaseFileIdAndStatusIn(UUID caseFileId, Collection<AnalysisStatus> statuses);
+
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
 }
