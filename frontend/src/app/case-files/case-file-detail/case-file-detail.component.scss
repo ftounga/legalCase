@@ -351,6 +351,46 @@
   font-size: 14px;
 }
 
+.synthesis-outdated {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: 10px 14px;
+  margin-top: var(--spacing-sm);
+  background: rgba(201, 151, 58, 0.08);
+  border: 1px solid rgba(201, 151, 58, 0.35);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.outdated-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #C9973A;
+  margin-top: 1px;
+}
+
+.doc-name-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.badge-not-included {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(201, 151, 58, 0.12);
+  border: 1px solid rgba(201, 151, 58, 0.35);
+  color: #C9973A;
+  white-space: nowrap;
+}
+
 .global-analysis-spinner {
   display: flex;
   align-items: center;

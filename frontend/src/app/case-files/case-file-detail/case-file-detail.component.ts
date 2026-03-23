@@ -51,6 +51,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
 
+  // documents uploaded after the last synthesis — not covered by the current synthesis
+  readonly outdatedDocuments = computed(() => {
+    const syn = this.synthesis();
+    if (!syn?.updatedAt) return [];
+    const synDate = new Date(syn.updatedAt);
+    return this.documents().filter(d => new Date(d.createdAt) > synDate);
+  });
+
   // true from "Analyser" click until both synthesis and questions are loaded
   readonly fullAnalysisRunning = computed(() => {
     if (this.analyzing()) return true;

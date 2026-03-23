@@ -57,7 +57,14 @@
           <table mat-table [dataSource]="documents()" class="docs-table">
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Nom</th>
-              <td mat-cell *matCellDef="let doc">{{ doc.originalFilename }}</td>
+              <td mat-cell *matCellDef="let doc">
+                <span class="doc-name-cell">
+                  {{ doc.originalFilename }}
+                  @if (outdatedDocuments().includes(doc)) {
+                    <span class="badge-not-included">Non inclus</span>
+                  }
+                </span>
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="type">
@@ -153,6 +160,12 @@
             </a>
           }
         </div>
+        @if (!caseAnalysisRunning() && outdatedDocuments().length > 0) {
+          <div class="synthesis-outdated">
+            <mat-icon class="outdated-icon">warning</mat-icon>
+            <span>Cette synthèse ne prend pas en compte {{ outdatedDocuments().length }} document(s) récent(s). Relancez une analyse pour la mettre à jour.</span>
+          </div>
+        }
       }
 
       @if (questionGenerationRunning() || questions().length > 0) {
