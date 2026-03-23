@@ -86,7 +86,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | F-34 | Budget tokens mensuel par workspace | Plafond de tokens consommés par mois et par workspace selon le plan. Alerte super-admin si dépassement, blocage hard si seuil critique atteint. Visibilité en page admin. | `Terminée` |
 | F-35 | Chat libre sur dossier | L'avocat pose ses propres questions aux documents du dossier (mode RAG). Modèle adaptatif : Haiku pour questions factuelles, Sonnet pour analyses approfondies. Limite de messages/mois par plan. | `Terminée` |
 | F-36 | Déclenchement manuel de l'analyse dossier | L'analyse dossier (case analysis) est déclenchée manuellement via un bouton, pas automatiquement après le dernier document. Gate billing sur le nombre d'analyses par dossier selon le plan (FREE=2, STARTER=5, PRO=illimité). Permet d'uploader tous les documents avant d'analyser, et de re-analyser après ajout de nouveaux documents. | `Terminée` |
-| F-37 | Versioning des synthèses | Chaque déclenchement d'analyse produit une nouvelle version numérotée de la synthèse (v1, v2…). La re-synthèse enrichie est une version distincte avec badge « Enrichie ». L'écran Synthèse affiche un sélecteur de version. Chaque version a ses propres questions IA isolées. Le chat libre (RAG) n'est pas lié aux versions. | `In progress` |
+| F-37 | Versioning des synthèses | Chaque déclenchement d'analyse produit une nouvelle version numérotée de la synthèse (v1, v2…). La re-synthèse enrichie est une version distincte avec badge « Enrichie ». L'écran Synthèse affiche un sélecteur de version. Chaque version a ses propres questions IA isolées. Le chat libre (RAG) n'est pas lié aux versions. | `Terminée` |
 
 ### Bloc 7 — Workspace
 
@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-23 | F-37 Terminée — SF-37-02 mergée : sélecteur de version dans SynthesisComponent, questions IA isolées par version, badge Enrichie, chat non versionné | Product owner |
 | 2026-03-23 | F-37 SF-37-01 mergée — versioning backend : champ version + analysisType sur case_analyses, FK case_analysis_id sur ai_questions, migration 026, endpoints GET /versions et GET /versions/{version}, GET /ai-questions?analysisId | Product owner |
 | 2026-03-23 | F-36 SF-36-03 mergée — indicateur synthèse périmée : badge warning + badge "Non inclus" sur documents postérieurs à la dernière analyse | Product owner |
 | 2026-03-23 | F-36 fix mergé — reset processedItems, clamping progress, docAnalysisPending UX, visibleJobs, spinners états, quotas plans landing+billing | Product owner |
