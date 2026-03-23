@@ -44,6 +44,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   analyzing = signal(false);
   synthesisLoading = signal(false);
   questionsLoading = signal(false);
+  questionsLoaded = signal(false);
 
   // true between upload success and first backend confirmation that new doc analysis started
   private docAnalysisPending = signal(false);
@@ -74,7 +75,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const questionJob = jobs.find(j => j.jobType === 'QUESTION_GENERATION');
     if (!questionJob) return false;
     if (questionJob.status === 'PENDING' || questionJob.status === 'PROCESSING') return true;
-    if (questionJob.status === 'DONE' && this.questions().length === 0) return true;
+    if (questionJob.status === 'DONE' && !this.questionsLoaded()) return true;
     return false;
   });
 
@@ -232,6 +233,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       ({ jobType: type, status: 'PENDING', totalItems: 0, processedItems: 0, progressPercentage: 0 });
     this.synthesis.set(null);
     this.questions.set([]);
+    this.questionsLoaded.set(false);
     this.analysisJobs.update(jobs => [
       ...jobs.filter(j => j.jobType !== 'CASE_ANALYSIS' && j.jobType !== 'QUESTION_GENERATION'),
       pending('CASE_ANALYSIS'),
@@ -304,7 +306,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       ? this.aiQuestionService.getQuestionsByAnalysisId(caseFileId, analysisId)
       : this.aiQuestionService.getQuestions(caseFileId);
     obs.subscribe({
-      next: qs => { this.questions.set(qs); this.questionsLoading.set(false); },
+      next: qs => { this.questions.set(qs); this.questionsLoading.set(false); this.questionsLoaded.set(true); },
       error: () => { this.questionsLoading.set(false); }
     });
   }
@@ -317,12 +319,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.caseAnalysisService.getAnalysis(caseFileId).subscribe({
       next: result => {
         this.synthesis.set(result);
-        // Reload questions for this specific version once synthesis id is known.
-        // Skip for ENRICHED synthesis: it has no questions of its own.
+        // Reload questions for this specific version once synthesis id is known
         const questionsDone = this.analysisJobs().some(
           j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE'
         );
-        if (questionsDone && result?.id && result.analysisType !== 'ENRICHED') {
+        if (questionsDone && result?.id) {
           this.loadQuestions(caseFileId, result.id);
         }
       },
