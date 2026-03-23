@@ -10,6 +10,8 @@ public interface AiQuestionRepository extends JpaRepository<AiQuestion, UUID> {
 
     List<AiQuestion> findByCaseFileIdOrderByOrderIndex(UUID caseFileId);
 
+    List<AiQuestion> findByCaseAnalysisIdOrderByOrderIndex(UUID caseAnalysisId);
+
     List<AiQuestion> findByCaseFileIdIn(Collection<UUID> caseFileIds);
 
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);

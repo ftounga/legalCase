@@ -88,8 +88,12 @@ public class CaseAnalysisService {
         job.setTotalItems(1);
         analysisJobRepository.save(job);
 
+        int nextVersion = caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId) + 1;
+
         CaseAnalysis analysis = new CaseAnalysis();
         analysis.setCaseFile(caseFile);
+        analysis.setVersion(nextVersion);
+        analysis.setAnalysisType(AnalysisType.STANDARD);
         analysis.setAnalysisStatus(AnalysisStatus.PENDING);
         analysis = caseAnalysisRepository.save(analysis);
 

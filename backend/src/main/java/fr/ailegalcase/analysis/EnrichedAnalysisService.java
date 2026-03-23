@@ -90,8 +90,12 @@ public class EnrichedAnalysisService {
             return;
         }
 
+        int nextVersion = caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId) + 1;
+
         CaseAnalysis enrichedAnalysis = new CaseAnalysis();
         enrichedAnalysis.setCaseFile(caseFile);
+        enrichedAnalysis.setVersion(nextVersion);
+        enrichedAnalysis.setAnalysisType(AnalysisType.ENRICHED);
         enrichedAnalysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         enrichedAnalysis = caseAnalysisRepository.save(enrichedAnalysis);
 

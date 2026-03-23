@@ -6,8 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public record CaseAnalysisResponse(
+        UUID id,
+        int version,
+        String analysisType,
         String status,
         List<TimelineEntry> timeline,
         List<String> faits,
@@ -19,6 +23,8 @@ public record CaseAnalysisResponse(
 ) {
 
     public record TimelineEntry(String date, String evenement) {}
+
+    public record VersionSummary(UUID id, int version, String analysisType, Instant updatedAt) {}
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -44,6 +50,9 @@ public record CaseAnalysisResponse(
         }
 
         return new CaseAnalysisResponse(
+                analysis.getId(),
+                analysis.getVersion(),
+                analysis.getAnalysisType().name(),
                 analysis.getAnalysisStatus().name(),
                 timeline,
                 faits,

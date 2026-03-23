@@ -6,6 +6,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
@@ -25,8 +26,13 @@ public class AiQuestionController {
     @GetMapping
     public List<AiQuestionResponse> list(
             @PathVariable UUID caseFileId,
+            @RequestParam(required = false) UUID analysisId,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return aiQuestionQueryService.listQuestions(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+        String provider = OAuthProviderResolver.resolve(principal);
+        if (analysisId != null) {
+            return aiQuestionQueryService.listQuestionsByAnalysisId(caseFileId, analysisId, oidcUser, provider, principal);
+        }
+        return aiQuestionQueryService.listQuestions(caseFileId, oidcUser, provider, principal);
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +28,25 @@ public class CaseAnalysisReadController {
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         return caseAnalysisQueryService.getAnalysis(caseFileId, oidcUser,
+                OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @GetMapping("/versions")
+    public List<CaseAnalysisResponse.VersionSummary> listVersions(
+            @PathVariable UUID caseFileId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return caseAnalysisQueryService.listVersions(caseFileId, oidcUser,
+                OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @GetMapping("/versions/{version}")
+    public CaseAnalysisResponse getByVersion(
+            @PathVariable UUID caseFileId,
+            @PathVariable int version,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return caseAnalysisQueryService.getByVersion(caseFileId, version, oidcUser,
                 OAuthProviderResolver.resolve(principal), principal);
     }
 }

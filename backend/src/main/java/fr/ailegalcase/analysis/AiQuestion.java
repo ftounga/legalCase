@@ -22,6 +22,10 @@ public class AiQuestion {
     @JoinColumn(name = "case_file_id", nullable = false)
     private CaseFile caseFile;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "case_analysis_id")
+    private CaseAnalysis caseAnalysis;
+
     @Column(name = "question_text", nullable = false, length = Integer.MAX_VALUE)
     private String questionText;
 

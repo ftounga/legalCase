@@ -78,6 +78,8 @@ class CaseAnalysisResponseTest {
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
+        a.setAnalysisType(AnalysisType.STANDARD);
+        a.setVersion(1);
         a.setAnalysisResult(result);
         a.setModelUsed("claude-sonnet-4-6");
         a.setUpdatedAt(Instant.now());

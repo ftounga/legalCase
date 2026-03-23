@@ -22,6 +22,13 @@ public class CaseAnalysis {
     @JoinColumn(name = "case_file_id", nullable = false)
     private CaseFile caseFile;
 
+    @Column(name = "version", nullable = false)
+    private int version;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "analysis_type", nullable = false, length = 20)
+    private AnalysisType analysisType;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "analysis_status", nullable = false, length = 20)
     private AnalysisStatus analysisStatus;

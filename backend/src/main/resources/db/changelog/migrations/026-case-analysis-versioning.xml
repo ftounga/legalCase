@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="026-case-analysis-versioning-1" author="ailegalcase">
+        <comment>
+            Ajoute version (INT) et analysis_type (VARCHAR) sur case_analyses.
+            Backfill : toutes les analyses existantes → version=1, analysis_type='STANDARD'.
+        </comment>
+
+        <addColumn tableName="case_analyses">
+            <column name="version" type="INT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="case_analyses">
+            <column name="analysis_type" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <sql>UPDATE case_analyses SET version = 1, analysis_type = 'STANDARD'</sql>
+
+        <addNotNullConstraint tableName="case_analyses" columnName="version" columnDataType="INT"/>
+        <addNotNullConstraint tableName="case_analyses" columnName="analysis_type" columnDataType="VARCHAR(20)"/>
+    </changeSet>
+
+    <changeSet id="026-case-analysis-versioning-2" author="ailegalcase">
+        <comment>
+            Ajoute case_analysis_id (UUID, nullable, FK) sur ai_questions.
+            Backfill : lie chaque question à la dernière CaseAnalysis DONE de son dossier.
+        </comment>
+
+        <addColumn tableName="ai_questions">
+            <column name="case_analysis_id" type="UUID">
+                <constraints nullable="true"
+                             foreignKeyName="fk_ai_questions_case_analysis"
+                             references="case_analyses(id)"
+                             deleteCascade="false"/>
+            </column>
+        </addColumn>
+
+        <!-- Backfill PostgreSQL -->
+        <sql dbms="postgresql">
+            UPDATE ai_questions q
+            SET case_analysis_id = (
+                SELECT ca.id
+                FROM case_analyses ca
+                WHERE ca.case_file_id = q.case_file_id
+                  AND ca.analysis_status = 'DONE'
+                ORDER BY ca.updated_at DESC
+                LIMIT 1
+            )
+            WHERE q.case_analysis_id IS NULL
+        </sql>
+
+        <!-- Backfill H2 -->
+        <sql dbms="h2">
+            UPDATE ai_questions q
+            SET case_analysis_id = (
+                SELECT ca.id
+                FROM case_analyses ca
+                WHERE ca.case_file_id = q.case_file_id
+                  AND ca.analysis_status = 'DONE'
+                ORDER BY ca.updated_at DESC
+                LIMIT 1
+            )
+            WHERE q.case_analysis_id IS NULL
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

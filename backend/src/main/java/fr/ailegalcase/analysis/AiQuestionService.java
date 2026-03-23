@@ -96,6 +96,7 @@ public class AiQuestionService {
             for (int i = 0; i < questions.size(); i++) {
                 AiQuestion question = new AiQuestion();
                 question.setCaseFile(caseFile);
+                question.setCaseAnalysis(caseAnalysis);
                 question.setQuestionText(questions.get(i));
                 question.setOrderIndex(i);
                 aiQuestionRepository.save(question);
