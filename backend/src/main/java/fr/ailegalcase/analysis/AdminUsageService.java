@@ -3,6 +3,7 @@ package fr.ailegalcase.analysis;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
@@ -39,27 +40,27 @@ public class AdminUsageService {
     private final UsageEventRepository usageEventRepository;
     private final UserRepository userRepository;
     private final PlanLimitService planLimitService;
+    private final CurrentUserResolver currentUserResolver;
 
     public AdminUsageService(AuthAccountRepository authAccountRepository,
                              WorkspaceMemberRepository workspaceMemberRepository,
                              CaseFileRepository caseFileRepository,
                              UsageEventRepository usageEventRepository,
                              UserRepository userRepository,
-                             PlanLimitService planLimitService) {
+                             PlanLimitService planLimitService,
+                             CurrentUserResolver currentUserResolver) {
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.caseFileRepository = caseFileRepository;
         this.usageEventRepository = usageEventRepository;
         this.userRepository = userRepository;
         this.planLimitService = planLimitService;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @Transactional(readOnly = true)
     public WorkspaceUsageSummaryResponse getWorkspaceSummary(OidcUser oidcUser, Principal principal) {
-        User user = authAccountRepository
-                .findByProviderAndProviderUserId(resolve(principal), oidcUser.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
-                .getUser();
+        User user = currentUserResolver.resolve(oidcUser, resolve(principal), principal);
 
         WorkspaceMember member = workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)

@@ -6,6 +6,7 @@ import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
+import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
@@ -38,9 +39,10 @@ class AdminUsageServiceTest {
     private final UsageEventRepository usageEventRepo = mock(UsageEventRepository.class);
     private final UserRepository userRepo = mock(UserRepository.class);
     private final PlanLimitService planLimitService = mock(PlanLimitService.class);
+    private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
 
     private final AdminUsageService service = new AdminUsageService(
-            authAccountRepo, memberRepo, caseFileRepo, usageEventRepo, userRepo, planLimitService);
+            authAccountRepo, memberRepo, caseFileRepo, usageEventRepo, userRepo, planLimitService, currentUserResolver);
 
     // U-01 : OWNER → retourne summary avec totaux corrects
     @Test
@@ -180,12 +182,7 @@ class AdminUsageServiceTest {
     private TestContext buildContext(String role) {
         User u = user(UUID.randomUUID(), "test@example.com");
 
-        AuthAccount account = new AuthAccount();
-        account.setUser(u);
-        account.setProvider("GOOGLE");
-        account.setProviderUserId("google-sub");
-        when(authAccountRepo.findByProviderAndProviderUserId("GOOGLE", "google-sub"))
-                .thenReturn(Optional.of(account));
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(u);
 
         Workspace ws = new Workspace();
         ws.setId(UUID.randomUUID());

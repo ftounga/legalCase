@@ -10,7 +10,7 @@
             Crée une souscription FREE (14 jours) pour tous les workspaces
             qui n'en ont pas encore. Corrige les workspaces créés avant F-16.
         </comment>
-        <sql>
+        <sql dbms="postgresql">
             INSERT INTO subscriptions (id, workspace_id, plan_code, status, started_at, expires_at)
             SELECT
                 gen_random_uuid(),
@@ -19,6 +19,20 @@
                 'ACTIVE',
                 now(),
                 now() + interval '14 days'
+            FROM workspaces w
+            WHERE NOT EXISTS (
+                SELECT 1 FROM subscriptions s WHERE s.workspace_id = w.id
+            );
+        </sql>
+        <sql dbms="h2">
+            INSERT INTO subscriptions (id, workspace_id, plan_code, status, started_at, expires_at)
+            SELECT
+                RANDOM_UUID(),
+                w.id,
+                'FREE',
+                'ACTIVE',
+                now(),
+                dateadd('DAY', 14, now())
             FROM workspaces w
             WHERE NOT EXISTS (
                 SELECT 1 FROM subscriptions s WHERE s.workspace_id = w.id
