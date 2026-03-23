@@ -150,6 +150,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-24 | F-38 SF-38-02 mergée — bouton suppression document, MatDialog confirmation, message adaptatif synthèse (ajouts/suppressions/les deux), CaseFile.lastDocumentDeletedAt, 162 tests frontend | Product owner |
 | 2026-03-23 | F-38 SF-38-01 mergée — DELETE /api/v1/case-files/{id}/documents/{docId}, cascade chunk_analyses→document, last_document_deleted_at sur CaseFile, table audit_logs (DOCUMENT_DELETED), 409 si analyse en cours, migration 027, 212 tests | Product owner |
 | 2026-03-23 | F-37 Terminée — SF-37-02 mergée : sélecteur de version dans SynthesisComponent, questions IA isolées par version, badge Enrichie, chat non versionné | Product owner |
 | 2026-03-23 | F-37 SF-37-01 mergée — versioning backend : champ version + analysisType sur case_analyses, FK case_analysis_id sur ai_questions, migration 026, endpoints GET /versions et GET /versions/{version}, GET /ai-questions?analysisId | Product owner |
