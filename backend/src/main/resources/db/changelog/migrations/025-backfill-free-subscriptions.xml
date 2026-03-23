@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="025-backfill-free-subscriptions" author="ailegalcase">
+        <comment>
+            Crée une souscription FREE (14 jours) pour tous les workspaces
+            qui n'en ont pas encore. Corrige les workspaces créés avant F-16.
+        </comment>
+        <sql>
+            INSERT INTO subscriptions (id, workspace_id, plan_code, status, started_at, expires_at)
+            SELECT
+                gen_random_uuid(),
+                w.id,
+                'FREE',
+                'ACTIVE',
+                now(),
+                now() + interval '14 days'
+            FROM workspaces w
+            WHERE NOT EXISTS (
+                SELECT 1 FROM subscriptions s WHERE s.workspace_id = w.id
+            );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
