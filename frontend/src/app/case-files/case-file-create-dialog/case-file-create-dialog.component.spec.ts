@@ -9,7 +9,7 @@ import { CaseFile } from '../../core/models/case-file.model';
 
 const mockCaseFile: CaseFile = {
   id: 'cf1', title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL',
-  description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z'
+  description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z', lastDocumentDeletedAt: null
 };
 
 describe('CaseFileCreateDialogComponent', () => {

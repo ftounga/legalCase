@@ -21,6 +21,10 @@ export class DocumentService {
     return this.http.post<Document>(this.apiUrl(caseFileId), formData);
   }
 
+  delete(caseFileId: string, documentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl(caseFileId)}/${documentId}`);
+  }
+
   downloadUrl(caseFileId: string, documentId: string): string {
     return `${this.apiUrl(caseFileId)}/${documentId}/download`;
   }

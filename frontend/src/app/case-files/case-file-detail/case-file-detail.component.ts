@@ -8,6 +8,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
@@ -26,7 +28,8 @@ import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
   imports: [
     RouterLink, DatePipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule
+    MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
+    MatDialogModule
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
@@ -63,6 +66,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     return this.documents().filter(d => new Date(d.createdAt) > synDate);
   });
 
+  // true if a document was deleted after the last synthesis
+  readonly deletedSinceLastAnalysis = computed(() => {
+    const deletedAt = this.caseFile()?.lastDocumentDeletedAt;
+    const synUpdatedAt = this.synthesis()?.updatedAt;
+    if (!deletedAt || !synUpdatedAt) return false;
+    return new Date(deletedAt) > new Date(synUpdatedAt);
+  });
+
+  deletingDocId = signal<string | null>(null);
+
   // true from "Analyser" click until both synthesis and questions are loaded
   readonly fullAnalysisRunning = computed(() => {
     if (this.analyzing()) return true;
@@ -89,7 +102,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private caseAnalysisService: CaseAnalysisService,
     private caseAnalysisCommandService: CaseAnalysisCommandService,
     private aiQuestionService: AiQuestionService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -406,6 +420,40 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           duration: 5000, panelClass: ['snack-error']
         });
       }
+    });
+  }
+
+  canDeleteDocument(): boolean {
+    return !this.fullAnalysisRunning() && !this.enrichedAnalysisRunning() && !this.docAnalysisRunning();
+  }
+
+  deleteDocument(doc: Document): void {
+    const ref = this.dialog.open(DocumentDeleteDialogComponent, {
+      data: { documentName: doc.originalFilename },
+      width: '400px'
+    });
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      const caseFileId = this.caseFile()!.id;
+      this.deletingDocId.set(doc.id);
+      this.documentService.delete(caseFileId, doc.id).subscribe({
+        next: () => {
+          this.documents.update(docs => docs.filter(d => d.id !== doc.id));
+          this.caseFile.update(cf => cf ? { ...cf, lastDocumentDeletedAt: new Date().toISOString() } : cf);
+          this.deletingDocId.set(null);
+          this.snackBar.open('Document supprimé', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
+        },
+        error: (err: any) => {
+          this.deletingDocId.set(null);
+          if (err.status === 409) {
+            this.snackBar.open('Suppression impossible : une analyse est en cours.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+          } else if (err.status === 404) {
+            this.snackBar.open('Document introuvable.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+          } else {
+            this.snackBar.open('Erreur lors de la suppression.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+          }
+        }
+      });
     });
   }
 

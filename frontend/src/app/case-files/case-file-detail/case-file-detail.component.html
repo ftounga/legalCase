@@ -90,6 +90,15 @@
                 <a mat-icon-button [href]="downloadUrl(doc)" target="_blank" title="Télécharger">
                   <mat-icon>download</mat-icon>
                 </a>
+                <button mat-icon-button color="warn" title="Supprimer"
+                  [disabled]="!canDeleteDocument() || deletingDocId() === doc.id"
+                  (click)="deleteDocument(doc)">
+                  @if (deletingDocId() === doc.id) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <mat-icon>delete</mat-icon>
+                  }
+                </button>
               </td>
             </ng-container>
 
@@ -165,11 +174,23 @@
             </a>
           }
         </div>
-        @if (!caseAnalysisRunning() && outdatedDocuments().length > 0) {
-          <div class="synthesis-outdated">
-            <mat-icon class="outdated-icon">warning</mat-icon>
-            <span>Cette synthèse ne prend pas en compte {{ outdatedDocuments().length }} document(s) récent(s). Relancez une analyse pour la mettre à jour.</span>
-          </div>
+        @if (!caseAnalysisRunning()) {
+          @if (outdatedDocuments().length > 0 && deletedSinceLastAnalysis()) {
+            <div class="synthesis-outdated">
+              <mat-icon class="outdated-icon">warning</mat-icon>
+              <span>Des documents ont été ajoutés et/ou supprimés depuis la dernière synthèse. Relancez une analyse pour la mettre à jour.</span>
+            </div>
+          } @else if (outdatedDocuments().length > 0) {
+            <div class="synthesis-outdated">
+              <mat-icon class="outdated-icon">warning</mat-icon>
+              <span>Cette synthèse ne prend pas en compte {{ outdatedDocuments().length }} document(s) récent(s). Relancez une analyse pour la mettre à jour.</span>
+            </div>
+          } @else if (deletedSinceLastAnalysis()) {
+            <div class="synthesis-outdated">
+              <mat-icon class="outdated-icon">warning</mat-icon>
+              <span>Des documents ont été supprimés depuis la dernière synthèse. Relancez une analyse pour la mettre à jour.</span>
+            </div>
+          }
         }
       }
 

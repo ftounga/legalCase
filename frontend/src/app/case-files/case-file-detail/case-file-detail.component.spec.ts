@@ -9,6 +9,7 @@ import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { of, throwError } from 'rxjs';
@@ -20,7 +21,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 
 const mockCaseFile: CaseFile = {
   id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL',
-  description: 'Description test', status: 'OPEN', createdAt: '2026-03-17T10:00:00Z'
+  description: 'Description test', status: 'OPEN', createdAt: '2026-03-17T10:00:00Z',
+  lastDocumentDeletedAt: null
 };
 
 const mockDocument: Document = {
@@ -46,10 +48,11 @@ describe('CaseFileDetailComponent', () => {
   let aiQuestionAnswerServiceSpy: jasmine.SpyObj<AiQuestionAnswerService>;
   let reAnalysisServiceSpy: jasmine.SpyObj<ReAnalysisService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let dialogSpy: jasmine.SpyObj<MatDialog>;
 
   beforeEach(async () => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
-    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl']);
+    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl', 'delete']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
     caseAnalysisCommandServiceSpy = jasmine.createSpyObj('CaseAnalysisCommandService', ['triggerAnalysis']);
@@ -57,6 +60,7 @@ describe('CaseFileDetailComponent', () => {
     aiQuestionAnswerServiceSpy = jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']);
     reAnalysisServiceSpy = jasmine.createSpyObj('ReAnalysisService', ['reAnalyze']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+    dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
     caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
     documentServiceSpy.list.and.returnValue(of([mockDocument]));
@@ -80,6 +84,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: AiQuestionAnswerService, useValue: aiQuestionAnswerServiceSpy },
         { provide: ReAnalysisService, useValue: reAnalysisServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: MatDialog, useValue: dialogSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
         provideAnimationsAsync()
@@ -299,6 +304,57 @@ describe('CaseFileDetailComponent', () => {
     expect(snackBarSpy.open).toHaveBeenCalledWith(
       jasmine.stringContaining('cours'), jasmine.any(String), jasmine.any(Object)
     );
+  });
+
+  // --- Tests SF-38-02 : suppression de documents ---
+
+  it('bouton delete présent dans le DOM quand documents.length > 0', () => {
+    fixture.detectChanges();
+    const deleteButtons = fixture.nativeElement.querySelectorAll('button[title="Supprimer"]');
+    expect(deleteButtons.length).toBe(1);
+  });
+
+  it('deletedSinceLastAnalysis — false si lastDocumentDeletedAt est null', () => {
+    component.caseFile.set({ ...mockCaseFile, lastDocumentDeletedAt: null });
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    expect(component.deletedSinceLastAnalysis()).toBeFalse();
+  });
+
+  it('deletedSinceLastAnalysis — true si lastDocumentDeletedAt > synthesis.updatedAt', () => {
+    component.caseFile.set({ ...mockCaseFile, lastDocumentDeletedAt: '2026-03-21T10:00:00Z' });
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    expect(component.deletedSinceLastAnalysis()).toBeTrue();
+  });
+
+  it('message adaptatif — additions + suppressions → message combiné', () => {
+    component.caseFile.set({ ...mockCaseFile, lastDocumentDeletedAt: '2026-03-21T10:00:00Z' });
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    // doc added after synthesis
+    component.documents.set([{ ...mockDocument, createdAt: '2026-03-22T10:00:00Z' }]);
+    fixture.detectChanges();
+
+    const warning = fixture.nativeElement.querySelector('.synthesis-outdated span');
+    expect(warning.textContent).toContain('ajoutés et/ou supprimés');
+  });
+
+  it('canDeleteDocument — false si fullAnalysisRunning', () => {
+    component.analysisJobs.set([
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 },
+      { jobType: 'CASE_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
+    ]);
+    expect(component.canDeleteDocument()).toBeFalse();
   });
 
 });
