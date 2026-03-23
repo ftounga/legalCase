@@ -9,5 +9,6 @@ public record AuditLogResponse(
         String userEmail,
         UUID caseFileId,
         String caseFileTitle,
+        String documentName,
         Instant createdAt
 ) {}

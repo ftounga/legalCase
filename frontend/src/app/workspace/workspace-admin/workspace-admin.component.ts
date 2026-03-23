@@ -45,7 +45,7 @@ export class WorkspaceAdminComponent implements OnInit {
   accessDenied = signal(false);
 
   readonly memberColumns = ['email', 'role'];
-  readonly auditColumns = ['createdAt', 'action', 'userEmail', 'caseFileTitle'];
+  readonly auditColumns = ['createdAt', 'action', 'userEmail', 'caseFileTitle', 'documentName'];
 
   constructor(
     private workspaceService: WorkspaceService,

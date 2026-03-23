@@ -149,6 +149,10 @@
               <th mat-header-cell *matHeaderCellDef>Dossier</th>
               <td mat-cell *matCellDef="let log">{{ log.caseFileTitle }}</td>
             </ng-container>
+            <ng-container matColumnDef="documentName">
+              <th mat-header-cell *matHeaderCellDef>Document</th>
+              <td mat-cell *matCellDef="let log">{{ log.documentName }}</td>
+            </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="auditColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: auditColumns;"></tr>

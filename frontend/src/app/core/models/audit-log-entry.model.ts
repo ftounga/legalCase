@@ -4,5 +4,6 @@ export interface AuditLogEntry {
   userEmail: string;
   caseFileId: string | null;
   caseFileTitle: string;
+  documentName: string;
   createdAt: string;
 }

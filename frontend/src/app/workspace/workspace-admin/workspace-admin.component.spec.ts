@@ -36,7 +36,7 @@ const mockMembers: WorkspaceMember[] = [
 ];
 
 const mockAuditLogs: AuditLogEntry[] = [
-  { id: 'log-1', action: 'DOCUMENT_DELETED', userEmail: 'alice@test.com', caseFileId: 'cf-1', caseFileTitle: 'Licenciement Dupont', createdAt: '2026-03-24T10:00:00Z' }
+  { id: 'log-1', action: 'DOCUMENT_DELETED', userEmail: 'alice@test.com', caseFileId: 'cf-1', caseFileTitle: 'Licenciement Dupont', documentName: 'contrat.pdf', createdAt: '2026-03-24T10:00:00Z' }
 ];
 
 describe('WorkspaceAdminComponent', () => {

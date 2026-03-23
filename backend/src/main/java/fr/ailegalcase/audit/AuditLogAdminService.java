@@ -28,6 +28,8 @@ public class AuditLogAdminService {
     private static final Set<String> ADMIN_ROLES = Set.of("OWNER", "ADMIN");
     private static final Pattern CASE_FILE_TITLE_PATTERN =
             Pattern.compile("\"caseFileTitle\":\"([^\"\\\\]*)\"");
+    private static final Pattern DOCUMENT_NAME_PATTERN =
+            Pattern.compile("\"documentName\":\"([^\"\\\\]*)\"");
 
     private final AuditLogRepository auditLogRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -74,6 +76,7 @@ public class AuditLogAdminService {
                         emailById.getOrDefault(log.getUserId(), ""),
                         log.getCaseFileId(),
                         extractCaseFileTitle(log.getMetadata()),
+                        extractDocumentName(log.getMetadata()),
                         log.getCreatedAt()
                 ))
                 .toList();
@@ -82,6 +85,12 @@ public class AuditLogAdminService {
     private String extractCaseFileTitle(String metadata) {
         if (metadata == null) return "";
         Matcher m = CASE_FILE_TITLE_PATTERN.matcher(metadata);
+        return m.find() ? m.group(1) : "";
+    }
+
+    private String extractDocumentName(String metadata) {
+        if (metadata == null) return "";
+        Matcher m = DOCUMENT_NAME_PATTERN.matcher(metadata);
         return m.find() ? m.group(1) : "";
     }
 }
