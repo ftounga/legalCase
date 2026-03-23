@@ -51,6 +51,21 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
 
+  // true from "Analyser" click until both synthesis and questions are loaded
+  readonly fullAnalysisRunning = computed(() => {
+    if (this.analyzing()) return true;
+    const jobs = this.analysisJobs();
+    const caseJob = jobs.find(j => j.jobType === 'CASE_ANALYSIS');
+    if (!caseJob) return false;
+    if (caseJob.status === 'PENDING' || caseJob.status === 'PROCESSING') return true;
+    if (caseJob.status === 'DONE' && !this.synthesis()) return true;
+    const questionJob = jobs.find(j => j.jobType === 'QUESTION_GENERATION');
+    if (!questionJob) return false;
+    if (questionJob.status === 'PENDING' || questionJob.status === 'PROCESSING') return true;
+    if (questionJob.status === 'DONE' && this.questions().length === 0) return true;
+    return false;
+  });
+
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -160,12 +175,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   canAnalyze(): boolean {
     if (this.uploading()) return false;
     if (this.docAnalysisPending()) return false;
+    if (this.fullAnalysisRunning()) return false;
     const jobs = this.analysisJobs();
-    const docAnalysisDone = jobs.some(j => j.jobType === 'DOCUMENT_ANALYSIS' && j.status === 'DONE');
-    const caseAnalysisActive = jobs.some(
-      j => j.jobType === 'CASE_ANALYSIS' && (j.status === 'PENDING' || j.status === 'PROCESSING')
-    );
-    return docAnalysisDone && !caseAnalysisActive;
+    return jobs.some(j => j.jobType === 'DOCUMENT_ANALYSIS' && j.status === 'DONE');
   }
 
   caseAnalysisRunning(): boolean {
@@ -180,6 +192,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     );
   }
 
+  docAnalysisRunning(): boolean {
+    return this.analysisJobs().some(
+      j => j.jobType === 'DOCUMENT_ANALYSIS' && (j.status === 'PENDING' || j.status === 'PROCESSING')
+    );
+  }
+
   isJobActive(job: AnalysisJob): boolean {
     return job.status === 'PENDING' || job.status === 'PROCESSING';
   }
@@ -188,15 +206,29 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const id = this.caseFile()?.id;
     if (!id) return;
     this.analyzing.set(true);
+
+    // Inject placeholders immediately on click — both bars appear before server responds
+    const pending = (type: AnalysisJob['jobType']): AnalysisJob =>
+      ({ jobType: type, status: 'PENDING', totalItems: 0, processedItems: 0, progressPercentage: 0 });
+    this.synthesis.set(null);
+    this.questions.set([]);
+    this.analysisJobs.update(jobs => [
+      ...jobs.filter(j => j.jobType !== 'CASE_ANALYSIS' && j.jobType !== 'QUESTION_GENERATION'),
+      pending('CASE_ANALYSIS'),
+      pending('QUESTION_GENERATION')
+    ]);
+
     this.caseAnalysisCommandService.triggerAnalysis(id).subscribe({
       next: () => {
         this.analyzing.set(false);
-        this.synthesis.set(null);
-        this.questions.set([]);
         this.loadAnalysisJobs(id);
       },
       error: (err: any) => {
         this.analyzing.set(false);
+        // Revert placeholders — reload actual state from server
+        this.loadAnalysisJobs(id);
+        this.loadSynthesis(id);
+        this.loadQuestions(id);
         if (err.status === 402) {
           this.snackBar.open("Limite d'analyses atteinte pour ce dossier. Passez au plan supérieur.", 'Fermer', {
             duration: 5000, panelClass: ['snack-error']

@@ -102,6 +102,11 @@
             <mat-spinner diameter="20"></mat-spinner>
             <span>Analyse en cours…</span>
           </div>
+        } @else if (docAnalysisRunning()) {
+          <div class="analyze-running">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Analyse des documents…</span>
+          </div>
         } @else if (canAnalyze()) {
           <button mat-raised-button color="accent" (click)="triggerAnalysis()" [disabled]="analyzing()">
             <mat-icon>auto_fix_high</mat-icon>
@@ -163,6 +168,13 @@
             <mat-icon class="banner-arrow">chevron_right</mat-icon>
           </a>
         }
+      }
+
+      @if (fullAnalysisRunning()) {
+        <div class="global-analysis-spinner">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Analyse complète en cours…</span>
+        </div>
       }
     </div>
   </div>
