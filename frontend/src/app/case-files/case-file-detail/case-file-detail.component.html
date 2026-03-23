@@ -104,7 +104,7 @@
     <div class="col-right">
       <div class="section-header section-header--first">
         <h2 class="section-title">Analyse IA</h2>
-        @if (caseAnalysisRunning() || analyzing()) {
+        @if (fullAnalysisRunning()) {
           <div class="analyze-running">
             <mat-spinner diameter="20"></mat-spinner>
             <span>Analyse en cours…</span>

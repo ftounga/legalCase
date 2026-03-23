@@ -48,6 +48,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // true between upload success and first backend confirmation that new doc analysis started
   private docAnalysisPending = signal(false);
 
+  // true between triggerAnalysis() success and first backend confirmation that CASE_ANALYSIS job exists
+  private caseAnalysisPending = signal(false);
+
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
 
@@ -62,6 +65,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // true from "Analyser" click until both synthesis and questions are loaded
   readonly fullAnalysisRunning = computed(() => {
     if (this.analyzing()) return true;
+    if (this.caseAnalysisPending()) return true;
     const jobs = this.analysisJobs();
     const caseJob = jobs.find(j => j.jobType === 'CASE_ANALYSIS');
     if (!caseJob) return false;
@@ -121,8 +125,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   loadAnalysisJobs(caseFileId: string, forceStart = false): void {
     this.analysisJobService.getJobs(caseFileId).subscribe({
       next: jobs => {
-        // Don't overwrite the placeholder while waiting for the backend to pick up the new upload
-        if (jobs.length > 0 && !this.docAnalysisPending()) {
+        // Don't overwrite placeholders while waiting for backend to pick up upload or analysis trigger
+        if (jobs.length > 0 && !this.docAnalysisPending() && !this.caseAnalysisPending()) {
           this.analysisJobs.set(jobs);
         }
         this.managePolling(caseFileId, jobs, forceStart);
@@ -130,7 +134,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           this.loadSynthesis(caseFileId);
         }
         if (jobs.some(j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE')) {
-          this.loadQuestions(caseFileId);
+          this.loadQuestions(caseFileId, this.synthesis()?.id);
         }
       },
       error: () => {
@@ -144,15 +148,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       j => j.status === 'PENDING' || j.status === 'PROCESSING'
     );
 
-    if ((hasPendingOrProcessing || forceStart || this.docAnalysisPending()) && !this.pollingInterval) {
+    if ((hasPendingOrProcessing || forceStart || this.docAnalysisPending() || this.caseAnalysisPending()) && !this.pollingInterval) {
       this.pollingInterval = setInterval(() => {
         this.analysisJobService.getJobs(caseFileId).subscribe({
           next: updated => {
             if (updated.length === 0) return; // pipeline not started yet — keep placeholders
 
-            // If we're waiting for the backend to pick up a new upload, check if it did.
-            // Confirmed only when totalItems reflects the current document count —
-            // this prevents false positives from stale PROCESSING responses in flight.
+            // Wait for backend to confirm DOCUMENT_ANALYSIS picked up the new upload
             if (this.docAnalysisPending()) {
               const docJob = updated.find(j => j.jobType === 'DOCUMENT_ANALYSIS');
               const backendPickedUp = docJob && docJob.totalItems >= this.documents().length;
@@ -160,6 +162,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
                 return; // stale response — keep placeholder, keep polling
               }
               this.docAnalysisPending.set(false);
+            }
+
+            // Wait for backend to confirm CASE_ANALYSIS job was created
+            if (this.caseAnalysisPending()) {
+              const caseJob = updated.find(j => j.jobType === 'CASE_ANALYSIS');
+              if (!caseJob) {
+                return; // job not yet created — keep placeholder, keep polling
+              }
+              this.caseAnalysisPending.set(false);
             }
 
             this.analysisJobs.set(updated);
@@ -175,7 +186,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           }
         });
       }, 3000);
-    } else if (!hasPendingOrProcessing && !forceStart && !this.docAnalysisPending()) {
+    } else if (!hasPendingOrProcessing && !forceStart && !this.docAnalysisPending() && !this.caseAnalysisPending()) {
       this.stopPolling();
     }
   }
@@ -183,6 +194,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   canAnalyze(): boolean {
     if (this.uploading()) return false;
     if (this.docAnalysisPending()) return false;
+    if (this.caseAnalysisPending()) return false;
     if (this.fullAnalysisRunning()) return false;
     const jobs = this.analysisJobs();
     return jobs.some(j => j.jobType === 'DOCUMENT_ANALYSIS' && j.status === 'DONE');
@@ -226,17 +238,20 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       pending('QUESTION_GENERATION')
     ]);
 
+    this.caseAnalysisPending.set(true);
+
     this.caseAnalysisCommandService.triggerAnalysis(id).subscribe({
       next: () => {
         this.analyzing.set(false);
-        this.loadAnalysisJobs(id);
+        this.loadAnalysisJobs(id, true);
       },
       error: (err: any) => {
         this.analyzing.set(false);
+        this.caseAnalysisPending.set(false);
         // Revert placeholders — reload actual state from server
         this.loadAnalysisJobs(id);
         this.loadSynthesis(id);
-        this.loadQuestions(id);
+        // Questions will be reloaded inside loadSynthesis once synthesis id is known
         if (err.status === 402) {
           this.snackBar.open("Limite d'analyses atteinte pour ce dossier. Passez au plan supérieur.", 'Fermer', {
             duration: 5000, panelClass: ['snack-error']
@@ -270,22 +285,25 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE'
         );
         if (questionGenerationDone) {
-          this.loadQuestions(caseFileId);
+          this.loadQuestions(caseFileId, this.synthesis()?.id);
         }
         const enrichedAnalysisDone = this.analysisJobs().some(
           j => j.jobType === 'ENRICHED_ANALYSIS' && j.status === 'DONE'
         );
         if (enrichedAnalysisDone) {
           this.loadSynthesis(caseFileId);
-          this.loadQuestions(caseFileId);
+          // Questions will be reloaded inside loadSynthesis once synthesis id is known
         }
       }
     }
   }
 
-  loadQuestions(caseFileId: string): void {
+  loadQuestions(caseFileId: string, analysisId?: string): void {
     this.questionsLoading.set(true);
-    this.aiQuestionService.getQuestions(caseFileId).subscribe({
+    const obs = analysisId
+      ? this.aiQuestionService.getQuestionsByAnalysisId(caseFileId, analysisId)
+      : this.aiQuestionService.getQuestions(caseFileId);
+    obs.subscribe({
       next: qs => { this.questions.set(qs); this.questionsLoading.set(false); },
       error: () => { this.questionsLoading.set(false); }
     });
@@ -297,7 +315,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   loadSynthesis(caseFileId: string): void {
     this.caseAnalysisService.getAnalysis(caseFileId).subscribe({
-      next: result => this.synthesis.set(result),
+      next: result => {
+        this.synthesis.set(result);
+        // Reload questions for this specific version once synthesis id is known
+        const questionsDone = this.analysisJobs().some(
+          j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE'
+        );
+        if (questionsDone && result?.id) {
+          this.loadQuestions(caseFileId, result.id);
+        }
+      },
       error: () => { /* silencieux */ }
     });
   }
