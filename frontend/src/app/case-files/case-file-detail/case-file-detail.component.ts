@@ -156,6 +156,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.caseAnalysisCommandService.triggerAnalysis(id).subscribe({
       next: () => {
         this.analyzing.set(false);
+        this.synthesis.set(null);
+        this.questions.set([]);
         this.loadAnalysisJobs(id);
       },
       error: (err: any) => {
