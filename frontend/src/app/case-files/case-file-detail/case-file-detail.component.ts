@@ -197,8 +197,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     if (this.docAnalysisPending()) return false;
     if (this.caseAnalysisPending()) return false;
     if (this.fullAnalysisRunning()) return false;
+    if (this.enrichedAnalysisRunning()) return false;
     const jobs = this.analysisJobs();
     return jobs.some(j => j.jobType === 'DOCUMENT_ANALYSIS' && j.status === 'DONE');
+  }
+
+  enrichedAnalysisRunning(): boolean {
+    return this.analysisJobs().some(
+      j => j.jobType === 'ENRICHED_ANALYSIS' && (j.status === 'PENDING' || j.status === 'PROCESSING')
+    );
   }
 
   caseAnalysisRunning(): boolean {
