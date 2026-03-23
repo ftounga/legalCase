@@ -12,7 +12,7 @@ import { Page } from '../../core/models/page.model';
 import { CaseFile } from '../../core/models/case-file.model';
 
 const mockPage: Page<CaseFile> = {
-  content: [{ id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z' }],
+  content: [{ id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z', lastDocumentDeletedAt: null }],
   totalElements: 1, totalPages: 1, size: 20, number: 0
 };
 

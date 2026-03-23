@@ -5,6 +5,7 @@ export interface CaseFile {
   description: string | null;
   status: string;
   createdAt: string;
+  lastDocumentDeletedAt: string | null;
 }
 
 export interface CreateCaseFileRequest {
