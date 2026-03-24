@@ -7,7 +7,6 @@ import fr.ailegalcase.document.DocumentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +15,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@Profile("local")
 public class DocumentAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentAnalysisService.class);
