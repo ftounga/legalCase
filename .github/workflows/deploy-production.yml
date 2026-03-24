@@ -1,0 +1,101 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_tag:
+        description: 'Backend image tag (ex: a1b2c3d)'
+        required: true
+      frontend_tag:
+        description: 'Frontend image tag (ex: a1b2c3d)'
+        required: true
+      confirm:
+        description: 'Tapez "PRODUCTION" pour confirmer'
+        required: true
+
+env:
+  AWS_REGION: eu-west-3
+  EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+
+jobs:
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'PRODUCTION'
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: Create/update backend K8s secret (production)
+        run: |
+          kubectl create secret generic backend-secrets \
+            --namespace=production \
+            --from-literal=ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }} \
+            --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            --from-literal=MICROSOFT_CLIENT_ID=${{ secrets.MICROSOFT_CLIENT_ID }} \
+            --from-literal=MICROSOFT_CLIENT_SECRET=${{ secrets.MICROSOFT_CLIENT_SECRET }} \
+            --from-literal=STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }} \
+            --from-literal=STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }} \
+            --from-literal=STRIPE_PRICE_ID_STARTER=${{ secrets.STRIPE_PRICE_ID_STARTER }} \
+            --from-literal=STRIPE_PRICE_ID_PRO=${{ secrets.STRIPE_PRICE_ID_PRO }} \
+            --from-literal=MAIL_HOST=${{ secrets.MAIL_HOST }} \
+            --from-literal=MAIL_USERNAME=${{ secrets.MAIL_USERNAME }} \
+            --from-literal=MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }} \
+            --from-literal=SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            --from-literal=SPRING_DATASOURCE_URL=${{ secrets.DB_URL }} \
+            --from-literal=S3_BUCKET=${{ secrets.S3_BUCKET }} \
+            --from-literal=S3_ACCESS_KEY=${{ secrets.S3_ACCESS_KEY }} \
+            --from-literal=S3_SECRET_KEY=${{ secrets.S3_SECRET_KEY }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create/update RabbitMQ K8s secret (production)
+        run: |
+          kubectl create secret generic rabbitmq-secrets \
+            --namespace=production \
+            --from-literal=RABBITMQ_USER=${{ secrets.RABBITMQ_USER }} \
+            --from-literal=RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy to production
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          BACKEND_TAG: ${{ github.event.inputs.backend_tag }}
+          FRONTEND_TAG: ${{ github.event.inputs.frontend_tag }}
+        run: |
+          find k8s/ -name "*.yaml" | xargs sed -i \
+            "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g"
+          find k8s/ -name "*.yaml" | xargs sed -i \
+            "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g"
+
+          # Backend : tag spécifié manuellement
+          sed -i "s|legalcase-backend:IMAGE_TAG|legalcase-backend:$BACKEND_TAG|g" \
+            k8s/base/backend/deployment.yaml
+
+          # Frontend : tag spécifié manuellement
+          sed -i "s|legalcase-frontend:IMAGE_TAG|legalcase-frontend:$FRONTEND_TAG|g" \
+            k8s/base/frontend/deployment.yaml
+
+          kubectl apply -k k8s/overlays/production/
+          kubectl rollout status deployment/legalcase-backend -n production --timeout=180s
+          kubectl rollout status deployment/legalcase-frontend -n production --timeout=60s
