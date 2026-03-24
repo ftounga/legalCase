@@ -3,6 +3,8 @@ spring:
     name: legalcase-backend
   profiles:
     active: dev
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
   security:
     oauth2:
       client:
