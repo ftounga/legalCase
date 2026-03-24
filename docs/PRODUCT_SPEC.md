@@ -176,6 +176,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |----|---------|-------|-------|
 | F-46 | Tests E2E smoke branchés CI | V2 | Les specs existent dans `e2e/smoke/` (auth, workspace, navigation). Brancher dans GitHub Actions pour bloquer les merges sur régression. |
 | F-47 | Monitoring & alertes applicatives | V2 | Intégration Sentry (ou équivalent) pour capturer les erreurs backend/frontend en production. Alertes sur les jobs IA en échec répété. |
+| F-50 | Déploiement V1 — AWS EKS | V1 | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. Repo infra séparé `legalcase-infra`. 6 subfeatures : SF-50-01 Dockerfiles, SF-50-02 Terraform infra, SF-50-03 K8s manifests, SF-50-04 CI/CD, SF-50-05 Config prod OAuth2/Stripe, SF-50-06 Monitoring. |
 
 ---
 
