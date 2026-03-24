@@ -3,6 +3,8 @@ package fr.ailegalcase.storage;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -18,8 +20,7 @@ public class StorageConfig {
     public S3Client s3Client(StorageProperties props) {
         var builder = S3Client.builder()
                 .region(Region.of(props.getRegion()))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey())));
+                .credentialsProvider(resolveCredentials(props));
 
         if (props.getEndpoint() != null && !props.getEndpoint().isBlank()) {
             builder.endpointOverride(URI.create(props.getEndpoint()))
@@ -33,12 +34,9 @@ public class StorageConfig {
 
     @Bean
     public S3Presigner s3Presigner(StorageProperties props) {
-        var creds = StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey()));
-
         var builder = S3Presigner.builder()
                 .region(Region.of(props.getRegion()))
-                .credentialsProvider(creds);
+                .credentialsProvider(resolveCredentials(props));
 
         if (props.getEndpoint() != null && !props.getEndpoint().isBlank()) {
             builder.endpointOverride(URI.create(props.getEndpoint()))
@@ -48,5 +46,18 @@ public class StorageConfig {
         }
 
         return builder.build();
+    }
+
+    /**
+     * Utilise les credentials statiques (MinIO local) quand un endpoint est explicitement
+     * configuré, sinon délègue à la chaîne de credentials AWS par défaut (IRSA sur EKS,
+     * variables d'environnement, profil AWS...).
+     */
+    private AwsCredentialsProvider resolveCredentials(StorageProperties props) {
+        if (props.getEndpoint() != null && !props.getEndpoint().isBlank()) {
+            return StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey()));
+        }
+        return DefaultCredentialsProvider.create();
     }
 }
