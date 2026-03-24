@@ -129,11 +129,17 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           SHORT_SHA: ${{ steps.build.outputs.short_sha }}
         run: |
-          # Substituer les placeholders dans les manifests
+          # Substituer les placeholders backend
           sed -i "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g" k8s/base/backend/deployment.yaml
           sed -i "s|BACKEND_IMAGE_TAG|$SHORT_SHA|g" k8s/base/backend/deployment.yaml
           sed -i "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g" k8s/base/backend/deployment.yaml
 
+          # Préserver l'image frontend courante pour ne pas l'écraser
+          CURRENT_FRONTEND=$(kubectl get deployment legalcase-frontend -n staging \
+            -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null \
+            || echo "$ECR_REGISTRY/legalcase-frontend:latest")
+          sed -i "s|REGISTRY_PLACEHOLDER/legalcase-frontend:FRONTEND_IMAGE_TAG|$CURRENT_FRONTEND|g" \
+            k8s/base/frontend/deployment.yaml
+
           kubectl apply -k k8s/overlays/staging/
           kubectl rollout status deployment/legalcase-backend -n staging --timeout=120s
-          kubectl rollout status deployment/legalcase-frontend -n staging --timeout=60s
