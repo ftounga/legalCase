@@ -176,7 +176,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |----|---------|-------|-------|
 | F-46 | Tests E2E smoke branchés CI | V2 | Les specs existent dans `e2e/smoke/` (auth, workspace, navigation). Brancher dans GitHub Actions pour bloquer les merges sur régression. |
 | F-47 | Monitoring & alertes applicatives | V2 | Intégration Sentry (ou équivalent) pour capturer les erreurs backend/frontend en production. Alertes sur les jobs IA en échec répété. |
-| F-50 | Déploiement V1 — AWS EKS | V1 | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. Repo infra séparé `legalcase-infra`. 6 subfeatures : SF-50-01 Dockerfiles, SF-50-02 Terraform infra, SF-50-03 K8s manifests, SF-50-04 CI/CD, SF-50-05 Config prod OAuth2/Stripe, SF-50-06 Monitoring. |
+| F-50 | Déploiement V1 — AWS EKS | V1 | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. Repo infra séparé `legalcase-infra`. 6 subfeatures : SF-50-01 Dockerfiles ✅, SF-50-02 Terraform infra ✅, SF-50-03 K8s manifests ✅, SF-50-04 CI/CD ✅, SF-50-05 Config prod OAuth2/Stripe, SF-50-06 Monitoring. **Statut : Partielle** |
 
 ---
 
@@ -184,6 +184,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-24 | F-50 SF-50-04 mergée — CI/CD GitHub Actions backend + frontend : build Docker → ECR, kubectl apply kustomize, secrets K8s, séparation BACKEND_IMAGE_TAG/FRONTEND_IMAGE_TAG, RabbitMQConfig profil prod, Stripe test keys staging, sous-domaine staging.legalcase.ng-itconsulting.com HTTPS | Product owner |
 | 2026-03-24 | F-50 SF-50-03 mergée — K8s manifests base + overlays staging/production : backend/frontend/rabbitmq/ingress nginx, HPA CPU 70%, PVC EBS RabbitMQ, Kustomize | Product owner |
 | 2026-03-24 | F-50 SF-50-02 — Infrastructure Terraform : VPC, EKS 1.31, RDS PostgreSQL 16, S3, ECR, Secrets Manager, bootstrap S3+DynamoDB, environments staging/production, terraform validate PASS | Product owner |
 | 2026-03-24 | F-50 SF-50-01 mergée — Dockerfiles multi-stage backend (JRE21 alpine, 330MB) + frontend (nginx alpine, 68MB), nginx.conf proxy /api /oauth2, fix @angular/animations v19 | Product owner |
