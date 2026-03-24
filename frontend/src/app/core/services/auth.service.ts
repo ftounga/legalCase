@@ -58,10 +58,6 @@ export class AuthService {
     window.location.href = '/oauth2/authorization/google';
   }
 
-  loginWithMicrosoft(): void {
-    window.location.href = '/oauth2/authorization/microsoft';
-  }
-
   private redirectToLogin(): void {
     this.currentUser.set(null);
     window.location.href = '/login';

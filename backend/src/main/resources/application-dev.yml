@@ -31,5 +31,4 @@ storage:
 
 # OAuth2 credentials — variables d'environnement requises en dev :
 # GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET  → Google Cloud Console
-# MICROSOFT_CLIENT_ID / MICROSOFT_CLIENT_SECRET → Azure App Registrations
 # Définir dans un fichier .env local (voir .env.example) — ne jamais committer ces valeurs
