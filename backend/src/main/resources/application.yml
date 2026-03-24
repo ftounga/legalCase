@@ -41,6 +41,9 @@ app:
     price-id-starter: ${STRIPE_PRICE_ID_STARTER:}
     price-id-pro: ${STRIPE_PRICE_ID_PRO:}
 
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:change-me}
+
 storage:
   s3:
     endpoint: ${S3_ENDPOINT:}
