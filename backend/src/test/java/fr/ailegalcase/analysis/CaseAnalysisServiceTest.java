@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
@@ -28,10 +29,11 @@ class CaseAnalysisServiceTest {
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
     private final UsageEventService usageEventService = mock(UsageEventService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
-            anthropicService, analysisJobRepository, rabbitTemplate, usageEventService);
+            anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher);
 
     @BeforeEach
     void initTransactionSync() {

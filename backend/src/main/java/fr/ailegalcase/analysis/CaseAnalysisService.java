@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,7 @@ public class CaseAnalysisService {
     private final AnalysisJobRepository analysisJobRepository;
     private final RabbitTemplate rabbitTemplate;
     private final UsageEventService usageEventService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CaseAnalysisService(DocumentAnalysisRepository documentAnalysisRepository,
                                CaseAnalysisRepository caseAnalysisRepository,
@@ -47,7 +49,8 @@ public class CaseAnalysisService {
                                AnthropicService anthropicService,
                                AnalysisJobRepository analysisJobRepository,
                                RabbitTemplate rabbitTemplate,
-                               UsageEventService usageEventService) {
+                               UsageEventService usageEventService,
+                               ApplicationEventPublisher eventPublisher) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
@@ -55,6 +58,7 @@ public class CaseAnalysisService {
         this.analysisJobRepository = analysisJobRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.usageEventService = usageEventService;
+        this.eventPublisher = eventPublisher;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE)
@@ -123,16 +127,20 @@ public class CaseAnalysisService {
         }
         analysisJobRepository.save(job);
 
-        if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
+        AnalysisStatus finalStatus = analysis.getAnalysisStatus();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                eventPublisher.publishEvent(new AnalysisStatusEvent(caseFileId, finalStatus));
+                if (finalStatus == AnalysisStatus.DONE) {
                     rabbitTemplate.convertAndSend(
                             RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,
                             RabbitMQConfig.AI_QUESTION_GENERATION_ROUTING_KEY,
                             new AiQuestionGenerationMessage(caseFileId));
                 }
-            });
+            }
+        });
+        if (finalStatus == AnalysisStatus.DONE) {
             int promptTokens = analysis.getPromptTokens();
             int completionTokens = analysis.getCompletionTokens();
             caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->

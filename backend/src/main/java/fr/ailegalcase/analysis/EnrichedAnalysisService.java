@@ -5,9 +5,12 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +38,7 @@ public class EnrichedAnalysisService {
     private final AnalysisJobRepository analysisJobRepository;
     private final AnthropicService anthropicService;
     private final UsageEventService usageEventService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public EnrichedAnalysisService(CaseAnalysisRepository caseAnalysisRepository,
                                    CaseFileRepository caseFileRepository,
@@ -42,7 +46,8 @@ public class EnrichedAnalysisService {
                                    AiQuestionAnswerRepository aiQuestionAnswerRepository,
                                    AnalysisJobRepository analysisJobRepository,
                                    AnthropicService anthropicService,
-                                   UsageEventService usageEventService) {
+                                   UsageEventService usageEventService,
+                                   ApplicationEventPublisher eventPublisher) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -50,6 +55,7 @@ public class EnrichedAnalysisService {
         this.analysisJobRepository = analysisJobRepository;
         this.anthropicService = anthropicService;
         this.usageEventService = usageEventService;
+        this.eventPublisher = eventPublisher;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE)
@@ -122,7 +128,15 @@ public class EnrichedAnalysisService {
         }
         analysisJobRepository.save(job);
 
-        if (enrichedAnalysis.getAnalysisStatus() == AnalysisStatus.DONE) {
+        AnalysisStatus finalStatus = enrichedAnalysis.getAnalysisStatus();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                eventPublisher.publishEvent(new AnalysisStatusEvent(caseFileId, finalStatus));
+            }
+        });
+
+        if (finalStatus == AnalysisStatus.DONE) {
             int promptTokens = enrichedAnalysis.getPromptTokens();
             int completionTokens = enrichedAnalysis.getCompletionTokens();
             caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->

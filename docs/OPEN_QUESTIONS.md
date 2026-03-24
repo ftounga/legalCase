@@ -20,10 +20,12 @@ Ces questions sont à trancher au fil du développement, au moment où chaque su
 ---
 
 ## Notification de progression (UI)
-Comment le frontend Angular est-il notifié de l'avancement des analyses ?
-- Polling HTTP
-- WebSocket
-- SSE (Server-Sent Events)
+~~Comment le frontend Angular est-il notifié de l'avancement des analyses ?~~
+**Tranché le 2026-03-24** — SSE (Server-Sent Events).
+- Unidirectionnel backend → frontend, suffisant pour notifier la fin d'une analyse
+- Spring Boot : `SseEmitter` natif, aucune dépendance supplémentaire
+- Frontend Angular : `EventSource` natif HTML5
+- Pas de WebSocket (overkill), pas de polling (consomme des requêtes inutiles)
 
 ---
 
