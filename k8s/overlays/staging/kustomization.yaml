@@ -12,7 +12,8 @@ configMapGenerator:
   - name: backend-config
     behavior: merge
     literals:
-      - APP_FRONTEND_URL=https://staging.legalcase.ng-itconsulting.com
+      - APP_FRONTEND_URL=https://legalcase.ng-itconsulting.com
+      - APP_FRONTEND_URL_STAGING=https://staging.legalcase.ng-itconsulting.com
 
 patches:
   - patch: |-
