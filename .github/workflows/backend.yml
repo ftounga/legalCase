@@ -86,6 +86,7 @@ jobs:
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_URL: ${{ secrets.DB_URL }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
@@ -104,6 +105,7 @@ jobs:
             --from-literal=MAIL_HOST="$MAIL_HOST" \
             --from-literal=MAIL_USERNAME="$MAIL_USERNAME" \
             --from-literal=MAIL_PASSWORD="$MAIL_PASSWORD" \
+            --from-literal=MAIL_FROM="$MAIL_FROM" \
             --from-literal=SPRING_DATASOURCE_USERNAME="legalcase_admin" \
             --from-literal=SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
             --from-literal=SPRING_DATASOURCE_URL="$DB_URL" \
