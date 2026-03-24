@@ -13,11 +13,9 @@ import { forkJoin } from 'rxjs';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { AdminUsageService } from '../../core/services/admin-usage.service';
-import { AuditLogService } from '../../core/services/audit-log.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { WorkspaceUsageSummary } from '../../core/models/workspace-usage-summary.model';
-import { AuditLogEntry } from '../../core/models/audit-log-entry.model';
 
 const PLAN_QUOTA: Record<string, number | null> = {
   FREE: null,
@@ -40,18 +38,15 @@ export class WorkspaceAdminComponent implements OnInit {
   workspace = signal<Workspace | null>(null);
   members = signal<WorkspaceMember[]>([]);
   usage = signal<WorkspaceUsageSummary | null>(null);
-  auditLogs = signal<AuditLogEntry[]>([]);
   loading = signal(true);
   accessDenied = signal(false);
 
   readonly memberColumns = ['email', 'role'];
-  readonly auditColumns = ['createdAt', 'action', 'userEmail', 'caseFileTitle', 'documentName'];
 
   constructor(
     private workspaceService: WorkspaceService,
     private memberService: WorkspaceMemberService,
     private adminUsageService: AdminUsageService,
-    private auditLogService: AuditLogService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -59,14 +54,12 @@ export class WorkspaceAdminComponent implements OnInit {
     forkJoin({
       workspace: this.workspaceService.getCurrentWorkspace(),
       members: this.memberService.getMembers(),
-      usage: this.adminUsageService.getSummary(),
-      auditLogs: this.auditLogService.getAuditLogs()
+      usage: this.adminUsageService.getSummary()
     }).subscribe({
-      next: ({ workspace, members, usage, auditLogs }) => {
+      next: ({ workspace, members, usage }) => {
         this.workspace.set(workspace);
         this.members.set(members);
         this.usage.set(usage);
-        this.auditLogs.set(auditLogs);
         this.loading.set(false);
       },
       error: (err: any) => {

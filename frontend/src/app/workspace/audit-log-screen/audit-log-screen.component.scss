@@ -1,0 +1,93 @@
+.audit-log-page {
+  max-width: 1100px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+
+  .page-title {
+    margin: 0;
+    font-size: 24px;
+  }
+}
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}
+
+.access-denied-card {
+  max-width: 480px;
+  margin: 64px auto;
+  text-align: center;
+
+  .access-denied-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--color-text-secondary);
+    margin-bottom: 16px;
+  }
+
+  .access-denied-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 8px;
+  }
+}
+
+.filters-card {
+  margin-bottom: 16px;
+}
+
+.filters-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.search-field {
+  flex: 1;
+  min-width: 260px;
+}
+
+.action-filter {
+  width: 220px;
+}
+
+.table-card {
+  mat-card-content {
+    padding: 0;
+  }
+}
+
+.audit-table {
+  width: 100%;
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 32px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: 0;
+}
+
+.action-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.action-document_deleted {
+    background: #fdecea;
+    color: #c0392b;
+  }
+}

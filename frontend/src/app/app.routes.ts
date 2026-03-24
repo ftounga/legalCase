@@ -48,6 +48,11 @@ export const routes: Routes = [
           .then(m => m.WorkspaceAdminComponent)
       },
       {
+        path: 'workspace/audit-logs',
+        loadComponent: () => import('./workspace/audit-log-screen/audit-log-screen.component')
+          .then(m => m.AuditLogScreenComponent)
+      },
+      {
         path: 'super-admin',
         loadComponent: () => import('./super-admin/super-admin.component')
           .then(m => m.SuperAdminComponent)

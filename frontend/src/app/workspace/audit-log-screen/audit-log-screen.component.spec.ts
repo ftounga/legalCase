@@ -1,0 +1,120 @@
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { of, throwError } from 'rxjs';
+import { AuditLogScreenComponent } from './audit-log-screen.component';
+import { AuditLogService } from '../../core/services/audit-log.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { AuditLogEntry } from '../../core/models/audit-log-entry.model';
+import { provideRouter } from '@angular/router';
+
+const mockLogs: AuditLogEntry[] = [
+  { id: 'log-1', action: 'DOCUMENT_DELETED', userEmail: 'alice@test.com', caseFileId: 'cf-1', caseFileTitle: 'Licenciement Dupont', documentName: 'contrat.pdf', createdAt: '2026-03-24T10:00:00Z' },
+  { id: 'log-2', action: 'DOCUMENT_DELETED', userEmail: 'bob@test.com', caseFileId: 'cf-2', caseFileTitle: 'Harcèlement Martin', documentName: 'mail.pdf', createdAt: '2026-03-25T09:00:00Z' }
+];
+
+describe('AuditLogScreenComponent', () => {
+  let component: AuditLogScreenComponent;
+  let fixture: ComponentFixture<AuditLogScreenComponent>;
+  let auditLogService: jasmine.SpyObj<AuditLogService>;
+  let snackBar: jasmine.SpyObj<MatSnackBar>;
+
+  async function setup(logsReturn: any) {
+    auditLogService = jasmine.createSpyObj('AuditLogService', ['getAuditLogs']);
+    snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    auditLogService.getAuditLogs.and.returnValue(logsReturn);
+
+    await TestBed.configureTestingModule({
+      imports: [AuditLogScreenComponent, NoopAnimationsModule],
+      providers: [
+        { provide: AuditLogService, useValue: auditLogService },
+        { provide: MatSnackBar, useValue: snackBar },
+        provideRouter([])
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AuditLogScreenComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+  }
+
+  // T-01 : chargement nominal — tous les logs affichés
+  it('affiche tous les logs au chargement nominal', fakeAsync(async () => {
+    await setup(of(mockLogs));
+
+    expect(component.loading()).toBeFalse();
+    expect(component.allLogs().length).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('alice@test.com');
+    expect(fixture.nativeElement.textContent).toContain('bob@test.com');
+  }));
+
+  // T-02 : filtre texte "dupont" → une seule ligne
+  it('filtre par texte sur caseFileTitle', fakeAsync(async () => {
+    await setup(of(mockLogs));
+
+    component.searchText.set('dupont');
+    fixture.detectChanges();
+
+    expect(component.filteredLogs().length).toBe(1);
+    expect(component.filteredLogs()[0].caseFileTitle).toBe('Licenciement Dupont');
+  }));
+
+  // T-03 : filtre texte sur email
+  it('filtre par texte sur userEmail', fakeAsync(async () => {
+    await setup(of(mockLogs));
+
+    component.searchText.set('bob');
+    fixture.detectChanges();
+
+    expect(component.filteredLogs().length).toBe(1);
+    expect(component.filteredLogs()[0].userEmail).toBe('bob@test.com');
+  }));
+
+  // T-04 : filtre texte sur documentName
+  it('filtre par texte sur documentName', fakeAsync(async () => {
+    await setup(of(mockLogs));
+
+    component.searchText.set('contrat');
+    fixture.detectChanges();
+
+    expect(component.filteredLogs().length).toBe(1);
+    expect(component.filteredLogs()[0].documentName).toBe('contrat.pdf');
+  }));
+
+  // T-05 : filtre action "DOCUMENT_DELETED" → tous visibles (seul type existant)
+  it('filtre par action DOCUMENT_DELETED affiche toutes les lignes correspondantes', fakeAsync(async () => {
+    await setup(of(mockLogs));
+
+    component.actionFilter.set('DOCUMENT_DELETED');
+    fixture.detectChanges();
+
+    expect(component.filteredLogs().length).toBe(2);
+  }));
+
+  // T-06 : liste vide → message "Aucune action enregistrée"
+  it('affiche le message si liste vide', fakeAsync(async () => {
+    await setup(of([]));
+
+    expect(component.filteredLogs().length).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('Aucune action enregistrée');
+  }));
+
+  // T-07 : 403 → accessDenied = true
+  it('affiche le message accès refusé si 403', fakeAsync(async () => {
+    await setup(throwError(() => ({ status: 403 })));
+
+    expect(component.accessDenied()).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Accès réservé');
+  }));
+
+  // T-08 : erreur 500 → snackbar erreur
+  it('affiche un snackbar si erreur serveur', fakeAsync(async () => {
+    await setup(throwError(() => ({ status: 500 })));
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('Erreur'), jasmine.any(String), jasmine.any(Object)
+    );
+    expect(component.accessDenied()).toBeFalse();
+  }));
+});
