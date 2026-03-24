@@ -1,5 +1,6 @@
 package fr.ailegalcase.billing;
 
+import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
@@ -39,9 +40,17 @@ public class StripeWebhookService {
     }
 
     private void handleCheckoutCompleted(Event event) {
-        Session session = (Session) event.getDataObjectDeserializer()
-                .getObject().orElse(null);
-        if (session == null) return;
+        Session session;
+        try {
+            session = (Session) event.getDataObjectDeserializer().deserializeUnsafe();
+        } catch (StripeException e) {
+            log.error("Cannot deserialize checkout.session.completed event {}: {}", event.getId(), e.getMessage());
+            return;
+        }
+        if (session == null) {
+            log.error("Null session after deserialization for event {}", event.getId());
+            return;
+        }
 
         String customerId = session.getCustomer();
         String subscriptionId = session.getSubscription();
@@ -59,8 +68,13 @@ public class StripeWebhookService {
     }
 
     private void handleSubscriptionUpdated(Event event) {
-        Subscription stripeSub = (Subscription) event.getDataObjectDeserializer()
-                .getObject().orElse(null);
+        Subscription stripeSub;
+        try {
+            stripeSub = (Subscription) event.getDataObjectDeserializer().deserializeUnsafe();
+        } catch (StripeException e) {
+            log.error("Cannot deserialize customer.subscription.updated event {}: {}", event.getId(), e.getMessage());
+            return;
+        }
         if (stripeSub == null) return;
 
         String customerId = stripeSub.getCustomer();
@@ -78,8 +92,13 @@ public class StripeWebhookService {
     }
 
     private void handleSubscriptionDeleted(Event event) {
-        Subscription stripeSub = (Subscription) event.getDataObjectDeserializer()
-                .getObject().orElse(null);
+        Subscription stripeSub;
+        try {
+            stripeSub = (Subscription) event.getDataObjectDeserializer().deserializeUnsafe();
+        } catch (StripeException e) {
+            log.error("Cannot deserialize customer.subscription.deleted event {}: {}", event.getId(), e.getMessage());
+            return;
+        }
         if (stripeSub == null) return;
 
         String customerId = stripeSub.getCustomer();
