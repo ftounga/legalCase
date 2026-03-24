@@ -12,3 +12,4 @@ data:
   APP_FRONTEND_URL: "https://legalcase.ng-itconsulting.com"
   MANAGEMENT_HEALTH_RABBIT_ENABLED: "false"
   MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+  APP_STRIPE_ENABLED: "true"
