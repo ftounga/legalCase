@@ -33,8 +33,8 @@ spec:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq
           readinessProbe:
-            exec:
-              command: ["rabbitmq-diagnostics", "ping"]
+            tcpSocket:
+              port: 5672
             initialDelaySeconds: 20
             periodSeconds: 10
           resources:

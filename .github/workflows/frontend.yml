@@ -80,12 +80,8 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           SHORT_SHA: ${{ steps.build.outputs.short_sha }}
         run: |
-          find k8s/ -name "*.yaml" | xargs sed -i \
-            "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g"
-          find k8s/ -name "*.yaml" | xargs sed -i \
-            "s|IMAGE_TAG|$SHORT_SHA|g"
-          find k8s/ -name "*.yaml" | xargs sed -i \
-            "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g"
+          sed -i "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g" k8s/base/frontend/deployment.yaml
+          sed -i "s|FRONTEND_IMAGE_TAG|$SHORT_SHA|g" k8s/base/frontend/deployment.yaml
 
           kubectl apply -k k8s/overlays/staging/
           kubectl rollout status deployment/legalcase-frontend -n staging --timeout=60s
