@@ -102,3 +102,4 @@ jobs:
           sleep 10
           curl -sf https://staging.legalcase.ng-itconsulting.com/api/actuator/health \
             || (echo "Health check failed after deploy" && exit 1)
+
