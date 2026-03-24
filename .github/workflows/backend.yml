@@ -89,6 +89,8 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_URL: ${{ secrets.DB_URL }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
         run: |
           kubectl create secret generic backend-secrets \
             --namespace=$NAMESPACE \
@@ -106,6 +108,8 @@ jobs:
             --from-literal=SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
             --from-literal=SPRING_DATASOURCE_URL="$DB_URL" \
             --from-literal=S3_BUCKET="$S3_BUCKET" \
+            --from-literal=SPRING_RABBITMQ_USERNAME="$RABBITMQ_USER" \
+            --from-literal=SPRING_RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Create/update RabbitMQ K8s secret
@@ -126,12 +130,9 @@ jobs:
           SHORT_SHA: ${{ steps.build.outputs.short_sha }}
         run: |
           # Substituer les placeholders dans les manifests
-          find k8s/ -name "*.yaml" | xargs sed -i \
-            "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g"
-          find k8s/ -name "*.yaml" | xargs sed -i \
-            "s|IMAGE_TAG|$SHORT_SHA|g"
-          find k8s/ -name "*.yaml" | xargs sed -i \
-            "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g"
+          sed -i "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g" k8s/base/backend/deployment.yaml
+          sed -i "s|BACKEND_IMAGE_TAG|$SHORT_SHA|g" k8s/base/backend/deployment.yaml
+          sed -i "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g" k8s/base/backend/deployment.yaml
 
           kubectl apply -k k8s/overlays/staging/
           kubectl rollout status deployment/legalcase-backend -n staging --timeout=120s

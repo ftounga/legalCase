@@ -15,7 +15,7 @@ spec:
       serviceAccountName: legalcase-backend
       containers:
         - name: backend
-          image: REGISTRY_PLACEHOLDER/legalcase-backend:IMAGE_TAG
+          image: REGISTRY_PLACEHOLDER/legalcase-backend:BACKEND_IMAGE_TAG
           ports:
             - containerPort: 8080
           envFrom:

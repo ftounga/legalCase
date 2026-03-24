@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile("local")
+@Profile({"local", "prod"})
 public class RabbitMQConfig {
 
     public static final String CHUNK_ANALYSIS_QUEUE = "chunk.analysis";
