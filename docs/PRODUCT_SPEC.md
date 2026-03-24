@@ -148,7 +148,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |----|---------|-------|-------|
 | F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
 | F-39 | Notifications temps réel | V2 | SSE ou WebSocket : notifier l'avocat quand une analyse se termine sans qu'il surveille l'écran. Dépend de la décision ouverte SSE/WS dans `OPEN_QUESTIONS.md`. |
-| F-40 | Export PDF de la synthèse | V2 | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. |
+| F-40 | Export PDF de la synthèse | V2 — **Terminée** | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. Implémenté 100% frontend via pdfmake (SF-40-01, mergé 2026-03-24). |
 
 ### UX & exploitation
 
@@ -184,6 +184,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-24 | F-40 Terminée — SF-40-01 mergée : export PDF synthèse 100% frontend (pdfmake), page couverture branded, sections colorées, footer paginé, 7 tests unitaires | Product owner |
 | 2026-03-24 | F-50 SF-50-04 mergée — CI/CD GitHub Actions backend + frontend : build Docker → ECR, kubectl apply kustomize, secrets K8s, séparation BACKEND_IMAGE_TAG/FRONTEND_IMAGE_TAG, RabbitMQConfig profil prod, Stripe test keys staging, sous-domaine staging.legalcase.ng-itconsulting.com HTTPS | Product owner |
 | 2026-03-24 | F-50 SF-50-03 mergée — K8s manifests base + overlays staging/production : backend/frontend/rabbitmq/ingress nginx, HPA CPU 70%, PVC EBS RabbitMQ, Kustomize | Product owner |
 | 2026-03-24 | F-50 SF-50-02 — Infrastructure Terraform : VPC, EKS 1.31, RDS PostgreSQL 16, S3, ECR, Secrets Manager, bootstrap S3+DynamoDB, environments staging/production, terraform validate PASS | Product owner |
