@@ -135,14 +135,46 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 ## Features hors V1 (backlog)
 
+### Domaines juridiques
+
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-20 | Droit de l'immigration | V2 | Nouveau domaine juridique — nouveaux prompts LLM |
 | F-21 | Droit immobilier | V3 | Nouveau domaine juridique — nouveaux prompts LLM |
+
+### Pipeline IA & qualité
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
+| F-39 | Notifications temps réel | V2 | SSE ou WebSocket : notifier l'avocat quand une analyse se termine sans qu'il surveille l'écran. Dépend de la décision ouverte SSE/WS dans `OPEN_QUESTIONS.md`. |
+| F-40 | Export PDF de la synthèse | V2 | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. |
+
+### UX & exploitation
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-41 | Partage dossier lecture seule | V2 | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. |
+| F-42 | Export CSV journal d'actions | V2 | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). |
+| F-43 | Filtre par plage de dates — journal d'actions | V2 | Sélecteur de dates (date début / date fin) dans l'écran `/workspace/audit-logs`. Actuellement hors scope de SF-38-04. |
+| F-44 | Pagination et tri côté serveur — journal d'actions | V2 | Actuellement le backend renvoie 50 entrées max et le filtre est côté client. À remplacer par pagination serveur + paramètres de tri/filtre sur l'endpoint `GET /api/v1/admin/audit-logs`. |
+| F-45 | Pagination côté serveur — liste des dossiers | V2 | La liste des dossiers est actuellement chargée entièrement côté client. À paginer côté serveur pour les workspaces avec de nombreux dossiers. |
+| F-48 | Tableau de bord dossier | V2 | Métriques par dossier : nombre d'analyses, coût LLM estimé, nombre de documents, durée d'analyse. Visible depuis la page dossier ou depuis Administration. |
+
+### Auth & collaboration
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
 | F-22 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
 | F-23 | Collaboration avancée | V2+ | Partage de dossiers entre membres, commentaires |
 | F-24 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
-| F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
+
+### Infrastructure & qualité
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-46 | Tests E2E smoke branchés CI | V2 | Les specs existent dans `e2e/smoke/` (auth, workspace, navigation). Brancher dans GitHub Actions pour bloquer les merges sur régression. |
+| F-47 | Monitoring & alertes applicatives | V2 | Intégration Sentry (ou équivalent) pour capturer les erreurs backend/frontend en production. Alertes sur les jobs IA en échec répété. |
 
 ---
 

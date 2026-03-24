@@ -39,6 +39,19 @@ Lire ces documents avant toute réponse impliquant du code, une spec ou une déc
 
 ---
 
+## Suggestion de la prochaine feature
+
+Quand l'utilisateur dit "on continue", "qu'est-ce qu'on fait ensuite" ou toute formulation équivalente sans préciser de feature :
+
+1. Lire la section **"Features hors V1 (backlog)"** de `docs/PRODUCT_SPEC.md`
+2. Proposer les 3 features les plus pertinentes du backlog, regroupées par thème (UX rapide / infrastructure / nouvelle capacité)
+3. Ne jamais inventer une feature absente du backlog — si une idée est nouvelle, la soumettre d'abord à validation avant de l'ajouter au backlog et de la proposer
+4. Toute feature choisie doit passer par la séquence obligatoire (mini-spec → readiness → dev → review → push)
+
+**REFUS si** : une feature est implémentée sans être référencée dans `docs/PRODUCT_SPEC.md`.
+
+---
+
 ## Séquence obligatoire par subfeature
 
 Ce cycle est non négociable. Chaque étape produit un artefact visible dans la conversation.
