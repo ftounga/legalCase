@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -15,6 +16,7 @@ import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
+import { AnalysisSseService } from '../../core/services/analysis-sse.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
@@ -93,6 +95,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   });
 
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  private sseSub: Subscription | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -101,6 +104,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
     private caseAnalysisCommandService: CaseAnalysisCommandService,
+    private analysisSseService: AnalysisSseService,
     private aiQuestionService: AiQuestionService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -126,6 +130,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling();
+    this.sseSub?.unsubscribe();
   }
 
   loadDocuments(caseFileId: string): void {
@@ -264,6 +269,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.analyzing.set(false);
         this.loadAnalysisJobs(id, true);
+        this.startSseStream(id);
       },
       error: (err: any) => {
         this.analyzing.set(false);
@@ -285,6 +291,21 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
             duration: 4000, panelClass: ['snack-error']
           });
         }
+      }
+    });
+  }
+
+  private startSseStream(caseFileId: string): void {
+    this.sseSub?.unsubscribe();
+    this.sseSub = this.analysisSseService.stream(caseFileId).subscribe(event => {
+      if (event.status === 'DONE') {
+        this.stopPolling();
+        this.loadAnalysisJobs(caseFileId);
+        this.loadSynthesis(caseFileId);
+        this.snackBar.open('Analyse terminée', 'Fermer', { duration: 4000, panelClass: ['snack-success'] });
+      } else {
+        this.snackBar.open("L'analyse a échoué", 'Fermer', { duration: 5000, panelClass: ['snack-error'] });
+        this.loadAnalysisJobs(caseFileId);
       }
     });
   }
