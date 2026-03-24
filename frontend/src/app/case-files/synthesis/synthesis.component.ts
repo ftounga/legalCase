@@ -16,6 +16,7 @@ import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { ChatService } from '../../core/services/chat.service';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
@@ -57,7 +58,8 @@ export class SynthesisComponent implements OnInit {
     private aiQuestionAnswerService: AiQuestionAnswerService,
     private reAnalysisService: ReAnalysisService,
     private chatService: ChatService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private pdfExportService: PdfExportService
   ) {}
 
   ngOnInit(): void {
@@ -192,6 +194,19 @@ export class SynthesisComponent implements OnInit {
         });
       }
     });
+  }
+
+  exportPdf(): void {
+    const cf = this.caseFile();
+    const syn = this.synthesis();
+    if (!cf || !syn) return;
+    try {
+      this.pdfExportService.export(cf, syn);
+    } catch {
+      this.snackBar.open('Erreur lors de la génération du PDF', 'Fermer', {
+        duration: 4000, panelClass: ['snack-error']
+      });
+    }
   }
 
   reAnalyze(): void {

@@ -26,6 +26,34 @@
   margin-bottom: 24px;
 }
 
+.header-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.export-btn {
+  color: #1A3A5C;
+  border-color: #1A3A5C;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+
+  mat-icon {
+    color: #C9973A;
+    margin-right: 4px;
+  }
+
+  &:hover:not([disabled]) {
+    background-color: #EEF2F7;
+  }
+
+  &[disabled] {
+    opacity: 0.4;
+  }
+}
+
 .back-btn {
   color: #6B7A8D;
   margin-bottom: 8px;
