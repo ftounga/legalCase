@@ -155,6 +155,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-41 | Partage dossier lecture seule | V2 | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. |
+| F-49 | Top-up de crédits tokens | V2 | Achat de tokens supplémentaires via Stripe (one-shot, hors abonnement) quand le quota mensuel est atteint. Table `credit_purchases`. Déduction prioritaire sur les crédits avant le quota plan. Webhook Stripe dédié. Visible dans la page Administration. |
 | F-42 | Export CSV journal d'actions | V2 | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). |
 | F-43 | Filtre par plage de dates — journal d'actions | V2 | Sélecteur de dates (date début / date fin) dans l'écran `/workspace/audit-logs`. Actuellement hors scope de SF-38-04. |
 | F-44 | Pagination et tri côté serveur — journal d'actions | V2 | Actuellement le backend renvoie 50 entrées max et le filtre est côté client. À remplacer par pagination serveur + paramètres de tri/filtre sur l'endpoint `GET /api/v1/admin/audit-logs`. |
