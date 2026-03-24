@@ -23,10 +23,20 @@
   </div>
 } @else {
   <div class="synthesis-header">
-    <a mat-button [routerLink]="['/case-files', caseFile()!.id]" class="back-btn">
-      <mat-icon>arrow_back</mat-icon>
-      Retour au dossier
-    </a>
+    <div class="header-top-row">
+      <a mat-button [routerLink]="['/case-files', caseFile()!.id]" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+        Retour au dossier
+      </a>
+      <button mat-stroked-button
+              class="export-btn"
+              [disabled]="!synthesis()"
+              (click)="exportPdf()"
+              matTooltip="Télécharger la synthèse en PDF">
+        <mat-icon>picture_as_pdf</mat-icon>
+        Exporter PDF
+      </button>
+    </div>
     <div class="title-row">
       <h1 class="page-title">{{ caseFile()!.title }}</h1>
       <span class="badge" [class.badge--accent]="isEnriched()" [class.badge--secondary]="!isEnriched()">
