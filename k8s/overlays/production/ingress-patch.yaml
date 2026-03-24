@@ -2,20 +2,13 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: legalcase-ingress
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/proxy-body-size: "55m"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   tls:
     - hosts:
-        - staging.legalcase.ng-itconsulting.com
-      secretName: legalcase-tls
+        - legalcase.ng-itconsulting.com
+      secretName: legalcase-tls-prod
   rules:
-    - host: staging.legalcase.ng-itconsulting.com
+    - host: legalcase.ng-itconsulting.com
       http:
         paths:
           - path: /api
