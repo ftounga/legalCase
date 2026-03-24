@@ -11,17 +11,10 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${app.frontend-url:http://localhost:4200}")
     private String frontendUrl;
 
-    @Value("${app.frontend-url-staging:#{null}}")
-    private String frontendUrlStaging;
-
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        java.util.List<String> origins = new java.util.ArrayList<>();
-        origins.add(frontendUrl);
-        origins.add("http://localhost:4200");
-        if (frontendUrlStaging != null) origins.add(frontendUrlStaging);
         registry.addMapping("/api/**")
-                .allowedOrigins(origins.toArray(new String[0]))
+                .allowedOrigins(frontendUrl, "http://localhost:4200")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true);
