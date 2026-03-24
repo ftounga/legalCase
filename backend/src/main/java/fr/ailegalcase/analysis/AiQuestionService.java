@@ -7,6 +7,7 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Profile({"local", "prod"})
 public class AiQuestionService {
 
     private static final Logger log = LoggerFactory.getLogger(AiQuestionService.class);

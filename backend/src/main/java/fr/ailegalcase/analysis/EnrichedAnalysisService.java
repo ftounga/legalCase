@@ -5,6 +5,7 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Service
+@Profile({"local", "prod"})
 public class EnrichedAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(EnrichedAnalysisService.class);
