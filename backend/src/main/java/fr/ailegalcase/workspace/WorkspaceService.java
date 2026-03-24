@@ -148,12 +148,12 @@ public class WorkspaceService {
                 });
         Workspace workspace = member.getWorkspace();
 
-        Instant expiresAt = subscriptionRepository.findByWorkspaceId(workspace.getId())
-                .map(Subscription::getExpiresAt)
-                .orElse(null);
+        Subscription sub = subscriptionRepository.findByWorkspaceId(workspace.getId()).orElse(null);
+        String planCode = sub != null ? sub.getPlanCode() : workspace.getPlanCode();
+        Instant expiresAt = sub != null ? sub.getExpiresAt() : null;
 
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
-                workspace.getPlanCode(), workspace.getStatus(), expiresAt, true);
+                planCode, workspace.getStatus(), expiresAt, true);
     }
 
     @Transactional(readOnly = true)
@@ -163,10 +163,11 @@ public class WorkspaceService {
         return workspaceMemberRepository.findByUser(user).stream()
                 .map(member -> {
                     Workspace ws = member.getWorkspace();
-                    Instant expiresAt = subscriptionRepository.findByWorkspaceId(ws.getId())
-                            .map(Subscription::getExpiresAt).orElse(null);
+                    Subscription sub = subscriptionRepository.findByWorkspaceId(ws.getId()).orElse(null);
+                    String planCode = sub != null ? sub.getPlanCode() : ws.getPlanCode();
+                    Instant expiresAt = sub != null ? sub.getExpiresAt() : null;
                     return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(),
-                            ws.getPlanCode(), ws.getStatus(), expiresAt, member.isPrimary());
+                            planCode, ws.getStatus(), expiresAt, member.isPrimary());
                 })
                 .toList();
     }
