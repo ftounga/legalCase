@@ -5,8 +5,11 @@ on:
     branches: [master]
     paths:
       - 'backend/**'
-      - 'k8s/**'
       - '.github/workflows/backend.yml'
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
 
 env:
   AWS_REGION: eu-west-3
@@ -36,7 +39,7 @@ jobs:
     needs: test
     permissions:
       id-token: write
-      contents: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -87,6 +90,7 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_URL: ${{ secrets.DB_URL }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
@@ -106,7 +110,7 @@ jobs:
             --from-literal=MAIL_USERNAME="$MAIL_USERNAME" \
             --from-literal=MAIL_PASSWORD="$MAIL_PASSWORD" \
             --from-literal=MAIL_FROM="$MAIL_FROM" \
-            --from-literal=SPRING_DATASOURCE_USERNAME="legalcase_admin" \
+            --from-literal=SPRING_DATASOURCE_USERNAME="$DB_USERNAME" \
             --from-literal=SPRING_DATASOURCE_PASSWORD="$DB_PASSWORD" \
             --from-literal=SPRING_DATASOURCE_URL="$DB_URL" \
             --from-literal=S3_BUCKET="$S3_BUCKET" \
@@ -131,12 +135,10 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           SHORT_SHA: ${{ steps.build.outputs.short_sha }}
         run: |
-          # Substituer les placeholders backend
           sed -i "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g" k8s/base/backend/deployment.yaml
           sed -i "s|BACKEND_IMAGE_TAG|$SHORT_SHA|g" k8s/base/backend/deployment.yaml
           sed -i "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g" k8s/base/backend/deployment.yaml
 
-          # Préserver l'image frontend courante pour ne pas l'écraser
           CURRENT_FRONTEND=$(kubectl get deployment legalcase-frontend -n staging \
             -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null \
             || echo "$ECR_REGISTRY/legalcase-frontend:latest")
@@ -145,3 +147,9 @@ jobs:
 
           kubectl apply -k k8s/overlays/staging/
           kubectl rollout status deployment/legalcase-backend -n staging --timeout=120s
+
+      - name: Health check
+        run: |
+          sleep 10
+          curl -sf https://staging.legalcase.ng-itconsulting.com/api/actuator/health \
+            || (echo "Health check failed after deploy" && exit 1)
