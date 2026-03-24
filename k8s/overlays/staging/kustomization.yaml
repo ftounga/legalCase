@@ -8,6 +8,12 @@ resources:
 
 namePrefix: ""
 
+configMapGenerator:
+  - name: backend-config
+    behavior: merge
+    literals:
+      - APP_FRONTEND_URL=https://staging.legalcase.ng-itconsulting.com
+
 patches:
   - patch: |-
       - op: replace
