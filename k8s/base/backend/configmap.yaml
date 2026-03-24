@@ -9,3 +9,4 @@ data:
   SPRING_RABBITMQ_PORT: "5672"
   S3_REGION: "eu-west-3"
   S3_PATH_STYLE_ACCESS: "false"
+  APP_FRONTEND_URL: "https://legalcase.ng-itconsulting.com"

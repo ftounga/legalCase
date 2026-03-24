@@ -16,7 +16,7 @@ describe('LoginComponent', () => {
 
   beforeEach(async () => {
     authSpy = jasmine.createSpyObj('AuthService', [
-      'loginWithGoogle', 'loginWithMicrosoft', 'loginLocal', 'register', 'forgotPassword'
+      'loginWithGoogle', 'loginLocal', 'register', 'forgotPassword'
     ]);
 
     await TestBed.configureTestingModule({
@@ -55,15 +55,7 @@ describe('LoginComponent', () => {
     expect(authSpy.loginWithGoogle).toHaveBeenCalledTimes(1);
   });
 
-  // T-05 : clic Microsoft → loginWithMicrosoft()
-  it('clic Microsoft → appelle loginWithMicrosoft()', () => {
-    const buttons = fixture.nativeElement.querySelectorAll('button');
-    const msBtn = Array.from(buttons).find((b: any) => b.textContent.includes('Microsoft')) as HTMLElement;
-    msBtn.click();
-    expect(authSpy.loginWithMicrosoft).toHaveBeenCalledTimes(1);
-  });
-
-  // T-06 : soumission login valide → loginLocal() appelé
+  // T-05 : soumission login valide → loginLocal() appelé
   it('soumission login valide → loginLocal() appelé', fakeAsync(() => {
     authSpy.loginLocal.and.returnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
     component.loginForm.setValue({ email: 'alice@example.com', password: 'password123' });
