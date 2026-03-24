@@ -13,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -45,7 +44,8 @@ class StripeWebhookServiceTest {
         when(session.getMetadata()).thenReturn(java.util.Map.of("plan_code", "STARTER"));
 
         EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
-        when(deserializer.getObject()).thenReturn(Optional.of((StripeObject) session));
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) session); }
+        catch (com.stripe.exception.StripeException ignored) {}
 
         Event event = mock(Event.class);
         when(event.getType()).thenReturn("checkout.session.completed");
@@ -75,7 +75,8 @@ class StripeWebhookServiceTest {
         when(stripeSub.getCustomer()).thenReturn("cus_abc");
 
         EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
-        when(deserializer.getObject()).thenReturn(Optional.of((StripeObject) stripeSub));
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) stripeSub); }
+        catch (com.stripe.exception.StripeException ignored) {}
 
         Event event = mock(Event.class);
         when(event.getType()).thenReturn("customer.subscription.deleted");
@@ -95,7 +96,7 @@ class StripeWebhookServiceTest {
     // U-03 : customer inconnu → log WARN, pas d'exception, pas de save
     @Test
     void handleEvent_unknownCustomer_noException() {
-        when(subscriptionRepository.findByStripeCustomerId("cus_unknown")).thenReturn(Optional.empty());
+        when(subscriptionRepository.findByStripeCustomerId("cus_unknown")).thenReturn(java.util.Optional.empty());
 
         Session session = mock(Session.class, withSettings().lenient());
         when(session.getCustomer()).thenReturn("cus_unknown");
@@ -103,7 +104,8 @@ class StripeWebhookServiceTest {
         when(session.getMetadata()).thenReturn(java.util.Map.of());
 
         EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
-        when(deserializer.getObject()).thenReturn(Optional.of((StripeObject) session));
+        try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) session); }
+        catch (com.stripe.exception.StripeException ignored) {}
 
         Event event = mock(Event.class);
         when(event.getType()).thenReturn("checkout.session.completed");
