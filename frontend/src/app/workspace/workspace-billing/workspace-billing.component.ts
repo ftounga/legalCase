@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,6 +6,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { BillingService } from '../../core/services/billing.service';
 import { Workspace } from '../../core/models/workspace.model';
@@ -17,9 +18,10 @@ import { Workspace } from '../../core/models/workspace.model';
   templateUrl: './workspace-billing.component.html',
   styleUrl: './workspace-billing.component.scss'
 })
-export class WorkspaceBillingComponent implements OnInit {
+export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   workspace = signal<Workspace | null>(null);
   upgrading = signal<string | null>(null);
+  private pollSub?: Subscription;
 
   readonly plans = [
     {
@@ -85,15 +87,38 @@ export class WorkspaceBillingComponent implements OnInit {
 
     this.route.queryParams.subscribe(params => {
       if (params['success'] === 'true') {
-        this.snackBar.open('Paiement confirmé — votre plan sera mis à jour sous peu.', 'Fermer', {
-          duration: 6000, panelClass: ['snack-success']
+        this.snackBar.open('Paiement confirmé — mise à jour du plan en cours…', 'Fermer', {
+          duration: 10000, panelClass: ['snack-success']
         });
+        this.pollForPlanUpdate();
       } else if (params['canceled'] === 'true') {
         this.snackBar.open('Paiement annulé.', 'Fermer', {
           duration: 4000
         });
       }
     });
+  }
+
+  private pollForPlanUpdate(): void {
+    let attempts = 0;
+    this.pollSub = interval(2000).pipe(
+      switchMap(() => this.workspaceService.getCurrentWorkspace()),
+      takeWhile(ws => ws.planCode === 'FREE' && attempts++ < 15, true)
+    ).subscribe({
+      next: ws => {
+        this.workspace.set(ws);
+        if (ws.planCode !== 'FREE') {
+          this.snackBar.open('Plan mis à jour avec succès !', 'Fermer', {
+            duration: 5000, panelClass: ['snack-success']
+          });
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.pollSub?.unsubscribe();
   }
 
   upgrade(planCode: string): void {
