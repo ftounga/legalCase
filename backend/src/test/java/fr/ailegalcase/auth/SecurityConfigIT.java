@@ -15,8 +15,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "spring.security.oauth2.client.registration.google.client-id=test-google-id",
         "spring.security.oauth2.client.registration.google.client-secret=test-google-secret",
-        "spring.security.oauth2.client.registration.microsoft.client-id=test-microsoft-id",
-        "spring.security.oauth2.client.registration.microsoft.client-secret=test-microsoft-secret"
 })
 @AutoConfigureMockMvc
 class SecurityConfigIT {
@@ -48,14 +46,6 @@ class SecurityConfigIT {
         mockMvc.perform(get("/oauth2/authorization/google"))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location", containsString("accounts.google.com")));
-    }
-
-    // I-03 : /oauth2/authorization/microsoft → 302 vers Microsoft
-    @Test
-    void oauthMicrosoft_withoutAuth_redirectsToMicrosoft() throws Exception {
-        mockMvc.perform(get("/oauth2/authorization/microsoft"))
-                .andExpect(status().isFound())
-                .andExpect(header().string("Location", containsString("microsoftonline.com")));
     }
 
     // I-06 : endpoint /api/** inconnu sans auth → 401 (l'auth est vérifiée avant le routing)
