@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: legalcase-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: legalcase-backend
+  template:
+    metadata:
+      labels:
+        app: legalcase-backend
+    spec:
+      serviceAccountName: legalcase-backend
+      containers:
+        - name: backend
+          image: REGISTRY_PLACEHOLDER/legalcase-backend:IMAGE_TAG
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: legalcase-backend
+  annotations:
+    eks.amazonaws.com/role-arn: IRSA_ROLE_ARN_PLACEHOLDER
