@@ -2,6 +2,10 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import io.sentry.Sentry;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
+import io.sentry.protocol.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -125,6 +129,7 @@ public class EnrichedAnalysisService {
         job.setStatus(enrichedAnalysis.getAnalysisStatus());
         if (enrichedAnalysis.getAnalysisStatus() == AnalysisStatus.FAILED) {
             job.setErrorMessage("Enriched analysis failed");
+            reportJobFailureToSentry(caseFileId, JobType.ENRICHED_ANALYSIS, "Enriched analysis failed");
         }
         analysisJobRepository.save(job);
 
@@ -142,6 +147,23 @@ public class EnrichedAnalysisService {
             caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
                 usageEventService.record(caseFileId, userId, JobType.ENRICHED_ANALYSIS,
                         promptTokens, completionTokens));
+        }
+    }
+
+    private void reportJobFailureToSentry(UUID caseFileId, JobType jobType, String errorMessage) {
+        try {
+            if (!Sentry.isEnabled()) return;
+            SentryEvent event = new SentryEvent();
+            event.setLevel(SentryLevel.ERROR);
+            Message msg = new Message();
+            msg.setMessage("IA job FAILED: %s for caseFile %s".formatted(jobType, caseFileId));
+            event.setMessage(msg);
+            event.setTag("caseFileId", caseFileId.toString());
+            event.setTag("jobType", jobType.name());
+            event.setTag("errorMessage", errorMessage);
+            Sentry.captureEvent(event);
+        } catch (Exception ex) {
+            log.warn("Failed to report job failure to Sentry", ex);
         }
     }
 
