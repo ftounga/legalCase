@@ -75,7 +75,7 @@ class DocumentAnalysisServiceTest {
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
 
-        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
+        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
         ArgumentCaptor<DocumentAnalysis> captor = ArgumentCaptor.forClass(DocumentAnalysis.class);
         verify(documentAnalysisRepository, times(3)).save(captor.capture());
@@ -122,7 +122,7 @@ class DocumentAnalysisServiceTest {
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeFast(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
-        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
+        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
         ArgumentCaptor<DocumentAnalysis> captor = ArgumentCaptor.forClass(DocumentAnalysis.class);
         verify(documentAnalysisRepository, times(3)).save(captor.capture());
@@ -136,7 +136,7 @@ class DocumentAnalysisServiceTest {
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of());
 
-        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
+        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
         verifyNoInteractions(documentAnalysisRepository, anthropicService, extractionRepository);
     }
@@ -176,7 +176,7 @@ class DocumentAnalysisServiceTest {
         when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(1L);
 
-        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId));
+        service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(anthropicService).analyzeFast(any(), promptCaptor.capture(), anyInt());
