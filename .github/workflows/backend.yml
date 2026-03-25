@@ -6,6 +6,8 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/backend.yml'
+      - 'k8s/**'
+  workflow_dispatch:
 
 concurrency:
   group: staging-deploy
