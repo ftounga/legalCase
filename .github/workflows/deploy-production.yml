@@ -50,6 +50,23 @@ jobs:
             --region ${{ env.AWS_REGION }} \
             --name ${{ env.EKS_CLUSTER_NAME }}
 
+      - name: Fetch production DB credentials from Secrets Manager
+        id: db-creds
+        run: |
+          SECRET=$(aws secretsmanager get-secret-value \
+            --secret-id "legalcase/production/rds/credentials" \
+            --region ${{ env.AWS_REGION }} \
+            --query 'SecretString' \
+            --output text)
+          DB_USER=$(echo "$SECRET" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['username'])")
+          DB_PASS=$(echo "$SECRET" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['password'])")
+          DB_HOST=$(echo "$SECRET" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['host'])")
+          DB_NAME=$(echo "$SECRET" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['dbname'])")
+          echo "::add-mask::$DB_PASS"
+          echo "DB_USERNAME=$DB_USER" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DB_PASS" >> $GITHUB_ENV
+          echo "DB_URL=jdbc:postgresql://$DB_HOST:5432/$DB_NAME" >> $GITHUB_ENV
+
       - name: Create/update backend K8s secret (production)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -65,9 +82,6 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_URL: ${{ secrets.DB_URL }}
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
           S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
