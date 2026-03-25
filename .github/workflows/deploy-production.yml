@@ -121,9 +121,9 @@ jobs:
           find k8s/ -name "*.yaml" | xargs sed -i \
             "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g"
 
-          sed -i "s|legalcase-backend:IMAGE_TAG|legalcase-backend:$BACKEND_TAG|g" \
+          sed -i "s|legalcase-backend:BACKEND_IMAGE_TAG|legalcase-backend:$BACKEND_TAG|g" \
             k8s/base/backend/deployment.yaml
-          sed -i "s|legalcase-frontend:IMAGE_TAG|legalcase-frontend:$FRONTEND_TAG|g" \
+          sed -i "s|legalcase-frontend:FRONTEND_IMAGE_TAG|legalcase-frontend:$FRONTEND_TAG|g" \
             k8s/base/frontend/deployment.yaml
 
           kubectl apply -k k8s/overlays/production/
