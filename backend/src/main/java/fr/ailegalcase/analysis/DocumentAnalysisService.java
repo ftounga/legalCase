@@ -118,20 +118,8 @@ public class DocumentAnalysisService {
 
     private void createOrResetDocumentAnalysisJob(UUID caseFileId) {
         if (caseFileId == null) return;
-
         long totalDocs = documentRepository.countByCaseFileId(caseFileId);
-        AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS)
-                .orElseGet(() -> {
-                    AnalysisJob j = new AnalysisJob();
-                    j.setCaseFileId(caseFileId);
-                    j.setJobType(JobType.DOCUMENT_ANALYSIS);
-                    j.setProcessedItems(0);
-                    return j;
-                });
-        job.setStatus(AnalysisStatus.PENDING);
-        job.setTotalItems((int) totalDocs);
-        job.setProcessedItems(0); // always reset — prevents stale count carrying over from previous batches
-        analysisJobRepository.save(job);
+        analysisJobRepository.upsertDocumentAnalysisJob(caseFileId, (int) totalDocs);
     }
 
     private void updateDocumentAnalysisJob(UUID caseFileId) {
