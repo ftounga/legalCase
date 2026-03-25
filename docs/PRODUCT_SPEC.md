@@ -175,7 +175,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-46 | Tests E2E smoke branchés CI | V2 | Les specs existent dans `e2e/smoke/` (auth, workspace, navigation). Brancher dans GitHub Actions pour bloquer les merges sur régression. |
-| F-47 | Monitoring & alertes applicatives | V2 | Intégration Sentry (ou équivalent) pour capturer les erreurs backend/frontend en production. Alertes sur les jobs IA en échec répété. |
+| F-47 | Monitoring & alertes applicatives | V2 — **Terminée** | Sentry backend (`sentry-spring-boot-starter-jakarta`) + frontend (`@sentry/angular`). Capture automatique exceptions + événement manuel sur job IA FAILED. DSN via env var, désactivé en dev. SF-47-01 + SF-47-02 mergées 2026-03-25. |
 | F-50 | Déploiement V1 — AWS EKS | V1 | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. Repo infra séparé `legalcase-infra`. 6 subfeatures : SF-50-01 Dockerfiles ✅, SF-50-02 Terraform infra ✅, SF-50-03 K8s manifests ✅, SF-50-04 CI/CD ✅, SF-50-05 Config prod OAuth2/Stripe, SF-50-06 Monitoring. **Statut : Partielle** |
 
 ---
@@ -264,3 +264,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-21 | F-26 SF-26-04 mergée — POST /api/v1/auth/forgot-password (fail-silent) + POST /api/v1/auth/reset-password, BCrypt, token 24h, 16 tests | Product owner |
 | 2026-03-21 | F-26 SF-26-05 mergée — refonte page auth : LoginComponent (onglets Se connecter/S'inscrire, OAuth + local), VerifyEmailComponent, ResetPasswordComponent, AuthService étendu, 16 tests Karma. F-26 marquée Terminée | Product owner |
 | 2026-03-25 | F-39 SF-39-01 mergée — notifications SSE : endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, SseEmitterRegistry, SseNotificationService, AnalysisStatusEvent afterCommit, AnalysisSseService Angular, 15 tests. F-39 marquée Terminée | Product owner |
+| 2026-03-25 | F-47 SF-47-01+02 mergées — Sentry backend (sentry-spring-boot-starter-jakarta, captureEvent job FAILED, fail-open) + frontend (@sentry/angular, ErrorHandler, environment.prod.ts), K8s SENTRY_ENV par overlay, 4 tests. F-47 marquée Terminée | Product owner |
