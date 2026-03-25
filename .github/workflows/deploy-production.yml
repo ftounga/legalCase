@@ -127,7 +127,9 @@ jobs:
             k8s/base/frontend/deployment.yaml
 
           kubectl apply -k k8s/overlays/production/
-          kubectl rollout status deployment/legalcase-backend -n production --timeout=180s
+          kubectl rollout status deployment/legalcase-backend -n production --timeout=180s || \
+            (kubectl describe pods -n production -l app=legalcase-backend && \
+             kubectl logs -n production -l app=legalcase-backend --tail=50 && exit 1)
           kubectl rollout status deployment/legalcase-frontend -n production --timeout=60s
 
       - name: Health check
