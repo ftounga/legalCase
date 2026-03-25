@@ -7,6 +7,8 @@ import fr.ailegalcase.document.DocumentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,8 @@ public class DocumentAnalysisService {
             Contraintes de longueur : 5 faits maximum, 3 points_juridiques maximum, 3 risques maximum, 3 questions_ouvertes maximum. Sois concis.
             """;
 
+    record PreparedAnalysis(DocumentAnalysis analysis, String prompt, UUID caseFileId) {}
+
     private final ChunkAnalysisRepository chunkAnalysisRepository;
     private final DocumentAnalysisRepository documentAnalysisRepository;
     private final DocumentExtractionRepository extractionRepository;
@@ -38,6 +42,9 @@ public class DocumentAnalysisService {
     private final AnalysisJobRepository analysisJobRepository;
     private final UsageEventService usageEventService;
     private final CaseFileRepository caseFileRepository;
+
+    @Lazy @Autowired
+    private DocumentAnalysisService self;
 
     public DocumentAnalysisService(ChunkAnalysisRepository chunkAnalysisRepository,
                                    DocumentAnalysisRepository documentAnalysisRepository,
@@ -57,9 +64,37 @@ public class DocumentAnalysisService {
         this.caseFileRepository = caseFileRepository;
     }
 
-    @RabbitListener(queues = RabbitMQConfig.DOCUMENT_ANALYSIS_QUEUE)
-    @Transactional
+    @RabbitListener(queues = RabbitMQConfig.DOCUMENT_ANALYSIS_QUEUE, concurrency = "5")
     public void consumeDocumentAnalysis(DocumentAnalysisMessage message) {
+        long startMs = System.currentTimeMillis();
+        UUID extractionId = message.extractionId();
+
+        PreparedAnalysis prepared = self.prepareAnalysis(message);
+        if (prepared == null) return;
+
+        AnthropicResult result = null;
+        Exception failure = null;
+        try {
+            log.info("Document analysis START for extraction {} ({}, {} chars)",
+                    extractionId, message.directAnalysis() ? "direct" : "chunked", prepared.prompt().length());
+            long anthropicStart = System.currentTimeMillis();
+            result = anthropicService.analyzeFast(SYSTEM_PROMPT, prepared.prompt(), 4096);
+            long anthropicMs = System.currentTimeMillis() - anthropicStart;
+            log.info("Document analysis DONE for extraction {} ({}) — Anthropic {}ms, total {}ms, tokens {}/{}",
+                    extractionId, message.directAnalysis() ? "direct" : "chunked",
+                    anthropicMs, System.currentTimeMillis() - startMs,
+                    result.promptTokens(), result.completionTokens());
+        } catch (Exception e) {
+            log.error("Document analysis FAILED for extraction {} (total {}ms)", extractionId,
+                    System.currentTimeMillis() - startMs, e);
+            failure = e;
+        }
+
+        self.finalizeAnalysis(prepared.analysis().getId(), prepared.caseFileId(), result, failure);
+    }
+
+    @Transactional
+    public PreparedAnalysis prepareAnalysis(DocumentAnalysisMessage message) {
         UUID extractionId = message.extractionId();
 
         List<ChunkAnalysis> chunkAnalyses = message.directAnalysis()
@@ -68,44 +103,46 @@ public class DocumentAnalysisService {
 
         if (!message.directAnalysis() && chunkAnalyses.isEmpty()) {
             log.warn("No DONE chunk analyses found for extraction {} — document analysis skipped", extractionId);
-            return;
+            return null;
         }
 
         DocumentExtraction extraction = extractionRepository.findById(extractionId).orElse(null);
         if (extraction == null) {
             log.error("Extraction {} not found — document analysis skipped", extractionId);
-            return;
+            return null;
         }
 
         UUID caseFileId = extractionRepository.findCaseFileIdById(extractionId).orElse(null);
         createOrResetDocumentAnalysisJob(caseFileId);
+
+        String prompt = message.directAnalysis()
+                ? extraction.getExtractedText()
+                : buildAggregatedPrompt(chunkAnalyses);
 
         DocumentAnalysis analysis = new DocumentAnalysis();
         analysis.setDocument(extraction.getDocument());
         analysis.setExtraction(extraction);
         analysis.setAnalysisStatus(AnalysisStatus.PENDING);
         analysis = documentAnalysisRepository.save(analysis);
-
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = documentAnalysisRepository.save(analysis);
 
-        try {
-            String prompt = message.directAnalysis()
-                    ? extraction.getExtractedText()
-                    : buildAggregatedPrompt(chunkAnalyses);
-            AnthropicResult result = anthropicService.analyzeFast(SYSTEM_PROMPT, prompt, 4096);
+        return new PreparedAnalysis(analysis, prompt, caseFileId);
+    }
+
+    @Transactional
+    public void finalizeAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure) {
+        DocumentAnalysis analysis = documentAnalysisRepository.findById(analysisId).orElseThrow();
+
+        if (failure != null) {
+            analysis.setAnalysisStatus(AnalysisStatus.FAILED);
+        } else {
             analysis.setAnalysisResult(AnalysisJsonTruncator.truncateDocumentAnalysis(result.content()));
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
             analysis.setCompletionTokens(result.completionTokens());
             analysis.setAnalysisStatus(AnalysisStatus.DONE);
-            log.info("Document analysis DONE for extraction {} ({})",
-                    extractionId, message.directAnalysis() ? "direct" : "chunked");
-        } catch (Exception e) {
-            log.error("Document analysis FAILED for extraction {}", extractionId, e);
-            analysis.setAnalysisStatus(AnalysisStatus.FAILED);
         }
-
         documentAnalysisRepository.save(analysis);
 
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
@@ -141,7 +178,6 @@ public class DocumentAnalysisService {
             analysisJobRepository.save(job);
         });
     }
-
 
     private String buildAggregatedPrompt(List<ChunkAnalysis> chunkAnalyses) {
         return chunkAnalyses.stream()

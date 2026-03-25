@@ -64,7 +64,7 @@ public class ChunkingService {
         }
 
         if (extractedText.length() < directAnalysisThresholdChars) {
-            log.info("Extraction {} — {} chars < threshold {} — direct document analysis",
+            log.info("Extraction {} — {} chars < threshold {} — no chunking needed, sending directly to document analysis",
                     extractionId, extractedText.length(), directAnalysisThresholdChars);
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.DOCUMENT_ANALYSIS_EXCHANGE,

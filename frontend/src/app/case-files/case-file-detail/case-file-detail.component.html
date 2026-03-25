@@ -36,16 +36,37 @@
 
       <div class="section-header">
         <h2 class="section-title">Documents</h2>
-        <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" hidden (change)="onFileSelected($event)">
+        <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden (change)="onFileSelected($event)">
         <button mat-raised-button color="primary" (click)="triggerUpload()" [disabled]="!canUpload()">
-          @if (uploading()) {
-            <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-          } @else {
-            <mat-icon>upload_file</mat-icon>
-          }
-          Ajouter un document
+          <mat-icon>add</mat-icon>
+          Ajouter des documents
         </button>
       </div>
+
+      @if (pendingFiles().length > 0) {
+        <div class="pending-files">
+          <div class="pending-files-list">
+            @for (file of pendingFiles(); track file.name) {
+              <div class="pending-file-row">
+                <mat-icon class="pending-file-icon">insert_drive_file</mat-icon>
+                <span class="pending-file-name">{{ file.name }}</span>
+                <span class="pending-file-size">{{ formatSize(file.size) }}</span>
+                <button mat-icon-button (click)="removePendingFile(file)" title="Retirer">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+          <button mat-raised-button color="accent" (click)="uploadPendingFiles()" [disabled]="!canSubmitUpload()" class="upload-submit-btn">
+            @if (uploading()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>cloud_upload</mat-icon>
+            }
+            Uploader les documents ({{ pendingFiles().length }})
+          </button>
+        </div>
+      }
 
       @if (documents().length === 0) {
         <div class="empty-docs">

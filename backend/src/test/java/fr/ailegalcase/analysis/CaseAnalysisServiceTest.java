@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
@@ -36,8 +37,14 @@ class CaseAnalysisServiceTest {
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher);
 
     @BeforeEach
-    void initTransactionSync() {
+    void setUp() {
         TransactionSynchronizationManager.initSynchronization();
+        ReflectionTestUtils.setField(service, "self", service);
+        when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> {
+            CaseAnalysis a = new CaseAnalysis();
+            a.setAnalysisStatus(AnalysisStatus.PROCESSING);
+            return Optional.of(a);
+        });
     }
 
     @AfterEach

@@ -2,8 +2,10 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,6 +28,12 @@ class AiQuestionServiceTest {
     private final AiQuestionService service = new AiQuestionService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             analysisJobRepository, anthropicService, usageEventService);
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(service, "self", service);
+        when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> Optional.of(new CaseAnalysis()));
+    }
 
     // U-01 : génération nominale → questions persistées, job DONE
     @Test

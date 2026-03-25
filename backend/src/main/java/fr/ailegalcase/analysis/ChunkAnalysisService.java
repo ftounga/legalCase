@@ -89,6 +89,7 @@ public class ChunkAnalysisService {
     @RabbitListener(queues = RabbitMQConfig.CHUNK_ANALYSIS_QUEUE, concurrency = "5")
     public void consumeChunkAnalysis(ChunkAnalysisMessage message) {
         UUID chunkId = message.chunkId();
+        long startMs = System.currentTimeMillis();
 
         DocumentChunk chunk = chunkRepository.findById(chunkId).orElse(null);
         if (chunk == null) {
@@ -125,15 +126,21 @@ public class ChunkAnalysisService {
         analysis = analysisRepository.save(analysis);
 
         try {
+            log.info("Chunk analysis START for chunk {} ({} chars)", chunkId, chunk.getChunkText().length());
+            long anthropicStart = System.currentTimeMillis();
             AnthropicResult result = anthropicService.analyzeChunk(chunk.getChunkText());
+            long anthropicMs = System.currentTimeMillis() - anthropicStart;
             analysis.setAnalysisResult(result.content());
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
             analysis.setCompletionTokens(result.completionTokens());
             analysis.setAnalysisStatus(AnalysisStatus.DONE);
-            log.info("Analysis DONE for chunk {}", chunkId);
+            log.info("Chunk analysis DONE for chunk {} — Anthropic {}ms, total {}ms, tokens {}/{}",
+                    chunkId, anthropicMs, System.currentTimeMillis() - startMs,
+                    result.promptTokens(), result.completionTokens());
         } catch (Exception e) {
-            log.error("Analysis FAILED for chunk {}", chunkId, e);
+            log.error("Chunk analysis FAILED for chunk {} (total {}ms)", chunkId,
+                    System.currentTimeMillis() - startMs, e);
             analysis.setAnalysisStatus(AnalysisStatus.FAILED);
         }
 

@@ -52,6 +52,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-05 | Upload de documents | Ajout de fichiers à un dossier. Validation type et taille. Stockage object storage S3-compatible. | `Terminée` |
+| F-52 | Upload multi-documents — sélection batch et soumission différée | L'écran d'upload passe en mode "panier" : le bouton "Ajouter des documents" ouvre le sélecteur avec multi-sélection possible et ajoute les fichiers à une liste locale sans les uploader immédiatement. Un bouton "Uploader les documents" déclenche l'upload réel en parallèle (N appels vers l'endpoint existant). Aucun changement backend. | `À spécifier` |
 | F-06 | Extraction de texte | Transformation du fichier brut en texte exploitable. Persistance dans `document_extractions`. Déclenchée automatiquement après upload. | `Terminée` |
 | F-07 | Chunking | Segmentation du texte extrait en chunks. Persistance dans `document_chunks`. Déclenchée automatiquement après extraction. | `Terminée` |
 
@@ -148,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
-| F-39 | Notifications temps réel | V2 — **Terminée** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. |
+| F-39 | Notifications temps réel | V2 — **En cours** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. SF-39-02 (notification globale toutes pages) : à spécifier. |
 | F-40 | Export PDF de la synthèse | V2 — **Terminée** | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. Implémenté 100% frontend via pdfmake (SF-40-01, mergé 2026-03-24). |
 
 ### UX & exploitation

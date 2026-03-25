@@ -7,6 +7,8 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,12 +34,17 @@ public class AiQuestionService {
             Génère entre 3 et 8 questions.
             """;
 
+    record PreparedQuestionGeneration(String prompt, UUID caseFileId, UUID caseAnalysisId) {}
+
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
     private final AiQuestionRepository aiQuestionRepository;
     private final AnalysisJobRepository analysisJobRepository;
     private final AnthropicService anthropicService;
     private final UsageEventService usageEventService;
+
+    @Lazy @Autowired
+    private AiQuestionService self;
 
     public AiQuestionService(CaseAnalysisRepository caseAnalysisRepository,
                              CaseFileRepository caseFileRepository,
@@ -53,9 +60,35 @@ public class AiQuestionService {
         this.usageEventService = usageEventService;
     }
 
-    @RabbitListener(queues = RabbitMQConfig.AI_QUESTION_GENERATION_QUEUE)
-    @Transactional
+    @RabbitListener(queues = RabbitMQConfig.AI_QUESTION_GENERATION_QUEUE, concurrency = "3")
     public void consumeQuestionGeneration(AiQuestionGenerationMessage message) {
+        long startMs = System.currentTimeMillis();
+        UUID caseFileId = message.caseFileId();
+
+        PreparedQuestionGeneration prepared = self.prepareQuestionGeneration(message);
+        if (prepared == null) return;
+
+        AnthropicResult result = null;
+        Exception failure = null;
+        try {
+            log.info("Question generation START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
+            long anthropicStart = System.currentTimeMillis();
+            result = anthropicService.analyze(SYSTEM_PROMPT, prepared.prompt(), 1024);
+            long anthropicMs = System.currentTimeMillis() - anthropicStart;
+            log.info("Question generation DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
+                    caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
+                    result.promptTokens(), result.completionTokens());
+        } catch (Exception e) {
+            log.error("Question generation FAILED for caseFile {} (total {}ms)", caseFileId,
+                    System.currentTimeMillis() - startMs, e);
+            failure = e;
+        }
+
+        self.finalizeQuestionGeneration(prepared.caseFileId(), prepared.caseAnalysisId(), result, failure);
+    }
+
+    @Transactional
+    public PreparedQuestionGeneration prepareQuestionGeneration(AiQuestionGenerationMessage message) {
         UUID caseFileId = message.caseFileId();
 
         CaseAnalysis caseAnalysis = caseAnalysisRepository
@@ -64,13 +97,13 @@ public class AiQuestionService {
 
         if (caseAnalysis == null) {
             log.warn("No DONE case analysis found for caseFile {} — question generation skipped", caseFileId);
-            return;
+            return null;
         }
 
         CaseFile caseFile = caseFileRepository.findById(caseFileId).orElse(null);
         if (caseFile == null) {
             log.error("CaseFile {} not found — question generation skipped", caseFileId);
-            return;
+            return null;
         }
 
         AnalysisJob job = analysisJobRepository
@@ -87,11 +120,32 @@ public class AiQuestionService {
         job.setTotalItems(1);
         analysisJobRepository.save(job);
 
-        AnthropicResult result = null;
+        return new PreparedQuestionGeneration(caseAnalysis.getAnalysisResult(), caseFileId, caseAnalysis.getId());
+    }
+
+    @Transactional
+    public void finalizeQuestionGeneration(UUID caseFileId, UUID caseAnalysisId, AnthropicResult result, Exception failure) {
+        AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION)
+                .orElseGet(() -> {
+                    AnalysisJob j = new AnalysisJob();
+                    j.setCaseFileId(caseFileId);
+                    j.setJobType(JobType.QUESTION_GENERATION);
+                    j.setTotalItems(1);
+                    j.setProcessedItems(0);
+                    return j;
+                });
+
+        if (failure != null) {
+            job.setStatus(AnalysisStatus.FAILED);
+            job.setErrorMessage("Question generation failed");
+            analysisJobRepository.save(job);
+            return;
+        }
+
         try {
-            String prompt = caseAnalysis.getAnalysisResult();
-            result = anthropicService.analyze(SYSTEM_PROMPT, prompt, 1024);
             List<String> questions = parseQuestions(result.content());
+            CaseFile caseFile = caseFileRepository.findById(caseFileId).orElseThrow();
+            CaseAnalysis caseAnalysis = caseAnalysisRepository.findById(caseAnalysisId).orElseThrow();
 
             for (int i = 0; i < questions.size(); i++) {
                 AiQuestion question = new AiQuestion();
@@ -104,16 +158,16 @@ public class AiQuestionService {
 
             job.setProcessedItems(1);
             job.setStatus(AnalysisStatus.DONE);
-            log.info("Question generation DONE for caseFile {} — {} questions", caseFileId, questions.size());
+            log.info("Question generation finalized for caseFile {} — {} questions", caseFileId, questions.size());
         } catch (Exception e) {
-            log.error("Question generation FAILED for caseFile {}", caseFileId, e);
+            log.error("Question generation finalization FAILED for caseFile {}", caseFileId, e);
             job.setStatus(AnalysisStatus.FAILED);
             job.setErrorMessage("Question generation failed");
         }
 
         analysisJobRepository.save(job);
 
-        if (job.getStatus() == AnalysisStatus.DONE && result != null) {
+        if (job.getStatus() == AnalysisStatus.DONE) {
             final AnthropicResult finalResult = result;
             caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
                 usageEventService.record(caseFileId, userId, JobType.QUESTION_GENERATION,
