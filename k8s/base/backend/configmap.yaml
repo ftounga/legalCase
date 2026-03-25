@@ -14,4 +14,3 @@ data:
   MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
   APP_STRIPE_ENABLED: "true"
   APP_MAIL_ENABLED: "true"
-  SENTRY_ENV: "staging"

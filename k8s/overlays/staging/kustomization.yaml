@@ -13,6 +13,7 @@ configMapGenerator:
     behavior: merge
     literals:
       - APP_FRONTEND_URL=https://staging.legalcase.ng-itconsulting.com
+      - SENTRY_ENV=staging
 
 patches:
   - patch: |-

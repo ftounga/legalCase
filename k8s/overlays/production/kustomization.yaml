@@ -11,6 +11,7 @@ configMapGenerator:
     behavior: merge
     literals:
       - APP_FRONTEND_URL=https://legalcase.ng-itconsulting.com
+      - SENTRY_ENV=production
 
 patches:
   - path: ingress-patch.yaml
