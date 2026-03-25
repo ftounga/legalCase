@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
@@ -47,8 +48,15 @@ class SentryJobReportingTest {
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher);
 
     @BeforeEach
-    void initTransactionSync() {
+    void setUp() {
         TransactionSynchronizationManager.initSynchronization();
+        ReflectionTestUtils.setField(caseAnalysisService, "self", caseAnalysisService);
+        ReflectionTestUtils.setField(enrichedAnalysisService, "self", enrichedAnalysisService);
+        when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> {
+            CaseAnalysis a = new CaseAnalysis();
+            a.setAnalysisStatus(AnalysisStatus.PROCESSING);
+            return Optional.of(a);
+        });
     }
 
     @AfterEach

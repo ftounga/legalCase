@@ -121,28 +121,74 @@ describe('CaseFileDetailComponent', () => {
     expect(snackBarSpy.open).toHaveBeenCalled();
   });
 
-  it('upload succès → document ajouté en tête de liste', () => {
-    const newDoc: Document = { ...mockDocument, id: 'doc2', originalFilename: 'avenant.pdf' };
-    documentServiceSpy.upload.and.returnValue(of(newDoc));
-
+  it('onFileSelected — ajoute les fichiers valides au panier sans uploader', () => {
     const file = new File(['content'], 'avenant.pdf', { type: 'application/pdf' });
     const event = { target: { files: [file], value: '' } } as unknown as Event;
 
     component.onFileSelected(event);
 
+    expect(component.pendingFiles().length).toBe(1);
+    expect(component.pendingFiles()[0].name).toBe('avenant.pdf');
+    expect(documentServiceSpy.upload).not.toHaveBeenCalled();
+  });
+
+  it('onFileSelected — fichier > 50 Mo rejeté + snackbar, panier intact', () => {
+    const bigFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
+    Object.defineProperty(bigFile, 'size', { value: 51 * 1024 * 1024 });
+    const event = { target: { files: [bigFile], value: '' } } as unknown as Event;
+
+    component.onFileSelected(event);
+
+    expect(component.pendingFiles().length).toBe(0);
+    expect(snackBarSpy.open).toHaveBeenCalled();
+    expect(documentServiceSpy.upload).not.toHaveBeenCalled();
+  });
+
+  it('removePendingFile — retire le fichier du panier', () => {
+    const file = new File(['content'], 'doc.pdf', { type: 'application/pdf' });
+    component.pendingFiles.set([file]);
+
+    component.removePendingFile(file);
+
+    expect(component.pendingFiles().length).toBe(0);
+  });
+
+  it('canSubmitUpload — true si panier non vide et canUpload', () => {
+    const file = new File(['content'], 'doc.pdf', { type: 'application/pdf' });
+    component.pendingFiles.set([file]);
+
+    expect(component.canSubmitUpload()).toBeTrue();
+  });
+
+  it('canSubmitUpload — false si panier vide', () => {
+    component.pendingFiles.set([]);
+    expect(component.canSubmitUpload()).toBeFalse();
+  });
+
+  it('uploadPendingFiles — succès → documents mis à jour, panier vidé', () => {
+    const newDoc: Document = { ...mockDocument, id: 'doc2', originalFilename: 'avenant.pdf' };
+    documentServiceSpy.upload.and.returnValue(of(newDoc));
+
+    const file = new File(['content'], 'avenant.pdf', { type: 'application/pdf' });
+    component.pendingFiles.set([file]);
+
+    component.uploadPendingFiles();
+
+    expect(component.pendingFiles().length).toBe(0);
     expect(component.documents()[0].originalFilename).toBe('avenant.pdf');
     expect(component.uploading()).toBeFalse();
     expect(snackBarSpy.open).toHaveBeenCalled();
   });
 
-  it('upload erreur → snackbar erreur', () => {
-    documentServiceSpy.upload.and.returnValue(throwError(() => new Error('400')));
+  it('uploadPendingFiles — erreur → snackbar erreur, panier vidé', () => {
+    documentServiceSpy.upload.and.returnValue(throwError(() => ({ status: 500 })));
 
-    const file = new File(['content'], 'bad.exe', { type: 'application/octet-stream' });
-    const event = { target: { files: [file], value: '' } } as unknown as Event;
+    const file = new File(['content'], 'bad.pdf', { type: 'application/pdf' });
+    component.pendingFiles.set([file]);
 
-    component.onFileSelected(event);
+    component.uploadPendingFiles();
 
+    expect(component.pendingFiles().length).toBe(0);
     expect(component.uploading()).toBeFalse();
     expect(snackBarSpy.open).toHaveBeenCalled();
   });

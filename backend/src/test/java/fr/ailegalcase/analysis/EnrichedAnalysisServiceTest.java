@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +36,14 @@ class EnrichedAnalysisServiceTest {
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher);
 
     @BeforeEach
-    void initTransactionSync() {
+    void setUp() {
         TransactionSynchronizationManager.initSynchronization();
+        ReflectionTestUtils.setField(service, "self", service);
+        when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> {
+            CaseAnalysis a = new CaseAnalysis();
+            a.setAnalysisStatus(AnalysisStatus.PROCESSING);
+            return Optional.of(a);
+        });
     }
 
     @AfterEach

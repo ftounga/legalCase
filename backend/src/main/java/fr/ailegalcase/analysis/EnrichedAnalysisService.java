@@ -9,7 +9,9 @@ import io.sentry.protocol.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,8 @@ public class EnrichedAnalysisService {
             Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
             """;
 
+    record PreparedEnrichedAnalysis(UUID analysisId, String prompt, UUID caseFileId) {}
+
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
     private final AiQuestionRepository aiQuestionRepository;
@@ -43,6 +47,9 @@ public class EnrichedAnalysisService {
     private final AnthropicService anthropicService;
     private final UsageEventService usageEventService;
     private final ApplicationEventPublisher eventPublisher;
+
+    @Lazy @Autowired
+    private EnrichedAnalysisService self;
 
     public EnrichedAnalysisService(CaseAnalysisRepository caseAnalysisRepository,
                                    CaseFileRepository caseFileRepository,
@@ -62,9 +69,35 @@ public class EnrichedAnalysisService {
         this.eventPublisher = eventPublisher;
     }
 
-    @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE)
-    @Transactional
+    @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
     public void consumeReAnalysis(ReAnalysisMessage message) {
+        long startMs = System.currentTimeMillis();
+        UUID caseFileId = message.caseFileId();
+
+        PreparedEnrichedAnalysis prepared = self.prepareEnrichedAnalysis(message);
+        if (prepared == null) return;
+
+        AnthropicResult result = null;
+        Exception failure = null;
+        try {
+            log.info("Enriched analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
+            long anthropicStart = System.currentTimeMillis();
+            result = anthropicService.analyze(SYSTEM_PROMPT, prepared.prompt(), 8192);
+            long anthropicMs = System.currentTimeMillis() - anthropicStart;
+            log.info("Enriched analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
+                    caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
+                    result.promptTokens(), result.completionTokens());
+        } catch (Exception e) {
+            log.error("Enriched analysis FAILED for caseFile {} (total {}ms)", caseFileId,
+                    System.currentTimeMillis() - startMs, e);
+            failure = e;
+        }
+
+        self.finalizeEnrichedAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure);
+    }
+
+    @Transactional
+    public PreparedEnrichedAnalysis prepareEnrichedAnalysis(ReAnalysisMessage message) {
         UUID caseFileId = message.caseFileId();
 
         AnalysisJob job = analysisJobRepository
@@ -88,7 +121,7 @@ public class EnrichedAnalysisService {
             job.setStatus(AnalysisStatus.FAILED);
             job.setErrorMessage("No previous case analysis found");
             analysisJobRepository.save(job);
-            return;
+            return null;
         }
 
         CaseFile caseFile = caseFileRepository.findById(caseFileId).orElse(null);
@@ -97,7 +130,7 @@ public class EnrichedAnalysisService {
             job.setStatus(AnalysisStatus.FAILED);
             job.setErrorMessage("Case file not found");
             analysisJobRepository.save(job);
-            return;
+            return null;
         }
 
         int nextVersion = caseAnalysisRepository.findMaxVersionByCaseFileId(caseFileId) + 1;
@@ -109,22 +142,34 @@ public class EnrichedAnalysisService {
         enrichedAnalysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         enrichedAnalysis = caseAnalysisRepository.save(enrichedAnalysis);
 
-        try {
-            String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult());
-            AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, prompt, 8192);
+        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult());
+        return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, caseFileId);
+    }
+
+    @Transactional
+    public void finalizeEnrichedAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure) {
+        CaseAnalysis enrichedAnalysis = caseAnalysisRepository.findById(analysisId).orElseThrow();
+
+        if (failure != null) {
+            enrichedAnalysis.setAnalysisStatus(AnalysisStatus.FAILED);
+        } else {
             enrichedAnalysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content()));
             enrichedAnalysis.setModelUsed(result.modelUsed());
             enrichedAnalysis.setPromptTokens(result.promptTokens());
             enrichedAnalysis.setCompletionTokens(result.completionTokens());
             enrichedAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
-            log.info("Enriched analysis DONE for caseFile {}", caseFileId);
-        } catch (Exception e) {
-            log.error("Enriched analysis FAILED for caseFile {}", caseFileId, e);
-            enrichedAnalysis.setAnalysisStatus(AnalysisStatus.FAILED);
         }
-
         caseAnalysisRepository.save(enrichedAnalysis);
 
+        AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)
+                .orElseGet(() -> {
+                    AnalysisJob j = new AnalysisJob();
+                    j.setCaseFileId(caseFileId);
+                    j.setJobType(JobType.ENRICHED_ANALYSIS);
+                    j.setTotalItems(1);
+                    j.setProcessedItems(0);
+                    return j;
+                });
         job.setProcessedItems(1);
         job.setStatus(enrichedAnalysis.getAnalysisStatus());
         if (enrichedAnalysis.getAnalysisStatus() == AnalysisStatus.FAILED) {

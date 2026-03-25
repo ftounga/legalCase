@@ -10,7 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,8 @@ public class CaseAnalysisService {
             Contraintes de longueur : 5 entrées timeline maximum, 7 faits maximum, 5 points_juridiques maximum, 5 risques maximum, 5 questions_ouvertes maximum. Sois concis.
             """;
 
+    record PreparedCaseAnalysis(UUID analysisId, String prompt, UUID caseFileId) {}
+
     private final DocumentAnalysisRepository documentAnalysisRepository;
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -46,6 +50,9 @@ public class CaseAnalysisService {
     private final RabbitTemplate rabbitTemplate;
     private final UsageEventService usageEventService;
     private final ApplicationEventPublisher eventPublisher;
+
+    @Lazy @Autowired
+    private CaseAnalysisService self;
 
     public CaseAnalysisService(DocumentAnalysisRepository documentAnalysisRepository,
                                CaseAnalysisRepository caseAnalysisRepository,
@@ -65,9 +72,35 @@ public class CaseAnalysisService {
         this.eventPublisher = eventPublisher;
     }
 
-    @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE)
-    @Transactional
+    @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
     public void consumeCaseAnalysis(CaseAnalysisMessage message) {
+        long startMs = System.currentTimeMillis();
+        UUID caseFileId = message.caseFileId();
+
+        PreparedCaseAnalysis prepared = self.prepareCaseAnalysis(message);
+        if (prepared == null) return;
+
+        AnthropicResult result = null;
+        Exception failure = null;
+        try {
+            log.info("Case analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
+            long anthropicStart = System.currentTimeMillis();
+            result = anthropicService.analyze(SYSTEM_PROMPT, prepared.prompt(), 8192);
+            long anthropicMs = System.currentTimeMillis() - anthropicStart;
+            log.info("Case analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
+                    caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
+                    result.promptTokens(), result.completionTokens());
+        } catch (Exception e) {
+            log.error("Case analysis FAILED for caseFile {} (total {}ms)", caseFileId,
+                    System.currentTimeMillis() - startMs, e);
+            failure = e;
+        }
+
+        self.finalizeCaseAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure);
+    }
+
+    @Transactional
+    public PreparedCaseAnalysis prepareCaseAnalysis(CaseAnalysisMessage message) {
         UUID caseFileId = message.caseFileId();
 
         List<DocumentAnalysis> documentAnalyses = documentAnalysisRepository
@@ -75,13 +108,13 @@ public class CaseAnalysisService {
 
         if (documentAnalyses.isEmpty()) {
             log.warn("No DONE document analyses found for caseFile {} — case analysis skipped", caseFileId);
-            return;
+            return null;
         }
 
         CaseFile caseFile = caseFileRepository.findById(caseFileId).orElse(null);
         if (caseFile == null) {
             log.error("CaseFile {} not found — case analysis skipped", caseFileId);
-            return;
+            return null;
         }
 
         AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS)
@@ -104,26 +137,36 @@ public class CaseAnalysisService {
         analysis.setAnalysisType(AnalysisType.STANDARD);
         analysis.setAnalysisStatus(AnalysisStatus.PENDING);
         analysis = caseAnalysisRepository.save(analysis);
-
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = caseAnalysisRepository.save(analysis);
 
-        try {
-            String aggregatedPrompt = buildAggregatedPrompt(documentAnalyses);
-            AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, aggregatedPrompt, 8192);
+        return new PreparedCaseAnalysis(analysis.getId(), buildAggregatedPrompt(documentAnalyses), caseFileId);
+    }
+
+    @Transactional
+    public void finalizeCaseAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure) {
+        CaseAnalysis analysis = caseAnalysisRepository.findById(analysisId).orElseThrow();
+
+        if (failure != null) {
+            analysis.setAnalysisStatus(AnalysisStatus.FAILED);
+        } else {
             analysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content()));
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
             analysis.setCompletionTokens(result.completionTokens());
             analysis.setAnalysisStatus(AnalysisStatus.DONE);
-            log.info("Case analysis DONE for caseFile {}", caseFileId);
-        } catch (Exception e) {
-            log.error("Case analysis FAILED for caseFile {}", caseFileId, e);
-            analysis.setAnalysisStatus(AnalysisStatus.FAILED);
         }
-
         caseAnalysisRepository.save(analysis);
 
+        AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS)
+                .orElseGet(() -> {
+                    AnalysisJob j = new AnalysisJob();
+                    j.setCaseFileId(caseFileId);
+                    j.setJobType(JobType.CASE_ANALYSIS);
+                    j.setTotalItems(1);
+                    j.setProcessedItems(0);
+                    return j;
+                });
         job.setProcessedItems(1);
         job.setStatus(analysis.getAnalysisStatus());
         if (analysis.getAnalysisStatus() == AnalysisStatus.FAILED) {
@@ -145,6 +188,7 @@ public class CaseAnalysisService {
                 }
             }
         });
+
         if (finalStatus == AnalysisStatus.DONE) {
             int promptTokens = analysis.getPromptTokens();
             int completionTokens = analysis.getCompletionTokens();

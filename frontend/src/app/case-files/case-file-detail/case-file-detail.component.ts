@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -77,6 +78,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   });
 
   deletingDocId = signal<string | null>(null);
+  pendingFiles = signal<File[]>([]);
 
   // true from "Analyser" click until both synthesis and questions are loaded
   readonly fullAnalysisRunning = computed(() => {
@@ -401,21 +403,52 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    if (!files.length) return;
 
+    const MAX_SIZE = 50 * 1024 * 1024;
+    const oversized = files.filter(f => f.size > MAX_SIZE);
+    const valid = files.filter(f => f.size <= MAX_SIZE);
+
+    if (oversized.length > 0) {
+      this.snackBar.open(
+        `${oversized.length} fichier(s) rejeté(s) : taille max 50 Mo.`,
+        'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+      );
+    }
+
+    if (valid.length > 0) {
+      this.pendingFiles.update(current => [...current, ...valid]);
+    }
+  }
+
+  removePendingFile(file: File): void {
+    this.pendingFiles.update(files => files.filter(f => f !== file));
+  }
+
+  uploadPendingFiles(): void {
+    const files = this.pendingFiles();
+    if (!files.length) return;
     const caseFileId = this.caseFile()!.id;
     this.uploading.set(true);
-    this.documentService.upload(caseFileId, file).subscribe({
-      next: doc => {
-        this.documents.update(docs => [doc, ...docs]);
-        this.uploading.set(false);
-        this.snackBar.open('Document ajouté', 'Fermer', {
-          duration: 3000, panelClass: ['snack-success']
-        });
-        input.value = '';
-        this.docAnalysisPending.set(true);
 
+    const uploads = files.map(f =>
+      this.documentService.upload(caseFileId, f).pipe(
+        catchError(err => of({ error: err }))
+      )
+    );
+
+    forkJoin(uploads).subscribe(results => {
+      const succeeded = results.filter(r => !('error' in r)) as Document[];
+      const failed = results.filter(r => 'error' in r) as { error: any }[];
+
+      this.uploading.set(false);
+      this.pendingFiles.set([]);
+
+      if (succeeded.length > 0) {
+        this.documents.update(docs => [...succeeded, ...docs]);
+        this.docAnalysisPending.set(true);
         const pending = (type: AnalysisJob['jobType']): AnalysisJob =>
           ({ jobType: type, status: 'PENDING', totalItems: 0, processedItems: 0, progressPercentage: 0 });
         this.analysisJobs.update(jobs => [
@@ -423,20 +456,38 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           pending('DOCUMENT_ANALYSIS')
         ]);
         this.loadAnalysisJobs(caseFileId, true);
-      },
-      error: (err: any) => {
-        this.uploading.set(false);
-        input.value = '';
-        if (err.status === 402) return;
-        this.snackBar.open("Erreur lors de l'upload. Vérifiez le type et la taille du fichier (max 50 Mo).", 'Fermer', {
-          duration: 5000, panelClass: ['snack-error']
+      }
+
+      if (failed.length === 0) {
+        this.snackBar.open(`${succeeded.length} document(s) ajouté(s)`, 'Fermer', {
+          duration: 3000, panelClass: ['snack-success']
         });
+      } else if (succeeded.length > 0) {
+        this.snackBar.open(
+          `${succeeded.length} document(s) ajouté(s), ${failed.length} en erreur.`,
+          'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+        );
+      } else {
+        const is402 = failed.some((f: any) => f.error?.status === 402);
+        if (is402) {
+          this.snackBar.open("Limite de documents atteinte. Passez au plan supérieur.", 'Fermer', {
+            duration: 5000, panelClass: ['snack-error']
+          });
+        } else {
+          this.snackBar.open("Erreur lors de l'upload. Vérifiez le type et la taille des fichiers (max 50 Mo).", 'Fermer', {
+            duration: 5000, panelClass: ['snack-error']
+          });
+        }
       }
     });
   }
 
   canUpload(): boolean {
     return !this.uploading() && !this.fullAnalysisRunning() && !this.enrichedAnalysisRunning();
+  }
+
+  canSubmitUpload(): boolean {
+    return this.pendingFiles().length > 0 && this.canUpload();
   }
 
   canDeleteDocument(): boolean {
