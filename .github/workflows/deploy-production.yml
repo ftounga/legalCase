@@ -96,6 +96,8 @@ jobs:
             --from-literal=S3_BUCKET="$S3_BUCKET" \
             --from-literal=S3_ACCESS_KEY="$S3_ACCESS_KEY" \
             --from-literal=S3_SECRET_KEY="$S3_SECRET_KEY" \
+            --from-literal=SPRING_RABBITMQ_USERNAME="$RABBITMQ_USER" \
+            --from-literal=SPRING_RABBITMQ_PASSWORD="$RABBITMQ_PASSWORD" \
             --from-literal=SENTRY_DSN="$SENTRY_DSN" \
             --dry-run=client -o yaml | kubectl apply -f -
 
