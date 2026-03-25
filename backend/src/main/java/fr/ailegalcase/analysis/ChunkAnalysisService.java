@@ -188,7 +188,7 @@ public class ChunkAnalysisService {
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.DOCUMENT_ANALYSIS_EXCHANGE,
                 RabbitMQConfig.DOCUMENT_ANALYSIS_ROUTING_KEY,
-                new DocumentAnalysisMessage(extractionId)
+                new DocumentAnalysisMessage(extractionId, false)
         );
     }
 }

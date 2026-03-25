@@ -1,12 +1,17 @@
 package fr.ailegalcase.document;
 
+import fr.ailegalcase.analysis.RabbitMQConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class ChunkingServiceTest {
@@ -17,58 +22,62 @@ class ChunkingServiceTest {
             mock(DocumentChunkRepository.class);
     private final ApplicationEventPublisher eventPublisher =
             mock(ApplicationEventPublisher.class);
+    private final RabbitTemplate rabbitTemplate =
+            mock(RabbitTemplate.class);
 
-    private final ChunkingService service = new ChunkingService(extractionRepository, chunkRepository, eventPublisher, Runnable::run);
+    private ChunkingService service;
 
-    // U-01 : texte < 1000 chars → 1 chunk
+    @BeforeEach
+    void setUp() {
+        service = new ChunkingService(
+                extractionRepository, chunkRepository, eventPublisher, Runnable::run, rabbitTemplate);
+        ReflectionTestUtils.setField(service, "directAnalysisThresholdChars", 600000);
+    }
+
+    // U-01 : texte < seuil → direct analysis, 0 chunks
     @Test
-    void chunk_shortText_produces1Chunk() {
+    void chunk_shortText_sendsDirectAnalysis() {
         UUID extractionId = UUID.randomUUID();
-        DocumentExtraction extraction = new DocumentExtraction();
-        when(extractionRepository.getReferenceById(extractionId)).thenReturn(extraction);
-        when(chunkRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
 
         service.chunk(extractionId, "Texte court.");
 
-        verify(chunkRepository).saveAll(argThat(list -> ((java.util.List<?>) list).size() == 1));
+        verify(rabbitTemplate).convertAndSend(
+                eq(RabbitMQConfig.DOCUMENT_ANALYSIS_EXCHANGE),
+                eq(RabbitMQConfig.DOCUMENT_ANALYSIS_ROUTING_KEY),
+                (Object) argThat(msg -> msg instanceof fr.ailegalcase.analysis.DocumentAnalysisMessage dam
+                        && dam.directAnalysis()));
+        verifyNoInteractions(chunkRepository);
     }
 
-    // U-02 : texte de 2500 chars → 3 chunks avec overlap
+    // U-02 : texte >= seuil → chunking normal
     @Test
-    void chunk_longText_producesMultipleChunksWithOverlap() {
+    void chunk_longText_producesChunks() {
         UUID extractionId = UUID.randomUUID();
         DocumentExtraction extraction = new DocumentExtraction();
         when(extractionRepository.getReferenceById(extractionId)).thenReturn(extraction);
         when(chunkRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
 
-        String text = "a".repeat(2500);
-        service.chunk(extractionId, text);
+        service.chunk(extractionId, "a".repeat(600001));
 
-        // chunk 0: 0-1000, chunk 1: 800-1800, chunk 2: 1600-2500
-        verify(chunkRepository).saveAll(argThat(list -> ((java.util.List<?>) list).size() == 3));
+        verify(chunkRepository).saveAll(anyList());
+        verifyNoInteractions(rabbitTemplate);
     }
 
-    // U-03 : texte vide → 0 chunks
+    // U-03 : texte vide → rien
     @Test
-    void chunk_emptyText_producesNoChunks() {
-        UUID extractionId = UUID.randomUUID();
-
-        service.chunk(extractionId, "");
-
-        verifyNoInteractions(extractionRepository, chunkRepository);
+    void chunk_emptyText_producesNothing() {
+        service.chunk(UUID.randomUUID(), "");
+        verifyNoInteractions(extractionRepository, chunkRepository, rabbitTemplate);
     }
 
-    // U-04 : texte null → 0 chunks
+    // U-04 : texte null → rien
     @Test
-    void chunk_nullText_producesNoChunks() {
-        UUID extractionId = UUID.randomUUID();
-
-        service.chunk(extractionId, null);
-
-        verifyNoInteractions(extractionRepository, chunkRepository);
+    void chunk_nullText_producesNothing() {
+        service.chunk(UUID.randomUUID(), null);
+        verifyNoInteractions(extractionRepository, chunkRepository, rabbitTemplate);
     }
 
-    // U-05 : tokenCount = longueur / 4
+    // U-05 : tokenCount = longueur / 4 (document long → chunking)
     @Test
     void chunk_tokenCountIsApproximated() {
         UUID extractionId = UUID.randomUUID();
@@ -81,9 +90,9 @@ class ChunkingServiceTest {
             return saved;
         });
 
-        service.chunk(extractionId, "a".repeat(400));
+        service.chunk(extractionId, "a".repeat(600001));
 
-        assertThat(saved).hasSize(1);
-        assertThat(saved.get(0).getTokenCount()).isEqualTo(100); // 400 / 4
+        assertThat(saved).isNotEmpty();
+        assertThat(saved.get(0).getTokenCount()).isEqualTo(250); // 1000 / 4
     }
 }

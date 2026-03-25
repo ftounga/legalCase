@@ -1,8 +1,12 @@
 package fr.ailegalcase.document;
 
+import fr.ailegalcase.analysis.DocumentAnalysisMessage;
+import fr.ailegalcase.analysis.RabbitMQConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.task.TaskExecutor;
@@ -27,6 +31,10 @@ public class ChunkingService {
     private final DocumentChunkRepository chunkRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final TaskExecutor taskExecutor;
+    private final RabbitTemplate rabbitTemplate;
+
+    @Value("${app.pipeline.direct-analysis-threshold-chars:600000}")
+    private int directAnalysisThresholdChars;
 
     @Lazy @Autowired
     private ChunkingService self;
@@ -34,11 +42,13 @@ public class ChunkingService {
     public ChunkingService(DocumentExtractionRepository extractionRepository,
                            DocumentChunkRepository chunkRepository,
                            ApplicationEventPublisher eventPublisher,
-                           TaskExecutor taskExecutor) {
+                           TaskExecutor taskExecutor,
+                           RabbitTemplate rabbitTemplate) {
         this.extractionRepository = extractionRepository;
         this.chunkRepository = chunkRepository;
         this.eventPublisher = eventPublisher;
         this.taskExecutor = taskExecutor;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -50,6 +60,17 @@ public class ChunkingService {
     public void chunk(UUID extractionId, String extractedText) {
         if (extractedText == null || extractedText.isBlank()) {
             log.warn("Extraction {} has empty text — skipping chunking", extractionId);
+            return;
+        }
+
+        if (extractedText.length() < directAnalysisThresholdChars) {
+            log.info("Extraction {} — {} chars < threshold {} — direct document analysis",
+                    extractionId, extractedText.length(), directAnalysisThresholdChars);
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.DOCUMENT_ANALYSIS_EXCHANGE,
+                    RabbitMQConfig.DOCUMENT_ANALYSIS_ROUTING_KEY,
+                    new DocumentAnalysisMessage(extractionId, true)
+            );
             return;
         }
 

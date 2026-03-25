@@ -62,10 +62,11 @@ public class DocumentAnalysisService {
     public void consumeDocumentAnalysis(DocumentAnalysisMessage message) {
         UUID extractionId = message.extractionId();
 
-        List<ChunkAnalysis> chunkAnalyses = chunkAnalysisRepository
-                .findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE);
+        List<ChunkAnalysis> chunkAnalyses = message.directAnalysis()
+                ? List.of()
+                : chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE);
 
-        if (chunkAnalyses.isEmpty()) {
+        if (!message.directAnalysis() && chunkAnalyses.isEmpty()) {
             log.warn("No DONE chunk analyses found for extraction {} — document analysis skipped", extractionId);
             return;
         }
@@ -89,14 +90,17 @@ public class DocumentAnalysisService {
         analysis = documentAnalysisRepository.save(analysis);
 
         try {
-            String aggregatedPrompt = buildAggregatedPrompt(chunkAnalyses);
-            AnthropicResult result = anthropicService.analyzeFast(SYSTEM_PROMPT, aggregatedPrompt, 4096);
+            String prompt = message.directAnalysis()
+                    ? extraction.getExtractedText()
+                    : buildAggregatedPrompt(chunkAnalyses);
+            AnthropicResult result = anthropicService.analyzeFast(SYSTEM_PROMPT, prompt, 4096);
             analysis.setAnalysisResult(AnalysisJsonTruncator.truncateDocumentAnalysis(result.content()));
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
             analysis.setCompletionTokens(result.completionTokens());
             analysis.setAnalysisStatus(AnalysisStatus.DONE);
-            log.info("Document analysis DONE for extraction {}", extractionId);
+            log.info("Document analysis DONE for extraction {} ({})",
+                    extractionId, message.directAnalysis() ? "direct" : "chunked");
         } catch (Exception e) {
             log.error("Document analysis FAILED for extraction {}", extractionId, e);
             analysis.setAnalysisStatus(AnalysisStatus.FAILED);

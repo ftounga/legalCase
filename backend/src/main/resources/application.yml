@@ -34,6 +34,8 @@ app:
   mail:
     enabled: false
     from: ${MAIL_FROM:${MAIL_USERNAME:}}
+  pipeline:
+    direct-analysis-threshold-chars: 600000
   stripe:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}
