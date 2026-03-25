@@ -16,6 +16,10 @@ configMapGenerator:
       - SENTRY_ENV=staging
 
 patches:
+  - path: service-account-patch.yaml
+    target:
+      kind: ServiceAccount
+      name: legalcase-backend
   - patch: |-
       - op: replace
         path: /spec/replicas

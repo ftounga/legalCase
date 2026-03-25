@@ -18,6 +18,10 @@ patches:
     target:
       kind: Ingress
       name: legalcase-ingress
+  - path: service-account-patch.yaml
+    target:
+      kind: ServiceAccount
+      name: legalcase-backend
   - patch: |-
       - op: replace
         path: /spec/replicas
