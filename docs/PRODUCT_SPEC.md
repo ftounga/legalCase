@@ -178,7 +178,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |----|---------|-------|-------|
 | F-46 | Tests E2E smoke branchés CI | V2 | Les specs existent dans `e2e/smoke/` (auth, workspace, navigation). Brancher dans GitHub Actions pour bloquer les merges sur régression. |
 | F-47 | Monitoring & alertes applicatives | V2 — **Terminée** | Sentry backend (`sentry-spring-boot-starter-jakarta`) + frontend (`@sentry/angular`). Capture automatique exceptions + événement manuel sur job IA FAILED. DSN via env var, désactivé en dev. SF-47-01 + SF-47-02 mergées 2026-03-25. |
-| F-50 | Déploiement V1 — AWS EKS | V1 | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. Repo infra séparé `legalcase-infra`. 6 subfeatures : SF-50-01 Dockerfiles ✅, SF-50-02 Terraform infra ✅, SF-50-03 K8s manifests ✅, SF-50-04 CI/CD ✅, SF-50-05 Config prod OAuth2/Stripe, SF-50-06 Monitoring. **Statut : Partielle** |
+| F-50 | Déploiement V1 — AWS EKS | V1 — **Terminée** | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. 6 subfeatures toutes terminées : SF-50-01 Dockerfiles ✅, SF-50-02 Terraform infra ✅, SF-50-03 K8s manifests ✅, SF-50-04 CI/CD ✅, SF-50-05 Config prod OAuth2 (Google)/Stripe ✅, SF-50-06 Monitoring Sentry ✅. Premier déploiement production 2026-03-25. |
 
 ---
 
@@ -191,6 +191,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-24 | F-50 SF-50-03 mergée — K8s manifests base + overlays staging/production : backend/frontend/rabbitmq/ingress nginx, HPA CPU 70%, PVC EBS RabbitMQ, Kustomize | Product owner |
 | 2026-03-24 | F-50 SF-50-02 — Infrastructure Terraform : VPC, EKS 1.31, RDS PostgreSQL 16, S3, ECR, Secrets Manager, bootstrap S3+DynamoDB, environments staging/production, terraform validate PASS | Product owner |
 | 2026-03-24 | F-50 SF-50-01 mergée — Dockerfiles multi-stage backend (JRE21 alpine, 330MB) + frontend (nginx alpine, 68MB), nginx.conf proxy /api /oauth2, fix @angular/animations v19 | Product owner |
+| 2026-03-26 | F-50 marquée Terminée — SF-50-05 (OAuth2 Google + Stripe prod) et SF-50-06 (Sentry monitoring) validées en prod. Microsoft OAuth2 retiré intentionnellement. | Product owner |
 | 2026-03-24 | F-38 SF-38-04 mergée — écran dédié `/workspace/audit-logs` (AuditLogScreenComponent), filtre texte libre + filtre action, section journal supprimée de WorkspaceAdminComponent, 13 tests frontend | Product owner |
 | 2026-03-24 | F-38 Terminée — SF-38-03 mergée : GET /api/v1/admin/audit-logs, AuditLogAdminService, section journal d'actions dans WorkspaceAdminComponent, 215 tests backend | Product owner |
 | 2026-03-24 | F-38 SF-38-02 mergée — bouton suppression document, MatDialog confirmation, message adaptatif synthèse (ajouts/suppressions/les deux), CaseFile.lastDocumentDeletedAt, 162 tests frontend | Product owner |
