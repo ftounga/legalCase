@@ -25,6 +25,12 @@
   }
 }
 
+.status-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-left: auto;
+}
+
 /* Layout 2 colonnes */
 .detail-grid {
   display: grid;

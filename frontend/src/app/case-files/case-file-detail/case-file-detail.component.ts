@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,13 +12,17 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
+import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
 import { CaseFileService } from '../../core/services/case-file.service';
+import { CaseFileStatusService } from '../../core/services/case-file-status.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
+import { AuthService } from '../../core/services/auth.service';
+import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
@@ -54,12 +58,20 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   synthesisLoading = signal(false);
   questionsLoading = signal(false);
   questionsLoaded = signal(false);
+  currentMemberRole = signal<string | null>(null);
 
   // true between upload success and first backend confirmation that new doc analysis started
   private docAnalysisPending = signal(false);
 
   // true between triggerAnalysis() success and first backend confirmation that CASE_ANALYSIS job exists
   private caseAnalysisPending = signal(false);
+
+  readonly canReopen = computed(() => {
+    const role = this.currentMemberRole();
+    return role === 'OWNER' || role === 'ADMIN';
+  });
+
+  readonly canDelete = computed(() => this.currentMemberRole() === 'OWNER');
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
@@ -104,7 +116,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private caseFileService: CaseFileService,
+    private caseFileStatusService: CaseFileStatusService,
     private documentService: DocumentService,
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
@@ -112,6 +126,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private globalNotificationService: GlobalAnalysisNotificationService,
     private caseFileStatsService: CaseFileStatsService,
     private aiQuestionService: AiQuestionService,
+    private authService: AuthService,
+    private workspaceMemberService: WorkspaceMemberService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
   ) {}
@@ -147,6 +163,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         });
       }
     });
+    this.loadCurrentMemberRole();
   }
 
   ngOnDestroy(): void {
@@ -551,6 +568,86 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   }
 
   statusLabel(status: string): string {
-    return status === 'OPEN' ? 'Ouvert' : status;
+    if (status === 'OPEN') return 'Ouvert';
+    if (status === 'CLOSED') return 'Clôturé';
+    return status;
+  }
+
+  statusClass(status: string): string {
+    return status === 'OPEN' ? 'badge--success' : 'badge--neutral';
+  }
+
+  private loadCurrentMemberRole(): void {
+    this.workspaceMemberService.getMembers().subscribe({
+      next: members => {
+        const currentUserId = this.authService.currentUser()?.id;
+        const member = members.find(m => m.userId === currentUserId);
+        this.currentMemberRole.set(member?.memberRole ?? null);
+      },
+      error: () => { /* silencieux */ }
+    });
+  }
+
+  closeCaseFile(): void {
+    const id = this.caseFile()?.id;
+    if (!id) return;
+    this.caseFileStatusService.close(id).subscribe({
+      next: updated => {
+        this.caseFile.set(updated);
+        this.snackBar.open('Dossier clôturé', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
+      },
+      error: () => {
+        this.snackBar.open('Une erreur est survenue. Veuillez réessayer.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  reopenCaseFile(): void {
+    const id = this.caseFile()?.id;
+    if (!id) return;
+    this.caseFileStatusService.reopen(id).subscribe({
+      next: updated => {
+        this.caseFile.set(updated);
+        this.snackBar.open('Dossier réouvert', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
+      },
+      error: (err: any) => {
+        if (err.status === 402) {
+          this.snackBar.open('Limite de dossiers actifs atteinte. Passez à un plan supérieur.', 'Fermer', {
+            duration: 5000, panelClass: ['snack-error']
+          });
+        } else {
+          this.snackBar.open('Une erreur est survenue. Veuillez réessayer.', 'Fermer', {
+            duration: 4000, panelClass: ['snack-error']
+          });
+        }
+      }
+    });
+  }
+
+  deleteCaseFile(): void {
+    const cf = this.caseFile();
+    if (!cf) return;
+    const ref = this.dialog.open(CaseFileDeleteDialogComponent, { width: '400px' });
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.caseFileStatusService.delete(cf.id).subscribe({
+        next: () => {
+          this.router.navigate(['/case-files']);
+        },
+        error: (err: any) => {
+          if (err.status === 409) {
+            this.snackBar.open('Impossible de supprimer un dossier avec une analyse en cours.', 'Fermer', {
+              duration: 5000, panelClass: ['snack-error']
+            });
+          } else {
+            this.snackBar.open('Une erreur est survenue. Veuillez réessayer.', 'Fermer', {
+              duration: 4000, panelClass: ['snack-error']
+            });
+          }
+        }
+      });
+    });
   }
 }

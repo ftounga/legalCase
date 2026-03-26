@@ -82,7 +82,9 @@ export class CaseFilesListComponent implements OnInit {
   }
 
   statusLabel(status: string): string {
-    return status === 'OPEN' ? 'Ouvert' : status;
+    if (status === 'OPEN') return 'Ouvert';
+    if (status === 'CLOSED') return 'Clôturé';
+    return status;
   }
 
   statusClass(status: string): string {
