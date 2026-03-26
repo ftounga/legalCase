@@ -23,3 +23,24 @@ export interface CaseAnalysisVersionSummary {
   analysisType: 'STANDARD' | 'ENRICHED';
   updatedAt: string;
 }
+
+export interface SectionDiff<T> {
+  added: T[];
+  removed: T[];
+  unchanged: T[];
+}
+
+export interface TimelineDiffEntry {
+  date: string;
+  evenement: string;
+}
+
+export interface AnalysisDiff {
+  from: { id: string; version: number; analysisType: string; updatedAt: string };
+  to:   { id: string; version: number; analysisType: string; updatedAt: string };
+  faits: SectionDiff<string>;
+  pointsJuridiques: SectionDiff<string>;
+  risques: SectionDiff<string>;
+  questionsOuvertes: SectionDiff<string>;
+  timeline: SectionDiff<TimelineDiffEntry>;
+}

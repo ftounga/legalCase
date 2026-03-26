@@ -1,0 +1,200 @@
+@if (loading()) {
+  <div class="loading-center">
+    <mat-spinner diameter="48" />
+  </div>
+} @else {
+
+  <!-- ── Page header ───────────────────────────────────────────────── -->
+  <div class="diff-page-header">
+    <button mat-button (click)="goBack()" class="back-btn">
+      <mat-icon>arrow_back</mat-icon>
+      Retour
+    </button>
+    <div class="diff-page-title">
+      <mat-icon class="title-icon">compare_arrows</mat-icon>
+      <div>
+        <h2>Comparaison d'analyses</h2>
+        @if (caseFile()) {
+          <span class="case-file-name">{{ caseFile()!.title }}</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Version selector ──────────────────────────────────────────── -->
+  <div class="selectors-row">
+    <!-- From -->
+    <mat-card class="version-card version-card--from">
+      <div class="version-card-label">
+        <mat-icon>history</mat-icon>
+        Version de base
+      </div>
+      <mat-form-field appearance="outline" class="version-select">
+        <mat-label>Choisir une version</mat-label>
+        <mat-select [(ngModel)]="fromId" (ngModelChange)="onVersionChange()">
+          @for (v of versions(); track v.id) {
+            <mat-option [value]="v.id" [disabled]="v.id === toId()">
+              <span class="option-content">
+                <span class="option-version">v{{ v.version }}</span>
+                <span class="option-type" [class.type--enriched]="v.analysisType === 'ENRICHED'">
+                  {{ v.analysisType === 'ENRICHED' ? 'Enrichie' : 'Standard' }}
+                </span>
+                <span class="option-date">{{ v.updatedAt | date:'dd MMM yyyy' }}</span>
+              </span>
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </mat-card>
+
+    <!-- Arrow -->
+    <div class="selector-arrow">
+      <mat-icon>east</mat-icon>
+    </div>
+
+    <!-- To -->
+    <mat-card class="version-card version-card--to">
+      <div class="version-card-label">
+        <mat-icon>update</mat-icon>
+        Version à comparer
+      </div>
+      <mat-form-field appearance="outline" class="version-select">
+        <mat-label>Choisir une version</mat-label>
+        <mat-select [(ngModel)]="toId" (ngModelChange)="onVersionChange()">
+          @for (v of versions(); track v.id) {
+            <mat-option [value]="v.id" [disabled]="v.id === fromId()">
+              <span class="option-content">
+                <span class="option-version">v{{ v.version }}</span>
+                <span class="option-type" [class.type--enriched]="v.analysisType === 'ENRICHED'">
+                  {{ v.analysisType === 'ENRICHED' ? 'Enrichie' : 'Standard' }}
+                </span>
+                <span class="option-date">{{ v.updatedAt | date:'dd MMM yyyy' }}</span>
+              </span>
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </mat-card>
+  </div>
+
+  <!-- ── Loading diff ───────────────────────────────────────────────── -->
+  @if (diffLoading()) {
+    <div class="loading-center">
+      <mat-spinner diameter="40" />
+      <p class="loading-label">Calcul du diff en cours…</p>
+    </div>
+  }
+
+  <!-- ── Placeholder quand aucune sélection ───────────────────────── -->
+  @if (!canCompute() && !diffLoading()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">compare</mat-icon>
+      <p>Sélectionnez deux versions différentes pour afficher les différences.</p>
+    </div>
+  }
+
+  <!-- ── Résultats ──────────────────────────────────────────────────── -->
+  @if (diff() && !diffLoading()) {
+    <!-- Summary bar -->
+    <div class="diff-summary">
+      <div class="summary-versions">
+        <span class="summary-badge summary-badge--from">v{{ diff()!.from.version }}</span>
+        <mat-icon class="summary-arrow">east</mat-icon>
+        <span class="summary-badge summary-badge--to">v{{ diff()!.to.version }}</span>
+      </div>
+      <div class="summary-counts">
+        @if (totalAdded() > 0) {
+          <span class="count-chip count-chip--added">
+            <mat-icon>add</mat-icon>{{ totalAdded() }} ajout{{ totalAdded() > 1 ? 's' : '' }}
+          </span>
+        }
+        @if (totalRemoved() > 0) {
+          <span class="count-chip count-chip--removed">
+            <mat-icon>remove</mat-icon>{{ totalRemoved() }} suppression{{ totalRemoved() > 1 ? 's' : '' }}
+          </span>
+        }
+        @if (totalAdded() === 0 && totalRemoved() === 0) {
+          <span class="count-chip count-chip--neutral">
+            <mat-icon>check</mat-icon>Aucune différence
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Sections -->
+    @for (section of sections(); track section.title) {
+      <mat-card class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <mat-icon class="section-icon">{{ section.icon }}</mat-icon>
+            <h3>{{ section.title }}</h3>
+          </div>
+          <div class="section-badges">
+            @if (sectionAddedCount(section) > 0) {
+              <span class="mini-badge mini-badge--added">+{{ sectionAddedCount(section) }}</span>
+            }
+            @if (sectionRemovedCount(section) > 0) {
+              <span class="mini-badge mini-badge--removed">−{{ sectionRemovedCount(section) }}</span>
+            }
+            @if (sectionAddedCount(section) === 0 && sectionRemovedCount(section) === 0) {
+              <span class="mini-badge mini-badge--neutral">Inchangé</span>
+            }
+          </div>
+        </div>
+
+        <div class="section-body">
+          @if (totalItems(section) === 0) {
+            <p class="empty-section">Aucun élément dans cette section.</p>
+          } @else if (!section.timeline) {
+            <!-- String section -->
+            @for (item of section.data!.added; track item) {
+              <div class="diff-item diff-item--added">
+                <mat-icon class="item-icon">add_circle_outline</mat-icon>
+                <span>{{ item }}</span>
+              </div>
+            }
+            @for (item of section.data!.removed; track item) {
+              <div class="diff-item diff-item--removed">
+                <mat-icon class="item-icon">remove_circle_outline</mat-icon>
+                <span class="item-text--removed">{{ item }}</span>
+              </div>
+            }
+            @for (item of section.data!.unchanged; track item) {
+              <div class="diff-item diff-item--unchanged">
+                <mat-icon class="item-icon">remove</mat-icon>
+                <span>{{ item }}</span>
+              </div>
+            }
+          } @else {
+            <!-- Timeline section -->
+            @for (entry of section.timeline!.added; track entry.evenement) {
+              <div class="diff-item diff-item--added diff-item--timeline">
+                <mat-icon class="item-icon">add_circle_outline</mat-icon>
+                <span class="timeline-date">{{ entry.date }}</span>
+                <span class="timeline-sep">—</span>
+                <span>{{ entry.evenement }}</span>
+              </div>
+            }
+            @for (entry of section.timeline!.removed; track entry.evenement) {
+              <div class="diff-item diff-item--removed diff-item--timeline">
+                <mat-icon class="item-icon">remove_circle_outline</mat-icon>
+                <span class="timeline-date item-text--removed">{{ entry.date }}</span>
+                <span class="timeline-sep item-text--removed">—</span>
+                <span class="item-text--removed">{{ entry.evenement }}</span>
+              </div>
+            }
+            @for (entry of section.timeline!.unchanged; track entry.evenement) {
+              <div class="diff-item diff-item--unchanged diff-item--timeline">
+                <mat-icon class="item-icon">remove</mat-icon>
+                <span class="timeline-date">{{ entry.date }}</span>
+                <span class="timeline-sep">—</span>
+                <span>{{ entry.evenement }}</span>
+              </div>
+            }
+          }
+        </div>
+      </mat-card>
+    }
+  }
+
+}

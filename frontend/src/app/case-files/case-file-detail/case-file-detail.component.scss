@@ -120,6 +120,12 @@
   line-height: 1.2;
 }
 
+.synthesis-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
 /* Section headers */
 .section-header {
   display: flex;

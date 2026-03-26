@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../models/case-analysis.model';
+import { AnalysisDiff, CaseAnalysisResult, CaseAnalysisVersionSummary } from '../models/case-analysis.model';
 
 @Injectable({ providedIn: 'root' })
 export class CaseAnalysisService {
@@ -17,5 +17,11 @@ export class CaseAnalysisService {
 
   getByVersion(caseFileId: string, version: number): Observable<CaseAnalysisResult> {
     return this.http.get<CaseAnalysisResult>(`/api/v1/case-files/${caseFileId}/case-analysis/versions/${version}`);
+  }
+
+  getDiff(caseFileId: string, fromId: string, toId: string): Observable<AnalysisDiff> {
+    return this.http.get<AnalysisDiff>(`/api/v1/case-files/${caseFileId}/case-analysis/diff`, {
+      params: { fromId, toId }
+    });
   }
 }
