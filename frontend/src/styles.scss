@@ -165,3 +165,11 @@ h4 { font-size: 18px; font-weight: 600; }
 .mat-mdc-row:hover .mat-mdc-cell {
   background-color: var(--color-background);
 }
+
+// ─── Espace bas de page ───────────────────────────────────────────────────
+// padding-bottom sur le host mat-sidenav-content est absorbé par le
+// position:absolute top:0/bottom:0 d'Angular Material — on cible le
+// conteneur de scroll directement en global pour garantir l'espace.
+.mat-sidenav-content {
+  padding-bottom: var(--spacing-3xl) !important;
+}
