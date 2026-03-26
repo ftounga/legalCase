@@ -149,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
-| F-39 | Notifications temps réel | V2 — **En cours** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. SF-39-02 (notification globale toutes pages) : à spécifier. |
+| F-39 | Notifications temps réel | V2 — **Terminée** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. SF-39-02 mergée 2026-03-26 : `GlobalAnalysisNotificationService` singleton Angular, toast MatSnackBar visible depuis toute page, événements SSE typés par jobType. |
 | F-40 | Export PDF de la synthèse | V2 — **Terminée** | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. Implémenté 100% frontend via pdfmake (SF-40-01, mergé 2026-03-24). |
 
 ### UX & exploitation
@@ -265,6 +265,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-21 | F-26 SF-26-03 mergée — POST /api/v1/auth/login, /api/me LOCAL, fusion OAuth→LOCAL dans CustomOidcUserService, 18 tests | Product owner |
 | 2026-03-21 | F-26 SF-26-04 mergée — POST /api/v1/auth/forgot-password (fail-silent) + POST /api/v1/auth/reset-password, BCrypt, token 24h, 16 tests | Product owner |
 | 2026-03-21 | F-26 SF-26-05 mergée — refonte page auth : LoginComponent (onglets Se connecter/S'inscrire, OAuth + local), VerifyEmailComponent, ResetPasswordComponent, AuthService étendu, 16 tests Karma. F-26 marquée Terminée | Product owner |
-| 2026-03-25 | F-39 SF-39-01 mergée — notifications SSE : endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, SseEmitterRegistry, SseNotificationService, AnalysisStatusEvent afterCommit, AnalysisSseService Angular, 15 tests. F-39 marquée Terminée | Product owner |
+| 2026-03-25 | F-39 SF-39-01 mergée — notifications SSE : endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, SseEmitterRegistry, SseNotificationService, AnalysisStatusEvent afterCommit, AnalysisSseService Angular, 15 tests | Product owner |
+| 2026-03-26 | F-39 SF-39-02 mergée — GlobalAnalysisNotificationService Angular singleton, toast visible depuis toute page, événements SSE typés par jobType (CASE_ANALYSIS_DONE, ENRICHED_ANALYSIS_DONE, DOCUMENT_ANALYSIS_DONE), DocumentAnalysisService publie l'événement SSE quand tous les docs sont analysés. F-39 marquée Terminée | Product owner |
 | 2026-03-25 | F-47 SF-47-01+02 mergées — Sentry backend (sentry-spring-boot-starter-jakarta, captureEvent job FAILED, fail-open) + frontend (@sentry/angular, ErrorHandler, environment.prod.ts), K8s SENTRY_ENV par overlay, 4 tests. F-47 marquée Terminée | Product owner |
 | 2026-03-25 | F-51 SF-51-01 mergée — pipeline IA adaptatif : documents < 600k chars envoyés directement en analyse sans chunking (directAnalysis flag), seuil configurable, 5 tests unitaires. F-51 marquée Terminée | Product owner |
