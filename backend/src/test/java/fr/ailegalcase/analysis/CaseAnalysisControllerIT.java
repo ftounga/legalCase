@@ -103,6 +103,7 @@ class CaseAnalysisControllerIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Analyse");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         auth = buildGoogleAuth("google-analysis-sub", "analysis-test@example.com");
@@ -114,6 +115,8 @@ class CaseAnalysisControllerIT {
         CaseAnalysis analysis = new CaseAnalysis();
         analysis.setCaseFile(caseFile);
         analysis.setAnalysisStatus(AnalysisStatus.DONE);
+        analysis.setAnalysisType(AnalysisType.STANDARD);
+        analysis.setVersion(1);
         analysis.setModelUsed("claude-sonnet-4-6");
         analysis.setAnalysisResult("""
                 {
@@ -175,6 +178,7 @@ class CaseAnalysisControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         WorkspaceMember otherMember = new WorkspaceMember();
@@ -190,11 +194,14 @@ class CaseAnalysisControllerIT {
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre Workspace");
         otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(otherCaseFile);
 
         CaseAnalysis otherAnalysis = new CaseAnalysis();
         otherAnalysis.setCaseFile(otherCaseFile);
         otherAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+        otherAnalysis.setAnalysisType(AnalysisType.STANDARD);
+        otherAnalysis.setVersion(1);
         otherAnalysis.setAnalysisResult("{\"faits\":[]}");
         caseAnalysisRepository.save(otherAnalysis);
 
@@ -208,6 +215,144 @@ class CaseAnalysisControllerIT {
     void get_withoutAuth_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis", caseFile.getId()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ─── Diff tests (SF-54-01) ────────────────────────────────────────────────
+
+    // I-01 diff : GET /diff → 200 avec diff correct entre v1 et v2
+    @Test
+    void diff_nominal_returns200WithCorrectDiff() throws Exception {
+        CaseAnalysis v1 = savedDoneAnalysis(caseFile,
+                """
+                {"faits":["Fait A","Fait B"],"points_juridiques":["Art. L1234"],"risques":[],"questions_ouvertes":[],
+                 "timeline":[{"date":"2024-01-01","evenement":"Embauche"}]}
+                """);
+        CaseAnalysis v2 = savedDoneAnalysis(caseFile,
+                """
+                {"faits":["Fait B","Fait C"],"points_juridiques":["Art. L1234"],"risques":[],"questions_ouvertes":[],
+                 "timeline":[{"date":"2024-01-01","evenement":"Embauche"},{"date":"2024-06-01","evenement":"Licenciement"}]}
+                """);
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis/diff", caseFile.getId())
+                        .param("fromId", v1.getId().toString())
+                        .param("toId", v2.getId().toString())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.faits.removed[0]").value("Fait A"))
+                .andExpect(jsonPath("$.faits.added[0]").value("Fait C"))
+                .andExpect(jsonPath("$.faits.unchanged[0]").value("Fait B"))
+                .andExpect(jsonPath("$.pointsJuridiques.unchanged[0]").value("Art. L1234"))
+                .andExpect(jsonPath("$.timeline.unchanged[0].evenement").value("Embauche"))
+                .andExpect(jsonPath("$.timeline.added[0].evenement").value("Licenciement"))
+                .andExpect(jsonPath("$.from.id").value(v1.getId().toString()))
+                .andExpect(jsonPath("$.to.id").value(v2.getId().toString()));
+    }
+
+    // I-02 diff : GET /diff → 400 si fromId == toId
+    @Test
+    void diff_sameId_returns400() throws Exception {
+        CaseAnalysis v1 = savedDoneAnalysis(caseFile, emptyAnalysisJson());
+        String id = v1.getId().toString();
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis/diff", caseFile.getId())
+                        .param("fromId", id)
+                        .param("toId", id)
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-03 diff : GET /diff → 409 si analyse non DONE
+    @Test
+    void diff_analysisNotDone_returns409() throws Exception {
+        CaseAnalysis done = savedDoneAnalysis(caseFile, emptyAnalysisJson());
+
+        CaseAnalysis processing = new CaseAnalysis();
+        processing.setCaseFile(caseFile);
+        processing.setAnalysisStatus(AnalysisStatus.PROCESSING);
+        processing.setAnalysisType(AnalysisType.STANDARD);
+        processing.setVersion(2);
+        processing.setModelUsed("test");
+        caseAnalysisRepository.save(processing);
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis/diff", caseFile.getId())
+                        .param("fromId", done.getId().toString())
+                        .param("toId", processing.getId().toString())
+                        .with(authentication(auth)))
+                .andExpect(status().isConflict());
+    }
+
+    // I-04 diff : GET /diff → 404 si analyse d'un autre dossier
+    @Test
+    void diff_analysisFromAnotherCaseFile_returns404() throws Exception {
+        CaseAnalysis v1 = savedDoneAnalysis(caseFile, emptyAnalysisJson());
+
+        CaseFile otherCaseFile = new CaseFile();
+        otherCaseFile.setWorkspace(caseFile.getWorkspace());
+        otherCaseFile.setCreatedBy(caseFile.getCreatedBy());
+        otherCaseFile.setTitle("Autre dossier");
+        otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
+        caseFileRepository.save(otherCaseFile);
+
+        CaseAnalysis otherAnalysis = savedDoneAnalysis(otherCaseFile, emptyAnalysisJson());
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis/diff", caseFile.getId())
+                        .param("fromId", v1.getId().toString())
+                        .param("toId", otherAnalysis.getId().toString())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-05 diff : GET /diff → 404 si dossier d'un autre workspace
+    @Test
+    void diff_caseFileFromAnotherWorkspace_returns404() throws Exception {
+        User otherUser = new User();
+        otherUser.setEmail("other-diff@example.com");
+        otherUser.setStatus("ACTIVE");
+        userRepository.save(otherUser);
+
+        Workspace otherWorkspace = new Workspace();
+        otherWorkspace.setName("other-diff@example.com");
+        otherWorkspace.setSlug("other-diff-slug-" + System.currentTimeMillis());
+        otherWorkspace.setOwner(otherUser);
+        otherWorkspace.setPlanCode("STARTER");
+        otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspaceRepository.save(otherWorkspace);
+
+        CaseFile otherCaseFile = new CaseFile();
+        otherCaseFile.setWorkspace(otherWorkspace);
+        otherCaseFile.setCreatedBy(otherUser);
+        otherCaseFile.setTitle("Dossier autre workspace");
+        otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
+        caseFileRepository.save(otherCaseFile);
+
+        CaseAnalysis v1 = savedDoneAnalysis(caseFile, emptyAnalysisJson());
+        CaseAnalysis v2 = savedDoneAnalysis(caseFile, emptyAnalysisJson());
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis/diff", otherCaseFile.getId())
+                        .param("fromId", v1.getId().toString())
+                        .param("toId", v2.getId().toString())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    private CaseAnalysis savedDoneAnalysis(CaseFile cf, String json) {
+        CaseAnalysis a = new CaseAnalysis();
+        a.setCaseFile(cf);
+        a.setAnalysisStatus(AnalysisStatus.DONE);
+        a.setAnalysisType(AnalysisType.STANDARD);
+        a.setVersion(caseAnalysisRepository.findMaxVersionByCaseFileId(cf.getId()) + 1);
+        a.setModelUsed("test");
+        a.setAnalysisResult(json);
+        return caseAnalysisRepository.save(a);
+    }
+
+    private String emptyAnalysisJson() {
+        return """
+                {"faits":[],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
+                """;
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

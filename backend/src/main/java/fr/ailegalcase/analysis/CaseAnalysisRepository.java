@@ -30,5 +30,7 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
 
     long countByCaseFileIdAndAnalysisStatus(UUID caseFileId, AnalysisStatus analysisStatus);
 
+    Optional<CaseAnalysis> findByIdAndCaseFileId(UUID id, UUID caseFileId);
+
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
 }
