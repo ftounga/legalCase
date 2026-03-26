@@ -54,6 +54,7 @@ public class CaseAnalysisService {
     private final RabbitTemplate rabbitTemplate;
     private final UsageEventService usageEventService;
     private final ApplicationEventPublisher eventPublisher;
+    private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
 
     @Lazy @Autowired
     private CaseAnalysisService self;
@@ -65,7 +66,8 @@ public class CaseAnalysisService {
                                AnalysisJobRepository analysisJobRepository,
                                RabbitTemplate rabbitTemplate,
                                UsageEventService usageEventService,
-                               ApplicationEventPublisher eventPublisher) {
+                               ApplicationEventPublisher eventPublisher,
+                               AnalysisDocumentSnapshotService analysisDocumentSnapshotService) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
@@ -74,6 +76,7 @@ public class CaseAnalysisService {
         this.rabbitTemplate = rabbitTemplate;
         this.usageEventService = usageEventService;
         this.eventPublisher = eventPublisher;
+        this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
@@ -143,6 +146,8 @@ public class CaseAnalysisService {
         analysis = caseAnalysisRepository.save(analysis);
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = caseAnalysisRepository.save(analysis);
+
+        analysisDocumentSnapshotService.snapshot(analysis.getId(), caseFile);
 
         fr.ailegalcase.workspace.Workspace ws = caseFile.getWorkspace();
         String systemPrompt = buildSystemPrompt(

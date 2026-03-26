@@ -36,16 +36,20 @@ class SentryJobReportingTest {
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
+    private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
+
     private final CaseAnalysisService caseAnalysisService = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
-            anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher);
+            anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
+            analysisDocumentSnapshotService);
 
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
 
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
-            aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher);
+            aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
+            analysisDocumentSnapshotService);
 
     @BeforeEach
     void setUp() {
