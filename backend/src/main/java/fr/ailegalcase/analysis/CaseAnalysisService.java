@@ -179,7 +179,7 @@ public class CaseAnalysisService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                eventPublisher.publishEvent(new AnalysisStatusEvent(caseFileId, finalStatus));
+                eventPublisher.publishEvent(new AnalysisStatusEvent(caseFileId, finalStatus, JobType.CASE_ANALYSIS));
                 if (finalStatus == AnalysisStatus.DONE) {
                     rabbitTemplate.convertAndSend(
                             RabbitMQConfig.AI_QUESTION_GENERATION_EXCHANGE,

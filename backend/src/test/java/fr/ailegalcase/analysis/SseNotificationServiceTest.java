@@ -3,6 +3,8 @@ package fr.ailegalcase.analysis;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import static org.mockito.Mockito.*;
+
 import java.io.IOException;
 import java.util.UUID;
 
@@ -21,7 +23,7 @@ class SseNotificationServiceTest {
         SseEmitter emitter = mock(SseEmitter.class);
         registry.register(caseFileId, emitter);
 
-        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.DONE));
+        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.DONE, JobType.CASE_ANALYSIS));
 
         verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
         verify(emitter).complete();
@@ -34,7 +36,7 @@ class SseNotificationServiceTest {
         SseEmitter emitter = mock(SseEmitter.class);
         registry.register(caseFileId, emitter);
 
-        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.FAILED));
+        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.FAILED, JobType.CASE_ANALYSIS));
 
         verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
         verify(emitter).complete();
@@ -47,7 +49,7 @@ class SseNotificationServiceTest {
         SseEmitter emitter = mock(SseEmitter.class);
         registry.register(caseFileId, emitter);
 
-        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.DONE));
+        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.DONE, JobType.CASE_ANALYSIS));
 
         assertThat_registryIsEmpty(caseFileId);
     }
@@ -60,7 +62,7 @@ class SseNotificationServiceTest {
         doThrow(new IOException("broken pipe")).when(emitter).send(any(SseEmitter.SseEventBuilder.class));
         registry.register(caseFileId, emitter);
 
-        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.DONE));
+        service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.DONE, JobType.CASE_ANALYSIS));
 
         assertThat_registryIsEmpty(caseFileId);
     }
@@ -68,7 +70,7 @@ class SseNotificationServiceTest {
     // U-05 : aucun emitter enregistré → pas d'appel (pas d'exception)
     @Test
     void onAnalysisStatusEvent_noEmittersRegistered_doesNothing() {
-        service.onAnalysisStatusEvent(new AnalysisStatusEvent(UUID.randomUUID(), AnalysisStatus.DONE));
+        service.onAnalysisStatusEvent(new AnalysisStatusEvent(UUID.randomUUID(), AnalysisStatus.DONE, JobType.CASE_ANALYSIS));
     }
 
     private void assertThat_registryIsEmpty(UUID caseFileId) {

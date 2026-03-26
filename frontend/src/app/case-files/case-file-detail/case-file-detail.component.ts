@@ -17,7 +17,7 @@ import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
-import { AnalysisSseService } from '../../core/services/analysis-sse.service';
+import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
@@ -97,7 +97,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   });
 
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
-  private sseSub: Subscription | null = null;
+  private eventsSub: Subscription | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -106,7 +106,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
     private caseAnalysisCommandService: CaseAnalysisCommandService,
-    private analysisSseService: AnalysisSseService,
+    private globalNotificationService: GlobalAnalysisNotificationService,
     private aiQuestionService: AiQuestionService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -114,6 +114,19 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
+    this.eventsSub = this.globalNotificationService.events$
+      .subscribe(event => {
+        if (event.caseFileId !== id) return;
+        if (event.status === 'DONE') {
+          this.stopPolling();
+          this.loadAnalysisJobs(id);
+          if (event.jobType === 'CASE_ANALYSIS' || event.jobType === 'ENRICHED_ANALYSIS') {
+            this.loadSynthesis(id);
+          }
+        } else {
+          this.loadAnalysisJobs(id);
+        }
+      });
     this.caseFileService.getById(id).subscribe({
       next: cf => {
         this.caseFile.set(cf);
@@ -132,7 +145,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling();
-    this.sseSub?.unsubscribe();
+    this.eventsSub?.unsubscribe();
   }
 
   loadDocuments(caseFileId: string): void {
@@ -271,7 +284,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.analyzing.set(false);
         this.loadAnalysisJobs(id, true);
-        this.startSseStream(id);
+        this.globalNotificationService.track(id);
       },
       error: (err: any) => {
         this.analyzing.set(false);
@@ -293,21 +306,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
             duration: 4000, panelClass: ['snack-error']
           });
         }
-      }
-    });
-  }
-
-  private startSseStream(caseFileId: string): void {
-    this.sseSub?.unsubscribe();
-    this.sseSub = this.analysisSseService.stream(caseFileId).subscribe(event => {
-      if (event.status === 'DONE') {
-        this.stopPolling();
-        this.loadAnalysisJobs(caseFileId);
-        this.loadSynthesis(caseFileId);
-        this.snackBar.open('Analyse terminée', 'Fermer', { duration: 4000, panelClass: ['snack-success'] });
-      } else {
-        this.snackBar.open("L'analyse a échoué", 'Fermer', { duration: 5000, panelClass: ['snack-error'] });
-        this.loadAnalysisJobs(caseFileId);
       }
     });
   }
@@ -456,6 +454,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           pending('DOCUMENT_ANALYSIS')
         ]);
         this.loadAnalysisJobs(caseFileId, true);
+        this.globalNotificationService.track(caseFileId);
       }
 
       if (failed.length === 0) {

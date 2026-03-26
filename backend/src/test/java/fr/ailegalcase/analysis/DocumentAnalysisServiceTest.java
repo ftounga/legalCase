@@ -7,10 +7,13 @@ import fr.ailegalcase.document.DocumentChunk;
 import fr.ailegalcase.document.DocumentExtraction;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,14 +34,22 @@ class DocumentAnalysisServiceTest {
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     private final DocumentAnalysisService service = new DocumentAnalysisService(
             chunkAnalysisRepository, documentAnalysisRepository, extractionRepository,
-            documentRepository, anthropicService, analysisJobRepository, usageEventService, caseFileRepository);
+            documentRepository, anthropicService, analysisJobRepository, usageEventService,
+            caseFileRepository, eventPublisher);
 
     @BeforeEach
     void setUp() {
+        TransactionSynchronizationManager.initSynchronization();
         ReflectionTestUtils.setField(service, "self", service);
+    }
+
+    @AfterEach
+    void clearTransactionSync() {
+        TransactionSynchronizationManager.clearSynchronization();
     }
 
     // U-01 : analyses de chunks valides → DocumentAnalysis DONE + job mis à jour + usage enregistré

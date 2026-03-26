@@ -8,10 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +45,7 @@ public class DocumentAnalysisService {
     private final AnalysisJobRepository analysisJobRepository;
     private final UsageEventService usageEventService;
     private final CaseFileRepository caseFileRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Lazy @Autowired
     private DocumentAnalysisService self;
@@ -53,7 +57,8 @@ public class DocumentAnalysisService {
                                    AnthropicService anthropicService,
                                    AnalysisJobRepository analysisJobRepository,
                                    UsageEventService usageEventService,
-                                   CaseFileRepository caseFileRepository) {
+                                   CaseFileRepository caseFileRepository,
+                                   ApplicationEventPublisher eventPublisher) {
         this.chunkAnalysisRepository = chunkAnalysisRepository;
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.extractionRepository = extractionRepository;
@@ -62,6 +67,7 @@ public class DocumentAnalysisService {
         this.analysisJobRepository = analysisJobRepository;
         this.usageEventService = usageEventService;
         this.caseFileRepository = caseFileRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @RabbitListener(queues = RabbitMQConfig.DOCUMENT_ANALYSIS_QUEUE, concurrency = "5")
@@ -148,6 +154,18 @@ public class DocumentAnalysisService {
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
             updateDocumentAnalysisJob(caseFileId);
             if (caseFileId != null) {
+                boolean allDocsDone = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS)
+                        .map(j -> j.getStatus() == AnalysisStatus.DONE)
+                        .orElse(false);
+                if (allDocsDone) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            eventPublisher.publishEvent(new AnalysisStatusEvent(
+                                    caseFileId, AnalysisStatus.DONE, JobType.DOCUMENT_ANALYSIS));
+                        }
+                    });
+                }
                 int promptTokens = analysis.getPromptTokens();
                 int completionTokens = analysis.getCompletionTokens();
                 caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
