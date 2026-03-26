@@ -195,6 +195,94 @@ class CaseFileControllerIT {
                 .andExpect(status().isUnauthorized());
     }
 
+    // I-11 : GET /{id}/stats → 200 avec métriques à zéro (dossier vide)
+    @Test
+    void getStats_emptyCaseFile_returns200WithZeroMetrics() throws Exception {
+        String createResponse = mockMvc.perform(post("/api/v1/case-files")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Dossier Stats"}
+                                """)
+                        .with(authentication(auth)))
+                .andReturn().getResponse().getContentAsString();
+
+        String id = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(createResponse).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/case-files/" + id + "/stats")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.documentCount").value(0))
+                .andExpect(jsonPath("$.analysisCount").value(0))
+                .andExpect(jsonPath("$.totalTokens").value(0));
+    }
+
+    // I-12 : GET /{id}/stats → 404 si dossier inexistant
+    @Test
+    void getStats_unknownId_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + java.util.UUID.randomUUID() + "/stats")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-13 : GET /{id}/stats → 401 sans auth
+    @Test
+    void getStats_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + java.util.UUID.randomUUID() + "/stats"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // I-14 : GET /{id}/stats → 404 si dossier appartenant à un autre workspace (isolation)
+    @Test
+    void getStats_differentWorkspace_returns404() throws Exception {
+        // Créer un second utilisateur dans un workspace différent
+        User otherUser = new User();
+        otherUser.setEmail("other-stats@example.com");
+        otherUser.setStatus("ACTIVE");
+        userRepository.save(otherUser);
+
+        AuthAccount otherAccount = new AuthAccount();
+        otherAccount.setUser(otherUser);
+        otherAccount.setProvider("GOOGLE");
+        otherAccount.setProviderUserId("google-other-stats-sub");
+        authAccountRepository.save(otherAccount);
+
+        Workspace otherWorkspace = new Workspace();
+        otherWorkspace.setName("other-stats@example.com");
+        otherWorkspace.setSlug("stats-other-slug-" + System.currentTimeMillis());
+        otherWorkspace.setOwner(otherUser);
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherWorkspace.setPlanCode("STARTER");
+        otherWorkspace.setStatus("ACTIVE");
+        workspaceRepository.save(otherWorkspace);
+
+        WorkspaceMember otherMember = new WorkspaceMember();
+        otherMember.setWorkspace(otherWorkspace);
+        otherMember.setUser(otherUser);
+        otherMember.setMemberRole("OWNER");
+        otherMember.setPrimary(true);
+        workspaceMemberRepository.save(otherMember);
+
+        OAuth2AuthenticationToken otherAuth = buildGoogleAuth("google-other-stats-sub", "other-stats@example.com");
+
+        // Créer un dossier dans le workspace du second utilisateur
+        String createResponse = mockMvc.perform(post("/api/v1/case-files")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Dossier Autre"}
+                                """)
+                        .with(authentication(otherAuth)))
+                .andReturn().getResponse().getContentAsString();
+
+        String otherId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(createResponse).get("id").asText();
+
+        // Le premier utilisateur essaie d'accéder aux stats du dossier de l'autre → 404
+        mockMvc.perform(get("/api/v1/case-files/" + otherId + "/stats")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
         Map<String, Object> claims = Map.of(
                 "sub", sub, "email", email, "iss", "https://accounts.google.com");

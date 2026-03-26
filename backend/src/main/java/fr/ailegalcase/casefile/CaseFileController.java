@@ -17,9 +17,12 @@ import java.security.Principal;
 public class CaseFileController {
 
     private final CaseFileService caseFileService;
+    private final CaseFileStatsService caseFileStatsService;
 
-    public CaseFileController(CaseFileService caseFileService) {
+    public CaseFileController(CaseFileService caseFileService,
+                              CaseFileStatsService caseFileStatsService) {
         this.caseFileService = caseFileService;
+        this.caseFileStatsService = caseFileStatsService;
     }
 
     @PostMapping
@@ -42,5 +45,12 @@ public class CaseFileController {
                                     @AuthenticationPrincipal OidcUser oidcUser,
                                     Principal principal) {
         return caseFileService.getById(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @GetMapping("/{id}/stats")
+    public CaseFileStatsResponse getStats(@PathVariable java.util.UUID id,
+                                          @AuthenticationPrincipal OidcUser oidcUser,
+                                          Principal principal) {
+        return caseFileStatsService.getStats(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

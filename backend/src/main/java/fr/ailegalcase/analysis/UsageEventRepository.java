@@ -14,6 +14,9 @@ public interface UsageEventRepository extends JpaRepository<UsageEvent, UUID> {
     long countByCaseFileIdAndEventType(UUID caseFileId, JobType eventType);
     List<UsageEvent> findByCaseFileIdIn(Collection<UUID> caseFileIds);
 
+    @Query("SELECT COALESCE(SUM(u.tokensInput + u.tokensOutput), 0) FROM UsageEvent u WHERE u.caseFileId = :caseFileId")
+    long sumTokensByCaseFileId(@Param("caseFileId") UUID caseFileId);
+
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
 
     @Query(value = """
