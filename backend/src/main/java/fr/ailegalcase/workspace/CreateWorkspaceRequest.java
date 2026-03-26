@@ -10,8 +10,13 @@ public record CreateWorkspaceRequest(
         String name,
 
         @NotBlank(message = "Le domaine juridique est obligatoire")
-        @Pattern(regexp = "DROIT_DU_TRAVAIL|DROIT_IMMIGRATION|DROIT_IMMOBILIER",
+        @Pattern(regexp = "DROIT_DU_TRAVAIL|DROIT_IMMIGRATION|DROIT_FAMILLE",
                 message = "Domaine juridique non reconnu")
         @Size(max = 50)
-        String legalDomain
+        String legalDomain,
+
+        @NotBlank(message = "Le pays est obligatoire")
+        @Pattern(regexp = "FRANCE|BELGIQUE",
+                message = "Pays non reconnu — valeurs acceptées : FRANCE, BELGIQUE")
+        String country
 ) {}

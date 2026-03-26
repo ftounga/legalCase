@@ -65,6 +65,7 @@ class WorkspaceMemberControllerIT {
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspace.setCountry("FRANCE");
 
         workspaceRepository.save(workspace);
 

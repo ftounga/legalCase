@@ -26,6 +26,12 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
     @Query("SELECT c.workspace.id FROM CaseFile c WHERE c.id = :id")
     Optional<UUID> findWorkspaceIdById(@Param("id") UUID id);
 
+    @Query("SELECT c.workspace.legalDomain FROM CaseFile c WHERE c.id = :id")
+    Optional<String> findLegalDomainById(@Param("id") UUID id);
+
+    @Query("SELECT c.workspace.country FROM CaseFile c WHERE c.id = :id")
+    Optional<String> findCountryById(@Param("id") UUID id);
+
     long countByWorkspace_IdAndStatus(UUID workspaceId, String status);
 
     long countByWorkspace_IdAndStatusAndDeletedAtIsNull(UUID workspaceId, String status);

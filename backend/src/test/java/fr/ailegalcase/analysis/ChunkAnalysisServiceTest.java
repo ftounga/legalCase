@@ -90,7 +90,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyzeChunk(any(), any(), any())).thenReturn(
                 new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
         when(chunkRepository.countByExtractionId(extractionId)).thenReturn(1L);
         when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
@@ -107,7 +107,7 @@ class ChunkAnalysisServiceTest {
 
         service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
 
-        verify(anthropicService).analyzeChunk("Texte juridique valide.");
+        verify(anthropicService).analyzeChunk(eq("Texte juridique valide."), any(), any());
 
         ArgumentCaptor<ChunkAnalysis> captor = ArgumentCaptor.forClass(ChunkAnalysis.class);
         verify(analysisRepository, times(3)).save(captor.capture());
@@ -143,7 +143,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeChunk(any(), any(), any())).thenThrow(new RuntimeException("API error"));
 
         service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
 
@@ -198,7 +198,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyzeChunk(any(), any(), any())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(chunkRepository.countByExtractionId(extractionId)).thenReturn(3L);
         when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
@@ -239,7 +239,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyzeChunk(any())).thenReturn(
+        when(anthropicService.analyzeChunk(any(), any(), any())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(chunkRepository.countByExtractionId(extractionId)).thenReturn(1L);
         when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))

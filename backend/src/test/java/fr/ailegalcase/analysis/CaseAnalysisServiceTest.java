@@ -162,12 +162,13 @@ class CaseAnalysisServiceTest {
         verifyNoInteractions(caseAnalysisRepository, anthropicService, caseFileRepository, analysisJobRepository);
     }
 
-    // U-04 : le SYSTEM_PROMPT contient le champ timeline
+    // U-04 : le system prompt contient le champ timeline
     @Test
     void systemPrompt_containsTimelineField() {
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("timeline");
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("date");
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("evenement");
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).contains("timeline");
+        assertThat(prompt).contains("date");
+        assertThat(prompt).contains("evenement");
     }
 
     // U-06 : le prompt agrège les documents dans l'ordre chronologique
@@ -202,14 +203,15 @@ class CaseAnalysisServiceTest {
         assertThat(prompt.indexOf("{\"faits\":[\"A\"]}")).isLessThan(prompt.indexOf("{\"faits\":[\"B\"]}"));
     }
 
-    // U-07 : le SYSTEM_PROMPT contient les contraintes de longueur SF-28-01
+    // U-07 : le system prompt contient les contraintes de longueur SF-28-01
     @Test
     void systemPrompt_containsLengthConstraints() {
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 entrées timeline maximum");
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("7 faits maximum");
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 points_juridiques maximum");
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 risques maximum");
-        assertThat(CaseAnalysisService.SYSTEM_PROMPT).contains("5 questions_ouvertes maximum");
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).contains("5 entrées timeline maximum");
+        assertThat(prompt).contains("7 faits maximum");
+        assertThat(prompt).contains("5 points_juridiques maximum");
+        assertThat(prompt).contains("5 risques maximum");
+        assertThat(prompt).contains("5 questions_ouvertes maximum");
     }
 
     // U-08 : première analyse → version = 1, analysisType = STANDARD

@@ -36,7 +36,7 @@ public class WorkspaceController {
     public WorkspaceResponse create(@AuthenticationPrincipal OidcUser oidcUser,
                                     Principal principal,
                                     @Valid @RequestBody CreateWorkspaceRequest request) {
-        return workspaceService.createWorkspace(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), request.name(), request.legalDomain(), principal);
+        return workspaceService.createWorkspace(oidcUser, OAuthProviderResolver.resolve(principal).toUpperCase(), request.name(), request.legalDomain(), request.country(), principal);
     }
 
     @PostMapping("/{id}/switch")

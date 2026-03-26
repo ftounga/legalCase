@@ -24,8 +24,8 @@ public class AiQuestionService {
     private static final Logger log = LoggerFactory.getLogger(AiQuestionService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    static final String SYSTEM_PROMPT = """
-            Tu es un assistant juridique expert en droit du travail français.
+    static final String SYSTEM_PROMPT_TEMPLATE = """
+            Tu es un assistant juridique expert en %s.
             Tu reçois la synthèse globale d'un dossier juridique.
             Génère une liste de questions complémentaires pour l'avocat afin d'approfondir l'analyse.
             Ces questions doivent porter sur des éléments manquants, des ambiguïtés ou des points à clarifier.
@@ -34,7 +34,11 @@ public class AiQuestionService {
             Génère entre 3 et 8 questions.
             """;
 
-    record PreparedQuestionGeneration(String prompt, UUID caseFileId, UUID caseAnalysisId) {}
+    static String buildSystemPrompt(String legalDomain, String country) {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+    }
+
+    record PreparedQuestionGeneration(String prompt, String systemPrompt, UUID caseFileId, UUID caseAnalysisId) {}
 
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -73,7 +77,7 @@ public class AiQuestionService {
         try {
             log.info("Question generation START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            result = anthropicService.analyze(SYSTEM_PROMPT, prepared.prompt(), 1024);
+            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 1024);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Question generation DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
@@ -120,7 +124,11 @@ public class AiQuestionService {
         job.setTotalItems(1);
         analysisJobRepository.save(job);
 
-        return new PreparedQuestionGeneration(caseAnalysis.getAnalysisResult(), caseFileId, caseAnalysis.getId());
+        fr.ailegalcase.workspace.Workspace ws = caseFile.getWorkspace();
+        String systemPrompt = buildSystemPrompt(
+                ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL",
+                ws != null ? ws.getCountry() : "FRANCE");
+        return new PreparedQuestionGeneration(caseAnalysis.getAnalysisResult(), systemPrompt, caseFileId, caseAnalysis.getId());
     }
 
     @Transactional

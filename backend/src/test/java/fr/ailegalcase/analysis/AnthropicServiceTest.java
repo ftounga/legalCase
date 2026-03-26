@@ -38,7 +38,7 @@ class AnthropicServiceTest {
                         }
                         """, MediaType.APPLICATION_JSON));
 
-        AnthropicResult result = service.analyzeChunk("Texte juridique de test.");
+        AnthropicResult result = service.analyzeChunk("Texte juridique de test.", "DROIT_DU_TRAVAIL", "FRANCE");
 
         assertThat(result.content()).isEqualTo("{\"faits\": [\"fait1\"]}");
         assertThat(result.modelUsed()).isEqualTo("claude-sonnet-4-6-20241022");
@@ -50,21 +50,21 @@ class AnthropicServiceTest {
     // U-02 : texte vide → IllegalArgumentException
     @Test
     void analyzeChunk_emptyText_throwsException() {
-        assertThatThrownBy(() -> service.analyzeChunk(""))
+        assertThatThrownBy(() -> service.analyzeChunk("", "DROIT_DU_TRAVAIL", "FRANCE"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     // U-03 : texte null → IllegalArgumentException
     @Test
     void analyzeChunk_nullText_throwsException() {
-        assertThatThrownBy(() -> service.analyzeChunk(null))
+        assertThatThrownBy(() -> service.analyzeChunk(null, "DROIT_DU_TRAVAIL", "FRANCE"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     // U-04 : texte blanc → IllegalArgumentException
     @Test
     void analyzeChunk_blankText_throwsException() {
-        assertThatThrownBy(() -> service.analyzeChunk("   "))
+        assertThatThrownBy(() -> service.analyzeChunk("   ", "DROIT_DU_TRAVAIL", "FRANCE"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }
