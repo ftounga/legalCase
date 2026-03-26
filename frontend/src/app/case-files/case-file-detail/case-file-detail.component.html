@@ -34,6 +34,27 @@
         </mat-card-content>
       </mat-card>
 
+      @if (stats()) {
+        <mat-card class="stats-card">
+          <mat-card-content>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Documents</span>
+                <span class="stat-value">{{ stats()!.documentCount }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Analyses terminées</span>
+                <span class="stat-value">{{ stats()!.analysisCount }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Tokens consommés</span>
+                <span class="stat-value">{{ stats()!.totalTokens | number:'1.0-0' }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+
       <div class="section-header">
         <h2 class="section-title">Documents</h2>
         <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden (change)="onFileSelected($event)">

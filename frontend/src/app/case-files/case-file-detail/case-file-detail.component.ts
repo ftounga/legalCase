@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef }
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DatePipe, UpperCasePipe } from '@angular/common';
+import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,12 +24,14 @@ import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
+import { CaseFileStats } from '../../core/models/case-file-stats.model';
+import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 
 @Component({
   selector: 'app-case-file-detail',
   standalone: true,
   imports: [
-    RouterLink, DatePipe, UpperCasePipe,
+    RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule
@@ -44,6 +46,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   documents = signal<Document[]>([]);
   analysisJobs = signal<AnalysisJob[]>([]);
   synthesis = signal<CaseAnalysisResult | null>(null);
+  stats = signal<CaseFileStats | null>(null);
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
   uploading = signal(false);
@@ -107,6 +110,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private caseAnalysisService: CaseAnalysisService,
     private caseAnalysisCommandService: CaseAnalysisCommandService,
     private globalNotificationService: GlobalAnalysisNotificationService,
+    private caseFileStatsService: CaseFileStatsService,
     private aiQuestionService: AiQuestionService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -120,6 +124,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (event.status === 'DONE') {
           this.stopPolling();
           this.loadAnalysisJobs(id);
+          this.loadStats(id);
           if (event.jobType === 'CASE_ANALYSIS' || event.jobType === 'ENRICHED_ANALYSIS') {
             this.loadSynthesis(id);
           }
@@ -133,6 +138,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.loadDocuments(id);
         this.loadAnalysisJobs(id);
+        this.loadStats(id);
       },
       error: () => {
         this.loading.set(false);
@@ -146,6 +152,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.eventsSub?.unsubscribe();
+  }
+
+  loadStats(caseFileId: string): void {
+    this.caseFileStatsService.getStats(caseFileId).subscribe({
+      next: s => this.stats.set(s),
+      error: () => { /* silencieux */ }
+    });
   }
 
   loadDocuments(caseFileId: string): void {
