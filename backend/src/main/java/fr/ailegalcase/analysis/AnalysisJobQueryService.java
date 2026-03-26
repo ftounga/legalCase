@@ -44,7 +44,7 @@ public class AnalysisJobQueryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 
-        CaseFile caseFile = caseFileRepository.findById(caseFileId)
+        CaseFile caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
 
         if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {

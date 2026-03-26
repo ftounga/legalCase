@@ -68,7 +68,7 @@ public class ChatService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"));
         UUID workspaceId = member.getWorkspace().getId();
 
-        CaseFile caseFile = caseFileRepository.findById(caseFileId)
+        CaseFile caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
         if (!caseFile.getWorkspace().getId().equals(workspaceId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
@@ -118,7 +118,7 @@ public class ChatService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"));
         UUID workspaceId = member.getWorkspace().getId();
 
-        CaseFile caseFile = caseFileRepository.findById(caseFileId)
+        CaseFile caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
         if (!caseFile.getWorkspace().getId().equals(workspaceId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");

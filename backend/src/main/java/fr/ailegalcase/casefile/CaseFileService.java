@@ -50,7 +50,7 @@ public class CaseFileService {
                     "Seul le droit du travail est supporté en V1");
         }
 
-        long openCount = caseFileRepository.countByWorkspace_IdAndStatus(workspace.getId(), "OPEN");
+        long openCount = caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(workspace.getId(), "OPEN");
         int maxOpen = planLimitService.getMaxOpenCaseFilesForWorkspace(workspace.getId());
         if (openCount >= maxOpen) {
             throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
@@ -80,7 +80,7 @@ public class CaseFileService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 
-        return caseFileRepository.findByWorkspace(workspace, pageable)
+        return caseFileRepository.findByWorkspaceAndDeletedAtIsNull(workspace, pageable)
                 .map(cf -> new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
                         cf.getDescription(), cf.getStatus(), cf.getCreatedAt(),
                         cf.getLastDocumentDeletedAt()));
@@ -95,7 +95,7 @@ public class CaseFileService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 
-        CaseFile caseFile = caseFileRepository.findById(id)
+        CaseFile caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
 
         if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {

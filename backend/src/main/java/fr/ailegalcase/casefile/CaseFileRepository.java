@@ -14,7 +14,11 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
 
     Page<CaseFile> findByWorkspace(fr.ailegalcase.workspace.Workspace workspace, Pageable pageable);
 
+    Page<CaseFile> findByWorkspaceAndDeletedAtIsNull(fr.ailegalcase.workspace.Workspace workspace, Pageable pageable);
+
     List<CaseFile> findByWorkspace_Id(UUID workspaceId);
+
+    Optional<CaseFile> findByIdAndDeletedAtIsNull(UUID id);
 
     @Query("SELECT c.createdBy.id FROM CaseFile c WHERE c.id = :id")
     Optional<UUID> findCreatedByUserIdById(@Param("id") UUID id);
@@ -23,4 +27,6 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
     Optional<UUID> findWorkspaceIdById(@Param("id") UUID id);
 
     long countByWorkspace_IdAndStatus(UUID workspaceId, String status);
+
+    long countByWorkspace_IdAndStatusAndDeletedAtIsNull(UUID workspaceId, String status);
 }

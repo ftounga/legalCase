@@ -48,6 +48,9 @@ public class CaseFile {
     @Column
     private Instant lastDocumentDeletedAt;
 
+    @Column
+    private Instant deletedAt;
+
     @PrePersist
     void onPrePersist() {
         Instant now = Instant.now();

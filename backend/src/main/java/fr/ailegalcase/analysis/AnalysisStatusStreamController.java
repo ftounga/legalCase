@@ -52,7 +52,7 @@ public class AnalysisStatusStreamController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
 
-        var caseFile = caseFileRepository.findById(id)
+        var caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
 
         if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
