@@ -31,10 +31,12 @@ class CaseAnalysisServiceTest {
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
-            anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher);
+            anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
+            analysisDocumentSnapshotService);
 
     @BeforeEach
     void setUp() {

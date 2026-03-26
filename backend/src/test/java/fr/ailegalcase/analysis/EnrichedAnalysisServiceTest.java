@@ -30,10 +30,12 @@ class EnrichedAnalysisServiceTest {
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
-            aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher);
+            aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
+            analysisDocumentSnapshotService);
 
     @BeforeEach
     void setUp() {
