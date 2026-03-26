@@ -230,10 +230,18 @@
               <span>Synthèse en cours…</span>
             </div>
           } @else {
-            <a mat-raised-button color="primary" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
-              <mat-icon>summarize</mat-icon>
-              Voir la synthèse
-            </a>
+            <div class="synthesis-actions">
+              <a mat-raised-button color="primary" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+                <mat-icon>summarize</mat-icon>
+                Voir la synthèse
+              </a>
+              @if (canCompare()) {
+                <a mat-stroked-button [routerLink]="['/case-files', caseFile()!.id, 'diff']">
+                  <mat-icon>compare_arrows</mat-icon>
+                  Comparer des analyses
+                </a>
+              }
+            </div>
           }
         </div>
         @if (!caseAnalysisRunning()) {

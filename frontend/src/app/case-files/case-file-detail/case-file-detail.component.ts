@@ -92,6 +92,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     return new Date(deletedAt) > new Date(synUpdatedAt);
   });
 
+  canCompare = signal(false);
   deletingDocId = signal<string | null>(null);
   pendingFiles = signal<File[]>([]);
 
@@ -389,7 +390,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (questionsDone && result?.id) {
           this.loadQuestions(caseFileId, result.id);
         }
+        this.loadVersionsCount(caseFileId);
       },
+      error: () => { /* silencieux */ }
+    });
+  }
+
+  private loadVersionsCount(caseFileId: string): void {
+    this.caseAnalysisService.getVersions(caseFileId).subscribe({
+      next: versions => this.canCompare.set(versions.length >= 2),
       error: () => { /* silencieux */ }
     });
   }
