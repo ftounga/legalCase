@@ -605,10 +605,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.caseFile.set(updated);
         this.snackBar.open('Dossier clôturé', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
       },
-      error: () => {
-        this.snackBar.open('Une erreur est survenue. Veuillez réessayer.', 'Fermer', {
-          duration: 4000, panelClass: ['snack-error']
-        });
+      error: (err: any) => {
+        const msg = err?.status === 409
+          ? 'Une analyse est en cours. Attendez la fin avant de clôturer le dossier.'
+          : 'Une erreur est survenue. Veuillez réessayer.';
+        this.snackBar.open(msg, 'Fermer', { duration: 5000, panelClass: ['snack-error'] });
       }
     });
   }

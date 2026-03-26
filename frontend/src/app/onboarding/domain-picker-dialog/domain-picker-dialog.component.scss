@@ -24,6 +24,7 @@
 
 .domain-tile {
   --tile-color: var(--color-primary);
+  --tile-bg-color: rgba(26, 58, 92, 0.12);
 
   position: relative;
   display: flex;
@@ -35,19 +36,21 @@
   border-radius: 8px;
   background: #FFFFFF;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   text-align: center;
   min-height: 160px;
 
   &:hover {
     border-color: var(--tile-color);
+    background: var(--tile-bg-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   &--active {
     border-color: var(--tile-color) !important;
     border-width: 3px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    background: var(--tile-bg-color) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
   }
 }
 
@@ -57,7 +60,8 @@
   height: 36px;
   color: var(--color-primary);
 
-  .domain-tile--active & {
+  .domain-tile--active &,
+  .domain-tile:hover & {
     color: var(--tile-color);
   }
 }
@@ -94,19 +98,23 @@
 }
 
 .country-btn {
+  --country-color: var(--color-primary);
+  --country-bg-color: rgba(26, 58, 92, 0.16);
+
   flex: 1;
   border: 2px solid var(--color-divider) !important;
   border-radius: 8px !important;
   font-weight: 500;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 
   &--active {
-    border-color: var(--color-primary) !important;
-    background: rgba(26, 58, 92, 0.06) !important;
-    color: var(--color-primary) !important;
+    border-color: var(--country-color) !important;
+    background: var(--country-bg-color) !important;
+    color: var(--country-color) !important;
   }
 
   &:hover:not(.country-btn--active) {
-    border-color: var(--color-primary) !important;
+    border-color: var(--country-color) !important;
+    color: var(--country-color) !important;
   }
 }

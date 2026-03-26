@@ -19,6 +19,7 @@ interface LegalDomainTile {
   subtitle: string;
   icon: string;
   color: string;
+  bgColor: string;
 }
 
 @Component({
@@ -35,21 +36,24 @@ export class DomainPickerDialogComponent {
       label: 'Droit du travail',
       subtitle: 'Licenciement, harcèlement, rupture conventionnelle',
       icon: 'gavel',
-      color: '#27AE60'
+      color: '#27AE60',
+      bgColor: 'rgba(39, 174, 96, 0.16)'
     },
     {
       key: 'DROIT_IMMIGRATION',
       label: "Droit de l'immigration",
       subtitle: 'Titres de séjour, visas, naturalisation',
       icon: 'flight',
-      color: '#1A3A5C'
+      color: '#1A3A5C',
+      bgColor: 'rgba(26, 58, 92, 0.16)'
     },
     {
       key: 'DROIT_FAMILLE',
       label: 'Droit de la famille',
-      subtitle: 'Divorce, garde d\'enfants, successions',
+      subtitle: "Divorce, garde d'enfants, successions",
       icon: 'family_restroom',
-      color: '#C9973A'
+      color: '#C9973A',
+      bgColor: 'rgba(201, 120, 20, 0.16)'
     }
   ];
 
@@ -58,8 +62,16 @@ export class DomainPickerDialogComponent {
     { key: 'BELGIQUE', label: 'Belgique' }
   ];
 
-  selected = '';
-  selectedCountry = '';
+  selected = 'DROIT_DU_TRAVAIL';
+  selectedCountry = 'FRANCE';
+
+  get selectedDomainColor(): string {
+    return this.domains.find(d => d.key === this.selected)?.color ?? '#1A3A5C';
+  }
+
+  get selectedDomainBgColor(): string {
+    return this.domains.find(d => d.key === this.selected)?.bgColor ?? 'rgba(26,58,92,0.16)';
+  }
 
   constructor(
     private dialogRef: MatDialogRef<DomainPickerDialogComponent>,

@@ -60,17 +60,26 @@ describe('DomainPickerDialogComponent', () => {
     expect(d.color).toBe('#C9973A');
   });
 
-  // D-05 : bouton Confirmer désactivé sans sélection
-  it('canConfirm est false si domaine et pays ne sont pas sélectionnés', () => {
-    component.selected = '';
+  // D-04b : DROIT_DU_TRAVAIL sélectionné par défaut
+  it('DROIT_DU_TRAVAIL est sélectionné par défaut', () => {
+    expect(component.selected).toBe('DROIT_DU_TRAVAIL');
+  });
+
+  // D-04c : France sélectionnée par défaut
+  it('France est sélectionnée par défaut', () => {
+    expect(component.selectedCountry).toBe('FRANCE');
+  });
+
+  // D-05 : bouton Confirmer désactivé sans pays
+  it('canConfirm est false si le pays est réinitialisé', () => {
     component.selectedCountry = '';
     expect(component.canConfirm).toBeFalse();
   });
 
-  // D-06 : bouton Confirmer désactivé sans pays
-  it('canConfirm est false si seulement le domaine est sélectionné', () => {
-    component.selected = 'DROIT_DU_TRAVAIL';
-    component.selectedCountry = '';
+  // D-06 : bouton Confirmer désactivé si domaine réinitialisé
+  it('canConfirm est false si domaine vide même avec pays sélectionné', () => {
+    component.selected = '';
+    component.selectedCountry = 'FRANCE';
     expect(component.canConfirm).toBeFalse();
   });
 

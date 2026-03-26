@@ -8,6 +8,7 @@
         class="domain-tile"
         [class.domain-tile--active]="selected === domain.key"
         [style.--tile-color]="domain.color"
+        [style.--tile-bg-color]="domain.bgColor"
         (click)="selected = domain.key"
       >
         <mat-icon class="domain-icon">{{ domain.icon }}</mat-icon>
@@ -25,6 +26,8 @@
           mat-button
           class="country-btn"
           [class.country-btn--active]="selectedCountry === country.key"
+          [style.--country-color]="selectedDomainColor"
+          [style.--country-bg-color]="selectedDomainBgColor"
           (click)="selectedCountry = country.key"
         >
           {{ country.label }}
