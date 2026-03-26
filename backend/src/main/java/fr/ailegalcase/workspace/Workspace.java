@@ -33,6 +33,9 @@ public class Workspace {
     @Column(nullable = false, length = 50)
     private String legalDomain;
 
+    @Column(nullable = false, length = 10)
+    private String country = "FRANCE";
+
     @Column(nullable = false, length = 50)
     private String planCode;
 

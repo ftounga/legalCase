@@ -26,8 +26,8 @@ public class DocumentAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentAnalysisService.class);
 
-    static final String SYSTEM_PROMPT = """
-            Tu es un assistant juridique expert en droit du travail français.
+    static final String SYSTEM_PROMPT_TEMPLATE = """
+            Tu es un assistant juridique expert en %s.
             Tu reçois les analyses de plusieurs segments d'un document juridique.
             Produis une synthèse globale du document en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
@@ -35,7 +35,11 @@ public class DocumentAnalysisService {
             Contraintes de longueur : 5 faits maximum, 3 points_juridiques maximum, 3 risques maximum, 3 questions_ouvertes maximum. Sois concis.
             """;
 
-    record PreparedAnalysis(DocumentAnalysis analysis, String prompt, UUID caseFileId) {}
+    static String buildSystemPrompt(String legalDomain, String country) {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+    }
+
+    record PreparedAnalysis(DocumentAnalysis analysis, String prompt, String systemPrompt, UUID caseFileId) {}
 
     private final ChunkAnalysisRepository chunkAnalysisRepository;
     private final DocumentAnalysisRepository documentAnalysisRepository;
@@ -84,7 +88,7 @@ public class DocumentAnalysisService {
             log.info("Document analysis START for extraction {} ({}, {} chars)",
                     extractionId, message.directAnalysis() ? "direct" : "chunked", prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            result = anthropicService.analyzeFast(SYSTEM_PROMPT, prepared.prompt(), 4096);
+            result = anthropicService.analyzeFast(prepared.systemPrompt(), prepared.prompt(), 4096);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Document analysis DONE for extraction {} ({}) — Anthropic {}ms, total {}ms, tokens {}/{}",
                     extractionId, message.directAnalysis() ? "direct" : "chunked",
@@ -121,6 +125,13 @@ public class DocumentAnalysisService {
         UUID caseFileId = extractionRepository.findCaseFileIdById(extractionId).orElse(null);
         createOrResetDocumentAnalysisJob(caseFileId);
 
+        String legalDomain = caseFileId != null
+                ? caseFileRepository.findLegalDomainById(caseFileId).orElse("DROIT_DU_TRAVAIL")
+                : "DROIT_DU_TRAVAIL";
+        String country = caseFileId != null
+                ? caseFileRepository.findCountryById(caseFileId).orElse("FRANCE")
+                : "FRANCE";
+
         String prompt = message.directAnalysis()
                 ? extraction.getExtractedText()
                 : buildAggregatedPrompt(chunkAnalyses);
@@ -133,7 +144,7 @@ public class DocumentAnalysisService {
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = documentAnalysisRepository.save(analysis);
 
-        return new PreparedAnalysis(analysis, prompt, caseFileId);
+        return new PreparedAnalysis(analysis, prompt, buildSystemPrompt(legalDomain, country), caseFileId);
     }
 
     @Transactional

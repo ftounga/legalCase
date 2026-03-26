@@ -49,7 +49,7 @@ class WorkspaceServiceGetCurrentTest {
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
-
+        workspace.setCountry("FRANCE");
 
         try {
             var idField = Workspace.class.getDeclaredField("id");

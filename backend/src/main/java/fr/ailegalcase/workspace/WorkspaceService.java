@@ -39,7 +39,7 @@ public class WorkspaceService {
     }
 
     @Transactional
-    public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name, String legalDomain, Principal principal) {
+    public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name, String legalDomain, String country, Principal principal) {
         User user = resolveUser(oidcUser, provider, principal);
 
         if (workspaceMemberRepository.existsByUser(user)) {
@@ -51,6 +51,7 @@ public class WorkspaceService {
         workspace.setSlug(UUID.randomUUID().toString());
         workspace.setOwner(user);
         workspace.setLegalDomain(legalDomain);
+        workspace.setCountry(country);
         workspace.setPlanCode("FREE");
         workspace.setStatus("ACTIVE");
         workspaceRepository.save(workspace);
@@ -78,7 +79,8 @@ public class WorkspaceService {
                 });
 
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
-                workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt(), true);
+                workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt(), true,
+                workspace.getLegalDomain(), workspace.getCountry());
     }
 
     @Transactional
@@ -92,6 +94,7 @@ public class WorkspaceService {
         workspace.setSlug(UUID.randomUUID().toString());
         workspace.setOwner(user);
         workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspace.setCountry("FRANCE");
         workspace.setPlanCode("FREE");
         workspace.setStatus("ACTIVE");
         workspaceRepository.save(workspace);
@@ -153,7 +156,8 @@ public class WorkspaceService {
         Instant expiresAt = sub != null ? sub.getExpiresAt() : null;
 
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
-                planCode, workspace.getStatus(), expiresAt, true);
+                planCode, workspace.getStatus(), expiresAt, true,
+                workspace.getLegalDomain(), workspace.getCountry());
     }
 
     @Transactional(readOnly = true)
@@ -167,7 +171,8 @@ public class WorkspaceService {
                     String planCode = sub != null ? sub.getPlanCode() : ws.getPlanCode();
                     Instant expiresAt = sub != null ? sub.getExpiresAt() : null;
                     return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(),
-                            planCode, ws.getStatus(), expiresAt, member.isPrimary());
+                            planCode, ws.getStatus(), expiresAt, member.isPrimary(),
+                            ws.getLegalDomain(), ws.getCountry());
                 })
                 .toList();
     }
@@ -194,6 +199,7 @@ public class WorkspaceService {
                 .map(Subscription::getExpiresAt).orElse(null);
 
         return new WorkspaceResponse(ws.getId(), ws.getName(), ws.getSlug(),
-                ws.getPlanCode(), ws.getStatus(), expiresAt, true);
+                ws.getPlanCode(), ws.getStatus(), expiresAt, true,
+                ws.getLegalDomain(), ws.getCountry());
     }
 }

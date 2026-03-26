@@ -216,13 +216,14 @@ class DocumentAnalysisServiceTest {
         assertThat(prompt.indexOf("Chunk 0")).isLessThan(prompt.indexOf("Chunk 1"));
     }
 
-    // U-05 : le SYSTEM_PROMPT contient les contraintes de longueur
+    // U-05 : le system prompt contient les contraintes de longueur
     @Test
     void systemPrompt_containsLengthConstraints() {
-        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("5 faits maximum");
-        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("3 points_juridiques maximum");
-        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("3 risques maximum");
-        assertThat(DocumentAnalysisService.SYSTEM_PROMPT).contains("3 questions_ouvertes maximum");
+        String prompt = DocumentAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).contains("5 faits maximum");
+        assertThat(prompt).contains("3 points_juridiques maximum");
+        assertThat(prompt).contains("3 risques maximum");
+        assertThat(prompt).contains("3 questions_ouvertes maximum");
     }
 
     // Helpers

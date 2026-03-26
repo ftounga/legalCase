@@ -125,10 +125,17 @@ public class ChunkAnalysisService {
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = analysisRepository.save(analysis);
 
+        String legalDomain = caseFileIdForBudget != null
+                ? caseFileRepository.findLegalDomainById(caseFileIdForBudget).orElse("DROIT_DU_TRAVAIL")
+                : "DROIT_DU_TRAVAIL";
+        String country = caseFileIdForBudget != null
+                ? caseFileRepository.findCountryById(caseFileIdForBudget).orElse("FRANCE")
+                : "FRANCE";
+
         try {
             log.info("Chunk analysis START for chunk {} ({} chars)", chunkId, chunk.getChunkText().length());
             long anthropicStart = System.currentTimeMillis();
-            AnthropicResult result = anthropicService.analyzeChunk(chunk.getChunkText());
+            AnthropicResult result = anthropicService.analyzeChunk(chunk.getChunkText(), legalDomain, country);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             analysis.setAnalysisResult(result.content());
             analysis.setModelUsed(result.modelUsed());

@@ -18,8 +18,8 @@ public class AnthropicService {
 
     private static final Logger log = LoggerFactory.getLogger(AnthropicService.class);
 
-    static final String SYSTEM_PROMPT = """
-            Tu es un assistant juridique expert en droit du travail français.
+    private static final String CHUNK_SYSTEM_PROMPT_TEMPLATE = """
+            Tu es un assistant juridique expert en %s.
             Analyse le texte suivant extrait d'un document juridique.
             Identifie et retourne en JSON : les faits, les points juridiques, les risques potentiels, et les questions ouvertes.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
@@ -53,8 +53,10 @@ public class AnthropicService {
         this.restClient = builder.baseUrl("https://api.anthropic.com").build();
     }
 
-    public AnthropicResult analyzeChunk(String chunkText) {
-        return analyzeFast(SYSTEM_PROMPT, chunkText, 2048);
+    public AnthropicResult analyzeChunk(String chunkText, String legalDomain, String country) {
+        String systemPrompt = CHUNK_SYSTEM_PROMPT_TEMPLATE.formatted(
+                LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+        return analyzeFast(systemPrompt, chunkText, 2048);
     }
 
     public AnthropicResult analyzeFast(String systemPrompt, String userMessage, int maxTokens) {

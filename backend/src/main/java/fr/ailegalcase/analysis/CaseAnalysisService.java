@@ -30,8 +30,8 @@ public class CaseAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(CaseAnalysisService.class);
 
-    static final String SYSTEM_PROMPT = """
-            Tu es un assistant juridique expert en droit du travail français.
+    static final String SYSTEM_PROMPT_TEMPLATE = """
+            Tu es un assistant juridique expert en %s.
             Tu reçois les analyses de plusieurs documents d'un dossier juridique.
             Produis une synthèse globale du dossier en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
@@ -40,7 +40,11 @@ public class CaseAnalysisService {
             Contraintes de longueur : 5 entrées timeline maximum, 7 faits maximum, 5 points_juridiques maximum, 5 risques maximum, 5 questions_ouvertes maximum. Sois concis.
             """;
 
-    record PreparedCaseAnalysis(UUID analysisId, String prompt, UUID caseFileId) {}
+    static String buildSystemPrompt(String legalDomain, String country) {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+    }
+
+    record PreparedCaseAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId) {}
 
     private final DocumentAnalysisRepository documentAnalysisRepository;
     private final CaseAnalysisRepository caseAnalysisRepository;
@@ -85,7 +89,7 @@ public class CaseAnalysisService {
         try {
             log.info("Case analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            result = anthropicService.analyze(SYSTEM_PROMPT, prepared.prompt(), 8192);
+            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 8192);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Case analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
@@ -140,7 +144,11 @@ public class CaseAnalysisService {
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = caseAnalysisRepository.save(analysis);
 
-        return new PreparedCaseAnalysis(analysis.getId(), buildAggregatedPrompt(documentAnalyses), caseFileId);
+        fr.ailegalcase.workspace.Workspace ws = caseFile.getWorkspace();
+        String systemPrompt = buildSystemPrompt(
+                ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL",
+                ws != null ? ws.getCountry() : "FRANCE");
+        return new PreparedCaseAnalysis(analysis.getId(), buildAggregatedPrompt(documentAnalyses), systemPrompt, caseFileId);
     }
 
     @Transactional

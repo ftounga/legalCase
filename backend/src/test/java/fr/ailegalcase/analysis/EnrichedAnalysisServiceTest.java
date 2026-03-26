@@ -197,12 +197,13 @@ class EnrichedAnalysisServiceTest {
         assertThat(saved.getVersion()).isEqualTo(2);
     }
 
-    // U-05 : SYSTEM_PROMPT contient les champs clés
+    // U-05 : le system prompt contient les champs clés
     @Test
     void systemPrompt_containsRequiredFields() {
-        assertThat(EnrichedAnalysisService.SYSTEM_PROMPT).contains("timeline");
-        assertThat(EnrichedAnalysisService.SYSTEM_PROMPT).contains("faits");
-        assertThat(EnrichedAnalysisService.SYSTEM_PROMPT).contains("enrichie");
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        assertThat(prompt).contains("timeline");
+        assertThat(prompt).contains("faits");
+        assertThat(prompt).contains("enrichie");
     }
 
     private AiQuestion answeredQuestion(UUID caseFileId, String text) {

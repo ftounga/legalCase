@@ -29,15 +29,19 @@ public class EnrichedAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(EnrichedAnalysisService.class);
 
-    static final String SYSTEM_PROMPT = """
-            Tu es un assistant juridique expert en droit du travail français.
+    static final String SYSTEM_PROMPT_TEMPLATE = """
+            Tu es un assistant juridique expert en %s.
             Tu reçois la synthèse globale d'un dossier juridique ainsi que les réponses de l'avocat à des questions complémentaires.
             Produis une synthèse enrichie et mise à jour en intégrant ces nouvelles informations.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
             """;
 
-    record PreparedEnrichedAnalysis(UUID analysisId, String prompt, UUID caseFileId) {}
+    static String buildSystemPrompt(String legalDomain, String country) {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+    }
+
+    record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId) {}
 
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -82,7 +86,7 @@ public class EnrichedAnalysisService {
         try {
             log.info("Enriched analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            result = anthropicService.analyze(SYSTEM_PROMPT, prepared.prompt(), 8192);
+            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 8192);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Enriched analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
@@ -142,8 +146,12 @@ public class EnrichedAnalysisService {
         enrichedAnalysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         enrichedAnalysis = caseAnalysisRepository.save(enrichedAnalysis);
 
+        fr.ailegalcase.workspace.Workspace ws = caseFile.getWorkspace();
+        String systemPrompt = buildSystemPrompt(
+                ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL",
+                ws != null ? ws.getCountry() : "FRANCE");
         String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult());
-        return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, caseFileId);
+        return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId);
     }
 
     @Transactional

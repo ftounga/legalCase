@@ -67,6 +67,7 @@ class WorkspaceControllerIT {
         workspace.setPlanCode("STARTER");
         workspace.setStatus("ACTIVE");
         workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspace.setCountry("FRANCE");
 
         workspaceRepository.save(workspace);
 
@@ -108,7 +109,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"Cabinet Martin\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
+                        .content("{\"name\": \"Cabinet Martin\", \"legalDomain\": \"DROIT_DU_TRAVAIL\", \"country\": \"FRANCE\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Cabinet Martin"))
@@ -134,7 +135,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
+                        .content("{\"name\": \"\", \"legalDomain\": \"DROIT_DU_TRAVAIL\", \"country\": \"FRANCE\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isBadRequest());
     }
@@ -158,7 +159,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"" + longName + "\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
+                        .content("{\"name\": \"" + longName + "\", \"legalDomain\": \"DROIT_DU_TRAVAIL\", \"country\": \"FRANCE\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isBadRequest());
     }
@@ -184,6 +185,7 @@ class WorkspaceControllerIT {
         workspace.setPlanCode("FREE");
         workspace.setStatus("ACTIVE");
         workspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspace.setCountry("FRANCE");
 
         workspaceRepository.save(workspace);
 
@@ -198,7 +200,7 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"Nouveau Workspace\", \"legalDomain\": \"DROIT_DU_TRAVAIL\"}")
+                        .content("{\"name\": \"Nouveau Workspace\", \"legalDomain\": \"DROIT_DU_TRAVAIL\", \"country\": \"FRANCE\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isConflict());
     }
@@ -224,6 +226,7 @@ class WorkspaceControllerIT {
         ws1.setPlanCode("FREE");
         ws1.setStatus("ACTIVE");
         ws1.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws1.setCountry("FRANCE");
         workspaceRepository.save(ws1);
 
         WorkspaceMember m1 = new WorkspaceMember();
@@ -240,6 +243,7 @@ class WorkspaceControllerIT {
         ws2.setPlanCode("FREE");
         ws2.setStatus("ACTIVE");
         ws2.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws2.setCountry("FRANCE");
         workspaceRepository.save(ws2);
 
         WorkspaceMember m2 = new WorkspaceMember();
@@ -281,6 +285,7 @@ class WorkspaceControllerIT {
         ws1.setPlanCode("FREE");
         ws1.setStatus("ACTIVE");
         ws1.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws1.setCountry("FRANCE");
         workspaceRepository.save(ws1);
 
         WorkspaceMember m1 = new WorkspaceMember();
@@ -297,6 +302,7 @@ class WorkspaceControllerIT {
         ws2.setPlanCode("FREE");
         ws2.setStatus("ACTIVE");
         ws2.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws2.setCountry("FRANCE");
         workspaceRepository.save(ws2);
 
         WorkspaceMember m2 = new WorkspaceMember();
@@ -337,6 +343,7 @@ class WorkspaceControllerIT {
         ownWs.setPlanCode("FREE");
         ownWs.setStatus("ACTIVE");
         ownWs.setLegalDomain("DROIT_DU_TRAVAIL");
+        ownWs.setCountry("FRANCE");
         workspaceRepository.save(ownWs);
 
         WorkspaceMember m = new WorkspaceMember();
@@ -359,6 +366,7 @@ class WorkspaceControllerIT {
         otherWs.setPlanCode("FREE");
         otherWs.setStatus("ACTIVE");
         otherWs.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherWs.setCountry("FRANCE");
         workspaceRepository.save(otherWs);
 
         OAuth2AuthenticationToken auth = buildGoogleAuth("google-notmember-sub", "notmember@example.com");
@@ -390,6 +398,7 @@ class WorkspaceControllerIT {
         ownWs.setPlanCode("FREE");
         ownWs.setStatus("ACTIVE");
         ownWs.setLegalDomain("DROIT_DU_TRAVAIL");
+        ownWs.setCountry("FRANCE");
         workspaceRepository.save(ownWs);
 
         WorkspaceMember m = new WorkspaceMember();
@@ -405,6 +414,143 @@ class WorkspaceControllerIT {
                         .accept(MediaType.APPLICATION_JSON)
                         .with(authentication(auth)))
                 .andExpect(status().isForbidden());
+    }
+
+    // I-11 : POST /api/v1/workspaces → 201 avec DROIT_IMMIGRATION + BELGIQUE
+    @Test
+    void createWorkspace_withImmigrationBelgique_returns201() throws Exception {
+        User user = new User();
+        user.setEmail("immi-be@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-immi-be-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-immi-be-sub", "immi-be@example.com");
+
+        mockMvc.perform(post("/api/v1/workspaces")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Cabinet Immigration\", \"legalDomain\": \"DROIT_IMMIGRATION\", \"country\": \"BELGIQUE\"}")
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.legalDomain").value("DROIT_IMMIGRATION"))
+                .andExpect(jsonPath("$.country").value("BELGIQUE"));
+    }
+
+    // I-12 : POST /api/v1/workspaces → 201 avec DROIT_FAMILLE + FRANCE
+    @Test
+    void createWorkspace_withFamilleFrance_returns201() throws Exception {
+        User user = new User();
+        user.setEmail("famille-fr@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-famille-fr-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-famille-fr-sub", "famille-fr@example.com");
+
+        mockMvc.perform(post("/api/v1/workspaces")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Cabinet Famille\", \"legalDomain\": \"DROIT_FAMILLE\", \"country\": \"FRANCE\"}")
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.legalDomain").value("DROIT_FAMILLE"))
+                .andExpect(jsonPath("$.country").value("FRANCE"));
+    }
+
+    // I-13 : POST /api/v1/workspaces → 400 avec domaine invalide
+    @Test
+    void createWorkspace_withInvalidDomain_returns400() throws Exception {
+        User user = new User();
+        user.setEmail("baddomain@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-baddomain-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-baddomain-sub", "baddomain@example.com");
+
+        mockMvc.perform(post("/api/v1/workspaces")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Cabinet Test\", \"legalDomain\": \"DROIT_IMMOBILIER\", \"country\": \"FRANCE\"}")
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-14 : POST /api/v1/workspaces → 400 avec pays invalide
+    @Test
+    void createWorkspace_withInvalidCountry_returns400() throws Exception {
+        User user = new User();
+        user.setEmail("badcountry@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-badcountry-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-badcountry-sub", "badcountry@example.com");
+
+        mockMvc.perform(post("/api/v1/workspaces")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Cabinet Test\", \"legalDomain\": \"DROIT_DU_TRAVAIL\", \"country\": \"ALLEMAGNE\"}")
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-15 : GET /api/v1/workspaces/current → legalDomain et country présents dans la réponse
+    @Test
+    void current_withSession_returnsLegalDomainAndCountry() throws Exception {
+        User user = new User();
+        user.setEmail("domain-country@example.com");
+        user.setStatus("ACTIVE");
+        userRepository.save(user);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(user);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-dc-sub");
+        authAccountRepository.save(account);
+
+        Workspace workspace = new Workspace();
+        workspace.setName("domain-country@example.com");
+        workspace.setSlug("test-dc-slug-" + System.currentTimeMillis());
+        workspace.setOwner(user);
+        workspace.setPlanCode("FREE");
+        workspace.setStatus("ACTIVE");
+        workspace.setLegalDomain("DROIT_FAMILLE");
+        workspace.setCountry("BELGIQUE");
+        workspaceRepository.save(workspace);
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(workspace);
+        member.setUser(user);
+        member.setMemberRole("OWNER");
+        member.setPrimary(true);
+        workspaceMemberRepository.save(member);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-dc-sub", "domain-country@example.com");
+
+        mockMvc.perform(get("/api/v1/workspaces/current")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.legalDomain").value("DROIT_FAMILLE"))
+                .andExpect(jsonPath("$.country").value("BELGIQUE"));
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
