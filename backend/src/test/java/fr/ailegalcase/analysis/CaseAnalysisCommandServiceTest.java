@@ -59,7 +59,7 @@ class CaseAnalysisCommandServiceTest {
     @Test
     void triggerCaseAnalysis_unknownCaseFile_throws404() {
         var ctx = buildContext();
-        when(caseFileRepository.findById(ctx.caseFileId())).thenReturn(Optional.empty());
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(ctx.caseFileId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.triggerCaseAnalysis(ctx.caseFileId(), null, null, null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -126,7 +126,7 @@ class CaseAnalysisCommandServiceTest {
         CaseFile caseFileOther = new CaseFile();
         caseFileOther.setId(ctx.caseFileId());
         caseFileOther.setWorkspace(otherWorkspace);
-        when(caseFileRepository.findById(ctx.caseFileId())).thenReturn(Optional.of(caseFileOther));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(ctx.caseFileId())).thenReturn(Optional.of(caseFileOther));
 
         assertThatThrownBy(() -> service.triggerCaseAnalysis(ctx.caseFileId(), null, null, null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -181,7 +181,7 @@ class CaseAnalysisCommandServiceTest {
 
         when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
-        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.of(caseFile));
 
         return new Ctx(caseFileId, workspace.getId());
     }

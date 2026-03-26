@@ -45,7 +45,7 @@ class CaseFileStatsServiceTest {
         CaseFile caseFile = caseFile(caseFileId, workspace);
 
         setupWorkspaceResolution(workspace);
-        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.of(caseFile));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(3L);
         when(caseAnalysisRepository.countByCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE)).thenReturn(2L);
         when(usageEventRepository.sumTokensByCaseFileId(caseFileId)).thenReturn(12540L);
@@ -65,7 +65,7 @@ class CaseFileStatsServiceTest {
         CaseFile caseFile = caseFile(caseFileId, workspace);
 
         setupWorkspaceResolution(workspace);
-        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.of(caseFile));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(caseAnalysisRepository.countByCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE)).thenReturn(0L);
         when(usageEventRepository.sumTokensByCaseFileId(caseFileId)).thenReturn(0L);
@@ -81,7 +81,7 @@ class CaseFileStatsServiceTest {
     void getStats_unknownCaseFile_throws404() {
         UUID caseFileId = UUID.randomUUID();
         setupWorkspaceResolution(workspace());
-        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.empty());
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getStats(caseFileId, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -97,7 +97,7 @@ class CaseFileStatsServiceTest {
         CaseFile caseFile = caseFile(caseFileId, otherWorkspace);
 
         setupWorkspaceResolution(userWorkspace);
-        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.of(caseFile));
 
         assertThatThrownBy(() -> service.getStats(caseFileId, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)

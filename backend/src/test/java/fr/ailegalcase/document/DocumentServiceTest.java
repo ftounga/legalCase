@@ -66,7 +66,7 @@ class DocumentServiceTest {
 
         when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
-        when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
         lenient().when(storageService.upload(anyString(), any(), anyString(), anyLong()))
                 .thenReturn(null);
         lenient().when(documentRepository.save(any(Document.class)))

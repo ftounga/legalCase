@@ -67,7 +67,7 @@ class CaseFileServiceTest {
     @Test
     void create_validRequest_returnsCaseFileResponse() {
         mockUserAndWorkspace();
-        when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(0L);
+        when(caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(any(UUID.class), eq("OPEN"))).thenReturn(0L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("Licenciement Dupont", "Description");
 
@@ -94,7 +94,7 @@ class CaseFileServiceTest {
     @Test
     void create_titleWithSpaces_isTrimmed() {
         mockUserAndWorkspace();
-        when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(0L);
+        when(caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(any(UUID.class), eq("OPEN"))).thenReturn(0L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("  Titre avec espaces  ", null);
 
@@ -107,7 +107,7 @@ class CaseFileServiceTest {
     @Test
     void create_quotaReached_throws402() {
         mockUserAndWorkspace();
-        when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(3L);
+        when(caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(any(UUID.class), eq("OPEN"))).thenReturn(3L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("Nouveau dossier", null);
 
@@ -120,7 +120,7 @@ class CaseFileServiceTest {
     @Test
     void create_quotaNotReached_succeeds() {
         mockUserAndWorkspace();
-        when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(2L);
+        when(caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(any(UUID.class), eq("OPEN"))).thenReturn(2L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
         CaseFileRequest request = new CaseFileRequest("Dossier 3", null);
 
@@ -133,7 +133,7 @@ class CaseFileServiceTest {
     @Test
     void create_noSubscription_failOpen() {
         mockUserAndWorkspace();
-        when(caseFileRepository.countByWorkspace_IdAndStatus(any(UUID.class), eq("OPEN"))).thenReturn(10L);
+        when(caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(any(UUID.class), eq("OPEN"))).thenReturn(10L);
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(Integer.MAX_VALUE);
         CaseFileRequest request = new CaseFileRequest("Dossier sans sub", null);
 

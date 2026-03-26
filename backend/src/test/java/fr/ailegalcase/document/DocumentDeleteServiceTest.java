@@ -77,7 +77,7 @@ class DocumentDeleteServiceTest {
         when(caseFile.getId()).thenReturn(CASE_FILE_ID);
         when(caseFile.getWorkspace()).thenReturn(workspace);
         when(caseFile.getTitle()).thenReturn("Test Case");
-        when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
 
         Document document = mock(Document.class);
         when(document.getCaseFile()).thenReturn(caseFile);
@@ -121,7 +121,7 @@ class DocumentDeleteServiceTest {
         CaseFile caseFile = mock(CaseFile.class);
         when(caseFile.getId()).thenReturn(CASE_FILE_ID);
         when(caseFile.getWorkspace()).thenReturn(workspace);
-        when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
 
         Document document = mock(Document.class);
         when(document.getCaseFile()).thenReturn(caseFile);
@@ -150,7 +150,7 @@ class DocumentDeleteServiceTest {
 
         CaseFile caseFile = mock(CaseFile.class);
         when(caseFile.getWorkspace()).thenReturn(workspace);
-        when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
 
         UUID otherCaseFileId = UUID.randomUUID();
         CaseFile otherCaseFile = mock(CaseFile.class);

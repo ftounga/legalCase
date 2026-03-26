@@ -1,9 +1,15 @@
 package fr.ailegalcase.casefile;
 
+import fr.ailegalcase.analysis.AnalysisJob;
+import fr.ailegalcase.analysis.AnalysisJobRepository;
+import fr.ailegalcase.analysis.AnalysisStatus;
+import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
+import fr.ailegalcase.audit.AuditLogRepository;
+import fr.ailegalcase.billing.Subscription;
 import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.workspace.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,10 +27,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
@@ -41,11 +48,15 @@ class CaseFileControllerIT {
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired private CaseFileRepository caseFileRepository;
     @Autowired private SubscriptionRepository subscriptionRepository;
+    @Autowired private AnalysisJobRepository analysisJobRepository;
+    @Autowired private AuditLogRepository auditLogRepository;
 
     private OAuth2AuthenticationToken auth;
 
     @BeforeEach
     void setUp() {
+        analysisJobRepository.deleteAll();
+        auditLogRepository.deleteAll();
         caseFileRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
         subscriptionRepository.deleteAll();
@@ -281,6 +292,176 @@ class CaseFileControllerIT {
         mockMvc.perform(get("/api/v1/case-files/" + otherId + "/stats")
                         .with(authentication(auth)))
                 .andExpect(status().isNotFound());
+    }
+
+    // =========================================================
+    // SF-53-01 — Statut des dossiers
+    // =========================================================
+
+    // I-15 : PATCH /{id}/close → 200, status CLOSED
+    @Test
+    void close_openCaseFile_returns200AndStatusClosed() throws Exception {
+        String id = createCaseFile("Dossier à clôturer");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + id + "/close")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+    }
+
+    // I-16 : PATCH /{id}/reopen → 200, status OPEN
+    @Test
+    void reopen_closedCaseFile_returns200AndStatusOpen() throws Exception {
+        String id = createCaseFile("Dossier à réouvrir");
+        mockMvc.perform(patch("/api/v1/case-files/" + id + "/close").with(authentication(auth)));
+
+        mockMvc.perform(patch("/api/v1/case-files/" + id + "/reopen")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OPEN"));
+    }
+
+    // I-17 : PATCH /{id}/reopen → 402 si quota atteint
+    @Test
+    void reopen_quotaFull_returns402() throws Exception {
+        // Créer une subscription STARTER (max 3 open)
+        Workspace workspace = workspaceMemberRepository.findAll().stream()
+                .filter(WorkspaceMember::isPrimary).findFirst().orElseThrow().getWorkspace();
+        Subscription sub = new Subscription();
+        sub.setWorkspaceId(workspace.getId());
+        sub.setPlanCode("STARTER");
+        sub.setStatus("ACTIVE");
+        sub.setStartedAt(Instant.now());
+        subscriptionRepository.save(sub);
+
+        // Créer + fermer 1 dossier
+        String closedId = createCaseFile("Dossier fermé");
+        mockMvc.perform(patch("/api/v1/case-files/" + closedId + "/close").with(authentication(auth)));
+
+        // Remplir le quota (STARTER = 3 max open) avec 3 autres dossiers
+        createCaseFile("Open 1");
+        createCaseFile("Open 2");
+        createCaseFile("Open 3");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + closedId + "/reopen")
+                        .with(authentication(auth)))
+                .andExpect(status().isPaymentRequired());
+    }
+
+    // I-18 : PATCH /{id}/reopen → 403 si LAWYER
+    @Test
+    void reopen_byLawyer_returns403() throws Exception {
+        String id = createCaseFile("Dossier test");
+        mockMvc.perform(patch("/api/v1/case-files/" + id + "/close").with(authentication(auth)));
+
+        OAuth2AuthenticationToken lawyerAuth = createMemberAuth("lawyer-reopen@example.com",
+                "google-lawyer-reopen", "LAWYER");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + id + "/reopen")
+                        .with(authentication(lawyerAuth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-19 : DELETE → 204, deleted_at non null en base
+    @Test
+    void delete_byCaseFileOwner_returns204AndSetsDeletedAt() throws Exception {
+        String id = createCaseFile("Dossier à supprimer");
+
+        mockMvc.perform(delete("/api/v1/case-files/" + id)
+                        .with(authentication(auth)))
+                .andExpect(status().isNoContent());
+
+        CaseFile cf = caseFileRepository.findById(UUID.fromString(id)).orElseThrow();
+        assertThat(cf.getDeletedAt()).isNotNull();
+    }
+
+    // I-20 : DELETE → 403 si ADMIN
+    @Test
+    void delete_byAdmin_returns403() throws Exception {
+        String id = createCaseFile("Dossier test");
+        OAuth2AuthenticationToken adminAuth = createMemberAuth("admin-delete@example.com",
+                "google-admin-delete", "ADMIN");
+
+        mockMvc.perform(delete("/api/v1/case-files/" + id)
+                        .with(authentication(adminAuth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-21 : DELETE → 409 si analyse en cours
+    @Test
+    void delete_withRunningAnalysis_returns409() throws Exception {
+        String id = createCaseFile("Dossier analysé");
+
+        AnalysisJob job = new AnalysisJob();
+        job.setCaseFileId(UUID.fromString(id));
+        job.setJobType(JobType.CASE_ANALYSIS);
+        job.setStatus(AnalysisStatus.PROCESSING);
+        job.setTotalItems(1);
+        job.setProcessedItems(0);
+        analysisJobRepository.save(job);
+
+        mockMvc.perform(delete("/api/v1/case-files/" + id)
+                        .with(authentication(auth)))
+                .andExpect(status().isConflict());
+    }
+
+    // I-22 : GET /case-files → dossier supprimé absent de la liste
+    @Test
+    void list_excludesDeletedCaseFiles() throws Exception {
+        String id = createCaseFile("Dossier supprimé");
+        createCaseFile("Dossier visible");
+        mockMvc.perform(delete("/api/v1/case-files/" + id).with(authentication(auth)));
+
+        mockMvc.perform(get("/api/v1/case-files").with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("Dossier visible"));
+    }
+
+    // I-23 : GET /{id} → 404 si dossier supprimé
+    @Test
+    void getById_deletedCaseFile_returns404() throws Exception {
+        String id = createCaseFile("Dossier supprimé");
+        mockMvc.perform(delete("/api/v1/case-files/" + id).with(authentication(auth)));
+
+        mockMvc.perform(get("/api/v1/case-files/" + id).with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    private String createCaseFile(String title) throws Exception {
+        String response = mockMvc.perform(post("/api/v1/case-files")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"" + title + "\"}")
+                        .with(authentication(auth)))
+                .andReturn().getResponse().getContentAsString();
+        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(response).get("id").asText();
+    }
+
+    private OAuth2AuthenticationToken createMemberAuth(String email, String sub, String role) {
+        User memberUser = new User();
+        memberUser.setEmail(email);
+        memberUser.setStatus("ACTIVE");
+        userRepository.save(memberUser);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(memberUser);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId(sub);
+        authAccountRepository.save(account);
+
+        Workspace workspace = workspaceMemberRepository.findAll().stream()
+                .filter(WorkspaceMember::isPrimary)
+                .filter(m -> "OWNER".equals(m.getMemberRole()))
+                .findFirst().orElseThrow().getWorkspace();
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(workspace);
+        member.setUser(memberUser);
+        member.setMemberRole(role);
+        member.setPrimary(true);
+        workspaceMemberRepository.save(member);
+
+        return buildGoogleAuth(sub, email);
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

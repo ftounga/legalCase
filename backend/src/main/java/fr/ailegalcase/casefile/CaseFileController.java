@@ -10,6 +10,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 import java.security.Principal;
 
 @RestController
@@ -18,11 +20,14 @@ public class CaseFileController {
 
     private final CaseFileService caseFileService;
     private final CaseFileStatsService caseFileStatsService;
+    private final CaseFileStatusService caseFileStatusService;
 
     public CaseFileController(CaseFileService caseFileService,
-                              CaseFileStatsService caseFileStatsService) {
+                              CaseFileStatsService caseFileStatsService,
+                              CaseFileStatusService caseFileStatusService) {
         this.caseFileService = caseFileService;
         this.caseFileStatsService = caseFileStatsService;
+        this.caseFileStatusService = caseFileStatusService;
     }
 
     @PostMapping
@@ -48,9 +53,31 @@ public class CaseFileController {
     }
 
     @GetMapping("/{id}/stats")
-    public CaseFileStatsResponse getStats(@PathVariable java.util.UUID id,
+    public CaseFileStatsResponse getStats(@PathVariable UUID id,
                                           @AuthenticationPrincipal OidcUser oidcUser,
                                           Principal principal) {
         return caseFileStatsService.getStats(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @PatchMapping("/{id}/close")
+    public CaseFileResponse close(@PathVariable UUID id,
+                                  @AuthenticationPrincipal OidcUser oidcUser,
+                                  Principal principal) {
+        return caseFileStatusService.close(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @PatchMapping("/{id}/reopen")
+    public CaseFileResponse reopen(@PathVariable UUID id,
+                                   @AuthenticationPrincipal OidcUser oidcUser,
+                                   Principal principal) {
+        return caseFileStatusService.reopen(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id,
+                       @AuthenticationPrincipal OidcUser oidcUser,
+                       Principal principal) {
+        caseFileStatusService.delete(id, oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }

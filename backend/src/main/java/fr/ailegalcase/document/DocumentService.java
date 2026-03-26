@@ -148,7 +148,7 @@ public class DocumentService {
     }
 
     private CaseFile resolveCaseFile(UUID caseFileId, Workspace workspace) {
-        CaseFile caseFile = caseFileRepository.findById(caseFileId)
+        CaseFile caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
         if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");

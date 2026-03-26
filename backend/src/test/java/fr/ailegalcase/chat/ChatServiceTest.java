@@ -71,7 +71,7 @@ class ChatServiceTest {
 
         when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
-        when(caseFileRepository.findById(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(CASE_FILE_ID)).thenReturn(Optional.of(caseFile));
         when(planLimitService.isChatMessageLimitReached(WORKSPACE_ID)).thenReturn(budgetExceeded);
 
         if (!budgetExceeded && hasSynthesis) {
