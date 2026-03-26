@@ -4,7 +4,7 @@
     @if (workspace()) {
       @if (workspaces().length > 1) {
         <button mat-button [matMenuTriggerFor]="wsMenu" class="workspace-switcher">
-          <mat-icon>domain</mat-icon>
+          <mat-icon [style.color]="domainColor(workspace()!.legalDomain)">domain</mat-icon>
           <span>{{ workspace()!.name }}</span>
           <mat-icon>arrow_drop_down</mat-icon>
         </button>
@@ -22,7 +22,7 @@
         </mat-menu>
       } @else {
         <span class="workspace-name">
-          <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle;margin-right:6px;color:var(--color-accent)">domain</mat-icon>{{ workspace()!.name }}
+          <mat-icon [style.color]="domainColor(workspace()!.legalDomain)" style="font-size:16px;width:16px;height:16px;vertical-align:middle;margin-right:6px">domain</mat-icon>{{ workspace()!.name }}
         </span>
       }
     }

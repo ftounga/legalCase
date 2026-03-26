@@ -25,22 +25,82 @@ describe('DomainPickerDialogComponent', () => {
     fixture.detectChanges();
   });
 
+  // D-01 : 3 tuiles rendues
   it('affiche 3 tuiles de domaines', () => {
     expect(component.domains.length).toBe(3);
   });
 
-  it('seul DROIT_DU_TRAVAIL est disponible', () => {
-    const available = component.domains.filter(d => d.available);
-    expect(available.length).toBe(1);
-    expect(available[0].key).toBe('DROIT_DU_TRAVAIL');
+  // D-02 : toutes les tuiles sont actives (pas de disabled)
+  it('les 3 tuiles sont toutes actives (aucune propriété available = false)', () => {
+    const keys = component.domains.map(d => d.key);
+    expect(keys).toContain('DROIT_DU_TRAVAIL');
+    expect(keys).toContain('DROIT_IMMIGRATION');
+    expect(keys).toContain('DROIT_FAMILLE');
   });
 
-  it('DROIT_DU_TRAVAIL est sélectionné par défaut', () => {
-    expect(component.selected).toBe('DROIT_DU_TRAVAIL');
+  // D-03 : DROIT_IMMOBILIER absent
+  it('DROIT_IMMOBILIER absent de la liste', () => {
+    const keys = component.domains.map(d => d.key);
+    expect(keys).not.toContain('DROIT_IMMOBILIER');
   });
 
-  it('confirm() ferme la dialog avec le domaine sélectionné', () => {
+  // D-04 : couleurs des tuiles
+  it('DROIT_DU_TRAVAIL a la couleur #27AE60', () => {
+    const d = component.domains.find(x => x.key === 'DROIT_DU_TRAVAIL')!;
+    expect(d.color).toBe('#27AE60');
+  });
+
+  it('DROIT_IMMIGRATION a la couleur #1A3A5C', () => {
+    const d = component.domains.find(x => x.key === 'DROIT_IMMIGRATION')!;
+    expect(d.color).toBe('#1A3A5C');
+  });
+
+  it('DROIT_FAMILLE a la couleur #C9973A', () => {
+    const d = component.domains.find(x => x.key === 'DROIT_FAMILLE')!;
+    expect(d.color).toBe('#C9973A');
+  });
+
+  // D-05 : bouton Confirmer désactivé sans sélection
+  it('canConfirm est false si domaine et pays ne sont pas sélectionnés', () => {
+    component.selected = '';
+    component.selectedCountry = '';
+    expect(component.canConfirm).toBeFalse();
+  });
+
+  // D-06 : bouton Confirmer désactivé sans pays
+  it('canConfirm est false si seulement le domaine est sélectionné', () => {
+    component.selected = 'DROIT_DU_TRAVAIL';
+    component.selectedCountry = '';
+    expect(component.canConfirm).toBeFalse();
+  });
+
+  // D-07 : bouton Confirmer désactivé sans domaine
+  it('canConfirm est false si seulement le pays est sélectionné', () => {
+    component.selected = '';
+    component.selectedCountry = 'FRANCE';
+    expect(component.canConfirm).toBeFalse();
+  });
+
+  // D-08 : bouton Confirmer actif avec domaine + pays
+  it('canConfirm est true si domaine et pays sont sélectionnés', () => {
+    component.selected = 'DROIT_IMMIGRATION';
+    component.selectedCountry = 'BELGIQUE';
+    expect(component.canConfirm).toBeTrue();
+  });
+
+  // D-09 : confirm() retourne { legalDomain, country }
+  it('confirm() ferme la dialog avec { legalDomain, country }', () => {
+    component.selected = 'DROIT_FAMILLE';
+    component.selectedCountry = 'FRANCE';
     component.confirm();
-    expect(dialogRefSpy.close).toHaveBeenCalledWith('DROIT_DU_TRAVAIL');
+    expect(dialogRefSpy.close).toHaveBeenCalledWith({ legalDomain: 'DROIT_FAMILLE', country: 'FRANCE' });
+  });
+
+  // D-10 : confirm() ne ferme pas la dialog si canConfirm est false
+  it('confirm() ne ferme pas la dialog si domaine ou pays manquant', () => {
+    component.selected = 'DROIT_DU_TRAVAIL';
+    component.selectedCountry = '';
+    component.confirm();
+    expect(dialogRefSpy.close).not.toHaveBeenCalled();
   });
 });

@@ -201,6 +201,47 @@ describe('ShellComponent — workspace switcher', () => {
   }));
 });
 
+describe('ShellComponent — domainColor()', () => {
+  let component: ShellComponent;
+
+  beforeEach(async () => {
+    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
+    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
+    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+    const authServiceStub = { currentUser: signal(null), logout: () => {} };
+    const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
+
+    await TestBed.configureTestingModule({
+      imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
+      providers: [
+        provideHttpClient(),
+        { provide: AuthService, useValue: authServiceStub },
+        { provide: WorkspaceService, useValue: workspaceService },
+        { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
+        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) }
+      ]
+    }).compileComponents();
+
+    component = TestBed.createComponent(ShellComponent).componentInstance;
+  });
+
+  it('DROIT_DU_TRAVAIL → #27AE60', () => {
+    expect(component.domainColor('DROIT_DU_TRAVAIL')).toBe('#27AE60');
+  });
+
+  it('DROIT_IMMIGRATION → #1A3A5C', () => {
+    expect(component.domainColor('DROIT_IMMIGRATION')).toBe('#1A3A5C');
+  });
+
+  it('DROIT_FAMILLE → #C9973A', () => {
+    expect(component.domainColor('DROIT_FAMILLE')).toBe('#C9973A');
+  });
+
+  it('domaine inconnu → couleur par défaut #1A3A5C', () => {
+    expect(component.domainColor(undefined)).toBe('#1A3A5C');
+  });
+});
+
 describe('ShellComponent — lien super-admin', () => {
   let fixture: ComponentFixture<ShellComponent>;
 

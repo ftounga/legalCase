@@ -91,6 +91,15 @@ export class ShellComponent implements OnInit {
     });
   }
 
+  domainColor(legalDomain?: string): string {
+    switch (legalDomain) {
+      case 'DROIT_DU_TRAVAIL':  return '#27AE60';
+      case 'DROIT_FAMILLE':     return '#C9973A';
+      case 'DROIT_IMMIGRATION':
+      default:                  return '#1A3A5C';
+    }
+  }
+
   private loadWorkspaceList(): void {
     this.workspaceService.listWorkspaces().subscribe({
       next: list => this.workspaces.set(list),

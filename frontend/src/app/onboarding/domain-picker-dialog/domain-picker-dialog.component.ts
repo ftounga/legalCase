@@ -8,12 +8,17 @@ export interface DomainPickerData {
   workspaceName: string;
 }
 
+export interface DomainPickerResult {
+  legalDomain: string;
+  country: string;
+}
+
 interface LegalDomainTile {
   key: string;
   label: string;
   subtitle: string;
   icon: string;
-  available: boolean;
+  color: string;
 }
 
 @Component({
@@ -30,25 +35,31 @@ export class DomainPickerDialogComponent {
       label: 'Droit du travail',
       subtitle: 'Licenciement, harcèlement, rupture conventionnelle',
       icon: 'gavel',
-      available: true
+      color: '#27AE60'
     },
     {
       key: 'DROIT_IMMIGRATION',
       label: "Droit de l'immigration",
       subtitle: 'Titres de séjour, visas, naturalisation',
       icon: 'flight',
-      available: false
+      color: '#1A3A5C'
     },
     {
-      key: 'DROIT_IMMOBILIER',
-      label: 'Droit immobilier',
-      subtitle: 'Baux, copropriété, transactions',
-      icon: 'home',
-      available: false
+      key: 'DROIT_FAMILLE',
+      label: 'Droit de la famille',
+      subtitle: 'Divorce, garde d\'enfants, successions',
+      icon: 'family_restroom',
+      color: '#C9973A'
     }
   ];
 
-  selected = 'DROIT_DU_TRAVAIL';
+  readonly countries = [
+    { key: 'FRANCE', label: 'France' },
+    { key: 'BELGIQUE', label: 'Belgique' }
+  ];
+
+  selected = '';
+  selectedCountry = '';
 
   constructor(
     private dialogRef: MatDialogRef<DomainPickerDialogComponent>,
@@ -57,7 +68,16 @@ export class DomainPickerDialogComponent {
     this.dialogRef.disableClose = true;
   }
 
+  get canConfirm(): boolean {
+    return !!this.selected && !!this.selectedCountry;
+  }
+
+  domainColor(key: string): string {
+    return this.domains.find(d => d.key === key)?.color ?? '#1A3A5C';
+  }
+
   confirm(): void {
-    this.dialogRef.close(this.selected);
+    if (!this.canConfirm) return;
+    this.dialogRef.close({ legalDomain: this.selected, country: this.selectedCountry } as DomainPickerResult);
   }
 }

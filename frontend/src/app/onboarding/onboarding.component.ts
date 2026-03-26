@@ -9,7 +9,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { WorkspaceService } from '../core/services/workspace.service';
-import { DomainPickerDialogComponent } from './domain-picker-dialog/domain-picker-dialog.component';
+import { DomainPickerDialogComponent, DomainPickerResult } from './domain-picker-dialog/domain-picker-dialog.component';
 
 @Component({
   selector: 'app-onboarding',
@@ -48,10 +48,10 @@ export class OnboardingComponent {
       disableClose: true
     });
 
-    ref.afterClosed().subscribe((legalDomain: string | undefined) => {
-      if (!legalDomain) return;
+    ref.afterClosed().subscribe((result: DomainPickerResult | undefined) => {
+      if (!result) return;
       this.saving = true;
-      this.workspaceService.createWorkspace(name, legalDomain).subscribe({
+      this.workspaceService.createWorkspace(name, result.legalDomain, result.country).subscribe({
         next: () => this.router.navigate(['/case-files']),
         error: () => {
           this.saving = false;

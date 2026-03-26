@@ -22,7 +22,7 @@ describe('OnboardingComponent', () => {
     router = jasmine.createSpyObj('Router', ['navigate']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed']);
-    dialogRefSpy.afterClosed.and.returnValue(of('DROIT_DU_TRAVAIL'));
+    dialogRefSpy.afterClosed.and.returnValue(of({ legalDomain: 'DROIT_DU_TRAVAIL', country: 'FRANCE' }));
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
     dialog.open.and.returnValue(dialogRefSpy);
 
@@ -50,7 +50,7 @@ describe('OnboardingComponent', () => {
     tick();
 
     expect(dialog.open).toHaveBeenCalled();
-    expect(workspaceService.createWorkspace).toHaveBeenCalledWith('Cabinet Martin', 'DROIT_DU_TRAVAIL');
+    expect(workspaceService.createWorkspace).toHaveBeenCalledWith('Cabinet Martin', 'DROIT_DU_TRAVAIL', 'FRANCE');
     expect(router.navigate).toHaveBeenCalledWith(['/case-files']);
   }));
 
