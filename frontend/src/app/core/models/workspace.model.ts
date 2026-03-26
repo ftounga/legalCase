@@ -6,4 +6,6 @@ export interface Workspace {
   status: string;
   expiresAt?: string | null;
   primary?: boolean;
+  legalDomain?: string;
+  country?: string;
 }

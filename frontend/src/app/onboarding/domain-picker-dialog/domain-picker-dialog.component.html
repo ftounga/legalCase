@@ -6,23 +6,36 @@
     @for (domain of domains; track domain.key) {
       <div
         class="domain-tile"
-        [class.domain-tile--active]="domain.available && selected === domain.key"
-        [class.domain-tile--disabled]="!domain.available"
-        (click)="domain.available && (selected = domain.key)"
+        [class.domain-tile--active]="selected === domain.key"
+        [style.--tile-color]="domain.color"
+        (click)="selected = domain.key"
       >
-        @if (!domain.available) {
-          <span class="soon-badge">Bientôt disponible</span>
-        }
         <mat-icon class="domain-icon">{{ domain.icon }}</mat-icon>
         <div class="domain-label">{{ domain.label }}</div>
         <div class="domain-subtitle">{{ domain.subtitle }}</div>
       </div>
     }
   </div>
+
+  <div class="country-picker">
+    <div class="country-picker-label">Pays</div>
+    <div class="country-buttons">
+      @for (country of countries; track country.key) {
+        <button
+          mat-button
+          class="country-btn"
+          [class.country-btn--active]="selectedCountry === country.key"
+          (click)="selectedCountry = country.key"
+        >
+          {{ country.label }}
+        </button>
+      }
+    </div>
+  </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-flat-button color="primary" (click)="confirm()">
+  <button mat-flat-button color="primary" [disabled]="!canConfirm" (click)="confirm()">
     Confirmer
   </button>
 </mat-dialog-actions>

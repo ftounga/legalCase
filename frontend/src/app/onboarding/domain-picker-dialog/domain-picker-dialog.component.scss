@@ -23,6 +23,8 @@
 }
 
 .domain-tile {
+  --tile-color: var(--color-primary);
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -37,21 +39,15 @@
   text-align: center;
   min-height: 160px;
 
-  &:hover:not(.domain-tile--disabled) {
-    border-color: var(--color-accent);
+  &:hover {
+    border-color: var(--tile-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   &--active {
-    border-color: var(--color-accent) !important;
+    border-color: var(--tile-color) !important;
     border-width: 3px;
-    box-shadow: 0 4px 12px rgba(201, 151, 58, 0.2) !important;
-  }
-
-  &--disabled {
-    opacity: 0.45;
-    cursor: default;
-    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
   }
 }
 
@@ -62,7 +58,7 @@
   color: var(--color-primary);
 
   .domain-tile--active & {
-    color: var(--color-accent);
+    color: var(--tile-color);
   }
 }
 
@@ -79,15 +75,38 @@
   line-height: 1.4;
 }
 
-.soon-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 10px;
-  font-weight: 500;
-  background: #F5F5F5;
+.country-picker {
+  margin-top: 24px;
+}
+
+.country-picker-label {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--color-text-secondary);
-  border-radius: 4px;
-  padding: 2px 6px;
-  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.country-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.country-btn {
+  flex: 1;
+  border: 2px solid var(--color-divider) !important;
+  border-radius: 8px !important;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s;
+
+  &--active {
+    border-color: var(--color-primary) !important;
+    background: rgba(26, 58, 92, 0.06) !important;
+    color: var(--color-primary) !important;
+  }
+
+  &:hover:not(.country-btn--active) {
+    border-color: var(--color-primary) !important;
+  }
 }
