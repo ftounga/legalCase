@@ -25,8 +25,9 @@ public class SseNotificationService {
         List<SseEmitter> emitters = List.copyOf(registry.getEmitters(event.caseFileId()));
         if (emitters.isEmpty()) return;
 
-        String eventName = event.status() == AnalysisStatus.DONE ? "ANALYSIS_DONE" : "ANALYSIS_FAILED";
-        String data = "{\"caseFileId\":\"%s\",\"status\":\"%s\"}".formatted(event.caseFileId(), event.status());
+        String eventName = "%s_%s".formatted(event.jobType().name(), event.status().name());
+        String data = "{\"caseFileId\":\"%s\",\"status\":\"%s\",\"jobType\":\"%s\"}".formatted(
+                event.caseFileId(), event.status(), event.jobType());
 
         for (SseEmitter emitter : emitters) {
             try {

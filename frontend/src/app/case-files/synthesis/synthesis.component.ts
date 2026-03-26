@@ -15,6 +15,7 @@ import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
+import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { ChatService } from '../../core/services/chat.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CaseFile } from '../../core/models/case-file.model';
@@ -57,6 +58,7 @@ export class SynthesisComponent implements OnInit {
     private aiQuestionService: AiQuestionService,
     private aiQuestionAnswerService: AiQuestionAnswerService,
     private reAnalysisService: ReAnalysisService,
+    private globalNotificationService: GlobalAnalysisNotificationService,
     private chatService: ChatService,
     private snackBar: MatSnackBar,
     private pdfExportService: PdfExportService
@@ -216,6 +218,7 @@ export class SynthesisComponent implements OnInit {
     this.reAnalysisService.reAnalyze(id).subscribe({
       next: () => {
         this.reAnalyzing.set(false);
+        this.globalNotificationService.track(id);
         this.router.navigate(['/case-files', id]);
       },
       error: (err: any) => {

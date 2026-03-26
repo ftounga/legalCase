@@ -182,7 +182,7 @@ public class EnrichedAnalysisService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                eventPublisher.publishEvent(new AnalysisStatusEvent(caseFileId, finalStatus));
+                eventPublisher.publishEvent(new AnalysisStatusEvent(caseFileId, finalStatus, JobType.ENRICHED_ANALYSIS));
             }
         });
 
