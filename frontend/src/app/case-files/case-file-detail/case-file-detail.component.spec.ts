@@ -1,6 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { CaseFileDetailComponent } from './case-file-detail.component';
 import { CaseFileService } from '../../core/services/case-file.service';
+import { CaseFileStatusService } from '../../core/services/case-file-status.service';
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
@@ -8,11 +9,16 @@ import { CaseAnalysisCommandService } from '../../core/services/case-analysis-co
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
+import { AuthService } from '../../core/services/auth.service';
+import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
+import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
+import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
+import { signal } from '@angular/core';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
@@ -40,6 +46,7 @@ describe('CaseFileDetailComponent', () => {
   let fixture: ComponentFixture<CaseFileDetailComponent>;
   let component: CaseFileDetailComponent;
   let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
+  let caseFileStatusServiceSpy: jasmine.SpyObj<CaseFileStatusService>;
   let documentServiceSpy: jasmine.SpyObj<DocumentService>;
   let analysisJobServiceSpy: jasmine.SpyObj<AnalysisJobService>;
   let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
@@ -47,11 +54,14 @@ describe('CaseFileDetailComponent', () => {
   let aiQuestionServiceSpy: jasmine.SpyObj<AiQuestionService>;
   let aiQuestionAnswerServiceSpy: jasmine.SpyObj<AiQuestionAnswerService>;
   let reAnalysisServiceSpy: jasmine.SpyObj<ReAnalysisService>;
+  let workspaceMemberServiceSpy: jasmine.SpyObj<WorkspaceMemberService>;
+  let caseFileStatsServiceSpy: jasmine.SpyObj<CaseFileStatsService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
   let dialogSpy: jasmine.SpyObj<MatDialog>;
 
   beforeEach(async () => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
+    caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl', 'delete']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
@@ -59,10 +69,15 @@ describe('CaseFileDetailComponent', () => {
     aiQuestionServiceSpy = jasmine.createSpyObj('AiQuestionService', ['getQuestions']);
     aiQuestionAnswerServiceSpy = jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']);
     reAnalysisServiceSpy = jasmine.createSpyObj('ReAnalysisService', ['reAnalyze']);
+    workspaceMemberServiceSpy = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
+    caseFileStatsServiceSpy = jasmine.createSpyObj('CaseFileStatsService', ['getStats']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
     caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
+    caseFileStatusServiceSpy.close.and.returnValue(of({ ...mockCaseFile, status: 'CLOSED' }));
+    caseFileStatusServiceSpy.reopen.and.returnValue(of({ ...mockCaseFile, status: 'OPEN' }));
+    caseFileStatusServiceSpy.delete.and.returnValue(of(undefined));
     documentServiceSpy.list.and.returnValue(of([mockDocument]));
     documentServiceSpy.downloadUrl.and.returnValue('/api/v1/case-files/cf1/documents/doc1/download');
     analysisJobServiceSpy.getJobs.and.returnValue(of([]));
@@ -71,11 +86,16 @@ describe('CaseFileDetailComponent', () => {
     aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(of(undefined));
     reAnalysisServiceSpy.reAnalyze.and.returnValue(of(undefined));
     caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(of(undefined));
+    caseFileStatsServiceSpy.getStats.and.returnValue(of({ documentCount: 1, analysisCount: 0, totalTokens: 0 }));
+    workspaceMemberServiceSpy.getMembers.and.returnValue(of([
+      { userId: 'user-1', email: 'owner@test.com', firstName: null, lastName: null, memberRole: 'OWNER', createdAt: '' }
+    ]));
 
     await TestBed.configureTestingModule({
       imports: [CaseFileDetailComponent],
       providers: [
         { provide: CaseFileService, useValue: caseFileServiceSpy },
+        { provide: CaseFileStatusService, useValue: caseFileStatusServiceSpy },
         { provide: DocumentService, useValue: documentServiceSpy },
         { provide: AnalysisJobService, useValue: analysisJobServiceSpy },
         { provide: CaseAnalysisService, useValue: caseAnalysisServiceSpy },
@@ -83,6 +103,16 @@ describe('CaseFileDetailComponent', () => {
         { provide: AiQuestionService, useValue: aiQuestionServiceSpy },
         { provide: AiQuestionAnswerService, useValue: aiQuestionAnswerServiceSpy },
         { provide: ReAnalysisService, useValue: reAnalysisServiceSpy },
+        { provide: WorkspaceMemberService, useValue: workspaceMemberServiceSpy },
+        { provide: CaseFileStatsService, useValue: caseFileStatsServiceSpy },
+        {
+          provide: GlobalAnalysisNotificationService,
+          useValue: { events$: new Subject(), track: jasmine.createSpy('track') }
+        },
+        {
+          provide: AuthService,
+          useValue: { currentUser: signal({ id: 'user-1', email: 'owner@test.com', firstName: null, lastName: null, provider: 'GOOGLE', isSuperAdmin: false }) }
+        },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideRouter([]),
@@ -401,6 +431,50 @@ describe('CaseFileDetailComponent', () => {
       { jobType: 'CASE_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
     ]);
     expect(component.canDeleteDocument()).toBeFalse();
+  });
+
+  // --- Tests SF-53-02 : gestion statut dossier ---
+
+  it('statusLabel CLOSED → "Clôturé"', () => {
+    expect(component.statusLabel('CLOSED')).toBe('Clôturé');
+  });
+
+  it('statusClass OPEN → badge--success', () => {
+    expect(component.statusClass('OPEN')).toBe('badge--success');
+  });
+
+  it('statusClass CLOSED → badge--neutral', () => {
+    expect(component.statusClass('CLOSED')).toBe('badge--neutral');
+  });
+
+  it('canReopen — true si rôle OWNER', () => {
+    component.currentMemberRole.set('OWNER');
+    expect(component.canReopen()).toBeTrue();
+  });
+
+  it('canReopen — true si rôle ADMIN', () => {
+    component.currentMemberRole.set('ADMIN');
+    expect(component.canReopen()).toBeTrue();
+  });
+
+  it('canReopen — false si rôle LAWYER', () => {
+    component.currentMemberRole.set('LAWYER');
+    expect(component.canReopen()).toBeFalse();
+  });
+
+  it('canDelete — true si rôle OWNER', () => {
+    component.currentMemberRole.set('OWNER');
+    expect(component.canDelete()).toBeTrue();
+  });
+
+  it('canDelete — false si rôle ADMIN', () => {
+    component.currentMemberRole.set('ADMIN');
+    expect(component.canDelete()).toBeFalse();
+  });
+
+  it('canDelete — false si rôle LAWYER', () => {
+    component.currentMemberRole.set('LAWYER');
+    expect(component.canDelete()).toBeFalse();
   });
 
 });

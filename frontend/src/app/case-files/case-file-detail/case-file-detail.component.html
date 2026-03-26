@@ -8,7 +8,27 @@
     </button>
     <div class="title-row">
       <h1 class="page-title">{{ caseFile()!.title }}</h1>
-      <span class="badge badge--success">{{ statusLabel(caseFile()!.status) }}</span>
+      <span class="badge" [class]="statusClass(caseFile()!.status)">{{ statusLabel(caseFile()!.status) }}</span>
+      <div class="status-actions">
+        @if (caseFile()!.status === 'OPEN') {
+          <button mat-stroked-button (click)="closeCaseFile()">
+            <mat-icon>lock</mat-icon>
+            Clôturer
+          </button>
+        }
+        @if (caseFile()!.status === 'CLOSED' && canReopen()) {
+          <button mat-stroked-button (click)="reopenCaseFile()">
+            <mat-icon>lock_open</mat-icon>
+            Réouvrir
+          </button>
+        }
+        @if (canDelete()) {
+          <button mat-stroked-button color="warn" (click)="deleteCaseFile()" [disabled]="fullAnalysisRunning()">
+            <mat-icon>delete</mat-icon>
+            Supprimer
+          </button>
+        }
+      </div>
     </div>
   </div>
 
