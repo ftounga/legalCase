@@ -162,7 +162,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-43 | Filtre par plage de dates — journal d'actions | V2 | Sélecteur de dates (date début / date fin) dans l'écran `/workspace/audit-logs`. Actuellement hors scope de SF-38-04. |
 | F-44 | Pagination et tri côté serveur — journal d'actions | V2 | Actuellement le backend renvoie 50 entrées max et le filtre est côté client. À remplacer par pagination serveur + paramètres de tri/filtre sur l'endpoint `GET /api/v1/admin/audit-logs`. |
 | F-45 | Pagination côté serveur — liste des dossiers | V2 | La liste des dossiers est actuellement chargée entièrement côté client. À paginer côté serveur pour les workspaces avec de nombreux dossiers. |
-| F-48 | Tableau de bord dossier | V2 — **En cours** | Métriques par dossier : nombre de documents, nombre d'analyses terminées, total tokens consommés (pas de coût en euros, pas de durée). Visible depuis la page dossier. SF-48-01 mergée 2026-03-26 : `GET /api/v1/case-files/{id}/stats`. SF-48-02 (frontend) : à faire. |
+| F-48 | Tableau de bord dossier | V2 — **Terminée** | Métriques par dossier : nombre de documents, nombre d'analyses terminées, total tokens consommés (pas de coût en euros, pas de durée). Visible depuis la page dossier. SF-48-01 mergée 2026-03-26 : `GET /api/v1/case-files/{id}/stats`. SF-48-02 mergée 2026-03-26 : bloc métriques Angular dans case-file-detail. |
 
 ### Auth & collaboration
 
@@ -271,3 +271,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-25 | F-51 SF-51-01 mergée — pipeline IA adaptatif : documents < 600k chars envoyés directement en analyse sans chunking (directAnalysis flag), seuil configurable, 5 tests unitaires. F-51 marquée Terminée | Product owner |
 | 2026-03-26 | F-52 SF-52-01 mergée — upload multi-documents en mode panier : sélection batch, liste de fichiers en attente, upload parallèle, feedback par fichier. F-52 marquée Terminée | Product owner |
 | 2026-03-26 | F-48 SF-48-01 mergée — GET /api/v1/case-files/{id}/stats : documentCount, analysisCount (DONE), totalTokens, isolation workspace, 4 tests unitaires + 4 tests intégration | Product owner |
+| 2026-03-26 | F-48 SF-48-02 mergée — bloc métriques Angular dans case-file-detail : CaseFileStats model, CaseFileStatsService, signal stats, rafraîchissement SSE DONE, formatage number pipe, styles JetBrains Mono. F-48 marquée Terminée | Product owner |
