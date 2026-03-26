@@ -91,6 +91,8 @@ class CaseFileStatusServiceTest {
     void close_nominal_setsStatusClosedAndLogsAudit() {
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(ownerMember));
         when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
+        when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
+                List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(false);
 
         service.close(caseFile.getId(), oidcUser, "GOOGLE", null);
 
@@ -102,10 +104,25 @@ class CaseFileStatusServiceTest {
     }
 
     @Test
+    void close_throws409IfAnalysisRunning() {
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(ownerMember));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
+        when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
+                List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(true);
+
+        assertThatThrownBy(() -> service.close(caseFile.getId(), oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(CONFLICT);
+    }
+
+    @Test
     void close_idempotent_doesNothingIfAlreadyClosed() {
         caseFile.setStatus("CLOSED");
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(lawyerMember));
         when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
+        when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
+                List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(false);
 
         service.close(caseFile.getId(), oidcUser, "GOOGLE", null);
 

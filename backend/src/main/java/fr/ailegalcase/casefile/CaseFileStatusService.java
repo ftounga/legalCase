@@ -55,6 +55,11 @@ public class CaseFileStatusService {
         WorkspaceMember member = resolveMembership(user);
         CaseFile caseFile = resolveCaseFile(caseFileId, member.getWorkspace().getId());
 
+        if (analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFileId, ACTIVE_STATUSES)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Une analyse est en cours sur ce dossier. Attendez la fin avant de le clôturer.");
+        }
+
         if (STATUS_OPEN.equals(caseFile.getStatus())) {
             caseFile.setStatus(STATUS_CLOSED);
             caseFileRepository.save(caseFile);
