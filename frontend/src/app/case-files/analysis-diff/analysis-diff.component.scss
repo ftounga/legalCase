@@ -215,9 +215,10 @@
 
   mat-icon { font-size: 15px; width: 15px; height: 15px; }
 
-  &--added   { background: #E8F5E9; color: #1B7A3E; }
-  &--removed { background: #FFEBEE; color: #C0392B; }
-  &--neutral { background: #F5F5F5; color: var(--color-text-secondary); }
+  &--added    { background: #E8F5E9; color: #1B7A3E; }
+  &--removed  { background: #FFEBEE; color: #C0392B; }
+  &--enriched { background: #EBF3FB; color: #1A5276; }
+  &--neutral  { background: #F5F5F5; color: var(--color-text-secondary); }
 }
 
 // ── Section cards ────────────────────────────────────────────────────────
@@ -268,9 +269,10 @@
   padding: 2px 8px;
   border-radius: 3px;
 
-  &--added   { background: #E8F5E9; color: #1B7A3E; }
-  &--removed { background: #FFEBEE; color: #C0392B; }
-  &--neutral { background: #F5F5F5; color: var(--color-text-secondary); }
+  &--added    { background: #E8F5E9; color: #1B7A3E; }
+  &--removed  { background: #FFEBEE; color: #C0392B; }
+  &--enriched { background: #EBF3FB; color: #1A5276; }
+  &--neutral  { background: #F5F5F5; color: var(--color-text-secondary); }
 }
 
 .section-body {
@@ -314,6 +316,13 @@
     color: var(--color-text-primary);
   }
 
+  &--enriched {
+    background: #EBF3FB;
+    border-left-color: #2980B9;
+    color: #1A3A5C;
+    cursor: default;
+  }
+
   &--timeline {
     align-items: center;
   }
@@ -329,6 +338,7 @@
   .diff-item--added &    { color: #27AE60; }
   .diff-item--removed &  { color: #C0392B; }
   .diff-item--unchanged & { color: var(--color-divider); }
+  .diff-item--enriched &  { color: #2980B9; }
 }
 
 .item-text--removed {

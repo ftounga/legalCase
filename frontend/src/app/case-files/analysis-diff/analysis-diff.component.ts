@@ -13,13 +13,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseFile } from '../../core/models/case-file.model';
-import { AnalysisDiff, CaseAnalysisVersionSummary, SectionDiff, TimelineDiffEntry } from '../../core/models/case-analysis.model';
+import { AnalysisDiff, CaseAnalysisVersionSummary, SectionDiff, TimelineSectionDiff } from '../../core/models/case-analysis.model';
 
 interface DiffSection {
   title: string;
   icon: string;
-  data: SectionDiff<string> | null;
-  timeline?: SectionDiff<TimelineDiffEntry>;
+  data: SectionDiff | null;
+  timeline?: TimelineSectionDiff;
 }
 
 @Component({
@@ -64,6 +64,14 @@ export class AnalysisDiffComponent implements OnInit {
     return d.faits.removed.length + d.pointsJuridiques.removed.length +
            d.risques.removed.length + d.questionsOuvertes.removed.length +
            d.timeline.removed.length;
+  });
+
+  readonly totalEnriched = computed(() => {
+    const d = this.diff();
+    if (!d) return 0;
+    return d.faits.enriched.length + d.pointsJuridiques.enriched.length +
+           d.risques.enriched.length + d.questionsOuvertes.enriched.length +
+           d.timeline.enriched.length;
   });
 
   readonly sections = computed((): DiffSection[] => {
@@ -145,10 +153,10 @@ export class AnalysisDiffComponent implements OnInit {
   totalItems(section: DiffSection): number {
     if (section.timeline) {
       const t = section.timeline;
-      return t.added.length + t.removed.length + t.unchanged.length;
+      return t.added.length + t.removed.length + t.unchanged.length + t.enriched.length;
     }
     const d = section.data!;
-    return d.added.length + d.removed.length + d.unchanged.length;
+    return d.added.length + d.removed.length + d.unchanged.length + d.enriched.length;
   }
 
   sectionAddedCount(section: DiffSection): number {
@@ -161,6 +169,12 @@ export class AnalysisDiffComponent implements OnInit {
     return section.timeline
       ? section.timeline.removed.length
       : section.data!.removed.length;
+  }
+
+  sectionEnrichedCount(section: DiffSection): number {
+    return section.timeline
+      ? section.timeline.enriched.length
+      : section.data!.enriched.length;
   }
 
   goBack(): void {

@@ -24,23 +24,37 @@ export interface CaseAnalysisVersionSummary {
   updatedAt: string;
 }
 
-export interface SectionDiff<T> {
-  added: T[];
-  removed: T[];
-  unchanged: T[];
+export interface DiffItem {
+  text: string;
+  reason: string | null;
 }
 
-export interface TimelineDiffEntry {
+export interface SectionDiff {
+  added: DiffItem[];
+  removed: DiffItem[];
+  unchanged: DiffItem[];
+  enriched: DiffItem[];
+}
+
+export interface TimelineDiffItem {
   date: string;
   evenement: string;
+  reason: string | null;
+}
+
+export interface TimelineSectionDiff {
+  added: TimelineDiffItem[];
+  removed: TimelineDiffItem[];
+  unchanged: TimelineDiffItem[];
+  enriched: TimelineDiffItem[];
 }
 
 export interface AnalysisDiff {
   from: { id: string; version: number; analysisType: string; updatedAt: string };
   to:   { id: string; version: number; analysisType: string; updatedAt: string };
-  faits: SectionDiff<string>;
-  pointsJuridiques: SectionDiff<string>;
-  risques: SectionDiff<string>;
-  questionsOuvertes: SectionDiff<string>;
-  timeline: SectionDiff<TimelineDiffEntry>;
+  faits: SectionDiff;
+  pointsJuridiques: SectionDiff;
+  risques: SectionDiff;
+  questionsOuvertes: SectionDiff;
+  timeline: TimelineSectionDiff;
 }

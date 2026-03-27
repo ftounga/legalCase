@@ -5,7 +5,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
-import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -22,14 +21,24 @@ const MOCK_VERSIONS: CaseAnalysisVersionSummary[] = [
 const MOCK_DIFF: AnalysisDiff = {
   from: { id: 'v1-id', version: 1, analysisType: 'STANDARD', updatedAt: '2024-01-01T00:00:00Z' },
   to:   { id: 'v2-id', version: 2, analysisType: 'ENRICHED', updatedAt: '2024-02-01T00:00:00Z' },
-  faits: { added: ['Nouveau fait'], removed: ['Ancien fait'], unchanged: ['Fait commun'] },
-  pointsJuridiques: { added: [], removed: [], unchanged: ['Art. L1234'] },
-  risques: { added: [], removed: [], unchanged: [] },
-  questionsOuvertes: { added: [], removed: [], unchanged: [] },
+  faits: {
+    added: [{ text: 'Nouveau fait', reason: 'Document contrat.pdf ajouté' }],
+    removed: [{ text: 'Ancien fait', reason: null }],
+    unchanged: [{ text: 'Fait commun', reason: null }],
+    enriched: [{ text: 'Fait enrichi', reason: 'Enrichi Q1' }]
+  },
+  pointsJuridiques: {
+    added: [], removed: [],
+    unchanged: [{ text: 'Art. L1234', reason: null }],
+    enriched: []
+  },
+  risques: { added: [], removed: [], unchanged: [], enriched: [] },
+  questionsOuvertes: { added: [], removed: [], unchanged: [], enriched: [] },
   timeline: {
-    added: [{ date: '2024-06-01', evenement: 'Jugement' }],
+    added: [{ date: '2024-06-01', evenement: 'Jugement', reason: null }],
     removed: [],
-    unchanged: [{ date: '2024-01-01', evenement: 'Embauche' }]
+    unchanged: [{ date: '2024-01-01', evenement: 'Embauche', reason: null }],
+    enriched: []
   }
 };
 
@@ -128,6 +137,30 @@ describe('AnalysisDiffComponent', () => {
     component.onVersionChange();
     // faits.removed=1
     expect(component.totalRemoved()).toBe(1);
+  });
+
+  it('totalEnriched() counts all enriched items across sections', () => {
+    component.fromId.set('v1-id');
+    component.toId.set('v2-id');
+    component.onVersionChange();
+    // faits.enriched=1
+    expect(component.totalEnriched()).toBe(1);
+  });
+
+  it('sectionEnrichedCount() returns enriched count for string section', () => {
+    component.fromId.set('v1-id');
+    component.toId.set('v2-id');
+    component.onVersionChange();
+    const faitsSection = component.sections()[0];
+    expect(component.sectionEnrichedCount(faitsSection)).toBe(1);
+  });
+
+  it('sectionEnrichedCount() returns 0 for section with no enriched', () => {
+    component.fromId.set('v1-id');
+    component.toId.set('v2-id');
+    component.onVersionChange();
+    const timelineSection = component.sections()[4];
+    expect(component.sectionEnrichedCount(timelineSection)).toBe(0);
   });
 
   it('shows snackbar error when getDiff fails', () => {
