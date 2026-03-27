@@ -307,6 +307,7 @@ ai_questions
 ai_question_answers
 analysis_documents
 analysis_diff_cache
+analysis_qa_snapshots
 
 ## Exploitation
 
@@ -831,6 +832,36 @@ Règles :
 - Lu avant tout appel Haiku (cache hit → retour direct, < 50ms)
 - Entrée corrompue → supprimée et recalculée automatiquement
 - Pas de TTL : validité permanente
+
+---
+
+## Table analysis_qa_snapshots
+
+Table :
+
+analysis_qa_snapshots
+
+Objectif : figer l'état des Q&A au moment de la création d'une analyse enrichie, pour que le diff sémantique utilise le contexte Q&R exact de la version TO et non l'état courant au moment du diff.
+
+Colonnes :
+
+- id UUID PK
+- analysis_id UUID NOT NULL — FK → case_analyses(id)
+- order_index INT NOT NULL
+- question_text TEXT NOT NULL
+- answer_text TEXT NOT NULL
+- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+Index :
+
+idx_analysis_qa_snapshots_analysis_id
+
+Règles :
+
+- Écrit par AnalysisQaSnapshotService.snapshot() dans prepareEnrichedAnalysis(), après le snapshot documents
+- Lu par SemanticDiffService.buildContext() via buildQaContext(toAnalysisId)
+- Si absent (analyses créées avant cette migration) → fallback sur l'état courant des Q&A du dossier
+- Immuable après création : représente la photo figée à l'instant T de l'analyse
 
 ---
 
