@@ -45,11 +45,12 @@ class SentryJobReportingTest {
 
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
+    private final AnalysisQaSnapshotService analysisQaSnapshotService = mock(AnalysisQaSnapshotService.class);
 
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService);
+            analysisDocumentSnapshotService, analysisQaSnapshotService);
 
     @BeforeEach
     void setUp() {

@@ -31,11 +31,12 @@ class EnrichedAnalysisServiceTest {
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
+    private final AnalysisQaSnapshotService analysisQaSnapshotService = mock(AnalysisQaSnapshotService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService);
+            analysisDocumentSnapshotService, analysisQaSnapshotService);
 
     @BeforeEach
     void setUp() {
