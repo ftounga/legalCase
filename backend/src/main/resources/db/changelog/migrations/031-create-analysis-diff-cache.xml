@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="031-create-analysis-diff-cache" author="system">
+        <createTable tableName="analysis_diff_cache">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="from_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="to_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_json" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+            tableName="analysis_diff_cache"
+            columnNames="from_id, to_id"
+            constraintName="uq_analysis_diff_cache_from_to"/>
+
+        <createIndex tableName="analysis_diff_cache" indexName="idx_analysis_diff_cache_from_to">
+            <column name="from_id"/>
+            <column name="to_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
