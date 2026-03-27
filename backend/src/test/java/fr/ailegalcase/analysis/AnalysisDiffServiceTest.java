@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
@@ -28,9 +29,15 @@ class AnalysisDiffServiceTest {
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
+    private final AnalysisDiffCacheRepository analysisDiffCacheRepository = mock(AnalysisDiffCacheRepository.class);
+    private final SemanticDiffService semanticDiffService = mock(SemanticDiffService.class);
+    private final AnalysisDocumentRepository analysisDocumentRepository = mock(AnalysisDocumentRepository.class);
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     private final AnalysisDiffService service = new AnalysisDiffService(
-            caseAnalysisRepository, caseFileRepository, workspaceMemberRepository, currentUserResolver);
+            caseAnalysisRepository, caseFileRepository, workspaceMemberRepository,
+            currentUserResolver, analysisDiffCacheRepository, semanticDiffService,
+            analysisDocumentRepository, objectMapper);
 
     private User user;
     private Workspace workspace;
@@ -40,7 +47,6 @@ class AnalysisDiffServiceTest {
     @BeforeEach
     void setUp() {
         user = new User();
-
         workspace = new Workspace();
         workspace.setId(UUID.randomUUID());
 
@@ -51,137 +57,53 @@ class AnalysisDiffServiceTest {
         caseFile.setWorkspace(workspace);
 
         when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
-        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user))
-                .thenReturn(Optional.of(member));
-        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId))
-                .thenReturn(Optional.of(caseFile));
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(analysisDiffCacheRepository.findByFromIdAndToId(any(), any())).thenReturn(Optional.empty());
+        when(analysisDocumentRepository.findByAnalysisIdOrderByCreatedAt(any())).thenReturn(List.of());
     }
 
-    // ─── Nominal diff ────────────────────────────────────────────────────────
+    // ─── Cache ───────────────────────────────────────────────────────────────
 
     @Test
-    void diff_nominal_faits_added_removed_unchanged() {
+    void diff_cacheMiss_callsSemanticDiffAndPersistsCache() throws Exception {
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
 
-        CaseAnalysis from = doneAnalysis(fromId, caseFileId,
-                """
-                {"faits":["A","B"],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
-                """);
-        CaseAnalysis to = doneAnalysis(toId, caseFileId,
-                """
-                {"faits":["B","C"],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
-                """);
-
+        CaseAnalysis from = doneAnalysis(fromId, caseFileId, emptyJson());
+        CaseAnalysis to = doneAnalysis(toId, caseFileId, emptyJson());
         when(caseAnalysisRepository.findByIdAndCaseFileId(fromId, caseFileId)).thenReturn(Optional.of(from));
         when(caseAnalysisRepository.findByIdAndCaseFileId(toId, caseFileId)).thenReturn(Optional.of(to));
 
-        AnalysisDiffResponse result = service.diff(caseFileId, fromId, toId, null, "GOOGLE", null);
+        AnalysisDiffResponse fakeResponse = emptyDiffResponse(fromId, toId);
+        when(semanticDiffService.diff(from, to, List.of(), List.of())).thenReturn(fakeResponse);
+        when(analysisDiffCacheRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThat(result.faits().added()).containsExactly("C");
-        assertThat(result.faits().removed()).containsExactly("A");
-        assertThat(result.faits().unchanged()).containsExactly("B");
+        service.diff(caseFileId, fromId, toId, null, "GOOGLE", null);
+
+        verify(semanticDiffService).diff(from, to, List.of(), List.of());
+        verify(analysisDiffCacheRepository).save(any());
     }
 
     @Test
-    void diff_nominal_timeline_equality_on_date_and_evenement() {
+    void diff_cacheHit_doesNotCallSemanticDiff() throws Exception {
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
 
-        CaseAnalysis from = doneAnalysis(fromId, caseFileId,
-                """
-                {"faits":[],"points_juridiques":[],"risques":[],"questions_ouvertes":[],
-                 "timeline":[{"date":"2024-01-01","evenement":"Embauche"},{"date":"2024-06-01","evenement":"Licenciement"}]}
-                """);
-        CaseAnalysis to = doneAnalysis(toId, caseFileId,
-                """
-                {"faits":[],"points_juridiques":[],"risques":[],"questions_ouvertes":[],
-                 "timeline":[{"date":"2024-01-01","evenement":"Embauche"},{"date":"2024-07-01","evenement":"Jugement"}]}
-                """);
-
+        CaseAnalysis from = doneAnalysis(fromId, caseFileId, emptyJson());
+        CaseAnalysis to = doneAnalysis(toId, caseFileId, emptyJson());
         when(caseAnalysisRepository.findByIdAndCaseFileId(fromId, caseFileId)).thenReturn(Optional.of(from));
         when(caseAnalysisRepository.findByIdAndCaseFileId(toId, caseFileId)).thenReturn(Optional.of(to));
 
-        AnalysisDiffResponse result = service.diff(caseFileId, fromId, toId, null, "GOOGLE", null);
-
-        assertThat(result.timeline().unchanged())
-                .extracting(AnalysisDiffResponse.TimelineEntry::evenement)
-                .containsExactly("Embauche");
-        assertThat(result.timeline().removed())
-                .extracting(AnalysisDiffResponse.TimelineEntry::evenement)
-                .containsExactly("Licenciement");
-        assertThat(result.timeline().added())
-                .extracting(AnalysisDiffResponse.TimelineEntry::evenement)
-                .containsExactly("Jugement");
-    }
-
-    @Test
-    void diff_identicalLists_allUnchanged() {
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-
-        String json = """
-                {"faits":["A","B"],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
-                """;
-        CaseAnalysis from = doneAnalysis(fromId, caseFileId, json);
-        CaseAnalysis to = doneAnalysis(toId, caseFileId, json);
-
-        when(caseAnalysisRepository.findByIdAndCaseFileId(fromId, caseFileId)).thenReturn(Optional.of(from));
-        when(caseAnalysisRepository.findByIdAndCaseFileId(toId, caseFileId)).thenReturn(Optional.of(to));
+        AnalysisDiffResponse fakeResponse = emptyDiffResponse(fromId, toId);
+        AnalysisDiffCache cached = new AnalysisDiffCache();
+        cached.setResultJson(objectMapper.writeValueAsString(fakeResponse));
+        when(analysisDiffCacheRepository.findByFromIdAndToId(fromId, toId)).thenReturn(Optional.of(cached));
 
         AnalysisDiffResponse result = service.diff(caseFileId, fromId, toId, null, "GOOGLE", null);
 
-        assertThat(result.faits().added()).isEmpty();
-        assertThat(result.faits().removed()).isEmpty();
-        assertThat(result.faits().unchanged()).containsExactlyInAnyOrder("A", "B");
-    }
-
-    @Test
-    void diff_fromEmpty_allItemsInAdded() {
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-
-        CaseAnalysis from = doneAnalysis(fromId, caseFileId,
-                """
-                {"faits":[],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
-                """);
-        CaseAnalysis to = doneAnalysis(toId, caseFileId,
-                """
-                {"faits":["X","Y"],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
-                """);
-
-        when(caseAnalysisRepository.findByIdAndCaseFileId(fromId, caseFileId)).thenReturn(Optional.of(from));
-        when(caseAnalysisRepository.findByIdAndCaseFileId(toId, caseFileId)).thenReturn(Optional.of(to));
-
-        AnalysisDiffResponse result = service.diff(caseFileId, fromId, toId, null, "GOOGLE", null);
-
-        assertThat(result.faits().added()).containsExactlyInAnyOrder("X", "Y");
-        assertThat(result.faits().removed()).isEmpty();
-        assertThat(result.faits().unchanged()).isEmpty();
-    }
-
-    @Test
-    void diff_toEmpty_allItemsInRemoved() {
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-
-        CaseAnalysis from = doneAnalysis(fromId, caseFileId,
-                """
-                {"faits":["X","Y"],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
-                """);
-        CaseAnalysis to = doneAnalysis(toId, caseFileId,
-                """
-                {"faits":[],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
-                """);
-
-        when(caseAnalysisRepository.findByIdAndCaseFileId(fromId, caseFileId)).thenReturn(Optional.of(from));
-        when(caseAnalysisRepository.findByIdAndCaseFileId(toId, caseFileId)).thenReturn(Optional.of(to));
-
-        AnalysisDiffResponse result = service.diff(caseFileId, fromId, toId, null, "GOOGLE", null);
-
-        assertThat(result.faits().removed()).containsExactlyInAnyOrder("X", "Y");
-        assertThat(result.faits().added()).isEmpty();
-        assertThat(result.faits().unchanged()).isEmpty();
+        verify(semanticDiffService, never()).diff(any(), any(), any(), any());
+        assertThat(result.from().id()).isEqualTo(fromId);
     }
 
     // ─── Error cases ─────────────────────────────────────────────────────────
@@ -202,7 +124,6 @@ class AnalysisDiffServiceTest {
 
         CaseAnalysis from = doneAnalysis(fromId, caseFileId, emptyJson());
         CaseAnalysis to = analysisWithStatus(toId, caseFileId, AnalysisStatus.PROCESSING, emptyJson());
-
         when(caseAnalysisRepository.findByIdAndCaseFileId(fromId, caseFileId)).thenReturn(Optional.of(from));
         when(caseAnalysisRepository.findByIdAndCaseFileId(toId, caseFileId)).thenReturn(Optional.of(to));
 
@@ -216,7 +137,6 @@ class AnalysisDiffServiceTest {
     void diff_analysisFromAnotherCaseFile_returns404() {
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
-
         when(caseAnalysisRepository.findByIdAndCaseFileId(fromId, caseFileId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.diff(caseFileId, fromId, toId, null, "GOOGLE", null))
@@ -234,9 +154,7 @@ class AnalysisDiffServiceTest {
         otherWorkspace.setId(UUID.randomUUID());
         CaseFile otherCaseFile = new CaseFile();
         otherCaseFile.setWorkspace(otherWorkspace);
-
-        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId))
-                .thenReturn(Optional.of(otherCaseFile));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)).thenReturn(Optional.of(otherCaseFile));
 
         assertThatThrownBy(() -> service.diff(caseFileId, fromId, toId, null, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -269,5 +187,15 @@ class AnalysisDiffServiceTest {
         return """
                 {"faits":[],"points_juridiques":[],"risques":[],"questions_ouvertes":[],"timeline":[]}
                 """;
+    }
+
+    private AnalysisDiffResponse emptyDiffResponse(UUID fromId, UUID toId) {
+        AnalysisDiffResponse.VersionInfo from = new AnalysisDiffResponse.VersionInfo(fromId, 1, "STANDARD", Instant.now());
+        AnalysisDiffResponse.VersionInfo to = new AnalysisDiffResponse.VersionInfo(toId, 2, "STANDARD", Instant.now());
+        AnalysisDiffResponse.SectionDiff empty = new AnalysisDiffResponse.SectionDiff(
+                List.of(), List.of(), List.of(), List.of());
+        AnalysisDiffResponse.TimelineSectionDiff emptyTimeline = new AnalysisDiffResponse.TimelineSectionDiff(
+                List.of(), List.of(), List.of(), List.of());
+        return new AnalysisDiffResponse(from, to, empty, empty, empty, empty, emptyTimeline);
     }
 }

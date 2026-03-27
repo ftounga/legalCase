@@ -6,6 +6,8 @@ import fr.ailegalcase.audit.AuditLog;
 import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.document.DocumentExtractionRepository;
+import fr.ailegalcase.document.ExtractionStatus;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -27,9 +29,12 @@ public class CaseFileStatusService {
     private static final String STATUS_CLOSED = "CLOSED";
     private static final List<AnalysisStatus> ACTIVE_STATUSES =
             List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING);
+    private static final List<ExtractionStatus> ACTIVE_EXTRACTION_STATUSES =
+            List.of(ExtractionStatus.PENDING, ExtractionStatus.PROCESSING);
 
     private final CaseFileRepository caseFileRepository;
     private final AnalysisJobRepository analysisJobRepository;
+    private final DocumentExtractionRepository documentExtractionRepository;
     private final AuditLogRepository auditLogRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final PlanLimitService planLimitService;
@@ -37,12 +42,14 @@ public class CaseFileStatusService {
 
     public CaseFileStatusService(CaseFileRepository caseFileRepository,
                                  AnalysisJobRepository analysisJobRepository,
+                                 DocumentExtractionRepository documentExtractionRepository,
                                  AuditLogRepository auditLogRepository,
                                  WorkspaceMemberRepository workspaceMemberRepository,
                                  PlanLimitService planLimitService,
                                  CurrentUserResolver currentUserResolver) {
         this.caseFileRepository = caseFileRepository;
         this.analysisJobRepository = analysisJobRepository;
+        this.documentExtractionRepository = documentExtractionRepository;
         this.auditLogRepository = auditLogRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.planLimitService = planLimitService;
@@ -55,7 +62,7 @@ public class CaseFileStatusService {
         WorkspaceMember member = resolveMembership(user);
         CaseFile caseFile = resolveCaseFile(caseFileId, member.getWorkspace().getId());
 
-        if (analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFileId, ACTIVE_STATUSES)) {
+        if (isPipelineActive(caseFileId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Une analyse est en cours sur ce dossier. Attendez la fin avant de le clôturer.");
         }
@@ -102,7 +109,7 @@ public class CaseFileStatusService {
 
         CaseFile caseFile = resolveCaseFile(caseFileId, member.getWorkspace().getId());
 
-        if (analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFileId, ACTIVE_STATUSES)) {
+        if (isPipelineActive(caseFileId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Une analyse est en cours sur ce dossier. Attendez la fin avant de le supprimer.");
         }
@@ -110,6 +117,12 @@ public class CaseFileStatusService {
         caseFile.setDeletedAt(Instant.now());
         caseFileRepository.save(caseFile);
         saveAuditLog("CASE_FILE_DELETED", caseFile, user, member.getWorkspace().getId());
+    }
+
+    private boolean isPipelineActive(UUID caseFileId) {
+        return analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFileId, ACTIVE_STATUSES)
+                || documentExtractionRepository.existsByDocumentCaseFileIdAndExtractionStatusIn(
+                        caseFileId, ACTIVE_EXTRACTION_STATUSES);
     }
 
     private WorkspaceMember resolveMembership(User user) {

@@ -1,11 +1,14 @@
 package fr.ailegalcase.analysis;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -13,31 +16,42 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class AnalysisDiffService {
 
+    private static final Logger log = LoggerFactory.getLogger(AnalysisDiffService.class);
+
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final AnalysisDiffCacheRepository analysisDiffCacheRepository;
+    private final SemanticDiffService semanticDiffService;
+    private final AnalysisDocumentRepository analysisDocumentRepository;
+    private final ObjectMapper objectMapper;
 
     public AnalysisDiffService(CaseAnalysisRepository caseAnalysisRepository,
                                CaseFileRepository caseFileRepository,
                                WorkspaceMemberRepository workspaceMemberRepository,
-                               CurrentUserResolver currentUserResolver) {
+                               CurrentUserResolver currentUserResolver,
+                               AnalysisDiffCacheRepository analysisDiffCacheRepository,
+                               SemanticDiffService semanticDiffService,
+                               AnalysisDocumentRepository analysisDocumentRepository,
+                               ObjectMapper objectMapper) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
+        this.analysisDiffCacheRepository = analysisDiffCacheRepository;
+        this.semanticDiffService = semanticDiffService;
+        this.analysisDocumentRepository = analysisDocumentRepository;
+        this.objectMapper = objectMapper;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AnalysisDiffResponse diff(UUID caseFileId, UUID fromId, UUID toId,
                                      OidcUser oidcUser, String provider, Principal principal) {
         if (fromId.equals(toId)) {
@@ -69,75 +83,35 @@ public class AnalysisDiffService {
                     "Both analyses must have status DONE");
         }
 
-        CaseAnalysisResponse fromResponse = CaseAnalysisResponse.from(from);
-        CaseAnalysisResponse toResponse = CaseAnalysisResponse.from(to);
-
-        return new AnalysisDiffResponse(
-                toVersionInfo(from),
-                toVersionInfo(to),
-                diffStrings(fromResponse.faits(), toResponse.faits()),
-                diffStrings(fromResponse.pointsJuridiques(), toResponse.pointsJuridiques()),
-                diffStrings(fromResponse.risques(), toResponse.risques()),
-                diffStrings(fromResponse.questionsOuvertes(), toResponse.questionsOuvertes()),
-                diffTimeline(fromResponse.timeline(), toResponse.timeline())
-        );
-    }
-
-    private AnalysisDiffResponse.VersionInfo toVersionInfo(CaseAnalysis analysis) {
-        return new AnalysisDiffResponse.VersionInfo(
-                analysis.getId(),
-                analysis.getVersion(),
-                analysis.getAnalysisType().name(),
-                analysis.getUpdatedAt()
-        );
-    }
-
-    private AnalysisDiffResponse.SectionDiff<String> diffStrings(List<String> from, List<String> to) {
-        Set<String> fromSet = new LinkedHashSet<>(from);
-        Set<String> toSet = new LinkedHashSet<>(to);
-
-        List<String> unchanged = new ArrayList<>();
-        List<String> removed = new ArrayList<>();
-        for (String item : fromSet) {
-            if (toSet.contains(item)) unchanged.add(item);
-            else removed.add(item);
+        // Cache hit
+        try {
+            var cached = analysisDiffCacheRepository.findByFromIdAndToId(fromId, toId);
+            if (cached.isPresent()) {
+                return objectMapper.readValue(cached.get().getResultJson(), AnalysisDiffResponse.class);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to read diff cache for ({}, {}), recomputing: {}", fromId, toId, e.getMessage());
+            analysisDiffCacheRepository.findByFromIdAndToId(fromId, toId)
+                    .ifPresent(analysisDiffCacheRepository::delete);
         }
-        List<String> added = toSet.stream()
-                .filter(item -> !fromSet.contains(item))
-                .toList();
 
-        return new AnalysisDiffResponse.SectionDiff<>(added, removed, unchanged);
-    }
+        // Compute
+        List<AnalysisDocument> fromDocs = analysisDocumentRepository.findByAnalysisIdOrderByCreatedAt(fromId);
+        List<AnalysisDocument> toDocs = analysisDocumentRepository.findByAnalysisIdOrderByCreatedAt(toId);
 
-    private AnalysisDiffResponse.SectionDiff<AnalysisDiffResponse.TimelineEntry> diffTimeline(
-            List<CaseAnalysisResponse.TimelineEntry> from,
-            List<CaseAnalysisResponse.TimelineEntry> to) {
+        AnalysisDiffResponse response = semanticDiffService.diff(from, to, fromDocs, toDocs);
 
-        Set<String> fromKeys = new LinkedHashSet<>();
-        for (CaseAnalysisResponse.TimelineEntry e : from) fromKeys.add(key(e));
-
-        Set<String> toKeys = new LinkedHashSet<>();
-        for (CaseAnalysisResponse.TimelineEntry e : to) toKeys.add(key(e));
-
-        List<AnalysisDiffResponse.TimelineEntry> unchanged = new ArrayList<>();
-        List<AnalysisDiffResponse.TimelineEntry> removed = new ArrayList<>();
-        for (CaseAnalysisResponse.TimelineEntry e : from) {
-            if (toKeys.contains(key(e))) unchanged.add(toDiffEntry(e));
-            else removed.add(toDiffEntry(e));
+        // Persist cache
+        try {
+            AnalysisDiffCache cache = new AnalysisDiffCache();
+            cache.setFromId(fromId);
+            cache.setToId(toId);
+            cache.setResultJson(objectMapper.writeValueAsString(response));
+            analysisDiffCacheRepository.save(cache);
+        } catch (Exception e) {
+            log.warn("Failed to persist diff cache for ({}, {}): {}", fromId, toId, e.getMessage());
         }
-        List<AnalysisDiffResponse.TimelineEntry> added = to.stream()
-                .filter(e -> !fromKeys.contains(key(e)))
-                .map(this::toDiffEntry)
-                .toList();
 
-        return new AnalysisDiffResponse.SectionDiff<>(added, removed, unchanged);
-    }
-
-    private String key(CaseAnalysisResponse.TimelineEntry e) {
-        return e.date() + "§" + e.evenement();
-    }
-
-    private AnalysisDiffResponse.TimelineEntry toDiffEntry(CaseAnalysisResponse.TimelineEntry e) {
-        return new AnalysisDiffResponse.TimelineEntry(e.date(), e.evenement());
+        return response;
     }
 }

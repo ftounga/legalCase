@@ -7,16 +7,28 @@ import java.util.UUID;
 public record AnalysisDiffResponse(
         VersionInfo from,
         VersionInfo to,
-        SectionDiff<String> faits,
-        SectionDiff<String> pointsJuridiques,
-        SectionDiff<String> risques,
-        SectionDiff<String> questionsOuvertes,
-        SectionDiff<TimelineEntry> timeline
+        SectionDiff faits,
+        SectionDiff pointsJuridiques,
+        SectionDiff risques,
+        SectionDiff questionsOuvertes,
+        TimelineSectionDiff timeline
 ) {
 
     public record VersionInfo(UUID id, int version, String analysisType, Instant updatedAt) {}
 
-    public record SectionDiff<T>(List<T> added, List<T> removed, List<T> unchanged) {}
+    public record DiffItem(String text, String reason) {}
 
-    public record TimelineEntry(String date, String evenement) {}
+    public record SectionDiff(
+            List<DiffItem> added,
+            List<DiffItem> removed,
+            List<DiffItem> unchanged,
+            List<DiffItem> enriched) {}
+
+    public record TimelineDiffItem(String date, String evenement, String reason) {}
+
+    public record TimelineSectionDiff(
+            List<TimelineDiffItem> added,
+            List<TimelineDiffItem> removed,
+            List<TimelineDiffItem> unchanged,
+            List<TimelineDiffItem> enriched) {}
 }
