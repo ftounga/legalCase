@@ -166,10 +166,25 @@ h4 { font-size: 18px; font-weight: 600; }
   background-color: var(--color-background);
 }
 
+// ─── Tooltip diff reason ──────────────────────────────────────────────────
+.diff-reason-tooltip {
+  max-width: 340px !important;
+
+  .mdc-tooltip__surface {
+    font-size: 0.8rem !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    max-width: 340px !important;
+    padding: 8px 12px !important;
+  }
+}
+
 // ─── Espace bas de page ───────────────────────────────────────────────────
-// padding-bottom sur le host mat-sidenav-content est absorbé par le
-// position:absolute top:0/bottom:0 d'Angular Material — on cible le
-// conteneur de scroll directement en global pour garantir l'espace.
-.mat-sidenav-content {
-  padding-bottom: var(--spacing-3xl) !important;
+// padding-bottom est absorbé par position:absolute top:0/bottom:0 d'Angular
+// Material. On utilise un pseudo-élément ::after qui s'ajoute au flux du
+// contenu scrollable et garantit l'espace en bas de chaque page.
+.mat-sidenav-content::after {
+  content: '';
+  display: block;
+  height: var(--spacing-3xl);
 }

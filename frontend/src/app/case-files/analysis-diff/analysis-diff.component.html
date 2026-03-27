@@ -31,7 +31,7 @@
       </div>
       <mat-form-field appearance="outline" class="version-select">
         <mat-label>Choisir une version</mat-label>
-        <mat-select [(ngModel)]="fromId" (ngModelChange)="onVersionChange()">
+        <mat-select [(ngModel)]="fromId">
           @for (v of versions(); track v.id) {
             <mat-option [value]="v.id" [disabled]="v.id === toId()">
               <span class="option-content">
@@ -47,9 +47,10 @@
       </mat-form-field>
     </mat-card>
 
-    <!-- Arrow -->
+    <!-- Arrow + convention hint -->
     <div class="selector-arrow">
       <mat-icon>east</mat-icon>
+      <span class="selector-hint">Les ajouts et suppressions sont calculés par rapport à la version de base</span>
     </div>
 
     <!-- To -->
@@ -60,7 +61,7 @@
       </div>
       <mat-form-field appearance="outline" class="version-select">
         <mat-label>Choisir une version</mat-label>
-        <mat-select [(ngModel)]="toId" (ngModelChange)="onVersionChange()">
+        <mat-select [(ngModel)]="toId">
           @for (v of versions(); track v.id) {
             <mat-option [value]="v.id" [disabled]="v.id === fromId()">
               <span class="option-content">
@@ -75,6 +76,24 @@
         </mat-select>
       </mat-form-field>
     </mat-card>
+  </div>
+
+  <!-- ── Alerte ordre inversé ──────────────────────────────────────── -->
+  @if (isOrderReversed()) {
+    <div class="order-warning">
+      <mat-icon>swap_horiz</mat-icon>
+      <span>La version de base est plus récente que la version à comparer. Les ajouts et suppressions seront inversés par rapport à la lecture habituelle.</span>
+    </div>
+  }
+
+  <!-- ── Bouton Comparer ────────────────────────────────────────────── -->
+  <div class="compare-action">
+    <button mat-flat-button color="primary"
+            [disabled]="!canCompute()"
+            (click)="onVersionChange()">
+      <mat-icon>compare_arrows</mat-icon>
+      Comparer
+    </button>
   </div>
 
   <!-- ── Loading diff ───────────────────────────────────────────────── -->

@@ -50,6 +50,16 @@ export class AnalysisDiffComponent implements OnInit {
     return !!f && !!t && f !== t;
   });
 
+  readonly isOrderReversed = computed(() => {
+    const f = this.fromId();
+    const t = this.toId();
+    if (!f || !t || f === t) return false;
+    const fromV = this.versions().find(v => v.id === f);
+    const toV   = this.versions().find(v => v.id === t);
+    if (!fromV || !toV) return false;
+    return fromV.version > toV.version;
+  });
+
   readonly totalAdded = computed(() => {
     const d = this.diff();
     if (!d) return 0;
