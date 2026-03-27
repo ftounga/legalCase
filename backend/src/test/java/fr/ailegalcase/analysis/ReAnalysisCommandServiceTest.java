@@ -20,9 +20,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Optional;
 import java.util.UUID;
 
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.PAYMENT_REQUIRED;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +33,8 @@ class ReAnalysisCommandServiceTest {
 
     @Mock private CaseFileRepository caseFileRepository;
     @Mock private AnalysisJobRepository analysisJobRepository;
+    @Mock private CaseAnalysisRepository caseAnalysisRepository;
+    @Mock private AiQuestionAnswerRepository aiQuestionAnswerRepository;
     @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private RabbitTemplate rabbitTemplate;
@@ -44,6 +49,7 @@ class ReAnalysisCommandServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReAnalysisCommandService(caseFileRepository, analysisJobRepository,
+                caseAnalysisRepository, aiQuestionAnswerRepository,
                 currentUserResolver, workspaceMemberRepository, rabbitTemplate, planLimitService);
     }
 
@@ -64,6 +70,17 @@ class ReAnalysisCommandServiceTest {
         lenient().when(analysisJobRepository.findByCaseFileIdAndJobType(any(), any()))
                 .thenReturn(Optional.empty());
         lenient().when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        // pas d'analyse enrichie précédente par défaut → garde non déclenché
+        lenient().when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        any(), any(), any()))
+                .thenReturn(Optional.empty());
+    }
+
+    private void mockPlanChecksOk() {
+        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
+        when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
+        when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(false);
     }
 
     // U-01 : plan PRO, sous la limite, budget non dépassé → re-analyse autorisée, RabbitMQ publié
@@ -129,6 +146,65 @@ class ReAnalysisCommandServiceTest {
                 eq(RabbitMQConfig.RE_ANALYSIS_EXCHANGE),
                 eq(RabbitMQConfig.RE_ANALYSIS_ROUTING_KEY),
                 any(ReAnalysisMessage.class));
+    }
+
+    // U-07 : premiere analyse enrichie (pas de DONE précédente) → autorisé même sans réponse
+    @Test
+    void triggerReAnalysis_firstEnriched_noGuard() {
+        mockUserWorkspaceAndCaseFile();
+        mockPlanChecksOk();
+        // caseAnalysisRepository retourne empty par défaut (mockUserWorkspaceAndCaseFile)
+
+        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
+
+        verify(rabbitTemplate).convertAndSend(any(), any(), any(ReAnalysisMessage.class));
+    }
+
+    // U-08 : analyse enrichie précédente existe, nouvelle réponse depuis → autorisé
+    @Test
+    void triggerReAnalysis_newAnswerSinceLastEnriched_allowed() {
+        mockUserWorkspaceAndCaseFile();
+        mockPlanChecksOk();
+
+        CaseAnalysis lastEnriched = new CaseAnalysis();
+        lastEnriched.setUpdatedAt(Instant.now().minusSeconds(3600));
+        when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        CASE_FILE_ID, AnalysisType.ENRICHED, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(lastEnriched));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any()))
+                .thenReturn(true);
+
+        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
+
+        verify(rabbitTemplate).convertAndSend(any(), any(), any(ReAnalysisMessage.class));
+    }
+
+    // U-09 : analyse enrichie précédente existe, aucune nouvelle réponse → 409
+    @Test
+    void triggerReAnalysis_noNewAnswerSinceLastEnriched_throws409() {
+        mockUserWorkspaceAndCaseFile();
+        mockPlanChecksOk();
+
+        CaseAnalysis lastEnriched = new CaseAnalysis();
+        lastEnriched.setUpdatedAt(Instant.now().minusSeconds(3600));
+        when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        CASE_FILE_ID, AnalysisType.ENRICHED, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(lastEnriched));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any()))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    var rse = (ResponseStatusException) ex;
+                    assert rse.getStatusCode() == CONFLICT;
+                });
+
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
     }
 
     // U-06 : budget mensuel dépassé → 402, RabbitMQ non publié

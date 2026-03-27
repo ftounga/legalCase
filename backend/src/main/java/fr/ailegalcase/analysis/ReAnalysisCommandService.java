@@ -22,6 +22,8 @@ public class ReAnalysisCommandService {
 
     private final CaseFileRepository caseFileRepository;
     private final AnalysisJobRepository analysisJobRepository;
+    private final CaseAnalysisRepository caseAnalysisRepository;
+    private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final RabbitTemplate rabbitTemplate;
@@ -29,12 +31,16 @@ public class ReAnalysisCommandService {
 
     public ReAnalysisCommandService(CaseFileRepository caseFileRepository,
                                     AnalysisJobRepository analysisJobRepository,
+                                    CaseAnalysisRepository caseAnalysisRepository,
+                                    AiQuestionAnswerRepository aiQuestionAnswerRepository,
                                     CurrentUserResolver currentUserResolver,
                                     WorkspaceMemberRepository workspaceMemberRepository,
                                     RabbitTemplate rabbitTemplate,
                                     PlanLimitService planLimitService) {
         this.caseFileRepository = caseFileRepository;
         this.analysisJobRepository = analysisJobRepository;
+        this.caseAnalysisRepository = caseAnalysisRepository;
+        this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.rabbitTemplate = rabbitTemplate;
@@ -71,6 +77,19 @@ public class ReAnalysisCommandService {
             throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
                     "Budget tokens mensuel dépassé.");
         }
+
+        caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        caseFileId, AnalysisType.ENRICHED, AnalysisStatus.DONE)
+                .ifPresent(lastEnriched -> {
+                    boolean hasNewAnswers = aiQuestionAnswerRepository
+                            .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(
+                                    caseFileId, lastEnriched.getUpdatedAt());
+                    if (!hasNewAnswers) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "Aucune nouvelle réponse depuis la dernière analyse enrichie.");
+                    }
+                });
 
         AnalysisJob job = analysisJobRepository
                 .findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)
