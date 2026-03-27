@@ -113,7 +113,12 @@
             <mat-icon>remove</mat-icon>{{ totalRemoved() }} suppression{{ totalRemoved() > 1 ? 's' : '' }}
           </span>
         }
-        @if (totalAdded() === 0 && totalRemoved() === 0) {
+        @if (totalEnriched() > 0) {
+          <span class="count-chip count-chip--enriched">
+            <mat-icon>auto_awesome</mat-icon>{{ totalEnriched() }} enrichi{{ totalEnriched() > 1 ? 's' : '' }}
+          </span>
+        }
+        @if (totalAdded() === 0 && totalRemoved() === 0 && totalEnriched() === 0) {
           <span class="count-chip count-chip--neutral">
             <mat-icon>check</mat-icon>Aucune différence
           </span>
@@ -136,7 +141,10 @@
             @if (sectionRemovedCount(section) > 0) {
               <span class="mini-badge mini-badge--removed">−{{ sectionRemovedCount(section) }}</span>
             }
-            @if (sectionAddedCount(section) === 0 && sectionRemovedCount(section) === 0) {
+            @if (sectionEnrichedCount(section) > 0) {
+              <span class="mini-badge mini-badge--enriched">~{{ sectionEnrichedCount(section) }}</span>
+            }
+            @if (sectionAddedCount(section) === 0 && sectionRemovedCount(section) === 0 && sectionEnrichedCount(section) === 0) {
               <span class="mini-badge mini-badge--neutral">Inchangé</span>
             }
           </div>
@@ -147,28 +155,50 @@
             <p class="empty-section">Aucun élément dans cette section.</p>
           } @else if (!section.timeline) {
             <!-- String section -->
-            @for (item of section.data!.added; track item) {
-              <div class="diff-item diff-item--added">
+            @for (item of section.data!.added; track item.text) {
+              <div class="diff-item diff-item--added"
+                   [matTooltip]="item.reason!"
+                   [matTooltipDisabled]="!item.reason"
+                   matTooltipPosition="above"
+                   matTooltipClass="diff-reason-tooltip">
                 <mat-icon class="item-icon">add_circle_outline</mat-icon>
-                <span>{{ item }}</span>
+                <span>{{ item.text }}</span>
               </div>
             }
-            @for (item of section.data!.removed; track item) {
-              <div class="diff-item diff-item--removed">
+            @for (item of section.data!.removed; track item.text) {
+              <div class="diff-item diff-item--removed"
+                   [matTooltip]="item.reason!"
+                   [matTooltipDisabled]="!item.reason"
+                   matTooltipPosition="above"
+                   matTooltipClass="diff-reason-tooltip">
                 <mat-icon class="item-icon">remove_circle_outline</mat-icon>
-                <span class="item-text--removed">{{ item }}</span>
+                <span class="item-text--removed">{{ item.text }}</span>
               </div>
             }
-            @for (item of section.data!.unchanged; track item) {
+            @for (item of section.data!.enriched; track item.text) {
+              <div class="diff-item diff-item--enriched"
+                   [matTooltip]="item.reason!"
+                   [matTooltipDisabled]="!item.reason"
+                   matTooltipPosition="above"
+                   matTooltipClass="diff-reason-tooltip">
+                <mat-icon class="item-icon">auto_awesome</mat-icon>
+                <span>{{ item.text }}</span>
+              </div>
+            }
+            @for (item of section.data!.unchanged; track item.text) {
               <div class="diff-item diff-item--unchanged">
                 <mat-icon class="item-icon">remove</mat-icon>
-                <span>{{ item }}</span>
+                <span>{{ item.text }}</span>
               </div>
             }
           } @else {
             <!-- Timeline section -->
             @for (entry of section.timeline!.added; track entry.evenement) {
-              <div class="diff-item diff-item--added diff-item--timeline">
+              <div class="diff-item diff-item--added diff-item--timeline"
+                   [matTooltip]="entry.reason!"
+                   [matTooltipDisabled]="!entry.reason"
+                   matTooltipPosition="above"
+                   matTooltipClass="diff-reason-tooltip">
                 <mat-icon class="item-icon">add_circle_outline</mat-icon>
                 <span class="timeline-date">{{ entry.date }}</span>
                 <span class="timeline-sep">—</span>
@@ -176,11 +206,27 @@
               </div>
             }
             @for (entry of section.timeline!.removed; track entry.evenement) {
-              <div class="diff-item diff-item--removed diff-item--timeline">
+              <div class="diff-item diff-item--removed diff-item--timeline"
+                   [matTooltip]="entry.reason!"
+                   [matTooltipDisabled]="!entry.reason"
+                   matTooltipPosition="above"
+                   matTooltipClass="diff-reason-tooltip">
                 <mat-icon class="item-icon">remove_circle_outline</mat-icon>
                 <span class="timeline-date item-text--removed">{{ entry.date }}</span>
                 <span class="timeline-sep item-text--removed">—</span>
                 <span class="item-text--removed">{{ entry.evenement }}</span>
+              </div>
+            }
+            @for (entry of section.timeline!.enriched; track entry.evenement) {
+              <div class="diff-item diff-item--enriched diff-item--timeline"
+                   [matTooltip]="entry.reason!"
+                   [matTooltipDisabled]="!entry.reason"
+                   matTooltipPosition="above"
+                   matTooltipClass="diff-reason-tooltip">
+                <mat-icon class="item-icon">auto_awesome</mat-icon>
+                <span class="timeline-date">{{ entry.date }}</span>
+                <span class="timeline-sep">—</span>
+                <span>{{ entry.evenement }}</span>
               </div>
             }
             @for (entry of section.timeline!.unchanged; track entry.evenement) {
