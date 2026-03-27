@@ -13,6 +13,8 @@ public interface DocumentExtractionRepository extends JpaRepository<DocumentExtr
 
     Optional<DocumentExtraction> findByDocumentId(UUID documentId);
 
+    boolean existsByDocumentCaseFileIdAndExtractionStatusIn(UUID caseFileId, Collection<ExtractionStatus> statuses);
+
     @Query("SELECT e.document.caseFile.id FROM DocumentExtraction e WHERE e.id = :id")
     Optional<UUID> findCaseFileIdById(@Param("id") UUID id);
 

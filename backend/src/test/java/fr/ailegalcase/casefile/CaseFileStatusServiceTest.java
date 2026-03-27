@@ -6,6 +6,8 @@ import fr.ailegalcase.audit.AuditLog;
 import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.document.DocumentExtractionRepository;
+import fr.ailegalcase.document.ExtractionStatus;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
@@ -34,6 +36,7 @@ class CaseFileStatusServiceTest {
 
     @Mock private CaseFileRepository caseFileRepository;
     @Mock private AnalysisJobRepository analysisJobRepository;
+    @Mock private DocumentExtractionRepository documentExtractionRepository;
     @Mock private AuditLogRepository auditLogRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private PlanLimitService planLimitService;
@@ -52,7 +55,8 @@ class CaseFileStatusServiceTest {
     @BeforeEach
     void setUp() {
         service = new CaseFileStatusService(caseFileRepository, analysisJobRepository,
-                auditLogRepository, workspaceMemberRepository, planLimitService, currentUserResolver);
+                documentExtractionRepository, auditLogRepository, workspaceMemberRepository,
+                planLimitService, currentUserResolver);
 
         user = new User();
         user.setId(UUID.randomUUID());
@@ -93,6 +97,8 @@ class CaseFileStatusServiceTest {
         when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
         when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
                 List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(false);
+        when(documentExtractionRepository.existsByDocumentCaseFileIdAndExtractionStatusIn(caseFile.getId(),
+                List.of(ExtractionStatus.PENDING, ExtractionStatus.PROCESSING))).thenReturn(false);
 
         service.close(caseFile.getId(), oidcUser, "GOOGLE", null);
 
@@ -117,12 +123,29 @@ class CaseFileStatusServiceTest {
     }
 
     @Test
+    void close_throws409IfExtractionRunning() {
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(ownerMember));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
+        when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
+                List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(false);
+        when(documentExtractionRepository.existsByDocumentCaseFileIdAndExtractionStatusIn(caseFile.getId(),
+                List.of(ExtractionStatus.PENDING, ExtractionStatus.PROCESSING))).thenReturn(true);
+
+        assertThatThrownBy(() -> service.close(caseFile.getId(), oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(CONFLICT);
+    }
+
+    @Test
     void close_idempotent_doesNothingIfAlreadyClosed() {
         caseFile.setStatus("CLOSED");
         when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(lawyerMember));
         when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
         when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
                 List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(false);
+        when(documentExtractionRepository.existsByDocumentCaseFileIdAndExtractionStatusIn(caseFile.getId(),
+                List.of(ExtractionStatus.PENDING, ExtractionStatus.PROCESSING))).thenReturn(false);
 
         service.close(caseFile.getId(), oidcUser, "GOOGLE", null);
 
@@ -196,6 +219,8 @@ class CaseFileStatusServiceTest {
         when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
         when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
                 List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(false);
+        when(documentExtractionRepository.existsByDocumentCaseFileIdAndExtractionStatusIn(caseFile.getId(),
+                List.of(ExtractionStatus.PENDING, ExtractionStatus.PROCESSING))).thenReturn(false);
 
         service.delete(caseFile.getId(), oidcUser, "GOOGLE", null);
 
@@ -222,6 +247,21 @@ class CaseFileStatusServiceTest {
         when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
         when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
                 List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(true);
+
+        assertThatThrownBy(() -> service.delete(caseFile.getId(), oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(CONFLICT);
+    }
+
+    @Test
+    void delete_throws409IfExtractionRunning() {
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(ownerMember));
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(caseFile.getId())).thenReturn(Optional.of(caseFile));
+        when(analysisJobRepository.existsByCaseFileIdAndStatusIn(caseFile.getId(),
+                List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING))).thenReturn(false);
+        when(documentExtractionRepository.existsByDocumentCaseFileIdAndExtractionStatusIn(caseFile.getId(),
+                List.of(ExtractionStatus.PENDING, ExtractionStatus.PROCESSING))).thenReturn(true);
 
         assertThatThrownBy(() -> service.delete(caseFile.getId(), oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
