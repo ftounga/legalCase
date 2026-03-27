@@ -20,13 +20,15 @@ public class SemanticDiffService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static final String SYSTEM_PROMPT = """
-            Tu analyses la différence entre deux synthèses juridiques (FROM et TO) du même dossier.
+            Tu analyses la différence entre deux synthèses juridiques d'un même dossier.
+            La première synthèse est appelée "version de base", la seconde "nouvelle version".
             Pour chaque item, assigne un état :
-            - unchanged : sémantiquement identique dans FROM et TO
-            - added : nouveau dans TO, absent dans FROM
-            - removed : présent dans FROM, absent dans TO
-            - enriched : même concept dans FROM et TO mais reformulé ou enrichi dans TO
+            - unchanged : sémantiquement identique dans les deux versions
+            - added : nouveau dans la nouvelle version, absent de la version de base
+            - removed : présent dans la version de base, absent de la nouvelle version
+            - enriched : même concept dans les deux versions mais reformulé ou enrichi dans la nouvelle version
             Fournis une "reason" courte (20 mots max) pour added/removed/enriched. Pour unchanged, reason = null.
+            Dans les reasons, utilise "la nouvelle version" ou "la version de base" — n'utilise jamais les termes FROM ou TO.
             Réponds UNIQUEMENT avec un JSON valide, sans texte avant ni après.
             Format exact :
             {"faits":[{"text":"...","state":"unchanged|added|removed|enriched","reason":null|"..."}],"points_juridiques":[...],"risques":[...],"questions_ouvertes":[...],"timeline":[{"date":"...","evenement":"...","state":"...","reason":null|"..."}]}
@@ -53,7 +55,7 @@ public class SemanticDiffService {
 
         try {
             String prompt = buildPrompt(from, to, fromDocs, toDocs, toAnalysis.getAnalysisType(), caseFileId);
-            AnthropicResult result = anthropicService.analyzeFast(SYSTEM_PROMPT, prompt, 2048);
+            AnthropicResult result = anthropicService.analyzeFast(SYSTEM_PROMPT, prompt, 8096);
             return parseHaikuResponse(result.content(), fromAnalysis, toAnalysis);
         } catch (Exception e) {
             log.warn("Semantic diff failed for analyses {}/{}, falling back to exact diff: {}",
