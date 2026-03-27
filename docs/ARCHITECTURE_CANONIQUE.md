@@ -300,11 +300,13 @@ document_chunks
 
 ## Analyse IA
 
-chunk_analyses  
-document_analyses  
-case_analyses  
-ai_questions  
+chunk_analyses
+document_analyses
+case_analyses
+ai_questions
 ai_question_answers
+analysis_documents
+analysis_diff_cache
 
 ## Exploitation
 
@@ -764,6 +766,71 @@ Règles :
 Index :
 
 idx_chat_messages_case_file_id
+
+---
+
+# 18b — Snapshots documents par analyse
+
+Table :
+
+analysis_documents
+
+Objectif : associer les documents présents au moment d'une analyse à cette analyse, pour permettre l'attribution des raisons dans le diff sémantique.
+
+Champs :
+
+id (UUID PK — généré par JPA)
+analysis_id (UUID FK → case_analyses, cascade delete)
+document_id (UUID, sans FK — intentionnel : hard deletes sur documents)
+document_name (varchar 500, non nullable)
+created_at (timestamptz, non nullable)
+
+Contraintes :
+
+UNIQUE (analysis_id, document_id)
+
+Index :
+
+idx_analysis_documents_analysis_id
+
+Règles :
+
+- Remplie au moment de la création de chaque CaseAnalysis (STANDARD et ENRICHED) par AnalysisDocumentSnapshotService
+- document_id sans FK car les documents peuvent être supprimés définitivement (hard delete)
+- Lecture seule après insertion : pas de mise à jour
+
+---
+
+# 18c — Cache de diff sémantique
+
+Table :
+
+analysis_diff_cache
+
+Objectif : éviter d'appeler Haiku plusieurs fois pour la même paire d'analyses. Les analyses historiques étant immuables, le cache est permanent (pas d'invalidation).
+
+Champs :
+
+id (UUID PK — généré par JPA)
+from_id (UUID, non nullable — référence analysis source)
+to_id (UUID, non nullable — référence analysis cible)
+result_json (TEXT, non nullable — sérialisation JSON de AnalysisDiffResponse)
+created_at (timestamptz, non nullable)
+
+Contraintes :
+
+UNIQUE (from_id, to_id)
+
+Index :
+
+idx_analysis_diff_cache_from_to (from_id, to_id)
+
+Règles :
+
+- Écrit par AnalysisDiffService après chaque appel à SemanticDiffService
+- Lu avant tout appel Haiku (cache hit → retour direct, < 50ms)
+- Entrée corrompue → supprimée et recalculée automatiquement
+- Pas de TTL : validité permanente
 
 ---
 
