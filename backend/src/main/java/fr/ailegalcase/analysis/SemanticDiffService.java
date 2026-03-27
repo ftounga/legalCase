@@ -50,13 +50,16 @@ public class SemanticDiffService {
     private final AnthropicService anthropicService;
     private final AiQuestionRepository aiQuestionRepository;
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
+    private final AnalysisQaSnapshotService analysisQaSnapshotService;
 
     public SemanticDiffService(AnthropicService anthropicService,
                                AiQuestionRepository aiQuestionRepository,
-                               AiQuestionAnswerRepository aiQuestionAnswerRepository) {
+                               AiQuestionAnswerRepository aiQuestionAnswerRepository,
+                               AnalysisQaSnapshotService analysisQaSnapshotService) {
         this.anthropicService = anthropicService;
         this.aiQuestionRepository = aiQuestionRepository;
         this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
+        this.analysisQaSnapshotService = analysisQaSnapshotService;
     }
 
     public AnalysisDiffResponse diff(CaseAnalysis fromAnalysis, CaseAnalysis toAnalysis,
@@ -65,7 +68,8 @@ public class SemanticDiffService {
         CaseAnalysisResponse to = CaseAnalysisResponse.from(toAnalysis);
         UUID caseFileId = toAnalysis.getCaseFile().getId();
 
-        String context = buildContext(fromDocs, toDocs, toAnalysis.getAnalysisType(), caseFileId);
+        String context = buildContext(fromDocs, toDocs, toAnalysis.getAnalysisType(),
+                toAnalysis.getId(), caseFileId);
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<AnalysisDiffResponse.SectionDiff> faitsFuture =
@@ -129,7 +133,7 @@ public class SemanticDiffService {
     }
 
     String buildContext(List<AnalysisDocument> fromDocs, List<AnalysisDocument> toDocs,
-                        AnalysisType toType, UUID caseFileId) {
+                        AnalysisType toType, UUID toAnalysisId, UUID caseFileId) {
         Set<String> fromDocNames = fromDocs.stream()
                 .map(AnalysisDocument::getDocumentName)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -148,33 +152,38 @@ public class SemanticDiffService {
 
         if (toType == AnalysisType.ENRICHED) {
             sb.append("[Q&R de l'avocat]\n");
-            List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
-            List<AiQuestion> answered = questions.stream()
-                    .filter(q -> "ANSWERED".equals(q.getStatus())).toList();
-            if (answered.isEmpty()) {
-                sb.append("(aucune réponse)\n");
-            } else {
-                for (int i = 0; i < answered.size(); i++) {
-                    AiQuestion q = answered.get(i);
-                    String answer = aiQuestionAnswerRepository
-                            .findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId())
-                            .map(AiQuestionAnswer::getAnswerText)
-                            .orElse("(sans réponse)");
-                    sb.append("Q").append(i + 1).append(" : ").append(q.getQuestionText()).append("\n");
-                    sb.append("R").append(i + 1).append(" : ").append(answer).append("\n");
-                }
-            }
+            // Snapshot disponible → utiliser les Q&A figées au moment de l'analyse TO
+            // Fallback → état courant (rétrocompatibilité analyses sans snapshot)
+            String qaContent = analysisQaSnapshotService.buildQaContext(toAnalysisId)
+                    .orElseGet(() -> buildQaContextFromCurrent(caseFileId));
+            sb.append(qaContent.isEmpty() ? "(aucune réponse)\n" : qaContent);
             sb.append("\n");
         }
 
         return sb.toString();
     }
 
-    // kept package-visible for legacy tests on buildPrompt → delegate to buildContext
+    private String buildQaContextFromCurrent(UUID caseFileId) {
+        List<AiQuestion> answered = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)
+                .stream().filter(q -> "ANSWERED".equals(q.getStatus())).toList();
+        if (answered.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < answered.size(); i++) {
+            AiQuestion q = answered.get(i);
+            String answer = aiQuestionAnswerRepository
+                    .findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId())
+                    .map(AiQuestionAnswer::getAnswerText).orElse("(sans réponse)");
+            sb.append("Q").append(i + 1).append(" : ").append(q.getQuestionText()).append("\n");
+            sb.append("R").append(i + 1).append(" : ").append(answer).append("\n");
+        }
+        return sb.toString();
+    }
+
+    // kept package-visible for legacy tests
     String buildPrompt(CaseAnalysisResponse from, CaseAnalysisResponse to,
                        List<AnalysisDocument> fromDocs, List<AnalysisDocument> toDocs,
-                       AnalysisType toType, UUID caseFileId) {
-        String context = buildContext(fromDocs, toDocs, toType, caseFileId);
+                       AnalysisType toType, UUID toAnalysisId, UUID caseFileId) {
+        String context = buildContext(fromDocs, toDocs, toType, toAnalysisId, caseFileId);
         StringBuilder sb = new StringBuilder(context);
         sb.append("[Version de base]\n");
         appendSection(sb, "faits", from.faits());

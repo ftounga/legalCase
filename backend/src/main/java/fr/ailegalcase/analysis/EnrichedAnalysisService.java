@@ -52,6 +52,7 @@ public class EnrichedAnalysisService {
     private final UsageEventService usageEventService;
     private final ApplicationEventPublisher eventPublisher;
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
+    private final AnalysisQaSnapshotService analysisQaSnapshotService;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -64,7 +65,8 @@ public class EnrichedAnalysisService {
                                    AnthropicService anthropicService,
                                    UsageEventService usageEventService,
                                    ApplicationEventPublisher eventPublisher,
-                                   AnalysisDocumentSnapshotService analysisDocumentSnapshotService) {
+                                   AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
+                                   AnalysisQaSnapshotService analysisQaSnapshotService) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -74,6 +76,7 @@ public class EnrichedAnalysisService {
         this.usageEventService = usageEventService;
         this.eventPublisher = eventPublisher;
         this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
+        this.analysisQaSnapshotService = analysisQaSnapshotService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -150,6 +153,7 @@ public class EnrichedAnalysisService {
         enrichedAnalysis = caseAnalysisRepository.save(enrichedAnalysis);
 
         analysisDocumentSnapshotService.snapshot(enrichedAnalysis.getId(), caseFile);
+        analysisQaSnapshotService.snapshot(enrichedAnalysis.getId(), caseFileId);
 
         fr.ailegalcase.workspace.Workspace ws = caseFile.getWorkspace();
         String systemPrompt = buildSystemPrompt(

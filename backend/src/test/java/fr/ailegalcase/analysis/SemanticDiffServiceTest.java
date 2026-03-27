@@ -19,9 +19,10 @@ class SemanticDiffServiceTest {
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
+    private final AnalysisQaSnapshotService analysisQaSnapshotService = mock(AnalysisQaSnapshotService.class);
 
     private final SemanticDiffService service = new SemanticDiffService(
-            anthropicService, aiQuestionRepository, aiQuestionAnswerRepository);
+            anthropicService, aiQuestionRepository, aiQuestionAnswerRepository, analysisQaSnapshotService);
 
     // ─── exactDiff ───────────────────────────────────────────────────────────
 
@@ -230,7 +231,7 @@ class SemanticDiffServiceTest {
     }
 
     @Test
-    void buildContext_enrichedType_includesQR() {
+    void buildContext_enrichedType_includesQR_fallbackToCurrent() {
         CaseAnalysis from = analysisWithId(UUID.randomUUID(), analysisJson(List.of()));
         CaseAnalysis toEnriched = enrichedAnalysis(UUID.randomUUID(), analysisJson(List.of()));
 
@@ -244,13 +245,15 @@ class SemanticDiffServiceTest {
         AiQuestionAnswer answer = new AiQuestionAnswer();
         answer.setAnswerText("Motif économique");
 
+        // snapshot absent → fallback to current Q&A
+        when(analysisQaSnapshotService.buildQaContext(toEnriched.getId())).thenReturn(Optional.empty());
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(toEnriched.getCaseFile().getId()))
                 .thenReturn(List.of(q));
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
                 .thenReturn(Optional.of(answer));
 
         String context = service.buildContext(List.of(), List.of(), AnalysisType.ENRICHED,
-                toEnriched.getCaseFile().getId());
+                toEnriched.getId(), toEnriched.getCaseFile().getId());
 
         assertThat(context).contains("Q&R de l'avocat");
         assertThat(context).contains("Quel est le motif ?");
@@ -258,8 +261,24 @@ class SemanticDiffServiceTest {
     }
 
     @Test
+    void buildContext_enrichedType_usesSnapshotWhenAvailable() {
+        CaseAnalysis toEnriched = enrichedAnalysis(UUID.randomUUID(), analysisJson(List.of()));
+
+        when(analysisQaSnapshotService.buildQaContext(toEnriched.getId()))
+                .thenReturn(Optional.of("Q1 : Quel est le motif ?\nR1 : Motif économique\n"));
+
+        String context = service.buildContext(List.of(), List.of(), AnalysisType.ENRICHED,
+                toEnriched.getId(), toEnriched.getCaseFile().getId());
+
+        assertThat(context).contains("Quel est le motif ?");
+        assertThat(context).contains("Motif économique");
+        verifyNoInteractions(aiQuestionRepository);
+    }
+
+    @Test
     void buildContext_standardType_noQR() {
-        String context = service.buildContext(List.of(), List.of(), AnalysisType.STANDARD, UUID.randomUUID());
+        String context = service.buildContext(List.of(), List.of(), AnalysisType.STANDARD,
+                UUID.randomUUID(), UUID.randomUUID());
         assertThat(context).doesNotContain("Q&R de l'avocat");
     }
 
@@ -271,7 +290,7 @@ class SemanticDiffServiceTest {
         removedDoc.setDocumentName("avenant.pdf");
 
         String context = service.buildContext(List.of(removedDoc), List.of(addedDoc),
-                AnalysisType.STANDARD, UUID.randomUUID());
+                AnalysisType.STANDARD, UUID.randomUUID(), UUID.randomUUID());
 
         assertThat(context).contains("contrat.pdf");
         assertThat(context).contains("avenant.pdf");
