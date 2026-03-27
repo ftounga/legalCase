@@ -10,5 +10,7 @@ public interface AiQuestionAnswerRepository extends JpaRepository<AiQuestionAnsw
 
     Optional<AiQuestionAnswer> findFirstByAiQuestionIdOrderByCreatedAtDesc(UUID aiQuestionId);
 
+    boolean existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(UUID caseFileId, java.time.Instant after);
+
     void deleteByAiQuestionIdIn(Collection<UUID> aiQuestionIds);
 }

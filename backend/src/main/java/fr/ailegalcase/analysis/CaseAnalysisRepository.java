@@ -16,6 +16,9 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
     Optional<CaseAnalysis> findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
             UUID caseFileId, AnalysisStatus analysisStatus);
 
+    Optional<CaseAnalysis> findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+            UUID caseFileId, AnalysisType analysisType, AnalysisStatus analysisStatus);
+
     List<CaseAnalysis> findByCaseFileIdAndAnalysisStatusOrderByVersionDesc(
             UUID caseFileId, AnalysisStatus analysisStatus);
 

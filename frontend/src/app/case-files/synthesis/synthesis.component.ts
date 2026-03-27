@@ -224,6 +224,13 @@ export class SynthesisComponent implements OnInit {
       error: (err: any) => {
         this.reAnalyzing.set(false);
         if (err.status === 402) return;
+        if (err.status === 409) {
+          this.snackBar.open(
+            'Aucune nouvelle réponse depuis la dernière analyse enrichie.',
+            'Fermer', { duration: 6000, panelClass: ['snack-error'] }
+          );
+          return;
+        }
         this.snackBar.open('Erreur lors du déclenchement de la re-analyse', 'Fermer', {
           duration: 4000, panelClass: ['snack-error']
         });
