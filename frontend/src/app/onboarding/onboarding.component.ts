@@ -38,9 +38,16 @@ export class OnboardingComponent {
     });
   }
 
+  toUppercaseName(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const pos = input.selectionStart ?? 0;
+    this.form.get('name')!.setValue(input.value.toUpperCase(), { emitEvent: false });
+    input.setSelectionRange(pos, pos);
+  }
+
   submit(): void {
     if (this.form.invalid) return;
-    const name = this.form.value.name.trim();
+    const name = this.form.value.name.trim().toUpperCase();
 
     const ref = this.dialog.open(DomainPickerDialogComponent, {
       width: '640px',

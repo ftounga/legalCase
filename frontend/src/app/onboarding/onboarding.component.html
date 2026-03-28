@@ -9,7 +9,7 @@
       <form [formGroup]="form" (ngSubmit)="submit()">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Nom du cabinet / workspace</mat-label>
-          <input matInput formControlName="name" placeholder="Ex : Cabinet Dupont & Associés" autocomplete="off" />
+          <input matInput formControlName="name" placeholder="Ex : Cabinet Dupont & Associés" autocomplete="off" (input)="toUppercaseName($event)" />
           @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
             <mat-error>Le nom est obligatoire</mat-error>
           } @else if (form.get('name')?.hasError('minlength') && form.get('name')?.touched) {
