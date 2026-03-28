@@ -7,6 +7,11 @@ import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
@@ -35,6 +40,8 @@ class AuditLogAdminServiceTest {
     private final AuditLogAdminService service = new AuditLogAdminService(
             auditLogRepo, memberRepo, userRepo, currentUserResolver);
 
+    private static final PageRequest DEFAULT_PAGE = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+
     // U-01 : OWNER → retourne les logs de son workspace
     @Test
     void getAuditLogs_owner_returnsLogs() {
@@ -42,71 +49,38 @@ class AuditLogAdminServiceTest {
         UUID logId = UUID.randomUUID();
         AuditLog log = auditLog(logId, ctx.workspace.getId(), ctx.user.getId(),
                 "{\"caseFileTitle\":\"Licenciement Dupont\"}");
-        when(auditLogRepo.findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
-                .thenReturn(List.of(log));
+        when(auditLogRepo.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(log)));
         when(userRepo.findAllById(anyCollection())).thenReturn(List.of(ctx.user));
 
-        List<AuditLogResponse> result = service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null);
+        Page<AuditLogResponse> result = service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null, null, DEFAULT_PAGE);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).id()).isEqualTo(logId);
-        assertThat(result.get(0).userEmail()).isEqualTo(ctx.user.getEmail());
-        assertThat(result.get(0).caseFileTitle()).isEqualTo("Licenciement Dupont");
-        assertThat(result.get(0).action()).isEqualTo("DOCUMENT_DELETED");
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).id()).isEqualTo(logId);
+        assertThat(result.getContent().get(0).userEmail()).isEqualTo(ctx.user.getEmail());
+        assertThat(result.getContent().get(0).caseFileTitle()).isEqualTo("Licenciement Dupont");
+        assertThat(result.getContent().get(0).action()).isEqualTo("DOCUMENT_DELETED");
     }
 
     // U-02 : MEMBER → 403
     @Test
     void getAuditLogs_member_throws403() {
         var ctx = buildContext("MEMBER");
-        assertThatThrownBy(() -> service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null))
+        assertThatThrownBy(() -> service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null, null, DEFAULT_PAGE))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }
 
-    // U-03 : isolation workspace — logs d'un autre workspace non retournés
+    // U-03 : isolation workspace — findAll appelé avec Specification (contient le workspaceId)
     @Test
-    void getAuditLogs_isolationWorkspace_onlyReturnsOwnLogs() {
+    void getAuditLogs_isolationWorkspace_callsFindAllWithSpec() {
         var ctx = buildContext("OWNER");
-        UUID otherWorkspaceId = UUID.randomUUID();
-        AuditLog otherLog = auditLog(UUID.randomUUID(), otherWorkspaceId, UUID.randomUUID(), null);
+        when(auditLogRepo.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(Page.empty());
 
-        // repo filtre par workspace → retourne liste vide pour ce workspace
-        when(auditLogRepo.findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
-                .thenReturn(List.of());
+        service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null, null, DEFAULT_PAGE);
 
-        List<AuditLogResponse> result = service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null);
-
-        assertThat(result).isEmpty();
-        verify(auditLogRepo).findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId());
-        verify(auditLogRepo, never()).findTop50ByWorkspaceIdOrderByCreatedAtDesc(otherWorkspaceId);
-    }
-
-    // U-07 : sans params → appelle findTop50
-    @Test
-    void getAuditLogs_noDateParams_callsTop50() {
-        var ctx = buildContext("OWNER");
-        when(auditLogRepo.findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
-                .thenReturn(List.of());
-
-        service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null);
-
-        verify(auditLogRepo).findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId());
-        verify(auditLogRepo, never()).findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(any(), any(), any());
-    }
-
-    // U-08 : from + to → appelle findByWorkspaceIdAndCreatedAtBetween
-    @Test
-    void getAuditLogs_fromAndTo_callsBetween() {
-        var ctx = buildContext("OWNER");
-        Instant from = Instant.parse("2026-03-01T00:00:00Z");
-        Instant to   = Instant.parse("2026-03-31T23:59:59Z");
-        when(auditLogRepo.findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(ctx.workspace.getId(), from, to))
-                .thenReturn(List.of());
-
-        service.getAuditLogs(ctx.oidcUser, ctx.auth, from, to);
-
-        verify(auditLogRepo).findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(ctx.workspace.getId(), from, to);
+        verify(auditLogRepo).findAll(any(Specification.class), any(PageRequest.class));
         verify(auditLogRepo, never()).findTop50ByWorkspaceIdOrderByCreatedAtDesc(any());
     }
 
@@ -117,9 +91,48 @@ class AuditLogAdminServiceTest {
         Instant from = Instant.parse("2026-03-31T00:00:00Z");
         Instant to   = Instant.parse("2026-03-01T00:00:00Z");
 
-        assertThatThrownBy(() -> service.getAuditLogs(ctx.oidcUser, ctx.auth, from, to))
+        assertThatThrownBy(() -> service.getAuditLogs(ctx.oidcUser, ctx.auth, from, to, null, DEFAULT_PAGE))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("400");
+    }
+
+    // U-10 : sans params → findAll appelé avec Pageable par défaut
+    @Test
+    void getAuditLogs_noParams_callsFindAllWithPageable() {
+        var ctx = buildContext("OWNER");
+        when(auditLogRepo.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(Page.empty());
+
+        service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null, null, DEFAULT_PAGE);
+
+        verify(auditLogRepo).findAll(any(Specification.class), eq(DEFAULT_PAGE));
+        verify(auditLogRepo, never()).findTop50ByWorkspaceIdOrderByCreatedAtDesc(any());
+    }
+
+    // U-11 : action filter → findAll appelé (Specification inclut le filtre action)
+    @Test
+    void getAuditLogs_withAction_callsFindAll() {
+        var ctx = buildContext("OWNER");
+        when(auditLogRepo.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(Page.empty());
+
+        service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null, "DOCUMENT_DELETED", DEFAULT_PAGE);
+
+        verify(auditLogRepo).findAll(any(Specification.class), eq(DEFAULT_PAGE));
+    }
+
+    // U-12 : from + to + action + pageable — combinaison complète → findAll appelé une fois
+    @Test
+    void getAuditLogs_allFilters_callsFindAllOnce() {
+        var ctx = buildContext("OWNER");
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to   = Instant.parse("2026-03-31T23:59:59Z");
+        when(auditLogRepo.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(Page.empty());
+
+        service.getAuditLogs(ctx.oidcUser, ctx.auth, from, to, "DOCUMENT_DELETED", DEFAULT_PAGE);
+
+        verify(auditLogRepo, times(1)).findAll(any(Specification.class), eq(DEFAULT_PAGE));
     }
 
     // U-04 : exportCsv — retourne CSV avec header + toutes les entrées
@@ -142,12 +155,11 @@ class AuditLogAdminServiceTest {
         assertThat(csv).contains("owner@example.com");
         assertThat(csv).contains("Dossier A");
         assertThat(csv).contains("contrat.pdf");
-        // 2 data lines + header + BOM
         long lines = csv.lines().filter(l -> !l.isBlank()).count();
         assertThat(lines).isEqualTo(3);
     }
 
-    // U-05 : exportCsv — un champ avec virgule est entouré de guillemets (RFC 4180)
+    // U-05 : exportCsv — champ avec virgule → entouré de guillemets (RFC 4180)
     @Test
     void exportCsv_escapesFieldWithComma() {
         var ctx = buildContext("OWNER");
@@ -161,7 +173,6 @@ class AuditLogAdminServiceTest {
         byte[] result = service.exportCsv(ctx.oidcUser, ctx.auth);
         String csv = new String(result, java.nio.charset.StandardCharsets.UTF_8);
 
-        // field with comma must be wrapped in double quotes
         assertThat(csv).contains("\"Dupont, Marie\"");
     }
 

@@ -1,18 +1,14 @@
 package fr.ailegalcase.audit;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.UUID;
 
-public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
+public interface AuditLogRepository extends JpaRepository<AuditLog, UUID>, JpaSpecificationExecutor<AuditLog> {
+
     List<AuditLog> findTop50ByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
 
     List<AuditLog> findAllByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
-
-    List<AuditLog> findByWorkspaceIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(UUID workspaceId, java.time.Instant from);
-
-    List<AuditLog> findByWorkspaceIdAndCreatedAtLessThanEqualOrderByCreatedAtDesc(UUID workspaceId, java.time.Instant to);
-
-    List<AuditLog> findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(UUID workspaceId, java.time.Instant from, java.time.Instant to);
 }
