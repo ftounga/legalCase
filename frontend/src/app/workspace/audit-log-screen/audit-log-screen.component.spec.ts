@@ -18,10 +18,11 @@ describe('AuditLogScreenComponent', () => {
   let auditLogService: jasmine.SpyObj<AuditLogService>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
 
-  async function setup(logsReturn: any) {
-    auditLogService = jasmine.createSpyObj('AuditLogService', ['getAuditLogs']);
+  async function setup(logsReturn: any, exportReturn?: any) {
+    auditLogService = jasmine.createSpyObj('AuditLogService', ['getAuditLogs', 'exportCsv']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
     auditLogService.getAuditLogs.and.returnValue(logsReturn);
+    if (exportReturn) auditLogService.exportCsv.and.returnValue(exportReturn);
 
     await TestBed.configureTestingModule({
       imports: [AuditLogScreenComponent, NoopAnimationsModule],
@@ -116,5 +117,54 @@ describe('AuditLogScreenComponent', () => {
       jasmine.stringContaining('Erreur'), jasmine.any(String), jasmine.any(Object)
     );
     expect(component.accessDenied()).toBeFalse();
+  }));
+
+  // T-09 : exportCsv — appelle auditLogService.exportCsv()
+  it('T-09: exportCsv appelle le service et remet exporting à false', fakeAsync(async () => {
+    const blob = new Blob(['csv'], { type: 'text/csv' });
+    await setup(of(mockLogs), of(blob));
+
+    // mock anchor click to avoid JSDOM error
+    spyOn(document, 'createElement').and.callFake((tag: string) => {
+      if (tag === 'a') {
+        const a = jasmine.createSpyObj('a', ['click']);
+        (a as any).href = '';
+        (a as any).download = '';
+        return a;
+      }
+      return document.createElement(tag);
+    });
+
+    component.exportCsv();
+    tick();
+
+    expect(auditLogService.exportCsv).toHaveBeenCalled();
+    expect(component.exporting()).toBeFalse();
+  }));
+
+  // T-10 : exportCsv désactivé pendant l'export
+  it('T-10: exporting passe à true pendant l\'export', fakeAsync(async () => {
+    const blob = new Blob(['csv'], { type: 'text/csv' });
+    await setup(of(mockLogs), of(blob));
+
+    // before call: false
+    expect(component.exporting()).toBeFalse();
+    // after call (sync): resolves immediately with of(blob), so exporting goes back to false
+    component.exportCsv();
+    tick();
+    expect(component.exporting()).toBeFalse();
+  }));
+
+  // T-11 : exportCsv erreur → snackbar
+  it('T-11: exportCsv affiche un snackbar en cas d\'erreur', fakeAsync(async () => {
+    await setup(of(mockLogs), throwError(() => new Error('network error')));
+
+    component.exportCsv();
+    tick();
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining("Erreur lors de l'export"), jasmine.any(String), jasmine.any(Object)
+    );
+    expect(component.exporting()).toBeFalse();
   }));
 });
