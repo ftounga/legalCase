@@ -157,6 +157,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-67 | Wizard d'onboarding guidé | V2 — En cours | Wizard 4 étapes affiché au premier accès après création du workspace (Bienvenue / Créer un dossier / Ajouter des documents / Lancer une analyse). Skippable à tout moment. Persisté en localStorage. |
 | F-60 | Normalisation nom workspace en majuscules | V2 — **Terminée** | Le nom du workspace est converti en majuscules au moment de la saisie et stocké en majuscules en base. Concerne la création et la modification du nom. SF-60-01 mergée 2026-03-28. |
 | F-61 | Responsive mobile — Shell & navigation | V2 — **Terminée** | Sidebar rétractable sur mobile (menu hamburger), header adaptatif, navigation accessible sur téléphone. SF-61-01 mergée 2026-03-28. |
 | F-62 | Responsive mobile — Écrans principaux | V2 — **Terminée** | Adaptation mobile de case-file-detail, synthesis et liste des dossiers — colonnes empilées, upload accessible, synthèse lisible. SF-62-01 mergée 2026-03-28. |
@@ -197,6 +198,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-29 | F-67 ajoutée au backlog — Wizard d'onboarding guidé 4 étapes, skippable, localStorage | Product owner |
 | 2026-03-29 | F-29 Terminée (statut manquant corrigé) — SF-29-01 mergée 2026-03-28 : AnalysisLimitsProperties, LevelLimits, AnalysisJsonTruncator paramétré, configurable par domaine | Product owner |
 | 2026-03-28 | F-49 Terminée — SF-49-02 mergée : section top-up billing (3 cartes), createTopupSession(), ?topup=success/canceled, 14 tests Angular | Product owner |
 | 2026-03-28 | F-49 SF-49-01 mergée — table credit_purchases, TokenPack 1M/5M/20M, POST /topup-session, webhook mode=payment, PlanLimitService crédits globaux, 331 tests | Product owner |
