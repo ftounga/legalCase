@@ -157,7 +157,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-60 | Normalisation nom workspace en majuscules | V2 | Le nom du workspace est converti en majuscules au moment de la saisie et stocké en majuscules en base. Concerne la création et la modification du nom. |
+| F-60 | Normalisation nom workspace en majuscules | V2 — **Terminée** | Le nom du workspace est converti en majuscules au moment de la saisie et stocké en majuscules en base. Concerne la création et la modification du nom. SF-60-01 mergée 2026-03-28. |
 | F-41 | Partage dossier lecture seule | V2 | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. |
 | F-49 | Top-up de crédits tokens | V2 | Achat de tokens supplémentaires via Stripe (one-shot, hors abonnement) quand le quota mensuel est atteint. Table `credit_purchases`. Déduction prioritaire sur les crédits avant le quota plan. Webhook Stripe dédié. Visible dans la page Administration. |
 | F-42 | Export CSV journal d'actions | V2 | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). |
@@ -303,3 +303,4 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-28 | F-58 SF-58-02 mergée — frontend repricing : workspace-billing 4 plans (SOLO Recommandé, boutons différenciés), landing 4 cartes pricing (re-synthèse enrichie ✅ sur tous plans payants), workspace-admin PLAN_QUOTA, super-admin planLabel, 238 tests. F-58 marquée Terminée | Product owner |
 | 2026-03-28 | F-59 SF-59-01 mergée — AnalysisDiffComponent : signals activeFilter/unchangedVisible/collapsedSections, computed totaux, stats bar sticky, chips filtres, toggle inchangés, auto-collapse sections vides, collapsible au clic, raisons inline, 238 tests. F-59 marquée Terminée | Product owner |
 | 2026-03-28 | F-58 SF-58-03 mergée — fix affichage re-synthèse enrichie FREE : ❌ disabled → ✅ "(1 essai)" dans workspace-billing et landing, aligné avec quota backend (=1) | Product owner |
+| 2026-03-28 | F-60 SF-60-01 mergée — normalisation nom workspace en majuscules : toUpperCase() backend (createWorkspace + createDefaultWorkspace) + transformation live frontend onboarding, 238 tests. F-60 marquée Terminée | Product owner |
