@@ -198,6 +198,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | Date | Modification | Validé par |
 |------|-------------|------------|
 | 2026-03-28 | F-63 Terminée — SF-63-01 mergée : responsive CSS diff (sélecteurs empilés), membres (colonnes masquées), admin (email masqué) | Product owner |
+| 2026-03-28 | F-41 SF-41-01 mergée — backend partage lecture seule : migration 034 case_file_shares, token SecureRandom 64 chars, 4 endpoints (POST/GET/DELETE auth + GET public permitAll), isolation workspace, 310 tests | Product owner |
 | 2026-03-28 | F-63 ajoutée au backlog — Responsive mobile écrans secondaires (onboarding, membres, billing, admin, diff, login) | Product owner |
 | 2026-03-28 | F-62 Terminée — SF-62-01 mergée : responsive CSS liste dossiers (masque Domaine/Date), détail dossier (title-row wrap, docs table 2 cols, jobs IA barre séparée), synthèse (header wrap, titre 18px) | Product owner |
 | 2026-03-28 | F-61 Terminée — SF-61-01 mergée : sidenav responsive (mode over/side selon viewport), hamburger button mobile, fermeture auto après navigation, 4 nouveaux tests unitaires | Product owner |
