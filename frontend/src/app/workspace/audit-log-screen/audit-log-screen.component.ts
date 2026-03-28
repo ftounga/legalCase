@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuditLogService } from '../../core/services/audit-log.service';
 import { AuditLogEntry } from '../../core/models/audit-log-entry.model';
@@ -21,13 +22,17 @@ import { AuditLogEntry } from '../../core/models/audit-log-entry.model';
     RouterLink, FormsModule, DatePipe,
     MatCardModule, MatTableModule, MatProgressSpinnerModule,
     MatIconModule, MatButtonModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule
+    MatFormFieldModule, MatInputModule, MatSelectModule,
+    MatPaginatorModule
   ],
   templateUrl: './audit-log-screen.component.html',
   styleUrl: './audit-log-screen.component.scss'
 })
 export class AuditLogScreenComponent implements OnInit {
-  allLogs = signal<AuditLogEntry[]>([]);
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+  logs = signal<AuditLogEntry[]>([]);
+  totalElements = signal(0);
   loading = signal(true);
   accessDenied = signal(false);
   exporting = signal(false);
@@ -35,28 +40,56 @@ export class AuditLogScreenComponent implements OnInit {
   dateFrom = signal('');
   dateTo = signal('');
 
-  searchText = signal('');
-  actionFilter = signal('ALL');
+  pageIndex = signal(0);
+  pageSize = signal(20);
 
   readonly columns = ['createdAt', 'action', 'userEmail', 'caseFileTitle', 'documentName'];
-
-  readonly filteredLogs = computed(() => {
-    const text = this.searchText().toLowerCase().trim();
-    const action = this.actionFilter();
-    return this.allLogs().filter(log => {
-      const matchesAction = action === 'ALL' || log.action === action;
-      const matchesText = !text ||
-        log.userEmail.toLowerCase().includes(text) ||
-        log.caseFileTitle.toLowerCase().includes(text) ||
-        log.documentName.toLowerCase().includes(text);
-      return matchesAction && matchesText;
-    });
-  });
 
   constructor(
     private auditLogService: AuditLogService,
     private snackBar: MatSnackBar
   ) {}
+
+  ngOnInit(): void {
+    this.loadLogs();
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    this.loadLogs();
+  }
+
+  loadLogs(): void {
+    this.loading.set(true);
+    const from = this.dateFrom() ? new Date(this.dateFrom()).toISOString() : undefined;
+    const to   = this.dateTo()   ? new Date(this.dateTo() + 'T23:59:59Z').toISOString() : undefined;
+    this.auditLogService.getAuditLogs(from, to, this.pageIndex(), this.pageSize()).subscribe({
+      next: page => {
+        this.logs.set(page.content);
+        this.totalElements.set(page.totalElements);
+        this.loading.set(false);
+      },
+      error: (err: any) => {
+        this.loading.set(false);
+        if (err.status === 403) {
+          this.accessDenied.set(true);
+        } else if (err.status === 400) {
+          this.snackBar.open('Dates invalides.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+        } else {
+          this.snackBar.open('Erreur lors du chargement du journal.', 'Fermer', {
+            duration: 4000, panelClass: ['snack-error']
+          });
+        }
+      }
+    });
+  }
+
+  onDateChange(): void {
+    this.pageIndex.set(0);
+    if (this.paginator) this.paginator.firstPage();
+    this.loadLogs();
+  }
 
   exportCsv(): void {
     this.exporting.set(true);
@@ -73,34 +106,6 @@ export class AuditLogScreenComponent implements OnInit {
       error: () => {
         this.snackBar.open("Erreur lors de l'export.", 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
         this.exporting.set(false);
-      }
-    });
-  }
-
-  ngOnInit(): void {
-    this.loadLogs();
-  }
-
-  loadLogs(): void {
-    this.loading.set(true);
-    const from = this.dateFrom() ? new Date(this.dateFrom()).toISOString() : undefined;
-    const to   = this.dateTo()   ? new Date(this.dateTo() + 'T23:59:59Z').toISOString() : undefined;
-    this.auditLogService.getAuditLogs(from, to).subscribe({
-      next: logs => {
-        this.allLogs.set(logs);
-        this.loading.set(false);
-      },
-      error: (err: any) => {
-        this.loading.set(false);
-        if (err.status === 403) {
-          this.accessDenied.set(true);
-        } else if (err.status === 400) {
-          this.snackBar.open('Dates invalides.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
-        } else {
-          this.snackBar.open('Erreur lors du chargement du journal.', 'Fermer', {
-            duration: 4000, panelClass: ['snack-error']
-          });
-        }
       }
     });
   }
