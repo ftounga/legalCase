@@ -1,0 +1,151 @@
+.loading-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    color: var(--color-text-primary);
+  }
+
+  p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    max-width: 360px;
+  }
+}
+
+.error-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: var(--color-text-secondary);
+}
+
+.share-page {
+  min-height: 100vh;
+  background: var(--color-background, #F7F8FA);
+  display: flex;
+  flex-direction: column;
+}
+
+.share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--color-surface, #FFFFFF);
+  border-bottom: 1px solid var(--color-divider, #E5E7EB);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-primary, #2563EB);
+}
+
+.expiry {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.share-content {
+  max-width: 760px;
+  margin: 40px auto;
+  padding: 0 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.case-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.case-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.legal-domain-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--color-primary-light, #EFF6FF);
+  color: var(--color-primary, #2563EB);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.synthesis-card {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-divider, #E5E7EB);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.section-heading {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+}
+
+.synthesis-list {
+  margin: 0;
+  padding-left: 20px;
+
+  li {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    margin-bottom: 6px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.timeline-date {
+  font-weight: 600;
+  color: var(--color-primary, #2563EB);
+}
+
+@media (max-width: 767px) {
+  .share-content {
+    margin: 20px auto;
+    padding: 0 16px;
+  }
+
+  .synthesis-card {
+    padding: 16px 18px;
+  }
+
+  .case-title {
+    font-size: 20px;
+  }
+}

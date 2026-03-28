@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
 import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
+import { ShareDialogComponent, ShareDialogData } from '../share-dialog/share-dialog.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseFileStatusService } from '../../core/services/case-file-status.service';
 import { DocumentService } from '../../core/services/document.service';
@@ -38,7 +39,7 @@ import { CaseFileStatsService } from '../../core/services/case-file-stats.servic
     RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
-    MatDialogModule
+    MatDialogModule, ShareDialogComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
@@ -633,6 +634,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           });
         }
       }
+    });
+  }
+
+  openShareDialog(): void {
+    const cf = this.caseFile();
+    if (!cf) return;
+    this.dialog.open(ShareDialogComponent, {
+      data: { caseFileId: cf.id, caseFileTitle: cf.title } satisfies ShareDialogData,
+      width: '500px',
+      maxWidth: '95vw'
     });
   }
 

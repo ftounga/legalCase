@@ -235,6 +235,10 @@
                 <mat-icon>summarize</mat-icon>
                 Voir la synthèse
               </a>
+              <button mat-stroked-button (click)="openShareDialog()">
+                <mat-icon>share</mat-icon>
+                Partager
+              </button>
               @if (canCompare()) {
                 <a mat-stroked-button [routerLink]="['/case-files', caseFile()!.id, 'diff']">
                   <mat-icon>compare_arrows</mat-icon>

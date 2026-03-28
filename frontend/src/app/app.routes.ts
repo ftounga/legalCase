@@ -84,5 +84,10 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/reset-password/reset-password.component')
       .then(m => m.ResetPasswordComponent)
   },
+  {
+    path: 'share/:token',
+    loadComponent: () => import('./public-share/public-share.component')
+      .then(m => m.PublicShareComponent)
+  },
   { path: '**', redirectTo: '' }
 ];

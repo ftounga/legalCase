@@ -1,0 +1,77 @@
+<h2 mat-dialog-title>Partager "{{ data.caseFileTitle }}"</h2>
+
+<mat-dialog-content class="share-dialog-content">
+  <!-- Génération d'un nouveau lien -->
+  <div class="generate-section">
+    <p class="section-label">Durée de validité</p>
+    <div class="generate-row">
+      <select class="duration-select" [(ngModel)]="expiresInDays">
+        <option [value]="7">7 jours</option>
+        <option [value]="14">14 jours</option>
+        <option [value]="30">30 jours</option>
+      </select>
+      <button mat-flat-button color="primary" (click)="generateLink()" [disabled]="generating()">
+        @if (generating()) {
+          <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+        } @else {
+          <mat-icon>link</mat-icon>
+        }
+        Générer le lien
+      </button>
+    </div>
+  </div>
+
+  <!-- Lien généré -->
+  @if (generatedLink()) {
+    <div class="link-result">
+      <mat-icon class="link-icon">check_circle</mat-icon>
+      <div class="link-content">
+        <span class="link-label">Lien créé — expire le {{ generatedLink()!.expiresAt | date:'dd/MM/yyyy' }}</span>
+        <div class="link-row">
+          <input class="link-input" [value]="generatedLink()!.shareUrl" readonly>
+          <button mat-icon-button (click)="copyLink(generatedLink()!.shareUrl)" title="Copier">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Liens actifs -->
+  <div class="active-shares-section">
+    <p class="section-label">Liens actifs</p>
+    @if (loadingShares()) {
+      <div class="loading-center"><mat-spinner diameter="24"></mat-spinner></div>
+    } @else if (activeShares().length === 0) {
+      <p class="empty-shares">Aucun lien actif.</p>
+    } @else {
+      @for (share of activeShares(); track share.id) {
+        <div class="share-row">
+          <div class="share-info">
+            <mat-icon class="share-icon">link</mat-icon>
+            <span class="share-expiry">Expire le {{ share.expiresAt | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="share-actions">
+            <button mat-icon-button (click)="copyLink(share.shareUrl)" title="Copier le lien">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+            <button mat-icon-button color="warn"
+                    [disabled]="revokingId() === share.id"
+                    (click)="revokeShare(share)"
+                    title="Révoquer">
+              @if (revokingId() === share.id) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>link_off</mat-icon>
+              }
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Fermer</button>
+</mat-dialog-actions>
