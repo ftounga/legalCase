@@ -37,11 +37,12 @@ class SentryJobReportingTest {
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
+    private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
 
     private final CaseAnalysisService caseAnalysisService = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService);
+            analysisDocumentSnapshotService, analysisLimitsProperties);
 
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
@@ -50,13 +51,19 @@ class SentryJobReportingTest {
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisQaSnapshotService);
+            analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties);
 
     @BeforeEach
     void setUp() {
         TransactionSynchronizationManager.initSynchronization();
         ReflectionTestUtils.setField(caseAnalysisService, "self", caseAnalysisService);
         ReflectionTestUtils.setField(enrichedAnalysisService, "self", enrichedAnalysisService);
+        AnalysisLimitsProperties.LevelLimits limits = new AnalysisLimitsProperties.LevelLimits();
+        limits.setFaits(5); limits.setPointsJuridiques(3); limits.setRisques(3);
+        limits.setQuestionsOuvertes(3); limits.setTimeline(5);
+        AnalysisLimitsProperties.DomainLimits domainLimits = mock(AnalysisLimitsProperties.DomainLimits.class);
+        when(domainLimits.getDossier()).thenReturn(limits);
+        when(analysisLimitsProperties.forDomain(any())).thenReturn(domainLimits);
         when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> {
             CaseAnalysis a = new CaseAnalysis();
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);

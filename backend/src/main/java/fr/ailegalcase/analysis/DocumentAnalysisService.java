@@ -32,14 +32,18 @@ public class DocumentAnalysisService {
             Produis une synthèse globale du document en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu : {"faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
-            Contraintes de longueur : 5 faits maximum, 3 points_juridiques maximum, 3 risques maximum, 3 questions_ouvertes maximum. Sois concis.
+            Contraintes de longueur : %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum. Sois concis.
             """;
 
-    static String buildSystemPrompt(String legalDomain, String country) {
-        return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+    static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(
+                LegalDomainPromptBuilder.domainLabel(legalDomain, country),
+                limits.getFaits(), limits.getPointsJuridiques(),
+                limits.getRisques(), limits.getQuestionsOuvertes());
     }
 
-    record PreparedAnalysis(DocumentAnalysis analysis, String prompt, String systemPrompt, UUID caseFileId) {}
+    record PreparedAnalysis(DocumentAnalysis analysis, String prompt, String systemPrompt, UUID caseFileId,
+                             AnalysisLimitsProperties.LevelLimits limits) {}
 
     private final ChunkAnalysisRepository chunkAnalysisRepository;
     private final DocumentAnalysisRepository documentAnalysisRepository;
@@ -50,6 +54,7 @@ public class DocumentAnalysisService {
     private final UsageEventService usageEventService;
     private final CaseFileRepository caseFileRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AnalysisLimitsProperties analysisLimitsProperties;
 
     @Lazy @Autowired
     private DocumentAnalysisService self;
@@ -62,7 +67,8 @@ public class DocumentAnalysisService {
                                    AnalysisJobRepository analysisJobRepository,
                                    UsageEventService usageEventService,
                                    CaseFileRepository caseFileRepository,
-                                   ApplicationEventPublisher eventPublisher) {
+                                   ApplicationEventPublisher eventPublisher,
+                                   AnalysisLimitsProperties analysisLimitsProperties) {
         this.chunkAnalysisRepository = chunkAnalysisRepository;
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.extractionRepository = extractionRepository;
@@ -72,6 +78,7 @@ public class DocumentAnalysisService {
         this.usageEventService = usageEventService;
         this.caseFileRepository = caseFileRepository;
         this.eventPublisher = eventPublisher;
+        this.analysisLimitsProperties = analysisLimitsProperties;
     }
 
     @RabbitListener(queues = RabbitMQConfig.DOCUMENT_ANALYSIS_QUEUE, concurrency = "5")
@@ -100,7 +107,7 @@ public class DocumentAnalysisService {
             failure = e;
         }
 
-        self.finalizeAnalysis(prepared.analysis().getId(), prepared.caseFileId(), result, failure);
+        self.finalizeAnalysis(prepared.analysis().getId(), prepared.caseFileId(), result, failure, prepared.limits());
     }
 
     @Transactional
@@ -136,6 +143,8 @@ public class DocumentAnalysisService {
                 ? extraction.getExtractedText()
                 : buildAggregatedPrompt(chunkAnalyses);
 
+        AnalysisLimitsProperties.LevelLimits limits = analysisLimitsProperties.forDomain(legalDomain).getDocument();
+
         DocumentAnalysis analysis = new DocumentAnalysis();
         analysis.setDocument(extraction.getDocument());
         analysis.setExtraction(extraction);
@@ -144,17 +153,18 @@ public class DocumentAnalysisService {
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = documentAnalysisRepository.save(analysis);
 
-        return new PreparedAnalysis(analysis, prompt, buildSystemPrompt(legalDomain, country), caseFileId);
+        return new PreparedAnalysis(analysis, prompt, buildSystemPrompt(legalDomain, country, limits), caseFileId, limits);
     }
 
     @Transactional
-    public void finalizeAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure) {
+    public void finalizeAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure,
+                                  AnalysisLimitsProperties.LevelLimits limits) {
         DocumentAnalysis analysis = documentAnalysisRepository.findById(analysisId).orElseThrow();
 
         if (failure != null) {
             analysis.setAnalysisStatus(AnalysisStatus.FAILED);
         } else {
-            analysis.setAnalysisResult(AnalysisJsonTruncator.truncateDocumentAnalysis(result.content()));
+            analysis.setAnalysisResult(AnalysisJsonTruncator.truncateDocumentAnalysis(result.content(), limits));
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
             analysis.setCompletionTokens(result.completionTokens());

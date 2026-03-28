@@ -37,14 +37,18 @@ public class CaseAnalysisService {
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
             La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
-            Contraintes de longueur : 5 entrées timeline maximum, 7 faits maximum, 5 points_juridiques maximum, 5 risques maximum, 5 questions_ouvertes maximum. Sois concis.
+            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum. Sois concis.
             """;
 
-    static String buildSystemPrompt(String legalDomain, String country) {
-        return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+    static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(
+                LegalDomainPromptBuilder.domainLabel(legalDomain, country),
+                limits.getTimeline(), limits.getFaits(),
+                limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes());
     }
 
-    record PreparedCaseAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId) {}
+    record PreparedCaseAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
+                                 AnalysisLimitsProperties.LevelLimits limits) {}
 
     private final DocumentAnalysisRepository documentAnalysisRepository;
     private final CaseAnalysisRepository caseAnalysisRepository;
@@ -55,6 +59,7 @@ public class CaseAnalysisService {
     private final UsageEventService usageEventService;
     private final ApplicationEventPublisher eventPublisher;
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
+    private final AnalysisLimitsProperties analysisLimitsProperties;
 
     @Lazy @Autowired
     private CaseAnalysisService self;
@@ -67,7 +72,8 @@ public class CaseAnalysisService {
                                RabbitTemplate rabbitTemplate,
                                UsageEventService usageEventService,
                                ApplicationEventPublisher eventPublisher,
-                               AnalysisDocumentSnapshotService analysisDocumentSnapshotService) {
+                               AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
+                               AnalysisLimitsProperties analysisLimitsProperties) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
@@ -77,6 +83,7 @@ public class CaseAnalysisService {
         this.usageEventService = usageEventService;
         this.eventPublisher = eventPublisher;
         this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
+        this.analysisLimitsProperties = analysisLimitsProperties;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
@@ -103,7 +110,7 @@ public class CaseAnalysisService {
             failure = e;
         }
 
-        self.finalizeCaseAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure);
+        self.finalizeCaseAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure, prepared.limits());
     }
 
     @Transactional
@@ -150,20 +157,22 @@ public class CaseAnalysisService {
         analysisDocumentSnapshotService.snapshot(analysis.getId(), caseFile);
 
         fr.ailegalcase.workspace.Workspace ws = caseFile.getWorkspace();
-        String systemPrompt = buildSystemPrompt(
-                ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL",
-                ws != null ? ws.getCountry() : "FRANCE");
-        return new PreparedCaseAnalysis(analysis.getId(), buildAggregatedPrompt(documentAnalyses), systemPrompt, caseFileId);
+        String legalDomain = ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL";
+        String country     = ws != null ? ws.getCountry()     : "FRANCE";
+        AnalysisLimitsProperties.LevelLimits limits = analysisLimitsProperties.forDomain(legalDomain).getDossier();
+        String systemPrompt = buildSystemPrompt(legalDomain, country, limits);
+        return new PreparedCaseAnalysis(analysis.getId(), buildAggregatedPrompt(documentAnalyses), systemPrompt, caseFileId, limits);
     }
 
     @Transactional
-    public void finalizeCaseAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure) {
+    public void finalizeCaseAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure,
+                                      AnalysisLimitsProperties.LevelLimits limits) {
         CaseAnalysis analysis = caseAnalysisRepository.findById(analysisId).orElseThrow();
 
         if (failure != null) {
             analysis.setAnalysisStatus(AnalysisStatus.FAILED);
         } else {
-            analysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content()));
+            analysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content(), limits));
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
             analysis.setCompletionTokens(result.completionTokens());

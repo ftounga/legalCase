@@ -32,16 +32,23 @@ class EnrichedAnalysisServiceTest {
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
     private final AnalysisQaSnapshotService analysisQaSnapshotService = mock(AnalysisQaSnapshotService.class);
+    private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisQaSnapshotService);
+            analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties);
 
     @BeforeEach
     void setUp() {
         TransactionSynchronizationManager.initSynchronization();
         ReflectionTestUtils.setField(service, "self", service);
+        AnalysisLimitsProperties.LevelLimits limits = new AnalysisLimitsProperties.LevelLimits();
+        limits.setFaits(7); limits.setPointsJuridiques(5); limits.setRisques(5);
+        limits.setQuestionsOuvertes(5); limits.setTimeline(5);
+        AnalysisLimitsProperties.DomainLimits domainLimits = mock(AnalysisLimitsProperties.DomainLimits.class);
+        when(domainLimits.getDossier()).thenReturn(limits);
+        when(analysisLimitsProperties.forDomain(any())).thenReturn(domainLimits);
         when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> {
             CaseAnalysis a = new CaseAnalysis();
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
@@ -203,7 +210,9 @@ class EnrichedAnalysisServiceTest {
     // U-05 : le system prompt contient les champs clés
     @Test
     void systemPrompt_containsRequiredFields() {
-        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
         assertThat(prompt).contains("timeline");
         assertThat(prompt).contains("faits");
         assertThat(prompt).contains("enrichie");

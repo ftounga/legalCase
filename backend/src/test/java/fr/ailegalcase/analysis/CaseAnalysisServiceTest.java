@@ -32,16 +32,23 @@ class CaseAnalysisServiceTest {
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
+    private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService);
+            analysisDocumentSnapshotService, analysisLimitsProperties);
 
     @BeforeEach
     void setUp() {
         TransactionSynchronizationManager.initSynchronization();
         ReflectionTestUtils.setField(service, "self", service);
+        AnalysisLimitsProperties.LevelLimits limits = new AnalysisLimitsProperties.LevelLimits();
+        limits.setFaits(7); limits.setPointsJuridiques(5); limits.setRisques(5);
+        limits.setQuestionsOuvertes(5); limits.setTimeline(5);
+        AnalysisLimitsProperties.DomainLimits domainLimits = mock(AnalysisLimitsProperties.DomainLimits.class);
+        when(domainLimits.getDossier()).thenReturn(limits);
+        when(analysisLimitsProperties.forDomain(any())).thenReturn(domainLimits);
         when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> {
             CaseAnalysis a = new CaseAnalysis();
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
@@ -167,7 +174,9 @@ class CaseAnalysisServiceTest {
     // U-04 : le system prompt contient le champ timeline
     @Test
     void systemPrompt_containsTimelineField() {
-        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
         assertThat(prompt).contains("timeline");
         assertThat(prompt).contains("date");
         assertThat(prompt).contains("evenement");
@@ -208,7 +217,9 @@ class CaseAnalysisServiceTest {
     // U-07 : le system prompt contient les contraintes de longueur SF-28-01
     @Test
     void systemPrompt_containsLengthConstraints() {
-        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
         assertThat(prompt).contains("5 entrées timeline maximum");
         assertThat(prompt).contains("7 faits maximum");
         assertThat(prompt).contains("5 points_juridiques maximum");

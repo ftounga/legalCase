@@ -5,8 +5,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- * Tronque les tableaux d'un JSON d'analyse Claude à des limites définies.
- * Garantit que les limites SF-28 sont respectées quelle que soit la réponse du modèle.
+ * Tronque les tableaux d'un JSON d'analyse Claude aux limites définies dans AnalysisLimitsProperties.
  */
 class AnalysisJsonTruncator {
 
@@ -14,20 +13,22 @@ class AnalysisJsonTruncator {
 
     private AnalysisJsonTruncator() {}
 
-    /**
-     * Tronque les tableaux d'une analyse de document.
-     * Limites : faits=5, points_juridiques=3, risques=3, questions_ouvertes=3
-     */
-    static String truncateDocumentAnalysis(String json) {
-        return truncate(json, 5, 3, 3, 3, Integer.MAX_VALUE);
+    static String truncateDocumentAnalysis(String json, AnalysisLimitsProperties.LevelLimits limits) {
+        return truncate(json,
+                limits.getFaits(),
+                limits.getPointsJuridiques(),
+                limits.getRisques(),
+                limits.getQuestionsOuvertes(),
+                Integer.MAX_VALUE);
     }
 
-    /**
-     * Tronque les tableaux d'une analyse de dossier.
-     * Limites : timeline=5, faits=7, points_juridiques=5, risques=5, questions_ouvertes=5
-     */
-    static String truncateCaseAnalysis(String json) {
-        return truncate(json, 7, 5, 5, 5, 5);
+    static String truncateCaseAnalysis(String json, AnalysisLimitsProperties.LevelLimits limits) {
+        return truncate(json,
+                limits.getFaits(),
+                limits.getPointsJuridiques(),
+                limits.getRisques(),
+                limits.getQuestionsOuvertes(),
+                limits.getTimeline());
     }
 
     private static String truncate(String json,
