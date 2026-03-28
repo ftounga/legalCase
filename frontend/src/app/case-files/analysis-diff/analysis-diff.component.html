@@ -112,152 +112,229 @@
     </div>
   }
 
-  <!-- ── Résultats ──────────────────────────────────────────────────── -->
+  <!-- ── Résultats ──────────────────────────────────────────────── -->
   @if (diff() && !diffLoading()) {
-    <!-- Summary bar -->
-    <div class="diff-summary">
-      <div class="summary-versions">
-        <span class="summary-badge summary-badge--from">v{{ diff()!.from.version }}</span>
-        <mat-icon class="summary-arrow">east</mat-icon>
-        <span class="summary-badge summary-badge--to">v{{ diff()!.to.version }}</span>
+
+    <!-- Sticky wrapper : summary bar + unchanged toggle -->
+    <div class="diff-summary-wrapper">
+      <div class="diff-summary">
+        <div class="summary-left">
+          <div class="summary-versions">
+            <span class="summary-badge summary-badge--from">v{{ diff()!.from.version }}</span>
+            <mat-icon class="summary-arrow">east</mat-icon>
+            <span class="summary-badge summary-badge--to">v{{ diff()!.to.version }}</span>
+          </div>
+          @if (totalAll() > 0) {
+            <div class="stats-bar"
+                 matTooltip="{{ totalAdded() }} ajout(s) · {{ totalRemoved() }} suppression(s) · {{ totalEnriched() }} enrichi(s) · {{ totalUnchanged() }} inchangé(s)"
+                 matTooltipPosition="below">
+              @if (statPct(totalAdded()) > 0) {
+                <div class="stats-bar__segment stats-bar__segment--added" [style.width.%]="statPct(totalAdded())"></div>
+              }
+              @if (statPct(totalRemoved()) > 0) {
+                <div class="stats-bar__segment stats-bar__segment--removed" [style.width.%]="statPct(totalRemoved())"></div>
+              }
+              @if (statPct(totalEnriched()) > 0) {
+                <div class="stats-bar__segment stats-bar__segment--enriched" [style.width.%]="statPct(totalEnriched())"></div>
+              }
+              @if (statPct(totalUnchanged()) > 0) {
+                <div class="stats-bar__segment stats-bar__segment--unchanged" [style.width.%]="statPct(totalUnchanged())"></div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="summary-counts">
+          <button class="count-chip count-chip--all" [class.active]="activeFilter() === 'all'" (click)="setFilter('all')">
+            <mat-icon>list</mat-icon>Tout
+          </button>
+          @if (totalAdded() > 0) {
+            <button class="count-chip count-chip--added" [class.active]="activeFilter() === 'added'" (click)="setFilter('added')">
+              <mat-icon>add</mat-icon>{{ totalAdded() }} ajout{{ totalAdded() > 1 ? 's' : '' }}
+            </button>
+          }
+          @if (totalRemoved() > 0) {
+            <button class="count-chip count-chip--removed" [class.active]="activeFilter() === 'removed'" (click)="setFilter('removed')">
+              <mat-icon>remove</mat-icon>{{ totalRemoved() }} suppression{{ totalRemoved() > 1 ? 's' : '' }}
+            </button>
+          }
+          @if (totalEnriched() > 0) {
+            <button class="count-chip count-chip--enriched" [class.active]="activeFilter() === 'enriched'" (click)="setFilter('enriched')">
+              <mat-icon>auto_awesome</mat-icon>{{ totalEnriched() }} enrichi{{ totalEnriched() > 1 ? 's' : '' }}
+            </button>
+          }
+          @if (totalAdded() === 0 && totalRemoved() === 0 && totalEnriched() === 0) {
+            <span class="count-chip count-chip--neutral">
+              <mat-icon>check</mat-icon>Aucune différence
+            </span>
+          }
+        </div>
       </div>
-      <div class="summary-counts">
-        @if (totalAdded() > 0) {
-          <span class="count-chip count-chip--added">
-            <mat-icon>add</mat-icon>{{ totalAdded() }} ajout{{ totalAdded() > 1 ? 's' : '' }}
-          </span>
-        }
-        @if (totalRemoved() > 0) {
-          <span class="count-chip count-chip--removed">
-            <mat-icon>remove</mat-icon>{{ totalRemoved() }} suppression{{ totalRemoved() > 1 ? 's' : '' }}
-          </span>
-        }
-        @if (totalEnriched() > 0) {
-          <span class="count-chip count-chip--enriched">
-            <mat-icon>auto_awesome</mat-icon>{{ totalEnriched() }} enrichi{{ totalEnriched() > 1 ? 's' : '' }}
-          </span>
-        }
-        @if (totalAdded() === 0 && totalRemoved() === 0 && totalEnriched() === 0) {
-          <span class="count-chip count-chip--neutral">
-            <mat-icon>check</mat-icon>Aucune différence
-          </span>
-        }
-      </div>
+
+      @if (totalUnchanged() > 0) {
+        <div class="unchanged-toggle-row">
+          <button class="unchanged-toggle"
+                  [class.active]="activeFilter() === 'unchanged' || (activeFilter() === 'all' && unchangedVisible())"
+                  (click)="activeFilter() === 'all' ? toggleUnchanged() : setFilter('all')">
+            <mat-icon>{{ (activeFilter() === 'all' && unchangedVisible()) || activeFilter() === 'unchanged' ? 'visibility_off' : 'visibility' }}</mat-icon>
+            {{ (activeFilter() === 'all' && unchangedVisible())
+              ? 'Masquer les ' + totalUnchanged() + ' inchangé' + (totalUnchanged() > 1 ? 's' : '')
+              : 'Afficher les ' + totalUnchanged() + ' inchangé' + (totalUnchanged() > 1 ? 's' : '') }}
+          </button>
+        </div>
+      }
     </div>
 
     <!-- Sections -->
     @for (section of sections(); track section.title) {
-      <mat-card class="section-card">
-        <div class="section-header">
+      <mat-card class="section-card" [class.section-card--collapsed]="isSectionCollapsed(section.title)">
+        <div class="section-header" (click)="toggleSection(section.title)">
           <div class="section-title">
             <mat-icon class="section-icon">{{ section.icon }}</mat-icon>
             <h3>{{ section.title }}</h3>
           </div>
-          <div class="section-badges">
-            @if (sectionAddedCount(section) > 0) {
-              <span class="mini-badge mini-badge--added">+{{ sectionAddedCount(section) }}</span>
-            }
-            @if (sectionRemovedCount(section) > 0) {
-              <span class="mini-badge mini-badge--removed">−{{ sectionRemovedCount(section) }}</span>
-            }
-            @if (sectionEnrichedCount(section) > 0) {
-              <span class="mini-badge mini-badge--enriched">~{{ sectionEnrichedCount(section) }}</span>
-            }
-            @if (sectionAddedCount(section) === 0 && sectionRemovedCount(section) === 0 && sectionEnrichedCount(section) === 0) {
-              <span class="mini-badge mini-badge--neutral">Inchangé</span>
-            }
+          <div class="section-header-right">
+            <div class="section-badges">
+              @if (sectionAddedCount(section) > 0) {
+                <span class="mini-badge mini-badge--added">+{{ sectionAddedCount(section) }}</span>
+              }
+              @if (sectionRemovedCount(section) > 0) {
+                <span class="mini-badge mini-badge--removed">−{{ sectionRemovedCount(section) }}</span>
+              }
+              @if (sectionEnrichedCount(section) > 0) {
+                <span class="mini-badge mini-badge--enriched">~{{ sectionEnrichedCount(section) }}</span>
+              }
+              @if (sectionAddedCount(section) === 0 && sectionRemovedCount(section) === 0 && sectionEnrichedCount(section) === 0) {
+                <span class="mini-badge mini-badge--neutral">Inchangé</span>
+              }
+            </div>
+            <mat-icon class="section-chevron">{{ isSectionCollapsed(section.title) ? 'expand_more' : 'expand_less' }}</mat-icon>
           </div>
         </div>
 
-        <div class="section-body">
-          @if (totalItems(section) === 0) {
-            <p class="empty-section">Aucun élément dans cette section.</p>
-          } @else if (!section.timeline) {
-            <!-- String section -->
-            @for (item of section.data!.added; track item.text) {
-              <div class="diff-item diff-item--added"
-                   [matTooltip]="item.reason!"
-                   [matTooltipDisabled]="!item.reason"
-                   matTooltipPosition="above"
-                   matTooltipClass="diff-reason-tooltip">
-                <mat-icon class="item-icon">add_circle_outline</mat-icon>
-                <span>{{ item.text }}</span>
-              </div>
+        @if (!isSectionCollapsed(section.title)) {
+          <div class="section-body">
+            @if (totalItems(section) === 0) {
+              <p class="empty-section">Aucun élément dans cette section.</p>
+            } @else if (!sectionHasVisibleItems(section)) {
+              <p class="empty-section filtered-hint">Aucun élément visible avec ce filtre.</p>
+            } @else if (!section.timeline) {
+              <!-- String section -->
+              @if (showAdded()) {
+                @for (item of section.data!.added; track item.text) {
+                  <div class="diff-item diff-item--added">
+                    <mat-icon class="item-icon">add_circle_outline</mat-icon>
+                    <div class="item-content">
+                      <span>{{ item.text }}</span>
+                      @if (item.reason) {
+                        <span class="item-reason item-reason--added">{{ item.reason }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+              @if (showRemoved()) {
+                @for (item of section.data!.removed; track item.text) {
+                  <div class="diff-item diff-item--removed">
+                    <mat-icon class="item-icon">remove_circle_outline</mat-icon>
+                    <div class="item-content">
+                      <span class="item-text--removed">{{ item.text }}</span>
+                      @if (item.reason) {
+                        <span class="item-reason item-reason--removed">{{ item.reason }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+              @if (showEnriched()) {
+                @for (item of section.data!.enriched; track item.text) {
+                  <div class="diff-item diff-item--enriched">
+                    <mat-icon class="item-icon">auto_awesome</mat-icon>
+                    <div class="item-content">
+                      <span>{{ item.text }}</span>
+                      @if (item.reason) {
+                        <span class="item-reason item-reason--enriched">{{ item.reason }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+              @if (showUnchangedItems()) {
+                @for (item of section.data!.unchanged; track item.text) {
+                  <div class="diff-item diff-item--unchanged">
+                    <mat-icon class="item-icon">remove</mat-icon>
+                    <span>{{ item.text }}</span>
+                  </div>
+                }
+              }
+            } @else {
+              <!-- Timeline section -->
+              @if (showAdded()) {
+                @for (entry of section.timeline!.added; track entry.evenement) {
+                  <div class="diff-item diff-item--added diff-item--timeline">
+                    <mat-icon class="item-icon">add_circle_outline</mat-icon>
+                    <div class="item-content">
+                      <div class="timeline-row">
+                        <span class="timeline-date">{{ entry.date }}</span>
+                        <span class="timeline-sep">—</span>
+                        <span>{{ entry.evenement }}</span>
+                      </div>
+                      @if (entry.reason) {
+                        <span class="item-reason item-reason--added">{{ entry.reason }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+              @if (showRemoved()) {
+                @for (entry of section.timeline!.removed; track entry.evenement) {
+                  <div class="diff-item diff-item--removed diff-item--timeline">
+                    <mat-icon class="item-icon">remove_circle_outline</mat-icon>
+                    <div class="item-content">
+                      <div class="timeline-row">
+                        <span class="timeline-date item-text--removed">{{ entry.date }}</span>
+                        <span class="timeline-sep item-text--removed">—</span>
+                        <span class="item-text--removed">{{ entry.evenement }}</span>
+                      </div>
+                      @if (entry.reason) {
+                        <span class="item-reason item-reason--removed">{{ entry.reason }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+              @if (showEnriched()) {
+                @for (entry of section.timeline!.enriched; track entry.evenement) {
+                  <div class="diff-item diff-item--enriched diff-item--timeline">
+                    <mat-icon class="item-icon">auto_awesome</mat-icon>
+                    <div class="item-content">
+                      <div class="timeline-row">
+                        <span class="timeline-date">{{ entry.date }}</span>
+                        <span class="timeline-sep">—</span>
+                        <span>{{ entry.evenement }}</span>
+                      </div>
+                      @if (entry.reason) {
+                        <span class="item-reason item-reason--enriched">{{ entry.reason }}</span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+              @if (showUnchangedItems()) {
+                @for (entry of section.timeline!.unchanged; track entry.evenement) {
+                  <div class="diff-item diff-item--unchanged diff-item--timeline">
+                    <mat-icon class="item-icon">remove</mat-icon>
+                    <div class="timeline-row">
+                      <span class="timeline-date">{{ entry.date }}</span>
+                      <span class="timeline-sep">—</span>
+                      <span>{{ entry.evenement }}</span>
+                    </div>
+                  </div>
+                }
+              }
             }
-            @for (item of section.data!.removed; track item.text) {
-              <div class="diff-item diff-item--removed"
-                   [matTooltip]="item.reason!"
-                   [matTooltipDisabled]="!item.reason"
-                   matTooltipPosition="above"
-                   matTooltipClass="diff-reason-tooltip">
-                <mat-icon class="item-icon">remove_circle_outline</mat-icon>
-                <span class="item-text--removed">{{ item.text }}</span>
-              </div>
-            }
-            @for (item of section.data!.enriched; track item.text) {
-              <div class="diff-item diff-item--enriched"
-                   [matTooltip]="item.reason!"
-                   [matTooltipDisabled]="!item.reason"
-                   matTooltipPosition="above"
-                   matTooltipClass="diff-reason-tooltip">
-                <mat-icon class="item-icon">auto_awesome</mat-icon>
-                <span>{{ item.text }}</span>
-              </div>
-            }
-            @for (item of section.data!.unchanged; track item.text) {
-              <div class="diff-item diff-item--unchanged">
-                <mat-icon class="item-icon">remove</mat-icon>
-                <span>{{ item.text }}</span>
-              </div>
-            }
-          } @else {
-            <!-- Timeline section -->
-            @for (entry of section.timeline!.added; track entry.evenement) {
-              <div class="diff-item diff-item--added diff-item--timeline"
-                   [matTooltip]="entry.reason!"
-                   [matTooltipDisabled]="!entry.reason"
-                   matTooltipPosition="above"
-                   matTooltipClass="diff-reason-tooltip">
-                <mat-icon class="item-icon">add_circle_outline</mat-icon>
-                <span class="timeline-date">{{ entry.date }}</span>
-                <span class="timeline-sep">—</span>
-                <span>{{ entry.evenement }}</span>
-              </div>
-            }
-            @for (entry of section.timeline!.removed; track entry.evenement) {
-              <div class="diff-item diff-item--removed diff-item--timeline"
-                   [matTooltip]="entry.reason!"
-                   [matTooltipDisabled]="!entry.reason"
-                   matTooltipPosition="above"
-                   matTooltipClass="diff-reason-tooltip">
-                <mat-icon class="item-icon">remove_circle_outline</mat-icon>
-                <span class="timeline-date item-text--removed">{{ entry.date }}</span>
-                <span class="timeline-sep item-text--removed">—</span>
-                <span class="item-text--removed">{{ entry.evenement }}</span>
-              </div>
-            }
-            @for (entry of section.timeline!.enriched; track entry.evenement) {
-              <div class="diff-item diff-item--enriched diff-item--timeline"
-                   [matTooltip]="entry.reason!"
-                   [matTooltipDisabled]="!entry.reason"
-                   matTooltipPosition="above"
-                   matTooltipClass="diff-reason-tooltip">
-                <mat-icon class="item-icon">auto_awesome</mat-icon>
-                <span class="timeline-date">{{ entry.date }}</span>
-                <span class="timeline-sep">—</span>
-                <span>{{ entry.evenement }}</span>
-              </div>
-            }
-            @for (entry of section.timeline!.unchanged; track entry.evenement) {
-              <div class="diff-item diff-item--unchanged diff-item--timeline">
-                <mat-icon class="item-icon">remove</mat-icon>
-                <span class="timeline-date">{{ entry.date }}</span>
-                <span class="timeline-sep">—</span>
-                <span>{{ entry.evenement }}</span>
-              </div>
-            }
-          }
-        </div>
+          </div>
+        }
       </mat-card>
     }
   }

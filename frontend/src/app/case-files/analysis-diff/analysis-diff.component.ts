@@ -15,6 +15,8 @@ import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { AnalysisDiff, CaseAnalysisVersionSummary, SectionDiff, TimelineSectionDiff } from '../../core/models/case-analysis.model';
 
+type FilterType = 'all' | 'added' | 'removed' | 'enriched' | 'unchanged';
+
 interface DiffSection {
   title: string;
   icon: string;
@@ -40,6 +42,9 @@ export class AnalysisDiffComponent implements OnInit {
   diff = signal<AnalysisDiff | null>(null);
   loading = signal(true);
   diffLoading = signal(false);
+  activeFilter = signal<FilterType>('all');
+  unchangedVisible = signal(false);
+  collapsedSections = signal<string[]>([]);
 
   fromId = signal<string | null>(null);
   toId = signal<string | null>(null);
@@ -84,6 +89,25 @@ export class AnalysisDiffComponent implements OnInit {
            d.timeline.enriched.length;
   });
 
+  readonly totalUnchanged = computed(() => {
+    const d = this.diff();
+    if (!d) return 0;
+    return d.faits.unchanged.length + d.pointsJuridiques.unchanged.length +
+           d.risques.unchanged.length + d.questionsOuvertes.unchanged.length +
+           d.timeline.unchanged.length;
+  });
+
+  readonly totalAll = computed(() =>
+    this.totalAdded() + this.totalRemoved() + this.totalEnriched() + this.totalUnchanged()
+  );
+
+  readonly showAdded = computed(() => this.activeFilter() === 'all' || this.activeFilter() === 'added');
+  readonly showRemoved = computed(() => this.activeFilter() === 'all' || this.activeFilter() === 'removed');
+  readonly showEnriched = computed(() => this.activeFilter() === 'all' || this.activeFilter() === 'enriched');
+  readonly showUnchangedItems = computed(() =>
+    (this.activeFilter() === 'all' && this.unchangedVisible()) || this.activeFilter() === 'unchanged'
+  );
+
   readonly sections = computed((): DiffSection[] => {
     const d = this.diff();
     if (!d) return [];
@@ -119,7 +143,13 @@ export class AnalysisDiffComponent implements OnInit {
       }
     });
     this.caseAnalysisService.getVersions(this.caseFileId).subscribe({
-      next: v => this.versions.set(v),
+      next: v => {
+        this.versions.set(v);
+        if (v.length >= 2) {
+          this.fromId.set(v[1].id);
+          this.toId.set(v[0].id);
+        }
+      },
       error: () => {
         this.snackBar.open('Impossible de charger les versions', 'Fermer', {
           duration: 4000, panelClass: ['snack-error']
@@ -138,10 +168,22 @@ export class AnalysisDiffComponent implements OnInit {
     const toId = this.toId()!;
     this.diffLoading.set(true);
     this.diff.set(null);
+    this.activeFilter.set('all');
+    this.unchangedVisible.set(false);
     this.caseAnalysisService.getDiff(this.caseFileId, fromId, toId).subscribe({
       next: d => {
         this.diff.set(d);
         this.diffLoading.set(false);
+        const autoCollapse = [
+          { title: 'Faits',             s: d.faits },
+          { title: 'Points juridiques', s: d.pointsJuridiques },
+          { title: 'Risques',           s: d.risques },
+          { title: 'Questions ouvertes', s: d.questionsOuvertes },
+          { title: 'Chronologie',       s: d.timeline },
+        ]
+          .filter(({ s }) => s.added.length === 0 && s.removed.length === 0 && s.enriched.length === 0)
+          .map(({ title }) => title);
+        this.collapsedSections.set(autoCollapse);
       },
       error: () => {
         this.diffLoading.set(false);
@@ -185,6 +227,45 @@ export class AnalysisDiffComponent implements OnInit {
     return section.timeline
       ? section.timeline.enriched.length
       : section.data!.enriched.length;
+  }
+
+  sectionUnchangedCount(section: DiffSection): number {
+    return section.timeline
+      ? section.timeline.unchanged.length
+      : section.data!.unchanged.length;
+  }
+
+  sectionHasVisibleItems(section: DiffSection): boolean {
+    const f = this.activeFilter();
+    if (f === 'added')    return this.sectionAddedCount(section) > 0;
+    if (f === 'removed')  return this.sectionRemovedCount(section) > 0;
+    if (f === 'enriched') return this.sectionEnrichedCount(section) > 0;
+    if (f === 'unchanged') return this.sectionUnchangedCount(section) > 0;
+    const changed = this.sectionAddedCount(section) + this.sectionRemovedCount(section) + this.sectionEnrichedCount(section);
+    return changed > 0 || (this.unchangedVisible() && this.sectionUnchangedCount(section) > 0);
+  }
+
+  setFilter(f: FilterType): void {
+    this.activeFilter.set(f);
+  }
+
+  toggleUnchanged(): void {
+    this.unchangedVisible.update(v => !v);
+  }
+
+  isSectionCollapsed(title: string): boolean {
+    return this.collapsedSections().includes(title);
+  }
+
+  toggleSection(title: string): void {
+    this.collapsedSections.update(list =>
+      list.includes(title) ? list.filter(t => t !== title) : [...list, title]
+    );
+  }
+
+  statPct(count: number): number {
+    const total = this.totalAll();
+    return total === 0 ? 0 : Math.round((count / total) * 100);
   }
 
   goBack(): void {
