@@ -36,7 +36,7 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
         { label: '10 messages chat / mois',        included: true },
         { label: '500K tokens / mois',             included: true },
         { label: 'Synthèse et questions IA',       included: true },
-        { label: 'Re-synthèse enrichie',           included: false },
+        { label: 'Re-synthèse enrichie (1 essai)',   included: true },
       ]
     },
     {
