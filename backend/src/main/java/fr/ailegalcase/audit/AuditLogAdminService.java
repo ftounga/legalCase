@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,6 +82,51 @@ public class AuditLogAdminService {
                         log.getCreatedAt()
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportCsv(OidcUser oidcUser, Principal principal) {
+        User user = currentUserResolver.resolve(oidcUser, resolve(principal), principal);
+
+        WorkspaceMember member = workspaceMemberRepository
+                .findByUserAndPrimaryTrue(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"));
+
+        if (!ADMIN_ROLES.contains(member.getMemberRole())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+
+        UUID workspaceId = member.getWorkspace().getId();
+        List<AuditLog> logs = auditLogRepository.findAllByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
+
+        Set<UUID> userIds = logs.stream().map(AuditLog::getUserId).collect(Collectors.toSet());
+        Map<UUID, String> emailById = userIds.isEmpty() ? Map.of() :
+                userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getEmail));
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.of("Europe/Paris"));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("\uFEFF"); // BOM UTF-8 for Excel compatibility
+        sb.append("Date,Action,Utilisateur,Dossier,Document\r\n");
+        for (AuditLog log : logs) {
+            sb.append(csvField(fmt.format(log.getCreatedAt()))).append(',');
+            sb.append(csvField(log.getAction())).append(',');
+            sb.append(csvField(emailById.getOrDefault(log.getUserId(), ""))).append(',');
+            sb.append(csvField(extractCaseFileTitle(log.getMetadata()))).append(',');
+            sb.append(csvField(extractDocumentName(log.getMetadata()))).append("\r\n");
+        }
+
+        return sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private static String csvField(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
     private String extractCaseFileTitle(String metadata) {

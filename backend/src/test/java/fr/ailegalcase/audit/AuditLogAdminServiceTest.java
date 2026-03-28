@@ -82,6 +82,64 @@ class AuditLogAdminServiceTest {
         verify(auditLogRepo, never()).findTop50ByWorkspaceIdOrderByCreatedAtDesc(otherWorkspaceId);
     }
 
+    // U-04 : exportCsv — retourne CSV avec header + toutes les entrées
+    @Test
+    void exportCsv_returnsCsvWithAllEntries() {
+        var ctx = buildContext("OWNER");
+        Instant ts = Instant.parse("2026-03-28T10:00:00Z");
+        AuditLog log1 = auditLogWithDate(UUID.randomUUID(), ctx.workspace.getId(), ctx.user.getId(),
+                "{\"caseFileTitle\":\"Dossier A\"}", ts);
+        AuditLog log2 = auditLogWithDate(UUID.randomUUID(), ctx.workspace.getId(), ctx.user.getId(),
+                "{\"documentName\":\"contrat.pdf\"}", ts);
+        when(auditLogRepo.findAllByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
+                .thenReturn(List.of(log1, log2));
+        when(userRepo.findAllById(anyCollection())).thenReturn(List.of(ctx.user));
+
+        byte[] result = service.exportCsv(ctx.oidcUser, ctx.auth);
+        String csv = new String(result, java.nio.charset.StandardCharsets.UTF_8);
+
+        assertThat(csv).contains("Date,Action,Utilisateur,Dossier,Document");
+        assertThat(csv).contains("owner@example.com");
+        assertThat(csv).contains("Dossier A");
+        assertThat(csv).contains("contrat.pdf");
+        // 2 data lines + header + BOM
+        long lines = csv.lines().filter(l -> !l.isBlank()).count();
+        assertThat(lines).isEqualTo(3);
+    }
+
+    // U-05 : exportCsv — un champ avec virgule est entouré de guillemets (RFC 4180)
+    @Test
+    void exportCsv_escapesFieldWithComma() {
+        var ctx = buildContext("OWNER");
+        Instant ts = Instant.parse("2026-03-28T10:00:00Z");
+        AuditLog log = auditLogWithDate(UUID.randomUUID(), ctx.workspace.getId(), ctx.user.getId(),
+                "{\"caseFileTitle\":\"Dupont, Marie\"}", ts);
+        when(auditLogRepo.findAllByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
+                .thenReturn(List.of(log));
+        when(userRepo.findAllById(anyCollection())).thenReturn(List.of(ctx.user));
+
+        byte[] result = service.exportCsv(ctx.oidcUser, ctx.auth);
+        String csv = new String(result, java.nio.charset.StandardCharsets.UTF_8);
+
+        // field with comma must be wrapped in double quotes
+        assertThat(csv).contains("\"Dupont, Marie\"");
+    }
+
+    // U-06 : exportCsv — journal vide → seulement la ligne d'en-tête
+    @Test
+    void exportCsv_emptyJournal_returnsHeaderOnly() {
+        var ctx = buildContext("OWNER");
+        when(auditLogRepo.findAllByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
+                .thenReturn(List.of());
+
+        byte[] result = service.exportCsv(ctx.oidcUser, ctx.auth);
+        String csv = new String(result, java.nio.charset.StandardCharsets.UTF_8);
+
+        assertThat(csv).contains("Date,Action,Utilisateur,Dossier,Document");
+        long lines = csv.lines().filter(l -> !l.isBlank()).count();
+        assertThat(lines).isEqualTo(1);
+    }
+
     // ─── helpers ────────────────────────────────────────────────────────────
 
     private record TestContext(User user, Workspace workspace, DefaultOidcUser oidcUser,
@@ -122,6 +180,13 @@ class AuditLogAdminServiceTest {
         log.setCaseFileId(UUID.randomUUID());
         log.setAction("DOCUMENT_DELETED");
         log.setMetadata(metadata);
+        log.setCreatedAt(Instant.now());
+        return log;
+    }
+
+    private AuditLog auditLogWithDate(UUID id, UUID workspaceId, UUID userId, String metadata, Instant createdAt) {
+        AuditLog log = auditLog(id, workspaceId, userId, metadata);
+        log.setCreatedAt(createdAt);
         return log;
     }
 }

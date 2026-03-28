@@ -1,5 +1,8 @@
 package fr.ailegalcase.audit;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,5 +27,16 @@ public class AuditLogAdminController {
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         return auditLogAdminService.getAuditLogs(oidcUser, principal);
+    }
+
+    @GetMapping(value = "/export.csv", produces = "text/csv")
+    public ResponseEntity<byte[]> exportCsv(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        byte[] csv = auditLogAdminService.exportCsv(oidcUser, principal);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"audit-log.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv);
     }
 }

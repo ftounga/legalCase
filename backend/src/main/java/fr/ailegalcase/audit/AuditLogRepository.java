@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
     List<AuditLog> findTop50ByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
+
+    List<AuditLog> findAllByWorkspaceIdOrderByCreatedAtDesc(UUID workspaceId);
 }
