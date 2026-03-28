@@ -119,6 +119,49 @@ describe('AuditLogScreenComponent', () => {
     expect(component.accessDenied()).toBeFalse();
   }));
 
+  // T-12 : sélectionner une date from recharge les logs
+  it('T-12: changer dateFrom recharge les logs', fakeAsync(async () => {
+    await setup(of(mockLogs));
+    auditLogService.getAuditLogs.calls.reset();
+    auditLogService.getAuditLogs.and.returnValue(of([]));
+
+    component.dateFrom.set('2026-03-01');
+    component.loadLogs();
+    tick();
+
+    expect(auditLogService.getAuditLogs).toHaveBeenCalledWith(
+      jasmine.stringMatching(/^2026-03-01/), undefined
+    );
+  }));
+
+  // T-13 : from > to → snackbar "Dates invalides"
+  it('T-13: from > to retourne une snackbar Dates invalides', fakeAsync(async () => {
+    await setup(of(mockLogs), undefined);
+    auditLogService.getAuditLogs.and.returnValue(throwError(() => ({ status: 400 })));
+
+    component.dateFrom.set('2026-03-31');
+    component.dateTo.set('2026-03-01');
+    component.loadLogs();
+    tick();
+
+    expect(snackBar.open).toHaveBeenCalledWith('Dates invalides.', 'Fermer', jasmine.any(Object));
+  }));
+
+  // T-14 : vider dateFrom recharge sans ce paramètre
+  it('T-14: vider dateFrom recharge sans paramètre from', fakeAsync(async () => {
+    await setup(of(mockLogs));
+    component.dateFrom.set('2026-03-01');
+    tick();
+    auditLogService.getAuditLogs.calls.reset();
+    auditLogService.getAuditLogs.and.returnValue(of(mockLogs));
+
+    component.dateFrom.set('');
+    component.loadLogs();
+    tick();
+
+    expect(auditLogService.getAuditLogs).toHaveBeenCalledWith(undefined, undefined);
+  }));
+
   // T-09 : exportCsv — appelle auditLogService.exportCsv()
   it('T-09: exportCsv appelle le service et remet exporting à false', fakeAsync(async () => {
     const blob = new Blob(['csv'], { type: 'text/csv' });

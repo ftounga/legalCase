@@ -32,6 +32,9 @@ export class AuditLogScreenComponent implements OnInit {
   accessDenied = signal(false);
   exporting = signal(false);
 
+  dateFrom = signal('');
+  dateTo = signal('');
+
   searchText = signal('');
   actionFilter = signal('ALL');
 
@@ -75,7 +78,14 @@ export class AuditLogScreenComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.auditLogService.getAuditLogs().subscribe({
+    this.loadLogs();
+  }
+
+  loadLogs(): void {
+    this.loading.set(true);
+    const from = this.dateFrom() ? new Date(this.dateFrom()).toISOString() : undefined;
+    const to   = this.dateTo()   ? new Date(this.dateTo() + 'T23:59:59Z').toISOString() : undefined;
+    this.auditLogService.getAuditLogs(from, to).subscribe({
       next: logs => {
         this.allLogs.set(logs);
         this.loading.set(false);
@@ -84,6 +94,8 @@ export class AuditLogScreenComponent implements OnInit {
         this.loading.set(false);
         if (err.status === 403) {
           this.accessDenied.set(true);
+        } else if (err.status === 400) {
+          this.snackBar.open('Dates invalides.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
         } else {
           this.snackBar.open('Erreur lors du chargement du journal.', 'Fermer', {
             duration: 4000, panelClass: ['snack-error']

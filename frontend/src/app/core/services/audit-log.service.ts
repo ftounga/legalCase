@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuditLogEntry } from '../models/audit-log-entry.model';
 
@@ -9,8 +9,11 @@ export class AuditLogService {
 
   constructor(private http: HttpClient) {}
 
-  getAuditLogs(): Observable<AuditLogEntry[]> {
-    return this.http.get<AuditLogEntry[]>(this.apiUrl);
+  getAuditLogs(from?: string, to?: string): Observable<AuditLogEntry[]> {
+    let params = new HttpParams();
+    if (from) params = params.set('from', from);
+    if (to)   params = params.set('to', to);
+    return this.http.get<AuditLogEntry[]>(this.apiUrl, { params });
   }
 
   exportCsv(): Observable<Blob> {
