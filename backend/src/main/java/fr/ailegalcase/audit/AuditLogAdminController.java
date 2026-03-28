@@ -1,5 +1,8 @@
 package fr.ailegalcase.audit;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
 import java.time.Instant;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/audit-logs")
@@ -25,12 +27,14 @@ public class AuditLogAdminController {
     }
 
     @GetMapping
-    public List<AuditLogResponse> getAuditLogs(
+    public Page<AuditLogResponse> getAuditLogs(
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal,
             @RequestParam(required = false) Instant from,
-            @RequestParam(required = false) Instant to) {
-        return auditLogAdminService.getAuditLogs(oidcUser, principal, from, to);
+            @RequestParam(required = false) Instant to,
+            @RequestParam(required = false) String action,
+            @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        return auditLogAdminService.getAuditLogs(oidcUser, principal, from, to, action, pageable);
     }
 
     @GetMapping(value = "/export.csv", produces = "text/csv")

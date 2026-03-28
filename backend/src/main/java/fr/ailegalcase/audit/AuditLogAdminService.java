@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.security.Principal;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -50,8 +54,9 @@ public class AuditLogAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLogResponse> getAuditLogs(OidcUser oidcUser, Principal principal,
-                                                Instant from, Instant to) {
+    public Page<AuditLogResponse> getAuditLogs(OidcUser oidcUser, Principal principal,
+                                                Instant from, Instant to,
+                                                String action, Pageable pageable) {
         User user = currentUserResolver.resolve(oidcUser, resolve(principal), principal);
 
         WorkspaceMember member = workspaceMemberRepository
@@ -67,40 +72,31 @@ public class AuditLogAdminService {
         }
 
         UUID workspaceId = member.getWorkspace().getId();
-        List<AuditLog> logs = fetchLogs(workspaceId, from, to);
 
-        if (logs.isEmpty()) {
-            return List.of();
+        Specification<AuditLog> spec = AuditLogSpecifications.workspaceId(workspaceId);
+        if (from != null)   spec = spec.and(AuditLogSpecifications.fromDate(from));
+        if (to != null)     spec = spec.and(AuditLogSpecifications.toDate(to));
+        if (action != null && !action.isBlank()) spec = spec.and(AuditLogSpecifications.action(action));
+
+        Page<AuditLog> page = auditLogRepository.findAll(spec, pageable);
+
+        if (page.isEmpty()) {
+            return Page.empty(pageable);
         }
 
-        Set<UUID> userIds = logs.stream().map(AuditLog::getUserId).collect(Collectors.toSet());
+        Set<UUID> userIds = page.stream().map(AuditLog::getUserId).collect(Collectors.toSet());
         Map<UUID, String> emailById = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getEmail));
 
-        return logs.stream()
-                .map(log -> new AuditLogResponse(
-                        log.getId(),
-                        log.getAction(),
-                        emailById.getOrDefault(log.getUserId(), ""),
-                        log.getCaseFileId(),
-                        extractCaseFileTitle(log.getMetadata()),
-                        extractDocumentName(log.getMetadata()),
-                        log.getCreatedAt()
-                ))
-                .toList();
-    }
-
-    private List<AuditLog> fetchLogs(UUID workspaceId, Instant from, Instant to) {
-        if (from != null && to != null) {
-            return auditLogRepository.findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(workspaceId, from, to);
-        }
-        if (from != null) {
-            return auditLogRepository.findByWorkspaceIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(workspaceId, from);
-        }
-        if (to != null) {
-            return auditLogRepository.findByWorkspaceIdAndCreatedAtLessThanEqualOrderByCreatedAtDesc(workspaceId, to);
-        }
-        return auditLogRepository.findTop50ByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
+        return page.map(log -> new AuditLogResponse(
+                log.getId(),
+                log.getAction(),
+                emailById.getOrDefault(log.getUserId(), ""),
+                log.getCaseFileId(),
+                extractCaseFileTitle(log.getMetadata()),
+                extractDocumentName(log.getMetadata()),
+                log.getCreatedAt()
+        ));
     }
 
     @Transactional(readOnly = true)
