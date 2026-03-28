@@ -120,7 +120,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-19 | Intégration paiement Stripe | Checkout Stripe pour passage FREE→Starter et Starter→Pro. Webhook Stripe pour mise à jour automatique du plan. Page pricing frontend. Bannière upgrade. Gestion plan FREE trial 14j. | `Terminée` |
-| F-58 | Repricing — Plans SOLO/TEAM/PRO | Remplacement des plans STARTER (49€) et PRO (129€) par SOLO (59€), TEAM (119€) et PRO (249€). Différenciation par quotas uniquement — toutes les features sur tous les plans payants. Re-analyse enrichie ouverte à tous les plans payants (quota = 1 en FREE pour démo). Nouveaux quotas : dossiers ouverts, documents/dossier, analyses/dossier, re-analyses enrichies, budget tokens mensuel, messages chat. Migration STARTER→SOLO sur subscriptions existantes. | `in-progress` |
+| F-58 | Repricing — Plans SOLO/TEAM/PRO | Remplacement des plans STARTER (49€) et PRO (129€) par SOLO (59€), TEAM (119€) et PRO (249€). Différenciation par quotas uniquement — toutes les features sur tous les plans payants. Re-analyse enrichie ouverte à tous les plans payants (quota = 1 en FREE pour démo). Nouveaux quotas : dossiers ouverts, documents/dossier, analyses/dossier, re-analyses enrichies, budget tokens mensuel, messages chat. Migration STARTER→SOLO sur subscriptions existantes. | `Terminée` |
 
 ---
 
@@ -296,3 +296,5 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-28 | F-56 SF-56-06 mergée — snapshot Q&A par analyse enrichie : migration 032 table `analysis_qa_snapshots`, AnalysisQaSnapshot entity + repository + service, snapshot figé à la création de l'analyse enrichie, buildContext() utilise snapshot avec fallback courant (rétrocompat), 277 tests. F-56 marquée Terminée | Product owner |
 | 2026-03-28 | F-57 SF-57-01 mergée — backend ré-answering : confirmation comportement existant + 3 tests (U-04 unitaire, I-07 deux entrées/dernière prioritaire, I-08 garde SF-56-05), fix pré-existant legalDomain manquant dans IT, 278 tests | Product owner |
 | 2026-03-28 | F-57 SF-57-02 mergée — frontend : bouton "Modifier" inline sur réponses Q&A, formulaire pré-rempli, signal editingQuestionId, startEdit/cancelEdit/submitEdit, 7 nouveaux tests (T-10→T-16), 232 tests frontend. F-57 marquée Terminée | Product owner |
+| 2026-03-28 | F-58 SF-58-01 mergée — backend repricing : PlanLimitService 4 plans (FREE/SOLO/TEAM/PRO) avec 6 dimensions de quotas, StripeWebhookService/CheckoutService SOLO+TEAM+PRO, migration 033 STARTER→SOLO, application.yml price-id-solo/team/pro, CI/CD secrets mis à jour, 72 tests | Product owner |
+| 2026-03-28 | F-58 SF-58-02 mergée — frontend repricing : workspace-billing 4 plans (SOLO Recommandé, boutons différenciés), landing 4 cartes pricing (re-synthèse enrichie ✅ sur tous plans payants), workspace-admin PLAN_QUOTA, super-admin planLabel, 238 tests. F-58 marquée Terminée | Product owner |
