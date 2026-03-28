@@ -30,30 +30,16 @@
     <mat-card class="filters-card">
       <mat-card-content>
         <div class="filters-row">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>Rechercher (utilisateur, dossier, document)</mat-label>
-            <mat-icon matPrefix>search</mat-icon>
-            <input matInput [ngModel]="searchText()" (ngModelChange)="searchText.set($event)" placeholder="Ex: dupont" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="action-filter">
-            <mat-label>Action</mat-label>
-            <mat-select [ngModel]="actionFilter()" (ngModelChange)="actionFilter.set($event)">
-              <mat-option value="ALL">Toutes</mat-option>
-              <mat-option value="DOCUMENT_DELETED">Suppression document</mat-option>
-            </mat-select>
-          </mat-form-field>
-
           <mat-form-field appearance="outline" class="date-field">
             <mat-label>Du</mat-label>
             <input matInput type="date" [ngModel]="dateFrom()"
-                   (ngModelChange)="dateFrom.set($event); loadLogs()">
+                   (ngModelChange)="dateFrom.set($event); onDateChange()">
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="date-field">
             <mat-label>Au</mat-label>
             <input matInput type="date" [ngModel]="dateTo()"
-                   (ngModelChange)="dateTo.set($event); loadLogs()">
+                   (ngModelChange)="dateTo.set($event); onDateChange()">
           </mat-form-field>
         </div>
       </mat-card-content>
@@ -61,10 +47,10 @@
 
     <mat-card class="table-card">
       <mat-card-content>
-        @if (filteredLogs().length === 0) {
+        @if (logs().length === 0) {
           <p class="no-data-message">Aucune action enregistrée.</p>
         } @else {
-          <table mat-table [dataSource]="filteredLogs()" class="audit-table">
+          <table mat-table [dataSource]="logs()" class="audit-table">
             <ng-container matColumnDef="createdAt">
               <th mat-header-cell *matHeaderCellDef>Date</th>
               <td mat-cell *matCellDef="let log">{{ log.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
@@ -92,6 +78,15 @@
             <tr mat-row *matRowDef="let row; columns: columns;"></tr>
           </table>
         }
+
+        <mat-paginator
+          [length]="totalElements()"
+          [pageSize]="pageSize()"
+          [pageIndex]="pageIndex()"
+          [pageSizeOptions]="[10, 20, 50]"
+          (page)="onPageChange($event)"
+          showFirstLastButtons>
+        </mat-paginator>
       </mat-card-content>
     </mat-card>
   }
