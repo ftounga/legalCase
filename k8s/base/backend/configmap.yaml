@@ -14,3 +14,5 @@ data:
   MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
   APP_STRIPE_ENABLED: "true"
   APP_MAIL_ENABLED: "true"
+  ANTHROPIC_MODEL: "claude-sonnet-4-6"
+  ANTHROPIC_MODEL_FAST: "claude-haiku-4-5-20251001"
