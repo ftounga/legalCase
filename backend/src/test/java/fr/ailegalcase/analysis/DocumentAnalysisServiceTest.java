@@ -35,16 +35,22 @@ class DocumentAnalysisServiceTest {
     private final UsageEventService usageEventService = mock(UsageEventService.class);
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
 
     private final DocumentAnalysisService service = new DocumentAnalysisService(
             chunkAnalysisRepository, documentAnalysisRepository, extractionRepository,
             documentRepository, anthropicService, analysisJobRepository, usageEventService,
-            caseFileRepository, eventPublisher);
+            caseFileRepository, eventPublisher, analysisLimitsProperties);
 
     @BeforeEach
     void setUp() {
         TransactionSynchronizationManager.initSynchronization();
         ReflectionTestUtils.setField(service, "self", service);
+        AnalysisLimitsProperties.LevelLimits limits = new AnalysisLimitsProperties.LevelLimits();
+        limits.setFaits(5); limits.setPointsJuridiques(3); limits.setRisques(3); limits.setQuestionsOuvertes(3);
+        AnalysisLimitsProperties.DomainLimits domainLimits = mock(AnalysisLimitsProperties.DomainLimits.class);
+        when(domainLimits.getDocument()).thenReturn(limits);
+        when(analysisLimitsProperties.forDomain(any())).thenReturn(domainLimits);
     }
 
     @AfterEach
@@ -219,7 +225,9 @@ class DocumentAnalysisServiceTest {
     // U-05 : le system prompt contient les contraintes de longueur
     @Test
     void systemPrompt_containsLengthConstraints() {
-        String prompt = DocumentAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE");
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(5); l.setPointsJuridiques(3); l.setRisques(3); l.setQuestionsOuvertes(3);
+        String prompt = DocumentAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
         assertThat(prompt).contains("5 faits maximum");
         assertThat(prompt).contains("3 points_juridiques maximum");
         assertThat(prompt).contains("3 risques maximum");

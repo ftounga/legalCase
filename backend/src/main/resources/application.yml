@@ -36,6 +36,46 @@ app:
     from: ${MAIL_FROM:${MAIL_USERNAME:}}
   pipeline:
     direct-analysis-threshold-chars: 600000
+    limits:
+      droit-du-travail:
+        document:
+          faits: 5
+          points-juridiques: 3
+          risques: 3
+          questions-ouvertes: 3
+          timeline: 0
+        dossier:
+          faits: 7
+          points-juridiques: 5
+          risques: 5
+          questions-ouvertes: 5
+          timeline: 5
+      droit-immigration:
+        document:
+          faits: 7
+          points-juridiques: 4
+          risques: 4
+          questions-ouvertes: 3
+          timeline: 0
+        dossier:
+          faits: 10
+          points-juridiques: 6
+          risques: 6
+          questions-ouvertes: 5
+          timeline: 8
+      droit-famille:
+        document:
+          faits: 5
+          points-juridiques: 3
+          risques: 3
+          questions-ouvertes: 3
+          timeline: 0
+        dossier:
+          faits: 7
+          points-juridiques: 5
+          risques: 4
+          questions-ouvertes: 5
+          timeline: 5
   stripe:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}

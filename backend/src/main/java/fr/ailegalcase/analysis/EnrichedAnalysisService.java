@@ -35,13 +35,18 @@ public class EnrichedAnalysisService {
             Produis une synthèse enrichie et mise à jour en intégrant ces nouvelles informations.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
+            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum. Sois concis.
             """;
 
-    static String buildSystemPrompt(String legalDomain, String country) {
-        return SYSTEM_PROMPT_TEMPLATE.formatted(LegalDomainPromptBuilder.domainLabel(legalDomain, country));
+    static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(
+                LegalDomainPromptBuilder.domainLabel(legalDomain, country),
+                limits.getTimeline(), limits.getFaits(),
+                limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes());
     }
 
-    record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId) {}
+    record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
+                                     AnalysisLimitsProperties.LevelLimits limits) {}
 
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -53,6 +58,7 @@ public class EnrichedAnalysisService {
     private final ApplicationEventPublisher eventPublisher;
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
     private final AnalysisQaSnapshotService analysisQaSnapshotService;
+    private final AnalysisLimitsProperties analysisLimitsProperties;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -66,7 +72,8 @@ public class EnrichedAnalysisService {
                                    UsageEventService usageEventService,
                                    ApplicationEventPublisher eventPublisher,
                                    AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
-                                   AnalysisQaSnapshotService analysisQaSnapshotService) {
+                                   AnalysisQaSnapshotService analysisQaSnapshotService,
+                                   AnalysisLimitsProperties analysisLimitsProperties) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -77,6 +84,7 @@ public class EnrichedAnalysisService {
         this.eventPublisher = eventPublisher;
         this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
         this.analysisQaSnapshotService = analysisQaSnapshotService;
+        this.analysisLimitsProperties = analysisLimitsProperties;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -103,7 +111,7 @@ public class EnrichedAnalysisService {
             failure = e;
         }
 
-        self.finalizeEnrichedAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure);
+        self.finalizeEnrichedAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure, prepared.limits());
     }
 
     @Transactional
@@ -156,21 +164,23 @@ public class EnrichedAnalysisService {
         analysisQaSnapshotService.snapshot(enrichedAnalysis.getId(), caseFileId);
 
         fr.ailegalcase.workspace.Workspace ws = caseFile.getWorkspace();
-        String systemPrompt = buildSystemPrompt(
-                ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL",
-                ws != null ? ws.getCountry() : "FRANCE");
+        String legalDomain = ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL";
+        String country     = ws != null ? ws.getCountry()     : "FRANCE";
+        AnalysisLimitsProperties.LevelLimits limits = analysisLimitsProperties.forDomain(legalDomain).getDossier();
+        String systemPrompt = buildSystemPrompt(legalDomain, country, limits);
         String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult());
-        return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId);
+        return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId, limits);
     }
 
     @Transactional
-    public void finalizeEnrichedAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure) {
+    public void finalizeEnrichedAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure,
+                                          AnalysisLimitsProperties.LevelLimits limits) {
         CaseAnalysis enrichedAnalysis = caseAnalysisRepository.findById(analysisId).orElseThrow();
 
         if (failure != null) {
             enrichedAnalysis.setAnalysisStatus(AnalysisStatus.FAILED);
         } else {
-            enrichedAnalysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content()));
+            enrichedAnalysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content(), limits));
             enrichedAnalysis.setModelUsed(result.modelUsed());
             enrichedAnalysis.setPromptTokens(result.promptTokens());
             enrichedAnalysis.setCompletionTokens(result.completionTokens());
