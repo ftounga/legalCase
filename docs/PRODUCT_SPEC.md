@@ -149,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
+| F-29 | Limites pipeline IA configurables | V2 — **Terminée** | SF-29-01 mergée 2026-03-28 : `AnalysisLimitsProperties` @ConfigurationProperties, limites par domaine (droit-du-travail / droit-immigration / droit-famille) × niveau (document / dossier) dans `application.yml`, `AnalysisJsonTruncator` paramétrique, system prompts dynamiques. |
 | F-39 | Notifications temps réel | V2 — **Terminée** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. SF-39-02 mergée 2026-03-26 : `GlobalAnalysisNotificationService` singleton Angular, toast MatSnackBar visible depuis toute page, événements SSE typés par jobType. |
 | F-40 | Export PDF de la synthèse | V2 — **Terminée** | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. Implémenté 100% frontend via pdfmake (SF-40-01, mergé 2026-03-24). |
 
@@ -197,6 +197,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-28 | F-29 Terminée — SF-29-01 mergée : `AnalysisLimitsProperties` @ConfigurationProperties, limites par domaine × niveau dans `application.yml`, `AnalysisJsonTruncator` paramétrique, system prompts dynamiques, 320 tests | Product owner |
 | 2026-03-28 | F-46 Terminée — SF-46-01 mergée : smoke.yml workflow_run après Backend/Frontend CI, workflow_dispatch, Playwright chromium Node 22, secrets E2E, compte e2e créé staging | Product owner |
 | 2026-03-28 | F-44 Terminée — SF-44-01 (backend) + SF-44-02 (frontend) mergées : Page<AuditLogResponse>, JpaSpecificationExecutor, MatPaginator 10/20/50, 10 tests Java + 251 tests Angular | Product owner |
 | 2026-03-28 | F-63 Terminée — SF-63-01 mergée : responsive CSS diff (sélecteurs empilés), membres (colonnes masquées), admin (email masqué) | Product owner |
