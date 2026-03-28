@@ -120,6 +120,7 @@ Aucune feature ne peut être implémentée si elle n'est pas référencée dans 
 | ID | Feature | Description | Statut |
 |----|---------|-------------|--------|
 | F-19 | Intégration paiement Stripe | Checkout Stripe pour passage FREE→Starter et Starter→Pro. Webhook Stripe pour mise à jour automatique du plan. Page pricing frontend. Bannière upgrade. Gestion plan FREE trial 14j. | `Terminée` |
+| F-58 | Repricing — Plans SOLO/TEAM/PRO | Remplacement des plans STARTER (49€) et PRO (129€) par SOLO (59€), TEAM (119€) et PRO (249€). Différenciation par quotas uniquement — toutes les features sur tous les plans payants. Re-analyse enrichie ouverte à tous les plans payants (quota = 1 en FREE pour démo). Nouveaux quotas : dossiers ouverts, documents/dossier, analyses/dossier, re-analyses enrichies, budget tokens mensuel, messages chat. Migration STARTER→SOLO sur subscriptions existantes. | `in-progress` |
 
 ---
 

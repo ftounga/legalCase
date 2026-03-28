@@ -27,7 +27,7 @@ class StripeWebhookServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new StripeWebhookService(subscriptionRepository, "price_starter_test", "price_pro_test");
+        service = new StripeWebhookService(subscriptionRepository, "price_solo_test", "price_team_test", "price_pro_test");
     }
 
     // U-01 : checkout.session.completed → plan mis à jour
@@ -41,7 +41,7 @@ class StripeWebhookServiceTest {
         Session session = mock(Session.class);
         when(session.getCustomer()).thenReturn("cus_abc");
         when(session.getSubscription()).thenReturn("sub_123");
-        when(session.getMetadata()).thenReturn(java.util.Map.of("plan_code", "STARTER"));
+        when(session.getMetadata()).thenReturn(java.util.Map.of("plan_code", "SOLO"));
 
         EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
         try { when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) session); }
@@ -56,7 +56,7 @@ class StripeWebhookServiceTest {
         ArgumentCaptor<fr.ailegalcase.billing.Subscription> captor =
                 ArgumentCaptor.forClass(fr.ailegalcase.billing.Subscription.class);
         verify(subscriptionRepository).save(captor.capture());
-        assertThat(captor.getValue().getPlanCode()).isEqualTo("STARTER");
+        assertThat(captor.getValue().getPlanCode()).isEqualTo("SOLO");
         assertThat(captor.getValue().getStripeSubscriptionId()).isEqualTo("sub_123");
         assertThat(captor.getValue().getExpiresAt()).isNull();
         assertThat(captor.getValue().getStatus()).isEqualTo("ACTIVE");
@@ -66,7 +66,7 @@ class StripeWebhookServiceTest {
     @Test
     void handleEvent_subscriptionDeleted_downgradesToFree() {
         fr.ailegalcase.billing.Subscription sub = new fr.ailegalcase.billing.Subscription();
-        sub.setPlanCode("STARTER");
+        sub.setPlanCode("SOLO");
         sub.setStripeSubscriptionId("sub_123");
         when(subscriptionRepository.findByStripeCustomerId("cus_abc")).thenReturn(Optional.of(sub));
         when(subscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -130,8 +130,13 @@ class StripeWebhookServiceTest {
 
     // U-05 : resolvePlanCodeFromPriceId
     @Test
-    void resolvePlanCodeFromPriceId_starterPriceId_returnsStarter() {
-        assertThat(service.resolvePlanCodeFromPriceId("price_starter_test")).isEqualTo("STARTER");
+    void resolvePlanCodeFromPriceId_soloPriceId_returnsSolo() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_solo_test")).isEqualTo("SOLO");
+    }
+
+    @Test
+    void resolvePlanCodeFromPriceId_teamPriceId_returnsTeam() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_team_test")).isEqualTo("TEAM");
     }
 
     @Test
@@ -140,7 +145,7 @@ class StripeWebhookServiceTest {
     }
 
     @Test
-    void resolvePlanCodeFromPriceId_unknownPriceId_returnsStarterDefault() {
-        assertThat(service.resolvePlanCodeFromPriceId("price_unknown")).isEqualTo("STARTER");
+    void resolvePlanCodeFromPriceId_unknownPriceId_returnsSoloDefault() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_unknown")).isEqualTo("SOLO");
     }
 }
