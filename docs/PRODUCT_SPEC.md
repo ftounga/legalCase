@@ -149,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-29 | Limites pipeline IA configurables | V2 | Externaliser les limites hardcodées de F-28 (nb max d'items par champ JSON). Configurable par domaine juridique et/ou par plan (Starter/Pro). Actuellement hardcodé dans `AnalysisJsonTruncator` et les `SYSTEM_PROMPT`. |
+| F-29 | Limites pipeline IA configurables | V2 — **Terminée** | Externalisation des limites hardcodées de F-28 via `AnalysisLimitsProperties` (`@ConfigurationProperties`). Configurable par domaine juridique dans `application.yml`. `AnalysisJsonTruncator` paramétré par `LevelLimits` (chunk/document/dossier). SF-29-01 mergée 2026-03-28. |
 | F-39 | Notifications temps réel | V2 — **Terminée** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. SF-39-02 mergée 2026-03-26 : `GlobalAnalysisNotificationService` singleton Angular, toast MatSnackBar visible depuis toute page, événements SSE typés par jobType. |
 | F-40 | Export PDF de la synthèse | V2 — **Terminée** | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. Implémenté 100% frontend via pdfmake (SF-40-01, mergé 2026-03-24). |
 
@@ -197,6 +197,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-29 | F-29 Terminée (statut manquant corrigé) — SF-29-01 mergée 2026-03-28 : AnalysisLimitsProperties, LevelLimits, AnalysisJsonTruncator paramétré, configurable par domaine | Product owner |
 | 2026-03-28 | F-49 Terminée — SF-49-02 mergée : section top-up billing (3 cartes), createTopupSession(), ?topup=success/canceled, 14 tests Angular | Product owner |
 | 2026-03-28 | F-49 SF-49-01 mergée — table credit_purchases, TokenPack 1M/5M/20M, POST /topup-session, webhook mode=payment, PlanLimitService crédits globaux, 331 tests | Product owner |
 | 2026-03-28 | F-46 Terminée — SF-46-01 mergée : smoke.yml workflow_run après Backend/Frontend CI, workflow_dispatch, Playwright chromium Node 22, secrets E2E, compte e2e créé staging | Product owner |
