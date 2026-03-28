@@ -30,6 +30,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
@@ -73,6 +75,10 @@
   font-size: 24px;
   color: #1C2B3A;
   margin: 0;
+
+  @media (max-width: 767px) {
+    font-size: 18px;
+  }
 }
 
 .badge {

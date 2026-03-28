@@ -43,6 +43,49 @@
   }
 }
 
+@media (max-width: 767px) {
+  .title-row {
+    flex-wrap: wrap;
+
+    .page-title {
+      width: 100%;
+    }
+  }
+
+  .status-actions {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  /* Table documents : masquer Type, Taille, Date */
+  .mat-column-type,
+  .mat-column-size,
+  .mat-column-date {
+    display: none;
+  }
+
+  /* Barre de progression jobs IA : réorganiser en grille 2 lignes */
+  .analysis-job-row {
+    grid-template-columns: 20px 1fr 48px;
+    grid-template-rows: auto auto;
+
+    .job-progress-bar {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      margin-top: 2px;
+    }
+
+    .job-percentage {
+      text-align: right;
+    }
+  }
+
+  /* Badge statut job : masquer sur mobile pour ne pas surcharger */
+  .analysis-job-row .badge {
+    display: none;
+  }
+}
+
 .col-left,
 .col-right {
   display: flex;
