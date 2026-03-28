@@ -40,3 +40,16 @@ mat-paginator {
   background: var(--color-surface);
   border-radius: 0 0 8px 8px;
 }
+
+@media (max-width: 767px) {
+  .page-header {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+
+  /* Masquer les colonnes secondaires sur mobile */
+  .mat-column-legalDomain,
+  .mat-column-createdAt {
+    display: none;
+  }
+}
