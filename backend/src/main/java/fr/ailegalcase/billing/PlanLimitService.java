@@ -13,21 +13,38 @@ import java.util.UUID;
 @Service
 public class PlanLimitService {
 
-    private static final int FREE_MAX_OPEN_CASE_FILES = 1;
-    private static final int STARTER_MAX_OPEN_CASE_FILES = 3;
-    private static final int PRO_MAX_OPEN_CASE_FILES = 20;
-    private static final int FREE_MAX_DOCUMENTS_PER_CASE_FILE = 3;
-    private static final int STARTER_MAX_DOCUMENTS_PER_CASE_FILE = 5;
-    private static final int PRO_MAX_DOCUMENTS_PER_CASE_FILE = 30;
-    static final int PRO_MAX_RE_ANALYSES_PER_CASE_FILE = 5;
-    static final int FREE_MAX_CASE_ANALYSES_PER_CASE_FILE     = 2;
-    static final int STARTER_MAX_CASE_ANALYSES_PER_CASE_FILE  = 5;
-    static final long FREE_MONTHLY_TOKEN_BUDGET    =   500_000L;
-    static final long STARTER_MONTHLY_TOKEN_BUDGET = 3_000_000L;
-    static final long PRO_MONTHLY_TOKEN_BUDGET     = 20_000_000L;
-    static final long FREE_MONTHLY_CHAT_LIMIT     =  10L;
-    static final long STARTER_MONTHLY_CHAT_LIMIT  =  50L;
-    static final long PRO_MONTHLY_CHAT_LIMIT      = 200L;
+    // ── Dossiers ouverts ─────────────────────────────────────────────────
+    private static final int FREE_MAX_OPEN_CASE_FILES  = 2;
+    private static final int SOLO_MAX_OPEN_CASE_FILES  = 15;
+    private static final int TEAM_MAX_OPEN_CASE_FILES  = 40;
+
+    // ── Documents par dossier ────────────────────────────────────────────
+    private static final int FREE_MAX_DOCUMENTS_PER_CASE_FILE  = 5;
+    private static final int SOLO_MAX_DOCUMENTS_PER_CASE_FILE  = 15;
+    private static final int TEAM_MAX_DOCUMENTS_PER_CASE_FILE  = 30;
+    private static final int PRO_MAX_DOCUMENTS_PER_CASE_FILE   = 50;
+
+    // ── Analyses par dossier ─────────────────────────────────────────────
+    static final int FREE_MAX_CASE_ANALYSES_PER_CASE_FILE  = 2;
+    static final int SOLO_MAX_CASE_ANALYSES_PER_CASE_FILE  = 8;
+    static final int TEAM_MAX_CASE_ANALYSES_PER_CASE_FILE  = 15;
+
+    // ── Re-analyses enrichies par dossier ────────────────────────────────
+    static final int FREE_MAX_RE_ANALYSES_PER_CASE_FILE  = 1;
+    static final int SOLO_MAX_RE_ANALYSES_PER_CASE_FILE  = 3;
+    static final int TEAM_MAX_RE_ANALYSES_PER_CASE_FILE  = 8;
+
+    // ── Budget tokens mensuel ────────────────────────────────────────────
+    static final long FREE_MONTHLY_TOKEN_BUDGET  =  500_000L;
+    static final long SOLO_MONTHLY_TOKEN_BUDGET  =  6_000_000L;
+    static final long TEAM_MONTHLY_TOKEN_BUDGET  = 18_000_000L;
+    static final long PRO_MONTHLY_TOKEN_BUDGET   = 60_000_000L;
+
+    // ── Messages chat mensuels ───────────────────────────────────────────
+    static final long FREE_MONTHLY_CHAT_LIMIT  =   10L;
+    static final long SOLO_MONTHLY_CHAT_LIMIT  =  100L;
+    static final long TEAM_MONTHLY_CHAT_LIMIT  =  300L;
+    static final long PRO_MONTHLY_CHAT_LIMIT   = 1000L;
 
     private final SubscriptionRepository subscriptionRepository;
     private final UsageEventRepository usageEventRepository;
@@ -41,16 +58,21 @@ public class PlanLimitService {
         this.chatMessageRepository = chatMessageRepository;
     }
 
-    public int getMaxOpenCaseFiles(String planCode) {
-        if ("PRO".equals(planCode)) return PRO_MAX_OPEN_CASE_FILES;
-        if ("FREE".equals(planCode)) return FREE_MAX_OPEN_CASE_FILES;
-        return STARTER_MAX_OPEN_CASE_FILES;
-    }
-
     public boolean isExpiredFree(Subscription sub) {
         return "FREE".equals(sub.getPlanCode())
                 && sub.getExpiresAt() != null
                 && Instant.now().isAfter(sub.getExpiresAt());
+    }
+
+    // ── Dossiers ouverts ─────────────────────────────────────────────────
+
+    public int getMaxOpenCaseFiles(String planCode) {
+        return switch (planCode) {
+            case "PRO"  -> Integer.MAX_VALUE;
+            case "TEAM" -> TEAM_MAX_OPEN_CASE_FILES;
+            case "SOLO" -> SOLO_MAX_OPEN_CASE_FILES;
+            default     -> FREE_MAX_OPEN_CASE_FILES;
+        };
     }
 
     public int getMaxOpenCaseFilesForWorkspace(UUID workspaceId) {
@@ -59,10 +81,15 @@ public class PlanLimitService {
                 .orElse(Integer.MAX_VALUE);
     }
 
+    // ── Documents par dossier ────────────────────────────────────────────
+
     public int getMaxDocumentsPerCaseFile(String planCode) {
-        if ("PRO".equals(planCode)) return PRO_MAX_DOCUMENTS_PER_CASE_FILE;
-        if ("FREE".equals(planCode)) return FREE_MAX_DOCUMENTS_PER_CASE_FILE;
-        return STARTER_MAX_DOCUMENTS_PER_CASE_FILE;
+        return switch (planCode) {
+            case "PRO"  -> PRO_MAX_DOCUMENTS_PER_CASE_FILE;
+            case "TEAM" -> TEAM_MAX_DOCUMENTS_PER_CASE_FILE;
+            case "SOLO" -> SOLO_MAX_DOCUMENTS_PER_CASE_FILE;
+            default     -> FREE_MAX_DOCUMENTS_PER_CASE_FILE;
+        };
     }
 
     public int getMaxDocumentsPerCaseFileForWorkspace(UUID workspaceId) {
@@ -71,21 +98,54 @@ public class PlanLimitService {
                 .orElse(Integer.MAX_VALUE);
     }
 
-    public boolean isReAnalysisLimitReached(UUID caseFileId, UUID workspaceId) {
+    // ── Analyses par dossier ─────────────────────────────────────────────
+
+    public boolean isCaseAnalysisLimitReached(UUID caseFileId, UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
                 .map(sub -> {
-                    if (!"PRO".equals(sub.getPlanCode())) return false;
-                    long count = usageEventRepository.countByCaseFileIdAndEventType(
-                            caseFileId, JobType.ENRICHED_ANALYSIS);
-                    return count >= PRO_MAX_RE_ANALYSES_PER_CASE_FILE;
+                    if (isExpiredFree(sub)) return true;
+                    int max = switch (sub.getPlanCode()) {
+                        case "PRO"  -> Integer.MAX_VALUE;
+                        case "TEAM" -> TEAM_MAX_CASE_ANALYSES_PER_CASE_FILE;
+                        case "SOLO" -> SOLO_MAX_CASE_ANALYSES_PER_CASE_FILE;
+                        default     -> FREE_MAX_CASE_ANALYSES_PER_CASE_FILE;
+                    };
+                    if (max == Integer.MAX_VALUE) return false;
+                    long count = usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS);
+                    return count >= max;
                 })
                 .orElse(false);
     }
 
+    // ── Re-analyses enrichies ────────────────────────────────────────────
+
+    public boolean isReAnalysisLimitReached(UUID caseFileId, UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(sub -> {
+                    if (isExpiredFree(sub)) return true;
+                    int max = switch (sub.getPlanCode()) {
+                        case "PRO"  -> Integer.MAX_VALUE;
+                        case "TEAM" -> TEAM_MAX_RE_ANALYSES_PER_CASE_FILE;
+                        case "SOLO" -> SOLO_MAX_RE_ANALYSES_PER_CASE_FILE;
+                        default     -> FREE_MAX_RE_ANALYSES_PER_CASE_FILE;
+                    };
+                    if (max == Integer.MAX_VALUE) return false;
+                    long count = usageEventRepository.countByCaseFileIdAndEventType(
+                            caseFileId, JobType.ENRICHED_ANALYSIS);
+                    return count >= max;
+                })
+                .orElse(false);
+    }
+
+    // ── Budget tokens mensuel ────────────────────────────────────────────
+
     long getMonthlyTokenBudget(String planCode) {
-        if ("PRO".equals(planCode)) return PRO_MONTHLY_TOKEN_BUDGET;
-        if ("FREE".equals(planCode)) return FREE_MONTHLY_TOKEN_BUDGET;
-        return STARTER_MONTHLY_TOKEN_BUDGET;
+        return switch (planCode) {
+            case "PRO"  -> PRO_MONTHLY_TOKEN_BUDGET;
+            case "TEAM" -> TEAM_MONTHLY_TOKEN_BUDGET;
+            case "SOLO" -> SOLO_MONTHLY_TOKEN_BUDGET;
+            default     -> FREE_MONTHLY_TOKEN_BUDGET;
+        };
     }
 
     public boolean isMonthlyTokenBudgetExceeded(UUID workspaceId) {
@@ -109,10 +169,15 @@ public class PlanLimitService {
                 .orElse(0L);
     }
 
+    // ── Chat mensuel ─────────────────────────────────────────────────────
+
     long getMonthlyChatLimit(String planCode) {
-        if ("PRO".equals(planCode)) return PRO_MONTHLY_CHAT_LIMIT;
-        if ("FREE".equals(planCode)) return FREE_MONTHLY_CHAT_LIMIT;
-        return STARTER_MONTHLY_CHAT_LIMIT;
+        return switch (planCode) {
+            case "PRO"  -> PRO_MONTHLY_CHAT_LIMIT;
+            case "TEAM" -> TEAM_MONTHLY_CHAT_LIMIT;
+            case "SOLO" -> SOLO_MONTHLY_CHAT_LIMIT;
+            default     -> FREE_MONTHLY_CHAT_LIMIT;
+        };
     }
 
     public boolean isChatMessageLimitReached(UUID workspaceId) {
@@ -131,27 +196,12 @@ public class PlanLimitService {
                 .orElse(false);
     }
 
-    public boolean isCaseAnalysisLimitReached(UUID caseFileId, UUID workspaceId) {
-        return subscriptionRepository.findByWorkspaceId(workspaceId)
-                .map(sub -> {
-                    if (isExpiredFree(sub)) return true;
-                    if ("PRO".equals(sub.getPlanCode())) return false;
-                    int max = "FREE".equals(sub.getPlanCode())
-                            ? FREE_MAX_CASE_ANALYSES_PER_CASE_FILE
-                            : STARTER_MAX_CASE_ANALYSES_PER_CASE_FILE;
-                    long count = usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS);
-                    return count >= max;
-                })
-                .orElse(false);
-    }
-
-    public boolean isEnrichedAnalysisAllowed(String planCode) {
-        return "PRO".equals(planCode);
-    }
+    // ── Chat enrichi (Sonnet) ────────────────────────────────────────────
+    // Disponible sur tous les plans payants non expirés
 
     public boolean isEnrichedAnalysisAllowedForWorkspace(UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
-                .map(sub -> !isExpiredFree(sub) && isEnrichedAnalysisAllowed(sub.getPlanCode()))
+                .map(sub -> !isExpiredFree(sub) && !"FREE".equals(sub.getPlanCode()))
                 .orElse(true);
     }
 }

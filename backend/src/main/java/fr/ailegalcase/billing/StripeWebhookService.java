@@ -18,14 +18,17 @@ public class StripeWebhookService {
     private static final Logger log = LoggerFactory.getLogger(StripeWebhookService.class);
 
     private final SubscriptionRepository subscriptionRepository;
-    private final String priceIdStarter;
+    private final String priceIdSolo;
+    private final String priceIdTeam;
     private final String priceIdPro;
 
     public StripeWebhookService(SubscriptionRepository subscriptionRepository,
-                                @Value("${app.stripe.price-id-starter:}") String priceIdStarter,
+                                @Value("${app.stripe.price-id-solo:}") String priceIdSolo,
+                                @Value("${app.stripe.price-id-team:}") String priceIdTeam,
                                 @Value("${app.stripe.price-id-pro:}") String priceIdPro) {
         this.subscriptionRepository = subscriptionRepository;
-        this.priceIdStarter = priceIdStarter;
+        this.priceIdSolo = priceIdSolo;
+        this.priceIdTeam = priceIdTeam;
         this.priceIdPro = priceIdPro;
     }
 
@@ -120,15 +123,15 @@ public class StripeWebhookService {
             String plan = session.getMetadata().get("plan_code");
             if (plan != null) return plan;
         }
-        return "STARTER";
+        return "SOLO";
     }
 
     String resolvePlanCodeFromPriceId(String priceId) {
-        if (priceId == null) return "STARTER";
-        if (priceId.equals(priceIdPro)) return "PRO";
-        if (priceId.equals(priceIdStarter)) return "STARTER";
-        // fallback si price_id non reconnu
-        log.warn("Unknown Stripe price ID: {} — defaulting to STARTER", priceId);
-        return "STARTER";
+        if (priceId == null) return "SOLO";
+        if (priceId.equals(priceIdPro))   return "PRO";
+        if (priceId.equals(priceIdTeam))  return "TEAM";
+        if (priceId.equals(priceIdSolo))  return "SOLO";
+        log.warn("Unknown Stripe price ID: {} — defaulting to SOLO", priceId);
+        return "SOLO";
     }
 }

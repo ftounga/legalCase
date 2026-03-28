@@ -24,11 +24,12 @@ import java.util.Set;
 public class StripeCheckoutService {
 
     private static final Logger log = LoggerFactory.getLogger(StripeCheckoutService.class);
-    private static final Set<String> VALID_PLANS = Set.of("STARTER", "PRO");
+    private static final Set<String> VALID_PLANS = Set.of("SOLO", "TEAM", "PRO");
 
     private final boolean stripeEnabled;
     private final String secretKey;
-    private final String priceIdStarter;
+    private final String priceIdSolo;
+    private final String priceIdTeam;
     private final String priceIdPro;
     private final String frontendUrl;
     private final SubscriptionRepository subscriptionRepository;
@@ -39,7 +40,8 @@ public class StripeCheckoutService {
     public StripeCheckoutService(
             @Value("${app.stripe.enabled:false}") boolean stripeEnabled,
             @Value("${app.stripe.secret-key:}") String secretKey,
-            @Value("${app.stripe.price-id-starter:}") String priceIdStarter,
+            @Value("${app.stripe.price-id-solo:}") String priceIdSolo,
+            @Value("${app.stripe.price-id-team:}") String priceIdTeam,
             @Value("${app.stripe.price-id-pro:}") String priceIdPro,
             @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
             SubscriptionRepository subscriptionRepository,
@@ -48,7 +50,8 @@ public class StripeCheckoutService {
             WorkspaceMemberRepository workspaceMemberRepository) {
         this.stripeEnabled = stripeEnabled;
         this.secretKey = secretKey;
-        this.priceIdStarter = priceIdStarter;
+        this.priceIdSolo = priceIdSolo;
+        this.priceIdTeam = priceIdTeam;
         this.priceIdPro = priceIdPro;
         this.frontendUrl = frontendUrl;
         this.subscriptionRepository = subscriptionRepository;
@@ -86,7 +89,11 @@ public class StripeCheckoutService {
                     });
         }
 
-        String priceId = "PRO".equals(planCode) ? priceIdPro : priceIdStarter;
+        String priceId = switch (planCode) {
+            case "PRO"  -> priceIdPro;
+            case "TEAM" -> priceIdTeam;
+            default     -> priceIdSolo;
+        };
 
         try {
             Stripe.apiKey = secretKey;

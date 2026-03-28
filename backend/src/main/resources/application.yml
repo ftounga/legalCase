@@ -40,7 +40,8 @@ app:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
-    price-id-starter: ${STRIPE_PRICE_ID_STARTER:}
+    price-id-solo: ${STRIPE_PRICE_ID_SOLO:}
+    price-id-team: ${STRIPE_PRICE_ID_TEAM:}
     price-id-pro: ${STRIPE_PRICE_ID_PRO:}
 
 sentry:

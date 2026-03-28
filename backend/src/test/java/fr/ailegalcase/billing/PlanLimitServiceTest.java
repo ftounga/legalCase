@@ -22,14 +22,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PlanLimitServiceTest {
 
-    @Mock
-    private SubscriptionRepository subscriptionRepository;
-
-    @Mock
-    private UsageEventRepository usageEventRepository;
-
-    @Mock
-    private ChatMessageRepository chatMessageRepository;
+    @Mock private SubscriptionRepository subscriptionRepository;
+    @Mock private UsageEventRepository usageEventRepository;
+    @Mock private ChatMessageRepository chatMessageRepository;
 
     private PlanLimitService service;
 
@@ -38,29 +33,22 @@ class PlanLimitServiceTest {
         service = new PlanLimitService(subscriptionRepository, usageEventRepository, chatMessageRepository);
     }
 
-    // --- getMaxOpenCaseFiles ---
+    // ── getMaxOpenCaseFiles ───────────────────────────────────────────────
 
-    @Test
-    void getMaxOpenCaseFiles_free_returns1() {
-        assertThat(service.getMaxOpenCaseFiles("FREE")).isEqualTo(1);
-    }
+    @Test void getMaxOpenCaseFiles_free_returns2()   { assertThat(service.getMaxOpenCaseFiles("FREE")).isEqualTo(2); }
+    @Test void getMaxOpenCaseFiles_solo_returns15()  { assertThat(service.getMaxOpenCaseFiles("SOLO")).isEqualTo(15); }
+    @Test void getMaxOpenCaseFiles_team_returns40()  { assertThat(service.getMaxOpenCaseFiles("TEAM")).isEqualTo(40); }
+    @Test void getMaxOpenCaseFiles_pro_returnsMax()  { assertThat(service.getMaxOpenCaseFiles("PRO")).isEqualTo(Integer.MAX_VALUE); }
+    @Test void getMaxOpenCaseFiles_unknown_returnsFreeDefault() { assertThat(service.getMaxOpenCaseFiles("UNKNOWN")).isEqualTo(2); }
 
-    @Test
-    void getMaxOpenCaseFiles_starter_returns3() {
-        assertThat(service.getMaxOpenCaseFiles("STARTER")).isEqualTo(3);
-    }
+    // ── getMaxDocumentsPerCaseFile ────────────────────────────────────────
 
-    @Test
-    void getMaxOpenCaseFiles_pro_returns20() {
-        assertThat(service.getMaxOpenCaseFiles("PRO")).isEqualTo(20);
-    }
+    @Test void getMaxDocumentsPerCaseFile_free_returns5()  { assertThat(service.getMaxDocumentsPerCaseFile("FREE")).isEqualTo(5); }
+    @Test void getMaxDocumentsPerCaseFile_solo_returns15() { assertThat(service.getMaxDocumentsPerCaseFile("SOLO")).isEqualTo(15); }
+    @Test void getMaxDocumentsPerCaseFile_team_returns30() { assertThat(service.getMaxDocumentsPerCaseFile("TEAM")).isEqualTo(30); }
+    @Test void getMaxDocumentsPerCaseFile_pro_returns50()  { assertThat(service.getMaxDocumentsPerCaseFile("PRO")).isEqualTo(50); }
 
-    @Test
-    void getMaxOpenCaseFiles_unknown_returnsStarterDefault() {
-        assertThat(service.getMaxOpenCaseFiles("UNKNOWN")).isEqualTo(3);
-    }
-
-    // --- isExpiredFree ---
+    // ── isExpiredFree ─────────────────────────────────────────────────────
 
     @Test
     void isExpiredFree_freeExpired_returnsTrue() {
@@ -79,341 +67,433 @@ class PlanLimitServiceTest {
     }
 
     @Test
-    void isExpiredFree_starterWithPastExpiresAt_returnsFalse() {
+    void isExpiredFree_soloWithPastExpiresAt_returnsFalse() {
         Subscription sub = new Subscription();
-        sub.setPlanCode("STARTER");
+        sub.setPlanCode("SOLO");
         sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
         assertThat(service.isExpiredFree(sub)).isFalse();
     }
 
-    // --- getMaxOpenCaseFilesForWorkspace avec expiration ---
+    // ── getMaxOpenCaseFilesForWorkspace ───────────────────────────────────
 
     @Test
     void getMaxOpenCaseFilesForWorkspace_freeExpired_returns0() {
-        UUID workspaceId = UUID.randomUUID();
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("FREE");
         sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(0);
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(wid)).isEqualTo(0);
     }
 
     @Test
-    void getMaxOpenCaseFilesForWorkspace_freeActive_returns1() {
-        UUID workspaceId = UUID.randomUUID();
+    void getMaxOpenCaseFilesForWorkspace_freeActive_returns2() {
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("FREE");
         sub.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(1);
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(wid)).isEqualTo(2);
     }
 
     @Test
-    void getMaxOpenCaseFilesForWorkspace_withStarterSubscription_returns3() {
-        UUID workspaceId = UUID.randomUUID();
+    void getMaxOpenCaseFilesForWorkspace_solo_returns15() {
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
-        sub.setPlanCode("STARTER");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(3);
+        sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(wid)).isEqualTo(15);
     }
 
     @Test
-    void getMaxOpenCaseFilesForWorkspace_withProSubscription_returns20() {
-        UUID workspaceId = UUID.randomUUID();
+    void getMaxOpenCaseFilesForWorkspace_team_returns40() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("TEAM");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(wid)).isEqualTo(40);
+    }
+
+    @Test
+    void getMaxOpenCaseFilesForWorkspace_pro_returnsMaxValue() {
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(20);
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(wid)).isEqualTo(Integer.MAX_VALUE);
     }
 
     @Test
     void getMaxOpenCaseFilesForWorkspace_noSubscription_returnsMaxValue() {
-        UUID workspaceId = UUID.randomUUID();
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
-
-        assertThat(service.getMaxOpenCaseFilesForWorkspace(workspaceId)).isEqualTo(Integer.MAX_VALUE);
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.getMaxOpenCaseFilesForWorkspace(wid)).isEqualTo(Integer.MAX_VALUE);
     }
 
-    // --- getMaxDocumentsPerCaseFileForWorkspace avec expiration ---
+    // ── getMaxDocumentsPerCaseFileForWorkspace ────────────────────────────
 
     @Test
     void getMaxDocumentsPerCaseFileForWorkspace_freeExpired_returns0() {
-        UUID workspaceId = UUID.randomUUID();
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("FREE");
         sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.getMaxDocumentsPerCaseFileForWorkspace(workspaceId)).isEqualTo(0);
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMaxDocumentsPerCaseFileForWorkspace(wid)).isEqualTo(0);
     }
 
-    // --- isEnrichedAnalysisAllowedForWorkspace avec expiration ---
+    // ── isEnrichedAnalysisAllowedForWorkspace ─────────────────────────────
 
     @Test
     void isEnrichedAnalysisAllowedForWorkspace_freeExpired_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("FREE");
         sub.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS));
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.isEnrichedAnalysisAllowedForWorkspace(workspaceId)).isFalse();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isEnrichedAnalysisAllowedForWorkspace(wid)).isFalse();
     }
 
-    // --- isReAnalysisLimitReached ---
-
-    // U-03 : PRO, sous la limite → false
     @Test
-    void isReAnalysisLimitReached_proUnderLimit_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, fr.ailegalcase.analysis.JobType.ENRICHED_ANALYSIS))
-                .thenReturn(4L);
-
-        assertThat(service.isReAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
-    }
-
-    // U-04 : PRO, à la limite → true
-    @Test
-    void isReAnalysisLimitReached_proAtLimit_returnsTrue() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, fr.ailegalcase.analysis.JobType.ENRICHED_ANALYSIS))
-                .thenReturn(5L);
-
-        assertThat(service.isReAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
-    }
-
-    // U-05 : sans subscription → false (fail open)
-    @Test
-    void isReAnalysisLimitReached_noSubscription_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
-
-        assertThat(service.isReAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
-    }
-
-    // --- isMonthlyTokenBudgetExceeded ---
-
-    // U-01 : FREE sous budget → false
-    @Test
-    void isMonthlyTokenBudgetExceeded_freeUnderBudget_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
+    void isEnrichedAnalysisAllowedForWorkspace_freeActive_returnsFalse() {
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("FREE");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
-                .thenReturn(499_999L);
-
-        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isFalse();
+        sub.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isEnrichedAnalysisAllowedForWorkspace(wid)).isFalse();
     }
 
-    // U-02 : FREE au-dessus du budget → true
     @Test
-    void isMonthlyTokenBudgetExceeded_freeOverBudget_returnsTrue() {
-        UUID workspaceId = UUID.randomUUID();
+    void isEnrichedAnalysisAllowedForWorkspace_solo_returnsTrue() {
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
-        sub.setPlanCode("FREE");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
-                .thenReturn(500_000L);
-
-        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isTrue();
+        sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isEnrichedAnalysisAllowedForWorkspace(wid)).isTrue();
     }
 
-    // U-03 : PRO sous budget → false
     @Test
-    void isMonthlyTokenBudgetExceeded_proUnderBudget_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
+    void isEnrichedAnalysisAllowedForWorkspace_team_returnsTrue() {
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
-        sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
-                .thenReturn(19_999_999L);
-
-        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isFalse();
+        sub.setPlanCode("TEAM");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isEnrichedAnalysisAllowedForWorkspace(wid)).isTrue();
     }
 
-    // U-04 : PRO au-dessus du budget → true
     @Test
-    void isMonthlyTokenBudgetExceeded_proOverBudget_returnsTrue() {
-        UUID workspaceId = UUID.randomUUID();
+    void isEnrichedAnalysisAllowedForWorkspace_pro_returnsTrue() {
+        UUID wid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
-                .thenReturn(20_000_000L);
-
-        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isTrue();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isEnrichedAnalysisAllowedForWorkspace(wid)).isTrue();
     }
 
-    // U-05 : sans subscription → false (fail open)
-    @Test
-    void isMonthlyTokenBudgetExceeded_noSubscription_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
+    // ── isReAnalysisLimitReached ──────────────────────────────────────────
 
-        assertThat(service.isMonthlyTokenBudgetExceeded(workspaceId)).isFalse();
+    @Test
+    void isReAnalysisLimitReached_free_underLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.ENRICHED_ANALYSIS)).thenReturn(0L);
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isFalse();
     }
 
-    // --- getMonthlyTokenBudgetForWorkspace ---
-
-    // U-06 (SF-34-02) : PRO → 20 000 000
     @Test
-    void getMonthlyTokenBudgetForWorkspace_pro_returns20M() {
-        UUID workspaceId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.getMonthlyTokenBudgetForWorkspace(workspaceId)).isEqualTo(20_000_000L);
+    void isReAnalysisLimitReached_free_atLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.ENRICHED_ANALYSIS)).thenReturn(1L);
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isTrue();
     }
 
-    // U-07 (SF-34-02) : sans souscription → 0 (illimité)
     @Test
-    void getMonthlyTokenBudgetForWorkspace_noSubscription_returns0() {
-        UUID workspaceId = UUID.randomUUID();
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
-
-        assertThat(service.getMonthlyTokenBudgetForWorkspace(workspaceId)).isEqualTo(0L);
+    void isReAnalysisLimitReached_solo_underLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.ENRICHED_ANALYSIS)).thenReturn(2L);
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isFalse();
     }
 
-    // --- isChatMessageLimitReached ---
-
-    // U-08 (SF-35-01) : PRO, sous la limite → false
     @Test
-    void isChatMessageLimitReached_proUnderLimit_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(chatMessageRepository.countByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
-                .thenReturn(199L);
-
-        assertThat(service.isChatMessageLimitReached(workspaceId)).isFalse();
+    void isReAnalysisLimitReached_solo_atLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.ENRICHED_ANALYSIS)).thenReturn(3L);
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isTrue();
     }
 
-    // U-09 (SF-35-01) : FREE, à la limite → true
     @Test
-    void isChatMessageLimitReached_freeAtLimit_returnsTrue() {
-        UUID workspaceId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("FREE");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(chatMessageRepository.countByWorkspaceIdSince(eq(workspaceId), any(Instant.class)))
-                .thenReturn(10L);
-
-        assertThat(service.isChatMessageLimitReached(workspaceId)).isTrue();
+    void isReAnalysisLimitReached_team_underLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("TEAM");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.ENRICHED_ANALYSIS)).thenReturn(7L);
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isFalse();
     }
 
-    // U-10 (SF-35-01) : sans souscription → false (fail open)
     @Test
-    void isChatMessageLimitReached_noSubscription_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
-
-        assertThat(service.isChatMessageLimitReached(workspaceId)).isFalse();
+    void isReAnalysisLimitReached_team_atLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("TEAM");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.ENRICHED_ANALYSIS)).thenReturn(8L);
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isTrue();
     }
 
-    // --- isCaseAnalysisLimitReached ---
-
-    // U-11 : FREE sous la limite (1/2) → false
     @Test
-    void isCaseAnalysisLimitReached_freeUnderLimit_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("FREE");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(1L);
-
-        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
-    }
-
-    // U-12 : FREE à la limite (2/2) → true
-    @Test
-    void isCaseAnalysisLimitReached_freeAtLimit_returnsTrue() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("FREE");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(2L);
-
-        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
-    }
-
-    // U-13 : STARTER sous la limite (4/5) → false
-    @Test
-    void isCaseAnalysisLimitReached_starterUnderLimit_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("STARTER");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(4L);
-
-        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
-    }
-
-    // U-14 : STARTER à la limite (5/5) → true
-    @Test
-    void isCaseAnalysisLimitReached_starterAtLimit_returnsTrue() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("STARTER");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-        when(usageEventRepository.countByCaseFileIdAndEventType(caseFileId, JobType.CASE_ANALYSIS)).thenReturn(5L);
-
-        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
-    }
-
-    // U-15 : PRO → jamais atteint
-    @Test
-    void isCaseAnalysisLimitReached_pro_alwaysReturnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        Subscription sub = new Subscription();
-        sub.setPlanCode("PRO");
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
+    void isReAnalysisLimitReached_pro_alwaysReturnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isFalse();
         verify(usageEventRepository, never()).countByCaseFileIdAndEventType(any(), any());
     }
 
-    // U-16 : FREE expiré → true immédiatement
     @Test
-    void isCaseAnalysisLimitReached_expiredFree_returnsTrue() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
+    void isReAnalysisLimitReached_expiredFree_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
         Subscription sub = new Subscription();
         sub.setPlanCode("FREE");
         sub.setExpiresAt(Instant.now().minusSeconds(3600));
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.of(sub));
-
-        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isTrue();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isTrue();
         verify(usageEventRepository, never()).countByCaseFileIdAndEventType(any(), any());
     }
 
-    // U-17 : sans souscription → false (fail open)
+    @Test
+    void isReAnalysisLimitReached_noSubscription_returnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.isReAnalysisLimitReached(cfid, wid)).isFalse();
+    }
+
+    // ── isMonthlyTokenBudgetExceeded ──────────────────────────────────────
+
+    @Test
+    void isMonthlyTokenBudgetExceeded_freeUnderBudget_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(499_999L);
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isFalse();
+    }
+
+    @Test
+    void isMonthlyTokenBudgetExceeded_freeAtBudget_returnsTrue() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(500_000L);
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isTrue();
+    }
+
+    @Test
+    void isMonthlyTokenBudgetExceeded_soloUnderBudget_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(5_999_999L);
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isFalse();
+    }
+
+    @Test
+    void isMonthlyTokenBudgetExceeded_proUnderBudget_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(59_999_999L);
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isFalse();
+    }
+
+    @Test
+    void isMonthlyTokenBudgetExceeded_proAtBudget_returnsTrue() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(60_000_000L);
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isTrue();
+    }
+
+    @Test
+    void isMonthlyTokenBudgetExceeded_noSubscription_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isFalse();
+    }
+
+    // ── getMonthlyTokenBudgetForWorkspace ─────────────────────────────────
+
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_free_returns500k()  {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(500_000L);
+    }
+
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_solo_returns6M() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(6_000_000L);
+    }
+
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_team_returns18M() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("TEAM");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(18_000_000L);
+    }
+
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_pro_returns60M() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(60_000_000L);
+    }
+
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_noSubscription_returns0() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(0L);
+    }
+
+    // ── isChatMessageLimitReached ─────────────────────────────────────────
+
+    @Test
+    void isChatMessageLimitReached_soloUnderLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(chatMessageRepository.countByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(99L);
+        assertThat(service.isChatMessageLimitReached(wid)).isFalse();
+    }
+
+    @Test
+    void isChatMessageLimitReached_soloAtLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(chatMessageRepository.countByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(100L);
+        assertThat(service.isChatMessageLimitReached(wid)).isTrue();
+    }
+
+    @Test
+    void isChatMessageLimitReached_proUnderLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(chatMessageRepository.countByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(999L);
+        assertThat(service.isChatMessageLimitReached(wid)).isFalse();
+    }
+
+    @Test
+    void isChatMessageLimitReached_freeAtLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(chatMessageRepository.countByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(10L);
+        assertThat(service.isChatMessageLimitReached(wid)).isTrue();
+    }
+
+    @Test
+    void isChatMessageLimitReached_noSubscription_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.isChatMessageLimitReached(wid)).isFalse();
+    }
+
+    // ── isCaseAnalysisLimitReached ────────────────────────────────────────
+
+    @Test
+    void isCaseAnalysisLimitReached_freeUnderLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.CASE_ANALYSIS)).thenReturn(1L);
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isFalse();
+    }
+
+    @Test
+    void isCaseAnalysisLimitReached_freeAtLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.CASE_ANALYSIS)).thenReturn(2L);
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isTrue();
+    }
+
+    @Test
+    void isCaseAnalysisLimitReached_soloUnderLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.CASE_ANALYSIS)).thenReturn(7L);
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isFalse();
+    }
+
+    @Test
+    void isCaseAnalysisLimitReached_soloAtLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.CASE_ANALYSIS)).thenReturn(8L);
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isTrue();
+    }
+
+    @Test
+    void isCaseAnalysisLimitReached_teamUnderLimit_returnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("TEAM");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.CASE_ANALYSIS)).thenReturn(14L);
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isFalse();
+    }
+
+    @Test
+    void isCaseAnalysisLimitReached_teamAtLimit_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("TEAM");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.countByCaseFileIdAndEventType(cfid, JobType.CASE_ANALYSIS)).thenReturn(15L);
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isTrue();
+    }
+
+    @Test
+    void isCaseAnalysisLimitReached_pro_alwaysReturnsFalse() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("PRO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isFalse();
+        verify(usageEventRepository, never()).countByCaseFileIdAndEventType(any(), any());
+    }
+
+    @Test
+    void isCaseAnalysisLimitReached_expiredFree_returnsTrue() {
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("FREE");
+        sub.setExpiresAt(Instant.now().minusSeconds(3600));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isTrue();
+        verify(usageEventRepository, never()).countByCaseFileIdAndEventType(any(), any());
+    }
+
     @Test
     void isCaseAnalysisLimitReached_noSubscription_returnsFalse() {
-        UUID workspaceId = UUID.randomUUID();
-        UUID caseFileId = UUID.randomUUID();
-        when(subscriptionRepository.findByWorkspaceId(workspaceId)).thenReturn(Optional.empty());
-
-        assertThat(service.isCaseAnalysisLimitReached(caseFileId, workspaceId)).isFalse();
+        UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isFalse();
     }
 }

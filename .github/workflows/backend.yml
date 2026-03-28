@@ -86,7 +86,8 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_TEST }}
-          STRIPE_PRICE_ID_STARTER: ${{ secrets.STRIPE_PRICE_ID_STARTER_TEST }}
+          STRIPE_PRICE_ID_SOLO: ${{ secrets.STRIPE_PRICE_ID_SOLO_TEST }}
+          STRIPE_PRICE_ID_TEAM: ${{ secrets.STRIPE_PRICE_ID_TEAM_TEST }}
           STRIPE_PRICE_ID_PRO: ${{ secrets.STRIPE_PRICE_ID_PRO_TEST }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
@@ -107,7 +108,8 @@ jobs:
             --from-literal=GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" \
             --from-literal=STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" \
             --from-literal=STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" \
-            --from-literal=STRIPE_PRICE_ID_STARTER="$STRIPE_PRICE_ID_STARTER" \
+            --from-literal=STRIPE_PRICE_ID_SOLO="$STRIPE_PRICE_ID_SOLO" \
+            --from-literal=STRIPE_PRICE_ID_TEAM="$STRIPE_PRICE_ID_TEAM" \
             --from-literal=STRIPE_PRICE_ID_PRO="$STRIPE_PRICE_ID_PRO" \
             --from-literal=MAIL_HOST="$MAIL_HOST" \
             --from-literal=MAIL_USERNAME="$MAIL_USERNAME" \

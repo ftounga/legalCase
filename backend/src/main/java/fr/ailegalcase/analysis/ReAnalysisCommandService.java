@@ -63,11 +63,6 @@ public class ReAnalysisCommandService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
         }
 
-        if (!planLimitService.isEnrichedAnalysisAllowedForWorkspace(workspace.getId())) {
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
-                    "La re-analyse enrichie est réservée au plan Pro.");
-        }
-
         if (planLimitService.isReAnalysisLimitReached(caseFileId, workspace.getId())) {
             throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
                     "Limite de re-analyses atteinte pour ce dossier.");

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="033-rename-starter-to-solo" author="system">
+        <comment>F-58 — Repricing : renomme le plan STARTER en SOLO dans subscriptions et workspaces.</comment>
+
+        <update tableName="subscriptions">
+            <column name="plan_code" value="SOLO"/>
+            <where>plan_code = 'STARTER'</where>
+        </update>
+
+        <update tableName="workspaces">
+            <column name="plan_code" value="SOLO"/>
+            <where>plan_code = 'STARTER'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

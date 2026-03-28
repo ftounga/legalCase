@@ -66,7 +66,7 @@ class StripeCheckoutServiceTest {
     private StripeCheckoutService buildService(boolean enabled) {
         return new StripeCheckoutService(
                 enabled, "sk_test_fake",
-                "price_starter", "price_pro",
+                "price_solo", "price_team", "price_pro",
                 "http://localhost:4200",
                 subscriptionRepository, stripeCustomerService,
                 currentUserResolver, workspaceMemberRepository);
@@ -77,7 +77,7 @@ class StripeCheckoutServiceTest {
     void createCheckoutSession_stripeDisabled_throws503() {
         StripeCheckoutService service = buildService(false);
 
-        assertThatThrownBy(() -> service.createCheckoutSession("STARTER", oidcUser, "google", null))
+        assertThatThrownBy(() -> service.createCheckoutSession("SOLO", oidcUser, "google", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                 .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
@@ -94,21 +94,21 @@ class StripeCheckoutServiceTest {
                 .isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
-    // U-03 : nominal STARTER → retourne checkoutUrl
+    // U-03 : nominal SOLO → retourne checkoutUrl
     @Test
-    void createCheckoutSession_starter_returnsCheckoutUrl() throws Exception {
+    void createCheckoutSession_solo_returnsCheckoutUrl() throws Exception {
         StripeCheckoutService service = buildService(true);
 
         Session mockSession = mock(Session.class);
-        when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/starter");
+        when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/solo");
 
         try (MockedStatic<Session> sessionStatic = mockStatic(Session.class)) {
             sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
                     .thenReturn(mockSession);
 
-            String url = service.createCheckoutSession("STARTER", oidcUser, "google", null);
+            String url = service.createCheckoutSession("SOLO", oidcUser, "google", null);
 
-            assertThat(url).isEqualTo("https://checkout.stripe.com/starter");
+            assertThat(url).isEqualTo("https://checkout.stripe.com/solo");
         }
     }
 
@@ -146,7 +146,7 @@ class StripeCheckoutServiceTest {
             sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
                     .thenReturn(mockSession);
 
-            service.createCheckoutSession("STARTER", oidcUser, "google", null);
+            service.createCheckoutSession("SOLO", oidcUser, "google", null);
 
             verify(stripeCustomerService).createCustomer(any(), eq(workspaceId));
             verify(subscriptionRepository, atLeastOnce()).save(sub);
@@ -162,7 +162,7 @@ class StripeCheckoutServiceTest {
             sessionStatic.when(() -> Session.create(any(SessionCreateParams.class)))
                     .thenThrow(new AuthenticationException("Invalid key", "req_x", null, 401));
 
-            assertThatThrownBy(() -> service.createCheckoutSession("STARTER", oidcUser, "google", null))
+            assertThatThrownBy(() -> service.createCheckoutSession("SOLO", oidcUser, "google", null))
                     .isInstanceOf(ResponseStatusException.class)
                     .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                     .isEqualTo(HttpStatus.BAD_GATEWAY);
