@@ -165,7 +165,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-49 | Top-up de crédits tokens | V2 | Achat de tokens supplémentaires via Stripe (one-shot, hors abonnement) quand le quota mensuel est atteint. Table `credit_purchases`. Déduction prioritaire sur les crédits avant le quota plan. Webhook Stripe dédié. Visible dans la page Administration. |
 | F-42 | Export CSV journal d'actions | V2 — **Terminée** | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). SF-42-01 mergée 2026-03-28 (backend), SF-42-02 mergée 2026-03-28 (frontend). |
 | F-43 | Filtre par plage de dates — journal d'actions | V2 — **Terminée** | Sélecteur de dates (date début / date fin) dans l'écran `/workspace/audit-logs`. SF-43-01 mergée 2026-03-28 (backend), SF-43-02 mergée 2026-03-28 (frontend). |
-| F-44 | Pagination et tri côté serveur — journal d'actions | V2 | Actuellement le backend renvoie 50 entrées max et le filtre est côté client. À remplacer par pagination serveur + paramètres de tri/filtre sur l'endpoint `GET /api/v1/admin/audit-logs`. |
+| F-44 | Pagination et tri côté serveur — journal d'actions | V2 — **Terminée** | `GET /api/v1/admin/audit-logs` retourne `Page<AuditLogResponse>` avec `@PageableDefault(size=20, sort=createdAt DESC)`. Filtres `from`, `to`, `action` via `Specification<AuditLog>`. Frontend : `MatPaginator` (10/20/50), `onPageChange(PageEvent)`, remise à 0 au changement de date. SF-44-01 mergée 2026-03-28 (backend), SF-44-02 mergée 2026-03-28 (frontend). |
 | F-45 | Pagination côté serveur — liste des dossiers | V2 — **Terminée** | La liste des dossiers est paginée côté serveur. Backend : `GET /api/v1/case-files?page=X&size=Y` avec `@PageableDefault` Spring. Frontend : `MatPaginatorModule`, `totalElements`, `onPageChange(PageEvent)`. Déjà en production. |
 | F-48 | Tableau de bord dossier | V2 — **Terminée** | Métriques par dossier : nombre de documents, nombre d'analyses terminées, total tokens consommés (pas de coût en euros, pas de durée). Visible depuis la page dossier. SF-48-01 mergée 2026-03-26 : `GET /api/v1/case-files/{id}/stats`. SF-48-02 mergée 2026-03-26 : bloc métriques Angular dans case-file-detail. |
 | F-59 | UX diff — filtres, stats bar et sections collapsibles | Améliorations ergonomiques de l'écran de comparaison inter-analyses : pré-sélection auto des 2 dernières versions, barre de stats sticky (ajouts/suppressions/enrichis/inchangés), chips filtres, toggle inchangés, sections auto-repliées si vides de changements, collapsible au clic, raisons inline. | `Terminée` |
@@ -197,6 +197,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-28 | F-44 Terminée — SF-44-01 (backend) + SF-44-02 (frontend) mergées : Page<AuditLogResponse>, JpaSpecificationExecutor, MatPaginator 10/20/50, 10 tests Java + 251 tests Angular | Product owner |
 | 2026-03-28 | F-63 Terminée — SF-63-01 mergée : responsive CSS diff (sélecteurs empilés), membres (colonnes masquées), admin (email masqué) | Product owner |
 | 2026-03-28 | F-43 Terminée — SF-43-02 mergée : champs date Du/Au, loadLogs() centralisé, snackbar 400, 256/256 tests | Product owner |
 | 2026-03-28 | F-43 SF-43-01 mergée — params ?from/to optionnels, 4 repo methods, from>to→400, 9/9 tests | Product owner |
