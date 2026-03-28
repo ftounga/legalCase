@@ -223,28 +223,6 @@
   }
 }
 
-// Questions IA
-.questions-section {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  padding: 20px 24px;
-}
-
-.questions-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: Merriweather, serif;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1C2B3A;
-  margin: 0 0 16px;
-
-  mat-icon {
-    color: #C9973A;
-  }
-}
 
 .questions-list {
   display: flex;

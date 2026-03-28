@@ -162,69 +162,74 @@
   }
 
   @if (questions().length > 0) {
-    <div class="questions-section">
-      <h2 class="questions-title">
-        <mat-icon>quiz</mat-icon>
-        Questions IA
-      </h2>
-      <div class="questions-list">
-        @for (q of questions(); track q.id) {
-          <div class="question-item">
-            <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
-            @if (q.answerText) {
-              @if (editingQuestionId() === q.id) {
-                <div class="answer-form">
-                  <textarea #editInput class="answer-textarea" [value]="q.answerText" rows="2"></textarea>
-                  <div class="edit-actions">
-                    <button mat-stroked-button color="primary"
-                            [disabled]="submittingEdit() === q.id || !editInput.value.trim()"
-                            (click)="submitEdit(q, editInput.value)">
-                      @if (submittingEdit() === q.id) {
-                        <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-                      }
-                      Enregistrer
-                    </button>
-                    <button mat-button (click)="cancelEdit()">Annuler</button>
+    <mat-accordion class="synthesis-accordion">
+      <mat-expansion-panel expanded>
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon class="panel-icon panel-icon--questions">quiz</mat-icon>
+            Questions IA
+          </mat-panel-title>
+          <mat-panel-description>{{ questions().length }} question(s)</mat-panel-description>
+        </mat-expansion-panel-header>
+        <div class="questions-list">
+          @for (q of questions(); track q.id) {
+            <div class="question-item">
+              <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
+              @if (q.answerText) {
+                @if (editingQuestionId() === q.id) {
+                  <div class="answer-form">
+                    <textarea #editInput class="answer-textarea" [value]="q.answerText" rows="2"></textarea>
+                    <div class="edit-actions">
+                      <button mat-stroked-button color="primary"
+                              [disabled]="submittingEdit() === q.id || !editInput.value.trim()"
+                              (click)="submitEdit(q, editInput.value)">
+                        @if (submittingEdit() === q.id) {
+                          <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                        }
+                        Enregistrer
+                      </button>
+                      <button mat-button (click)="cancelEdit()">Annuler</button>
+                    </div>
                   </div>
-                </div>
+                } @else {
+                  <div class="answer-display">
+                    <p class="answer-text">{{ q.answerText }}</p>
+                    <button mat-icon-button class="edit-btn" (click)="startEdit(q)"
+                            matTooltip="Modifier la réponse">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  </div>
+                }
               } @else {
-                <div class="answer-display">
-                  <p class="answer-text">{{ q.answerText }}</p>
-                  <button mat-icon-button class="edit-btn" (click)="startEdit(q)"
-                          matTooltip="Modifier la réponse">
-                    <mat-icon>edit</mat-icon>
+                <div class="answer-form">
+                  <textarea #answerInput class="answer-textarea" placeholder="Votre réponse…" rows="2"></textarea>
+                  <button mat-stroked-button color="primary"
+                          [disabled]="submittingAnswer() === q.id"
+                          (click)="submitAnswer(q, answerInput.value)">
+                    @if (submittingAnswer() === q.id) {
+                      <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                    }
+                    Répondre
                   </button>
                 </div>
               }
-            } @else {
-              <div class="answer-form">
-                <textarea #answerInput class="answer-textarea" placeholder="Votre réponse…" rows="2"></textarea>
-                <button mat-stroked-button color="primary"
-                        [disabled]="submittingAnswer() === q.id"
-                        (click)="submitAnswer(q, answerInput.value)">
-                  @if (submittingAnswer() === q.id) {
-                    <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
-                  }
-                  Répondre
-                </button>
-              </div>
-            }
+            </div>
+          }
+        </div>
+        @if (hasAnsweredQuestions()) {
+          <div class="reanalyze-row">
+            <button mat-raised-button color="accent" (click)="reAnalyze()" [disabled]="reAnalyzing()">
+              @if (reAnalyzing()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>auto_fix_high</mat-icon>
+              }
+              Re-analyser
+            </button>
           </div>
         }
-      </div>
-      @if (hasAnsweredQuestions()) {
-        <div class="reanalyze-row">
-          <button mat-raised-button color="accent" (click)="reAnalyze()" [disabled]="reAnalyzing()">
-            @if (reAnalyzing()) {
-              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
-            } @else {
-              <mat-icon>auto_fix_high</mat-icon>
-            }
-            Re-analyser
-          </button>
-        </div>
-      }
-    </div>
+      </mat-expansion-panel>
+    </mat-accordion>
   }
 
   <div class="chat-section">
