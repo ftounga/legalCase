@@ -12,4 +12,8 @@ export class AuditLogService {
   getAuditLogs(): Observable<AuditLogEntry[]> {
     return this.http.get<AuditLogEntry[]>(this.apiUrl);
   }
+
+  exportCsv(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/export.csv`, { responseType: 'blob' });
+  }
 }

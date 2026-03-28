@@ -11,6 +11,14 @@
   .page-title {
     margin: 0;
     font-size: 24px;
+    flex: 1;
+  }
+}
+
+.export-btn {
+  .btn-spinner {
+    display: inline-block;
+    margin-right: 6px;
   }
 }
 

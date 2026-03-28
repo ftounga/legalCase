@@ -30,6 +30,7 @@ export class AuditLogScreenComponent implements OnInit {
   allLogs = signal<AuditLogEntry[]>([]);
   loading = signal(true);
   accessDenied = signal(false);
+  exporting = signal(false);
 
   searchText = signal('');
   actionFilter = signal('ALL');
@@ -53,6 +54,25 @@ export class AuditLogScreenComponent implements OnInit {
     private auditLogService: AuditLogService,
     private snackBar: MatSnackBar
   ) {}
+
+  exportCsv(): void {
+    this.exporting.set(true);
+    this.auditLogService.exportCsv().subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'audit-log.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.snackBar.open("Erreur lors de l'export.", 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+        this.exporting.set(false);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.auditLogService.getAuditLogs().subscribe({
