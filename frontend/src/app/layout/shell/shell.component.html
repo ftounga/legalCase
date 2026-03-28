@@ -1,5 +1,10 @@
 <div class="shell-wrapper">
   <mat-toolbar class="shell-header">
+    @if (isMobile()) {
+      <button mat-icon-button class="hamburger-btn" (click)="toggleSidenav()" aria-label="Ouvrir le menu">
+        <mat-icon>menu</mat-icon>
+      </button>
+    }
     <img src="/legalcase-logo.png" alt="AI LegalCase" class="logo" />
     @if (workspace()) {
       @if (workspaces().length > 1) {
@@ -40,26 +45,26 @@
   </mat-toolbar>
 
   <mat-sidenav-container class="shell-body">
-    <mat-sidenav mode="side" opened class="shell-sidenav">
+    <mat-sidenav [mode]="isMobile() ? 'over' : 'side'" [opened]="sidenavOpen()" class="shell-sidenav">
       <mat-nav-list>
-        <a mat-list-item routerLink="/case-files" routerLinkActive="sidenav-active">
+        <a mat-list-item routerLink="/case-files" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>folder_open</mat-icon>
           <span matListItemTitle>Dossiers</span>
         </a>
-        <a mat-list-item routerLink="/workspace/members" routerLinkActive="sidenav-active">
+        <a mat-list-item routerLink="/workspace/members" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>group</mat-icon>
           <span matListItemTitle>Membres</span>
         </a>
-        <a mat-list-item routerLink="/workspace/billing" routerLinkActive="sidenav-active">
+        <a mat-list-item routerLink="/workspace/billing" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>credit_card</mat-icon>
           <span matListItemTitle>Abonnement</span>
         </a>
-        <a mat-list-item routerLink="/workspace/admin" routerLinkActive="sidenav-active">
+        <a mat-list-item routerLink="/workspace/admin" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
           <span matListItemTitle>Administration</span>
         </a>
         @if (auth.currentUser()?.isSuperAdmin) {
-          <a mat-list-item routerLink="/super-admin" routerLinkActive="sidenav-active">
+          <a mat-list-item routerLink="/super-admin" routerLinkActive="sidenav-active" (click)="onNavClick()">
             <mat-icon matListItemIcon>security</mat-icon>
             <span matListItemTitle>Super-admin</span>
           </a>

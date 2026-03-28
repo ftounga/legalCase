@@ -17,6 +17,11 @@
   .logo {
     height: 40px;
     margin-right: var(--spacing-md);
+
+    @media (max-width: 767px) {
+      height: 30px;
+      margin-right: var(--spacing-sm);
+    }
   }
 
   .workspace-name {
@@ -27,11 +32,25 @@
     border-radius: 20px;
     padding: 6px 14px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+
+    @media (max-width: 767px) {
+      font-size: 11px;
+      padding: 4px 10px;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .header-spacer {
     flex: 1;
   }
+}
+
+.hamburger-btn {
+  color: white !important;
+  margin-right: var(--spacing-xs, 4px);
 }
 
 .shell-body {
@@ -54,6 +73,10 @@
 .shell-content {
   background-color: var(--color-background);
   padding: var(--spacing-lg);
+
+  @media (max-width: 767px) {
+    padding: var(--spacing-md);
+  }
 }
 
 .workspace-switcher {

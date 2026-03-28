@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceInvitationService } from '../../core/services/workspace-invitation.service';
@@ -32,16 +33,24 @@ export class ShellComponent implements OnInit {
   workspace = signal<Workspace | null>(null);
   workspaces = signal<Workspace[]>([]);
   ready = signal(false);
+  isMobile = signal(false);
+  sidenavOpen = signal(true);
 
   constructor(
     readonly auth: AuthService,
     private workspaceService: WorkspaceService,
     private invitationService: WorkspaceInvitationService,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private breakpointObserver: BreakpointObserver
   ) {}
 
   ngOnInit(): void {
+    this.breakpointObserver.observe('(max-width: 767px)').subscribe(result => {
+      this.isMobile.set(result.matches);
+      this.sidenavOpen.set(!result.matches);
+    });
+
     const pendingToken = localStorage.getItem(PENDING_INVITATION_TOKEN_KEY);
 
     if (pendingToken) {
@@ -62,6 +71,16 @@ export class ShellComponent implements OnInit {
       });
     } else {
       this.loadWorkspace();
+    }
+  }
+
+  toggleSidenav(): void {
+    this.sidenavOpen.update(open => !open);
+  }
+
+  onNavClick(): void {
+    if (this.isMobile()) {
+      this.sidenavOpen.set(false);
     }
   }
 
