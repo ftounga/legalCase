@@ -1,0 +1,55 @@
+name: Smoke Tests E2E
+
+on:
+  workflow_run:
+    workflows:
+      - "Backend CI/CD"
+      - "Frontend CI/CD"
+    types:
+      - completed
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL cible (défaut : staging)'
+        required: false
+        default: 'https://staging.legalcase.ng-itconsulting.com'
+
+jobs:
+  smoke:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    # En workflow_run : ne lancer que si le déploiement a réussi
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install dependencies
+        run: cd e2e && npm ci
+
+      - name: Install Playwright browsers
+        run: cd e2e && npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        env:
+          E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://staging.legalcase.ng-itconsulting.com' }}
+          E2E_LOCAL_EMAIL: ${{ secrets.E2E_LOCAL_EMAIL }}
+          E2E_LOCAL_PASSWORD: ${{ secrets.E2E_LOCAL_PASSWORD }}
+        run: cd e2e && npm test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: e2e/playwright-report/
+          retention-days: 7
