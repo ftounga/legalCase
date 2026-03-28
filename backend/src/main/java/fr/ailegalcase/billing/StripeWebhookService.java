@@ -18,18 +18,30 @@ public class StripeWebhookService {
     private static final Logger log = LoggerFactory.getLogger(StripeWebhookService.class);
 
     private final SubscriptionRepository subscriptionRepository;
+    private final CreditPurchaseService creditPurchaseService;
     private final String priceIdSolo;
     private final String priceIdTeam;
     private final String priceIdPro;
+    private final String priceIdTokens1m;
+    private final String priceIdTokens5m;
+    private final String priceIdTokens20m;
 
     public StripeWebhookService(SubscriptionRepository subscriptionRepository,
+                                CreditPurchaseService creditPurchaseService,
                                 @Value("${app.stripe.price-id-solo:}") String priceIdSolo,
                                 @Value("${app.stripe.price-id-team:}") String priceIdTeam,
-                                @Value("${app.stripe.price-id-pro:}") String priceIdPro) {
+                                @Value("${app.stripe.price-id-pro:}") String priceIdPro,
+                                @Value("${app.stripe.price-id-tokens-1m:}") String priceIdTokens1m,
+                                @Value("${app.stripe.price-id-tokens-5m:}") String priceIdTokens5m,
+                                @Value("${app.stripe.price-id-tokens-20m:}") String priceIdTokens20m) {
         this.subscriptionRepository = subscriptionRepository;
+        this.creditPurchaseService = creditPurchaseService;
         this.priceIdSolo = priceIdSolo;
         this.priceIdTeam = priceIdTeam;
         this.priceIdPro = priceIdPro;
+        this.priceIdTokens1m = priceIdTokens1m;
+        this.priceIdTokens5m = priceIdTokens5m;
+        this.priceIdTokens20m = priceIdTokens20m;
     }
 
     @Transactional
@@ -55,6 +67,11 @@ public class StripeWebhookService {
             return;
         }
 
+        if ("payment".equals(session.getMode())) {
+            handleTopupPayment(session);
+            return;
+        }
+
         String customerId = session.getCustomer();
         String subscriptionId = session.getSubscription();
 
@@ -68,6 +85,27 @@ public class StripeWebhookService {
             subscriptionRepository.save(sub);
             log.info("Plan updated to {} for customer {}", sub.getPlanCode(), customerId);
         }, () -> log.warn("No subscription found for Stripe customer {}", customerId));
+    }
+
+    private void handleTopupPayment(Session session) {
+        String workspaceIdStr = session.getMetadata() != null
+                ? session.getMetadata().get("workspace_id") : null;
+        String packCode = session.getMetadata() != null
+                ? session.getMetadata().get("pack_code") : null;
+        if (workspaceIdStr == null || packCode == null) {
+            log.warn("Topup payment missing metadata in session {}", session.getId());
+            return;
+        }
+        TokenPack pack;
+        try {
+            pack = TokenPack.valueOf(packCode);
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown pack_code '{}' in topup session {}", packCode, session.getId());
+            return;
+        }
+        java.util.UUID workspaceId = java.util.UUID.fromString(workspaceIdStr);
+        creditPurchaseService.record(workspaceId, pack.getTokens(), pack.getAmountCents(), session.getId());
+        log.info("Topup recorded: {} tokens for workspace {}", pack.getTokens(), workspaceId);
     }
 
     private void handleSubscriptionUpdated(Event event) {

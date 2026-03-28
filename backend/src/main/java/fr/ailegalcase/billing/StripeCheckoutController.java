@@ -16,9 +16,12 @@ import java.util.Map;
 public class StripeCheckoutController {
 
     private final StripeCheckoutService checkoutService;
+    private final TopupCheckoutService topupCheckoutService;
 
-    public StripeCheckoutController(StripeCheckoutService checkoutService) {
+    public StripeCheckoutController(StripeCheckoutService checkoutService,
+                                    TopupCheckoutService topupCheckoutService) {
         this.checkoutService = checkoutService;
+        this.topupCheckoutService = topupCheckoutService;
     }
 
     @PostMapping("/checkout-session")
@@ -32,5 +35,17 @@ public class StripeCheckoutController {
         return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
     }
 
+    @PostMapping("/topup-session")
+    public ResponseEntity<Map<String, String>> createTopupSession(
+            @Valid @RequestBody TopupSessionRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+
+        String checkoutUrl = topupCheckoutService.createTopupSession(
+                request.packCode(), oidcUser, OAuthProviderResolver.resolve(principal), principal);
+        return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
+    }
+
     public record CheckoutSessionRequest(@NotBlank String planCode) {}
+    public record TopupSessionRequest(@NotBlank String packCode) {}
 }

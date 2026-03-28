@@ -1,0 +1,372 @@
+============================================================
+DOCUMENT 1 : CERTIFICAT MÉDICAL — DR MARC FONTAINE
+============================================================
+
+Docteur Marc FONTAINE
+Médecin généraliste — Secteur 1
+Cabinet médical de la Bourse
+14 rue de la Bourse, 69002 Lyon
+Tél. : 04 72 XX XX XX — Fax : 04 72 XX XX XY
+N° RPPS : 10XXXXXXXXX
+
+Lyon, le 19 novembre 2025
+
+CERTIFICAT MÉDICAL
+
+Je soussigné, Docteur Marc FONTAINE, médecin généraliste inscrit au Conseil de l'Ordre des Médecins du Rhône sous le n° RPPS 10XXXXXXXXX, exerçant au Cabinet médical de la Bourse, 14 rue de la Bourse, 69002 Lyon, certifie avoir reçu en consultation Madame Sophie DURAND, née le 14 mars 1988, demeurant au 12 avenue des Fleurs, 69003 Lyon, patiente dans mon cabinet depuis le 3 mars 2019.
+
+Madame DURAND s'est présentée à mon cabinet le 17 novembre 2025 à 10h30.
+
+À l'issue de cette consultation, j'ai constaté un état de fatigue générale importante avec signes d'asthénie physique et psychique. La patiente décrivait une surcharge de travail prolongée, des troubles du sommeil depuis plusieurs semaines, des difficultés de concentration et un état anxieux réactionnel dans un contexte professionnel qu'elle qualifiait de dégradé.
+
+L'examen clinique du 17 novembre 2025 ne justifiait pas, en lui-même, la prescription d'un arrêt de travail à proprement parler, les symptômes rapportés n'atteignant pas le seuil d'incapacité totale de travail. J'ai néanmoins recommandé à Madame DURAND un repos ponctuel, une limitation des facteurs de stress et une consultation de suivi rapprochée.
+
+Je note que l'état présenté lors de cette consultation s'inscrit dans la continuité d'une surveillance que je pratique régulièrement depuis juin 2025, date à laquelle Madame DURAND m'avait consulté pour les premiers signes d'épuisement professionnel.
+
+Ce certificat est établi pour faire valoir ce que de droit, à la demande de Madame DURAND, et ne préjuge pas des suites médicales ou juridiques.
+
+Fait à Lyon, le 19 novembre 2025
+
+Docteur Marc FONTAINE
+[Signature et cachet]
+
+---
+
+NOTA BENE : Le présent certificat décrit l'état de santé observé lors de la consultation du 17 novembre 2025 uniquement. Il ne constitue pas un certificat d'arrêt de travail au sens de l'article L. 321-1 du Code de la sécurité sociale. Le Docteur FONTAINE ne peut se prononcer sur l'état de santé de sa patiente aux dates des 15 et 16 novembre 2025 puisqu'il ne l'a pas examinée ces jours-là.
+
+---
+
+============================================================
+DOCUMENT 2 : CERTIFICAT COMPLÉMENTAIRE — DR MICHEL ROUSSEAU
+(Second avis médical produit par Mme DURAND)
+============================================================
+
+Docteur Michel ROUSSEAU
+Médecin généraliste et médecin du travail agréé
+Cabinet médical du Parc
+7 rue de la République, 69003 Lyon
+Tél. : 04 72 XX XX YY
+N° RPPS : 10XXXXXXXXY
+
+Lyon, le 2 décembre 2025
+
+ATTESTATION MÉDICALE
+
+Je soussigné, Docteur Michel ROUSSEAU, médecin généraliste, certifie avoir reçu en consultation Madame Sophie DURAND, née le 14 mars 1988 à Grenoble (38), demeurant au 12 avenue des Fleurs, 69003 Lyon.
+
+Madame DURAND m'a été adressée par son médecin traitant habituel, le Docteur Marc FONTAINE, pour un avis complémentaire dans le cadre d'un syndrome d'épuisement professionnel évolutif.
+
+Lors de ma consultation du 28 novembre 2025, j'ai pu constater les éléments suivants :
+
+1. Sur le plan clinique :
+   — État d'épuisement professionnel (burn-out) avéré, correspondant aux critères diagnostiques de l'ICD-11 (Z73.0 — problèmes liés à la surcharge de travail).
+   — Syndrome anxio-dépressif réactionnel de degré modéré.
+   — Troubles du sommeil d'installation depuis juin 2025 selon les déclarations de la patiente.
+   — Céphalées de tension récurrentes.
+   — Signes somatiques compatibles avec un état de stress chronique.
+
+2. Sur le contexte professionnel :
+   Madame DURAND m'a décrit une situation professionnelle caractérisée par une surcharge de travail persistante, la gestion d'une équipe en sous-effectif, l'absence de réponse de sa hiérarchie à des alertes qu'elle dit avoir formulées, et une pression accrue depuis septembre 2025. Ces éléments sont cohérents avec le tableau clinique observé.
+
+3. Évolution :
+   L'état de santé présenté au cours des consultations de novembre 2025 est cohérent avec une dégradation progressive depuis au moins l'été 2025. Les symptômes présentés les 15, 16 et 17 novembre 2025 s'inscrivent dans ce contexte pathologique continu.
+
+La présente attestation est établie à des fins de documentation médicale et pour faire valoir ce que de droit. Elle ne constitue pas une prise de position sur les aspects juridiques du dossier.
+
+Fait à Lyon, le 2 décembre 2025
+
+Docteur Michel ROUSSEAU
+[Signature et cachet]
+
+
+============================================================
+DOCUMENT 3 : ÉCHANGES EMAIL — ABSENCES NOVEMBRE 2025
+============================================================
+
+--- PIÈCE E-01 : Email de M. GIRARD du 8 novembre 2025 (autorisation RTT) ---
+
+De : antoine.girard@techsolutions.fr
+À : sophie.durand@techsolutions.fr
+Date : 8 novembre 2025, 11h22
+Objet : RE : Demande de RTT — semaine du 17 novembre
+
+Sophie,
+
+OK pour les RTT les 15, 16 et 17 novembre. Passe les saisir sur HRSOFT quand t'as le temps.
+
+On en parle à notre point hebdo du 12 pour faire le tour de DATAFLOW avant ton absence.
+
+Antoine
+
+---
+
+--- PIÈCE E-02 : Email de M. GIRARD du 15 novembre 2025 (relance 1) ---
+
+De : antoine.girard@techsolutions.fr
+À : sophie.durand@techsolutions.fr
+Date : 15 novembre 2025, 9h47
+Objet : Absence du jour
+
+Sophie,
+
+Tu n'es pas arrivée ce matin et tu n'as pas prévenu. L'absence n'est pas non plus saisie dans HRSOFT. Est-ce que tout va bien ?
+
+Merci de me répondre dès que possible, on a le point INNOVA TECH demain.
+
+Antoine GIRARD
+Directeur des Opérations — TECHSOLUTIONS SAS
+Tél. direct : 01 45 XX XX X1
+
+---
+
+--- PIÈCE E-03 : Email de Mme DURAND du 15 novembre 2025 (réponse partielle) ---
+
+De : sophie.durand@techsolutions.fr
+À : antoine.girard@techsolutions.fr
+Date : 15 novembre 2025, 16h30
+Objet : RE : Absence du jour
+
+Antoine,
+
+Je ne me sens pas bien depuis hier soir. Je pensais que mes RTT du 15 au 17 étaient validés — tu m'avais dit OK par email début novembre non ?
+
+Je ne pensais pas avoir à re-saisir sur HRSOFT vu que tu avais validé. Je vais essayer de me connecter mais là je ne suis vraiment pas en forme.
+
+Sophie
+
+---
+
+--- PIÈCE E-04 : Email de M. GIRARD du 16 novembre 2025 (relance 2) ---
+
+De : antoine.girard@techsolutions.fr
+À : sophie.durand@techsolutions.fr
+CC : isabelle.renard@techsolutions.fr
+Date : 16 novembre 2025, 8h15
+Objet : RE : Absence — deuxième jour — urgent
+
+Sophie,
+
+Deuxième jour d'absence consécutif. Le point INNOVA TECH de 10h00 est donc annulé, je dois prévenir David WEBER maintenant.
+
+Contrairement à ce que tu indiques, l'approbation par email n'est pas suffisante depuis la mise en place de HRSOFT en octobre. Une note de service l'indique. Je t'ai inclus Isabelle en copie.
+
+Je te demande de régulariser ta situation au plus tôt.
+
+Antoine GIRARD
+Directeur des Opérations — TECHSOLUTIONS SAS
+
+---
+
+--- PIÈCE E-05 : Email de M. GIRARD à INNOVA TECH du 16 novembre 2025 ---
+
+De : antoine.girard@techsolutions.fr
+À : d.weber@innovatech.fr
+Date : 16 novembre 2025, 8h35
+Objet : Annulation — Point hebdomadaire DATAFLOW — 16 novembre 10h00
+
+Monsieur WEBER,
+
+Je vous contacte dans l'urgence pour vous signaler que la réunion de 10h00 ce jour ne pourra pas se tenir. Notre responsable de projet référent sur votre compte est indisponible aujourd'hui pour raison de santé.
+
+Nous vous présentons nos sincères excuses pour cette annulation de dernière minute et vous proposerons une nouvelle date dans les meilleurs délais.
+
+Cordialement,
+
+Antoine GIRARD
+Directeur des Opérations
+TECHSOLUTIONS SAS
+01 45 XX XX X1
+
+---
+
+--- PIÈCE E-06 : Email de M. WEBER (INNOVA TECH) du 16 novembre 2025 (réclamation) ---
+
+De : d.weber@innovatech.fr
+À : antoine.girard@techsolutions.fr
+CC : f.lambert@techsolutions.fr
+Date : 16 novembre 2025, 9h22
+Objet : RE : Annulation — Point hebdomadaire DATAFLOW — 16 novembre 10h00
+
+Monsieur GIRARD,
+
+J'apprends l'annulation de notre réunion hebdomadaire à moins d'une heure de son heure de début. Je ne vous cache pas que cette situation me pose un problème sérieux.
+
+Nous avons mobilisé trois personnes de notre équipe technique pour ce point, dont notre DSI qui s'est libéré spécialement. Ces annulations de dernière minute deviennent une tendance préoccupante et nuisent à la conduite du projet.
+
+Je vous informe que si la livraison du lot 3 n'intervient pas comme prévu le 17 novembre, nous nous verrons contraints d'appliquer les pénalités contractuelles prévues à l'article 12.3 de notre accord cadre.
+
+Je souhaite un échange urgent avec votre Direction Générale cette semaine.
+
+David WEBER
+Directeur de Projet — INNOVA TECH
+d.weber@innovatech.fr | +33 6 XX XX XX XX
+
+---
+
+--- PIÈCE E-07 : SMS de Mme DURAND du 17 novembre 2025, 14h02 ---
+
+[Transcription du SMS envoyé depuis le numéro personnel de Mme DURAND au numéro de M. GIRARD]
+
+« Antoine, je suis vraiment indisposée, impossible de travailler. Je passe chez le médecin aujourd'hui. Je suis vraiment désolée pour tout. Je reprends lundi. »
+
+---
+
+--- PIÈCE E-08 : Email de Mme DURAND du 19 novembre 2025 (transmission certificat) ---
+
+De : s.durand.perso@gmail.com
+À : isabelle.renard@techsolutions.fr
+CC : antoine.girard@techsolutions.fr
+Date : 19 novembre 2025, 18h52
+Objet : Justificatif d'absence — 15 au 17 novembre 2025
+
+Madame RENARD, Monsieur GIRARD,
+
+Je reviens vers vous suite à mes absences des 15, 16 et 17 novembre 2025.
+
+Comme je l'avais indiqué à Monsieur GIRARD, ces trois journées avaient été validées comme RTT par email de Monsieur GIRARD en date du 8 novembre 2025. J'ai bien conscience que la procédure HRSOFT impose une saisie informatique complémentaire, mais je n'avais pas perçu cette obligation comme une condition préalable à la validité de l'autorisation orale/écrite de mon responsable.
+
+Le 17 novembre, j'étais effectivement souffrante, et me suis rendue chez le médecin dans la matinée. Je vous transmets en pièce jointe le certificat médical établi le 17 novembre 2025 par le Docteur Marc FONTAINE, 14 rue de la Bourse, 69002 Lyon.
+
+Je tiens à votre disposition la copie de l'email de Monsieur GIRARD du 8 novembre 2025 confirmant ces RTT.
+
+Je vous remercie de bien vouloir prendre en compte ces éléments.
+
+Cordialement,
+Sophie DURAND
+Responsable de Projet Informatique
+
+---
+
+--- PIÈCE E-09 : Email d'alerte de Mme DURAND à la DRH — 14 octobre 2025 ---
+
+De : sophie.durand@techsolutions.fr
+À : isabelle.renard@techsolutions.fr
+Date : 14 octobre 2025, 17h45
+Objet : Alerte — conditions de travail équipe Projet / risques psychosociaux
+
+Madame RENARD,
+
+Je me permets de vous alerter formellement sur la situation de mon équipe, qui me préoccupe depuis plusieurs semaines.
+
+Depuis septembre 2025, mon équipe de 5 personnes gère un volume de charge qui correspond, selon mes estimations, à celui d'une équipe de 7 à 8 personnes. Le départ non remplacé de Thomas MARCHAL (juillet 2025) et l'arrêt maladie prolongé de Julie BENARD (depuis août 2025) ont considérablement alourdi la charge individuelle.
+
+Je relève les signes suivants que j'estime constitutifs de risques psychosociaux :
+— Heures supplémentaires structurelles non compensées pour trois membres de l'équipe (Mesdames GARCIA et PETIT, M. RENOUX)
+— Tensions régulières en réunions d'équipe liées à la surcharge
+— Deux demandes informelles de mutation interne reçues depuis septembre
+— Mme GARCIA m'a confié ressentir des signes d'épuisement professionnel
+— M. RENOUX est en arrêt depuis le 6 octobre pour motif médical non précisé
+
+J'ai alerté verbalement Monsieur GIRARD à deux reprises (réunions des 15 et 30 septembre 2025) sans qu'une réponse concrète ne soit apportée.
+
+Je vous demande formellement d'intervenir pour trouver une solution : renfort temporaire, priorisation des projets, ou tout autre mesure permettant de ramener la charge à un niveau acceptable.
+
+Je reste à votre disposition pour en discuter.
+
+Sophie DURAND
+Responsable de Projet Informatique — TECHSOLUTIONS SAS
+
+[Aucune réponse à cet email n'a été retrouvée dans le dossier au 3 janvier 2026]
+
+---
+
+============================================================
+DOCUMENT 4 : ATTESTATION DE TÉMOIN FAVORABLE À MME DURAND
+(Établie par Mme Carole DUPUIS, collègue de Mme DURAND)
+============================================================
+
+ATTESTATION
+
+(Établie conformément aux articles 200 et suivants du Code de procédure civile)
+
+Je soussignée,
+
+Madame Carole DUPUIS
+Née le 22 juin 1984 à Bordeaux (33)
+Demeurant : 8 rue des Lilas, 75020 Paris
+Ingénieure Chef de Projet — TECHSOLUTIONS SAS depuis le 3 septembre 2014
+N° de salarié : 472
+
+certifie sur l'honneur que les faits suivants me sont personnellement connus :
+
+1. Sur la réunion de direction du 20 novembre 2025
+
+J'étais présente à la réunion de direction du jeudi 20 novembre 2025, qui a débuté vers 9h30 dans la salle de réunion A du siège social.
+
+J'ai observé que Madame DURAND a effectivement pris la parole à plusieurs reprises pour contester les données du tableau de bord trimestriel. Sa façon de s'exprimer m'a semblé vive, mais compréhensible au regard du contexte : les indicateurs présentés ne reflétaient pas du tout la réalité du terrain que nous vivions.
+
+Je n'ai pas perçu ses interventions comme des actes d'insubordination caractérisés. Elle a exprimé un désaccord professionnel sur des chiffres qu'elle estimait inexacts. Si la forme était tendue, le fond de ses remarques était fondé.
+
+Je note que Madame DURAND avait alerté la DRH par email six semaines avant cette réunion sur la surcharge de son équipe. N'ayant obtenu aucune réponse, son intervention du 20 novembre s'inscrit dans ce contexte d'alerte sans suite.
+
+2. Sur l'état général de Mme DURAND depuis septembre 2025
+
+J'ai constaté personnellement, depuis la rentrée de septembre 2025, une dégradation visible de l'état physique et moral de Madame DURAND. Elle paraissait épuisée, travaillait fréquemment le soir et le week-end d'après ses propres dires, et semblait sous pression constante.
+
+3. Sur la procédure HRSOFT
+
+La plateforme HRSOFT a été déployée en octobre 2025. La formation du 12 octobre 2025, d'une durée d'environ 45 minutes, était insuffisante pour couvrir tous les cas d'usage. À ma connaissance, plusieurs collègues ont continué à solliciter l'autorisation de leur manager par email sans saisir systématiquement dans HRSOFT, pensant que l'accord du manager suffisait.
+
+J'établis cette attestation spontanément, sans avoir été sollicitée ni par Madame DURAND ni par son conseil. Je précise que je ne suis liée à Madame DURAND par aucun lien d'amitié ou d'intérêt, et que je n'ai aucun motif de faveur envers elle.
+
+Je suis consciente qu'une fausse attestation m'exposerait aux sanctions prévues à l'article 441-7 du Code pénal.
+
+Fait à Paris, le 5 décembre 2025
+
+Carole DUPUIS
+
+[Signature]
+Pièce d'identité jointe : Copie CNI n° XXXXXXXXX
+
+---
+
+============================================================
+DOCUMENT 5 : ATTESTATION DE M. JEAN-PIERRE CHAUVET
+(Délégué du personnel — présent lors de l'entretien préalable)
+============================================================
+
+ATTESTATION
+
+(Établie conformément aux articles 200 et suivants du Code de procédure civile)
+
+Je soussigné,
+
+Monsieur Jean-Pierre CHAUVET
+Né le 7 mars 1971 à Rouen (76)
+Demeurant : 45 avenue Jean Jaurès, 94100 Saint-Maur-des-Fossés
+Technicien Senior — TECHSOLUTIONS SAS depuis le 14 janvier 2010
+Délégué du personnel élu depuis 2018 — Mandat en cours
+
+certifie sur l'honneur que les faits suivants me sont personnellement connus :
+
+1. Sur l'entretien préalable du 28 décembre 2025
+
+J'ai assisté Madame DURAND lors de l'entretien préalable au licenciement qui s'est tenu le 28 décembre 2025 au siège social, conformément à ma mission de représentant du personnel.
+
+Au cours de cet entretien, Madame DURAND a présenté l'email de Monsieur GIRARD en date du 8 novembre 2025, qui constitue bien selon moi une autorisation de RTT. Monsieur GIRARD a déclaré ne plus se souvenir de cet email, mais n'en a pas contesté l'authenticité.
+
+J'ai moi-même signalé que la mise en place de HRSOFT avait suscité de nombreuses difficultés au sein du personnel, et que les pratiques d'autorisation informelle par email avaient perduré après l'instauration du nouveau logiciel faute de formation suffisante. Ces difficultés ont fait l'objet d'une alerte de ma part auprès de la direction en octobre 2025.
+
+2. Sur l'absence de sanction antérieure
+
+À ma connaissance, qui est exhaustive en ma qualité de délégué du personnel disposant d'un accès aux procédures disciplinaires de l'entreprise, Madame DURAND n'a jamais fait l'objet d'aucune procédure disciplinaire ni d'aucun avertissement depuis son embauche en septembre 2018. Ses évaluations annuelles ont été globalement positives jusqu'en 2024.
+
+3. Sur la question de la disproportion de la sanction
+
+Lors de l'entretien, j'ai expressément demandé à la DRH si une sanction moins sévère avait été envisagée. La réponse a été négative, sans que les éléments contextuels que j'avais exposés (ancienneté, absence de sanction antérieure, contexte de surcharge) n'aient manifestement été pris en compte.
+
+4. Sur l'alerte du 14 octobre 2025
+
+Madame DURAND m'a informé de son email d'alerte à la DRH en date du 14 octobre 2025. J'ai personnellement vérifié qu'aucune réponse formelle n'avait été apportée à cet email à la date de l'entretien préalable du 28 décembre 2025. Cette absence de réponse à une alerte sur des risques psychosociaux constitue, à mon sens, un manquement de l'employeur à son obligation légale de prévention.
+
+J'établis cette attestation en pleine connaissance des enjeux du dossier, avec le souci de rapporter les faits fidèlement.
+
+Je suis conscient qu'une fausse attestation m'exposerait aux sanctions prévues à l'article 441-7 du Code pénal.
+
+Fait à Paris, le 8 décembre 2025
+
+Jean-Pierre CHAUVET
+Délégué du personnel — TECHSOLUTIONS SAS
+
+[Signature]
+Pièce d'identité jointe : Copie CNI n° XXXXXXXXX

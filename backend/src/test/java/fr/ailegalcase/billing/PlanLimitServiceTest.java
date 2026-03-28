@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class PlanLimitServiceTest {
@@ -25,12 +26,16 @@ class PlanLimitServiceTest {
     @Mock private SubscriptionRepository subscriptionRepository;
     @Mock private UsageEventRepository usageEventRepository;
     @Mock private ChatMessageRepository chatMessageRepository;
+    @Mock private CreditPurchaseService creditPurchaseService;
 
     private PlanLimitService service;
 
     @BeforeEach
     void setUp() {
-        service = new PlanLimitService(subscriptionRepository, usageEventRepository, chatMessageRepository);
+        service = new PlanLimitService(subscriptionRepository, usageEventRepository,
+                chatMessageRepository, creditPurchaseService);
+        // Default: no credits purchased (lenient — not all tests use isMonthlyTokenBudgetExceeded)
+        lenient().when(creditPurchaseService.getTotalTokensBought(any())).thenReturn(0L);
     }
 
     // ── getMaxOpenCaseFiles ───────────────────────────────────────────────
@@ -495,5 +500,76 @@ class PlanLimitServiceTest {
         UUID wid = UUID.randomUUID(); UUID cfid = UUID.randomUUID();
         when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
         assertThat(service.isCaseAnalysisLimitReached(cfid, wid)).isFalse();
+    }
+
+    // ── isMonthlyTokenBudgetExceeded avec crédits ─────────────────────────
+
+    // CR-01 : budget dépassé MAIS crédits couvrent le dépassement → false
+    @Test
+    void isMonthlyTokenBudgetExceeded_withCredits_coversOverage_returnsFalse() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("SOLO"); // budget = 6M
+        sub.setStartedAt(Instant.now().minus(30, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        // This month: 6.5M used (over by 500K)
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(6_500_000L);
+        // All time: 6.5M (same, first month)
+        when(usageEventRepository.sumTokensByWorkspaceIdAllTime(wid)).thenReturn(6_500_000L);
+        // Credits: 1M bought
+        when(creditPurchaseService.getTotalTokensBought(wid)).thenReturn(1_000_000L);
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isFalse();
+    }
+
+    // CR-02 : budget dépassé et crédits insuffisants → true
+    @Test
+    void isMonthlyTokenBudgetExceeded_withCredits_notEnough_returnsTrue() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("SOLO"); // budget = 6M
+        sub.setStartedAt(Instant.now().minus(30, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        // This month: 7.5M used (over by 1.5M)
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(7_500_000L);
+        when(usageEventRepository.sumTokensByWorkspaceIdAllTime(wid)).thenReturn(7_500_000L);
+        // Credits: 1M bought (covers only 1M of 1.5M overage)
+        when(creditPurchaseService.getTotalTokensBought(wid)).thenReturn(1_000_000L);
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isTrue();
+    }
+
+    // CR-03 : crédits entièrement consommés sur des mois précédents → traités comme épuisés
+    @Test
+    void isMonthlyTokenBudgetExceeded_creditsAlreadyConsumedInPriorMonths_returnsTrue() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("SOLO"); // budget = 6M/mois
+        // 35 jours = exactement 1 mois complet → monthsActive = 2
+        sub.setStartedAt(Instant.now().minus(35, ChronoUnit.DAYS));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        // This month: 6.5M used
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(6_500_000L);
+        // All time: 13.5M (2 mois × 6M plan + 1.5M crédit déjà consommé)
+        when(usageEventRepository.sumTokensByWorkspaceIdAllTime(wid)).thenReturn(13_500_000L);
+        // Credits bought: 1M (mais déjà consommés le mois dernier)
+        when(creditPurchaseService.getTotalTokensBought(wid)).thenReturn(1_000_000L);
+        // allTimePlanBudget = 2 months × 6M = 12M
+        // creditsConsumed = max(0, 13.5M - 12M) = 1.5M → > 1M bought → creditsRemaining = 0
+        // exceeded = 6.5M >= 6M + 0 = true
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isTrue();
+    }
+
+    // CR-04 : workspace sans crédits → comportement identique à avant
+    @Test
+    void isMonthlyTokenBudgetExceeded_noCredits_behavesAsBeforeF49() {
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription(); sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(usageEventRepository.sumTokensByWorkspaceIdSince(eq(wid), any(Instant.class))).thenReturn(6_000_000L);
+        // getTotalTokensBought returns 0L by default (setUp)
+
+        assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isTrue();
     }
 }

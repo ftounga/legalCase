@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="035-create-credit-purchases" author="legalcase">
+        <createTable tableName="credit_purchases">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_credit_purchases_workspace"
+                             references="workspaces(id)"/>
+            </column>
+            <column name="tokens_bought" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount_cents" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stripe_session_id" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"
+                             uniqueConstraintName="uq_credit_purchases_stripe_session_id"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="credit_purchases" indexName="idx_credit_purchases_workspace_id">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
