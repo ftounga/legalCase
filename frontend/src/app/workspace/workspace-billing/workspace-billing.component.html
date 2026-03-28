@@ -56,4 +56,30 @@
       </div>
     }
   </div>
+
+  <div class="topup-section">
+    <h2 class="topup-title">Acheter des tokens supplémentaires</h2>
+    <p class="topup-subtitle">Les tokens achetés s'ajoutent à votre quota mensuel et sont déduits en priorité.</p>
+    <div class="topup-grid">
+      @for (pack of packs; track pack.code) {
+        <div class="topup-card">
+          <div class="topup-icon">
+            <mat-icon>bolt</mat-icon>
+          </div>
+          <div class="topup-label">{{ pack.label }}</div>
+          <div class="topup-tokens">{{ pack.tokens }} tokens</div>
+          <div class="topup-price">{{ pack.price }}</div>
+          <button mat-flat-button class="btn-topup"
+            [disabled]="buying() !== null"
+            (click)="buyTopup(pack.code)">
+            @if (buying() === pack.code) {
+              <mat-spinner diameter="18" />
+            } @else {
+              Acheter
+            }
+          </button>
+        </div>
+      }
+    </div>
+  </div>
 </div>

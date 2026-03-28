@@ -21,7 +21,14 @@ import { Workspace } from '../../core/models/workspace.model';
 export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   workspace = signal<Workspace | null>(null);
   upgrading = signal<string | null>(null);
+  buying = signal<string | null>(null);
   private pollSub?: Subscription;
+
+  readonly packs = [
+    { code: 'TOKENS_1M',  label: '1M tokens',  tokens: '1 000 000',  price: '9,90 €'  },
+    { code: 'TOKENS_5M',  label: '5M tokens',  tokens: '5 000 000',  price: '39,90 €' },
+    { code: 'TOKENS_20M', label: '20M tokens', tokens: '20 000 000', price: '129,90 €' },
+  ];
 
   readonly plans = [
     {
@@ -110,6 +117,14 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
         this.snackBar.open('Paiement annulé.', 'Fermer', {
           duration: 4000
         });
+      } else if (params['topup'] === 'success') {
+        this.snackBar.open('Tokens ajoutés à votre compte !', 'Fermer', {
+          duration: 6000, panelClass: ['snack-success']
+        });
+      } else if (params['topup'] === 'canceled') {
+        this.snackBar.open('Achat de tokens annulé.', 'Fermer', {
+          duration: 4000
+        });
       }
     });
   }
@@ -147,6 +162,21 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
           duration: 4000, panelClass: ['snack-error']
         });
         this.upgrading.set(null);
+      }
+    });
+  }
+
+  buyTopup(packCode: string): void {
+    this.buying.set(packCode);
+    this.billingService.createTopupSession(packCode).subscribe({
+      next: ({ checkoutUrl }) => {
+        this.document.location.href = checkoutUrl;
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de la redirection vers le paiement.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+        this.buying.set(null);
       }
     });
   }

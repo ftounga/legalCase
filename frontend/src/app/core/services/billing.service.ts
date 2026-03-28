@@ -14,6 +14,10 @@ export class BillingService {
     return this.http.post<{ checkoutUrl: string }>(`${this.apiUrl}/checkout-session`, { planCode });
   }
 
+  createTopupSession(packCode: string): Observable<{ checkoutUrl: string }> {
+    return this.http.post<{ checkoutUrl: string }>(`${this.apiUrl}/topup-session`, { packCode });
+  }
+
   shouldShowTrialBanner(workspace: Workspace): boolean {
     if (workspace.planCode !== 'FREE') return false;
     if (this.bannerShownThisSession) return false;
