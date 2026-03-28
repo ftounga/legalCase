@@ -493,9 +493,9 @@ section { padding: 96px 5%; }
 
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  max-width: 960px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -698,7 +698,7 @@ footer {
 @media (max-width: 900px) {
   nav { display: none; }
   .problem-grid { grid-template-columns: 1fr; gap: 2.5rem; }
-  .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+  .pricing-grid { grid-template-columns: repeat(2, 1fr); max-width: 640px; }
   .pricing-card.featured { transform: none; }
   .pricing-card.featured:hover { transform: translateY(-4px); }
   .pipeline-steps { flex-direction: column; gap: 1.5rem; }

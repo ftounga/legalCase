@@ -133,7 +133,7 @@ export class SuperAdminComponent implements OnInit {
   }
 
   planLabel(code: string): string {
-    const labels: Record<string, string> = { FREE: 'Essai', STARTER: 'Starter', PRO: 'Pro' };
+    const labels: Record<string, string> = { FREE: 'Essai', SOLO: 'Solo', TEAM: 'Team', PRO: 'Pro' };
     return labels[code] ?? code;
   }
 

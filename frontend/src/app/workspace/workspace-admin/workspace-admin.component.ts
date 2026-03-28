@@ -17,10 +17,11 @@ import { Workspace } from '../../core/models/workspace.model';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { WorkspaceUsageSummary } from '../../core/models/workspace-usage-summary.model';
 
-const PLAN_QUOTA: Record<string, number | null> = {
-  FREE: null,
-  STARTER: 3,
-  PRO: 20
+const PLAN_QUOTA: Record<string, string> = {
+  FREE: 'Essai gratuit',
+  SOLO: '15 dossiers',
+  TEAM: '40 dossiers',
+  PRO: 'Illimité'
 };
 
 @Component({
@@ -76,8 +77,7 @@ export class WorkspaceAdminComponent implements OnInit {
   }
 
   getPlanQuota(planCode: string): string {
-    const quota = PLAN_QUOTA[planCode];
-    return quota !== null && quota !== undefined ? `${quota} dossiers` : 'Essai gratuit';
+    return PLAN_QUOTA[planCode] ?? planCode;
   }
 
   isTrial(workspace: Workspace): boolean {

@@ -5,14 +5,14 @@
   @if (isExpired()) {
     <div class="expired-banner">
       <mat-icon>warning</mat-icon>
-      <span>Votre essai gratuit a expiré. Passez au plan Starter pour continuer à créer des dossiers.</span>
+      <span>Votre essai gratuit a expiré. Passez au plan Solo pour continuer à créer des dossiers.</span>
     </div>
   }
 
   <div class="plans-grid">
     @for (plan of plans; track plan.code) {
-      <div class="plan-card" [class.plan-card--current]="isCurrentPlan(plan.code)" [class.plan-card--featured]="plan.code === 'PRO'">
-        @if (plan.code === 'PRO') {
+      <div class="plan-card" [class.plan-card--current]="isCurrentPlan(plan.code)" [class.plan-card--featured]="plan.code === 'SOLO'">
+        @if (plan.code === 'SOLO') {
           <div class="plan-badge">Recommandé</div>
         }
         <div class="plan-header">
@@ -40,7 +40,8 @@
             </div>
           } @else if (plan.code !== 'FREE') {
             <button mat-flat-button
-              [class.btn-primary]="plan.code === 'STARTER'"
+              [class.btn-primary]="plan.code === 'SOLO'"
+              [class.btn-team]="plan.code === 'TEAM'"
               [class.btn-gold]="plan.code === 'PRO'"
               [disabled]="upgrading() !== null"
               (click)="upgrade(plan.code)">
