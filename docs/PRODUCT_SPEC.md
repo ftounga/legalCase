@@ -163,7 +163,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-63 | Responsive mobile — Écrans secondaires | V2 — **Terminée** | Adaptation mobile des écrans secondaires : analysis-diff (sélecteurs empilés), membres (colonnes masquées), admin (colonne email masquée). Login/onboarding/billing déjà responsive. SF-63-01 mergée 2026-03-28. |
 | F-41 | Partage dossier lecture seule | V2 — **Terminée** | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. SF-41-01 mergée 2026-03-28 (backend), SF-41-02 mergée 2026-03-28 (frontend). |
 | F-49 | Top-up de crédits tokens | V2 | Achat de tokens supplémentaires via Stripe (one-shot, hors abonnement) quand le quota mensuel est atteint. Table `credit_purchases`. Déduction prioritaire sur les crédits avant le quota plan. Webhook Stripe dédié. Visible dans la page Administration. |
-| F-42 | Export CSV journal d'actions | V2 | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). |
+| F-42 | Export CSV journal d'actions | V2 — **Terminée** | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). SF-42-01 mergée 2026-03-28 (backend), SF-42-02 mergée 2026-03-28 (frontend). |
 | F-43 | Filtre par plage de dates — journal d'actions | V2 | Sélecteur de dates (date début / date fin) dans l'écran `/workspace/audit-logs`. Actuellement hors scope de SF-38-04. |
 | F-44 | Pagination et tri côté serveur — journal d'actions | V2 | Actuellement le backend renvoie 50 entrées max et le filtre est côté client. À remplacer par pagination serveur + paramètres de tri/filtre sur l'endpoint `GET /api/v1/admin/audit-logs`. |
 | F-45 | Pagination côté serveur — liste des dossiers | V2 | La liste des dossiers est actuellement chargée entièrement côté client. À paginer côté serveur pour les workspaces avec de nombreux dossiers. |
@@ -198,6 +198,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | Date | Modification | Validé par |
 |------|-------------|------------|
 | 2026-03-28 | F-63 Terminée — SF-63-01 mergée : responsive CSS diff (sélecteurs empilés), membres (colonnes masquées), admin (email masqué) | Product owner |
+| 2026-03-28 | F-42 Terminée — SF-42-02 mergée : bouton "Exporter CSV" dans audit-logs, AuditLogService.exportCsv() Blob, signal exporting, 253/253 tests | Product owner |
+| 2026-03-28 | F-42 SF-42-01 mergée — backend GET /export.csv, BOM UTF-8, RFC 4180, sans limite 50 lignes, 6/6 tests | Product owner |
 | 2026-03-28 | F-41 Terminée — SF-41-02 mergée : ShareDialogComponent (génération/copie/révocation lien), PublicShareComponent (/share/:token hors shell), CaseFileShareService, 250/250 tests | Product owner |
 | 2026-03-28 | F-41 SF-41-01 mergée — backend partage lecture seule : migration 034 case_file_shares, token SecureRandom 64 chars, 4 endpoints (POST/GET/DELETE auth + GET public permitAll), isolation workspace, 310 tests | Product owner |
 | 2026-03-28 | F-63 ajoutée au backlog — Responsive mobile écrans secondaires (onboarding, membres, billing, admin, diff, login) | Product owner |
