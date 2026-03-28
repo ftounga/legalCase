@@ -1,0 +1,90 @@
+.wizard-container {
+  padding: 32px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.wizard-step-indicators {
+  display: flex;
+  gap: 8px;
+}
+
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E0E4EA;
+  transition: background 0.2s;
+
+  &--active {
+    background: #1A3A5C;
+    width: 24px;
+    border-radius: 4px;
+  }
+
+  &--done {
+    background: #C9973A;
+  }
+}
+
+.wizard-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.wizard-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #EEF2F7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: #C9973A;
+  }
+}
+
+.wizard-title {
+  font-family: 'Merriweather', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1A3A5C;
+  margin: 0;
+}
+
+.wizard-description {
+  font-size: 15px;
+  color: #6B7A8D;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 380px;
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+  padding-top: 8px;
+
+  .btn-skip {
+    color: #6B7A8D;
+  }
+
+  .btn-next {
+    background-color: #1A3A5C;
+    color: white;
+    min-width: 120px;
+  }
+}

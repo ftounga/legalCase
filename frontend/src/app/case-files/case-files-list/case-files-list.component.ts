@@ -10,8 +10,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
+import { OnboardingWizardService } from '../../core/services/onboarding-wizard.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseFileCreateDialogComponent } from '../case-file-create-dialog/case-file-create-dialog.component';
+import { OnboardingWizardDialogComponent } from '../../onboarding/onboarding-wizard-dialog/onboarding-wizard-dialog.component';
 
 @Component({
   selector: 'app-case-files-list',
@@ -35,18 +37,37 @@ export class CaseFilesListComponent implements OnInit {
   constructor(
     private caseFileService: CaseFileService,
     private workspaceService: WorkspaceService,
+    private wizardService: OnboardingWizardService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     this.loadCaseFiles();
+    this.maybeShowWizard();
     this.workspaceService.workspaceSwitched$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.pageIndex = 0;
         this.loadCaseFiles();
       });
+  }
+
+  private maybeShowWizard(): void {
+    this.workspaceService.getCurrentWorkspace().subscribe({
+      next: ws => {
+        if (this.wizardService.shouldShow(ws.id)) {
+          this.dialog.open(OnboardingWizardDialogComponent, {
+            width: '540px',
+            disableClose: false,
+            data: { workspaceId: ws.id }
+          }).afterClosed().subscribe(() => {
+            this.wizardService.markDone(ws.id);
+          });
+        }
+      },
+      error: () => {}
+    });
   }
 
   loadCaseFiles(): void {

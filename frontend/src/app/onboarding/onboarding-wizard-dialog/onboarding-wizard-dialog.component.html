@@ -1,0 +1,22 @@
+<div class="wizard-container">
+  <div class="wizard-step-indicators">
+    @for (step of steps; track $index) {
+      <div class="step-dot" [class.step-dot--active]="$index === currentStep()" [class.step-dot--done]="$index < currentStep()"></div>
+    }
+  </div>
+
+  <div class="wizard-content">
+    <div class="wizard-icon">
+      <mat-icon>{{ steps[currentStep()].icon }}</mat-icon>
+    </div>
+    <h2 class="wizard-title">{{ steps[currentStep()].title }}</h2>
+    <p class="wizard-description">{{ steps[currentStep()].description }}</p>
+  </div>
+
+  <div class="wizard-actions">
+    <button mat-button class="btn-skip" (click)="skip()">Passer</button>
+    <button mat-flat-button class="btn-next" (click)="next()">
+      {{ isLastStep ? 'Commencer' : 'Suivant' }}
+    </button>
+  </div>
+</div>
