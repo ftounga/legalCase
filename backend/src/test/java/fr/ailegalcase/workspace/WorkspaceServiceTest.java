@@ -61,7 +61,7 @@ class WorkspaceServiceTest {
 
         ArgumentCaptor<Workspace> workspaceCaptor = ArgumentCaptor.forClass(Workspace.class);
         verify(workspaceRepository).save(workspaceCaptor.capture());
-        assertThat(workspaceCaptor.getValue().getName()).isEqualTo("john@example.com");
+        assertThat(workspaceCaptor.getValue().getName()).isEqualTo("JOHN@EXAMPLE.COM");
         assertThat(workspaceCaptor.getValue().getPlanCode()).isEqualTo("FREE");
         assertThat(workspaceCaptor.getValue().getStatus()).isEqualTo("ACTIVE");
         assertThat(workspaceCaptor.getValue().getSlug()).isNotBlank();

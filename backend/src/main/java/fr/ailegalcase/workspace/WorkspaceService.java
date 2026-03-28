@@ -47,7 +47,7 @@ public class WorkspaceService {
         }
 
         Workspace workspace = new Workspace();
-        workspace.setName(name.strip());
+        workspace.setName(name.strip().toUpperCase());
         workspace.setSlug(UUID.randomUUID().toString());
         workspace.setOwner(user);
         workspace.setLegalDomain(legalDomain);
@@ -90,7 +90,7 @@ public class WorkspaceService {
         }
 
         Workspace workspace = new Workspace();
-        workspace.setName(user.getEmail());
+        workspace.setName(user.getEmail().toUpperCase());
         workspace.setSlug(UUID.randomUUID().toString());
         workspace.setOwner(user);
         workspace.setLegalDomain("DROIT_DU_TRAVAIL");

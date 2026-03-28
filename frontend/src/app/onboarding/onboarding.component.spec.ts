@@ -50,7 +50,7 @@ describe('OnboardingComponent', () => {
     tick();
 
     expect(dialog.open).toHaveBeenCalled();
-    expect(workspaceService.createWorkspace).toHaveBeenCalledWith('Cabinet Martin', 'DROIT_DU_TRAVAIL', 'FRANCE');
+    expect(workspaceService.createWorkspace).toHaveBeenCalledWith('CABINET MARTIN', 'DROIT_DU_TRAVAIL', 'FRANCE');
     expect(router.navigate).toHaveBeenCalledWith(['/case-files']);
   }));
 
