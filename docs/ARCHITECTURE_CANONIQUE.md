@@ -736,6 +736,32 @@ Règles :
 - stripe_customer_id : créé via Stripe API à la création du workspace, fail-open (null si Stripe indisponible)
 - stripe_subscription_id : rempli par le webhook Stripe lors du paiement (SF-19-03)
 
+## credit_purchases
+
+Table :
+
+credit_purchases
+
+Champs :
+
+id (UUID PK)
+workspace_id (UUID FK → workspaces)
+tokens_bought (bigint, NOT NULL)
+amount_cents (int, NOT NULL)
+stripe_session_id (varchar 255, UNIQUE, NOT NULL)
+created_at (timestamptz, NOT NULL)
+
+Index :
+
+idx_credit_purchases_workspace_id
+
+Règles :
+
+- Un achat est idempotent : le service vérifie l'unicité de stripe_session_id avant d'insérer
+- Crédits déduits globalement (all-time) dans PlanLimitService.isMonthlyTokenBudgetExceeded()
+- 3 packs disponibles : TOKENS_1M (990 cents), TOKENS_5M (3990 cents), TOKENS_20M (12990 cents)
+- Migration : 035-create-credit-purchases.xml
+
 ---
 
 # 18 — Chat

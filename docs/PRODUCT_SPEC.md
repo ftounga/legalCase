@@ -162,7 +162,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-62 | Responsive mobile — Écrans principaux | V2 — **Terminée** | Adaptation mobile de case-file-detail, synthesis et liste des dossiers — colonnes empilées, upload accessible, synthèse lisible. SF-62-01 mergée 2026-03-28. |
 | F-63 | Responsive mobile — Écrans secondaires | V2 — **Terminée** | Adaptation mobile des écrans secondaires : analysis-diff (sélecteurs empilés), membres (colonnes masquées), admin (colonne email masquée). Login/onboarding/billing déjà responsive. SF-63-01 mergée 2026-03-28. |
 | F-41 | Partage dossier lecture seule | V2 — **Terminée** | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. SF-41-01 mergée 2026-03-28 (backend), SF-41-02 mergée 2026-03-28 (frontend). |
-| F-49 | Top-up de crédits tokens | V2 — En cours | SF-49-01 mergée 2026-03-28 : table `credit_purchases`, `TokenPack` enum (1M/5M/20M), `POST /api/v1/stripe/topup-session`, webhook mode=payment, `PlanLimitService` intègre les crédits restants. SF-49-02 (frontend) à faire. |
+| F-49 | Top-up de crédits tokens | V2 — **Terminée** | SF-49-01 mergée 2026-03-28 : table `credit_purchases`, `TokenPack` enum (1M/5M/20M), `POST /api/v1/stripe/topup-session`, webhook mode=payment, `PlanLimitService` intègre les crédits restants. SF-49-02 mergée 2026-03-28 : section top-up dans billing (3 cartes 1M/5M/20M), `createTopupSession()`, gestion `?topup=success/canceled`. |
 | F-42 | Export CSV journal d'actions | V2 — **Terminée** | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). SF-42-01 mergée 2026-03-28 (backend), SF-42-02 mergée 2026-03-28 (frontend). |
 | F-43 | Filtre par plage de dates — journal d'actions | V2 — **Terminée** | Sélecteur de dates (date début / date fin) dans l'écran `/workspace/audit-logs`. SF-43-01 mergée 2026-03-28 (backend), SF-43-02 mergée 2026-03-28 (frontend). |
 | F-44 | Pagination et tri côté serveur — journal d'actions | V2 — **Terminée** | `GET /api/v1/admin/audit-logs` retourne `Page<AuditLogResponse>` avec `@PageableDefault(size=20, sort=createdAt DESC)`. Filtres `from`, `to`, `action` via `Specification<AuditLog>`. Frontend : `MatPaginator` (10/20/50), `onPageChange(PageEvent)`, remise à 0 au changement de date. SF-44-01 mergée 2026-03-28 (backend), SF-44-02 mergée 2026-03-28 (frontend). |
@@ -197,6 +197,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-28 | F-49 Terminée — SF-49-02 mergée : section top-up billing (3 cartes), createTopupSession(), ?topup=success/canceled, 14 tests Angular | Product owner |
 | 2026-03-28 | F-49 SF-49-01 mergée — table credit_purchases, TokenPack 1M/5M/20M, POST /topup-session, webhook mode=payment, PlanLimitService crédits globaux, 331 tests | Product owner |
 | 2026-03-28 | F-46 Terminée — SF-46-01 mergée : smoke.yml workflow_run après Backend/Frontend CI, workflow_dispatch, Playwright chromium Node 22, secrets E2E, compte e2e créé staging | Product owner |
 | 2026-03-28 | F-44 Terminée — SF-44-01 (backend) + SF-44-02 (frontend) mergées : Page<AuditLogResponse>, JpaSpecificationExecutor, MatPaginator 10/20/50, 10 tests Java + 251 tests Angular | Product owner |
