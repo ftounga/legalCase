@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -49,7 +50,8 @@ public class AuditLogAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuditLogResponse> getAuditLogs(OidcUser oidcUser, Principal principal) {
+    public List<AuditLogResponse> getAuditLogs(OidcUser oidcUser, Principal principal,
+                                                Instant from, Instant to) {
         User user = currentUserResolver.resolve(oidcUser, resolve(principal), principal);
 
         WorkspaceMember member = workspaceMemberRepository
@@ -60,8 +62,12 @@ public class AuditLogAdminService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "from must not be after to");
+        }
+
         UUID workspaceId = member.getWorkspace().getId();
-        List<AuditLog> logs = auditLogRepository.findTop50ByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
+        List<AuditLog> logs = fetchLogs(workspaceId, from, to);
 
         if (logs.isEmpty()) {
             return List.of();
@@ -82,6 +88,19 @@ public class AuditLogAdminService {
                         log.getCreatedAt()
                 ))
                 .toList();
+    }
+
+    private List<AuditLog> fetchLogs(UUID workspaceId, Instant from, Instant to) {
+        if (from != null && to != null) {
+            return auditLogRepository.findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(workspaceId, from, to);
+        }
+        if (from != null) {
+            return auditLogRepository.findByWorkspaceIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(workspaceId, from);
+        }
+        if (to != null) {
+            return auditLogRepository.findByWorkspaceIdAndCreatedAtLessThanEqualOrderByCreatedAtDesc(workspaceId, to);
+        }
+        return auditLogRepository.findTop50ByWorkspaceIdOrderByCreatedAtDesc(workspaceId);
     }
 
     @Transactional(readOnly = true)

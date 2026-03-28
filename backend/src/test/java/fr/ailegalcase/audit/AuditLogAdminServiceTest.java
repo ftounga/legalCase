@@ -46,7 +46,7 @@ class AuditLogAdminServiceTest {
                 .thenReturn(List.of(log));
         when(userRepo.findAllById(anyCollection())).thenReturn(List.of(ctx.user));
 
-        List<AuditLogResponse> result = service.getAuditLogs(ctx.oidcUser, ctx.auth);
+        List<AuditLogResponse> result = service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(logId);
@@ -59,7 +59,7 @@ class AuditLogAdminServiceTest {
     @Test
     void getAuditLogs_member_throws403() {
         var ctx = buildContext("MEMBER");
-        assertThatThrownBy(() -> service.getAuditLogs(ctx.oidcUser, ctx.auth))
+        assertThatThrownBy(() -> service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }
@@ -75,11 +75,51 @@ class AuditLogAdminServiceTest {
         when(auditLogRepo.findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
                 .thenReturn(List.of());
 
-        List<AuditLogResponse> result = service.getAuditLogs(ctx.oidcUser, ctx.auth);
+        List<AuditLogResponse> result = service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null);
 
         assertThat(result).isEmpty();
         verify(auditLogRepo).findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId());
         verify(auditLogRepo, never()).findTop50ByWorkspaceIdOrderByCreatedAtDesc(otherWorkspaceId);
+    }
+
+    // U-07 : sans params → appelle findTop50
+    @Test
+    void getAuditLogs_noDateParams_callsTop50() {
+        var ctx = buildContext("OWNER");
+        when(auditLogRepo.findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId()))
+                .thenReturn(List.of());
+
+        service.getAuditLogs(ctx.oidcUser, ctx.auth, null, null);
+
+        verify(auditLogRepo).findTop50ByWorkspaceIdOrderByCreatedAtDesc(ctx.workspace.getId());
+        verify(auditLogRepo, never()).findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(any(), any(), any());
+    }
+
+    // U-08 : from + to → appelle findByWorkspaceIdAndCreatedAtBetween
+    @Test
+    void getAuditLogs_fromAndTo_callsBetween() {
+        var ctx = buildContext("OWNER");
+        Instant from = Instant.parse("2026-03-01T00:00:00Z");
+        Instant to   = Instant.parse("2026-03-31T23:59:59Z");
+        when(auditLogRepo.findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(ctx.workspace.getId(), from, to))
+                .thenReturn(List.of());
+
+        service.getAuditLogs(ctx.oidcUser, ctx.auth, from, to);
+
+        verify(auditLogRepo).findByWorkspaceIdAndCreatedAtBetweenOrderByCreatedAtDesc(ctx.workspace.getId(), from, to);
+        verify(auditLogRepo, never()).findTop50ByWorkspaceIdOrderByCreatedAtDesc(any());
+    }
+
+    // U-09 : from > to → 400 Bad Request
+    @Test
+    void getAuditLogs_fromAfterTo_throws400() {
+        var ctx = buildContext("OWNER");
+        Instant from = Instant.parse("2026-03-31T00:00:00Z");
+        Instant to   = Instant.parse("2026-03-01T00:00:00Z");
+
+        assertThatThrownBy(() -> service.getAuditLogs(ctx.oidcUser, ctx.auth, from, to))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("400");
     }
 
     // U-04 : exportCsv — retourne CSV avec header + toutes les entrées

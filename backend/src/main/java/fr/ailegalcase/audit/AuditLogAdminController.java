@@ -7,9 +7,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -25,8 +27,10 @@ public class AuditLogAdminController {
     @GetMapping
     public List<AuditLogResponse> getAuditLogs(
             @AuthenticationPrincipal OidcUser oidcUser,
-            Principal principal) {
-        return auditLogAdminService.getAuditLogs(oidcUser, principal);
+            Principal principal,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to) {
+        return auditLogAdminService.getAuditLogs(oidcUser, principal, from, to);
     }
 
     @GetMapping(value = "/export.csv", produces = "text/csv")
