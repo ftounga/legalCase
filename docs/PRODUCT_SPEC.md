@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-65 | Notifications email d'analyse terminée | V2 — Backlog | Envoyer un email à l'avocat quand une analyse STANDARD ou ENRICHED est terminée. Complément aux notifications SSE (F-39) pour les sessions fermées. Intégration AWS SES. Template HTML minimaliste. |
 | F-29 | Limites pipeline IA configurables | V2 — **Terminée** | Externalisation des limites hardcodées de F-28 via `AnalysisLimitsProperties` (`@ConfigurationProperties`). Configurable par domaine juridique dans `application.yml`. `AnalysisJsonTruncator` paramétré par `LevelLimits` (chunk/document/dossier). SF-29-01 mergée 2026-03-28. |
 | F-39 | Notifications temps réel | V2 — **Terminée** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. SF-39-02 mergée 2026-03-26 : `GlobalAnalysisNotificationService` singleton Angular, toast MatSnackBar visible depuis toute page, événements SSE typés par jobType. |
 | F-40 | Export PDF de la synthèse | V2 — **Terminée** | Générer un PDF structuré de la synthèse (timeline, faits, points juridiques, risques). Utile pour partager avec un client ou archiver. Implémenté 100% frontend via pdfmake (SF-40-01, mergé 2026-03-24). |
@@ -157,6 +158,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-64 | Recherche full-text dans les synthèses | V2 — Backlog | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel. Idéal pour retrouver un précédent ou une jurisprudence traitée dans un dossier antérieur. |
+| F-66 | Modèles de questions Q&A réutilisables | V2 — Backlog | Sauvegarder des séries de questions fréquentes par domaine juridique et les appliquer en un clic à un nouveau dossier. Évite la saisie répétitive. Scoped au workspace. |
 | F-67 | Wizard d'onboarding guidé | V2 — **Terminée** | Wizard 4 étapes affiché au premier accès après création du workspace (Bienvenue / Créer un dossier / Ajouter des documents / Lancer une analyse). Skippable à tout moment. Persisté en localStorage. SF-67-01 mergée 2026-03-29. |
 | F-60 | Normalisation nom workspace en majuscules | V2 — **Terminée** | Le nom du workspace est converti en majuscules au moment de la saisie et stocké en majuscules en base. Concerne la création et la modification du nom. SF-60-01 mergée 2026-03-28. |
 | F-61 | Responsive mobile — Shell & navigation | V2 — **Terminée** | Sidebar rétractable sur mobile (menu hamburger), header adaptatif, navigation accessible sur téléphone. SF-61-01 mergée 2026-03-28. |
@@ -198,6 +201,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-29 | F-64/F-65/F-66 ajoutées au backlog — Recherche full-text synthèses, Notifications email analyse, Modèles Q&A réutilisables | Product owner |
 | 2026-03-29 | F-67 Terminée — SF-67-01 mergée : OnboardingWizardService (localStorage), OnboardingWizardDialogComponent (4 étapes, signal currentStep), trigger CaseFilesListComponent, 26 tests | Product owner |
 | 2026-03-29 | F-67 ajoutée au backlog — Wizard d'onboarding guidé 4 étapes, skippable, localStorage | Product owner |
 | 2026-03-29 | F-29 Terminée (statut manquant corrigé) — SF-29-01 mergée 2026-03-28 : AnalysisLimitsProperties, LevelLimits, AnalysisJsonTruncator paramétré, configurable par domaine | Product owner |
