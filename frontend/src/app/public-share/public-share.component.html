@@ -1,0 +1,75 @@
+@if (loading()) {
+  <div class="loading-center">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <mat-icon class="error-icon">link_off</mat-icon>
+    @if (error() === 'not_found') {
+      <h2>Lien introuvable</h2>
+      <p>Ce lien de partage n'existe pas ou a été révoqué.</p>
+    } @else if (error() === 'expired') {
+      <h2>Lien expiré</h2>
+      <p>Ce lien de partage a expiré. Demandez un nouveau lien à l'avocat responsable du dossier.</p>
+    } @else {
+      <h2>Erreur</h2>
+      <p>Une erreur est survenue. Veuillez réessayer plus tard.</p>
+    }
+  </div>
+} @else {
+  @if (share(); as s) {
+  <div class="share-page">
+    <header class="share-header">
+      <span class="brand">AI LegalCase</span>
+      <span class="expiry">Lien valide jusqu'au {{ s.expiresAt | date:'dd/MM/yyyy' }}</span>
+    </header>
+
+    <main class="share-content">
+      <div class="case-meta">
+        <h1 class="case-title">{{ s.caseFileTitle }}</h1>
+        @if (s.legalDomain) {
+          <span class="legal-domain-badge">{{ s.legalDomain }}</span>
+        }
+      </div>
+
+      <section class="synthesis-card">
+        <h2 class="section-heading">Faits</h2>
+        <ul class="synthesis-list">
+          @for (item of s.synthesis.faits; track $index) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </section>
+
+      <section class="synthesis-card">
+        <h2 class="section-heading">Points juridiques</h2>
+        <ul class="synthesis-list">
+          @for (item of s.synthesis.pointsJuridiques; track $index) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </section>
+
+      <section class="synthesis-card">
+        <h2 class="section-heading">Risques</h2>
+        <ul class="synthesis-list">
+          @for (item of s.synthesis.risques; track $index) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      </section>
+
+      @if (s.synthesis.timeline.length > 0) {
+        <section class="synthesis-card">
+          <h2 class="section-heading">Chronologie</h2>
+          <ul class="synthesis-list timeline-list">
+            @for (entry of s.synthesis.timeline; track $index) {
+              <li><span class="timeline-date">{{ entry.date }}</span> — {{ entry.evenement }}</li>
+            }
+          </ul>
+        </section>
+      }
+    </main>
+  </div>
+  }
+}
