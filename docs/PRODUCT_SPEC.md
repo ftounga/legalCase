@@ -161,7 +161,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-61 | Responsive mobile — Shell & navigation | V2 — **Terminée** | Sidebar rétractable sur mobile (menu hamburger), header adaptatif, navigation accessible sur téléphone. SF-61-01 mergée 2026-03-28. |
 | F-62 | Responsive mobile — Écrans principaux | V2 — **Terminée** | Adaptation mobile de case-file-detail, synthesis et liste des dossiers — colonnes empilées, upload accessible, synthèse lisible. SF-62-01 mergée 2026-03-28. |
 | F-63 | Responsive mobile — Écrans secondaires | V2 — **Terminée** | Adaptation mobile des écrans secondaires : analysis-diff (sélecteurs empilés), membres (colonnes masquées), admin (colonne email masquée). Login/onboarding/billing déjà responsive. SF-63-01 mergée 2026-03-28. |
-| F-41 | Partage dossier lecture seule | V2 | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. |
+| F-41 | Partage dossier lecture seule | V2 — **Terminée** | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. SF-41-01 mergée 2026-03-28 (backend), SF-41-02 mergée 2026-03-28 (frontend). |
 | F-49 | Top-up de crédits tokens | V2 | Achat de tokens supplémentaires via Stripe (one-shot, hors abonnement) quand le quota mensuel est atteint. Table `credit_purchases`. Déduction prioritaire sur les crédits avant le quota plan. Webhook Stripe dédié. Visible dans la page Administration. |
 | F-42 | Export CSV journal d'actions | V2 | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). |
 | F-43 | Filtre par plage de dates — journal d'actions | V2 | Sélecteur de dates (date début / date fin) dans l'écran `/workspace/audit-logs`. Actuellement hors scope de SF-38-04. |
@@ -198,6 +198,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | Date | Modification | Validé par |
 |------|-------------|------------|
 | 2026-03-28 | F-63 Terminée — SF-63-01 mergée : responsive CSS diff (sélecteurs empilés), membres (colonnes masquées), admin (email masqué) | Product owner |
+| 2026-03-28 | F-41 Terminée — SF-41-02 mergée : ShareDialogComponent (génération/copie/révocation lien), PublicShareComponent (/share/:token hors shell), CaseFileShareService, 250/250 tests | Product owner |
 | 2026-03-28 | F-41 SF-41-01 mergée — backend partage lecture seule : migration 034 case_file_shares, token SecureRandom 64 chars, 4 endpoints (POST/GET/DELETE auth + GET public permitAll), isolation workspace, 310 tests | Product owner |
 | 2026-03-28 | F-63 ajoutée au backlog — Responsive mobile écrans secondaires (onboarding, membres, billing, admin, diff, login) | Product owner |
 | 2026-03-28 | F-62 Terminée — SF-62-01 mergée : responsive CSS liste dossiers (masque Domaine/Date), détail dossier (title-row wrap, docs table 2 cols, jobs IA barre séparée), synthèse (header wrap, titre 18px) | Product owner |
