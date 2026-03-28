@@ -81,10 +81,11 @@ describe('WorkspaceBillingComponent', () => {
     });
   });
 
-  it('re-synthèse enrichie exclue sur FREE', () => {
+  it('re-synthèse enrichie disponible (1 essai) sur FREE', () => {
     const free = component.plans.find(p => p.code === 'FREE')!;
     const enriched = free.features.find(f => f.label.toLowerCase().includes('re-synthèse'))!;
-    expect(enriched.included).toBeFalse();
+    expect(enriched.included).toBeTrue();
+    expect(enriched.label).toContain('1 essai');
   });
 
   it('isCurrentPlan — SOLO pour workspace SOLO', () => {
