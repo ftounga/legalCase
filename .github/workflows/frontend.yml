@@ -3,6 +3,9 @@ name: Frontend CI/CD
 on:
   push:
     branches: [master]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
 
 concurrency:
   group: staging-deploy
