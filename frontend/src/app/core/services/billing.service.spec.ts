@@ -38,6 +38,16 @@ describe('BillingService', () => {
     req.flush({ checkoutUrl: 'https://checkout.stripe.com/pay/test' });
   });
 
+  it('createTopupSession — POST /api/v1/stripe/topup-session', () => {
+    service.createTopupSession('TOKENS_5M').subscribe(res => {
+      expect(res.checkoutUrl).toBe('https://checkout.stripe.com/pay/topup');
+    });
+    const req = http.expectOne('/api/v1/stripe/topup-session');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ packCode: 'TOKENS_5M' });
+    req.flush({ checkoutUrl: 'https://checkout.stripe.com/pay/topup' });
+  });
+
   it('shouldShowTrialBanner — FREE plan, première fois → true', () => {
     expect(service.shouldShowTrialBanner(freeWorkspace)).toBeTrue();
   });

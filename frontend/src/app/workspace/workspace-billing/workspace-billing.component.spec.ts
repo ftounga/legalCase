@@ -21,7 +21,7 @@ describe('WorkspaceBillingComponent', () => {
 
   beforeEach(async () => {
     workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
-    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession']);
+    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     workspaceServiceSpy.getCurrentWorkspace.and.returnValue(of(mockWorkspace));
@@ -101,5 +101,60 @@ describe('WorkspaceBillingComponent', () => {
 
     expect(billingServiceSpy.createCheckoutSession).toHaveBeenCalledWith('PRO');
     expect(component.upgrading()).toBe('PRO');
+  });
+
+  it('affiche 3 packs topup', () => {
+    expect(component.packs.length).toBe(3);
+    expect(component.packs.map(p => p.code)).toEqual(['TOKENS_1M', 'TOKENS_5M', 'TOKENS_20M']);
+  });
+
+  it('buyTopup — appelle BillingService.createTopupSession', () => {
+    billingServiceSpy.createTopupSession.and.returnValue(NEVER);
+
+    component.buyTopup('TOKENS_1M');
+
+    expect(billingServiceSpy.createTopupSession).toHaveBeenCalledWith('TOKENS_1M');
+    expect(component.buying()).toBe('TOKENS_1M');
+  });
+
+});
+
+describe('WorkspaceBillingComponent — topup query params', () => {
+  let workspaceServiceSpy: jasmine.SpyObj<WorkspaceService>;
+  let billingServiceSpy: jasmine.SpyObj<BillingService>;
+  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+
+  const setupWith = async (queryParams: Record<string, string>) => {
+    workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
+    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession']);
+    snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+    workspaceServiceSpy.getCurrentWorkspace.and.returnValue(of(mockWorkspace));
+
+    await TestBed.configureTestingModule({
+      imports: [WorkspaceBillingComponent, NoopAnimationsModule],
+      providers: [
+        { provide: WorkspaceService, useValue: workspaceServiceSpy },
+        { provide: BillingService, useValue: billingServiceSpy },
+        { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: ActivatedRoute, useValue: { queryParams: of(queryParams) } }
+      ]
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(WorkspaceBillingComponent);
+    fixture.detectChanges();
+  };
+
+  it('?topup=success — affiche le snackbar de confirmation', async () => {
+    await setupWith({ topup: 'success' });
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Tokens ajoutés à votre compte !', 'Fermer', jasmine.objectContaining({ duration: 6000 })
+    );
+  });
+
+  it('?topup=canceled — affiche le snackbar d\'annulation', async () => {
+    await setupWith({ topup: 'canceled' });
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Achat de tokens annulé.', 'Fermer', jasmine.objectContaining({ duration: 4000 })
+    );
   });
 });
