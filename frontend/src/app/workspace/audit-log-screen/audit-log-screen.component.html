@@ -43,6 +43,18 @@
               <mat-option value="DOCUMENT_DELETED">Suppression document</mat-option>
             </mat-select>
           </mat-form-field>
+
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Du</mat-label>
+            <input matInput type="date" [ngModel]="dateFrom()"
+                   (ngModelChange)="dateFrom.set($event); loadLogs()">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="date-field">
+            <mat-label>Au</mat-label>
+            <input matInput type="date" [ngModel]="dateTo()"
+                   (ngModelChange)="dateTo.set($event); loadLogs()">
+          </mat-form-field>
         </div>
       </mat-card-content>
     </mat-card>
