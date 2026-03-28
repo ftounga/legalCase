@@ -26,9 +26,9 @@ describe('LandingComponent', () => {
     expect(h1?.textContent).toContain('Analysez vos dossiers');
   });
 
-  it('affiche les 3 cartes de pricing', () => {
+  it('affiche les 4 cartes de pricing', () => {
     const cards = fixture.nativeElement.querySelectorAll('.pricing-card');
-    expect(cards.length).toBe(3);
+    expect(cards.length).toBe(4);
   });
 
   it('le CTA principal pointe vers /login', () => {

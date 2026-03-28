@@ -87,6 +87,8 @@ describe('AnalysisDiffComponent', () => {
   });
 
   it('canCompute() is false when no versions selected', () => {
+    component.fromId.set('');
+    component.toId.set('');
     expect(component.canCompute()).toBeFalse();
   });
 
