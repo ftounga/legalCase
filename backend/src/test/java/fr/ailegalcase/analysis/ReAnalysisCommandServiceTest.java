@@ -78,16 +78,14 @@ class ReAnalysisCommandServiceTest {
     }
 
     private void mockPlanChecksOk() {
-        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
         when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(false);
     }
 
-    // U-01 : plan PRO, sous la limite, budget non dépassé → re-analyse autorisée, RabbitMQ publié
+    // U-01 : sous la limite, budget non dépassé → re-analyse autorisée, RabbitMQ publié
     @Test
     void triggerReAnalysis_proPlan_publishesMessage() {
         mockUserWorkspaceAndCaseFile();
-        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
         when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(false);
 
@@ -99,27 +97,10 @@ class ReAnalysisCommandServiceTest {
                 any(ReAnalysisMessage.class));
     }
 
-    // U-02 : plan STARTER → 402, RabbitMQ non publié
+    // U-02 : limite re-analyses atteinte → 402, RabbitMQ non publié
     @Test
-    void triggerReAnalysis_starterPlan_throws402() {
+    void triggerReAnalysis_limitReached_throws402() {
         mockUserWorkspaceAndCaseFile();
-        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(false);
-
-        assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    var rse = (ResponseStatusException) ex;
-                    assert rse.getStatusCode() == PAYMENT_REQUIRED;
-                });
-
-        verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
-    }
-
-    // U-02b : plan PRO, limite atteinte → 402, RabbitMQ non publié
-    @Test
-    void triggerReAnalysis_proAtLimit_throws402() {
-        mockUserWorkspaceAndCaseFile();
-        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(true);
 
         assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
@@ -136,7 +117,6 @@ class ReAnalysisCommandServiceTest {
     @Test
     void triggerReAnalysis_noSubscription_failOpen() {
         mockUserWorkspaceAndCaseFile();
-        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
         when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(false);
 
@@ -211,7 +191,6 @@ class ReAnalysisCommandServiceTest {
     @Test
     void triggerReAnalysis_budgetExceeded_throws402() {
         mockUserWorkspaceAndCaseFile();
-        when(planLimitService.isEnrichedAnalysisAllowedForWorkspace(WORKSPACE_ID)).thenReturn(true);
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(false);
         when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(true);
 
