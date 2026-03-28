@@ -28,7 +28,7 @@ public record CaseAnalysisResponse(
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    static CaseAnalysisResponse from(CaseAnalysis analysis) {
+    public static CaseAnalysisResponse from(CaseAnalysis analysis) {
         List<TimelineEntry> timeline = List.of();
         List<String> faits = List.of();
         List<String> pointsJuridiques = List.of();
