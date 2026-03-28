@@ -187,7 +187,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-46 | Tests E2E smoke branchés CI | V2 | Les specs existent dans `e2e/smoke/` (auth, workspace, navigation). Brancher dans GitHub Actions pour bloquer les merges sur régression. |
+| F-46 | Tests E2E smoke branchés CI | V2 — **Terminée** | Workflow `smoke.yml` déclenché après `Backend CI/CD` et `Frontend CI/CD` (workflow_run, conclusion success) + workflow_dispatch. Playwright chromium, Node 22, secrets E2E_LOCAL_EMAIL/PASSWORD, rapport artifact sur échec. Compte e2e créé en base staging. SF-46-01 mergée 2026-03-28. |
 | F-47 | Monitoring & alertes applicatives | V2 — **Terminée** | Sentry backend (`sentry-spring-boot-starter-jakarta`) + frontend (`@sentry/angular`). Capture automatique exceptions + événement manuel sur job IA FAILED. DSN via env var, désactivé en dev. SF-47-01 + SF-47-02 mergées 2026-03-25. |
 | F-50 | Déploiement V1 — AWS EKS | V1 — **Terminée** | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. 6 subfeatures toutes terminées : SF-50-01 Dockerfiles ✅, SF-50-02 Terraform infra ✅, SF-50-03 K8s manifests ✅, SF-50-04 CI/CD ✅, SF-50-05 Config prod OAuth2 (Google)/Stripe ✅, SF-50-06 Monitoring Sentry ✅. Premier déploiement production 2026-03-25. |
 
@@ -197,6 +197,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-28 | F-46 Terminée — SF-46-01 mergée : smoke.yml workflow_run après Backend/Frontend CI, workflow_dispatch, Playwright chromium Node 22, secrets E2E, compte e2e créé staging | Product owner |
 | 2026-03-28 | F-44 Terminée — SF-44-01 (backend) + SF-44-02 (frontend) mergées : Page<AuditLogResponse>, JpaSpecificationExecutor, MatPaginator 10/20/50, 10 tests Java + 251 tests Angular | Product owner |
 | 2026-03-28 | F-63 Terminée — SF-63-01 mergée : responsive CSS diff (sélecteurs empilés), membres (colonnes masquées), admin (email masqué) | Product owner |
 | 2026-03-28 | F-43 Terminée — SF-43-02 mergée : champs date Du/Au, loadLogs() centralisé, snackbar 400, 256/256 tests | Product owner |
