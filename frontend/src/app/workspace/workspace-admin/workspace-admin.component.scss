@@ -192,3 +192,10 @@
     height: 18px;
   }
 }
+
+@media (max-width: 767px) {
+  /* Table membres admin : masquer la colonne email */
+  .mat-column-email {
+    display: none;
+  }
+}

@@ -86,3 +86,16 @@
     padding: 48px;
   }
 }
+
+@media (max-width: 767px) {
+  /* Table membres : masquer Nom et Date d'ajout */
+  .mat-column-name,
+  .mat-column-joinedAt,
+  .mat-column-expiresAt {
+    display: none;
+  }
+
+  .members-page {
+    padding: 16px;
+  }
+}
