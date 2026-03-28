@@ -159,7 +159,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |----|---------|-------|-------|
 | F-60 | Normalisation nom workspace en majuscules | V2 — **Terminée** | Le nom du workspace est converti en majuscules au moment de la saisie et stocké en majuscules en base. Concerne la création et la modification du nom. SF-60-01 mergée 2026-03-28. |
 | F-61 | Responsive mobile — Shell & navigation | V2 — **Terminée** | Sidebar rétractable sur mobile (menu hamburger), header adaptatif, navigation accessible sur téléphone. SF-61-01 mergée 2026-03-28. |
-| F-62 | Responsive mobile — Écrans principaux | V2 | Adaptation mobile de case-file-detail, synthesis et liste des dossiers — colonnes empilées, upload accessible, synthèse lisible. |
+| F-62 | Responsive mobile — Écrans principaux | V2 — **Terminée** | Adaptation mobile de case-file-detail, synthesis et liste des dossiers — colonnes empilées, upload accessible, synthèse lisible. SF-62-01 mergée 2026-03-28. |
 | F-41 | Partage dossier lecture seule | V2 | Lien temporaire (token, expiration configurable) permettant à un client de consulter la synthèse d'un dossier sans compte. Accès lecture seule strict. |
 | F-49 | Top-up de crédits tokens | V2 | Achat de tokens supplémentaires via Stripe (one-shot, hors abonnement) quand le quota mensuel est atteint. Table `credit_purchases`. Déduction prioritaire sur les crédits avant le quota plan. Webhook Stripe dédié. Visible dans la page Administration. |
 | F-42 | Export CSV journal d'actions | V2 | Bouton export dans `/workspace/audit-logs`. Génère un CSV de toutes les entrées (ou des entrées filtrées). |
@@ -196,6 +196,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-28 | F-62 Terminée — SF-62-01 mergée : responsive CSS liste dossiers (masque Domaine/Date), détail dossier (title-row wrap, docs table 2 cols, jobs IA barre séparée), synthèse (header wrap, titre 18px) | Product owner |
 | 2026-03-28 | F-61 Terminée — SF-61-01 mergée : sidenav responsive (mode over/side selon viewport), hamburger button mobile, fermeture auto après navigation, 4 nouveaux tests unitaires | Product owner |
 | 2026-03-24 | F-40 Terminée — SF-40-01 mergée : export PDF synthèse 100% frontend (pdfmake), page couverture branded, sections colorées, footer paginé, 7 tests unitaires | Product owner |
 | 2026-03-24 | F-50 SF-50-04 mergée — CI/CD GitHub Actions backend + frontend : build Docker → ECR, kubectl apply kustomize, secrets K8s, séparation BACKEND_IMAGE_TAG/FRONTEND_IMAGE_TAG, RabbitMQConfig profil prod, Stripe test keys staging, sous-domaine staging.legalcase.ng-itconsulting.com HTTPS | Product owner |
