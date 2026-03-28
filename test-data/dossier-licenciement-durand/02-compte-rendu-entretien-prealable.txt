@@ -1,0 +1,132 @@
+COMPTE RENDU D'ENTRETIEN PRÉALABLE AU LICENCIEMENT
+
+Date : 28 décembre 2025
+Heure : 14h00 — 16h15
+Lieu : Siège social de TECHSOLUTIONS SAS, salle de réunion A, 42 boulevard Haussmann, 75009 Paris
+
+Établi par : Madame Isabelle RENARD, Directrice des Ressources Humaines
+Présents côté employeur : Mme Isabelle RENARD (DRH), M. Antoine GIRARD (Directeur des Opérations)
+Présents côté salarié : Mme Sophie DURAND (salariée), M. Jean-Pierre CHAUVET (délégué du personnel)
+
+---
+
+PRÉAMBULE
+
+La convocation à entretien préalable a été adressée à Madame DURAND par lettre recommandée avec accusé de réception en date du 18 décembre 2025. L'accusé de réception a été signé le 20 décembre 2025. Le délai de 5 jours ouvrables entre la présentation de la lettre de convocation et la tenue de l'entretien a donc bien été respecté (art. L. 1232-2 du Code du travail).
+
+La lettre de convocation mentionnait explicitement :
+- L'objet de l'entretien : envisager un licenciement pour faute grave
+- La date, l'heure et le lieu de l'entretien
+- La possibilité pour la salariée de se faire assister par un représentant du personnel ou un conseiller du salarié externe (liste affichée dans les locaux et disponible auprès de l'inspection du travail)
+
+La séance est ouverte à 14h05, après présentation des participants.
+
+Madame RENARD rappelle en introduction que cet entretien a pour objet d'exposer à Madame DURAND les motifs qui conduisent la société à envisager son licenciement, et de recueillir ses explications. Elle précise que la décision définitive sera prise après cet entretien.
+
+---
+
+I. EXPOSÉ DES GRIEFS PAR L'EMPLOYEUR
+
+Madame RENARD prend la parole et expose les griefs retenus à l'encontre de Madame DURAND :
+
+1.1 Absences des 15, 16 et 17 novembre 2025
+
+Mme RENARD : « Madame DURAND, nous souhaitons d'abord vous entendre sur vos absences des 15, 16 et 17 novembre 2025. Notre dossier établit que vous n'étiez pas présente à votre poste ces trois jours, sans en avoir informé votre hiérarchie préalablement et sans avoir fourni de justificatif dans le délai prévu par votre contrat. Monsieur GIRARD vous a relancée par email le 15 à 9h47 et le 16 à 8h15, sans réponse avant le 17 novembre à 14h02. Le certificat médical que vous avez produit le 19 novembre est établi le 17 novembre, pour une consultation du 17 novembre uniquement, et ne mentionne pas d'arrêt de travail. »
+
+M. GIRARD : « Je confirme que j'ai envoyé deux emails de relance restés sans réponse. Ces absences ont directement impacté la livraison du lot 3 de DATAFLOW et le point client INNOVA TECH du 16 novembre, qui a dû être annulé. Le client nous a d'ailleurs envoyé un courrier de réclamation. »
+
+Mme RENARD lit l'email de réclamation de M. David WEBER (INNOVA TECH), daté du 16 novembre 2025, dans lequel le client exprime son mécontentement quant à l'annulation de dernière minute de la réunion et demande des explications.
+
+1.2 Comportement lors de la réunion du 20 novembre 2025
+
+Mme RENARD : « Lors de la réunion de direction du 20 novembre 2025, à laquelle participaient le Directeur Général, les directeurs de service et l'ensemble des responsables de projet, vous avez adopté un comportement que nous qualifions d'inadapté et constitutif d'insubordination. Plusieurs témoins ont rapporté que vous avez interrompu Monsieur LAMBERT à plusieurs reprises, élevé la voix et mis en cause publiquement les chiffres présentés en des termes particulièrement virulents. »
+
+M. GIRARD : « J'étais présent. Madame DURAND a effectivement perturbé la réunion. La séance a dû être interrompue pendant environ vingt minutes. Plusieurs collègues ont ensuite fait part de leur malaise face à cette situation. »
+
+Mme RENARD produit le compte rendu de réunion du 20 novembre 2025, signé par cinq des huit participants, que Madame DURAND avait refusé de contresigner.
+
+1.3 Manquements aux obligations de reporting
+
+M. GIRARD : « Depuis septembre 2025, vos rapports d'avancement hebdomadaires sont systématiquement en retard ou non transmis. J'ai dû vous relancer à cinq reprises par email entre septembre et novembre 2025. Le tableau de bord PROJECTHUB pour DATAFLOW n'a pas été mis à jour pendant six semaines consécutives. Sur le projet OMEGA, vous n'avez pas remonté les risques lors de la revue du 28 octobre, ce qui a contribué à l'incident bloquant du 12 novembre, qui nous a coûté 8 500 € d'intervention externe. »
+
+Il produit les emails de relance (pièces n°1 à 5), les captures d'écran du tableau de bord PROJECTHUB (pièce n°6) et la facture de l'intervention externe (pièce n°7).
+
+---
+
+II. EXPLICATIONS DE MADAME DURAND
+
+Madame DURAND est invitée à prendre la parole. Elle est assistée de Monsieur CHAUVET qui prend des notes.
+
+2.1 Sur les absences des 15, 16 et 17 novembre 2025
+
+Mme DURAND : « Je conteste fermement la qualification d'absences injustifiées. Ces trois jours avaient été validés en tant que RTT par mon responsable direct, Monsieur GIRARD lui-même, par email du 8 novembre 2025. J'ai cet email dans ma boîte de réception. Je m'étonne donc que la société prétende que ces absences n'étaient pas autorisées. »
+
+M. GIRARD : « Je n'ai aucun souvenir d'avoir validé trois jours de RTT consécutifs en novembre. En tout état de cause, même si un tel email avait été envoyé, la procédure prévoit une validation formelle sur le logiciel HRSOFT. Or, aucune demande d'absence n'a été déposée dans HRSOFT pour ces dates. »
+
+Mme DURAND : « La procédure HRSOFT a été mise en place en octobre 2025 et n'a pas fait l'objet d'une formation suffisante. Plusieurs collègues se retrouvent dans la même situation. J'ai considéré de bonne foi que la validation par email de mon responsable était suffisante, comme c'était le cas avant. »
+
+M. CHAUVET (délégué du personnel) : « Je confirme que la mise en place de HRSOFT a suscité de nombreuses interrogations parmi les salariés et que la formation dispensée le 12 octobre 2025 était insuffisante. Une note de service sur les nouvelles procédures n'a été diffusée que le 5 novembre 2025, soit très peu avant les dates en cause. »
+
+Mme DURAND : « Par ailleurs, si l'absence du 17 novembre ne dispose que d'un certificat médical daté de ce jour, c'est parce que j'étais effectivement souffrante et que le médecin n'a pas jugé nécessaire de prescrire un arrêt de travail. Cela ne signifie pas que l'absence était injustifiée. »
+
+2.2 Sur la réunion du 20 novembre 2025
+
+Mme DURAND : « Je n'ai pas "perturbé" cette réunion. J'ai simplement exercé mon droit d'expression et soulevé des points de divergence légitimes sur des indicateurs qui me semblaient inexacts. La réalité de mon équipe ne correspondait pas aux chiffres présentés. En tant que cadre, j'estime avoir non seulement le droit mais le devoir de signaler des incohérences. Si j'ai élevé la voix, c'est parce que mes interventions précédentes, exprimées calmement, n'avaient pas été prises en compte. »
+
+M. CHAUVET : « Il me semble important de noter que Madame DURAND avait, par email du 14 octobre 2025, alerté la DRH sur des conditions de travail dégradées au sein de son équipe — charge excessive, heures supplémentaires non compensées, pression sur les délais. Cet email est resté sans réponse formelle. Le comportement du 20 novembre doit être analysé dans ce contexte. »
+
+Mme DURAND : « Je confirme. J'ai alerté la DRH sur des risques psychosociaux dans mon équipe. Deux de mes collaborateurs sont en arrêt maladie depuis octobre. Je gère seule une équipe de cinq personnes avec les effectifs de trois. La direction a fait le choix d'ignorer mes alertes. »
+
+Mme RENARD : « Je prends note de ces éléments. Pour autant, la manière dont vous avez exprimé votre désaccord lors de la réunion du 20 novembre ne correspond pas à ce qui est attendu d'un cadre, indépendamment du fond. »
+
+2.3 Sur les manquements au reporting
+
+Mme DURAND : « Concernant les rapports d'avancement, je reconnais quelques retards, mais ils sont liés à la surcharge de travail. Sur PROJECTHUB, la plateforme a subi plusieurs dysfonctionnements techniques en octobre que j'ai signalés par ticket à la DSI (tickets n°TKT-2025-4412 et TKT-2025-4523, que je tiens à votre disposition). Quant au projet OMEGA, j'avais bien remonté les risques verbalement lors d'un point téléphonique avec M. GIRARD le 27 octobre. »
+
+M. GIRARD : « Je n'ai aucune trace de cette conversation téléphonique, et les tickets DSI ne font pas partie des éléments que vous avez produits à ce jour. »
+
+---
+
+III. ÉCHANGES COMPLÉMENTAIRES
+
+À 15h30, Madame RENARD fait une pause de quinze minutes.
+
+À la reprise, Monsieur CHAUVET demande si une mesure disciplinaire alternative au licenciement a été envisagée par la société.
+
+Mme RENARD : « La direction a considéré l'ensemble des éléments et estime que la gravité des faits, leur caractère répété, et les conséquences économiques et organisationnelles pour l'entreprise ne permettent pas d'envisager une sanction inférieure. »
+
+M. CHAUVET : « Je souhaite également souligner que Madame DURAND n'a jamais fait l'objet d'aucune sanction disciplinaire en plus de sept ans d'ancienneté, qu'elle a obtenu des évaluations satisfaisantes jusqu'en 2024 (la dernière en date, de mars 2025, étant pour partie positive), et que le contexte de surcharge de travail dans lequel elle évolue depuis plusieurs mois constitue, à tout le moins, une circonstance atténuante. »
+
+Mme DURAND produit ses deux derniers entretiens d'évaluation annuels (2023 et 2024) et la note interne qu'elle a adressée à la DRH le 14 octobre 2025 concernant les risques psychosociaux dans son équipe. Elle demande que ces pièces soient annexées au présent compte rendu.
+
+Mme RENARD : « Je prends note de votre demande. Nous déciderons de la suite à donner après examen de l'ensemble des éléments. »
+
+---
+
+IV. CLÔTURE DE L'ENTRETIEN
+
+L'entretien est clôturé à 16h15.
+
+Madame DURAND est invitée à signer le présent compte rendu pour en reconnaître la teneur. Elle refuse, indiquant qu'elle ne reconnaît pas l'exactitude de certains passages, notamment ceux relatifs à la réunion du 20 novembre 2025 et à la qualification de ses absences.
+
+Monsieur CHAUVET contresigne le document en qualité de représentant du personnel et y appose la mention manuscrite suivante : « Lu et pris connaissance — contestation des faits relatifs aux absences des 15-17 novembre 2025 (RTT validés par email le 08/11/2025) et au compte rendu de la réunion du 20/11/2025 ».
+
+---
+
+Établi à Paris, le 28 décembre 2025
+
+Pour la société TECHSOLUTIONS SAS :
+
+Isabelle RENARD                    Antoine GIRARD
+Directrice des Ressources Humaines  Directeur des Opérations
+
+[Signature]                         [Signature]
+
+Représentant du personnel :
+
+Jean-Pierre CHAUVET
+Délégué du personnel
+[Signature avec mention manuscrite de contestation]
+
+La salariée :
+Sophie DURAND — Refuse de signer

@@ -13,21 +13,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class StripeWebhookServiceTest {
 
-    @Mock
-    private SubscriptionRepository subscriptionRepository;
+    @Mock private SubscriptionRepository subscriptionRepository;
+    @Mock private CreditPurchaseService creditPurchaseService;
 
     private StripeWebhookService service;
 
     @BeforeEach
     void setUp() {
-        service = new StripeWebhookService(subscriptionRepository, "price_solo_test", "price_team_test", "price_pro_test");
+        service = new StripeWebhookService(subscriptionRepository, creditPurchaseService,
+                "price_solo_test", "price_team_test", "price_pro_test",
+                "price_tokens_1m_test", "price_tokens_5m_test", "price_tokens_20m_test");
     }
 
     // U-01 : checkout.session.completed → plan mis à jour
@@ -147,5 +151,84 @@ class StripeWebhookServiceTest {
     @Test
     void resolvePlanCodeFromPriceId_unknownPriceId_returnsSoloDefault() {
         assertThat(service.resolvePlanCodeFromPriceId("price_unknown")).isEqualTo("SOLO");
+    }
+
+    // ── Topup payment ─────────────────────────────────────────────────────
+
+    // W-08 : checkout.session.completed mode=payment → CreditPurchaseService.record() appelé
+    @Test
+    void handleEvent_topupPayment_recordsCredit() throws Exception {
+        UUID workspaceId = UUID.randomUUID();
+        Session session = mock(Session.class);
+        when(session.getMode()).thenReturn("payment");
+        when(session.getId()).thenReturn("sess_topup_1");
+        when(session.getMetadata()).thenReturn(java.util.Map.of(
+                "workspace_id", workspaceId.toString(),
+                "pack_code", "TOKENS_1M"));
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) session);
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("checkout.session.completed");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        verify(creditPurchaseService).record(
+                eq(workspaceId),
+                eq(TokenPack.TOKENS_1M.getTokens()),
+                eq(TokenPack.TOKENS_1M.getAmountCents()),
+                eq("sess_topup_1"));
+        verify(subscriptionRepository, never()).save(any());
+    }
+
+    // W-09 : checkout.session.completed mode=payment, pack_code inconnu → ignoré silencieusement
+    @Test
+    void handleEvent_topupPayment_unknownPackCode_ignored() throws Exception {
+        Session session = mock(Session.class);
+        when(session.getMode()).thenReturn("payment");
+        when(session.getId()).thenReturn("sess_bad");
+        when(session.getMetadata()).thenReturn(java.util.Map.of(
+                "workspace_id", UUID.randomUUID().toString(),
+                "pack_code", "UNKNOWN_PACK"));
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) session);
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("checkout.session.completed");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        verify(creditPurchaseService, never()).record(any(), anyLong(), anyInt(), any());
+    }
+
+    // W-10 : checkout.session.completed mode=subscription → PAS de credit créé
+    @Test
+    void handleEvent_subscriptionMode_doesNotRecordCredit() throws Exception {
+        fr.ailegalcase.billing.Subscription sub = new fr.ailegalcase.billing.Subscription();
+        sub.setPlanCode("FREE");
+        when(subscriptionRepository.findByStripeCustomerId("cus_sub")).thenReturn(Optional.of(sub));
+        when(subscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Session session = mock(Session.class);
+        when(session.getMode()).thenReturn("subscription");
+        when(session.getCustomer()).thenReturn("cus_sub");
+        when(session.getSubscription()).thenReturn("sub_xyz");
+        when(session.getMetadata()).thenReturn(java.util.Map.of("plan_code", "SOLO"));
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) session);
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("checkout.session.completed");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        verify(creditPurchaseService, never()).record(any(), anyLong(), anyInt(), any());
+        verify(subscriptionRepository).save(any());
     }
 }

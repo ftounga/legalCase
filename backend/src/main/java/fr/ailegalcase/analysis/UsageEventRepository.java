@@ -39,4 +39,12 @@ public interface UsageEventRepository extends JpaRepository<UsageEvent, UUID> {
             """, nativeQuery = true)
     long sumTokensByWorkspaceIdSince(@Param("workspaceId") UUID workspaceId,
                                      @Param("startOfMonth") Instant startOfMonth);
+
+    @Query(value = """
+            SELECT COALESCE(SUM(u.tokens_input + u.tokens_output), 0)
+            FROM usage_events u
+            JOIN case_files cf ON cf.id = u.case_file_id
+            WHERE cf.workspace_id = :workspaceId
+            """, nativeQuery = true)
+    long sumTokensByWorkspaceIdAllTime(@Param("workspaceId") UUID workspaceId);
 }

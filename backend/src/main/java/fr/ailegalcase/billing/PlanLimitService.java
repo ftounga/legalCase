@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.UUID;
 
@@ -49,13 +50,16 @@ public class PlanLimitService {
     private final SubscriptionRepository subscriptionRepository;
     private final UsageEventRepository usageEventRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final CreditPurchaseService creditPurchaseService;
 
     public PlanLimitService(SubscriptionRepository subscriptionRepository,
                             UsageEventRepository usageEventRepository,
-                            ChatMessageRepository chatMessageRepository) {
+                            ChatMessageRepository chatMessageRepository,
+                            CreditPurchaseService creditPurchaseService) {
         this.subscriptionRepository = subscriptionRepository;
         this.usageEventRepository = usageEventRepository;
         this.chatMessageRepository = chatMessageRepository;
+        this.creditPurchaseService = creditPurchaseService;
     }
 
     public boolean isExpiredFree(Subscription sub) {
@@ -151,14 +155,28 @@ public class PlanLimitService {
     public boolean isMonthlyTokenBudgetExceeded(UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
                 .map(sub -> {
-                    long budget = getMonthlyTokenBudget(sub.getPlanCode());
+                    long planBudget = getMonthlyTokenBudget(sub.getPlanCode());
                     Instant startOfMonth = Instant.now()
                             .atOffset(ZoneOffset.UTC)
                             .with(TemporalAdjusters.firstDayOfMonth())
                             .withHour(0).withMinute(0).withSecond(0).withNano(0)
                             .toInstant();
-                    long used = usageEventRepository.sumTokensByWorkspaceIdSince(workspaceId, startOfMonth);
-                    return used >= budget;
+                    long thisMonthUsed = usageEventRepository.sumTokensByWorkspaceIdSince(workspaceId, startOfMonth);
+
+                    long totalBought = creditPurchaseService.getTotalTokensBought(workspaceId);
+                    if (totalBought == 0) return thisMonthUsed >= planBudget;
+
+                    // Credits deplete globally: consumed = max(0, allTimeUsed - allTimePlanBudget)
+                    long allTimeUsed = usageEventRepository.sumTokensByWorkspaceIdAllTime(workspaceId);
+                    Instant start = sub.getStartedAt() != null ? sub.getStartedAt() : Instant.now();
+                    long monthsActive = Math.max(1, ChronoUnit.MONTHS.between(
+                            start.atOffset(ZoneOffset.UTC),
+                            Instant.now().atOffset(ZoneOffset.UTC)) + 1);
+                    long allTimePlanBudget = monthsActive * planBudget;
+                    long creditsConsumed = Math.max(0, allTimeUsed - allTimePlanBudget);
+                    long creditsRemaining = Math.max(0, totalBought - creditsConsumed);
+
+                    return thisMonthUsed >= planBudget + creditsRemaining;
                 })
                 .orElse(false);
     }

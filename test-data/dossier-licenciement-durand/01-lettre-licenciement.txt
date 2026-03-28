@@ -1,0 +1,128 @@
+TECHSOLUTIONS SAS
+42 boulevard Haussmann, 75009 Paris
+SIRET : 812 345 678 00042 — APE : 6202A
+Tél. : 01 45 XX XX XX — rh@techsolutions.fr
+
+Paris, le 3 janvier 2026
+
+LETTRE RECOMMANDÉE AVEC ACCUSÉ DE RÉCEPTION
+
+Madame Sophie DURAND
+12 avenue des Fleurs
+69003 Lyon
+
+Objet : Notification de licenciement pour faute grave
+
+---
+
+Madame,
+
+Par la présente, nous avons le regret de vous notifier votre licenciement pour faute grave, à l'issue de la procédure engagée par convocation à entretien préalable du 18 décembre 2025.
+
+Nous vous rappelons que vous occupez au sein de la société TECHSOLUTIONS SAS le poste de Responsable de Projet Informatique, statut Cadre, depuis le 12 septembre 2018, sous la responsabilité directe de Monsieur Antoine GIRARD, Directeur des Opérations.
+
+L'entretien préalable s'est tenu le 28 décembre 2025 au siège social de la société, en présence de Madame Isabelle RENARD, Directrice des Ressources Humaines, et de Monsieur Antoine GIRARD. Vous étiez présente et assistée de Monsieur Jean-Pierre CHAUVET, délégué du personnel.
+
+Au cours de cet entretien, vous avez pu prendre connaissance des griefs qui vous étaient reprochés et présenter vos observations. Après examen attentif de vos explications, nous avons décidé de maintenir la mesure de licenciement pour faute grave. Les motifs détaillés sont exposés ci-après.
+
+---
+
+I. EXPOSÉ DES FAITS FAUTIFS
+
+A. Absences injustifiées et répétées — Novembre 2025
+
+Les 15, 16 et 17 novembre 2025, vous avez été absente de votre poste de travail sans que votre hiérarchie ne soit informée préalablement ni postérieurement dans le délai contractuellement imparti.
+
+Conformément à l'article 5 de votre contrat de travail, toute absence doit être signalée à votre responsable hiérarchique dans les plus brefs délais et justifiée dans un délai de 48 heures ouvrées. Cette obligation n'a pas été respectée.
+
+Monsieur Antoine GIRARD vous a adressé un premier email de relance le 15 novembre 2025 à 9h47, demeuré sans réponse de votre part avant 16h30 le même jour. Un second email a été envoyé le 16 novembre 2025 à 8h15, également sans réponse pendant toute la journée. Ce n'est que le 17 novembre 2025 à 14h02 que vous avez indiqué par SMS que vous étiez « indisposée » sans fournir aucun justificatif médical ni précision sur la durée prévisible de votre absence.
+
+Ces absences ont eu des conséquences directes et documentées sur le fonctionnement de votre équipe :
+- Le point hebdomadaire client du 16 novembre 2025 avec la société INNOVA TECH, pour lequel vous étiez le contact référent, a dû être annulé en urgence, provoquant le mécontentement exprimé par email de Monsieur David WEBER, Directeur de Projet chez INNOVA TECH, en date du 16 novembre 2025.
+- La livraison du lot 3 du projet DATAFLOW, prévue le 17 novembre 2025, a dû être repoussée au 24 novembre 2025, entraînant l'application de la clause de pénalité de retard prévue au contrat pour un montant de 3 200 €.
+- Deux membres de votre équipe, Mesdames GARCIA et PETIT, ont dû assurer votre charge de travail en urgence, au détriment de leurs propres livrables.
+
+Vous avez finalement produit, le 19 novembre 2025, un certificat médical établi par le Docteur Marc FONTAINE en date du 17 novembre 2025, mentionnant un état de fatigue générale sans préconisation d'arrêt de travail. Ce certificat, produit tardivement et ne couvrant qu'une seule des trois journées d'absence, ne saurait justifier rétroactivement l'ensemble des absences en cause.
+
+B. Comportement inadapté lors de la réunion de direction du 20 novembre 2025
+
+Le 20 novembre 2025 s'est tenu en salle de réunion A une réunion de direction réunissant les responsables de projets et la direction générale, en présence de Monsieur Frédéric LAMBERT, Directeur Général, de Madame Isabelle RENARD, de Monsieur Antoine GIRARD, et de six autres responsables de projet.
+
+Au cours de cette réunion, lors de la présentation des indicateurs de performance du 3e trimestre 2025, vous avez interrompu Monsieur LAMBERT à trois reprises en haussant la voix, remis en cause publiquement et avec véhémence les chiffres présentés, affirmant qu'ils étaient « manipulés pour cacher une gestion désastreuse », et adopté une posture agressive qui a conduit Monsieur LAMBERT à suspendre la séance pendant vingt minutes.
+
+Ces faits ont été constatés par l'ensemble des participants et formalisés dans le compte rendu de réunion que vous avez refusé de contresigner, confirmant ainsi votre désaccord avec le déroulement des faits tels qu'ils ont été consignés.
+
+Ce comportement constitue un manquement grave aux obligations de loyauté, de respect de l'autorité hiérarchique et de maintien d'un environnement de travail serein, telles qu'elles ressortent tant du contrat de travail que du règlement intérieur de la société.
+
+C. Manquements répétés aux procédures internes de reporting
+
+Indépendamment des faits exposés ci-dessus, il convient de relever une série de manquements aux procédures internes de reporting sur la période septembre-novembre 2025 :
+
+1. Rapports d'avancement hebdomadaires non transmis ou transmis avec un retard supérieur à 72 heures pour les semaines du 15 septembre, 22 septembre, 6 octobre, 13 octobre et 10 novembre 2025, malgré les rappels effectués par Monsieur GIRARD les 23 septembre, 14 octobre et 11 novembre 2025.
+
+2. Non-mise à jour du tableau de bord de suivi de projet sur la plateforme interne PROJECTHUB pour le projet DATAFLOW, sur une période de 6 semaines consécutives (du 1er octobre au 14 novembre 2025), rendant impossible tout suivi de l'avancement du projet par la direction et les autres parties prenantes.
+
+3. Absence de remontée des risques identifiés sur le projet OMEGA lors de la revue de risques du 28 octobre 2025, risques qui se sont matérialisés le 12 novembre 2025 sous forme d'un incident bloquant ayant nécessité l'intervention d'urgence d'une équipe externe pour un coût supplémentaire de 8 500 €.
+
+Ces manquements répétés, malgré plusieurs relances orales et écrites, démontrent un désengagement persistant de vos obligations professionnelles.
+
+---
+
+II. QUALIFICATION DES FAITS — FAUTE GRAVE
+
+L'ensemble des faits exposés ci-dessus, appréciés dans leur globalité et dans le contexte de votre ancienneté, caractérise une faute grave au sens de la jurisprudence sociale.
+
+La Cour de cassation définit la faute grave comme celle qui résulte d'un fait ou d'un ensemble de faits imputables au salarié qui constituent une violation des obligations découlant du contrat de travail ou des relations de travail d'une importance telle qu'elle rend impossible le maintien du salarié dans l'entreprise pendant la durée du préavis (Cass. soc., 27 septembre 2007, n° 06-43.867).
+
+En l'espèce :
+- Les absences injustifiées répétées, qui ont causé un préjudice économique chiffrable de 3 200 € et des perturbations organisationnelles documentées, caractérisent une violation grave de l'obligation de présence et de loyauté.
+- Le comportement adopté lors de la réunion du 20 novembre 2025, qui a perturbé le fonctionnement de l'entreprise et porté atteinte à l'autorité de la direction devant l'ensemble de l'encadrement, est constitutif d'insubordination caractérisée.
+- Les manquements répétés aux obligations de reporting, malgré les relances réitérées de la hiérarchie, révèlent un désengagement professionnel incompatible avec les responsabilités d'encadrement attachées à votre poste de cadre.
+
+Ces faits, considérés ensemble, rendent impossible votre maintien dans l'entreprise, même pendant la durée du préavis. La qualification de faute grave est donc retenue.
+
+---
+
+III. CONSÉQUENCES DE LA RUPTURE
+
+En conséquence de ce qui précède, votre contrat de travail est rompu pour faute grave à la date de première présentation de la présente lettre.
+
+La faute grave privant le salarié du droit à l'indemnité de licenciement et à l'indemnité compensatrice de préavis, aucune de ces indemnités ne vous sera versée.
+
+En revanche, vous bénéficierez, conformément aux dispositions légales :
+- Du solde de tout compte, incluant le paiement des congés payés acquis et non pris à la date de rupture effective du contrat ;
+- De l'attestation France Travail (anciennement Pôle Emploi) et du certificat de travail, qui vous seront adressés par courrier recommandé à l'adresse figurant dans nos dossiers dans un délai de 8 jours ouvrés.
+
+Concernant la clause de non-concurrence stipulée à l'article 7 de votre contrat de travail, nous vous notifions par la présente que la société TECHSOLUTIONS SAS renonce expressément à se prévaloir de cette clause. Vous êtes donc libérée de toute obligation à ce titre à compter de la date de rupture de votre contrat.
+
+---
+
+IV. RESTITUTION DU MATÉRIEL
+
+Vous voudrez bien nous restituer dans un délai de 5 jours ouvrés à compter de la réception de la présente :
+- Le véhicule de fonction (Peugeot 308, immatriculation YZ-123-AB) ainsi que ses clés, carte grise et carnet d'entretien ;
+- Le badge d'accès aux locaux (n° 1042) ;
+- L'ordinateur portable professionnel (Dell Latitude 5520, n° de série TCS-2021-4872) avec son chargeur et sa sacoche ;
+- Le téléphone portable professionnel (iPhone 13, n° de série DNPXXXXX) avec son chargeur ;
+- L'ensemble des documents, fichiers, données et informations confidentielles appartenant à la société, sur tout support.
+
+À défaut de restitution dans le délai imparti, nous nous réservons le droit d'engager toute procédure utile, y compris pénale, pour récupérer les biens appartenant à la société.
+
+---
+
+V. DROIT À CONTESTER
+
+Vous disposez de la possibilité de contester ce licenciement devant le Conseil de prud'hommes compétent dans un délai de douze mois à compter de la notification du présent courrier, conformément à l'article L. 1471-1 du Code du travail.
+
+---
+
+Nous vous prions d'agréer, Madame, l'expression de nos salutations distinguées.
+
+Madame Isabelle RENARD
+Directrice des Ressources Humaines
+TECHSOLUTIONS SAS
+
+Pièces jointes :
+- Attestation France Travail (Pôle Emploi)
+- Certificat de travail
+- Reçu pour solde de tout compte (à nous retourner signé dans un délai de 6 mois)
