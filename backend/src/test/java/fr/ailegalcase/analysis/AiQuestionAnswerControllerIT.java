@@ -113,6 +113,7 @@ class AiQuestionAnswerControllerIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Réponse");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         question = new AiQuestion();
@@ -192,6 +193,7 @@ class AiQuestionAnswerControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         CaseFile otherCaseFile = new CaseFile();
@@ -199,6 +201,7 @@ class AiQuestionAnswerControllerIT {
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre");
         otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(otherCaseFile);
 
         AiQuestion otherQuestion = new AiQuestion();
@@ -212,6 +215,52 @@ class AiQuestionAnswerControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"answerText\": \"réponse\"}"))
                 .andExpect(status().isNotFound());
+    }
+
+    // I-07 : POST sur question déjà ANSWERED → 201, 2 entrées en base, dernière réponse prioritaire
+    @Test
+    void answer_alreadyAnswered_creates2EntriesAndLatestIsReturned() throws Exception {
+        mockMvc.perform(post("/api/v1/ai-questions/{id}/answer", question.getId())
+                        .with(authentication(auth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answerText\": \"Première réponse\"}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/ai-questions/{id}/answer", question.getId())
+                        .with(authentication(auth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answerText\": \"Réponse modifiée\"}"))
+                .andExpect(status().isCreated());
+
+        var answers = aiQuestionAnswerRepository.findAll();
+        assertThat(answers).hasSize(2);
+
+        var latest = aiQuestionAnswerRepository
+                .findFirstByAiQuestionIdOrderByCreatedAtDesc(question.getId());
+        assertThat(latest).isPresent();
+        assertThat(latest.get().getAnswerText()).isEqualTo("Réponse modifiée");
+    }
+
+    // I-08 : garde SF-56-05 reconnaît la nouvelle réponse comme activité valide
+    @Test
+    void answer_reanswer_guardDetectsNewActivity() throws Exception {
+        mockMvc.perform(post("/api/v1/ai-questions/{id}/answer", question.getId())
+                        .with(authentication(auth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answerText\": \"Première réponse\"}"))
+                .andExpect(status().isCreated());
+
+        Instant afterFirst = Instant.now();
+
+        mockMvc.perform(post("/api/v1/ai-questions/{id}/answer", question.getId())
+                        .with(authentication(auth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answerText\": \"Réponse modifiée\"}"))
+                .andExpect(status().isCreated());
+
+        boolean hasNewActivity = aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(caseFile.getId(), afterFirst);
+        assertThat(hasNewActivity).isTrue();
     }
 
     // I-06 : POST sans auth → 401

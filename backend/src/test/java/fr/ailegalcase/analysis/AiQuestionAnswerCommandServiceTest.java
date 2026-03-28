@@ -73,6 +73,34 @@ class AiQuestionAnswerCommandServiceTest {
                 .hasMessageContaining("404");
     }
 
+    // U-04 : ré-answering → nouvelle entrée créée, answeredAt mis à jour
+    @Test
+    void answer_alreadyAnswered_createsNewEntryAndUpdatesAnsweredAt() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+
+        Workspace workspace = workspace(workspaceId);
+        User user = user();
+        AiQuestion question = question(questionId, workspace);
+        question.setStatus("ANSWERED");
+
+        setupAuth(user, workspace);
+        when(aiQuestionRepository.findById(questionId)).thenReturn(Optional.of(question));
+        when(aiQuestionAnswerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.answer(questionId, "Réponse modifiée", oidcUser, "GOOGLE", null);
+
+        ArgumentCaptor<AiQuestionAnswer> answerCaptor = ArgumentCaptor.forClass(AiQuestionAnswer.class);
+        verify(aiQuestionAnswerRepository).save(answerCaptor.capture());
+        assertThat(answerCaptor.getValue().getAnswerText()).isEqualTo("Réponse modifiée");
+
+        ArgumentCaptor<AiQuestion> questionCaptor = ArgumentCaptor.forClass(AiQuestion.class);
+        verify(aiQuestionRepository).save(questionCaptor.capture());
+        assertThat(questionCaptor.getValue().getStatus()).isEqualTo("ANSWERED");
+        assertThat(questionCaptor.getValue().getAnsweredAt()).isNotNull();
+    }
+
     // U-03 : question d'un autre workspace → 404
     @Test
     void answer_otherWorkspace_throws404() {
