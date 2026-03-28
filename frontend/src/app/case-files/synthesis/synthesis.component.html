@@ -172,7 +172,30 @@
           <div class="question-item">
             <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
             @if (q.answerText) {
-              <p class="answer-text">{{ q.answerText }}</p>
+              @if (editingQuestionId() === q.id) {
+                <div class="answer-form">
+                  <textarea #editInput class="answer-textarea" [value]="q.answerText" rows="2"></textarea>
+                  <div class="edit-actions">
+                    <button mat-stroked-button color="primary"
+                            [disabled]="submittingEdit() === q.id || !editInput.value.trim()"
+                            (click)="submitEdit(q, editInput.value)">
+                      @if (submittingEdit() === q.id) {
+                        <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                      }
+                      Enregistrer
+                    </button>
+                    <button mat-button (click)="cancelEdit()">Annuler</button>
+                  </div>
+                </div>
+              } @else {
+                <div class="answer-display">
+                  <p class="answer-text">{{ q.answerText }}</p>
+                  <button mat-icon-button class="edit-btn" (click)="startEdit(q)"
+                          matTooltip="Modifier la réponse">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                </div>
+              }
             } @else {
               <div class="answer-form">
                 <textarea #answerInput class="answer-textarea" placeholder="Votre réponse…" rows="2"></textarea>

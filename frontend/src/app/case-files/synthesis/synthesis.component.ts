@@ -43,6 +43,8 @@ export class SynthesisComponent implements OnInit {
   loading = signal(true);
   reAnalyzing = signal(false);
   submittingAnswer = signal<string | null>(null);
+  editingQuestionId = signal<string | null>(null);
+  submittingEdit = signal<string | null>(null);
 
   chatMessages = signal<ChatMessage[]>([]);
   chatLoading = signal(false);
@@ -123,8 +125,37 @@ export class SynthesisComponent implements OnInit {
     if (!selected) return;
     this.synthesis.set(null);
     this.questions.set([]);
+    this.editingQuestionId.set(null);
     this.loadSynthesisForVersion(caseFileId, selected.version);
     this.loadQuestionsForVersion(caseFileId, selected.id);
+  }
+
+  startEdit(question: AiQuestion): void {
+    this.editingQuestionId.set(question.id);
+  }
+
+  cancelEdit(): void {
+    this.editingQuestionId.set(null);
+  }
+
+  submitEdit(question: AiQuestion, newText: string): void {
+    if (!newText.trim()) return;
+    this.submittingEdit.set(question.id);
+    this.aiQuestionAnswerService.submitAnswer(question.id, newText.trim()).subscribe({
+      next: () => {
+        this.questions.update(qs => qs.map(q =>
+          q.id === question.id ? { ...q, answerText: newText.trim() } : q
+        ));
+        this.submittingEdit.set(null);
+        this.editingQuestionId.set(null);
+      },
+      error: () => {
+        this.submittingEdit.set(null);
+        this.snackBar.open('Erreur lors de la modification de la réponse', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
   }
 
   versionLabel(v: CaseAnalysisVersionSummary): string {
