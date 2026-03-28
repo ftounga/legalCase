@@ -142,7 +142,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-20 | Droit de l'immigration | V2 | Nouveau domaine juridique — nouveaux prompts LLM |
+| F-20 | Droit de l'immigration | V2 — **Terminée** | Domaine DROIT_IMMIGRATION activé dans F-55 : prompts IA dynamiques via LegalDomainPromptBuilder, migration 029, sélection domaine à l'onboarding (DomainPickerDialog). Couvert par SF-55-01 et SF-55-02 mergées 2026-03-26. |
 | F-21 | Droit immobilier | V3 | Nouveau domaine juridique — nouveaux prompts LLM |
 
 ### Pipeline IA & qualité
