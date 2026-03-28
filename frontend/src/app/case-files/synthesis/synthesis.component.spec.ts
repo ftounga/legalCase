@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SynthesisComponent } from './synthesis.component';
+import { AiQuestion } from '../../core/models/ai-question.model';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -158,5 +159,80 @@ describe('SynthesisComponent', () => {
   it('versionLabel shows only version number for STANDARD type', () => {
     const v = makeVersion(1, 'STANDARD');
     expect(component.versionLabel(v)).toBe('v1');
+  });
+
+  // T-10 : editingQuestionId nul par défaut
+  it('editingQuestionId is null by default', () => {
+    expect(component.editingQuestionId()).toBeNull();
+  });
+
+  // T-11 : startEdit → editingQuestionId = id de la question
+  it('startEdit sets editingQuestionId to the question id', () => {
+    const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
+    component.startEdit(q);
+    expect(component.editingQuestionId()).toBe('q-1');
+  });
+
+  // T-12 : cancelEdit → editingQuestionId = null
+  it('cancelEdit resets editingQuestionId to null', () => {
+    const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
+    component.startEdit(q);
+    component.cancelEdit();
+    expect(component.editingQuestionId()).toBeNull();
+  });
+
+  // T-13 : submitEdit texte vide → service non appelé
+  it('submitEdit does not call service when text is empty', () => {
+    const answerService = TestBed.inject(AiQuestionAnswerService) as jasmine.SpyObj<AiQuestionAnswerService>;
+    const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
+    component.submitEdit(q, '   ');
+    expect(answerService.submitAnswer).not.toHaveBeenCalled();
+  });
+
+  // T-14 : submitEdit nominal → service appelé, question mise à jour, editingQuestionId null
+  it('submitEdit calls service and updates question on success', () => {
+    const answerService = TestBed.inject(AiQuestionAnswerService) as jasmine.SpyObj<AiQuestionAnswerService>;
+    answerService.submitAnswer.and.returnValue(of(undefined));
+
+    const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'Ancienne réponse' };
+    component.questions.set([q]);
+    component.startEdit(q);
+
+    component.submitEdit(q, 'Nouvelle réponse');
+
+    expect(answerService.submitAnswer).toHaveBeenCalledWith('q-1', 'Nouvelle réponse');
+    expect(component.questions()[0].answerText).toBe('Nouvelle réponse');
+    expect(component.editingQuestionId()).toBeNull();
+  });
+
+  // T-15 : submitEdit erreur → snackbar, editingQuestionId inchangé
+  it('submitEdit shows snackbar on error and keeps editingQuestionId', () => {
+    const answerService = TestBed.inject(AiQuestionAnswerService) as jasmine.SpyObj<AiQuestionAnswerService>;
+    const snackBar = TestBed.inject(MatSnackBar) as jasmine.SpyObj<MatSnackBar>;
+    answerService.submitAnswer.and.returnValue(throwError(() => new Error('API error')));
+    spyOn(snackBar, 'open');
+
+    const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
+    component.startEdit(q);
+    component.submitEdit(q, 'Nouvelle réponse');
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('modification'), 'Fermer', jasmine.any(Object)
+    );
+    expect(component.editingQuestionId()).toBe('q-1');
+  });
+
+  // T-16 : onVersionChange réinitialise editingQuestionId
+  it('onVersionChange resets editingQuestionId', () => {
+    const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+    caseAnalysisService.getVersions.and.returnValue(of(versions));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    fixture.detectChanges();
+
+    const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
+    component.startEdit(q);
+    component.onVersionChange(1);
+
+    expect(component.editingQuestionId()).toBeNull();
   });
 });

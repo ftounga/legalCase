@@ -308,6 +308,42 @@
   }
 }
 
+.answer-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+
+  .answer-text {
+    flex: 1;
+    margin: 0;
+  }
+
+  .edit-btn {
+    flex-shrink: 0;
+    color: #6B7A8D;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+    }
+
+    &:hover {
+      color: #1A3A5C;
+    }
+  }
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .reanalyze-row {
   display: flex;
   justify-content: flex-end;
