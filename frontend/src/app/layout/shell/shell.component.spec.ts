@@ -11,6 +11,7 @@ import { Router, RouterModule } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { Workspace } from '../../core/models/workspace.model';
+import { BreakpointObserver } from '@angular/cdk/layout';
 
 const ws1: Workspace = { id: 'ws-1', name: 'Cabinet Alpha', slug: 'alpha', planCode: 'FREE', status: 'ACTIVE', primary: true };
 const ws2: Workspace = { id: 'ws-2', name: 'Cabinet Beta', slug: 'beta', planCode: 'FREE', status: 'ACTIVE', primary: false };
@@ -283,5 +284,71 @@ describe('ShellComponent — lien super-admin', () => {
   it('n\'affiche pas le lien Super-admin si isSuperAdmin = false', fakeAsync(async () => {
     await setupWithSuperAdmin(false);
     expect(fixture.nativeElement.textContent).not.toContain('Super-admin');
+  }));
+});
+
+describe('ShellComponent — responsive mobile', () => {
+  let fixture: ComponentFixture<ShellComponent>;
+  let component: ShellComponent;
+  let breakpointObserver: jasmine.SpyObj<BreakpointObserver>;
+
+  async function setup(mobileMatches: boolean) {
+    breakpointObserver = jasmine.createSpyObj('BreakpointObserver', ['observe']);
+    breakpointObserver.observe.and.returnValue(of({ matches: mobileMatches, breakpoints: {} }));
+
+    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
+    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
+    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+
+    const authServiceStub = { currentUser: signal(null), logout: () => {} };
+    const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
+
+    await TestBed.configureTestingModule({
+      imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
+      providers: [
+        provideHttpClient(),
+        { provide: AuthService, useValue: authServiceStub },
+        { provide: WorkspaceService, useValue: workspaceService },
+        { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
+        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
+        { provide: BreakpointObserver, useValue: breakpointObserver }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ShellComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  // T-11 : isMobile = true si BreakpointObserver émet matches = true
+  it('isMobile = true si le breakpoint mobile correspond', fakeAsync(async () => {
+    await setup(true);
+    tick();
+    expect(component.isMobile()).toBeTrue();
+  }));
+
+  // T-12 : sidenavOpen = false au init quand isMobile = true
+  it('sidenavOpen = false au init quand mobile', fakeAsync(async () => {
+    await setup(true);
+    tick();
+    expect(component.sidenavOpen()).toBeFalse();
+  }));
+
+  // T-13 : onNavClick() ferme la sidenav sur mobile
+  it('onNavClick ferme la sidenav sur mobile', fakeAsync(async () => {
+    await setup(true);
+    tick();
+    component.sidenavOpen.set(true);
+    component.onNavClick();
+    expect(component.sidenavOpen()).toBeFalse();
+  }));
+
+  // T-14 : onNavClick() ne ferme pas la sidenav sur desktop
+  it('onNavClick ne ferme pas la sidenav sur desktop', fakeAsync(async () => {
+    await setup(false);
+    tick();
+    component.sidenavOpen.set(true);
+    component.onNavClick();
+    expect(component.sidenavOpen()).toBeTrue();
   }));
 });
