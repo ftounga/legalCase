@@ -13,7 +13,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   - Un dossier avec synthèse complète existe en base (voir README dans ce dossier)
  */
 export default defineConfig({
-  testDir: './screenshots',
+  testDir: '.',
   testMatch: 'capture.spec.ts',
   fullyParallel: false,
   retries: 0,
