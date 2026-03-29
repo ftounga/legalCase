@@ -74,7 +74,7 @@ public record CaseAnalysisResponse(
         return List.copyOf(result);
     }
 
-    static String stripMarkdownCodeBlock(String raw) {
+    public static String stripMarkdownCodeBlock(String raw) {
         if (raw == null) return null;
         String s = raw.strip();
         if (s.startsWith("```")) {
