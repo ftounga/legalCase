@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-74 | Pages légales — mentions légales, CGU, politique de confidentialité | En cours | 3 pages statiques Angular accessibles publiquement (/mentions-legales, /cgu, /privacy). Lien dans le footer de la landing page. |
 | F-73 | Séquence email onboarding | Terminée | 5 emails automatiques post-inscription : J+0 bienvenue, J+2 tip analyse (si aucune analyse), J+5 tip partage client, J+12 conversion avant expiration trial, J+15 récupération post-expiration. Table `email_sends` pour éviter les doublons. Brevo comme provider. |
 | F-65 | Notifications email d'analyse terminée | V2 — **Terminée** | Email envoyé au créateur du dossier quand analyse STANDARD ou ENRICHED passe DONE. AnalysisNotificationService (@EventListener), EmailService.sendAnalysisDone(), fail-open. SF-65-01 mergée 2026-03-29. |
 | F-29 | Limites pipeline IA configurables | V2 — **Terminée** | Externalisation des limites hardcodées de F-28 via `AnalysisLimitsProperties` (`@ConfigurationProperties`). Configurable par domaine juridique dans `application.yml`. `AnalysisJsonTruncator` paramétré par `LevelLimits` (chunk/document/dossier). SF-29-01 mergée 2026-03-28. |
