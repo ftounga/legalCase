@@ -1040,6 +1040,62 @@ Droit immobilier
 
 ---
 
+# 25b — Notes internes (F-70)
+
+Table :
+
+case_notes
+
+Champs :
+
+id (UUID PK — généré par JPA)
+case_file_id (UUID FK → case_files, cascade delete)
+created_by_user_id (UUID FK → users)
+content (TEXT, non nullable)
+created_at (timestamptz, non nullable)
+updated_at (timestamptz, non nullable)
+
+Règles :
+
+- Accès contrôlé : user doit appartenir au workspace propriétaire du dossier
+- Création/modification/suppression réservées à l'auteur (created_by_user_id = user courant)
+- Liste retournée triée par created_at DESC
+- Migration : 036-create-case-notes.xml
+
+Index :
+
+idx_case_notes_case_file_id
+
+---
+
+# 25c — Délais légaux (F-69)
+
+Table :
+
+case_deadlines
+
+Champs :
+
+id (UUID PK — généré par JPA)
+case_file_id (UUID FK → case_files, cascade delete)
+label (varchar 255, non nullable)
+due_date (DATE, non nullable — LocalDate, sans timezone)
+created_at (timestamptz, non nullable)
+updated_at (timestamptz, non nullable)
+
+Règles :
+
+- Accès contrôlé : user doit appartenir au workspace propriétaire du dossier
+- CRUD accessible à tout membre du workspace (pas de restriction auteur — données d'équipe)
+- Liste retournée triée par due_date ASC
+- Migration : 037-create-case-deadlines.xml
+
+Index :
+
+idx_case_deadlines_case_file_id
+
+---
+
 # 26 — Principe directeur
 
 AI LegalCase doit rester :
