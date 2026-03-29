@@ -46,12 +46,12 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
-| M-20 | Séquence onboarding — email J+0 (bienvenue) | Haute | `À faire` | Premier contact post-inscription |
-| M-21 | Séquence onboarding — email J+2 (tip analyse) | Haute | `À faire` | Montrer la valeur rapidement |
-| M-22 | Séquence onboarding — email J+5 (tip partage client) | Haute | `À faire` | Feature différenciante |
-| M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `À faire` | Conversion FREE → SOLO |
-| M-24 | Email de conversion — FREE expiré | Haute | `À faire` | Récupérer les non-convertis |
-| M-25 | Choix d'un outil d'emailing (Brevo, Mailchimp, Resend…) | Haute | `À faire` | Prérequis M-20 à M-24 |
+| M-20 | Séquence onboarding — email J+0 (bienvenue) | Haute | `Terminé` | Texte rédigé — voir `docs/marketing/email-onboarding-sequence.md` |
+| M-21 | Séquence onboarding — email J+2 (tip analyse) | Haute | `Terminé` | Texte rédigé |
+| M-22 | Séquence onboarding — email J+5 (tip partage client) | Haute | `Terminé` | Texte rédigé |
+| M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `Terminé` | Texte rédigé avec tableau comparatif plans |
+| M-24 | Email de conversion — FREE expiré | Haute | `Terminé` | Texte rédigé |
+| M-25 | Choix d'un outil d'emailing + intégration | Haute | `À faire` | Brevo recommandé — prérequis pour activer la séquence |
 | M-26 | Newsletter mensuelle — template | Basse | `À faire` | Fidélisation clients actifs |
 
 ---
