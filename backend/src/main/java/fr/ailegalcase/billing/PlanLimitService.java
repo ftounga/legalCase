@@ -162,20 +162,7 @@ public class PlanLimitService {
                             .withHour(0).withMinute(0).withSecond(0).withNano(0)
                             .toInstant();
                     long thisMonthUsed = usageEventRepository.sumTokensByWorkspaceIdSince(workspaceId, startOfMonth);
-
-                    long totalBought = creditPurchaseService.getTotalTokensBought(workspaceId);
-                    if (totalBought == 0) return thisMonthUsed >= planBudget;
-
-                    // Credits deplete globally: consumed = max(0, allTimeUsed - allTimePlanBudget)
-                    long allTimeUsed = usageEventRepository.sumTokensByWorkspaceIdAllTime(workspaceId);
-                    Instant start = sub.getStartedAt() != null ? sub.getStartedAt() : Instant.now();
-                    long monthsActive = Math.max(1, ChronoUnit.MONTHS.between(
-                            start.atOffset(ZoneOffset.UTC),
-                            Instant.now().atOffset(ZoneOffset.UTC)) + 1);
-                    long allTimePlanBudget = monthsActive * planBudget;
-                    long creditsConsumed = Math.max(0, allTimeUsed - allTimePlanBudget);
-                    long creditsRemaining = Math.max(0, totalBought - creditsConsumed);
-
+                    long creditsRemaining = computeCreditsRemaining(workspaceId, sub, planBudget);
                     return thisMonthUsed >= planBudget + creditsRemaining;
                 })
                 .orElse(false);
@@ -183,8 +170,25 @@ public class PlanLimitService {
 
     public long getMonthlyTokenBudgetForWorkspace(UUID workspaceId) {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
-                .map(sub -> getMonthlyTokenBudget(sub.getPlanCode()))
+                .map(sub -> {
+                    long planBudget = getMonthlyTokenBudget(sub.getPlanCode());
+                    long creditsRemaining = computeCreditsRemaining(workspaceId, sub, planBudget);
+                    return planBudget + creditsRemaining;
+                })
                 .orElse(0L);
+    }
+
+    private long computeCreditsRemaining(UUID workspaceId, Subscription sub, long planBudget) {
+        long totalBought = creditPurchaseService.getTotalTokensBought(workspaceId);
+        if (totalBought == 0) return 0L;
+        long allTimeUsed = usageEventRepository.sumTokensByWorkspaceIdAllTime(workspaceId);
+        Instant start = sub.getStartedAt() != null ? sub.getStartedAt() : Instant.now();
+        long monthsActive = Math.max(1, ChronoUnit.MONTHS.between(
+                start.atOffset(ZoneOffset.UTC),
+                Instant.now().atOffset(ZoneOffset.UTC)) + 1);
+        long allTimePlanBudget = monthsActive * planBudget;
+        long creditsConsumed = Math.max(0, allTimeUsed - allTimePlanBudget);
+        return Math.max(0, totalBought - creditsConsumed);
     }
 
     // ── Chat mensuel ─────────────────────────────────────────────────────
