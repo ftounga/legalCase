@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +43,7 @@ public class ChunkingService {
     public ChunkingService(DocumentExtractionRepository extractionRepository,
                            DocumentChunkRepository chunkRepository,
                            ApplicationEventPublisher eventPublisher,
-                           TaskExecutor taskExecutor,
+                           @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor,
                            RabbitTemplate rabbitTemplate) {
         this.extractionRepository = extractionRepository;
         this.chunkRepository = chunkRepository;
