@@ -64,7 +64,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-22 | Séquence onboarding — email J+5 (tip partage client) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
 | M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
 | M-24 | Email de conversion — FREE expiré | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
-| M-25 | Choix d'un outil d'emailing + intégration | Haute | `En cours` | Brevo recommandé — prérequis pour activer la séquence |
+| M-25 | Choix d'un outil d'emailing + intégration | Haute | `Terminé` | Brevo déjà intégré via JavaMailSender SMTP — utilisé pour invitations, vérification email, reset MDP. Aucune action supplémentaire requise. |
 | M-26 | Newsletter mensuelle — template | Basse | `À faire` | Fidélisation clients actifs |
 
 ---
