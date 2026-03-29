@@ -158,7 +158,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-64 | Recherche full-text dans les synthèses | V2 — Backlog | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel. Idéal pour retrouver un précédent ou une jurisprudence traitée dans un dossier antérieur. |
+| F-64 | Recherche full-text dans les synthèses | V2 — **En cours** | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel. SF-64-01 mergée 2026-03-29 (backend GET /api/v1/search). SF-64-02 à faire (frontend). |
 | F-66 | Modèles de questions Q&A réutilisables | V2 — Backlog | Sauvegarder des séries de questions fréquentes par domaine juridique et les appliquer en un clic à un nouveau dossier. Évite la saisie répétitive. Scoped au workspace. |
 | F-67 | Wizard d'onboarding guidé | V2 — **Terminée** | Wizard 4 étapes affiché au premier accès après création du workspace (Bienvenue / Créer un dossier / Ajouter des documents / Lancer une analyse). Skippable à tout moment. Persisté en localStorage. SF-67-01 mergée 2026-03-29. |
 | F-60 | Normalisation nom workspace en majuscules | V2 — **Terminée** | Le nom du workspace est converti en majuscules au moment de la saisie et stocké en majuscules en base. Concerne la création et la modification du nom. SF-60-01 mergée 2026-03-28. |
@@ -201,6 +201,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-29 | F-64 SF-64-01 mergée — endpoint GET /api/v1/search?q= (ILIKE workspace-scoped, max 50 résultats, max 3 extraits, 14 tests) | Product owner |
 | 2026-03-29 | F-64/F-65/F-66 ajoutées au backlog — Recherche full-text synthèses, Notifications email analyse, Modèles Q&A réutilisables | Product owner |
 | 2026-03-29 | F-67 Terminée — SF-67-01 mergée : OnboardingWizardService (localStorage), OnboardingWizardDialogComponent (4 étapes, signal currentStep), trigger CaseFilesListComponent, 26 tests | Product owner |
 | 2026-03-29 | F-67 ajoutée au backlog — Wizard d'onboarding guidé 4 étapes, skippable, localStorage | Product owner |
