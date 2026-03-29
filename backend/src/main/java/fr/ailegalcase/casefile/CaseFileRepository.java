@@ -35,4 +35,10 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
     long countByWorkspace_IdAndStatus(UUID workspaceId, String status);
 
     long countByWorkspace_IdAndStatusAndDeletedAtIsNull(UUID workspaceId, String status);
+
+    @Query("SELECT c.title FROM CaseFile c WHERE c.id = :id")
+    Optional<String> findTitleById(@Param("id") UUID id);
+
+    @Query("SELECT c.createdBy.email FROM CaseFile c WHERE c.id = :id")
+    Optional<String> findCreatorEmailById(@Param("id") UUID id);
 }

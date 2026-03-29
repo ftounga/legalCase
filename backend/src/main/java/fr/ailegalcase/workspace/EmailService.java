@@ -1,5 +1,6 @@
 package fr.ailegalcase.workspace;
 
+import fr.ailegalcase.analysis.JobType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,6 +8,8 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 public class EmailService {
@@ -80,6 +83,32 @@ public class EmailService {
         } catch (MailException e) {
             log.error("Failed to send password reset email to {} — {}", toEmail, e.getMessage());
             throw e;
+        }
+    }
+
+    public void sendAnalysisDone(String toEmail, UUID caseFileId, String caseFileTitle, JobType jobType) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — analysis-done email skipped for {}", toEmail);
+            return;
+        }
+
+        String typeLabel = jobType == JobType.ENRICHED_ANALYSIS ? "enrichie" : "standard";
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Analyse terminée — " + caseFileTitle + " — AI LegalCase");
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "L'analyse " + typeLabel + " de votre dossier \"" + caseFileTitle + "\" est terminée.\n\n" +
+                    "Accédez à votre dossier ici :\n" +
+                    frontendUrl + "/case-files/" + caseFileId + "\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Analysis-done email sent to {} for caseFile {}", toEmail, caseFileId);
+        } catch (MailException e) {
+            log.warn("Failed to send analysis-done email to {} for caseFile {} — {}", toEmail, caseFileId, e.getMessage());
         }
     }
 
