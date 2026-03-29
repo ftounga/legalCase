@@ -2,7 +2,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { CaseFilesListComponent } from './case-files-list.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { OnboardingWizardService } from '../../core/services/onboarding-wizard.service';
+import { TourService } from '../../core/services/tour.service';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
@@ -28,7 +28,7 @@ describe('CaseFilesListComponent', () => {
   let component: CaseFilesListComponent;
   let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
   let workspaceServiceSpy: jasmine.SpyObj<WorkspaceService>;
-  let wizardServiceSpy: jasmine.SpyObj<OnboardingWizardService>;
+  let tourServiceSpy: jasmine.SpyObj<TourService>;
   let dialogSpy: jasmine.SpyObj<MatDialog>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
 
@@ -37,20 +37,19 @@ describe('CaseFilesListComponent', () => {
     workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace'], {
       workspaceSwitched$: new Subject<void>().asObservable()
     });
-    wizardServiceSpy = jasmine.createSpyObj('OnboardingWizardService', ['shouldShow', 'markDone']);
+    tourServiceSpy = jasmine.createSpyObj('TourService', ['start', 'shouldShow']);
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     caseFileServiceSpy.list.and.returnValue(of(emptyPage));
     workspaceServiceSpy.getCurrentWorkspace.and.returnValue(of(mockWorkspace));
-    wizardServiceSpy.shouldShow.and.returnValue(false);
 
     await TestBed.configureTestingModule({
       imports: [CaseFilesListComponent],
       providers: [
         { provide: CaseFileService, useValue: caseFileServiceSpy },
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
-        { provide: OnboardingWizardService, useValue: wizardServiceSpy },
+        { provide: TourService, useValue: tourServiceSpy },
         { provide: MatDialog, useValue: dialogSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         provideRouter([]),
@@ -98,48 +97,14 @@ describe('CaseFilesListComponent', () => {
     expect(component.statusClass('OPEN')).toBe('badge--success');
   });
 
-  it('wizard — shouldShow false → MatDialog.open non appelé', () => {
-    wizardServiceSpy.shouldShow.and.returnValue(false);
-    expect(dialogSpy.open).not.toHaveBeenCalled();
+  it('ngOnInit → tourService.start() appelé avec le workspaceId', () => {
+    expect(tourServiceSpy.start).toHaveBeenCalledWith('ws-1');
   });
 
-});
-
-describe('CaseFilesListComponent — wizard shouldShow true', () => {
-  it('shouldShow true → MatDialog.open appelé', async () => {
-    const caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['list']);
-    const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace'], {
-      workspaceSwitched$: new Subject<void>().asObservable()
-    });
-    const wizardServiceSpy = jasmine.createSpyObj('OnboardingWizardService', ['shouldShow', 'markDone']);
-    const dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
-    const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
-
-    caseFileServiceSpy.list.and.returnValue(of(emptyPage));
-    workspaceServiceSpy.getCurrentWorkspace.and.returnValue(of(mockWorkspace));
-    wizardServiceSpy.shouldShow.and.returnValue(true);
-    const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed']);
-    dialogRefSpy.afterClosed.and.returnValue(of(undefined));
-    dialogSpy.open.and.returnValue(dialogRefSpy);
-
-    await TestBed.configureTestingModule({
-      imports: [CaseFilesListComponent],
-      providers: [
-        { provide: CaseFileService, useValue: caseFileServiceSpy },
-        { provide: WorkspaceService, useValue: workspaceServiceSpy },
-        { provide: OnboardingWizardService, useValue: wizardServiceSpy },
-        { provide: MatDialog, useValue: dialogSpy },
-        { provide: MatSnackBar, useValue: snackBarSpy },
-        provideRouter([]),
-        provideAnimationsAsync(),
-        provideHttpClient(),
-        provideHttpClientTesting()
-      ]
-    }).compileComponents();
-
-    const f = TestBed.createComponent(CaseFilesListComponent);
-    f.detectChanges();
-
-    expect(dialogSpy.open).toHaveBeenCalled();
+  // C-01 — contrat data-tour-target : le bouton "Nouveau dossier" a l'attribut requis
+  it('C-01: bouton "Nouveau dossier" a data-tour-target="new-dossier-btn"', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const btn = el.querySelector('[data-tour-target="new-dossier-btn"]');
+    expect(btn).withContext('data-tour-target="new-dossier-btn" manquant dans le template').not.toBeNull();
   });
 });

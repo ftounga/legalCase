@@ -78,7 +78,7 @@
       <div class="section-header">
         <h2 class="section-title">Documents</h2>
         <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden (change)="onFileSelected($event)">
-        <button mat-raised-button color="primary" (click)="triggerUpload()" [disabled]="!canUpload()">
+        <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn" (click)="triggerUpload()" [disabled]="!canUpload()">
           <mat-icon>add</mat-icon>
           Ajouter des documents
         </button>
@@ -191,7 +191,7 @@
             <span>Analyse des documents…</span>
           </div>
         } @else if (canAnalyze()) {
-          <button mat-raised-button color="accent" (click)="triggerAnalysis()" [disabled]="analyzing()">
+          <button mat-raised-button color="accent" data-tour-target="analyze-btn" (click)="triggerAnalysis()" [disabled]="analyzing()">
             <mat-icon>auto_fix_high</mat-icon>
             Analyser le dossier
           </button>
@@ -231,7 +231,7 @@
             </div>
           } @else {
             <div class="synthesis-actions">
-              <a mat-raised-button color="primary" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+              <a mat-raised-button color="primary" data-tour-target="synthesis-link" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
                 <mat-icon>summarize</mat-icon>
                 Voir la synthèse
               </a>
