@@ -214,6 +214,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-29 | F-69 Terminée — SF-69-03 mergée : DeadlineAlertService @Scheduled 8h, sendDeadlineAlert(), fail-open par membre, 4 tests Mockito | Product owner |
 | 2026-03-29 | F-69/F-70 ajoutées au backlog — Suivi des délais légaux, Notes internes sur un dossier | Product owner |
 | 2026-03-29 | F-64/F-65/F-66 ajoutées au backlog — Recherche full-text synthèses, Notifications email analyse, Modèles Q&A réutilisables | Product owner |
+| 2026-03-29 | fix — Budget tokens admin : getMonthlyTokenBudgetForWorkspace() incluait pas les crédits top-up. Extraction computeCreditsRemaining() partagée. 356 tests verts. | Product owner |
 | 2026-03-29 | F-72 fix — Amplification animations (20px/380ms/cubic-bezier) + correction router transition via host:[@fadeInUp] sur 12 composants routés. 314 tests verts. | Product owner |
 | 2026-03-29 | F-72 Terminée — Animations UI : router fade-in, stagger CSS mat-row, @fadeInUp login/détail/synthèse, @listStagger listes synthèse, tour overlay CSS. 314 tests verts. | Product owner |
 | 2026-03-29 | F-67 Terminée — SF-67-02 mergée : TourService (signals isActive/currentStep), TourOverlayComponent (carte floating, getBoundingClientRect, NavigationEnd+resize), 4 data-tour-target, tour-highlight CSS, 15 tests unitaires/contrat + E2E tour.spec.ts | Product owner |
