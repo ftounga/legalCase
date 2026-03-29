@@ -1,0 +1,59 @@
+<div class="search-page">
+  <h1 class="page-title">Recherche dans les synthèses</h1>
+
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Rechercher un terme</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [formControl]="queryControl" placeholder="Ex : licenciement, préjudice..." autocomplete="off" />
+    @if (queryControl.value) {
+      <button matSuffix mat-icon-button (click)="queryControl.setValue('')" aria-label="Effacer">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+    <mat-hint>Minimum 2 caractères</mat-hint>
+  </mat-form-field>
+
+  @if (loading()) {
+    <div class="search-loading">
+      <mat-spinner diameter="40" />
+    </div>
+  }
+
+  @if (!loading() && searched() && results().length === 0) {
+    <div class="search-empty">
+      <mat-icon class="empty-icon">search_off</mat-icon>
+      <p>Aucun résultat pour <strong>« {{ currentQuery() }} »</strong></p>
+    </div>
+  }
+
+  @if (!loading() && results().length > 0) {
+    <div class="results-header">
+      <span class="results-count">{{ results().length }} dossier{{ results().length > 1 ? 's' : '' }} trouvé{{ results().length > 1 ? 's' : '' }}</span>
+    </div>
+
+    <div class="results-list">
+      @for (result of results(); track result.caseFileId) {
+        <mat-card class="result-card" (click)="goToCaseFile(result.caseFileId)">
+          <mat-card-header>
+            <mat-card-title class="result-title">{{ result.caseFileTitle }}</mat-card-title>
+            <mat-card-subtitle class="result-meta">
+              <span class="domain-badge">{{ domainLabel(result.legalDomain) }}</span>
+              <span class="analysis-type">{{ analysisTypeLabel(result.analysisType) }}</span>
+              <span class="match-count">{{ result.matchCount }} correspondance{{ result.matchCount > 1 ? 's' : '' }}</span>
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            @for (excerpt of result.excerpts; track $index) {
+              <p class="excerpt" [innerHTML]="excerpt | highlightTerm: currentQuery()"></p>
+            }
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="primary" (click)="goToCaseFile(result.caseFileId); $event.stopPropagation()">
+              <mat-icon>open_in_new</mat-icon> Voir le dossier
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+  }
+</div>
