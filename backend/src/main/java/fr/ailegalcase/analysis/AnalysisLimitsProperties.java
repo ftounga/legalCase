@@ -5,10 +5,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * Limites de troncature du pipeline IA, configurables par domaine juridique.
- * Lues depuis application.yml sous legalcase.pipeline.limits.
+ * Lues depuis application.yml sous app.pipeline.limits.
  */
 @Component
-@ConfigurationProperties("legalcase.pipeline.limits")
+@ConfigurationProperties("app.pipeline.limits")
 public class AnalysisLimitsProperties {
 
     private DomainLimits droitDuTravail = new DomainLimits();
