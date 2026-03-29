@@ -14,6 +14,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 import { SynthesisSearchService } from '../core/services/synthesis-search.service';
 import { SynthesisSearchResult } from '../core/models/search.model';
 import { HighlightTermPipe } from '../shared/pipes/highlight-term.pipe';
+import { fadeInUp } from '../shared/animations';
 
 @Component({
   selector: 'app-search',
@@ -26,7 +27,9 @@ import { HighlightTermPipe } from '../shared/pipes/highlight-term.pipe';
     HighlightTermPipe
   ],
   templateUrl: './search.component.html',
-  styleUrl: './search.component.scss'
+  styleUrl: './search.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class SearchComponent implements OnInit, OnDestroy {
   queryControl = new FormControl('');

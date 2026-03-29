@@ -14,6 +14,7 @@ import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/p
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuditLogService } from '../../core/services/audit-log.service';
 import { AuditLogEntry } from '../../core/models/audit-log-entry.model';
+import { fadeInUp } from '../../shared/animations';
 
 @Component({
   selector: 'app-audit-log-screen',
@@ -26,7 +27,9 @@ import { AuditLogEntry } from '../../core/models/audit-log-entry.model';
     MatPaginatorModule
   ],
   templateUrl: './audit-log-screen.component.html',
-  styleUrl: './audit-log-screen.component.scss'
+  styleUrl: './audit-log-screen.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class AuditLogScreenComponent implements OnInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;

@@ -25,6 +25,7 @@ import { fadeInUp, listStagger } from '../../shared/animations';
   templateUrl: './case-files-list.component.html',
   styleUrl: './case-files-list.component.scss',
   animations: [fadeInUp, listStagger],
+  host: { '[@fadeInUp]': '' },
 })
 export class CaseFilesListComponent implements OnInit {
   displayedColumns = ['title', 'legalDomain', 'status', 'createdAt', 'actions'];

@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseFile } from '../../core/models/case-file.model';
+import { fadeInUp } from '../../shared/animations';
 import { AnalysisDiff, CaseAnalysisVersionSummary, SectionDiff, TimelineSectionDiff } from '../../core/models/case-analysis.model';
 
 type FilterType = 'all' | 'added' | 'removed' | 'enriched' | 'unchanged';
@@ -34,7 +35,9 @@ interface DiffSection {
     MatProgressSpinnerModule, MatTooltipModule
   ],
   templateUrl: './analysis-diff.component.html',
-  styleUrl: './analysis-diff.component.scss'
+  styleUrl: './analysis-diff.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class AnalysisDiffComponent implements OnInit {
   caseFile = signal<CaseFile | null>(null);

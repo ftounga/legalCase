@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { WorkspaceService } from '../core/services/workspace.service';
 import { DomainPickerDialogComponent, DomainPickerResult } from './domain-picker-dialog/domain-picker-dialog.component';
+import { fadeInUp } from '../shared/animations';
 
 @Component({
   selector: 'app-onboarding',
@@ -20,7 +21,9 @@ import { DomainPickerDialogComponent, DomainPickerResult } from './domain-picker
     MatCardModule, MatProgressSpinnerModule
   ],
   templateUrl: './onboarding.component.html',
-  styleUrl: './onboarding.component.scss'
+  styleUrl: './onboarding.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class OnboardingComponent {
   form: FormGroup;

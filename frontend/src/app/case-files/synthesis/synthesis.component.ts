@@ -36,6 +36,7 @@ import { ChatMessage } from '../../core/models/chat-message.model';
   templateUrl: './synthesis.component.html',
   styleUrl: './synthesis.component.scss',
   animations: [fadeInUp, listStagger],
+  host: { '[@fadeInUp]': '' },
 })
 export class SynthesisComponent implements OnInit {
   caseFile = signal<CaseFile | null>(null);

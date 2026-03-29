@@ -24,6 +24,7 @@ import { fadeInUp } from '../../shared/animations';
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
   animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class LoginComponent {
   loginForm: FormGroup;
