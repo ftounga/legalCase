@@ -86,7 +86,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
-| M-40 | Pitch deck — présentation cabinets | Haute | `À faire` | 10-12 slides : problème, solution, démo, tarifs |
+| M-40 | Pitch deck — présentation cabinets | Haute | `Rédigé` | PPTX 11 slides livré le 2026-03-29 — docs/marketing/pitch-deck-ailegalcase.pptx |
 | M-41 | Liste de 50 cabinets cibles (droit travail, Paris/IDF) | Haute | `À faire` | Outreach direct |
 | M-42 | Script d'outreach LinkedIn — message de prospection | Haute | `À faire` | Approche personnalisée par domaine |
 | M-43 | Démo en ligne — Calendly ou équivalent | Haute | `À faire` | Convertir les prospects inbound |
