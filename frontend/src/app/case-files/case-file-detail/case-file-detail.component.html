@@ -292,6 +292,9 @@
     </div>
   </div>
 
+  <app-case-deadlines-section [caseFileId]="caseFile()!.id">
+  </app-case-deadlines-section>
+
   <app-case-notes-section
     [caseFileId]="caseFile()!.id"
     [currentUserEmail]="authService.currentUser()?.email ?? null">

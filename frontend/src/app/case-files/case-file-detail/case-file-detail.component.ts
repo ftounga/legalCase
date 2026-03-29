@@ -32,6 +32,7 @@ import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
+import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -40,7 +41,8 @@ import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-sect
     RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
-    MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent
+    MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
+    CaseDeadlinesSectionComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
