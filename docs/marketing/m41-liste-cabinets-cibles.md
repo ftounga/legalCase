@@ -72,87 +72,97 @@ Cette liste est constituée à partir de :
 
 ## Liste des 50 cabinets
 
-> **Note** : Cette liste est un point de départ. Les coordonnées LinkedIn doivent être vérifiées avant envoi. Les noms suivis de `*` sont des cabinets identifiés via Barreau de Paris.
+> **Légende statut** : ✅ Vérifié (source web) — ⚠️ À confirmer avant envoi (annuaire Barreau de Paris ou site web)
 
-### Cabinets spécialisés salariés (droit du travail côté employé)
+---
 
-| # | Cabinet | Taille estimée | Localisation | LinkedIn / Contact |
-|---|---------|---------------|-------------|-------------------|
-| 01 | Cabinet Marie-Laure Decker * | 1-3 avocats | 75011 Paris | À rechercher |
-| 02 | Cabinet Alain Jakubowicz * | 1-3 avocats | 75008 Paris | À rechercher |
-| 03 | Cabinet Didier Medef * | 1-5 avocats | 75017 Paris | À rechercher |
-| 04 | Cabinet Stéphanie Roux | 1-3 avocats | 75009 Paris | À rechercher |
-| 05 | Cabinet Nathalie Cros * | 1-3 avocats | 75015 Paris | À rechercher |
-| 06 | Cabinet Thierry Vallat | 1-3 avocats | 75001 Paris | @thierryvallat |
-| 07 | Cabinet Florence Bergère | 1-5 avocats | 75010 Paris | À rechercher |
-| 08 | Cabinet Jean-Christophe Bouvet | 1-3 avocats | 75008 Paris | À rechercher |
-| 09 | Cabinet Isabelle Taraud | 1-3 avocats | 75006 Paris | À rechercher |
-| 10 | Cabinet Laurent Malfettes | 1-5 avocats | 75016 Paris | À rechercher |
+### PHASE 1 — Boutiques (1-10 avocats) — Décision rapide, interlocuteur direct
 
-### Cabinets mixtes (employeurs + salariés)
+*Priorité absolue : l'associé est le décideur, cycle de vente court.*
 
-| # | Cabinet | Taille estimée | Localisation | LinkedIn / Contact |
-|---|---------|---------------|-------------|-------------------|
-| 11 | Fromont Briens | 20-50 avocats | 75008 Paris | fromont-briens.com |
-| 12 | Flichy Grangé Avocats | 20-50 avocats | 75008 Paris | flichygrange.com |
-| 13 | Capstan Avocats | 20-50 avocats | 75008 Paris | capstan.fr |
-| 14 | Barthélemy Avocats | 10-20 avocats | 75008 Paris | barthelemy-avocats.com |
-| 15 | Gide Loyrette Nouel (dept. social) | 100+ avocats | 75008 Paris | gide.com |
-| 16 | Hogan Lovells (dept. social) | 100+ avocats | 75008 Paris | hoganlovells.com |
-| 17 | Allen & Overy (dept. social) | 100+ avocats | 75008 Paris | allenovery.com |
-| 18 | Linklaters (dept. social) | 100+ avocats | 75008 Paris | linklaters.com |
-| 19 | CMS Francis Lefebvre (dept. social) | 100+ avocats | 75016 Paris | cms-fl.com |
-| 20 | Chassany Watrelot & Associés | 10-20 avocats | 75008 Paris | cwa-avocats.com |
+| # | Cabinet | Taille | Localisation | Site / Contact | Statut |
+|---|---------|--------|-------------|---------------|--------|
+| 01 | Howard Avocats | 5-10 avocats | Paris | howard-avocats.com | ✅ |
+| 02 | Sagan Avocats (Alexandra Sabbe-Ferry) | 1-5 avocats | Paris | À rechercher LinkedIn | ✅ |
+| 03 | Edgar Avocats | 1-5 avocats | Paris | À rechercher LinkedIn | ✅ |
+| 04 | La Garanderie Avocats (Dominique de la Garanderie) | 1-5 avocats | Paris | À rechercher LinkedIn | ✅ |
+| 05 | Cabinet A-P (Alina Paragyios) | ~5 avocats | Paris | cabinet-ap.fr | ✅ |
+| 06 | Schaeffer Avocats | 5-10 avocats | 75015 Paris | schaeffer-avocats.com | ✅ |
+| 07 | FD Avocats | 1-5 avocats | 75016 Paris | fd-avocats.com | ✅ |
+| 08 | Cabinet 2A Avocats (Aurélie Arnaud) | 1-3 avocats | Paris | 2a-avocat.com | ✅ |
+| 09 | Cabinet Zenou | 1-5 avocats | Paris | cabinet-zenou.fr | ✅ |
+| 10 | Cabinet Ngawa | 1-5 avocats | 75008 Paris | ngawa-avocat-paris.fr | ✅ |
+| 11 | Cabinet Nassyha | 1-5 avocats | Paris | nassyha.com | ✅ |
+| 12 | Voltaire Avocats | 5-10 avocats | Paris | voltaire-avocats.com | ✅ |
+| 13 | Eric Rocheblave Avocat | 1-3 avocats | Paris | rocheblave.com | ✅ |
+| 14 | À compléter | — | Paris | annuaireavocats.fr | ⚠️ |
+| 15 | À compléter | — | Paris | annuaireavocats.fr | ⚠️ |
+| 16 | À compléter | — | Paris | alexia.fr | ⚠️ |
+| 17 | À compléter | — | Paris | alexia.fr | ⚠️ |
+| 18 | À compléter | — | Paris | justifit.fr | ⚠️ |
+| 19 | À compléter | — | Paris | justifit.fr | ⚠️ |
+| 20 | À compléter | — | Paris | justifit.fr | ⚠️ |
 
-### Cabinets spécialisés employeurs (RH, restructurations)
+*Pour les lignes ⚠️ : aller sur annuaireavocats.fr → "Droit du travail" → "Paris" → filtrer 1-10 avocats. 10 min de travail pour compléter ces 7 lignes.*
 
-| # | Cabinet | Taille estimée | Localisation | LinkedIn / Contact |
-|---|---------|---------------|-------------|-------------------|
-| 21 | Proskauer Rose (dept. social) | 100+ avocats | 75008 Paris | proskauer.com |
-| 22 | Littler France | 20-50 avocats | 75008 Paris | littler.com |
-| 23 | Cabinet Alain Bensoussan | 10-20 avocats | 75017 Paris | alain-bensoussan.com |
-| 24 | Vivien & Associés | 5-10 avocats | 75008 Paris | À rechercher |
-| 25 | Cabinet Raphaël Gindre | 1-5 avocats | 75009 Paris | À rechercher |
-| 26 | KGA Avocats (dept. social) | 10-20 avocats | 75008 Paris | kga.fr |
-| 27 | Bersay & Associés | 10-20 avocats | 75008 Paris | bersay.com |
-| 28 | Cabinet Véronique Descamps | 1-5 avocats | 75008 Paris | À rechercher |
-| 29 | Jeantet (dept. social) | 100+ avocats | 75008 Paris | jeantet.fr |
-| 30 | August Debouzy (dept. social) | 20-50 avocats | 75008 Paris | august-debouzy.com |
+---
 
-### Cabinets en Petite Couronne (92 — Hauts-de-Seine)
+### PHASE 2 — Cabinets moyens (10-50 avocats) — Cycle 2-4 semaines
 
-| # | Cabinet | Taille estimée | Localisation | LinkedIn / Contact |
-|---|---------|---------------|-------------|-------------------|
-| 31 | Cabinet Duval (Nanterre) | 1-5 avocats | 92000 Nanterre | À rechercher |
-| 32 | Cabinet Leclerc (Boulogne) | 1-5 avocats | 92100 Boulogne | À rechercher |
-| 33 | Cabinet Masson (Levallois) | 1-5 avocats | 92300 Levallois | À rechercher |
-| 34 | Cabinet Renard (Neuilly) | 1-5 avocats | 92200 Neuilly | À rechercher |
-| 35 | Cabinet Simon & Associés (Rueil) | 1-5 avocats | 92500 Rueil | À rechercher |
+*Cibler l'associé responsable du département droit social.*
 
-### Cabinets en Petite Couronne (93/94)
+| # | Cabinet | Taille | Localisation | Site | Statut |
+|---|---------|--------|-------------|------|--------|
+| 21 | Flichy Grangé Avocats | 80+ avocats (dept. social) | 75002 Paris | flichygrange.fr | ✅ |
+| 22 | Fromont Briens | 20-50 avocats | 75008 Paris | fromont-briens.com | ✅ |
+| 23 | Capstan Avocats | 20-50 avocats | 75008 Paris | capstan.fr | ✅ |
+| 24 | Barthélemy Avocats | 10-20 avocats | 75008 Paris | barthelemy-avocats.com | ✅ |
+| 25 | Chassany Watrelot & Associés | 10-20 avocats | 75008 Paris | cwassocies.com | ✅ |
+| 26 | Hoche Avocats | 10-20 avocats | Paris | hoche-avocats.com | ✅ |
+| 27 | Ogletree Deakins | 20-50 avocats | 75008 Paris | ogletree.fr | ✅ |
+| 28 | Littler France | 20-50 avocats | Paris | littler.com | ✅ |
+| 29 | KGA Avocats | 10-20 avocats | Paris | kga.fr | ✅ |
+| 30 | Bersay & Associés | 10-20 avocats | 75008 Paris | bersay.com | ✅ |
+| 31 | August Debouzy (dept. social) | 20-50 avocats | 75008 Paris | august-debouzy.com | ✅ |
 
-| # | Cabinet | Taille estimée | Localisation | LinkedIn / Contact |
-|---|---------|---------------|-------------|-------------------|
-| 36 | Cabinet Martin (Montreuil) | 1-5 avocats | 93100 Montreuil | À rechercher |
-| 37 | Cabinet Petit (Saint-Denis) | 1-5 avocats | 93200 Saint-Denis | À rechercher |
-| 38 | Cabinet Legrand (Créteil) | 1-5 avocats | 94000 Créteil | À rechercher |
-| 39 | Cabinet Moreau (Vincennes) | 1-5 avocats | 94300 Vincennes | À rechercher |
-| 40 | Cabinet Robert (Ivry) | 1-5 avocats | 94200 Ivry | À rechercher |
+---
 
-### Cabinets boutique droit social (toutes tranches)
+### PHASE 2 — Petite Couronne (92)
 
-| # | Cabinet | Taille estimée | Localisation | LinkedIn / Contact |
-|---|---------|---------------|-------------|-------------------|
-| 41 | Cabinet Philippe Ravisy | 1-3 avocats | 75011 Paris | À rechercher |
-| 42 | Cabinet Sophie Chalons-Browne | 1-3 avocats | 75009 Paris | À rechercher |
-| 43 | Cabinet Arnaud Blanc | 1-3 avocats | 75012 Paris | À rechercher |
-| 44 | Cabinet Céline Huet | 1-3 avocats | 75015 Paris | À rechercher |
-| 45 | Cabinet David Metin | 1-3 avocats | 75010 Paris | À rechercher |
-| 46 | Cabinet Eric Rocheblave | 1-5 avocats | 75001 Paris | @rocheblave |
-| 47 | Cabinet Sylvie Topaloff | 1-3 avocats | 75008 Paris | À rechercher |
-| 48 | Cabinet François Capart | 1-3 avocats | 75017 Paris | À rechercher |
-| 49 | Cabinet Marie Ohannessian | 1-3 avocats | 75013 Paris | À rechercher |
-| 50 | Cabinet Nicolas Hervieu | 1-3 avocats | 75005 Paris | À rechercher |
+| # | Cabinet | Taille | Localisation | Site | Statut |
+|---|---------|--------|-------------|------|--------|
+| 32 | Cabinet CBO / Boulanger (Olivier Boulanger) | 1-5 avocats | Levallois-Perret 92 | À rechercher LinkedIn | ✅ |
+| 33 | Cabinet Delmas (Jean-François Delmas) | 1-5 avocats | Boulogne-Billancourt 92 | À rechercher LinkedIn | ✅ |
+| 34 | Maître Gérard Sutter | Avocat solo | Levallois-Perret 92 | À rechercher LinkedIn | ✅ |
+| 35 | À compléter | — | Nanterre 92 | starofservice.com | ⚠️ |
+| 36 | À compléter | — | Neuilly 92 | justifit.fr/neuilly | ⚠️ |
+| 37 | À compléter | — | 92 | juritravail.com | ⚠️ |
+
+---
+
+### PHASE 3 — Grands cabinets (dept. social) — Cycle long, après témoignages clients
+
+*N'approcher qu'après avoir des références clients convaincantes des phases 1-2.*
+
+| # | Cabinet | Taille | Localisation | Site | Statut |
+|---|---------|--------|-------------|------|--------|
+| 38 | CMS Francis Lefebvre (dept. social) | 100+ avocats | 75016 Paris | cms-fl.com | ✅ |
+| 39 | Gide Loyrette Nouel (dept. social) | 100+ avocats | 75008 Paris | gide.com | ✅ |
+| 40 | Hogan Lovells (dept. social) | 100+ avocats | 75008 Paris | hoganlovells.com | ✅ |
+| 41 | Allen & Overy (dept. social) | 100+ avocats | 75008 Paris | allenovery.com | ✅ |
+| 42 | Linklaters (dept. social) | 100+ avocats | 75008 Paris | linklaters.com | ✅ |
+| 43 | Proskauer Rose (dept. social) | 100+ avocats | 75008 Paris | proskauer.com | ✅ |
+| 44 | Jeantet (dept. social) | 100+ avocats | 75008 Paris | jeantet.fr | ✅ |
+
+---
+
+### Lignes restantes (45-50) — À compléter
+
+| # | Source recommandée | Filtre |
+|---|--------------------|--------|
+| 45-50 | [annuaireavocats.fr](https://www.annuaireavocats.fr/cabinets/droit-du-travail/paris) | Droit du travail → Paris → trier par taille |
+
+*30 minutes de travail pour compléter ces 6 lignes avec des cabinets vérifiés.*
 
 ---
 
