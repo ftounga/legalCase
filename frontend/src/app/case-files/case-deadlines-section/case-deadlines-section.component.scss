@@ -1,0 +1,155 @@
+.deadlines-section {
+  margin-top: 32px;
+}
+
+.deadlines-title {
+  font-family: 'Merriweather', serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: #1A3A5C;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  mat-icon {
+    color: #C9973A;
+  }
+}
+
+.add-deadline-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.add-label-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.date-input {
+  height: 56px;
+  padding: 0 12px;
+  border: 1px solid #6B7A8D;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1C2B3A;
+  background: #FFFFFF;
+  min-width: 160px;
+
+  &:focus {
+    outline: 2px solid #1A3A5C;
+    border-color: #1A3A5C;
+  }
+}
+
+.deadlines-empty {
+  color: #6B7A8D;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.deadlines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deadline-item {
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  &.deadline--past {
+    border-left: 4px solid #C0392B;
+  }
+
+  &.deadline--soon {
+    border-left: 4px solid #C9973A;
+  }
+
+  &.deadline--ok {
+    border-left: 4px solid #27AE60;
+  }
+}
+
+.deadline-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.deadline-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1C2B3A;
+}
+
+.deadline-date {
+  font-size: 13px;
+  color: #6B7A8D;
+}
+
+.deadline-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+
+  &.deadline--past {
+    background: #fdecea;
+    color: #C0392B;
+    border: none;
+  }
+
+  &.deadline--soon {
+    background: #fef6e7;
+    color: #C9973A;
+    border: none;
+  }
+
+  &.deadline--ok {
+    background: #eafaf1;
+    color: #27AE60;
+    border: none;
+  }
+}
+
+.deadline-actions {
+  display: flex;
+  gap: 4px;
+
+  button {
+    color: #6B7A8D;
+    &.btn-delete:hover { color: #C0392B; }
+  }
+}
+
+.edit-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.edit-label-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

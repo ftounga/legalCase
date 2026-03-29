@@ -14,6 +14,7 @@ import { WorkspaceMemberService } from '../../core/services/workspace-member.ser
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { CaseNoteService } from '../../core/services/case-note.service';
+import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -60,10 +61,13 @@ describe('CaseFileDetailComponent', () => {
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
   let dialogSpy: jasmine.SpyObj<MatDialog>;
   let caseNoteServiceSpy: jasmine.SpyObj<CaseNoteService>;
+  let caseDeadlineServiceSpy: jasmine.SpyObj<CaseDeadlineService>;
 
   beforeEach(async () => {
     caseNoteServiceSpy = jasmine.createSpyObj('CaseNoteService', ['list', 'create', 'update', 'delete']);
     caseNoteServiceSpy.list.and.returnValue(of([]));
+    caseDeadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService', ['list', 'create', 'update', 'delete']);
+    caseDeadlineServiceSpy.list.and.returnValue(of([]));
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl', 'delete']);
@@ -118,6 +122,7 @@ describe('CaseFileDetailComponent', () => {
           useValue: { currentUser: signal({ id: 'user-1', email: 'owner@test.com', firstName: null, lastName: null, provider: 'GOOGLE', isSuperAdmin: false }) }
         },
         { provide: CaseNoteService, useValue: caseNoteServiceSpy },
+        { provide: CaseDeadlineService, useValue: caseDeadlineServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideRouter([]),
