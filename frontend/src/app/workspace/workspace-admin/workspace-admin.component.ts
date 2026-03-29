@@ -14,6 +14,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { AdminUsageService } from '../../core/services/admin-usage.service';
 import { Workspace } from '../../core/models/workspace.model';
+import { fadeInUp } from '../../shared/animations';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { WorkspaceUsageSummary } from '../../core/models/workspace-usage-summary.model';
 
@@ -33,7 +34,9 @@ const PLAN_QUOTA: Record<string, string> = {
     MatIconModule, MatButtonModule, MatChipsModule
   ],
   templateUrl: './workspace-admin.component.html',
-  styleUrl: './workspace-admin.component.scss'
+  styleUrl: './workspace-admin.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class WorkspaceAdminComponent implements OnInit {
   workspace = signal<Workspace | null>(null);

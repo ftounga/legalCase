@@ -48,6 +48,7 @@ import { fadeInUp, listStagger } from '../../shared/animations';
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',
   animations: [fadeInUp, listStagger],
+  host: { '[@fadeInUp]': '' },
 })
 export class CaseFileDetailComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;

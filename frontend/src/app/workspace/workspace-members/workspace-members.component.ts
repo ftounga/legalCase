@@ -15,6 +15,7 @@ import { WorkspaceInvitationService } from '../../core/services/workspace-invita
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
 import { WorkspaceInvitation } from '../../core/models/workspace-invitation.model';
+import { fadeInUp } from '../../shared/animations';
 
 @Component({
   selector: 'app-workspace-members',
@@ -26,7 +27,9 @@ import { WorkspaceInvitation } from '../../core/models/workspace-invitation.mode
     MatProgressSpinnerModule
   ],
   templateUrl: './workspace-members.component.html',
-  styleUrl: './workspace-members.component.scss'
+  styleUrl: './workspace-members.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class WorkspaceMembersComponent implements OnInit {
   members: WorkspaceMember[] = [];

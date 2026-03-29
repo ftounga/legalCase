@@ -10,13 +10,16 @@ import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { BillingService } from '../../core/services/billing.service';
 import { Workspace } from '../../core/models/workspace.model';
+import { fadeInUp } from '../../shared/animations';
 
 @Component({
   selector: 'app-workspace-billing',
   standalone: true,
   imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './workspace-billing.component.html',
-  styleUrl: './workspace-billing.component.scss'
+  styleUrl: './workspace-billing.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   workspace = signal<Workspace | null>(null);

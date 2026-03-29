@@ -13,6 +13,7 @@ import { AuthService } from '../core/services/auth.service';
 import { SuperAdminService } from '../core/services/super-admin.service';
 import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser } from '../core/models/super-admin.model';
 import { SuperAdminConfirmDialogComponent } from './super-admin-confirm-dialog.component';
+import { fadeInUp } from '../shared/animations';
 
 interface WorkspaceRow extends SuperAdminWorkspace {
   totalTokensInput: number;
@@ -29,7 +30,9 @@ interface WorkspaceRow extends SuperAdminWorkspace {
     MatIconModule, MatProgressSpinnerModule, MatDialogModule
   ],
   templateUrl: './super-admin.component.html',
-  styleUrl: './super-admin.component.scss'
+  styleUrl: './super-admin.component.scss',
+  animations: [fadeInUp],
+  host: { '[@fadeInUp]': '' },
 })
 export class SuperAdminComponent implements OnInit {
   workspaceRows = signal<WorkspaceRow[]>([]);
