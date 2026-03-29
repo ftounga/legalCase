@@ -291,6 +291,11 @@
       }
     </div>
   </div>
+
+  <app-case-notes-section
+    [caseFileId]="caseFile()!.id"
+    [currentUserEmail]="authService.currentUser()?.email ?? null">
+  </app-case-notes-section>
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }
