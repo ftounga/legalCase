@@ -5,14 +5,27 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 ---
 
-## Statuts
+## Définition de Terminé — règle impérative
+
+**Une tâche marketing n'est marquée `Terminé` que si elle est entièrement opérationnelle.**
+
+| Type de tâche | Ce que "Terminé" signifie |
+|---------------|--------------------------|
+| Email / séquence automatique | Code implémenté, déployé en production, emails envoyés réellement |
+| Page web / landing | Composant déployé en production, accessible à l'URL publique |
+| Vidéo / visuel | Fichier livré, publié sur le canal cible |
+| Document (pitch, CGU…) | Document finalisé ET publié / transmis |
+| Tracking / analytics | Tag en place, données qui remontent en production |
+
+**Statuts intermédiaires :**
 
 | Statut | Signification |
 |--------|---------------|
 | `À faire` | Pas encore démarré |
-| `En cours` | En cours de production |
-| `Terminé` | Livré / publié |
-| `Bloqué` | En attente d'un prérequis |
+| `Rédigé` | Contenu produit (texte, brief, maquette) — pas encore implémenté |
+| `En cours` | Implémentation en cours |
+| `Terminé` | Opérationnel en production — vérifié |
+| `Bloqué` | En attente d'un prérequis externe |
 
 ---
 
@@ -46,12 +59,12 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
-| M-20 | Séquence onboarding — email J+0 (bienvenue) | Haute | `Terminé` | Texte rédigé — voir `docs/marketing/email-onboarding-sequence.md` |
-| M-21 | Séquence onboarding — email J+2 (tip analyse) | Haute | `Terminé` | Texte rédigé |
-| M-22 | Séquence onboarding — email J+5 (tip partage client) | Haute | `Terminé` | Texte rédigé |
-| M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `Terminé` | Texte rédigé avec tableau comparatif plans |
-| M-24 | Email de conversion — FREE expiré | Haute | `Terminé` | Texte rédigé |
-| M-25 | Choix d'un outil d'emailing + intégration | Haute | `À faire` | Brevo recommandé — prérequis pour activer la séquence |
+| M-20 | Séquence onboarding — email J+0 (bienvenue) | Haute | `Rédigé` | Texte rédigé — voir `docs/marketing/email-onboarding-sequence.md` — implémentation en cours |
+| M-21 | Séquence onboarding — email J+2 (tip analyse) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
+| M-22 | Séquence onboarding — email J+5 (tip partage client) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
+| M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
+| M-24 | Email de conversion — FREE expiré | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
+| M-25 | Choix d'un outil d'emailing + intégration | Haute | `En cours` | Brevo recommandé — prérequis pour activer la séquence |
 | M-26 | Newsletter mensuelle — template | Basse | `À faire` | Fidélisation clients actifs |
 
 ---

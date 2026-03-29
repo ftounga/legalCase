@@ -461,6 +461,22 @@ kubectl get certificate -n production
 
 ---
 
+## Tâches marketing — règle de complétion
+
+Toute tâche du `docs/MARKETING_BACKLOG.md` suit cette règle :
+
+**Une tâche marketing n'est marquée `Terminé` que si elle est entièrement opérationnelle en production.**
+
+- Un email rédigé mais non branché dans le code → statut `Rédigé`, pas `Terminé`
+- Une page web rédigée mais non déployée → statut `Rédigé`, pas `Terminé`
+- Un document produit mais non publié/transmis → statut `Rédigé`, pas `Terminé`
+
+Quand une tâche marketing implique du code (email automatique, tracking, intégration), elle doit passer par la séquence de dev standard (mini-spec → dev → review → push) avant d'être marquée `Terminé`.
+
+**REFUS si** : une tâche marketing est marquée `Terminé` sans que le code correspondant soit implémenté et déployé.
+
+---
+
 ## Priorité
 
 ```
