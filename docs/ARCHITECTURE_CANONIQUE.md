@@ -1096,6 +1096,27 @@ idx_case_deadlines_case_file_id
 
 ---
 
+## email_sends
+
+Déduplication des emails automatiques (onboarding, etc.) — évite les doublons d'envoi.
+
+```
+email_sends
+  id               UUID PK
+  user_id          UUID FK → users(id) ON DELETE CASCADE
+  email_type       VARCHAR(100) NOT NULL  -- enum : ONBOARDING_WELCOME, ONBOARDING_TIP_ANALYSIS, ...
+  sent_at          TIMESTAMPTZ NOT NULL
+  UNIQUE (user_id, email_type)
+```
+
+- Migration : 038-create-email-sends.xml
+
+Index :
+
+idx_email_sends_user_id
+
+---
+
 # 26 — Principe directeur
 
 AI LegalCase doit rester :

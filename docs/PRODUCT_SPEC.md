@@ -149,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-73 | Séquence email onboarding | V2 — En cours | 5 emails automatiques post-inscription : J+0 bienvenue, J+2 tip analyse (si aucune analyse), J+5 tip partage client, J+12 conversion avant expiration trial, J+15 récupération post-expiration. Table `email_sends` pour éviter les doublons. Brevo comme provider. |
+| F-73 | Séquence email onboarding | Terminée | 5 emails automatiques post-inscription : J+0 bienvenue, J+2 tip analyse (si aucune analyse), J+5 tip partage client, J+12 conversion avant expiration trial, J+15 récupération post-expiration. Table `email_sends` pour éviter les doublons. Brevo comme provider. |
 | F-65 | Notifications email d'analyse terminée | V2 — **Terminée** | Email envoyé au créateur du dossier quand analyse STANDARD ou ENRICHED passe DONE. AnalysisNotificationService (@EventListener), EmailService.sendAnalysisDone(), fail-open. SF-65-01 mergée 2026-03-29. |
 | F-29 | Limites pipeline IA configurables | V2 — **Terminée** | Externalisation des limites hardcodées de F-28 via `AnalysisLimitsProperties` (`@ConfigurationProperties`). Configurable par domaine juridique dans `application.yml`. `AnalysisJsonTruncator` paramétré par `LevelLimits` (chunk/document/dossier). SF-29-01 mergée 2026-03-28. |
 | F-39 | Notifications temps réel | V2 — **Terminée** | SSE : notifier l'avocat quand une analyse se termine. Endpoint `GET /api/v1/case-files/{id}/analysis-status/stream`, `SseEmitterRegistry`, `SseNotificationService`, `AnalysisStatusEvent` afterCommit, `AnalysisSseService` Angular. SF-39-01 mergée 2026-03-25. SF-39-02 mergée 2026-03-26 : `GlobalAnalysisNotificationService` singleton Angular, toast MatSnackBar visible depuis toute page, événements SSE typés par jobType. |
@@ -206,6 +206,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-29 | F-73 Terminée — SF-73-01 mergée : table email_sends (migration 038), EmailSend entity+repo, 5 méthodes sendOnboarding* fail-open, hook J+0 dans createDefaultWorkspace(), OnboardingEmailScheduler cron 8h J+2/J+5/J+12/J+15, 366 tests verts. Landing page V2 + backlog marketing + règle gouvernance marketing inclus. | Product owner |
 | 2026-03-29 | F-64 Terminée — SF-64-02 mergée : SearchComponent (/search), debounce 400ms, switchMap, HighlightTermPipe, 282 tests Angular | Product owner |
 | 2026-03-29 | F-64 SF-64-01 mergée — endpoint GET /api/v1/search?q= (ILIKE workspace-scoped, max 50 résultats, max 3 extraits, 14 tests) | Product owner |
 | 2026-03-29 | F-65 Terminée — SF-65-01 mergée : AnalysisNotificationService, sendAnalysisDone(), 10 tests, 349/349 | Product owner |
