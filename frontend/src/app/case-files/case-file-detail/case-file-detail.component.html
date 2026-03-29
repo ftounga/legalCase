@@ -1,7 +1,7 @@
 @if (loading()) {
   <div class="loading-state">Chargement...</div>
 } @else if (caseFile()) {
-  <div class="detail-header">
+  <div class="detail-header" @fadeInUp>
     <button mat-button routerLink="/case-files" class="back-btn">
       <mat-icon>arrow_back</mat-icon>
       Retour aux dossiers
@@ -32,9 +32,9 @@
     </div>
   </div>
 
-  <div class="detail-grid">
+  <div class="detail-grid" [@listStagger]="3">
     <!-- Colonne gauche : infos + documents -->
-    <div class="col-left">
+    <div class="col-left" @fadeInUp>
       <mat-card class="detail-card">
         <mat-card-content>
           <div class="detail-field">
@@ -116,7 +116,7 @@
         </div>
       } @else {
         <mat-card class="docs-card">
-          <table mat-table [dataSource]="documents()" class="docs-table">
+          <table mat-table [dataSource]="documents()" class="docs-table" [@listStagger]="documents().length">
             <ng-container matColumnDef="name">
               <th mat-header-cell *matHeaderCellDef>Nom</th>
               <td mat-cell *matCellDef="let doc">
@@ -172,7 +172,7 @@
     </div>
 
     <!-- Colonne droite : analyse IA -->
-    <div class="col-right">
+    <div class="col-right" @fadeInUp>
       <div class="section-header section-header--first">
         <h2 class="section-title">Analyse IA</h2>
         @if (fullAnalysisRunning()) {

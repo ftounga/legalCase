@@ -1,4 +1,4 @@
-<div class="page-header">
+<div class="page-header" @fadeInUp>
   <h1 class="page-title">Dossiers</h1>
   <button mat-flat-button color="primary" data-tour-target="new-dossier-btn" (click)="openCreateDialog()">
     <mat-icon>add</mat-icon>
@@ -6,7 +6,7 @@
   </button>
 </div>
 
-<mat-table [dataSource]="dataSource" class="case-files-table">
+<mat-table [dataSource]="dataSource" class="case-files-table" [@listStagger]="dataSource.length">
   <ng-container matColumnDef="title">
     <mat-header-cell *matHeaderCellDef>Titre</mat-header-cell>
     <mat-cell *matCellDef="let row">

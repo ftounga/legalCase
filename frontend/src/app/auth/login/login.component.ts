@@ -11,6 +11,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
+import { fadeInUp } from '../../shared/animations';
 
 @Component({
   selector: 'app-login',
@@ -21,7 +22,8 @@ import { AuthService } from '../../core/services/auth.service';
     MatTabsModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule
   ],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.scss'
+  styleUrl: './login.component.scss',
+  animations: [fadeInUp],
 })
 export class LoginComponent {
   loginForm: FormGroup;

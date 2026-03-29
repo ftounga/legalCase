@@ -1,4 +1,6 @@
-<router-outlet />
+<div [@routeAnimations]="getRouteState(outlet)">
+  <router-outlet #outlet="outlet" />
+</div>
 @if (tourService.isActive()) {
   <app-tour-overlay />
 }

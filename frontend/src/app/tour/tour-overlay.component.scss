@@ -1,6 +1,7 @@
 .tour-card {
   position: fixed;
   z-index: 1100;
+  animation: fadeInUp 200ms ease-out both;
   width: 360px;
   background: #ffffff;
   border-radius: 12px;
