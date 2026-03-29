@@ -89,7 +89,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-40 | Pitch deck — présentation cabinets | Haute | `Rédigé` | PPTX 11 slides livré le 2026-03-29 — docs/marketing/pitch-deck-ailegalcase.pptx |
 | M-41 | Liste de 50 cabinets cibles (droit travail, Paris/IDF) | Haute | `Rédigé` | Liste livrée le 2026-03-29 — docs/marketing/m41-liste-cabinets-cibles.md — contacts LinkedIn à vérifier avant envoi |
 | M-42 | Script d'outreach LinkedIn — message de prospection | Haute | `Rédigé` | 4 templates livrés le 2026-03-29 — docs/marketing/m42-script-outreach-linkedin.md |
-| M-43 | Démo en ligne — Calendly ou équivalent | Haute | `À faire` | Convertir les prospects inbound |
+| M-43 | Démo en ligne — Calendly ou équivalent | Haute | `Terminé` | https://calendly.com/tounga-franck-ng-itconsulting/30min — intégré dans Template E de M-42 |
 | M-44 | Partenariats barreaux / associations d'avocats | Moyenne | `À faire` | Canal d'acquisition B2B |
 | M-45 | Programme de référence — un mois offert pour parrainage | Moyenne | `À faire` | Croissance organique |
 

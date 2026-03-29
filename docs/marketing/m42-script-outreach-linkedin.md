@@ -70,7 +70,7 @@
 >
 > Je vous propose un appel de 20-30 minutes où je vous montre l'outil en direct sur un dossier de licenciement fictif — vous verrez concrètement ce que ça donne sur vos propres cas d'usage.
 >
-> Vous pouvez réserver directement le créneau qui vous convient ici : **[LIEN CALENDLY]**
+> Vous pouvez réserver directement le créneau qui vous convient ici : **https://calendly.com/tounga-franck-ng-itconsulting/30min**
 >
 > Si vous préférez qu'on échange d'abord sur votre pratique avant la démo, je suis disponible aussi par téléphone.
 >
