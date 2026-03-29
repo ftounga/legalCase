@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { MENTIONS_LEGALES, POLITIQUE_CONFIDENTIALITE, CGU } from './legal/legal-content';
 
 export const routes: Routes = [
   {
@@ -93,6 +94,21 @@ export const routes: Routes = [
     path: 'share/:token',
     loadComponent: () => import('./public-share/public-share.component')
       .then(m => m.PublicShareComponent)
+  },
+  {
+    path: 'mentions-legales',
+    loadComponent: () => import('./legal/legal-page.component').then(m => m.LegalPageComponent),
+    data: { title: 'Mentions légales', sections: MENTIONS_LEGALES }
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./legal/legal-page.component').then(m => m.LegalPageComponent),
+    data: { title: 'Politique de confidentialité', sections: POLITIQUE_CONFIDENTIALITE }
+  },
+  {
+    path: 'cgu',
+    loadComponent: () => import('./legal/legal-page.component').then(m => m.LegalPageComponent),
+    data: { title: 'Conditions Générales d\'Utilisation', sections: CGU }
   },
   { path: '**', redirectTo: '' }
 ];

@@ -1,0 +1,22 @@
+<div class="legal-page">
+  <div class="legal-header">
+    <a routerLink="/" class="back-link">← Retour</a>
+    <h1>{{ title }}</h1>
+    <p class="legal-update">Dernière mise à jour : mars 2026</p>
+  </div>
+
+  <div class="legal-body">
+    @for (section of sections; track $index) {
+      @if (section.heading) {
+        <h2>{{ section.heading }}</h2>
+      }
+      <div [innerHTML]="section.content"></div>
+    }
+  </div>
+
+  <div class="legal-footer">
+    <a routerLink="/mentions-legales">Mentions légales</a>
+    <a routerLink="/privacy">Politique de confidentialité</a>
+    <a routerLink="/cgu">CGU</a>
+  </div>
+</div>
