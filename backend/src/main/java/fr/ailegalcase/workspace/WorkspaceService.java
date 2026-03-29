@@ -85,6 +85,12 @@ public class WorkspaceService {
                     subscriptionRepository.save(subscription);
                 });
 
+        try {
+            emailService.sendOnboardingWelcome(user);
+        } catch (Exception e) {
+            log.warn("Failed to send onboarding welcome to {} — {}", user.getEmail(), e.getMessage());
+        }
+
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
                 workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt(), true,
                 workspace.getLegalDomain(), workspace.getCountry());
@@ -127,12 +133,6 @@ public class WorkspaceService {
                     subscription.setStripeCustomerId(customerId);
                     subscriptionRepository.save(subscription);
                 });
-
-        try {
-            emailService.sendOnboardingWelcome(user);
-        } catch (Exception e) {
-            log.warn("Failed to send onboarding welcome to {} — {}", user.getEmail(), e.getMessage());
-        }
     }
 
     private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {
