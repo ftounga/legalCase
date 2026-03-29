@@ -161,7 +161,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-64 | Recherche full-text dans les synthèses | V2 — **Terminée** | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel et terme surligné. SF-64-01 mergée 2026-03-29 (backend GET /api/v1/search). SF-64-02 mergée 2026-03-29 (frontend /search, debounce, HighlightTermPipe). |
 | F-66 | Modèles de questions Q&A réutilisables | V2 — Backlog (faible priorité) | Sauvegarder des séries de questions fréquentes par domaine juridique et les appliquer en un clic à un nouveau dossier. Évite la saisie répétitive. Scoped au workspace. |
 | F-69 | Suivi des délais légaux | V2 — Backlog | Associer des échéances à un dossier (prescription, délai d'appel, délai de réponse). Alertes J-15 et J-7. Affichage dans la page dossier. Scoped au workspace. |
-| F-70 | Notes internes sur un dossier | V2 — Backlog | Permettre à l'avocat d'ajouter des annotations libres sur un dossier, séparées de l'analyse IA. Non visibles par le client. Scoped au workspace. |
+| F-70 | Notes internes sur un dossier | V2 — **En cours** | Permettre à l'avocat d'ajouter des annotations libres sur un dossier, séparées de l'analyse IA. Non visibles par le client. Scoped au workspace. SF-70-01 mergée 2026-03-29 (backend CRUD, migration 036). SF-70-02 à faire (frontend). |
 | F-67 | Wizard d'onboarding guidé | V2 — **Terminée** | Wizard 4 étapes affiché au premier accès après création du workspace (Bienvenue / Créer un dossier / Ajouter des documents / Lancer une analyse). Skippable à tout moment. Persisté en localStorage. SF-67-01 mergée 2026-03-29. |
 | F-60 | Normalisation nom workspace en majuscules | V2 — **Terminée** | Le nom du workspace est converti en majuscules au moment de la saisie et stocké en majuscules en base. Concerne la création et la modification du nom. SF-60-01 mergée 2026-03-28. |
 | F-61 | Responsive mobile — Shell & navigation | V2 — **Terminée** | Sidebar rétractable sur mobile (menu hamburger), header adaptatif, navigation accessible sur téléphone. SF-61-01 mergée 2026-03-28. |
@@ -206,6 +206,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-29 | F-64 Terminée — SF-64-02 mergée : SearchComponent (/search), debounce 400ms, switchMap, HighlightTermPipe, 282 tests Angular | Product owner |
 | 2026-03-29 | F-64 SF-64-01 mergée — endpoint GET /api/v1/search?q= (ILIKE workspace-scoped, max 50 résultats, max 3 extraits, 14 tests) | Product owner |
 | 2026-03-29 | F-65 Terminée — SF-65-01 mergée : AnalysisNotificationService, sendAnalysisDone(), 10 tests, 349/349 | Product owner |
+| 2026-03-29 | F-70 SF-70-01 mergée — CRUD notes, migration 036 table case_notes, 9 IT (isolation workspace, auteur, 403/404/401) | Product owner |
 | 2026-03-29 | F-69/F-70 ajoutées au backlog — Suivi des délais légaux, Notes internes sur un dossier | Product owner |
 | 2026-03-29 | F-64/F-65/F-66 ajoutées au backlog — Recherche full-text synthèses, Notifications email analyse, Modèles Q&A réutilisables | Product owner |
 | 2026-03-29 | F-67 Terminée — SF-67-01 mergée : OnboardingWizardService (localStorage), OnboardingWizardDialogComponent (4 étapes, signal currentStep), trigger CaseFilesListComponent, 26 tests | Product owner |
