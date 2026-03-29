@@ -51,6 +51,10 @@
           <mat-icon matListItemIcon>folder_open</mat-icon>
           <span matListItemTitle>Dossiers</span>
         </a>
+        <a mat-list-item routerLink="/search" routerLinkActive="sidenav-active" (click)="onNavClick()">
+          <mat-icon matListItemIcon>search</mat-icon>
+          <span matListItemTitle>Recherche</span>
+        </a>
         <a mat-list-item routerLink="/workspace/members" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>group</mat-icon>
           <span matListItemTitle>Membres</span>

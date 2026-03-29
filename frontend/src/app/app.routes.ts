@@ -58,6 +58,11 @@ export const routes: Routes = [
           .then(m => m.AuditLogScreenComponent)
       },
       {
+        path: 'search',
+        loadComponent: () => import('./search/search.component')
+          .then(m => m.SearchComponent)
+      },
+      {
         path: 'super-admin',
         loadComponent: () => import('./super-admin/super-admin.component')
           .then(m => m.SuperAdminComponent)
