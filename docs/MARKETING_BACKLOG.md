@@ -59,11 +59,11 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
-| M-20 | Séquence onboarding — email J+0 (bienvenue) | Haute | `Rédigé` | Texte rédigé — voir `docs/marketing/email-onboarding-sequence.md` — implémentation en cours |
-| M-21 | Séquence onboarding — email J+2 (tip analyse) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
-| M-22 | Séquence onboarding — email J+5 (tip partage client) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
-| M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
-| M-24 | Email de conversion — FREE expiré | Haute | `Rédigé` | Texte rédigé — implémentation en cours |
+| M-20 | Séquence onboarding — email J+0 (bienvenue) | Haute | `Terminé` | Validé en staging le 2026-03-29 |
+| M-21 | Séquence onboarding — email J+2 (tip analyse) | Haute | `Terminé` | Scheduler nightly 8h opérationnel en staging |
+| M-22 | Séquence onboarding — email J+5 (tip partage client) | Haute | `Terminé` | Scheduler nightly 8h opérationnel en staging |
+| M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `Terminé` | Scheduler nightly 8h opérationnel en staging |
+| M-24 | Email de conversion — FREE expiré | Haute | `Terminé` | Scheduler nightly 8h opérationnel en staging |
 | M-25 | Choix d'un outil d'emailing + intégration | Haute | `Terminé` | Brevo déjà intégré via JavaMailSender SMTP — utilisé pour invitations, vérification email, reset MDP. Aucune action supplémentaire requise. |
 | M-26 | Newsletter mensuelle — template | Basse | `À faire` | Fidélisation clients actifs |
 
