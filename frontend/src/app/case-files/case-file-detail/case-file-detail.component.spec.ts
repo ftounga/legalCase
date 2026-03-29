@@ -13,6 +13,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
+import { CaseNoteService } from '../../core/services/case-note.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -58,8 +59,11 @@ describe('CaseFileDetailComponent', () => {
   let caseFileStatsServiceSpy: jasmine.SpyObj<CaseFileStatsService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
   let dialogSpy: jasmine.SpyObj<MatDialog>;
+  let caseNoteServiceSpy: jasmine.SpyObj<CaseNoteService>;
 
   beforeEach(async () => {
+    caseNoteServiceSpy = jasmine.createSpyObj('CaseNoteService', ['list', 'create', 'update', 'delete']);
+    caseNoteServiceSpy.list.and.returnValue(of([]));
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl', 'delete']);
@@ -113,6 +117,7 @@ describe('CaseFileDetailComponent', () => {
           provide: AuthService,
           useValue: { currentUser: signal({ id: 'user-1', email: 'owner@test.com', firstName: null, lastName: null, provider: 'GOOGLE', isSuperAdmin: false }) }
         },
+        { provide: CaseNoteService, useValue: caseNoteServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideRouter([]),

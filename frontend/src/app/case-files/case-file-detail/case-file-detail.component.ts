@@ -31,6 +31,7 @@ import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
+import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -39,7 +40,7 @@ import { CaseFileStatsService } from '../../core/services/case-file-stats.servic
     RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
-    MatDialogModule, ShareDialogComponent
+    MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss'
@@ -128,7 +129,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private globalNotificationService: GlobalAnalysisNotificationService,
     private caseFileStatsService: CaseFileStatsService,
     private aiQuestionService: AiQuestionService,
-    private authService: AuthService,
+    protected authService: AuthService,
     private workspaceMemberService: WorkspaceMemberService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
