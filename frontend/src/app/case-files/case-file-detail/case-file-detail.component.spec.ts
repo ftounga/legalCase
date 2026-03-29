@@ -487,4 +487,38 @@ describe('CaseFileDetailComponent', () => {
     expect(component.canDelete()).toBeFalse();
   });
 
+  // --- Contrats data-tour-target (C-02, C-03, C-04) ---
+
+  // C-02 : bouton "Ajouter des documents" a data-tour-target="upload-trigger-btn"
+  it('C-02: bouton "Ajouter des documents" a data-tour-target="upload-trigger-btn"', () => {
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const btn = el.querySelector('[data-tour-target="upload-trigger-btn"]');
+    expect(btn).withContext('data-tour-target="upload-trigger-btn" manquant dans le template').not.toBeNull();
+  });
+
+  // C-03 : bouton "Analyser le dossier" a data-tour-target="analyze-btn" quand canAnalyze() est vrai
+  it('C-03: bouton "Analyser le dossier" a data-tour-target="analyze-btn" quand canAnalyze() est vrai', () => {
+    component.analysisJobs.set([
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 }
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const btn = el.querySelector('[data-tour-target="analyze-btn"]');
+    expect(btn).withContext('data-tour-target="analyze-btn" manquant dans le template').not.toBeNull();
+  });
+
+  // C-04 : lien "Voir la synthèse" a data-tour-target="synthesis-link" quand synthesis() est non null
+  it('C-04: lien "Voir la synthèse" a data-tour-target="synthesis-link" quand synthesis() est non null', () => {
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: ['un fait'], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      modelUsed: null, updatedAt: '2026-03-29T10:00:00Z'
+    });
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const link = el.querySelector('[data-tour-target="synthesis-link"]');
+    expect(link).withContext('data-tour-target="synthesis-link" manquant dans le template').not.toBeNull();
+  });
+
 });

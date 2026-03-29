@@ -1,0 +1,72 @@
+.tour-card {
+  position: fixed;
+  z-index: 1100;
+  width: 360px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(26, 58, 92, 0.18), 0 2px 8px rgba(26, 58, 92, 0.10);
+  padding: 20px;
+  border: 1px solid #E0E4EA;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  &__icon {
+    color: #C9973A;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  &__step-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  &__body {
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    font-family: 'Merriweather', serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #1A3A5C;
+    margin: 0 0 8px;
+  }
+
+  &__description {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #6B7A8D;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__skip {
+    color: #6B7A8D;
+    font-size: 13px;
+  }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E0E4EA;
+  transition: background 0.2s;
+
+  &--active {
+    background: #1A3A5C;
+  }
+}
