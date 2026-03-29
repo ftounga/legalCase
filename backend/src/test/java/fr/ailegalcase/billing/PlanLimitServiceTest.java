@@ -374,6 +374,49 @@ class PlanLimitServiceTest {
         assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(0L);
     }
 
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_withUnusedCredits_returnsPlanBudgetPlusCredits() {
+        // SOLO plan (6M/month, monthsActive=1), 1M de crédits achetés, 0 consommé → budget = 7M
+        // startedAt=null → fallback Instant.now() → months_between=0 → monthsActive=1
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(creditPurchaseService.getTotalTokensBought(wid)).thenReturn(1_000_000L);
+        when(usageEventRepository.sumTokensByWorkspaceIdAllTime(wid)).thenReturn(0L);
+
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(7_000_000L);
+    }
+
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_withPartiallyConsumedCredits_returnsReducedBonus() {
+        // SOLO (6M/month, monthsActive=1), 2M crédits, 7M consommés all-time
+        // creditsConsumed = max(0, 7M - 6M) = 1M → creditsRemaining = max(0, 2M - 1M) = 1M
+        // budget = 6M + 1M = 7M
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(creditPurchaseService.getTotalTokensBought(wid)).thenReturn(2_000_000L);
+        when(usageEventRepository.sumTokensByWorkspaceIdAllTime(wid)).thenReturn(7_000_000L);
+
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(7_000_000L);
+    }
+
+    @Test
+    void getMonthlyTokenBudgetForWorkspace_creditsFullyConsumed_returnsPlanBudgetOnly() {
+        // SOLO (6M/month, monthsActive=1), 1M crédits, 8M consommés all-time → credits épuisés
+        // creditsConsumed = max(0, 8M - 6M) = 2M > 1M achetés → creditsRemaining = 0
+        UUID wid = UUID.randomUUID();
+        Subscription sub = new Subscription();
+        sub.setPlanCode("SOLO");
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+        when(creditPurchaseService.getTotalTokensBought(wid)).thenReturn(1_000_000L);
+        when(usageEventRepository.sumTokensByWorkspaceIdAllTime(wid)).thenReturn(8_000_000L);
+
+        assertThat(service.getMonthlyTokenBudgetForWorkspace(wid)).isEqualTo(6_000_000L);
+    }
+
     // ── isChatMessageLimitReached ─────────────────────────────────────────
 
     @Test
