@@ -112,6 +112,34 @@ public class EmailService {
         }
     }
 
+    public void sendDeadlineAlert(String toEmail, String caseFileTitle, UUID caseFileId,
+                                   String deadlineLabel, String dueDateStr, int daysRemaining) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — deadline alert skipped for {}", toEmail);
+            return;
+        }
+
+        String daysText = daysRemaining == 0 ? "aujourd'hui"
+                : "dans " + daysRemaining + " jour" + (daysRemaining > 1 ? "s" : "");
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Délai J-" + daysRemaining + " : " + deadlineLabel + " — " + caseFileTitle);
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "Le délai \"" + deadlineLabel + "\" du dossier \"" + caseFileTitle + "\" arrive à échéance " + daysText + " (" + dueDateStr + ").\n\n" +
+                    "Accédez à votre dossier ici :\n" +
+                    frontendUrl + "/case-files/" + caseFileId + "\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Deadline alert sent to {} for deadline '{}' on {}", toEmail, deadlineLabel, dueDateStr);
+        } catch (MailException e) {
+            log.warn("Failed to send deadline alert to {} for '{}' — {}", toEmail, deadlineLabel, e.getMessage());
+        }
+    }
+
     public void sendInvitation(String toEmail, String workspaceName, String token) {
         if (!mailEnabled) {
             log.debug("Mail disabled — invitation email skipped for {}", toEmail);
