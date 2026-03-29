@@ -24,6 +24,9 @@ export class CaseDeadlinesSectionComponent implements OnInit {
   @Input() caseFileId!: string;
 
   deadlines = signal<CaseDeadline[]>([]);
+  collapsed = signal(true);
+
+  toggleCollapsed(): void { this.collapsed.update(v => !v); }
   newLabel = '';
   newDueDate = '';
   editingDeadlineId = signal<string | null>(null);

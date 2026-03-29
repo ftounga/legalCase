@@ -1,58 +1,64 @@
 <div class="notes-section">
-  <h3 class="notes-title">
-    <mat-icon>sticky_note_2</mat-icon>
-    Notes internes
-  </h3>
+  <button class="section-header" type="button" (click)="toggleCollapsed()" aria-label="Afficher/masquer les notes">
+    <mat-icon class="section-icon">sticky_note_2</mat-icon>
+    <span class="section-title">Notes internes</span>
+    @if (collapsed()) {
+      <span class="section-badge">{{ notes().length }} note{{ notes().length > 1 ? 's' : '' }}</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'chevron_right' : 'expand_more' }}</mat-icon>
+  </button>
 
-  <mat-form-field appearance="outline" class="new-note-field">
-    <mat-label>Nouvelle note</mat-label>
-    <textarea matInput [(ngModel)]="newContent" rows="3"
-              placeholder="Ajoutez une note interne…" maxlength="5000"></textarea>
-    <mat-hint align="end">{{ newContent.length }}/5000</mat-hint>
-  </mat-form-field>
+  @if (!collapsed()) {
+    <mat-form-field appearance="outline" class="new-note-field">
+      <mat-label>Nouvelle note</mat-label>
+      <textarea matInput [(ngModel)]="newContent" rows="3"
+                placeholder="Ajoutez une note interne…" maxlength="5000"></textarea>
+      <mat-hint align="end">{{ newContent.length }}/5000</mat-hint>
+    </mat-form-field>
 
-  <div class="new-note-actions">
-    <button mat-flat-button color="primary" [disabled]="!newContent.trim()" (click)="addNote()">
-      <mat-icon>add</mat-icon> Ajouter
-    </button>
-  </div>
+    <div class="new-note-actions">
+      <button mat-flat-button color="primary" [disabled]="!newContent.trim()" (click)="addNote()">
+        <mat-icon>add</mat-icon> Ajouter
+      </button>
+    </div>
 
-  @if (notes().length === 0) {
-    <p class="notes-empty">Aucune note pour ce dossier.</p>
-  }
+    @if (notes().length === 0) {
+      <p class="notes-empty">Aucune note pour ce dossier.</p>
+    }
 
-  <div class="notes-list">
-    @for (note of notes(); track note.id) {
-      <div class="note-item">
-        <div class="note-meta">
-          <span class="note-author">{{ note.authorEmail }}</span>
-          <span class="note-date">{{ note.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-          @if (isOwn(note)) {
-            <div class="note-actions">
-              <button mat-icon-button (click)="startEdit(note)" aria-label="Modifier">
-                <mat-icon>edit</mat-icon>
+    <div class="notes-list">
+      @for (note of notes(); track note.id) {
+        <div class="note-item">
+          <div class="note-meta">
+            <span class="note-author">{{ note.authorEmail }}</span>
+            <span class="note-date">{{ note.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            @if (isOwn(note)) {
+              <div class="note-actions">
+                <button mat-icon-button (click)="startEdit(note)" aria-label="Modifier">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button (click)="deleteNote(note)" aria-label="Supprimer" class="btn-delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+
+          @if (editingNoteId() === note.id) {
+            <mat-form-field appearance="outline" class="edit-field">
+              <textarea matInput [(ngModel)]="editingContent" rows="3" maxlength="5000"></textarea>
+            </mat-form-field>
+            <div class="edit-actions">
+              <button mat-flat-button color="primary" [disabled]="!editingContent.trim()" (click)="saveEdit(note)">
+                Sauvegarder
               </button>
-              <button mat-icon-button (click)="deleteNote(note)" aria-label="Supprimer" class="btn-delete">
-                <mat-icon>delete</mat-icon>
-              </button>
+              <button mat-stroked-button (click)="cancelEdit()">Annuler</button>
             </div>
+          } @else {
+            <p class="note-content">{{ note.content }}</p>
           }
         </div>
-
-        @if (editingNoteId() === note.id) {
-          <mat-form-field appearance="outline" class="edit-field">
-            <textarea matInput [(ngModel)]="editingContent" rows="3" maxlength="5000"></textarea>
-          </mat-form-field>
-          <div class="edit-actions">
-            <button mat-flat-button color="primary" [disabled]="!editingContent.trim()" (click)="saveEdit(note)">
-              Sauvegarder
-            </button>
-            <button mat-stroked-button (click)="cancelEdit()">Annuler</button>
-          </div>
-        } @else {
-          <p class="note-content">{{ note.content }}</p>
-        }
-      </div>
-    }
-  </div>
+      }
+    </div>
+  }
 </div>

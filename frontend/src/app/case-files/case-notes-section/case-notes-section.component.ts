@@ -26,6 +26,9 @@ export class CaseNotesSectionComponent implements OnInit {
   @Input() currentUserEmail: string | null = null;
 
   notes = signal<CaseNote[]>([]);
+  collapsed = signal(true);
+
+  toggleCollapsed(): void { this.collapsed.update(v => !v); }
   newContent = '';
   editingNoteId = signal<string | null>(null);
   editingContent = '';

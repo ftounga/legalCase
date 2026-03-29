@@ -2,19 +2,36 @@
   margin-top: 32px;
 }
 
-.deadlines-title {
+.section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  text-align: left;
   font-family: 'Merriweather', serif;
   font-weight: 600;
   font-size: 18px;
   color: #1A3A5C;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
 
-  mat-icon {
-    color: #C9973A;
+  &:hover { opacity: 0.8; }
+
+  .section-icon { color: #C9973A; }
+  .section-title { flex: 1; }
+  .section-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    background: #e3eaf2;
+    color: #1A3A5C;
+    padding: 2px 8px;
+    border-radius: 12px;
   }
+  .section-chevron { color: #6B7A8D; font-size: 20px; }
 }
 
 .add-deadline-form {

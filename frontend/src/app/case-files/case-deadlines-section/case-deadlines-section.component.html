@@ -1,58 +1,64 @@
 <div class="deadlines-section">
-  <h3 class="deadlines-title">
-    <mat-icon>event</mat-icon>
-    Délais légaux
-  </h3>
-
-  <div class="add-deadline-form">
-    <mat-form-field appearance="outline" class="add-label-field">
-      <mat-label>Libellé</mat-label>
-      <input matInput [(ngModel)]="newLabel" placeholder="Ex : Délai de prescription" maxlength="255">
-    </mat-form-field>
-    <input type="date" [(ngModel)]="newDueDate" class="date-input" aria-label="Date d'échéance">
-    <button mat-flat-button color="primary" [disabled]="!canAdd()" (click)="addDeadline()">
-      <mat-icon>add</mat-icon> Ajouter
-    </button>
-  </div>
-
-  @if (deadlines().length === 0) {
-    <p class="deadlines-empty">Aucun délai pour ce dossier.</p>
-  }
-
-  <div class="deadlines-list">
-    @for (d of deadlines(); track d.id) {
-      <div class="deadline-item" [class]="deadlineClass(d.dueDate)">
-        @if (editingDeadlineId() === d.id) {
-          <div class="edit-form">
-            <mat-form-field appearance="outline" class="edit-label-field">
-              <input matInput [(ngModel)]="editingLabel" maxlength="255">
-            </mat-form-field>
-            <input type="date" [(ngModel)]="editingDueDate" class="date-input" aria-label="Date d'échéance">
-          </div>
-          <div class="edit-actions">
-            <button mat-flat-button color="primary"
-                    [disabled]="!editingLabel.trim() || !editingDueDate"
-                    (click)="saveEdit(d)">
-              Sauvegarder
-            </button>
-            <button mat-stroked-button (click)="cancelEdit()">Annuler</button>
-          </div>
-        } @else {
-          <div class="deadline-info">
-            <span class="deadline-label">{{ d.label }}</span>
-            <span class="deadline-date">{{ d.dueDate | date:'dd/MM/yyyy' }}</span>
-            <span class="deadline-badge" [class]="deadlineClass(d.dueDate)">{{ daysLabel(d.dueDate) }}</span>
-          </div>
-          <div class="deadline-actions">
-            <button mat-icon-button (click)="startEdit(d)" aria-label="Modifier">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button (click)="deleteDeadline(d)" aria-label="Supprimer" class="btn-delete">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        }
-      </div>
+  <button class="section-header" type="button" (click)="toggleCollapsed()" aria-label="Afficher/masquer les délais">
+    <mat-icon class="section-icon">event</mat-icon>
+    <span class="section-title">Délais légaux</span>
+    @if (collapsed()) {
+      <span class="section-badge">{{ deadlines().length }} délai{{ deadlines().length > 1 ? 's' : '' }}</span>
     }
-  </div>
+    <mat-icon class="section-chevron">{{ collapsed() ? 'chevron_right' : 'expand_more' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="add-deadline-form">
+      <mat-form-field appearance="outline" class="add-label-field">
+        <mat-label>Libellé</mat-label>
+        <input matInput [(ngModel)]="newLabel" placeholder="Ex : Délai de prescription" maxlength="255">
+      </mat-form-field>
+      <input type="date" [(ngModel)]="newDueDate" class="date-input" aria-label="Date d'échéance">
+      <button mat-flat-button color="primary" [disabled]="!canAdd()" (click)="addDeadline()">
+        <mat-icon>add</mat-icon> Ajouter
+      </button>
+    </div>
+
+    @if (deadlines().length === 0) {
+      <p class="deadlines-empty">Aucun délai pour ce dossier.</p>
+    }
+
+    <div class="deadlines-list">
+      @for (d of deadlines(); track d.id) {
+        <div class="deadline-item" [class]="deadlineClass(d.dueDate)">
+          @if (editingDeadlineId() === d.id) {
+            <div class="edit-form">
+              <mat-form-field appearance="outline" class="edit-label-field">
+                <input matInput [(ngModel)]="editingLabel" maxlength="255">
+              </mat-form-field>
+              <input type="date" [(ngModel)]="editingDueDate" class="date-input" aria-label="Date d'échéance">
+            </div>
+            <div class="edit-actions">
+              <button mat-flat-button color="primary"
+                      [disabled]="!editingLabel.trim() || !editingDueDate"
+                      (click)="saveEdit(d)">
+                Sauvegarder
+              </button>
+              <button mat-stroked-button (click)="cancelEdit()">Annuler</button>
+            </div>
+          } @else {
+            <div class="deadline-info">
+              <span class="deadline-label">{{ d.label }}</span>
+              <span class="deadline-date">{{ d.dueDate | date:'dd/MM/yyyy' }}</span>
+              <span class="deadline-badge" [class]="deadlineClass(d.dueDate)">{{ daysLabel(d.dueDate) }}</span>
+            </div>
+            <div class="deadline-actions">
+              <button mat-icon-button (click)="startEdit(d)" aria-label="Modifier">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="deleteDeadline(d)" aria-label="Supprimer" class="btn-delete">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
 </div>

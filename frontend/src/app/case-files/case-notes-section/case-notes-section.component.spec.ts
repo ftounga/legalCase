@@ -40,14 +40,17 @@ describe('CaseNotesSectionComponent', () => {
     fixture.detectChanges();
   });
 
-  it('U-01: shows empty state when no notes', () => {
+  it('U-01: shows empty state when no notes (expanded)', () => {
+    component.toggleCollapsed();
+    fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.notes-empty')?.textContent).toContain('Aucune note');
   });
 
-  it('U-02: renders note items when notes exist', () => {
+  it('U-02: renders note items when notes exist (expanded)', () => {
     noteServiceSpy.list.and.returnValue(of([NOTE_OWN]));
     component.loadNotes();
+    component.toggleCollapsed();
     fixture.detectChanges();
     const items = fixture.nativeElement.querySelectorAll('.note-item');
     expect(items.length).toBe(1);
@@ -55,6 +58,8 @@ describe('CaseNotesSectionComponent', () => {
   });
 
   it('U-03: add button disabled when textarea empty, enabled when filled', () => {
+    component.toggleCollapsed();
+    fixture.detectChanges();
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.new-note-actions button');
     expect(btn.disabled).toBeTrue();
     component.newContent = 'une note';
@@ -65,6 +70,7 @@ describe('CaseNotesSectionComponent', () => {
   it('U-04: edit/delete buttons visible only for own notes', () => {
     noteServiceSpy.list.and.returnValue(of([NOTE_OWN, NOTE_OTHER]));
     component.loadNotes();
+    component.toggleCollapsed();
     fixture.detectChanges();
     const items = fixture.nativeElement.querySelectorAll('.note-item');
     expect(items[0].querySelector('.note-actions')).toBeTruthy();
@@ -80,5 +86,35 @@ describe('CaseNotesSectionComponent', () => {
     component.editingContent = '  Modifiée  ';
     component.saveEdit(NOTE_OWN);
     expect(noteServiceSpy.update).toHaveBeenCalledWith('cf-1', 'n-1', 'Modifiée');
+  });
+
+  // ── Collapsible (SF-71-01) ────────────────────────────────────────────────
+
+  it('SF71-U-04: section repliée par défaut — contenu masqué', () => {
+    expect(component.collapsed()).toBeTrue();
+    const noteField = fixture.nativeElement.querySelector('.new-note-field');
+    expect(noteField).toBeNull();
+  });
+
+  it('SF71-U-05: après toggleCollapsed() — contenu visible, badge masqué', () => {
+    noteServiceSpy.list.and.returnValue(of([NOTE_OWN]));
+    component.loadNotes();
+    component.toggleCollapsed();
+    fixture.detectChanges();
+    expect(component.collapsed()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.new-note-field')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.section-badge')).toBeNull();
+  });
+
+  it('SF71-U-06: double toggle — retour à l\'état replié, badge visible', () => {
+    noteServiceSpy.list.and.returnValue(of([NOTE_OWN, NOTE_OTHER]));
+    component.loadNotes();
+    component.toggleCollapsed();
+    component.toggleCollapsed();
+    fixture.detectChanges();
+    expect(component.collapsed()).toBeTrue();
+    const badge = fixture.nativeElement.querySelector('.section-badge');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain('2 notes');
   });
 });
