@@ -34,9 +34,9 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
 | M-01 | Landing page — mise à jour multi-domaines, FAQ, sections V2 | Haute | `Terminé` | Fait le 2026-03-29 : domaines (travail/immigration/famille), 8 feature cards, FAQ 6 questions, CTA bas de page |
-| M-02 | Mentions légales — rédaction | Haute | `À faire` | Obligatoire avant tout trafic payant |
-| M-03 | Politique de confidentialité — rédaction | Haute | `À faire` | Obligatoire RGPD |
-| M-04 | CGU — rédaction | Haute | `À faire` | Obligatoire avant signature |
+| M-02 | Mentions légales — rédaction | Haute | `Rédigé` | `docs/marketing/legal/mentions-legales.md` — à déployer comme page Angular |
+| M-03 | Politique de confidentialité — rédaction | Haute | `Rédigé` | `docs/marketing/legal/politique-confidentialite.md` — à déployer comme page Angular |
+| M-04 | CGU — rédaction | Haute | `Rédigé` | `docs/marketing/legal/cgu.md` — à déployer comme page Angular |
 | M-05 | Page contact — formulaire email | Moyenne | `À faire` | Capture des prospects non-convertis |
 | M-06 | SEO — balises meta, Open Graph, sitemap | Moyenne | `À faire` | Indexation Google |
 | M-07 | Google Analytics / Plausible — intégration tracking | Moyenne | `À faire` | Mesurer le trafic et la conversion |
