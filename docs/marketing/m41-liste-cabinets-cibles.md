@@ -3,6 +3,57 @@
 
 ---
 
+## Rôle de cette liste
+
+**Cette liste de 50 cabinets est une liste d'amorçage (pilote), pas le marché total.**
+
+Elle sert à valider le script d'outreach et le funnel de conversion sur 2 semaines avant de scaler.
+
+| Phase | Volume | Objectif |
+|-------|--------|----------|
+| **Pilote** (cette liste) | 50 contacts | Valider le script — taux de réponse cible > 10% |
+| **Scale Paris** | ~500 cabinets | Barreau de Paris — annuaire droit social complet |
+| **Scale IDF** | ~300 cabinets | Barreaux 92/93/94 |
+| **Province** | ~1 000+ cabinets | Lyon, Marseille, Bordeaux, Lille — après validation Paris |
+
+Si le taux de réponse est < 10% après le pilote → ajuster le script avant de scaler.
+Si > 10% → extraire les 500 cabinets suivants depuis l'annuaire du Barreau de Paris.
+
+---
+
+## Comment trouver l'avocat à contacter dans chaque cabinet
+
+**Tu ne contactes pas "le cabinet" — tu contactes une personne physique.**
+5 messages/jour = 5 personnes différentes, une par cabinet. Jamais plusieurs messages au même cabinet en parallèle.
+
+### Sources pour trouver le bon interlocuteur
+
+| Source | Comment l'utiliser |
+|--------|-------------------|
+| **LinkedIn** (gratuit) | Recherche : "avocat droit du travail [nom du cabinet]" — profil le plus actif = meilleur contact |
+| **Site web du cabinet** | Page "L'équipe" → associés listés → chercher leur profil LinkedIn |
+| **Annuaire Barreau de Paris** (barreaudeparis.fr) | Recherche par nom de cabinet → liste des avocats inscrits → croiser avec LinkedIn |
+| **Lexbase.fr** | Profils d'avocats avec spécialités et coordonnées |
+| **Village de la Justice** | Annuaire + articles publiés par des avocats = signal d'activité |
+
+### Qui contacter en priorité
+
+| Taille cabinet | Interlocuteur cible |
+|---------------|---------------------|
+| 1-3 avocats | L'associé unique ou le fondateur — il est le décideur |
+| 4-10 avocats | L'associé gérant ou le responsable de la pratique sociale |
+| 10-20 avocats | L'associé responsable du département droit du travail |
+| 20+ avocats | Eviter le premier contact à froid — attendre phase 3 avec témoignages clients |
+
+### Critères pour choisir quel profil LinkedIn contacter dans un cabinet
+
+1. **Profil actif** — a publié un post dans les 3 derniers mois
+2. **Connexion 2e degré** — taux de réponse 2-3x supérieur à un 3e degré
+3. **Spécialité explicite** — "droit du travail" ou "droit social" dans le titre ou le résumé
+4. **Pas de signal négatif** — éviter les profils "en reconversion" ou "en disponibilité"
+
+---
+
 ## Méthodologie de constitution de la liste
 
 Cette liste est constituée à partir de :

@@ -5,7 +5,7 @@
 
 ## Principe directeur
 
-- **Volume cible** : 5 à 10 messages par jour, pas plus (crédibilité > spam)
+- **Volume cible** : 5 messages par jour maximum = 25 par semaine (crédibilité > spam)
 - **Personnalisation** : 1 phrase sur le cabinet ou le profil de l'avocat avant le pitch
 - **Longueur** : court (< 150 mots par message), lu sur mobile
 - **Ton** : professionnel, direct, sans jargon startup
@@ -95,7 +95,7 @@
 3. **Envoyer** Template A ou B le lundi ou mardi matin (meilleur taux de réponse)
 4. **Relancer** à J+7 avec Template C si pas de réponse
 5. **Tracker** dans un tableau simple : Nom / Cabinet / Date envoi / Statut / Notes
-6. **Objectif** : 50 messages/semaine → 5-10 réponses → 2-3 démos → 1 client
+6. **Objectif** : 25 messages/semaine (5/jour) → 2-4 réponses → 1-2 démos → 1 client/mois en phase pilote
 
 ---
 
