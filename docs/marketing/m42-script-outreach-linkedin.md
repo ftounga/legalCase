@@ -62,6 +62,36 @@
 
 ---
 
+## TEMPLATE E — Réponse à une réponse positive ("intéressé", "dites-m'en plus", "pourquoi pas")
+
+> Bonjour [Prénom],
+>
+> Merci pour votre retour.
+>
+> Je vous propose un appel de 20-30 minutes où je vous montre l'outil en direct sur un dossier de licenciement fictif — vous verrez concrètement ce que ça donne sur vos propres cas d'usage.
+>
+> Vous pouvez réserver directement le créneau qui vous convient ici : **[LIEN CALENDLY]**
+>
+> Si vous préférez qu'on échange d'abord sur votre pratique avant la démo, je suis disponible aussi par téléphone.
+>
+> À très bientôt,
+> [Votre prénom]
+
+---
+
+## TEMPLATE F — Réponse à "pas le temps maintenant" / "revenez dans X semaines"
+
+> Bonjour [Prénom],
+>
+> Pas de problème, je note de revenir vers vous.
+>
+> En attendant, si vous souhaitez avoir un aperçu rapide, j'ai une vidéo de 2 minutes qui montre l'outil sur un dossier prud'homal — ça vous donnera une idée sans mobiliser de temps d'appel.
+>
+> Bonne continuation,
+> [Votre prénom]
+
+---
+
 ## TEMPLATE D — Après un post LinkedIn (commentaire / like sur un contenu juridique)
 
 > Bonjour [Prénom],
@@ -93,9 +123,22 @@
 1. **Identifier** les profils dans la liste M-41 (50 cabinets) — noter le domaine et la taille
 2. **Personnaliser** le template (1-2 phrases) avant d'envoyer
 3. **Envoyer** Template A ou B le lundi ou mardi matin (meilleur taux de réponse)
-4. **Relancer** à J+7 avec Template C si pas de réponse
-5. **Tracker** dans un tableau simple : Nom / Cabinet / Date envoi / Statut / Notes
-6. **Objectif** : 25 messages/semaine (5/jour) → 2-4 réponses → 1-2 démos → 1 client/mois en phase pilote
+4. **Si réponse positive** → Template E dans les 2h avec lien Calendly
+5. **Si "pas le temps"** → Template F + noter la date de rappel dans le tableau de suivi
+6. **Relancer** à J+7 avec Template C si pas de réponse du tout
+7. **Tracker** dans un tableau simple : Nom / Cabinet / Date envoi / Statut / Notes
+8. **Objectif** : 25 messages/semaine (5/jour) → 2-4 réponses → 1-2 démos → 1 client/mois en phase pilote
+
+### Déroulé de l'appel (20-30 min)
+
+| Étape | Durée | Contenu |
+|-------|-------|---------|
+| Découverte | 5 min | Questions sur sa pratique : volume de dossiers, domaine principal, douleur actuelle |
+| Démo live | 15 min | Connexion sur legalcase.ng-itconsulting.com — créer un dossier fictif, uploader 2-3 PDFs, lancer l'analyse, montrer la synthèse |
+| Questions / pitch deck | 5 min | Slide tarifs si la démo a convaincu — sinon laisser le pitch deck en suivi |
+| Closing | 2 min | Proposer l'essai gratuit 14 jours directement à la fin de l'appel |
+
+**Règle** : ne pas envoyer le pitch deck avant l'appel — il sert de support pendant ou de suivi après, pas de porte d'entrée.
 
 ---
 
