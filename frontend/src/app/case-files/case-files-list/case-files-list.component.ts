@@ -13,6 +13,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { TourService } from '../../core/services/tour.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { CaseFileCreateDialogComponent } from '../case-file-create-dialog/case-file-create-dialog.component';
+import { fadeInUp, listStagger } from '../../shared/animations';
 
 @Component({
   selector: 'app-case-files-list',
@@ -22,7 +23,8 @@ import { CaseFileCreateDialogComponent } from '../case-file-create-dialog/case-f
     MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule
   ],
   templateUrl: './case-files-list.component.html',
-  styleUrl: './case-files-list.component.scss'
+  styleUrl: './case-files-list.component.scss',
+  animations: [fadeInUp, listStagger],
 })
 export class CaseFilesListComponent implements OnInit {
   displayedColumns = ['title', 'legalDomain', 'status', 'createdAt', 'actions'];

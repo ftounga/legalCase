@@ -19,6 +19,7 @@ import { GlobalAnalysisNotificationService } from '../../core/services/global-an
 import { ChatService } from '../../core/services/chat.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { CaseFile } from '../../core/models/case-file.model';
+import { fadeInUp, listStagger } from '../../shared/animations';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
@@ -33,7 +34,8 @@ import { ChatMessage } from '../../core/models/chat-message.model';
     MatCheckboxModule, MatTooltipModule
   ],
   templateUrl: './synthesis.component.html',
-  styleUrl: './synthesis.component.scss'
+  styleUrl: './synthesis.component.scss',
+  animations: [fadeInUp, listStagger],
 })
 export class SynthesisComponent implements OnInit {
   caseFile = signal<CaseFile | null>(null);

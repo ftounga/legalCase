@@ -22,7 +22,7 @@
     </a>
   </div>
 } @else {
-  <div class="synthesis-header">
+  <div class="synthesis-header" @fadeInUp>
     <div class="header-top-row">
       <a mat-button [routerLink]="['/case-files', caseFile()!.id]" class="back-btn">
         <mat-icon>arrow_back</mat-icon>
@@ -70,7 +70,7 @@
   </div>
 
   @if (synthesis()) {
-    <mat-accordion class="synthesis-accordion" multi>
+    <mat-accordion class="synthesis-accordion" multi [@listStagger]="synthesis()!.faits.length + synthesis()!.risques.length + synthesis()!.timeline.length">
       @if (synthesis()!.timeline.length > 0) {
         <mat-expansion-panel expanded>
           <mat-expansion-panel-header>
@@ -80,9 +80,9 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.timeline.length }} événement(s)</mat-panel-description>
           </mat-expansion-panel-header>
-          <div class="timeline">
+          <div class="timeline" [@listStagger]="synthesis()!.timeline.length">
             @for (entry of synthesis()!.timeline; track entry.date) {
-              <div class="timeline-entry">
+              <div class="timeline-entry" @fadeInUp>
                 <span class="timeline-date">{{ entry.date }}</span>
                 <span class="timeline-event">{{ entry.evenement }}</span>
               </div>
@@ -100,9 +100,9 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.faits.length }} élément(s)</mat-panel-description>
           </mat-expansion-panel-header>
-          <ol class="synthesis-list">
+          <ol class="synthesis-list" [@listStagger]="synthesis()!.faits.length">
             @for (item of synthesis()!.faits; track $index) {
-              <li>{{ item }}</li>
+              <li @fadeInUp>{{ item }}</li>
             }
           </ol>
         </mat-expansion-panel>
@@ -117,9 +117,9 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.pointsJuridiques.length }} point(s)</mat-panel-description>
           </mat-expansion-panel-header>
-          <ol class="synthesis-list">
+          <ol class="synthesis-list" [@listStagger]="synthesis()!.pointsJuridiques.length">
             @for (item of synthesis()!.pointsJuridiques; track $index) {
-              <li>{{ item }}</li>
+              <li @fadeInUp>{{ item }}</li>
             }
           </ol>
         </mat-expansion-panel>
@@ -134,9 +134,9 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.risques.length }} risque(s)</mat-panel-description>
           </mat-expansion-panel-header>
-          <ol class="synthesis-list">
+          <ol class="synthesis-list" [@listStagger]="synthesis()!.risques.length">
             @for (item of synthesis()!.risques; track $index) {
-              <li>{{ item }}</li>
+              <li @fadeInUp>{{ item }}</li>
             }
           </ol>
         </mat-expansion-panel>
@@ -151,9 +151,9 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.questionsOuvertes.length }} question(s)</mat-panel-description>
           </mat-expansion-panel-header>
-          <ol class="synthesis-list">
+          <ol class="synthesis-list" [@listStagger]="synthesis()!.questionsOuvertes.length">
             @for (item of synthesis()!.questionsOuvertes; track $index) {
-              <li>{{ item }}</li>
+              <li @fadeInUp>{{ item }}</li>
             }
           </ol>
         </mat-expansion-panel>

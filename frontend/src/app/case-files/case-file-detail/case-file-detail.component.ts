@@ -33,6 +33,7 @@ import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
+import { fadeInUp, listStagger } from '../../shared/animations';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -45,7 +46,8 @@ import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-de
     CaseDeadlinesSectionComponent
   ],
   templateUrl: './case-file-detail.component.html',
-  styleUrl: './case-file-detail.component.scss'
+  styleUrl: './case-file-detail.component.scss',
+  animations: [fadeInUp, listStagger],
 })
 export class CaseFileDetailComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
