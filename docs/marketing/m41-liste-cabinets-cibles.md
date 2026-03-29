@@ -72,111 +72,108 @@ Cette liste est constituée à partir de :
 
 ## Liste des 50 cabinets
 
-> **Légende statut** : ✅ Vérifié (source web) — ⚠️ À confirmer avant envoi (annuaire Barreau de Paris ou site web)
+> **Légende** : ✅ Cabinet + contact vérifiés — 🔗 LinkedIn URL trouvée — ⚠️ Nom de contact à rechercher sur le site du cabinet
 
 ---
 
-### PHASE 1 — Boutiques (1-10 avocats) — Décision rapide, interlocuteur direct
+### PHASE 1 — Boutiques (1-15 avocats) — Priorité absolue
 
-*Priorité absolue : l'associé est le décideur, cycle de vente court.*
+*L'associé est le décideur. Cycle court. Commencer ici.*
 
-| # | Cabinet | Taille | Localisation | Site / Contact | Statut |
-|---|---------|--------|-------------|---------------|--------|
-| 01 | Howard Avocats | 5-10 avocats | Paris | howard-avocats.com | ✅ |
-| 02 | Sagan Avocats (Alexandra Sabbe-Ferry) | 1-5 avocats | Paris | À rechercher LinkedIn | ✅ |
-| 03 | Edgar Avocats | 1-5 avocats | Paris | À rechercher LinkedIn | ✅ |
-| 04 | La Garanderie Avocats (Dominique de la Garanderie) | 1-5 avocats | Paris | À rechercher LinkedIn | ✅ |
-| 05 | Cabinet A-P (Alina Paragyios) | ~5 avocats | Paris | cabinet-ap.fr | ✅ |
-| 06 | Schaeffer Avocats | 5-10 avocats | 75015 Paris | schaeffer-avocats.com | ✅ |
-| 07 | FD Avocats | 1-5 avocats | 75016 Paris | fd-avocats.com | ✅ |
-| 08 | Cabinet 2A Avocats (Aurélie Arnaud) | 1-3 avocats | Paris | 2a-avocat.com | ✅ |
-| 09 | Cabinet Zenou | 1-5 avocats | Paris | cabinet-zenou.fr | ✅ |
-| 10 | Cabinet Ngawa | 1-5 avocats | 75008 Paris | ngawa-avocat-paris.fr | ✅ |
-| 11 | Cabinet Nassyha | 1-5 avocats | Paris | nassyha.com | ✅ |
-| 12 | Voltaire Avocats | 5-10 avocats | Paris | voltaire-avocats.com | ✅ |
-| 13 | Eric Rocheblave Avocat | 1-3 avocats | Paris | rocheblave.com | ✅ |
-| 14 | À compléter | — | Paris | annuaireavocats.fr | ⚠️ |
-| 15 | À compléter | — | Paris | annuaireavocats.fr | ⚠️ |
-| 16 | À compléter | — | Paris | alexia.fr | ⚠️ |
-| 17 | À compléter | — | Paris | alexia.fr | ⚠️ |
-| 18 | À compléter | — | Paris | justifit.fr | ⚠️ |
-| 19 | À compléter | — | Paris | justifit.fr | ⚠️ |
-| 20 | À compléter | — | Paris | justifit.fr | ⚠️ |
+| # | Cabinet | Contact cible | LinkedIn | Statut |
+|---|---------|--------------|---------|--------|
+| 01 | Howard Avocats | Marlone Zard | [linkedin.com/in/marlonezard](https://www.linkedin.com/in/marlonezard/) | ✅ 🔗 |
+| 02 | Sagan Avocats | Alexandra Sabbe-Ferri | [linkedin.com/in/alexandra-sabbe-ferri-95a64924](https://www.linkedin.com/in/alexandra-sabbe-ferri-95a64924/) | ✅ 🔗 |
+| 03 | Rollin Avocats | Cyrille Rollin | [linkedin.com/in/cyrille-rollin-avocat](https://www.linkedin.com/in/cyrille-rollin-avocat/) | ✅ 🔗 |
+| 04 | Seror Fellous Avocats | Audrey Seror | [linkedin.com/in/audrey-seror-86b925167](https://www.linkedin.com/in/audrey-seror-86b925167) | ✅ 🔗 |
+| 05 | Eric Rocheblave Avocat | Eric Rocheblave | [linkedin.com/in/ericrocheblave](https://www.linkedin.com/in/ericrocheblave/) | ✅ 🔗 |
+| 06 | Cabinet DB Avocats | Damien Busquet | Rechercher "Damien Busquet avocat" sur LinkedIn | ✅ ⚠️ |
+| 07 | Cabinet A-P | Alina Paragyios | Rechercher "Alina Paragyios avocat" sur LinkedIn | ✅ ⚠️ |
+| 08 | Cabinet 2A Avocats | Aurélie Arnaud | Rechercher "Aurélie Arnaud avocat Paris" sur LinkedIn | ✅ ⚠️ |
+| 09 | Cabinet Zenou | Fondateur (site: cabinet-zenou.fr) | Rechercher le nom sur la page "équipe" du site | ✅ ⚠️ |
+| 10 | Cabinet Ngawa | Fondateur (site: ngawa-avocat-paris.fr) | Rechercher le nom sur la page "équipe" du site | ✅ ⚠️ |
+| 11 | Cabinet Nassyha | Fondateur (site: nassyha.com) | Rechercher le nom sur la page "équipe" du site | ✅ ⚠️ |
+| 12 | Edgar Avocats | Fondateur (site: edgaravocats.fr) | Rechercher le nom sur la page "équipe" du site | ✅ ⚠️ |
+| 13 | La Garanderie Avocats | Dominique de la Garanderie | Rechercher "Dominique de la Garanderie" sur LinkedIn | ✅ ⚠️ |
+| 14 | Schaeffer Avocats | Fondateur (site: schaeffer-avocats.com) | Rechercher le nom sur la page "équipe" du site | ✅ ⚠️ |
+| 15 | FD Avocats | Fondateur (site: fd-avocats.com) | Rechercher le nom sur la page "équipe" du site | ✅ ⚠️ |
+| 16 | Voltaire Avocats | Associé(e) droit du travail | Page équipe : voltaire-avocats.com | ✅ ⚠️ |
+| 17 | Cabinet Delfini | Fondateur (site: delfini-avocat.fr) | Rechercher le nom sur la page "équipe" du site | ✅ ⚠️ |
+| 18 | Cabinet A-P (Alina Paragyios) | Alina Paragyios | Page équipe : cabinet-ap.fr | ✅ ⚠️ |
+| 19 | À compléter | — | annuaireavocats.fr → Droit du travail → Paris | ⚠️ |
+| 20 | À compléter | — | annuaireavocats.fr → Droit du travail → Paris | ⚠️ |
 
-*Pour les lignes ⚠️ : aller sur annuaireavocats.fr → "Droit du travail" → "Paris" → filtrer 1-10 avocats. 10 min de travail pour compléter ces 7 lignes.*
+*Lignes 19-20 : 5 min sur [annuaireavocats.fr](https://www.annuaireavocats.fr/cabinets/droit-du-travail/paris) pour compléter.*
 
 ---
 
 ### PHASE 2 — Cabinets moyens (10-50 avocats) — Cycle 2-4 semaines
 
-*Cibler l'associé responsable du département droit social.*
+*Cibler l'associé responsable du département droit social, pas le DG.*
 
-| # | Cabinet | Taille | Localisation | Site | Statut |
-|---|---------|--------|-------------|------|--------|
-| 21 | Flichy Grangé Avocats | 80+ avocats (dept. social) | 75002 Paris | flichygrange.fr | ✅ |
-| 22 | Fromont Briens | 20-50 avocats | 75008 Paris | fromont-briens.com | ✅ |
-| 23 | Capstan Avocats | 20-50 avocats | 75008 Paris | capstan.fr | ✅ |
-| 24 | Barthélemy Avocats | 10-20 avocats | 75008 Paris | barthelemy-avocats.com | ✅ |
-| 25 | Chassany Watrelot & Associés | 10-20 avocats | 75008 Paris | cwassocies.com | ✅ |
-| 26 | Hoche Avocats | 10-20 avocats | Paris | hoche-avocats.com | ✅ |
-| 27 | Ogletree Deakins | 20-50 avocats | 75008 Paris | ogletree.fr | ✅ |
-| 28 | Littler France | 20-50 avocats | Paris | littler.com | ✅ |
-| 29 | KGA Avocats | 10-20 avocats | Paris | kga.fr | ✅ |
-| 30 | Bersay & Associés | 10-20 avocats | 75008 Paris | bersay.com | ✅ |
-| 31 | August Debouzy (dept. social) | 20-50 avocats | 75008 Paris | august-debouzy.com | ✅ |
+| # | Cabinet | Contact cible | LinkedIn | Statut |
+|---|---------|--------------|---------|--------|
+| 21 | Flichy Grangé Avocats | Eric Le Quellenec (associé) | [linkedin.com/in/eric-le-quellenec-7032567](https://www.linkedin.com/in/eric-le-quellenec-7032567/) | ✅ 🔗 |
+| 22 | Capstan Avocats | Luc Bachelot (associé) | [linkedin.com/in/luc-bachelot-ba64a9133](https://www.linkedin.com/in/luc-bachelot-ba64a9133/) | ✅ 🔗 |
+| 23 | Chassany Watrelot & Associés | Philippe Chassany ou Jérôme Watrelot | Rechercher sur LinkedIn | ✅ ⚠️ |
+| 24 | August Debouzy | Emmanuelle Barbara (dept. social) | Rechercher "Emmanuelle Barbara avocat" sur LinkedIn | ✅ ⚠️ |
+| 25 | Hoche Avocats | Associé dept. social | Page équipe : hoche-avocats.com | ✅ ⚠️ |
+| 26 | Ogletree Deakins | Associé dept. social | Page équipe : ogletree.fr | ✅ ⚠️ |
+| 27 | Fromont Briens | Associé dept. social | Page équipe : fromont-briens.com | ✅ ⚠️ |
+| 28 | Littler France | Associé dept. social | Page équipe : littler.com/Paris | ✅ ⚠️ |
+| 29 | KGA Avocats | Associé dept. social | Page équipe : kga.fr | ✅ ⚠️ |
+| 30 | Bersay & Associés | Associé dept. social | Page équipe : bersay.com | ✅ ⚠️ |
+| 31 | Barthélemy Avocats | Associé dept. social | Page équipe : barthelemy-avocats.com | ✅ ⚠️ |
 
 ---
 
 ### PHASE 2 — Petite Couronne (92)
 
-| # | Cabinet | Taille | Localisation | Site | Statut |
-|---|---------|--------|-------------|------|--------|
-| 32 | Cabinet CBO / Boulanger (Olivier Boulanger) | 1-5 avocats | Levallois-Perret 92 | À rechercher LinkedIn | ✅ |
-| 33 | Cabinet Delmas (Jean-François Delmas) | 1-5 avocats | Boulogne-Billancourt 92 | À rechercher LinkedIn | ✅ |
-| 34 | Maître Gérard Sutter | Avocat solo | Levallois-Perret 92 | À rechercher LinkedIn | ✅ |
-| 35 | À compléter | — | Nanterre 92 | starofservice.com | ⚠️ |
-| 36 | À compléter | — | Neuilly 92 | justifit.fr/neuilly | ⚠️ |
-| 37 | À compléter | — | 92 | juritravail.com | ⚠️ |
+| # | Cabinet | Contact cible | LinkedIn | Statut |
+|---|---------|--------------|---------|--------|
+| 32 | Cabinet CBO / Boulanger | Olivier Boulanger | Rechercher "Olivier Boulanger avocat Levallois" sur LinkedIn | ✅ ⚠️ |
+| 33 | Cabinet Delmas | Jean-François Delmas | Rechercher "Jean-François Delmas avocat Boulogne" sur LinkedIn | ✅ ⚠️ |
+| 34 | Maître Gérard Sutter | Gérard Sutter | Rechercher "Gérard Sutter avocat Levallois" sur LinkedIn | ✅ ⚠️ |
+| 35 | À compléter | — | starofservice.com → Nanterre → droit du travail | ⚠️ |
+| 36 | À compléter | — | justifit.fr → Neuilly → droit du travail | ⚠️ |
+| 37 | À compléter | — | juritravail.com → 92 → droit du travail | ⚠️ |
 
 ---
 
-### PHASE 3 — Grands cabinets (dept. social) — Cycle long, après témoignages clients
+### PHASE 3 — Grands cabinets — Après témoignages clients seulement
 
-*N'approcher qu'après avoir des références clients convaincantes des phases 1-2.*
+*Ne pas approcher avant d'avoir 2-3 références de phase 1-2. Cycle 1-3 mois.*
 
-| # | Cabinet | Taille | Localisation | Site | Statut |
-|---|---------|--------|-------------|------|--------|
-| 38 | CMS Francis Lefebvre (dept. social) | 100+ avocats | 75016 Paris | cms-fl.com | ✅ |
-| 39 | Gide Loyrette Nouel (dept. social) | 100+ avocats | 75008 Paris | gide.com | ✅ |
-| 40 | Hogan Lovells (dept. social) | 100+ avocats | 75008 Paris | hoganlovells.com | ✅ |
-| 41 | Allen & Overy (dept. social) | 100+ avocats | 75008 Paris | allenovery.com | ✅ |
-| 42 | Linklaters (dept. social) | 100+ avocats | 75008 Paris | linklaters.com | ✅ |
-| 43 | Proskauer Rose (dept. social) | 100+ avocats | 75008 Paris | proskauer.com | ✅ |
-| 44 | Jeantet (dept. social) | 100+ avocats | 75008 Paris | jeantet.fr | ✅ |
+| # | Cabinet | Contact cible | LinkedIn | Statut |
+|---|---------|--------------|---------|--------|
+| 38 | CMS Francis Lefebvre | Associé dept. social | Page équipe : cms-fl.com | ✅ ⚠️ |
+| 39 | Gide Loyrette Nouel | Associé dept. social | Page équipe : gide.com | ✅ ⚠️ |
+| 40 | Hogan Lovells | Associé dept. social | Page équipe : hoganlovells.com | ✅ ⚠️ |
+| 41 | Allen & Overy | Associé dept. social | Page équipe : allenovery.com | ✅ ⚠️ |
+| 42 | Linklaters | Associé dept. social | Page équipe : linklaters.com | ✅ ⚠️ |
+| 43 | Proskauer Rose | Associé dept. social | Page équipe : proskauer.com | ✅ ⚠️ |
+| 44 | Jeantet | Associé dept. social | Page équipe : jeantet.fr | ✅ ⚠️ |
 
 ---
 
-### Lignes restantes (45-50) — À compléter
+### Lignes 45-50 — À compléter (5 min chacune)
 
-| # | Source recommandée | Filtre |
-|---|--------------------|--------|
-| 45-50 | [annuaireavocats.fr](https://www.annuaireavocats.fr/cabinets/droit-du-travail/paris) | Droit du travail → Paris → trier par taille |
-
-*30 minutes de travail pour compléter ces 6 lignes avec des cabinets vérifiés.*
+| # | Source | Action |
+|---|--------|--------|
+| 45-50 | [annuaireavocats.fr](https://www.annuaireavocats.fr/cabinets/droit-du-travail/paris) | Choisir 6 cabinets boutique → aller sur leur site → trouver le nom de l'associé → chercher sur LinkedIn |
 
 ---
 
 ## Priorisation recommandée pour l'outreach
 
-### Phase 1 — Quick wins (cabinets boutique, décideurs directs)
-Lignes #01 à #10, #41 à #50 — L'associé = l'avocat. Décision rapide, cycle court.
+### Phase 1 — Quick wins (lignes 01-20)
+5 contacts/jour pendant 4 jours. LinkedIn URL déjà disponible pour les lignes 01-05. Pour les lignes ⚠️ : 2 min sur le site du cabinet pour trouver le nom → LinkedIn.
 
-### Phase 2 — Cabinets moyens (10-50 avocats)
-Lignes #11 à #15, #19, #20, #26, #27, #30 — Cibler le responsable IT ou l'associé RH.
+### Phase 2 — Cabinets moyens (lignes 21-37)
+Après au moins 1 réponse positive en phase 1. Page équipe du site → nom de l'associé social → LinkedIn.
 
-### Phase 3 — Grands cabinets (depts sociaux)
-Lignes #15 à #18, #21 à #23, #29 — Cycle plus long, interlocuteur département social.
-À aborder seulement après avoir des témoignages des phases 1-2.
+### Phase 3 — Grands cabinets (lignes 38-44)
+Uniquement après 2-3 références clients convaincantes des phases précédentes.
 
 ---
 
