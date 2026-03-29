@@ -1,6 +1,7 @@
 package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.analysis.JobType;
+import fr.ailegalcase.auth.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,7 +9,9 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -17,15 +20,18 @@ public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
+    private final EmailSendRepository emailSendRepository;
     private final boolean mailEnabled;
     private final String frontendUrl;
     private final String mailFrom;
 
     public EmailService(JavaMailSender mailSender,
+                        EmailSendRepository emailSendRepository,
                         @Value("${app.mail.enabled:false}") boolean mailEnabled,
                         @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
                         @Value("${app.mail.from:${spring.mail.username:}}") String mailFrom) {
         this.mailSender = mailSender;
+        this.emailSendRepository = emailSendRepository;
         this.mailEnabled = mailEnabled;
         this.frontendUrl = frontendUrl;
         this.mailFrom = mailFrom;
@@ -138,6 +144,116 @@ public class EmailService {
         } catch (MailException e) {
             log.warn("Failed to send deadline alert to {} for '{}' — {}", toEmail, deadlineLabel, e.getMessage());
         }
+    }
+
+    // ── Onboarding sequence ──────────────────────────────────────────────────
+
+    @Transactional
+    public void sendOnboardingWelcome(User user) {
+        sendOnboarding(user, EmailSend.EmailType.ONBOARDING_WELCOME,
+                "Bienvenue sur AI LegalCase — votre workspace est prêt",
+                "Bonjour " + firstName(user) + ",\n\n" +
+                "Votre workspace AI LegalCase est prêt.\n\n" +
+                "En quelques minutes, vous pouvez :\n" +
+                "• Créer votre premier dossier\n" +
+                "• Déposer vos documents (contrat, courrier, jugement)\n" +
+                "• Lancer l'analyse IA et obtenir une synthèse complète\n\n" +
+                "Accédez à votre espace ici :\n" +
+                frontendUrl + "\n\n" +
+                "L'équipe AI LegalCase"
+        );
+    }
+
+    @Transactional
+    public void sendOnboardingTipAnalysis(User user) {
+        sendOnboarding(user, EmailSend.EmailType.ONBOARDING_TIP_ANALYSIS,
+                "Analysez votre premier dossier en 3 clics — AI LegalCase",
+                "Bonjour " + firstName(user) + ",\n\n" +
+                "Vous n'avez pas encore lancé d'analyse ? Voici comment ça marche :\n\n" +
+                "1. Créez un dossier (Nouveau dossier)\n" +
+                "2. Déposez vos PDFs (contrat, courriers, jugements)\n" +
+                "3. Cliquez sur « Analyser le dossier »\n\n" +
+                "L'IA lit l'intégralité de vos documents et génère une synthèse structurée : " +
+                "faits clés, risques juridiques, timeline, points de droit.\n\n" +
+                "Essayez maintenant :\n" +
+                frontendUrl + "\n\n" +
+                "L'équipe AI LegalCase"
+        );
+    }
+
+    @Transactional
+    public void sendOnboardingTipShare(User user) {
+        sendOnboarding(user, EmailSend.EmailType.ONBOARDING_TIP_SHARE,
+                "Partagez une synthèse avec votre client — AI LegalCase",
+                "Bonjour " + firstName(user) + ",\n\n" +
+                "Saviez-vous que vous pouvez partager la synthèse d'un dossier avec votre client en un clic ?\n\n" +
+                "Sur la page d'un dossier analysé, cliquez sur « Partager ».\n" +
+                "Un lien sécurisé est généré — votre client peut consulter la synthèse sans créer de compte.\n\n" +
+                "Accédez à vos dossiers :\n" +
+                frontendUrl + "\n\n" +
+                "L'équipe AI LegalCase"
+        );
+    }
+
+    @Transactional
+    public void sendOnboardingBeforeExpiry(User user) {
+        sendOnboarding(user, EmailSend.EmailType.ONBOARDING_BEFORE_EXPIRY,
+                "Votre essai AI LegalCase se termine dans 3 jours",
+                "Bonjour " + firstName(user) + ",\n\n" +
+                "Votre période d'essai gratuite se termine dans 3 jours.\n\n" +
+                "Pour continuer à utiliser AI LegalCase sans interruption, passez au plan Solo ou Pro.\n\n" +
+                "Voir les tarifs :\n" +
+                frontendUrl + "/billing\n\n" +
+                "Des questions ? Répondez directement à cet email.\n\n" +
+                "L'équipe AI LegalCase"
+        );
+    }
+
+    @Transactional
+    public void sendOnboardingExpired(User user) {
+        sendOnboarding(user, EmailSend.EmailType.ONBOARDING_EXPIRED,
+                "Votre essai AI LegalCase est terminé — reprenez votre activité",
+                "Bonjour " + firstName(user) + ",\n\n" +
+                "Votre essai gratuit est maintenant terminé.\n\n" +
+                "Vos dossiers et analyses sont conservés. Pour y accéder à nouveau, choisissez un plan.\n\n" +
+                "Reprendre maintenant :\n" +
+                frontendUrl + "/billing\n\n" +
+                "L'équipe AI LegalCase"
+        );
+    }
+
+    private void sendOnboarding(User user, EmailSend.EmailType type, String subject, String body) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — {} skipped for {}", type, user.getEmail());
+            return;
+        }
+        if (emailSendRepository.existsByUserAndEmailType(user, type)) {
+            log.info("Onboarding email {} already sent for user {} — skipping", type, user.getId());
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(user.getEmail());
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
+
+            EmailSend record = new EmailSend();
+            record.setUser(user);
+            record.setEmailType(type);
+            record.setSentAt(Instant.now());
+            emailSendRepository.save(record);
+
+            log.info("Onboarding email {} sent to {}", type, user.getEmail());
+        } catch (MailException e) {
+            log.warn("Failed to send onboarding email {} to {} — {}", type, user.getEmail(), e.getMessage());
+        }
+    }
+
+    private String firstName(User user) {
+        return (user.getFirstName() != null && !user.getFirstName().isBlank())
+                ? user.getFirstName() : "Maître";
     }
 
     public void sendInvitation(String toEmail, String workspaceName, String token) {

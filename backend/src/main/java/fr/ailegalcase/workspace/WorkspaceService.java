@@ -5,6 +5,8 @@ import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.Subscription;
 import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.billing.StripeCustomerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -20,22 +22,27 @@ import java.util.UUID;
 @Service
 public class WorkspaceService {
 
+    private static final Logger log = LoggerFactory.getLogger(WorkspaceService.class);
+
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final AuthAccountRepository authAccountRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final StripeCustomerService stripeCustomerService;
+    private final EmailService emailService;
 
     public WorkspaceService(WorkspaceRepository workspaceRepository,
                             WorkspaceMemberRepository workspaceMemberRepository,
                             AuthAccountRepository authAccountRepository,
                             SubscriptionRepository subscriptionRepository,
-                            StripeCustomerService stripeCustomerService) {
+                            StripeCustomerService stripeCustomerService,
+                            EmailService emailService) {
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.authAccountRepository = authAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.stripeCustomerService = stripeCustomerService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -120,6 +127,12 @@ public class WorkspaceService {
                     subscription.setStripeCustomerId(customerId);
                     subscriptionRepository.save(subscription);
                 });
+
+        try {
+            emailService.sendOnboardingWelcome(user);
+        } catch (Exception e) {
+            log.warn("Failed to send onboarding welcome to {} — {}", user.getEmail(), e.getMessage());
+        }
     }
 
     private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {

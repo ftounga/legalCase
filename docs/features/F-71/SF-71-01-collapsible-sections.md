@@ -34,7 +34,7 @@ Rendre les sections "Délais légaux" et "Notes internes" de la page dossier rep
 
 ### Cas nominal
 
-- Chaque section (`CaseDeadlinesSectionComponent`, `CaseNotesSectionComponent`) dispose d'un signal `collapsed = signal(false)` — dépliée par défaut
+- Chaque section (`CaseDeadlinesSectionComponent`, `CaseNotesSectionComponent`) dispose d'un signal `collapsed = signal(true)` — **repliée par défaut** (Option C : documents toujours visibles, délais/notes secondaires)
 - Le header est cliquable (bouton ou zone cliquable) et appelle `toggleCollapsed()`
 - Quand `collapsed()` est `true` :
   - Le contenu (liste + formulaire d'ajout) est masqué via `@if (!collapsed())`
@@ -59,7 +59,7 @@ Rendre les sections "Délais légaux" et "Notes internes" de la page dossier rep
 
 - [ ] `CaseDeadlinesSectionComponent` : header cliquable, contenu masqué quand replié, badge `[N]` visible quand replié
 - [ ] `CaseNotesSectionComponent` : même comportement
-- [ ] Dépliée par défaut au chargement de la page
+- [ ] Repliée par défaut au chargement de la page (badge compteur visible)
 - [ ] Le chevron change d'orientation selon l'état (▶/▼ ou équivalent Material)
 - [ ] Aucun appel HTTP supplémentaire déclenché par le toggle
 
