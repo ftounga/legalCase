@@ -34,7 +34,9 @@ describe('CaseDeadlinesSectionComponent', () => {
     fixture.detectChanges();
   });
 
-  it('U-01: shows empty state when no deadlines', () => {
+  it('U-01: shows empty state when no deadlines (expanded)', () => {
+    component.toggleCollapsed();
+    fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.deadlines-empty')?.textContent)
       .toContain('Aucun délai');
   });
@@ -51,6 +53,7 @@ describe('CaseDeadlinesSectionComponent', () => {
   });
 
   it('U-04: add button disabled when label or date empty', () => {
+    component.toggleCollapsed();
     component.newLabel = '';
     component.newDueDate = '';
     fixture.detectChanges();
@@ -72,5 +75,35 @@ describe('CaseDeadlinesSectionComponent', () => {
     component.newDueDate = '2026-06-01';
     component.addDeadline();
     expect(deadlineServiceSpy.create).toHaveBeenCalledWith('cf-1', 'Prescription', '2026-06-01');
+  });
+
+  // ── Collapsible (SF-71-01) ────────────────────────────────────────────────
+
+  it('SF71-U-01: section repliée par défaut — contenu masqué', () => {
+    expect(component.collapsed()).toBeTrue();
+    const addForm = fixture.nativeElement.querySelector('.add-deadline-form');
+    expect(addForm).toBeNull();
+  });
+
+  it('SF71-U-02: après toggleCollapsed() — contenu visible, badge masqué', () => {
+    deadlineServiceSpy.list.and.returnValue(of([makeDeadline('2026-06-01')]));
+    component.loadDeadlines();
+    component.toggleCollapsed();
+    fixture.detectChanges();
+    expect(component.collapsed()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.add-deadline-form')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.section-badge')).toBeNull();
+  });
+
+  it('SF71-U-03: double toggle — retour à l\'état replié, badge visible', () => {
+    deadlineServiceSpy.list.and.returnValue(of([makeDeadline('2026-06-01'), makeDeadline('2026-07-01')]));
+    component.loadDeadlines();
+    component.toggleCollapsed();
+    component.toggleCollapsed();
+    fixture.detectChanges();
+    expect(component.collapsed()).toBeTrue();
+    const badge = fixture.nativeElement.querySelector('.section-badge');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain('2 délais');
   });
 });
