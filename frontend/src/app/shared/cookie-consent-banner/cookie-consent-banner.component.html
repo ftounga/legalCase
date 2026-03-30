@@ -1,0 +1,11 @@
+@if (visible) {
+  <div class="cookie-banner" role="region" aria-label="Consentement aux cookies">
+    <p class="cookie-banner__text">
+      Nous utilisons des cookies analytiques pour mesurer l'audience et améliorer notre service.
+    </p>
+    <div class="cookie-banner__actions">
+      <button class="cookie-banner__btn cookie-banner__btn--deny" (click)="deny()">Refuser</button>
+      <button class="cookie-banner__btn cookie-banner__btn--accept" (click)="accept()">Accepter</button>
+    </div>
+  </div>
+}
