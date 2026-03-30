@@ -75,7 +75,7 @@ Sources utilisées : Legal 500, Predictice, annuaireavocats.fr, sites officiels 
 | 01 | Howard Avocats | Marlone Zard | 🔗 [linkedin.com/in/marlonezard](https://www.linkedin.com/in/marlonezard/) |
 | 02 | Sagan Avocats | Alexandra Sabbe-Ferri | 🔗 [linkedin.com/in/alexandra-sabbe-ferri-95a64924](https://www.linkedin.com/in/alexandra-sabbe-ferri-95a64924/) |
 | 03 | Rollin Avocats | Cyrille Rollin | 🔗 [linkedin.com/in/cyrille-rollin-avocat](https://www.linkedin.com/in/cyrille-rollin-avocat/) |
-| 04 | Seror Fellous Avocats | Audrey Seror | 🔗 [linkedin.com/in/audrey-seror-86b925167](https://www.linkedin.com/in/audrey-seror-86b925167) |
+| 04 | Seror Fellous Avocats | ~~Audrey Seror~~ — installée à Londres, à remplacer | ❓ Chercher associé restant sur site seror-fellous.fr |
 | 05 | Eric Rocheblave Avocat | Eric Rocheblave | 🔗 [linkedin.com/in/ericrocheblave](https://www.linkedin.com/in/ericrocheblave/) |
 | 06 | Cabinet DB Avocats | Damien Busquet | 🔗 [linkedin.com/in/damien-busquet-8a06731a](https://www.linkedin.com/in/damien-busquet-8a06731a) |
 | 07 | Cabinet A-P | Alina Paragyios | 🔗 [linkedin.com/in/paragyios](https://www.linkedin.com/in/paragyios) |
@@ -88,10 +88,10 @@ Sources utilisées : Legal 500, Predictice, annuaireavocats.fr, sites officiels 
 | 14 | La Garanderie Avocats | Dominique de la Garanderie | ⚠️ Rechercher "Dominique de la Garanderie" sur LinkedIn |
 | 15 | Voltaire Avocats | Associé dept. social | ⚠️ Page équipe voltaire-avocats.com → LinkedIn |
 | 16 | Cabinet Ngawa | Fondateur | ⚠️ Page équipe ngawa-avocat-paris.fr → LinkedIn |
-| 17 | À compléter | — | ❓ annuaireavocats.fr → Droit du travail → Paris |
-| 18 | À compléter | — | ❓ annuaireavocats.fr → Droit du travail → Paris |
-| 19 | À compléter | — | ❓ annuaireavocats.fr → Droit du travail → Paris |
-| 20 | À compléter | — | ❓ annuaireavocats.fr → Droit du travail → Paris |
+| 17 | Cabinet L&R Avocats | Sandra Ramos | 🔗 [linkedin.com/in/sandra-ramos-avocat-droit-social](https://www.linkedin.com/in/sandra-ramos-avocat-droit-social/) |
+| 18 | Cabinet Virginie Langlet | Virginie Langlet | 🔗 [linkedin.com/in/virginie-langlet-5b391850](https://www.linkedin.com/in/virginie-langlet-5b391850/) |
+| 19 | Cabinet Aurélie Thevenin | Aurélie Thevenin | 🔗 [linkedin.com/in/aurelie-thevenin-38547333](https://fr.linkedin.com/in/aur%C3%A9lie-thevenin-38547333) |
+| 20 | Cabinet ASL | Stéphanie Lambert | 🔗 [linkedin.com/in/stephanie-lambert-982258173](https://www.linkedin.com/in/st%C3%A9phanie-lambert-982258173/) |
 
 ---
 
@@ -122,9 +122,9 @@ Sources utilisées : Legal 500, Predictice, annuaireavocats.fr, sites officiels 
 | 32 | Cabinet CBO / Boulanger | Olivier Boulanger | ⚠️ Rechercher "Olivier Boulanger avocat Levallois" sur LinkedIn |
 | 33 | Cabinet Delmas | Jean-François Delmas | ⚠️ Rechercher "Jean-François Delmas avocat Boulogne" sur LinkedIn |
 | 34 | Maître Gérard Sutter | Gérard Sutter | ⚠️ Rechercher "Gérard Sutter avocat Levallois" sur LinkedIn |
-| 35 | À compléter | — | ❓ starofservice.com → Nanterre → droit du travail |
-| 36 | À compléter | — | ❓ justifit.fr → Neuilly → droit du travail |
-| 37 | À compléter | — | ❓ juritravail.com → 92 → droit du travail |
+| 35 | CRTD & Associés (Nanterre) | Guillaume Boulan | 🔗 [linkedin.com/in/guillaume-boulan-111b37b7](https://www.linkedin.com/in/guillaume-boulan-111b37b7/) |
+| 36 | Cabinet Karpisek-Bettan (Boulogne) | Dominique Karpisek-Bettan | ⚠️ Pas de LinkedIn confirmé — site : karpisek-bettan.com |
+| 37 | KLB Avocat (Neuilly) | Karima Ladjeroud-Bounaas | 🔗 [linkedin.com/in/karima-ladjeroud-bounaas-8a927b84](https://www.linkedin.com/in/karima-ladjeroud-bounaas-8a927b84/) |
 
 ---
 
@@ -146,9 +146,14 @@ Sources utilisées : Legal 500, Predictice, annuaireavocats.fr, sites officiels 
 
 ### Lignes 45-50 — À compléter
 
-| # | Source | Action |
-|---|--------|--------|
-| 45-50 | [annuaireavocats.fr](https://www.annuaireavocats.fr/cabinets/droit-du-travail/paris) | Choisir 6 cabinets boutique → page équipe → nom de l'associé → LinkedIn |
+| # | Cabinet | Contact cible | LinkedIn |
+|---|---------|--------------|---------|
+| 45 | CILAOS Avocats (Paris 15e) | Marlène Elmassian | 🔗 [linkedin.com/in/marlene-elmassian-0a907765](https://www.linkedin.com/in/marl%C3%A8ne-elmassian-0a907765/) |
+| 46 | Bonin & Associés (Paris 17e) | Stéphane Bonin | 🔗 [linkedin.com/in/stephane-bonin-3809b734](https://fr.linkedin.com/in/st%C3%A9phane-bonin-3809b734) |
+| 47 | Anders Avocats (Paris 8e) | Grégoire Bravais | 🔗 [linkedin.com/in/gregoirebravais](https://www.linkedin.com/in/gregoirebravais/) |
+| 48 | Cabinet Renaud Rialland (Paris 16e) | Renaud Rialland | 🔗 [linkedin.com/in/renaud-rialland-avocat-en-droit-du-travail-paris](https://www.linkedin.com/in/renaud-rialland-avocat-en-droit-du-travail-paris/) |
+| 49 | Cabinet Nathalie Boyer Haouzi (Paris 9e) | Nathalie Boyer Haouzi | 🔗 [linkedin.com/in/nathalie-haouzi-88a809114](https://fr.linkedin.com/in/nathalie-haouzi-88a809114) |
+| 50 | Cabinet Louis Paoli (Neuilly) | Louis Paoli | 🔗 [linkedin.com/in/louis-paoli-07074995](https://fr.linkedin.com/in/louis-paoli-07074995) |
 
 ---
 
