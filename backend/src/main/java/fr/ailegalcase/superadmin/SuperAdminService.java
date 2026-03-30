@@ -34,8 +34,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -271,6 +273,48 @@ public class SuperAdminService {
         workspaceInvitationRepository.deleteByInvitedByUserId(userId);
         authAccountRepository.deleteByUser(target);
         userRepository.delete(target);
+    }
+
+    @Transactional(readOnly = true)
+    public SuperAdminMetricsResponse getMetrics(OidcUser oidcUser, String provider) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .getUser();
+
+        if (!user.isSuperAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super-admin access required");
+        }
+
+        Instant now = Instant.now();
+        Instant since30d = now.minus(30, ChronoUnit.DAYS);
+        Instant since7d = now.minus(7, ChronoUnit.DAYS);
+
+        long totalWorkspaces = workspaceRepository.count();
+        long newWorkspacesLast30Days = workspaceRepository.countByCreatedAtAfter(since30d);
+
+        long trialWorkspaces = workspaceRepository.countByPlanCode("FREE");
+        long paidWorkspaces = totalWorkspaces - trialWorkspaces;
+        double conversionRatePct = totalWorkspaces == 0 ? 0.0 : paidWorkspaces * 100.0 / totalWorkspaces;
+
+        long analysesLast7Days = caseAnalysisRepository.countDoneCreatedAfter(since7d);
+        long analysesLast30Days = caseAnalysisRepository.countDoneCreatedAfter(since30d);
+
+        Set<UUID> activeWorkspaceIds = caseAnalysisRepository.findDistinctWorkspaceIdsWithDoneAnalysisSince(since30d);
+        long activeWorkspaces30d = activeWorkspaceIds.size();
+        long inactiveWorkspaces30d = totalWorkspaces - activeWorkspaces30d;
+
+        return new SuperAdminMetricsResponse(
+                totalWorkspaces,
+                activeWorkspaces30d,
+                inactiveWorkspaces30d,
+                trialWorkspaces,
+                paidWorkspaces,
+                conversionRatePct,
+                analysesLast7Days,
+                analysesLast30Days,
+                newWorkspacesLast30Days
+        );
     }
 
     private static UUID toUUID(Object obj) {

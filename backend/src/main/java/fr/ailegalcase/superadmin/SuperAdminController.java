@@ -63,4 +63,11 @@ public class SuperAdminController {
             @PathVariable UUID id) {
         superAdminService.deleteUser(oidcUser, OAuthProviderResolver.resolve(principal), id);
     }
+
+    @GetMapping("/metrics")
+    public SuperAdminMetricsResponse getMetrics(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return superAdminService.getMetrics(oidcUser, OAuthProviderResolver.resolve(principal));
+    }
 }
