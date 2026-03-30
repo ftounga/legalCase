@@ -2,6 +2,7 @@ package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.contact.ContactRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,11 +38,11 @@ class EmailServiceTest {
     }
 
     private EmailService enabledService() {
-        return new EmailService(mailSender, emailSendRepository, true, "http://localhost:4200", "noreply@test.com");
+        return new EmailService(mailSender, emailSendRepository, true, "http://localhost:4200", "noreply@test.com", "team@test.com");
     }
 
     private EmailService disabledService() {
-        return new EmailService(mailSender, emailSendRepository, false, "http://localhost:4200", "noreply@test.com");
+        return new EmailService(mailSender, emailSendRepository, false, "http://localhost:4200", "noreply@test.com", "team@test.com");
     }
 
     // U-01 : mail activé → JavaMailSender.send() appelé avec les bons paramètres
@@ -158,6 +159,24 @@ class EmailServiceTest {
         ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mailSender).send(captor.capture());
         assertThat(captor.getValue().getText()).contains("3 jours");
+    }
+
+    // ── Contact ───────────────────────────────────────────────────────────────
+
+    // U-C1 : sendContactToTeam mail disabled → aucun envoi
+    @Test
+    void sendContactToTeam_whenDisabled_doesNotSend() {
+        ContactRequest req = new ContactRequest("Alice", "alice@example.com", null, "Démo", "Bonjour");
+        disabledService().sendContactToTeam(req);
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+    }
+
+    // U-C2 : sendContactConfirmation mail disabled → aucun envoi
+    @Test
+    void sendContactConfirmation_whenDisabled_doesNotSend() {
+        ContactRequest req = new ContactRequest("Alice", "alice@example.com", null, "Démo", "Bonjour");
+        disabledService().sendContactConfirmation(req);
+        verify(mailSender, never()).send(any(SimpleMailMessage.class));
     }
 
     // T10 : sendOnboardingExpired → corps contient "terminé"

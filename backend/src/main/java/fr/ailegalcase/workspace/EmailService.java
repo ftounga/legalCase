@@ -24,17 +24,20 @@ public class EmailService {
     private final boolean mailEnabled;
     private final String frontendUrl;
     private final String mailFrom;
+    private final String contactTeamEmail;
 
     public EmailService(JavaMailSender mailSender,
                         EmailSendRepository emailSendRepository,
                         @Value("${app.mail.enabled:false}") boolean mailEnabled,
                         @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
-                        @Value("${app.mail.from:${spring.mail.username:}}") String mailFrom) {
+                        @Value("${app.mail.from:${spring.mail.username:}}") String mailFrom,
+                        @Value("${app.contact.team-email:ai-legalcase@ng-itconsulting.com}") String contactTeamEmail) {
         this.mailSender = mailSender;
         this.emailSendRepository = emailSendRepository;
         this.mailEnabled = mailEnabled;
         this.frontendUrl = frontendUrl;
         this.mailFrom = mailFrom;
+        this.contactTeamEmail = contactTeamEmail;
     }
 
     public void sendEmailVerification(String toEmail, String token) {
@@ -249,6 +252,63 @@ public class EmailService {
         } catch (MailException e) {
             log.warn("Failed to send onboarding email {} to {} — {}", type, user.getEmail(), e.getMessage());
         }
+    }
+
+    // ── Contact form ─────────────────────────────────────────────────────────
+
+    public void sendContactToTeam(fr.ailegalcase.contact.ContactRequest req) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — contact-to-team skipped for {}", req.email());
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(contactTeamEmail);
+            message.setReplyTo(req.email());
+            message.setSubject("[Contact] " + req.sujet());
+            message.setText(buildTeamBody(req));
+            mailSender.send(message);
+            log.info("Contact email sent to team from {}", req.email());
+        } catch (MailException e) {
+            log.warn("Failed to send contact email to team from {} — {}", req.email(), e.getMessage());
+        }
+    }
+
+    public void sendContactConfirmation(fr.ailegalcase.contact.ContactRequest req) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — contact confirmation skipped for {}", req.email());
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(req.email());
+            message.setSubject("Nous avons bien reçu votre message — AI LegalCase");
+            message.setText(
+                    "Bonjour " + req.nom() + ",\n\n" +
+                    "Nous avons bien reçu votre message concernant : \"" + req.sujet() + "\".\n\n" +
+                    "Notre équipe vous répondra dans les plus brefs délais à cette adresse.\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Contact confirmation sent to {}", req.email());
+        } catch (MailException e) {
+            log.warn("Failed to send contact confirmation to {} — {}", req.email(), e.getMessage());
+        }
+    }
+
+    private String buildTeamBody(fr.ailegalcase.contact.ContactRequest req) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Nouveau message de contact\n\n");
+        sb.append("Nom       : ").append(req.nom()).append("\n");
+        sb.append("Email     : ").append(req.email()).append("\n");
+        if (req.telephone() != null && !req.telephone().isBlank()) {
+            sb.append("Téléphone : ").append(req.telephone()).append("\n");
+        }
+        sb.append("Sujet     : ").append(req.sujet()).append("\n\n");
+        sb.append("Message :\n").append(req.message());
+        return sb.toString();
     }
 
     private String firstName(User user) {
