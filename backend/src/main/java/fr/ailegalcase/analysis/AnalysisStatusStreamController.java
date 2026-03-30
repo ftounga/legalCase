@@ -4,7 +4,6 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -47,19 +45,22 @@ public class AnalysisStatusStreamController {
     public SseEmitter stream(@PathVariable UUID id,
                              @AuthenticationPrincipal OidcUser oidcUser,
                              Principal principal) {
-        var user = currentUserResolver.resolve(oidcUser, OAuthProviderResolver.resolve(principal), principal);
-        var workspace = workspaceMemberRepository.findByUserAndPrimaryTrue(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
-                .getWorkspace();
-
-        var caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
-
-        if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-        }
-
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+
+        var user = currentUserResolver.resolve(oidcUser, OAuthProviderResolver.resolve(principal), principal);
+        var workspaceMember = workspaceMemberRepository.findByUserAndPrimaryTrue(user);
+        if (workspaceMember.isEmpty()) {
+            emitter.complete();
+            return emitter;
+        }
+        var workspace = workspaceMember.get().getWorkspace();
+
+        var caseFileOpt = caseFileRepository.findByIdAndDeletedAtIsNull(id);
+        if (caseFileOpt.isEmpty() || !caseFileOpt.get().getWorkspace().getId().equals(workspace.getId())) {
+            emitter.complete();
+            return emitter;
+        }
+        var caseFile = caseFileOpt.get();
 
         // If analysis already DONE — emit immediately and close
         var done = caseAnalysisRepository
