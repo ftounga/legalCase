@@ -39,7 +39,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-04 | CGU — rédaction | Haute | `Terminé` | Déployé en staging — /cgu |
 | M-05 | Page contact — formulaire email | Moyenne | `À faire` | Capture des prospects non-convertis |
 | M-06 | SEO — balises meta, Open Graph, sitemap | Moyenne | `Terminé` | PR #165 mergée 2026-03-30 — déployé en production via CI/CD |
-| M-07 | Google Analytics / Plausible — intégration tracking | Moyenne | `En cours` | SF-77-01 mergée 2026-03-30 — bannière consentement + GA4 G-2JPL8JTXE7 intégrés. Terminé dès déploiement production confirmé. |
+| M-07 | Google Analytics / Plausible — intégration tracking | Moyenne | `Terminé` | SF-77-01 déployée en production 2026-03-30 — bannière consentement RGPD + GA4 G-2JPL8JTXE7 opérationnel sur legalcase.ng-itconsulting.com. Validé manuellement. |
 
 ---
 
