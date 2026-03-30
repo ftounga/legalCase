@@ -78,16 +78,18 @@ class CaseFileServiceTest {
         assertThat(response.status()).isEqualTo("OPEN");
     }
 
-    // U-02 : workspace avec domaine non supporté → 400
+    // U-02 : workspace avec domaine DROIT_IMMIGRATION → création autorisée (tous domaines supportés)
     @Test
-    void create_unsupportedWorkspaceDomain_throws400() {
+    void create_immigrationDomain_succeeds() {
         Workspace workspace = mockUserAndWorkspace();
         workspace.setLegalDomain("DROIT_IMMIGRATION");
-        CaseFileRequest request = new CaseFileRequest("Title", null);
+        when(caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(any(UUID.class), eq("OPEN"))).thenReturn(0L);
+        when(planLimitService.getMaxOpenCaseFilesForWorkspace(any(UUID.class))).thenReturn(3);
+        CaseFileRequest request = new CaseFileRequest("Titre immigration", null);
 
-        assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(BAD_REQUEST));
+        CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
+
+        assertThat(response.title()).isEqualTo("Titre immigration");
     }
 
     // U-03 : title trimmé avant persistance

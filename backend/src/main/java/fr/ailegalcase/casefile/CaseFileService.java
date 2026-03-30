@@ -19,8 +19,6 @@ import java.util.UUID;
 @Service
 public class CaseFileService {
 
-    private static final String SUPPORTED_LEGAL_DOMAIN = "DROIT_DU_TRAVAIL";
-
     private final CaseFileRepository caseFileRepository;
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -44,11 +42,6 @@ public class CaseFileService {
                 .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
                 .getWorkspace();
-
-        if (!SUPPORTED_LEGAL_DOMAIN.equals(workspace.getLegalDomain())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Seul le droit du travail est supporté en V1");
-        }
 
         long openCount = caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(workspace.getId(), "OPEN");
         int maxOpen = planLimitService.getMaxOpenCaseFilesForWorkspace(workspace.getId());
