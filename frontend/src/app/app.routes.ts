@@ -96,6 +96,10 @@ export const routes: Routes = [
       .then(m => m.PublicShareComponent)
   },
   {
+    path: 'contact',
+    loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent)
+  },
+  {
     path: 'mentions-legales',
     loadComponent: () => import('./legal/legal-page.component').then(m => m.LegalPageComponent),
     data: { title: 'Mentions légales', sections: MENTIONS_LEGALES }
