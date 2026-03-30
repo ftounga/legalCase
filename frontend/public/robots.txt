@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+Disallow: /case-files
+Disallow: /workspace
+Disallow: /super-admin
+Disallow: /onboarding
+Disallow: /search
+Disallow: /invite
+Disallow: /share/
+
+Sitemap: https://legalcase.ng-itconsulting.com/sitemap.xml

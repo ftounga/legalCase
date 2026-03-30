@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Title } from '@angular/platform-browser';
 import { LegalPageComponent } from './legal-page.component';
 import { MENTIONS_LEGALES, POLITIQUE_CONFIDENTIALITE, CGU } from './legal-content';
 
@@ -47,5 +48,11 @@ describe('LegalPageComponent', () => {
     expect(hrefs.some(h => h?.includes('mentions-legales'))).toBeTrue();
     expect(hrefs.some(h => h?.includes('privacy'))).toBeTrue();
     expect(hrefs.some(h => h?.includes('cgu'))).toBeTrue();
+  });
+
+  it('T5 — définit le title du navigateur depuis route data', async () => {
+    await setup('Mentions légales', MENTIONS_LEGALES);
+    const titleService = TestBed.inject(Title);
+    expect(titleService.getTitle()).toBe('Mentions légales — AI LegalCase');
   });
 });

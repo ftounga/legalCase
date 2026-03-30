@@ -1,10 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LandingComponent } from './landing.component';
 import { provideRouter } from '@angular/router';
+import { Title, Meta } from '@angular/platform-browser';
 
 describe('LandingComponent', () => {
   let component: LandingComponent;
   let fixture: ComponentFixture<LandingComponent>;
+  let titleService: Title;
+  let metaService: Meta;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -14,11 +17,27 @@ describe('LandingComponent', () => {
 
     fixture = TestBed.createComponent(LandingComponent);
     component = fixture.componentInstance;
+    titleService = TestBed.inject(Title);
+    metaService = TestBed.inject(Meta);
     fixture.detectChanges();
   });
 
   it('should be created', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('définit le title SEO au chargement', () => {
+    expect(titleService.getTitle()).toBe('AI LegalCase — L\'IA au service de vos dossiers juridiques');
+  });
+
+  it('définit la meta description SEO au chargement', () => {
+    const tag = metaService.getTag('name="description"');
+    expect(tag?.content).toContain('Essai gratuit 14 jours');
+  });
+
+  it('définit la meta og:title au chargement', () => {
+    const tag = metaService.getTag('property="og:title"');
+    expect(tag?.content).toContain('AI LegalCase');
   });
 
   it('affiche le titre principal', () => {
