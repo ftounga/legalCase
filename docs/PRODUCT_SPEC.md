@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-78 | Page contact — formulaire email | `À faire` | Formulaire public /contact (nom, email, message). Email envoyé via Brevo vers l'adresse équipe. Lien dans le footer. Aucune auth requise. Correspond à M-05. |
 | F-77 | Google Analytics 4 — tracking + bannière consentement RGPD | **Terminée** | SF-77-01 mergée 2026-03-30. ConsentService + CookieConsentBannerComponent, injection dynamique GA4 après consentement, localStorage, gaId G-2JPL8JTXE7, 10 tests verts. |
 | F-75 | SEO technique — meta tags, Open Graph, sitemap, robots.txt | **Terminée** | index.html enrichi (OG + Twitter Card), LandingComponent/LegalPageComponent injectent Title+Meta dynamiquement, robots.txt bloque routes auth, sitemap.xml liste 4 URLs publiques. SF-75-01 mergée 2026-03-30. 328 tests verts. |
 | F-74 | Pages légales — mentions légales, CGU, politique de confidentialité | **Terminée** | 3 pages statiques Angular accessibles publiquement (/mentions-legales, /cgu, /privacy). Lien dans le footer de la landing page. |
@@ -215,6 +216,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-30 | F-78 ajoutée au backlog — Page contact formulaire email (M-05) | Product owner |
 | 2026-03-30 | F-77 Terminée — SF-77-01 mergée : ConsentService (injection GA4 dynamique, localStorage), CookieConsentBannerComponent (responsive, design system), gaId G-2JPL8JTXE7, 10 tests verts | Product owner |
 | 2026-03-30 | F-75 Terminée — SF-75-01 mergée : index.html OG + Twitter Card, LandingComponent Title+Meta dynamiques, LegalPageComponent title depuis route data, robots.txt, sitemap.xml, 328 tests verts | Product owner |
 | 2026-03-29 | F-74 Terminée — SF-74-01 mergée : LegalPageComponent standalone, 3 routes publiques (/mentions-legales /privacy /cgu), footer landing mis à jour, 324 tests verts | Product owner |
