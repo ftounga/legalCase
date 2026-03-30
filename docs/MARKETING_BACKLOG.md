@@ -38,7 +38,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-03 | Politique de confidentialité — rédaction | Haute | `Terminé` | Déployé en staging — /privacy |
 | M-04 | CGU — rédaction | Haute | `Terminé` | Déployé en staging — /cgu |
 | M-05 | Page contact — formulaire email | Moyenne | `À faire` | Capture des prospects non-convertis |
-| M-06 | SEO — balises meta, Open Graph, sitemap | Moyenne | `À faire` | Indexation Google |
+| M-06 | SEO — balises meta, Open Graph, sitemap | Moyenne | `Terminé` | PR #165 mergée 2026-03-30 — déployé en production via CI/CD |
 | M-07 | Google Analytics / Plausible — intégration tracking | Moyenne | `À faire` | Mesurer le trafic et la conversion |
 
 ---
@@ -73,9 +73,9 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
-| M-30 | Page entreprise LinkedIn — création | Haute | `À faire` | Présence professionnelle |
+| M-30 | Page entreprise LinkedIn — création | Haute | `Terminé` | Page créée le 2026-03-30 — URL : linkedin.com/company/ai-legalcase — bannière 1128×191px livrée |
 | M-31 | Post de lancement LinkedIn (texte + vidéo) | Haute | `À faire` | Après M-11 |
-| M-32 | Post "Comment ça marche" — carousel 5 slides | Haute | `À faire` | Explication visuelle du pipeline IA |
+| M-32 | Post "Comment ça marche" — carousel 5 slides | Haute | `Terminé` | PDF 6 slides publié le 2026-03-30 — docs/marketing/m32-carousel-comment-ca-marche.pdf |
 | M-33 | Post témoignage / démo utilisateur | Moyenne | `À faire` | Dès les premiers clients |
 | M-34 | Stratégie de contenu LinkedIn — planning 3 mois | Moyenne | `À faire` | 2-3 posts/semaine |
 | M-35 | Compte Twitter/X — création et premiers posts | Basse | `À faire` | Audience tech/legal |
@@ -87,7 +87,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
 | M-40 | Pitch deck — présentation cabinets | Haute | `Rédigé` | PPTX 11 slides livré le 2026-03-29 — docs/marketing/pitch-deck-ailegalcase.pptx |
-| M-41 | Liste de 50 cabinets cibles (droit travail, Paris/IDF) | Haute | `Rédigé` | Liste livrée le 2026-03-29 — docs/marketing/m41-liste-cabinets-cibles.md — contacts LinkedIn à vérifier avant envoi |
+| M-41 | Liste de 50 cabinets cibles (droit travail, Paris/IDF) | Haute | `Terminé` | 50 cabinets, 47 URLs LinkedIn vérifiées. Suivi outreach dans m41-suivi-outreach.md. 5 premiers messages envoyés le 2026-03-30. |
 | M-42 | Script d'outreach LinkedIn — message de prospection | Haute | `Rédigé` | 4 templates livrés le 2026-03-29 — docs/marketing/m42-script-outreach-linkedin.md |
 | M-43 | Démo en ligne — Calendly ou équivalent | Haute | `Terminé` | https://calendly.com/tounga-franck-ng-itconsulting/30min — intégré dans Template E de M-42 |
 | M-44 | Partenariats barreaux / associations d'avocats | Moyenne | `À faire` | Canal d'acquisition B2B |

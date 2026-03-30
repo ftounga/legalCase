@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-75 | SEO technique — meta tags, Open Graph, sitemap, robots.txt | **Terminée** | index.html enrichi (OG + Twitter Card), LandingComponent/LegalPageComponent injectent Title+Meta dynamiquement, robots.txt bloque routes auth, sitemap.xml liste 4 URLs publiques. SF-75-01 mergée 2026-03-30. 328 tests verts. |
 | F-74 | Pages légales — mentions légales, CGU, politique de confidentialité | **Terminée** | 3 pages statiques Angular accessibles publiquement (/mentions-legales, /cgu, /privacy). Lien dans le footer de la landing page. |
 | F-73 | Séquence email onboarding | Terminée | 5 emails automatiques post-inscription : J+0 bienvenue, J+2 tip analyse (si aucune analyse), J+5 tip partage client, J+12 conversion avant expiration trial, J+15 récupération post-expiration. Table `email_sends` pour éviter les doublons. Brevo comme provider. |
 | F-65 | Notifications email d'analyse terminée | V2 — **Terminée** | Email envoyé au créateur du dossier quand analyse STANDARD ou ENRICHED passe DONE. AnalysisNotificationService (@EventListener), EmailService.sendAnalysisDone(), fail-open. SF-65-01 mergée 2026-03-29. |
@@ -207,6 +208,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-30 | F-75 Terminée — SF-75-01 mergée : index.html OG + Twitter Card, LandingComponent Title+Meta dynamiques, LegalPageComponent title depuis route data, robots.txt, sitemap.xml, 328 tests verts | Product owner |
 | 2026-03-29 | F-74 Terminée — SF-74-01 mergée : LegalPageComponent standalone, 3 routes publiques (/mentions-legales /privacy /cgu), footer landing mis à jour, 324 tests verts | Product owner |
 | 2026-03-29 | F-73 Terminée — SF-73-01 mergée : table email_sends (migration 038), EmailSend entity+repo, 5 méthodes sendOnboarding* fail-open, hook J+0 dans createDefaultWorkspace(), OnboardingEmailScheduler cron 8h J+2/J+5/J+12/J+15, 366 tests verts. Landing page V2 + backlog marketing + règle gouvernance marketing inclus. | Product owner |
 | 2026-03-29 | F-64 Terminée — SF-64-02 mergée : SearchComponent (/search), debounce 400ms, switchMap, HighlightTermPipe, 282 tests Angular | Product owner |
