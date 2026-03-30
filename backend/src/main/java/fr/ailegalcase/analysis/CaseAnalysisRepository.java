@@ -4,9 +4,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID> {
@@ -36,4 +38,10 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
     Optional<CaseAnalysis> findByIdAndCaseFileId(UUID id, UUID caseFileId);
 
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
+
+    @Query("SELECT COUNT(ca) FROM CaseAnalysis ca WHERE ca.analysisStatus = fr.ailegalcase.analysis.AnalysisStatus.DONE AND ca.createdAt >= :since")
+    long countDoneCreatedAfter(@Param("since") Instant since);
+
+    @Query("SELECT DISTINCT ca.caseFile.workspace.id FROM CaseAnalysis ca WHERE ca.analysisStatus = fr.ailegalcase.analysis.AnalysisStatus.DONE AND ca.createdAt >= :since")
+    Set<UUID> findDistinctWorkspaceIdsWithDoneAnalysisSince(@Param("since") Instant since);
 }

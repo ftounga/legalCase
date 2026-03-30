@@ -1,5 +1,9 @@
 package fr.ailegalcase.superadmin;
 
+import fr.ailegalcase.analysis.AnalysisStatus;
+import fr.ailegalcase.analysis.AnalysisType;
+import fr.ailegalcase.analysis.CaseAnalysis;
+import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.UsageEvent;
 import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.auth.AuthAccount;
@@ -50,6 +54,7 @@ class SuperAdminControllerIT {
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired private CaseFileRepository caseFileRepository;
     @Autowired private UsageEventRepository usageEventRepository;
+    @Autowired private CaseAnalysisRepository caseAnalysisRepository;
 
     // I-01 : GET /api/v1/super-admin/workspaces sans auth → 401
     @Test
@@ -245,6 +250,7 @@ class SuperAdminControllerIT {
         caseFile.setCreatedBy(owner);
         caseFile.setTitle("Dossier Test Usage");
         caseFile.setStatus("ACTIVE");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         UsageEvent event = new UsageEvent();
@@ -352,6 +358,7 @@ class SuperAdminControllerIT {
         caseFile.setCreatedBy(owner);
         caseFile.setTitle("Dossier À Supprimer");
         caseFile.setStatus("ACTIVE");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         UUID wsId = ws.getId();
@@ -577,6 +584,118 @@ class SuperAdminControllerIT {
                 .andExpect(status().isForbidden());
 
         assertThat(userRepository.findById(target.getId())).isPresent();
+    }
+
+    // I-14 : GET /api/v1/super-admin/metrics → 403 pour non super-admin
+    @Test
+    void getMetrics_withoutSuperAdmin_returns403() throws Exception {
+        User regular = new User();
+        regular.setEmail("regular-metrics@example.com");
+        regular.setStatus("ACTIVE");
+        regular.setSuperAdmin(false);
+        userRepository.save(regular);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(regular);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-regular-metrics-sub");
+        authAccountRepository.save(account);
+
+        mockMvc.perform(get("/api/v1/super-admin/metrics")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(buildGoogleAuth("google-regular-metrics-sub", "regular-metrics@example.com"))))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-15 : GET /api/v1/super-admin/metrics → 200 avec 9 champs pour super-admin
+    @Test
+    void getMetrics_withSuperAdmin_returns200WithAllFields() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-metrics@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-metrics-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-metrics-sub", "superadmin-metrics@example.com");
+
+        mockMvc.perform(get("/api/v1/super-admin/metrics")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalWorkspaces").isNumber())
+                .andExpect(jsonPath("$.activeWorkspaces30d").isNumber())
+                .andExpect(jsonPath("$.inactiveWorkspaces30d").isNumber())
+                .andExpect(jsonPath("$.trialWorkspaces").isNumber())
+                .andExpect(jsonPath("$.paidWorkspaces").isNumber())
+                .andExpect(jsonPath("$.conversionRatePct").isNumber())
+                .andExpect(jsonPath("$.analysesLast7Days").isNumber())
+                .andExpect(jsonPath("$.analysesLast30Days").isNumber())
+                .andExpect(jsonPath("$.newWorkspacesLast30Days").isNumber());
+    }
+
+    // I-16 : activeWorkspaces30d + inactiveWorkspaces30d = totalWorkspaces
+    @Test
+    void getMetrics_activeAndInactiveSumEqualsTotal() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-metrics2@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-metrics2-sub");
+        authAccountRepository.save(account);
+
+        User owner = new User();
+        owner.setEmail("owner-metrics@example.com");
+        owner.setStatus("ACTIVE");
+        userRepository.save(owner);
+
+        Workspace activeWs = new Workspace();
+        activeWs.setName("Cabinet Actif Metrics");
+        activeWs.setSlug("cabinet-actif-metrics-" + System.currentTimeMillis());
+        activeWs.setOwner(owner);
+        activeWs.setPlanCode("PRO");
+        activeWs.setStatus("ACTIVE");
+        activeWs.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspaceRepository.save(activeWs);
+
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(activeWs);
+        caseFile.setCreatedBy(owner);
+        caseFile.setTitle("Dossier Actif Metrics");
+        caseFile.setStatus("ACTIVE");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
+        caseFileRepository.save(caseFile);
+
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+        analysis.setVersion(1);
+        analysis.setAnalysisType(AnalysisType.STANDARD);
+        analysis.setAnalysisStatus(AnalysisStatus.DONE);
+        caseAnalysisRepository.save(analysis);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-metrics2-sub", "superadmin-metrics2@example.com");
+
+        String response = mockMvc.perform(get("/api/v1/super-admin/metrics")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        com.fasterxml.jackson.databind.JsonNode json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response);
+        long total = json.get("totalWorkspaces").asLong();
+        long active = json.get("activeWorkspaces30d").asLong();
+        long inactive = json.get("inactiveWorkspaces30d").asLong();
+        assertThat(active + inactive).isEqualTo(total);
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
