@@ -7,6 +7,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../core/services/auth.service';
@@ -27,7 +28,7 @@ interface WorkspaceRow extends SuperAdminWorkspace {
   imports: [
     DatePipe, DecimalPipe, LowerCasePipe,
     MatCardModule, MatTableModule, MatButtonModule,
-    MatIconModule, MatProgressSpinnerModule, MatDialogModule
+    MatIconModule, MatProgressSpinnerModule, MatPaginatorModule, MatDialogModule
   ],
   templateUrl: './super-admin.component.html',
   styleUrl: './super-admin.component.scss',
@@ -36,9 +37,19 @@ interface WorkspaceRow extends SuperAdminWorkspace {
 })
 export class SuperAdminComponent implements OnInit {
   workspaceRows = signal<WorkspaceRow[]>([]);
+  wsTotalElements = signal(0);
+  wsPage = signal(0);
+  wsSize = signal(20);
+
   users = signal<SuperAdminUser[]>([]);
+  usersTotalElements = signal(0);
+  usersPage = signal(0);
+  usersSize = signal(20);
+
   metrics = signal<SuperAdminMetrics | null>(null);
   loading = signal(true);
+
+  private usageMap = new Map<string, SuperAdminUsage>();
 
   readonly workspaceColumns = ['name', 'plan', 'members', 'tokensInput', 'tokensOutput', 'cost', 'createdAt', 'actions'];
   readonly userColumns = ['email', 'name', 'workspaces', 'actions'];
@@ -62,23 +73,16 @@ export class SuperAdminComponent implements OnInit {
   loadAll(): void {
     this.loading.set(true);
     forkJoin({
-      workspaces: this.superAdminService.listWorkspaces(),
+      workspaces: this.superAdminService.listWorkspaces(this.wsPage(), this.wsSize()),
       usage: this.superAdminService.getUsage(),
-      users: this.superAdminService.listUsers(),
+      users: this.superAdminService.listUsers(this.usersPage(), this.usersSize()),
       metrics: this.superAdminService.getMetrics()
     }).subscribe({
       next: ({ workspaces, usage, users, metrics }) => {
-        const usageMap = new Map(usage.map(u => [u.workspaceId, u]));
-        this.workspaceRows.set(workspaces.map(ws => {
-          const u = usageMap.get(ws.id);
-          return {
-            ...ws,
-            totalTokensInput: u?.totalTokensInput ?? 0,
-            totalTokensOutput: u?.totalTokensOutput ?? 0,
-            totalCost: u?.totalCost ?? 0
-          };
-        }));
-        this.users.set(users);
+        this.usageMap = new Map(usage.map(u => [u.workspaceId, u]));
+        this.applyWorkspacePage(workspaces.content, workspaces.totalElements);
+        this.users.set(users.content);
+        this.usersTotalElements.set(users.totalElements);
         this.metrics.set(metrics);
         this.loading.set(false);
       },
@@ -92,6 +96,31 @@ export class SuperAdminComponent implements OnInit {
           });
         }
       }
+    });
+  }
+
+  onWsPageChange(event: PageEvent): void {
+    this.wsPage.set(event.pageIndex);
+    this.wsSize.set(event.pageSize);
+    this.superAdminService.listWorkspaces(event.pageIndex, event.pageSize).subscribe({
+      next: page => this.applyWorkspacePage(page.content, page.totalElements),
+      error: () => this.snackBar.open('Erreur lors du chargement des workspaces', 'Fermer', {
+        duration: 4000, panelClass: ['snack-error']
+      })
+    });
+  }
+
+  onUsersPageChange(event: PageEvent): void {
+    this.usersPage.set(event.pageIndex);
+    this.usersSize.set(event.pageSize);
+    this.superAdminService.listUsers(event.pageIndex, event.pageSize).subscribe({
+      next: page => {
+        this.users.set(page.content);
+        this.usersTotalElements.set(page.totalElements);
+      },
+      error: () => this.snackBar.open('Erreur lors du chargement des utilisateurs', 'Fermer', {
+        duration: 4000, panelClass: ['snack-error']
+      })
     });
   }
 
@@ -146,5 +175,18 @@ export class SuperAdminComponent implements OnInit {
   userDisplayName(user: SuperAdminUser): string {
     const full = [user.firstName, user.lastName].filter(Boolean).join(' ');
     return full || '—';
+  }
+
+  private applyWorkspacePage(workspaces: SuperAdminWorkspace[], total: number): void {
+    this.workspaceRows.set(workspaces.map(ws => {
+      const u = this.usageMap.get(ws.id);
+      return {
+        ...ws,
+        totalTokensInput: u?.totalTokensInput ?? 0,
+        totalTokensOutput: u?.totalTokensOutput ?? 0,
+        totalCost: u?.totalCost ?? 0
+      };
+    }));
+    this.wsTotalElements.set(total);
   }
 }
