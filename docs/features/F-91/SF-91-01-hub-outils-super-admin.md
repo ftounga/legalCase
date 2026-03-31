@@ -43,7 +43,6 @@ La page `/super-admin` affiche, après les métriques existantes, une nouvelle s
 - Brevo — emails transactionnels
 - n8n — automatisations
 - AWS Console — infrastructure cloud
-- RabbitMQ Management — file de messages
 
 Chaque outil s'affiche sous forme de carte avec :
 - Icône (Material Icon ou lettre si pas d'icône disponible)
@@ -60,7 +59,7 @@ Aucun — les liens sont statiques. Pas d'appel réseau, pas de vérification de
 ## Critères d'acceptation
 
 - [ ] Section "Outils & monitoring" visible dans `/super-admin` uniquement
-- [ ] 7 outils affichés organisés en 2 groupes
+- [ ] 6 outils affichés organisés en 2 groupes
 - [ ] Chaque lien s'ouvre dans un nouvel onglet (`target="_blank"`)
 - [ ] Page accessible uniquement pour les SUPER_ADMIN (guard existant inchangé)
 - [ ] Responsive : grille s'adapte sur mobile (1 colonne) et desktop (3-4 colonnes)
@@ -104,7 +103,7 @@ Aucune.
 ### Tests unitaires / composant
 
 - [ ] La section "Outils & monitoring" est présente dans le DOM
-- [ ] Les 7 outils sont rendus (un `data-testid` ou texte par outil)
+- [ ] Les 6 outils sont rendus (un `data-testid` ou texte par outil)
 - [ ] Chaque lien a `target="_blank"` et `rel="noopener noreferrer"`
 - [ ] La section n'est pas visible sur les routes non-super-admin (guard existant — déjà couvert)
 
@@ -156,4 +155,4 @@ Aucune.
 
 - URLs hardcodées dans le composant (pas de config backend) — les URLs de ces outils ne changent pas.
 - Icônes : Material Icons (`open_in_new`, `analytics`, `bug_report`, `payment`, `email`, `cloud`, `settings_input_component`) — pas de dépendance externe.
-- RabbitMQ Management URL : `https://rabbitmq.staging.legalcase.ng-itconsulting.com` (accès interne staging uniquement — mentionner que la prod n'est pas exposée publiquement).
+- RabbitMQ retiré : non exposé via ingress nginx (aucun sous-domaine rabbitmq.* configuré). À ajouter uniquement si une route ingress dédiée est créée.
