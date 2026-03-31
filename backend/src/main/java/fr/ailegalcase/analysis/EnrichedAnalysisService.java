@@ -180,11 +180,13 @@ public class EnrichedAnalysisService {
         if (failure != null) {
             enrichedAnalysis.setAnalysisStatus(AnalysisStatus.FAILED);
         } else {
-            enrichedAnalysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content(), limits));
+            String truncated = AnalysisJsonTruncator.truncateCaseAnalysis(result.content(), limits);
+            enrichedAnalysis.setAnalysisResult(truncated);
             enrichedAnalysis.setModelUsed(result.modelUsed());
             enrichedAnalysis.setPromptTokens(result.promptTokens());
             enrichedAnalysis.setCompletionTokens(result.completionTokens());
             enrichedAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+            CaseAnalysisResponse.populateCounts(enrichedAnalysis, truncated);
         }
         caseAnalysisRepository.save(enrichedAnalysis);
 

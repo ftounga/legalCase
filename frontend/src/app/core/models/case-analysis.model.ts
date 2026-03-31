@@ -22,6 +22,11 @@ export interface CaseAnalysisVersionSummary {
   version: number;
   analysisType: 'STANDARD' | 'ENRICHED';
   updatedAt: string;
+  faitsCount: number | null;
+  pointsJuridiquesCount: number | null;
+  risquesCount: number | null;
+  questionsOuvertesCount: number | null;
+  timelineCount: number | null;
 }
 
 export interface DiffItem {

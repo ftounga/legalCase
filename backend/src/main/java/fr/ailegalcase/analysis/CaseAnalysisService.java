@@ -172,11 +172,13 @@ public class CaseAnalysisService {
         if (failure != null) {
             analysis.setAnalysisStatus(AnalysisStatus.FAILED);
         } else {
-            analysis.setAnalysisResult(AnalysisJsonTruncator.truncateCaseAnalysis(result.content(), limits));
+            String truncated = AnalysisJsonTruncator.truncateCaseAnalysis(result.content(), limits);
+            analysis.setAnalysisResult(truncated);
             analysis.setModelUsed(result.modelUsed());
             analysis.setPromptTokens(result.promptTokens());
             analysis.setCompletionTokens(result.completionTokens());
             analysis.setAnalysisStatus(AnalysisStatus.DONE);
+            CaseAnalysisResponse.populateCounts(analysis, truncated);
         }
         caseAnalysisRepository.save(analysis);
 

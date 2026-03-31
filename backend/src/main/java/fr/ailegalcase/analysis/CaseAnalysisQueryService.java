@@ -73,7 +73,17 @@ public class CaseAnalysisQueryService {
         return caseAnalysisRepository
                 .findByCaseFileIdAndAnalysisStatusOrderByVersionDesc(caseFileId, AnalysisStatus.DONE)
                 .stream()
-                .map(ca -> new CaseAnalysisResponse.VersionSummary(ca.getId(), ca.getVersion(), ca.getAnalysisType().name(), ca.getUpdatedAt()))
+                .map(ca -> new CaseAnalysisResponse.VersionSummary(
+                        ca.getId(),
+                        ca.getVersion(),
+                        ca.getAnalysisType().name(),
+                        ca.getUpdatedAt(),
+                        ca.getFaitsCount(),
+                        ca.getPointsJuridiquesCount(),
+                        ca.getRisquesCount(),
+                        ca.getQuestionsOuvertesCount(),
+                        ca.getTimelineCount()
+                ))
                 .toList();
     }
 

@@ -45,6 +45,21 @@ public class CaseAnalysis {
     @Column(name = "completion_tokens")
     private Integer completionTokens;
 
+    @Column(name = "faits_count")
+    private Integer faitsCount;
+
+    @Column(name = "points_juridiques_count")
+    private Integer pointsJuridiquesCount;
+
+    @Column(name = "risques_count")
+    private Integer risquesCount;
+
+    @Column(name = "questions_ouvertes_count")
+    private Integer questionsOuvertesCount;
+
+    @Column(name = "timeline_count")
+    private Integer timelineCount;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

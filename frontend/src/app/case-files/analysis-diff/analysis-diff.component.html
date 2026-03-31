@@ -45,6 +45,17 @@
           }
         </mat-select>
       </mat-form-field>
+      @if (selectedFrom(); as v) {
+        @if (v.faitsCount !== null) {
+          <div class="version-stats">
+            <span class="version-stat">{{ v.faitsCount }} faits</span>
+            <span class="version-stat-sep">·</span>
+            <span class="version-stat">{{ v.pointsJuridiquesCount }} points</span>
+            <span class="version-stat-sep">·</span>
+            <span class="version-stat">{{ v.risquesCount }} risques</span>
+          </div>
+        }
+      }
     </mat-card>
 
     <!-- Arrow + convention hint -->
@@ -75,6 +86,17 @@
           }
         </mat-select>
       </mat-form-field>
+      @if (selectedTo(); as v) {
+        @if (v.faitsCount !== null) {
+          <div class="version-stats">
+            <span class="version-stat">{{ v.faitsCount }} faits</span>
+            <span class="version-stat-sep">·</span>
+            <span class="version-stat">{{ v.pointsJuridiquesCount }} points</span>
+            <span class="version-stat-sep">·</span>
+            <span class="version-stat">{{ v.risquesCount }} risques</span>
+          </div>
+        }
+      }
     </mat-card>
   </div>
 
