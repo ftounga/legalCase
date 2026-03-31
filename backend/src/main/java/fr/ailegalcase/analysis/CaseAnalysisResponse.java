@@ -24,9 +24,38 @@ public record CaseAnalysisResponse(
 
     public record TimelineEntry(String date, String evenement) {}
 
-    public record VersionSummary(UUID id, int version, String analysisType, Instant updatedAt) {}
+    public record VersionSummary(
+            UUID id,
+            int version,
+            String analysisType,
+            Instant updatedAt,
+            Integer faitsCount,
+            Integer pointsJuridiquesCount,
+            Integer risquesCount,
+            Integer questionsOuvertesCount,
+            Integer timelineCount
+    ) {}
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static void populateCounts(CaseAnalysis analysis, String rawResult) {
+        if (rawResult == null || rawResult.isBlank()) return;
+        try {
+            JsonNode root = MAPPER.readTree(stripMarkdownCodeBlock(rawResult));
+            analysis.setFaitsCount(sizeOf(root, "faits"));
+            analysis.setPointsJuridiquesCount(sizeOf(root, "points_juridiques"));
+            analysis.setRisquesCount(sizeOf(root, "risques"));
+            analysis.setQuestionsOuvertesCount(sizeOf(root, "questions_ouvertes"));
+            analysis.setTimelineCount(sizeOf(root, "timeline"));
+        } catch (Exception ignored) {
+            // JSON malformé — compteurs restent null (fail-open)
+        }
+    }
+
+    private static int sizeOf(JsonNode root, String field) {
+        JsonNode node = root.get(field);
+        return (node != null && node.isArray()) ? node.size() : 0;
+    }
 
     public static CaseAnalysisResponse from(CaseAnalysis analysis) {
         List<TimelineEntry> timeline = List.of();

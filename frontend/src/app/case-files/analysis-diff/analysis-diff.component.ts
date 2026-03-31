@@ -52,6 +52,14 @@ export class AnalysisDiffComponent implements OnInit {
   fromId = signal<string | null>(null);
   toId = signal<string | null>(null);
 
+  readonly selectedFrom = computed(() =>
+    this.versions().find(v => v.id === this.fromId()) ?? null
+  );
+
+  readonly selectedTo = computed(() =>
+    this.versions().find(v => v.id === this.toId()) ?? null
+  );
+
   readonly canCompute = computed(() => {
     const f = this.fromId();
     const t = this.toId();

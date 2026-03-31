@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="039-add-analysis-counts" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="faits_count"               type="INTEGER"/>
+            <column name="points_juridiques_count"   type="INTEGER"/>
+            <column name="risques_count"             type="INTEGER"/>
+            <column name="questions_ouvertes_count"  type="INTEGER"/>
+            <column name="timeline_count"            type="INTEGER"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

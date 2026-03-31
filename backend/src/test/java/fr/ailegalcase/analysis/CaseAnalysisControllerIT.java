@@ -338,6 +338,48 @@ class CaseAnalysisControllerIT {
                 .andExpect(status().isNotFound());
     }
 
+    // ─── Versions tests (SF-89-02) ────────────────────────────────────────────
+
+    // I-versions-01 : GET /versions → 200 avec compteurs non-null pour une analyse récente
+    @Test
+    void listVersions_withCounts_returnsCountsInResponse() throws Exception {
+        CaseAnalysis a = new CaseAnalysis();
+        a.setCaseFile(caseFile);
+        a.setAnalysisStatus(AnalysisStatus.DONE);
+        a.setAnalysisType(AnalysisType.STANDARD);
+        a.setVersion(1);
+        a.setModelUsed("test");
+        a.setFaitsCount(5);
+        a.setPointsJuridiquesCount(3);
+        a.setRisquesCount(2);
+        a.setQuestionsOuvertesCount(4);
+        a.setTimelineCount(6);
+        a.setAnalysisResult(emptyAnalysisJson());
+        caseAnalysisRepository.save(a);
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis/versions", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].faitsCount").value(5))
+                .andExpect(jsonPath("$[0].pointsJuridiquesCount").value(3))
+                .andExpect(jsonPath("$[0].risquesCount").value(2))
+                .andExpect(jsonPath("$[0].questionsOuvertesCount").value(4))
+                .andExpect(jsonPath("$[0].timelineCount").value(6));
+    }
+
+    // I-versions-02 : GET /versions → compteurs null acceptés (ancienne analyse)
+    @Test
+    void listVersions_withNullCounts_returnsNullInResponse() throws Exception {
+        CaseAnalysis a = savedDoneAnalysis(caseFile, emptyAnalysisJson());
+        // compteurs non renseignés → null en base
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis/versions", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].faitsCount").isEmpty())
+                .andExpect(jsonPath("$[0].pointsJuridiquesCount").isEmpty());
+    }
+
     private CaseAnalysis savedDoneAnalysis(CaseFile cf, String json) {
         CaseAnalysis a = new CaseAnalysis();
         a.setCaseFile(cf);

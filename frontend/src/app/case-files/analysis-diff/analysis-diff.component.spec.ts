@@ -14,8 +14,10 @@ import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AnalysisDiff, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 
 const MOCK_VERSIONS: CaseAnalysisVersionSummary[] = [
-  { id: 'v1-id', version: 1, analysisType: 'STANDARD', updatedAt: '2024-01-01T00:00:00Z' },
-  { id: 'v2-id', version: 2, analysisType: 'ENRICHED', updatedAt: '2024-02-01T00:00:00Z' },
+  { id: 'v1-id', version: 1, analysisType: 'STANDARD', updatedAt: '2024-01-01T00:00:00Z',
+    faitsCount: 3, pointsJuridiquesCount: 2, risquesCount: 1, questionsOuvertesCount: 1, timelineCount: 2 },
+  { id: 'v2-id', version: 2, analysisType: 'ENRICHED', updatedAt: '2024-02-01T00:00:00Z',
+    faitsCount: null, pointsJuridiquesCount: null, risquesCount: null, questionsOuvertesCount: null, timelineCount: null },
 ];
 
 const MOCK_DIFF: AnalysisDiff = {

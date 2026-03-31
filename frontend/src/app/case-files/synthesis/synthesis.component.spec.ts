@@ -34,7 +34,12 @@ const makeVersion = (version: number, analysisType: 'STANDARD' | 'ENRICHED'): Ca
   id: `analysis-${version}`,
   version,
   analysisType,
-  updatedAt: '2026-03-23T10:00:00Z'
+  updatedAt: '2026-03-23T10:00:00Z',
+  faitsCount: null,
+  pointsJuridiquesCount: null,
+  risquesCount: null,
+  questionsOuvertesCount: null,
+  timelineCount: null
 });
 
 describe('SynthesisComponent', () => {

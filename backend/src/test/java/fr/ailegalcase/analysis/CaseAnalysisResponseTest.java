@@ -75,6 +75,50 @@ class CaseAnalysisResponseTest {
         assertThat(response.faits()).isEmpty();
     }
 
+    // U-05 : populateCounts — JSON nominal → 5 compteurs corrects
+    @Test
+    void populateCounts_nominalJson_setsAllCounts() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "faits": ["f1", "f2", "f3"],
+                  "points_juridiques": ["p1", "p2"],
+                  "risques": ["r1"],
+                  "questions_ouvertes": ["q1", "q2", "q3", "q4"],
+                  "timeline": [{"date":"2024-01-01","evenement":"e1"},{"date":"2024-02-01","evenement":"e2"}]
+                }
+                """);
+
+        CaseAnalysisResponse.populateCounts(analysis, analysis.getAnalysisResult());
+
+        assertThat(analysis.getFaitsCount()).isEqualTo(3);
+        assertThat(analysis.getPointsJuridiquesCount()).isEqualTo(2);
+        assertThat(analysis.getRisquesCount()).isEqualTo(1);
+        assertThat(analysis.getQuestionsOuvertesCount()).isEqualTo(4);
+        assertThat(analysis.getTimelineCount()).isEqualTo(2);
+    }
+
+    // U-06 : populateCounts — JSON malformé → compteurs restent null (fail-open)
+    @Test
+    void populateCounts_malformedJson_countsRemainNull() {
+        CaseAnalysis analysis = analysis("not valid json");
+
+        CaseAnalysisResponse.populateCounts(analysis, analysis.getAnalysisResult());
+
+        assertThat(analysis.getFaitsCount()).isNull();
+        assertThat(analysis.getPointsJuridiquesCount()).isNull();
+        assertThat(analysis.getRisquesCount()).isNull();
+    }
+
+    // U-07 : populateCounts — null → aucune exception, compteurs restent null
+    @Test
+    void populateCounts_nullResult_countsRemainNull() {
+        CaseAnalysis analysis = analysis(null);
+
+        CaseAnalysisResponse.populateCounts(analysis, null);
+
+        assertThat(analysis.getFaitsCount()).isNull();
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
