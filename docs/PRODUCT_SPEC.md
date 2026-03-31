@@ -163,7 +163,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-76 | Tableau de bord super-admin — métriques produit | V3 | Vue opérateur : workspaces actifs, analyses lancées par période, taux de conversion trial→payant, workspaces inactifs depuis X jours. Accessible uniquement au super-admin. Données tirées de la base existante (pas de tracking externe). |
+| F-76 | Tableau de bord super-admin — métriques produit | V3 — **Terminée** | SF-76-01 mergée 2026-03-31 : GET /api/v1/super-admin/metrics, 9 métriques agrégées (totalWorkspaces, activeWorkspaces30d, inactiveWorkspaces30d, trialWorkspaces, paidWorkspaces, conversionRatePct, analysesLast7Days, analysesLast30Days, newWorkspacesLast30Days), 368 tests verts. SF-76-02 mergée 2026-03-31 : section métriques en haut de /super-admin, 9 cartes en grille 3 colonnes responsive, design system, 346 tests verts. |
 
 ### UX & exploitation
 
@@ -216,6 +216,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-76 Terminée — SF-76-01 (GET /api/v1/super-admin/metrics, 9 métriques, 368 tests) + SF-76-02 (section métriques /super-admin, 9 cartes responsive, 346 tests) | Product owner |
 | 2026-03-30 | F-78 Terminée — SF-78-01 (POST /api/v1/contact, 2 emails, 22 tests) + SF-78-02 (ContactComponent /contact, 5 champs, footer link, 6 tests) | Product owner |
 | 2026-03-30 | F-77 Terminée — SF-77-01 mergée : ConsentService (injection GA4 dynamique, localStorage), CookieConsentBannerComponent (responsive, design system), gaId G-2JPL8JTXE7, 10 tests verts | Product owner |
 | 2026-03-30 | F-75 Terminée — SF-75-01 mergée : index.html OG + Twitter Card, LandingComponent Title+Meta dynamiques, LegalPageComponent title depuis route data, robots.txt, sitemap.xml, 328 tests verts | Product owner |
