@@ -18,6 +18,7 @@ const mockSynthesis: CaseAnalysisResult = {
   pointsJuridiques: ['Article L1232-1 Code du travail', 'Absence de cause réelle et sérieuse'],
   risques: ['Condamnation à indemnités', 'Risque de requalification'],
   questionsOuvertes: ['Convention collective applicable ?'],
+  piecesManquantes: [],
   modelUsed: 'claude-3',
   updatedAt: '2026-03-24T10:00:00Z',
 };

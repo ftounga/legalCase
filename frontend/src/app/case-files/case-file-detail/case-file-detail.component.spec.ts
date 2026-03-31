@@ -310,6 +310,7 @@ describe('CaseFileDetailComponent', () => {
       pointsJuridiques: [],
       risques: [],
       questionsOuvertes: [],
+      piecesManquantes: [],
       modelUsed: null,
       updatedAt: null
     };
@@ -414,7 +415,7 @@ describe('CaseFileDetailComponent', () => {
     component.caseFile.set({ ...mockCaseFile, lastDocumentDeletedAt: null });
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
-      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
       modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
     expect(component.deletedSinceLastAnalysis()).toBeFalse();
@@ -424,7 +425,7 @@ describe('CaseFileDetailComponent', () => {
     component.caseFile.set({ ...mockCaseFile, lastDocumentDeletedAt: '2026-03-21T10:00:00Z' });
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
-      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
       modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
     expect(component.deletedSinceLastAnalysis()).toBeTrue();
@@ -434,7 +435,7 @@ describe('CaseFileDetailComponent', () => {
     component.caseFile.set({ ...mockCaseFile, lastDocumentDeletedAt: '2026-03-21T10:00:00Z' });
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
-      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
       modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
     // doc added after synthesis
@@ -522,7 +523,7 @@ describe('CaseFileDetailComponent', () => {
   it('C-04: lien "Voir la synthèse" a data-tour-target="synthesis-link" quand synthesis() est non null', () => {
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
-      timeline: [], faits: ['un fait'], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      timeline: [], faits: ['un fait'], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
       modelUsed: null, updatedAt: '2026-03-29T10:00:00Z'
     });
     fixture.detectChanges();

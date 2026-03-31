@@ -177,11 +177,12 @@
   margin-right: 10px;
   vertical-align: middle;
 
-  &--timeline  { color: #1A3A5C; }
-  &--faits     { color: #2980B9; }
-  &--juridique { color: #8E44AD; }
-  &--risques   { color: #C0392B; }
-  &--questions { color: #C9973A; }
+  &--timeline   { color: #1A3A5C; }
+  &--faits      { color: #2980B9; }
+  &--juridique  { color: #8E44AD; }
+  &--risques    { color: #C0392B; }
+  &--questions  { color: #C9973A; }
+  &--manquantes { color: #E67E22; }
 }
 
 .timeline {

@@ -13,6 +13,7 @@ export interface CaseAnalysisResult {
   pointsJuridiques: string[];
   risques: string[];
   questionsOuvertes: string[];
+  piecesManquantes: string[];
   modelUsed: string | null;
   updatedAt: string | null;
 }

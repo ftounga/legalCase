@@ -158,6 +158,23 @@
           </ol>
         </mat-expansion-panel>
       }
+
+      @if (synthesis()!.piecesManquantes?.length > 0) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--manquantes">report_problem</mat-icon>
+              Pièces manquantes
+            </mat-panel-title>
+            <mat-panel-description>{{ synthesis()!.piecesManquantes.length }} pièce(s) à fournir</mat-panel-description>
+          </mat-expansion-panel-header>
+          <ul class="synthesis-list" [@listStagger]="synthesis()!.piecesManquantes.length">
+            @for (item of synthesis()!.piecesManquantes; track $index) {
+              <li @fadeInUp>{{ item }}</li>
+            }
+          </ul>
+        </mat-expansion-panel>
+      }
     </mat-accordion>
   }
 
