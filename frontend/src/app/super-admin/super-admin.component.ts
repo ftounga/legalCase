@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
 import { DatePipe, DecimalPipe, LowerCasePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
@@ -51,6 +52,7 @@ export class SuperAdminComponent implements OnInit {
 
   private usageMap = new Map<string, SuperAdminUsage>();
 
+  readonly rabbitmqUrl = environment.rabbitmqUrl;
   readonly workspaceColumns = ['name', 'plan', 'members', 'tokensInput', 'tokensOutput', 'cost', 'createdAt', 'actions'];
   readonly userColumns = ['email', 'name', 'workspaces', 'actions'];
 
