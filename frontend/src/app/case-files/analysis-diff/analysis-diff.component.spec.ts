@@ -42,50 +42,63 @@ const MOCK_DIFF: AnalysisDiff = {
   }
 };
 
+function buildTestBed(getDiffReturn: any) {
+  const caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getDiff']);
+  const caseFileServiceSpy     = jasmine.createSpyObj('CaseFileService', ['getById']);
+  const snackBarSpy            = jasmine.createSpyObj('MatSnackBar', ['open']);
+
+  caseFileServiceSpy.getById.and.returnValue(of({ id: 'cf-1', title: 'Dossier test' } as any));
+  caseAnalysisServiceSpy.getVersions.and.returnValue(of(MOCK_VERSIONS));
+  caseAnalysisServiceSpy.getDiff.and.returnValue(getDiffReturn);
+
+  TestBed.configureTestingModule({
+    imports: [AnalysisDiffComponent, NoopAnimationsModule],
+    providers: [
+      provideRouter([]),
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      { provide: CaseFileService,     useValue: caseFileServiceSpy },
+      { provide: CaseAnalysisService, useValue: caseAnalysisServiceSpy },
+      { provide: MatSnackBar,         useValue: snackBarSpy },
+      { provide: ActivatedRoute,      useValue: { snapshot: { paramMap: { get: () => 'cf-1' } } } }
+    ]
+  });
+
+  return { caseAnalysisServiceSpy, caseFileServiceSpy, snackBarSpy };
+}
+
 describe('AnalysisDiffComponent', () => {
   let fixture: ComponentFixture<AnalysisDiffComponent>;
   let component: AnalysisDiffComponent;
   let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
-  let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
   let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
   let router: Router;
 
   beforeEach(async () => {
-    caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getDiff']);
-    caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
-    snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
-
-    caseFileServiceSpy.getById.and.returnValue(of({ id: 'cf-1', title: 'Dossier test' } as any));
-    caseAnalysisServiceSpy.getVersions.and.returnValue(of(MOCK_VERSIONS));
-    caseAnalysisServiceSpy.getDiff.and.returnValue(of(MOCK_DIFF));
-
-    await TestBed.configureTestingModule({
-      imports: [AnalysisDiffComponent, NoopAnimationsModule],
-      providers: [
-        provideRouter([]),
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: CaseFileService, useValue: caseFileServiceSpy },
-        { provide: CaseAnalysisService, useValue: caseAnalysisServiceSpy },
-        { provide: MatSnackBar, useValue: snackBarSpy },
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => 'cf-1' } } }
-        }
-      ]
-    }).compileComponents();
+    const spies = buildTestBed(of(MOCK_DIFF));
+    caseAnalysisServiceSpy = spies.caseAnalysisServiceSpy;
+    snackBarSpy = spies.snackBarSpy;
 
     fixture = TestBed.createComponent(AnalysisDiffComponent);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
     fixture.detectChanges();
+    await fixture.whenStable();
   });
 
+  // ── Init ──────────────────────────────────────────────────────────────
   it('should load versions on init', () => {
     expect(caseAnalysisServiceSpy.getVersions).toHaveBeenCalledWith('cf-1');
     expect(component.versions()).toEqual(MOCK_VERSIONS);
   });
 
+  it('auto-triggers getDiff when two versions are auto-selected on init', () => {
+    // ngOnInit: fromId = v[1].id = v2-id, toId = v[0].id = v1-id
+    expect(caseAnalysisServiceSpy.getDiff).toHaveBeenCalledWith('cf-1', 'v2-id', 'v1-id');
+    expect(component.diff()).toEqual(MOCK_DIFF);
+  });
+
+  // ── canCompute ────────────────────────────────────────────────────────
   it('canCompute() is false when no versions selected', () => {
     component.fromId.set('');
     component.toId.set('');
@@ -104,78 +117,85 @@ describe('AnalysisDiffComponent', () => {
     expect(component.canCompute()).toBeTrue();
   });
 
-  it('onVersionChange() calls getDiff when canCompute is true', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
-    expect(caseAnalysisServiceSpy.getDiff).toHaveBeenCalledWith('cf-1', 'v1-id', 'v2-id');
-  });
-
-  it('onVersionChange() does not call getDiff when versions are the same', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v1-id');
-    component.onVersionChange();
-    expect(caseAnalysisServiceSpy.getDiff).not.toHaveBeenCalled();
-  });
-
+  // ── Sections & totals ─────────────────────────────────────────────────
   it('sections() contains 5 sections after diff loaded', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
     expect(component.sections().length).toBe(5);
   });
 
   it('totalAdded() counts all added items across sections', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
     // faits.added=1, timeline.added=1 → 2
     expect(component.totalAdded()).toBe(2);
   });
 
   it('totalRemoved() counts all removed items across sections', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
     // faits.removed=1
     expect(component.totalRemoved()).toBe(1);
   });
 
   it('totalEnriched() counts all enriched items across sections', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
     // faits.enriched=1
     expect(component.totalEnriched()).toBe(1);
   });
 
   it('sectionEnrichedCount() returns enriched count for string section', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
     const faitsSection = component.sections()[0];
     expect(component.sectionEnrichedCount(faitsSection)).toBe(1);
   });
 
   it('sectionEnrichedCount() returns 0 for section with no enriched', () => {
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
     const timelineSection = component.sections()[4];
     expect(component.sectionEnrichedCount(timelineSection)).toBe(0);
   });
 
-  it('shows snackbar error when getDiff fails', () => {
-    caseAnalysisServiceSpy.getDiff.and.returnValue(throwError(() => ({ status: 500 })));
-    component.fromId.set('v1-id');
-    component.toId.set('v2-id');
-    component.onVersionChange();
-    expect(snackBarSpy.open).toHaveBeenCalled();
+  // ── sectionDominantType ───────────────────────────────────────────────
+  it('sectionDominantType() returns "added" when added > others', () => {
+    const section = component.sections()[0]; // faits: added=1, removed=1, enriched=1 → mixed
+    // Use risques section: all zero → neutral
+    const risques = component.sections()[2];
+    expect(component.sectionDominantType(risques)).toBe('neutral');
   });
 
+  it('sectionDominantType() returns "neutral" when no changes', () => {
+    const risques = component.sections()[2]; // added=0, removed=0, enriched=0
+    expect(component.sectionDominantType(risques)).toBe('neutral');
+  });
+
+  it('sectionDominantType() returns "added" for timeline (added=1 > removed=0 > enriched=0)', () => {
+    const timeline = component.sections()[4]; // added=1
+    expect(component.sectionDominantType(timeline)).toBe('added');
+  });
+
+  it('sectionDominantType() returns "mixed" when two types are equal and highest', () => {
+    const faits = component.sections()[0]; // added=1, removed=1, enriched=1 → all equal → mixed
+    expect(component.sectionDominantType(faits)).toBe('mixed');
+  });
+
+  // ── Filter ────────────────────────────────────────────────────────────
+  it('setFilter() updates activeFilter', () => {
+    component.setFilter('added');
+    expect(component.activeFilter()).toBe('added');
+  });
+
+  it('toggleUnchanged() flips unchangedVisible', () => {
+    expect(component.unchangedVisible()).toBeFalse();
+    component.toggleUnchanged();
+    expect(component.unchangedVisible()).toBeTrue();
+  });
+
+  // ── Navigation ────────────────────────────────────────────────────────
   it('goBack() navigates to case file detail', () => {
     const navigateSpy = spyOn(router, 'navigate');
     component.goBack();
     expect(navigateSpy).toHaveBeenCalledWith(['/case-files', 'cf-1']);
+  });
+});
+
+describe('AnalysisDiffComponent — error handling', () => {
+  it('shows snackbar error when getDiff fails', async () => {
+    const { snackBarSpy } = buildTestBed(throwError(() => ({ status: 500 })));
+    const errFixture = TestBed.createComponent(AnalysisDiffComponent);
+    errFixture.detectChanges();
+    await errFixture.whenStable();
+    expect(snackBarSpy.open).toHaveBeenCalled();
   });
 });
