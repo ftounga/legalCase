@@ -170,8 +170,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-87 | Export complet d'un dossier (ZIP) | V3 | Télécharger l'intégralité d'un dossier (synthèse PDF + liste documents + notes + délais) en archive ZIP. Bouton dans la page dossier. Backend `GET /api/v1/case-files/{id}/export`, isolation workspace. |
-| F-86 | Renommage et modification d'un dossier | V3 | Modifier le titre et la description d'un dossier existant depuis la page dossier. Endpoint `PATCH /api/v1/case-files/{id}`, dialog Angular, isolation workspace, tracé dans audit_logs. |
+| F-87 | Export complet d'un dossier (ZIP) | V3 — **Terminée** | SF-87-01 mergée 2026-03-31 : GET /api/v1/case-files/{id}/export, ZIP en mémoire (dossier.json, documents.csv, notes.txt, delais.txt, synthese.json optionnel), Content-Disposition, bouton Exporter dans case-file-detail, 6 unit + 4 IT + 3 tests frontend. |
+| F-86 | Renommage et modification d'un dossier | V3 — **Terminée** | SF-86-01 mergée 2026-03-31 : PATCH /api/v1/case-files/{id}, CaseFileUpdateRequest, audit log CASE_FILE_UPDATED, CaseFileEditDialogComponent pré-rempli, bouton Modifier dans case-file-detail, 4 IT + 3 unit + 5 tests frontend. |
 | F-85 | Barre de progression globale | V3 — **Terminée** | SF-85-01 mergée 2026-03-31 : LoadingService (signal-based, compteur requêtes actives), loadingInterceptor, MatProgressBarModule dans AppComponent, barre fixée top:0 z-index:9999, 4 tests verts. |
 | F-84 | Filtres sur la liste des dossiers | V3 — **Terminée** | SF-84-01 mergée 2026-03-31 : sélecteurs Statut (Ouvert/Clôturé) et Domaine (Travail/Immigration/Famille) dans /case-files, filtrage client-side cumulable avec F-80 et F-82, reset au changement workspace, 5 tests verts (23 total). |
 | F-83 | Page d'erreur 404 — route inconnue | V3 — **Terminée** | SF-83-01 mergée 2026-03-31 : NotFoundComponent, route wildcard **, lien retour /case-files, 3 tests verts. |
@@ -225,6 +225,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-87 Terminée — SF-87-01 (GET /export ZIP, 5 fichiers, CaseFileExportService, bouton Exporter, 6 unit + 4 IT + 3 frontend) | Product owner |
+| 2026-03-31 | F-86 Terminée — SF-86-01 (PATCH /case-files/{id}, audit CASE_FILE_UPDATED, CaseFileEditDialogComponent, 4 IT + 3 unit + 5 frontend) | Product owner |
 | 2026-03-31 | F-85 Terminée — SF-85-01 (LoadingService signal-based, loadingInterceptor, MatProgressBarModule, barre fixe top:0, 4 tests) | Product owner |
 | 2026-03-31 | F-84 Terminée — SF-84-01 (sélecteurs Statut+Domaine /case-files, filtrage client-side, reset workspace, 5 nouveaux tests, 23 total) | Product owner |
 | 2026-03-31 | F-83 Terminée — SF-83-01 (NotFoundComponent, route **, lien retour /case-files, 3 tests) | Product owner |
