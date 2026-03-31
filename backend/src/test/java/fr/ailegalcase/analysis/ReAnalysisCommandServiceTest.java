@@ -4,6 +4,7 @@ import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.chat.ChatMessageRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
@@ -35,6 +36,7 @@ class ReAnalysisCommandServiceTest {
     @Mock private AnalysisJobRepository analysisJobRepository;
     @Mock private CaseAnalysisRepository caseAnalysisRepository;
     @Mock private AiQuestionAnswerRepository aiQuestionAnswerRepository;
+    @Mock private ChatMessageRepository chatMessageRepository;
     @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private RabbitTemplate rabbitTemplate;
@@ -49,7 +51,7 @@ class ReAnalysisCommandServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReAnalysisCommandService(caseFileRepository, analysisJobRepository,
-                caseAnalysisRepository, aiQuestionAnswerRepository,
+                caseAnalysisRepository, aiQuestionAnswerRepository, chatMessageRepository,
                 currentUserResolver, workspaceMemberRepository, rabbitTemplate, planLimitService);
     }
 
@@ -161,9 +163,9 @@ class ReAnalysisCommandServiceTest {
         verify(rabbitTemplate).convertAndSend(any(), any(), any(ReAnalysisMessage.class));
     }
 
-    // U-09 : analyse enrichie précédente existe, aucune nouvelle réponse → 409
+    // U-09 : analyse enrichie précédente existe, aucune nouvelle réponse ni message chat → 409
     @Test
-    void triggerReAnalysis_noNewAnswerSinceLastEnriched_throws409() {
+    void triggerReAnalysis_noNewAnswerNorChatSinceLastEnriched_throws409() {
         mockUserWorkspaceAndCaseFile();
         mockPlanChecksOk();
 
@@ -176,6 +178,8 @@ class ReAnalysisCommandServiceTest {
         when(aiQuestionAnswerRepository
                 .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any()))
                 .thenReturn(false);
+        when(chatMessageRepository.existsByCaseFileIdAndCreatedAtAfter(any(), any()))
+                .thenReturn(false);
 
         assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -185,6 +189,29 @@ class ReAnalysisCommandServiceTest {
                 });
 
         verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
+    }
+
+    // U-10 : analyse enrichie précédente existe, nouveau message chat (sans nouvelle réponse Q&A) → autorisé
+    @Test
+    void triggerReAnalysis_newChatMessageSinceLastEnriched_allowed() {
+        mockUserWorkspaceAndCaseFile();
+        mockPlanChecksOk();
+
+        CaseAnalysis lastEnriched = new CaseAnalysis();
+        lastEnriched.setUpdatedAt(Instant.now().minusSeconds(3600));
+        when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        CASE_FILE_ID, AnalysisType.ENRICHED, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(lastEnriched));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any()))
+                .thenReturn(false);
+        when(chatMessageRepository.existsByCaseFileIdAndCreatedAtAfter(any(), any()))
+                .thenReturn(true);
+
+        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
+
+        verify(rabbitTemplate).convertAndSend(any(), any(), any(ReAnalysisMessage.class));
     }
 
     // U-06 : budget mensuel dépassé → 402, RabbitMQ non publié

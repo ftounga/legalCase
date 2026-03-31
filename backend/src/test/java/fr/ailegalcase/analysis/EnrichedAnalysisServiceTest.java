@@ -2,6 +2,8 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.chat.ChatMessage;
+import fr.ailegalcase.chat.ChatMessageRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,11 +35,13 @@ class EnrichedAnalysisServiceTest {
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
     private final AnalysisQaSnapshotService analysisQaSnapshotService = mock(AnalysisQaSnapshotService.class);
     private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
+    private final ChatMessageRepository chatMessageRepository = mock(ChatMessageRepository.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties);
+            analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
+            chatMessageRepository);
 
     @BeforeEach
     void setUp() {
@@ -156,7 +160,7 @@ class EnrichedAnalysisServiceTest {
         assertThat(jobCaptor.getValue().getStatus()).isEqualTo(AnalysisStatus.FAILED);
     }
 
-    // U-04 : buildEnrichedPrompt contient la synthèse précédente et les Q&R
+    // U-04 : buildEnrichedPrompt contient la synthèse précédente et les Q&R (sans résumé chat)
     @Test
     void buildEnrichedPrompt_containsPreviousAnalysisAndQA() {
         UUID caseFileId = UUID.randomUUID();
@@ -168,13 +172,74 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
                 .thenReturn(Optional.of(answer));
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{\"faits\":[\"fait1\"]}");
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{\"faits\":[\"fait1\"]}", null);
 
         assertThat(prompt).contains("{\"faits\":[\"fait1\"]}");
         assertThat(prompt).contains("Question test ?");
         assertThat(prompt).contains("Réponse test");
         assertThat(prompt).contains("Synthèse précédente");
         assertThat(prompt).contains("Questions et réponses");
+        assertThat(prompt).doesNotContain("Échanges libres");
+    }
+
+    // U-07 : buildEnrichedPrompt avec résumé chat → section injectée
+    @Test
+    void buildEnrichedPrompt_withChatSummary_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "Point clé 1 : délai de prescription dépassé");
+
+        assertThat(prompt).contains("Échanges libres avec l'assistant — points clés");
+        assertThat(prompt).contains("Point clé 1 : délai de prescription dépassé");
+    }
+
+    // U-08 : buildEnrichedPrompt avec résumé chat blanc → section absente
+    @Test
+    void buildEnrichedPrompt_withBlankChatSummary_omitsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "   ");
+
+        assertThat(prompt).doesNotContain("Échanges libres");
+    }
+
+    // U-09 : buildChatSummary — chat vide → null
+    @Test
+    void buildChatSummary_noMessages_returnsNull() {
+        UUID caseFileId = UUID.randomUUID();
+        when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of());
+
+        assertThat(service.buildChatSummary(caseFileId)).isNull();
+        verify(anthropicService, never()).analyzeFast(any(), any(), anyInt());
+    }
+
+    // U-10 : buildChatSummary — erreur Haiku → fail-open, retourne null
+    @Test
+    void buildChatSummary_haikuError_returnsNullWithoutException() {
+        UUID caseFileId = UUID.randomUUID();
+        ChatMessage msg = new ChatMessage();
+        msg.setQuestion("Question libre ?");
+        msg.setAnswer("Réponse IA");
+        when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of(msg));
+        when(anthropicService.analyzeFast(any(), any(), anyInt())).thenThrow(new RuntimeException("Haiku timeout"));
+
+        assertThat(service.buildChatSummary(caseFileId)).isNull();
+    }
+
+    // U-11 : buildChatSummary — messages présents, Haiku répond → résumé retourné
+    @Test
+    void buildChatSummary_withMessages_returnsSummary() {
+        UUID caseFileId = UUID.randomUUID();
+        ChatMessage msg = new ChatMessage();
+        msg.setQuestion("Quel est le délai ?");
+        msg.setAnswer("Le délai est de 2 ans.");
+        when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of(msg));
+        when(anthropicService.analyzeFast(any(), any(), anyInt()))
+                .thenReturn(new AnthropicResult("Délai de prescription : 2 ans", "claude-haiku-4-5", 50, 20));
+
+        assertThat(service.buildChatSummary(caseFileId)).isEqualTo("Délai de prescription : 2 ans");
     }
 
     // U-06 : enriched analysis → analysisType = ENRICHED, version = max + 1

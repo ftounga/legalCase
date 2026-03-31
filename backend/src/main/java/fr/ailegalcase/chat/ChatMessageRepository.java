@@ -12,6 +12,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, UUID> 
 
     List<ChatMessage> findByCaseFileIdOrderByCreatedAtAsc(UUID caseFileId);
 
+    boolean existsByCaseFileIdAndCreatedAtAfter(UUID caseFileId, Instant after);
+
     @Query(value = """
             SELECT COUNT(*)
             FROM chat_messages cm
