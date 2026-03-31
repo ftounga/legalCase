@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -24,7 +25,7 @@ import { fadeInUp, listStagger } from '../../shared/animations';
   imports: [
     RouterLink, NgClass, DatePipe,
     MatTableModule, MatPaginatorModule, MatSortModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule
+    MatFormFieldModule, MatInputModule, MatSelectModule
   ],
   templateUrl: './case-files-list.component.html',
   styleUrl: './case-files-list.component.scss',
@@ -40,12 +41,17 @@ export class CaseFilesListComponent implements OnInit {
   searchTerm = '';
   sortColumn = '';
   sortDirection: 'asc' | 'desc' | '' = '';
+  filterStatus = '';
+  filterDomain = '';
 
   get filteredDataSource(): CaseFile[] {
     const term = this.searchTerm.trim().toLowerCase();
-    const filtered = term
+    let filtered = term
       ? this.dataSource.filter(cf => cf.title.toLowerCase().includes(term))
       : [...this.dataSource];
+
+    if (this.filterStatus) filtered = filtered.filter(cf => cf.status === this.filterStatus);
+    if (this.filterDomain) filtered = filtered.filter(cf => cf.legalDomain === this.filterDomain);
 
     if (!this.sortColumn || !this.sortDirection) return filtered;
 
@@ -76,6 +82,8 @@ export class CaseFilesListComponent implements OnInit {
       .subscribe(() => {
         this.pageIndex = 0;
         this.searchTerm = '';
+        this.filterStatus = '';
+        this.filterDomain = '';
         this.loadCaseFiles();
       });
   }
@@ -113,6 +121,14 @@ export class CaseFilesListComponent implements OnInit {
   onSort(sort: Sort): void {
     this.sortColumn = sort.active;
     this.sortDirection = sort.direction;
+  }
+
+  onFilterStatus(value: string): void {
+    this.filterStatus = value;
+  }
+
+  onFilterDomain(value: string): void {
+    this.filterDomain = value;
   }
 
   openCreateDialog(): void {

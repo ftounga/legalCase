@@ -10,6 +10,21 @@
         </button>
       }
     </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+      <mat-select [value]="filterStatus" (selectionChange)="onFilterStatus($event.value)" aria-label="Filtrer par statut">
+        <mat-option value="">Tous les statuts</mat-option>
+        <mat-option value="OPEN">Ouvert</mat-option>
+        <mat-option value="CLOSED">Clôturé</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+      <mat-select [value]="filterDomain" (selectionChange)="onFilterDomain($event.value)" aria-label="Filtrer par domaine">
+        <mat-option value="">Tous les domaines</mat-option>
+        <mat-option value="DROIT_DU_TRAVAIL">Droit du travail</mat-option>
+        <mat-option value="DROIT_IMMIGRATION">Droit de l'immigration</mat-option>
+        <mat-option value="DROIT_FAMILLE">Droit de la famille</mat-option>
+      </mat-select>
+    </mat-form-field>
     <button mat-flat-button color="primary" data-tour-target="new-dossier-btn" (click)="openCreateDialog()">
       <mat-icon>add</mat-icon>
       Nouveau dossier
