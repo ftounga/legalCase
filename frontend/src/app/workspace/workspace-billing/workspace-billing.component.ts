@@ -9,6 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { BillingService } from '../../core/services/billing.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { fadeInUp } from '../../shared/animations';
 
@@ -101,7 +102,8 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     private billingService: BillingService,
     private snackBar: MatSnackBar,
     private route: ActivatedRoute,
-    @Inject(DOCUMENT) private document: Document
+    @Inject(DOCUMENT) private document: Document,
+    private analyticsService: AnalyticsService
   ) {}
 
   ngOnInit(): void {
@@ -155,6 +157,7 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   }
 
   upgrade(planCode: string): void {
+    this.analyticsService.trackEvent('upgrade_clicked', { plan: planCode });
     this.upgrading.set(planCode);
     this.billingService.createCheckoutSession(planCode).subscribe({
       next: ({ checkoutUrl }) => {

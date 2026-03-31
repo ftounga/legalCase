@@ -10,6 +10,8 @@ import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { ChatService } from '../../core/services/chat.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 import { of, throwError } from 'rxjs';
 import { CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -72,6 +74,8 @@ describe('SynthesisComponent', () => {
         { provide: AiQuestionAnswerService, useValue: jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']) },
         { provide: ReAnalysisService, useValue: jasmine.createSpyObj('ReAnalysisService', ['reAnalyze']) },
         { provide: ChatService, useValue: chatService },
+        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
+        { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export']) },
       ]
     }).compileComponents();
 
@@ -225,6 +229,33 @@ describe('SynthesisComponent', () => {
       jasmine.stringContaining('modification'), 'Fermer', jasmine.any(Object)
     );
     expect(component.editingQuestionId()).toBe('q-1');
+  });
+
+  // T-A1 : reAnalyze succès → trackEvent analysis_launched ENRICHED
+  it('reAnalyze success → trackEvent analysis_launched ENRICHED', () => {
+    const reAnalysisService = TestBed.inject(ReAnalysisService) as jasmine.SpyObj<ReAnalysisService>;
+    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
+    const router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    reAnalysisService.reAnalyze.and.returnValue(of(undefined));
+    spyOn(router, 'navigate');
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null });
+
+    component.reAnalyze();
+
+    expect(analyticsService.trackEvent).toHaveBeenCalledWith('analysis_launched', { type: 'ENRICHED' });
+  });
+
+  // T-A2 : exportPdf succès → trackEvent pdf_exported
+  it('exportPdf success → trackEvent pdf_exported', () => {
+    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
+    const pdfExportService = TestBed.inject(PdfExportService) as jasmine.SpyObj<PdfExportService>;
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    expect(analyticsService.trackEvent).toHaveBeenCalledWith('pdf_exported');
   });
 
   // T-16 : onVersionChange réinitialise editingQuestionId

@@ -77,8 +77,9 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-31 | Post de lancement LinkedIn (texte + vidéo) | Haute | `À faire` | Après M-11 |
 | M-32 | Post "Comment ça marche" — carousel 5 slides | Haute | `Terminé` | PDF 6 slides publié le 2026-03-30 — docs/marketing/m32-carousel-comment-ca-marche.pdf |
 | M-33 | Post témoignage / démo utilisateur | Moyenne | `À faire` | Dès les premiers clients |
-| M-34 | Stratégie de contenu LinkedIn — planning 3 mois | Moyenne | `À faire` | 2-3 posts/semaine |
+| M-34 | Stratégie de contenu LinkedIn — planning 3 mois | Moyenne | `Terminé` | 28 posts planifiés avril-juin 2026 — intégré dans le workflow n8n M-38 |
 | M-35 | Compte Twitter/X — création et premiers posts | Basse | `À faire` | Audience tech/legal |
+| M-38 | Workflow n8n — auto-génération et publication LinkedIn | Haute | `Terminé` | Importé, activé et testé dans n8n — premier post publié avec succès sur la page LinkedIn AI LegalCase. |
 
 ---
 

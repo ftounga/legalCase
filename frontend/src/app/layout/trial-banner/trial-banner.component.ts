@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { BillingService } from '../../core/services/billing.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { Workspace } from '../../core/models/workspace.model';
 
 @Component({
@@ -18,7 +19,8 @@ export class TrialBannerComponent implements OnChanges {
 
   constructor(
     private billingService: BillingService,
-    private router: Router
+    private router: Router,
+    private analyticsService: AnalyticsService
   ) {}
 
   ngOnChanges(): void {
@@ -28,6 +30,7 @@ export class TrialBannerComponent implements OnChanges {
   }
 
   goToPlans(): void {
+    this.analyticsService.trackEvent('upgrade_clicked');
     this.router.navigate(['/workspace/billing']);
   }
 
