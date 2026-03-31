@@ -170,8 +170,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-83 | Page d'erreur 404 — route inconnue | V3 | Afficher un NotFoundComponent sur toute route inconnue au lieu d'une page blanche. Lien retour /case-files. |
-| F-82 | Tri de la liste des dossiers | V3 | Colonnes triables (titre, domaine, statut, date) dans /case-files. Tri côté frontend sur la page courante, aucun appel HTTP supplémentaire. |
+| F-83 | Page d'erreur 404 — route inconnue | V3 — **Terminée** | SF-83-01 mergée 2026-03-31 : NotFoundComponent, route wildcard **, lien retour /case-files, 3 tests verts. |
+| F-82 | Tri de la liste des dossiers | V3 — **Terminée** | SF-82-01 mergée 2026-03-31 : MatSortModule, 4 colonnes triables, compatible filtre F-80, 18 tests verts. |
 | F-81 | Gestion expiration de session — returnUrl + snackbar | V3 — **Terminée** | SF-81-01 mergée 2026-03-31 : intercepteur 401 snackbar + sessionStorage returnUrl, login local navigue returnUrl, authGuard OAuth2 redirect returnUrl. 19 tests verts. |
 | F-80 | Recherche dans la liste des dossiers | V3 — **Terminée** | SF-80-01 mergée 2026-03-31 : barre de recherche dans /case-files, filtre client par titre (insensible casse), bouton ×, message différencié, responsive mobile, 14 tests verts. |
 | F-64 | Recherche full-text dans les synthèses | V2 — **Terminée** | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel et terme surligné. SF-64-01 mergée 2026-03-29 (backend GET /api/v1/search). SF-64-02 mergée 2026-03-29 (frontend /search, debounce, HighlightTermPipe). |
@@ -221,6 +221,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-83 Terminée — SF-83-01 (NotFoundComponent, route **, lien retour /case-files, 3 tests) | Product owner |
+| 2026-03-31 | F-82 Terminée — SF-82-01 (MatSortModule, 4 colonnes triables, compatible recherche F-80, 18 tests) | Product owner |
 | 2026-03-31 | F-81 Terminée — SF-81-01 (intercepteur 401 snackbar + sessionStorage returnUrl, login local + authGuard OAuth2 redirect, 19 tests) | Product owner |
 | 2026-03-31 | F-80 Terminée — SF-80-01 (barre recherche /case-files, filtre client par titre, bouton ×, responsive, 14 tests) | Product owner |
 | 2026-03-31 | F-79 Terminée — SF-79-01 (Page<T> workspaces+users, @PageableDefault, 29 tests) + SF-79-02 (MatPaginator, PageResponse<T>, appels ciblés, 10 tests) | Product owner |
