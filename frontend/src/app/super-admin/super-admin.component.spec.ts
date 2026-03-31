@@ -177,7 +177,7 @@ describe('SuperAdminComponent', () => {
     tick();
     fixture.detectChanges();
 
-    const tools = ['tool-ga4', 'tool-sentry', 'tool-stripe', 'tool-brevo', 'tool-n8n', 'tool-aws'];
+    const tools = ['tool-ga4', 'tool-sentry', 'tool-stripe', 'tool-brevo', 'tool-n8n', 'tool-aws', 'tool-rabbitmq'];
     tools.forEach(id => {
       const el = fixture.nativeElement.querySelector(`[data-testid="${id}"]`);
       expect(el).withContext(`tool ${id} manquant`).toBeTruthy();
@@ -191,7 +191,7 @@ describe('SuperAdminComponent', () => {
     fixture.detectChanges();
 
     const links: NodeListOf<HTMLAnchorElement> = fixture.nativeElement.querySelectorAll('.tool-card');
-    expect(links.length).toBe(6);
+    expect(links.length).toBe(7);
     links.forEach(link => {
       expect(link.target).withContext(`target manquant sur ${link.href}`).toBe('_blank');
       expect(link.rel).withContext(`rel manquant sur ${link.href}`).toBe('noopener noreferrer');
