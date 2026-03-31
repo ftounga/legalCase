@@ -163,7 +163,9 @@ public class PlanLimitService {
                             .toInstant();
                     long thisMonthUsed = usageEventRepository.sumTokensByWorkspaceIdSince(workspaceId, startOfMonth);
                     long creditsRemaining = computeCreditsRemaining(workspaceId, sub, planBudget);
-                    return thisMonthUsed >= planBudget + creditsRemaining;
+                    return creditsRemaining > 0
+                            ? thisMonthUsed > planBudget + creditsRemaining
+                            : thisMonthUsed >= planBudget;
                 })
                 .orElse(false);
     }
