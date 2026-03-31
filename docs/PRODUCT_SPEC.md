@@ -212,7 +212,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-22 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
 | F-23 | Collaboration avancée | ~~V2+~~ — **Abandonné** | Partage de dossiers déjà couvert par le modèle workspace (tous les membres voient tous les dossiers). Notes internes couvertes par F-70. Arbitrage 2026-03-31. |
 | F-24 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
-| F-90 | Chat comme contexte de l'analyse enrichie | V3 — **Backlog** | Injecter un résumé Haiku du chat libre dans le prompt de l'analyse enrichie, en complément des Q&A. Garde étendu : enrichie autorisée si nouveau message chat OU nouvelle réponse Q&A depuis la dernière analyse enrichie. Résumé Haiku préalable pour éviter la pollution de contexte sur les chats longs. |
+| F-90 | Chat comme contexte de l'analyse enrichie | V3 — **Terminée** | SF-90-01 mergée 2026-03-31 : garde étendu hasNewAnswers||hasNewChatMessages, buildChatSummary() Haiku fail-open (max 512 tokens), section [Échanges libres] injectée dans prompt enrichi, 11 tests unitaires + 8 IT. |
 
 ### Infrastructure & qualité
 
@@ -228,6 +228,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-90 Terminée — SF-90-01 (garde étendu Q&A||chat, buildChatSummary Haiku fail-open, section [Échanges libres] conditionnelle, 11 unit + 8 IT) | Product owner |
 | 2026-03-31 | F-90 ajoutée au backlog — Chat comme contexte analyse enrichie (résumé Haiku, garde étendu Q&A||chat) | Product owner |
 | 2026-03-31 | F-23 Abandonnée — partage couvert par modèle workspace, notes couvertes par F-70 | Product owner |
 | 2026-03-31 | F-89 Terminée — SF-89-02 (5 colonnes nullable case_analyses, populateCounts fail-open, version cards stats, migration 039, 9 tests backend + 35 frontend) | Product owner |
