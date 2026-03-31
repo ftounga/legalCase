@@ -20,6 +20,7 @@ const MOCK_PUBLIC_SHARE: PublicShareResponse = {
     pointsJuridiques: ['Point 1'],
     risques: ['Risque 1'],
     questionsOuvertes: [],
+    piecesManquantes: [],
     timeline: [{ date: '01/01/2026', evenement: 'Licenciement' }],
     modelUsed: null,
     updatedAt: '2026-03-28T00:00:00Z'

@@ -18,7 +18,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 const CASE_FILE_ID = 'cf-1';
 
-const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED') => ({
+const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = []) => ({
   id: `analysis-${version}`,
   version,
   analysisType,
@@ -28,6 +28,7 @@ const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED') =
   pointsJuridiques: [],
   risques: [],
   questionsOuvertes: [],
+  piecesManquantes,
   modelUsed: 'claude-sonnet-4-6',
   updatedAt: '2026-03-23T10:00:00Z'
 });
@@ -270,5 +271,26 @@ describe('SynthesisComponent', () => {
     component.onVersionChange(1);
 
     expect(component.editingQuestionId()).toBeNull();
+  });
+
+  // T-20 : piecesManquantes non vides → section rendue dans le template
+  it('renders pieces manquantes section when list is non-empty', () => {
+    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', ['Contrat de travail', 'Bulletins de salaire'])));
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Pièces manquantes');
+    expect(el.textContent).toContain('Contrat de travail');
+  });
+
+  // T-21 : piecesManquantes vides → section absente du template
+  it('does not render pieces manquantes section when list is empty', () => {
+    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', [])));
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).not.toContain('Pièces manquantes');
   });
 });
