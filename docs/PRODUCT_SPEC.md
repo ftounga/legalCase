@@ -170,6 +170,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-81 | Gestion expiration de session — returnUrl + snackbar | V3 | Sur 401, sauvegarder l'URL courante dans sessionStorage, afficher un snackbar "Session expirée", rediriger vers /login. Après reconnexion (locale ou OAuth2), naviguer vers l'URL sauvegardée. Aucun changement backend. |
 | F-80 | Recherche dans la liste des dossiers | V3 — **Terminée** | SF-80-01 mergée 2026-03-31 : barre de recherche dans /case-files, filtre client par titre (insensible casse), bouton ×, message différencié, responsive mobile, 14 tests verts. |
 | F-64 | Recherche full-text dans les synthèses | V2 — **Terminée** | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel et terme surligné. SF-64-01 mergée 2026-03-29 (backend GET /api/v1/search). SF-64-02 mergée 2026-03-29 (frontend /search, debounce, HighlightTermPipe). |
 | F-66 | Modèles de questions Q&A réutilisables | ~~Abandonné~~ | L'IA génère les questions pertinentes depuis les documents — des modèles prédéfinis n'apportent pas de valeur différenciante. Arbitrage 2026-03-29. |
