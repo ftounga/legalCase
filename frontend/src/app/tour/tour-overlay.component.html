@@ -1,3 +1,7 @@
+@if (step.target) {
+  <div class="tour-backdrop"></div>
+}
+
 <div class="tour-card" [ngStyle]="cardStyle()">
   <div class="tour-card__header">
     <mat-icon class="tour-card__icon">{{ step.icon }}</mat-icon>

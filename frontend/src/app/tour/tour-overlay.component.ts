@@ -8,6 +8,7 @@ import { filter } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TourService } from '../core/services/tour.service';
+import { CaseFileService } from '../core/services/case-file.service';
 
 interface TourStep {
   target: string | null;
@@ -60,6 +61,7 @@ export class TourOverlayComponent implements OnInit, OnDestroy {
   protected tourService = inject(TourService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+  private caseFileService = inject(CaseFileService);
 
   cardStyle = signal<Record<string, string>>({ top: '80px', left: '50%', transform: 'translateX(-50%)' });
   readonly steps = TOUR_STEPS;
@@ -98,7 +100,16 @@ export class TourOverlayComponent implements OnInit, OnDestroy {
     this.updatePosition();
   }
 
-  next(): void { this.tourService.next(); }
+  next(): void {
+    if (this.tourService.currentStep() === 1) {
+      this.caseFileService.list(0, 1).subscribe({
+        next: page => this.tourService.advanceToStep2(page.totalElements > 0),
+        error: () => this.tourService.advanceToStep2(false)
+      });
+    } else {
+      this.tourService.next();
+    }
+  }
   skip(): void { this.tourService.skip(); }
 
   private updatePosition(): void {
@@ -116,7 +127,7 @@ export class TourOverlayComponent implements OnInit, OnDestroy {
       return;
     }
 
-    el.classList.add('tour-highlight');
+    el.classList.add('tour-spotlight');
     this.highlightedEl = el;
 
     const rect = el.getBoundingClientRect();
@@ -136,7 +147,7 @@ export class TourOverlayComponent implements OnInit, OnDestroy {
 
   private clearHighlight(): void {
     if (this.highlightedEl) {
-      this.highlightedEl.classList.remove('tour-highlight');
+      this.highlightedEl.classList.remove('tour-spotlight');
       this.highlightedEl = null;
     }
   }
