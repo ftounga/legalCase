@@ -8,6 +8,10 @@ import fr.ailegalcase.billing.Subscription;
 import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.chat.ChatMessage;
+import fr.ailegalcase.chat.ChatMessageRepository;
+import fr.ailegalcase.analysis.UsageEvent;
+import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.document.DocumentChunkRepository;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
@@ -60,13 +64,18 @@ class ReAnalysisControllerIT {
     @Autowired private DocumentExtractionRepository documentExtractionRepository;
     @Autowired private DocumentRepository documentRepository;
     @Autowired private SubscriptionRepository subscriptionRepository;
+    @Autowired private ChatMessageRepository chatMessageRepository;
+    @Autowired private UsageEventRepository usageEventRepository;
 
     private OAuth2AuthenticationToken auth;
     private CaseFile caseFile;
     private Workspace workspace;
+    private User testUser;
 
     @BeforeEach
     void setUp() {
+        chatMessageRepository.deleteAll();
+        usageEventRepository.deleteAll();
         aiQuestionAnswerRepository.deleteAll();
         aiQuestionRepository.deleteAll();
         chunkAnalysisRepository.deleteAll();
@@ -83,10 +92,11 @@ class ReAnalysisControllerIT {
         authAccountRepository.deleteAll();
         userRepository.deleteAll();
 
-        User user = new User();
-        user.setEmail("reanalysis-test@example.com");
-        user.setStatus("ACTIVE");
-        userRepository.save(user);
+        testUser = new User();
+        testUser.setEmail("reanalysis-test@example.com");
+        testUser.setStatus("ACTIVE");
+        userRepository.save(testUser);
+        User user = testUser;
 
         AuthAccount account = new AuthAccount();
         account.setUser(user);
@@ -117,6 +127,7 @@ class ReAnalysisControllerIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier Test Re-analyse");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         auth = buildGoogleAuth("google-reanalysis-sub", "reanalysis-test@example.com");
@@ -157,6 +168,7 @@ class ReAnalysisControllerIT {
         otherWorkspace.setOwner(otherUser);
         otherWorkspace.setPlanCode("STARTER");
         otherWorkspace.setStatus("ACTIVE");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
         workspaceRepository.save(otherWorkspace);
 
         CaseFile otherCaseFile = new CaseFile();
@@ -164,6 +176,7 @@ class ReAnalysisControllerIT {
         otherCaseFile.setCreatedBy(otherUser);
         otherCaseFile.setTitle("Dossier Autre");
         otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(otherCaseFile);
 
         mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", otherCaseFile.getId())
@@ -178,15 +191,25 @@ class ReAnalysisControllerIT {
                 .andExpect(status().isUnauthorized());
     }
 
-    // I-05 : plan STARTER avec subscription → 402
+    // I-05 : plan STARTER, limite de 1 re-analyse atteinte → 402
     @Test
-    void reAnalyze_starterPlan_returns402() throws Exception {
+    void reAnalyze_starterPlanLimitReached_returns402() throws Exception {
         Subscription subscription = new Subscription();
         subscription.setWorkspaceId(workspace.getId());
         subscription.setPlanCode("STARTER");
         subscription.setStatus("ACTIVE");
         subscription.setStartedAt(Instant.now());
         subscriptionRepository.save(subscription);
+
+        // Simule 1 re-analyse déjà consommée (FREE_MAX_RE_ANALYSES_PER_CASE_FILE = 1)
+        UsageEvent event = new UsageEvent();
+        event.setCaseFileId(caseFile.getId());
+        event.setUserId(testUser.getId());
+        event.setEventType(JobType.ENRICHED_ANALYSIS);
+        event.setTokensInput(100);
+        event.setTokensOutput(50);
+        event.setEstimatedCost(java.math.BigDecimal.ZERO);
+        usageEventRepository.save(event);
 
         mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", caseFile.getId())
                         .with(authentication(auth)))
@@ -206,6 +229,48 @@ class ReAnalysisControllerIT {
         mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", caseFile.getId())
                         .with(authentication(auth)))
                 .andExpect(status().isAccepted());
+    }
+
+    // I-07 : analyse enrichie précédente, nouveau message chat (sans réponse Q&A) → 202
+    @Test
+    void reAnalyze_newChatMessageOnly_returns202() throws Exception {
+        CaseAnalysis lastEnriched = new CaseAnalysis();
+        lastEnriched.setCaseFile(caseFile);
+        lastEnriched.setVersion(1);
+        lastEnriched.setAnalysisType(AnalysisType.ENRICHED);
+        lastEnriched.setAnalysisStatus(AnalysisStatus.DONE);
+        lastEnriched.setAnalysisResult("{}");
+        caseAnalysisRepository.save(lastEnriched);
+
+        ChatMessage msg = new ChatMessage();
+        msg.setCaseFileId(caseFile.getId());
+        msg.setUserId(testUser.getId());
+        msg.setQuestion("Quelle est la prescription ?");
+        msg.setAnswer("2 ans.");
+        msg.setUseEnriched(false);
+        chatMessageRepository.save(msg);
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isAccepted());
+    }
+
+    // I-08 : analyse enrichie précédente, aucun nouveau message chat ni réponse Q&A → 409
+    @Test
+    void reAnalyze_noNewChatNorAnswer_returns409() throws Exception {
+        CaseAnalysis lastEnriched = new CaseAnalysis();
+        lastEnriched.setCaseFile(caseFile);
+        lastEnriched.setVersion(1);
+        lastEnriched.setAnalysisType(AnalysisType.ENRICHED);
+        lastEnriched.setAnalysisStatus(AnalysisStatus.DONE);
+        lastEnriched.setAnalysisResult("{}");
+        caseAnalysisRepository.save(lastEnriched);
+
+        // Aucun message chat, aucune réponse Q&A
+
+        mockMvc.perform(post("/api/v1/case-files/{id}/re-analyze", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isConflict());
     }
 
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {

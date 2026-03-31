@@ -2,6 +2,8 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.chat.ChatMessage;
+import fr.ailegalcase.chat.ChatMessageRepository;
 import io.sentry.Sentry;
 import io.sentry.SentryEvent;
 import io.sentry.SentryLevel;
@@ -59,6 +61,7 @@ public class EnrichedAnalysisService {
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
     private final AnalysisQaSnapshotService analysisQaSnapshotService;
     private final AnalysisLimitsProperties analysisLimitsProperties;
+    private final ChatMessageRepository chatMessageRepository;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -73,7 +76,8 @@ public class EnrichedAnalysisService {
                                    ApplicationEventPublisher eventPublisher,
                                    AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
                                    AnalysisQaSnapshotService analysisQaSnapshotService,
-                                   AnalysisLimitsProperties analysisLimitsProperties) {
+                                   AnalysisLimitsProperties analysisLimitsProperties,
+                                   ChatMessageRepository chatMessageRepository) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -85,6 +89,7 @@ public class EnrichedAnalysisService {
         this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
         this.analysisQaSnapshotService = analysisQaSnapshotService;
         this.analysisLimitsProperties = analysisLimitsProperties;
+        this.chatMessageRepository = chatMessageRepository;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -168,7 +173,8 @@ public class EnrichedAnalysisService {
         String country     = ws != null ? ws.getCountry()     : "FRANCE";
         AnalysisLimitsProperties.LevelLimits limits = analysisLimitsProperties.forDomain(legalDomain).getDossier();
         String systemPrompt = buildSystemPrompt(legalDomain, country, limits);
-        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult());
+        String chatSummary = buildChatSummary(caseFileId);
+        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary);
         return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId, limits);
     }
 
@@ -241,7 +247,31 @@ public class EnrichedAnalysisService {
         }
     }
 
-    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult) {
+    String buildChatSummary(UUID caseFileId) {
+        List<ChatMessage> messages = chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId);
+        if (messages.isEmpty()) return null;
+
+        String chatText = messages.stream()
+                .map(m -> "Q: %s\nR: %s".formatted(m.getQuestion(), m.getAnswer() != null ? m.getAnswer() : "(sans réponse)"))
+                .collect(Collectors.joining("\n\n"));
+
+        String systemPrompt = """
+                Tu es un assistant juridique. Résume en points clés analytiques les échanges suivants entre un avocat et l'IA sur un dossier juridique.
+                Extrais uniquement les informations factuelles, les clarifications importantes et les observations de l'avocat.
+                Ignore les reformulations et questions triviales. Sois concis (maximum 10 points).
+                """;
+
+        try {
+            AnthropicResult result = anthropicService.analyzeFast(systemPrompt, chatText, 512);
+            String summary = result.content();
+            return (summary != null && !summary.isBlank()) ? summary.trim() : null;
+        } catch (Exception e) {
+            log.warn("Chat summary failed for caseFile {} — enriched analysis will proceed without it", caseFileId, e);
+            return null;
+        }
+    }
+
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -259,12 +289,15 @@ public class EnrichedAnalysisService {
                 })
                 .collect(Collectors.joining("\n"));
 
-        return """
-                [Synthèse précédente]
-                %s
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("[Synthèse précédente]\n").append(previousAnalysisResult).append("\n\n");
+        prompt.append("[Questions et réponses de l'avocat]\n")
+              .append(qaSection.isEmpty() ? "(aucune réponse)" : qaSection);
 
-                [Questions et réponses de l'avocat]
-                %s
-                """.formatted(previousAnalysisResult, qaSection.isEmpty() ? "(aucune réponse)" : qaSection);
+        if (chatSummary != null && !chatSummary.isBlank()) {
+            prompt.append("\n\n[Échanges libres avec l'assistant — points clés]\n").append(chatSummary);
+        }
+
+        return prompt.toString();
     }
 }
