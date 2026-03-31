@@ -5,6 +5,7 @@ namespace: staging
 
 resources:
   - ../../base
+  - rabbitmq-ingress.yaml
 
 namePrefix: ""
 

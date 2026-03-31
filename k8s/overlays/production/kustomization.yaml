@@ -5,6 +5,7 @@ namespace: production
 
 resources:
   - ../../base
+  - rabbitmq-ingress.yaml
 
 configMapGenerator:
   - name: backend-config

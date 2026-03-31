@@ -59,6 +59,99 @@
     text-align: center;
   }
 
+  .tools-section {
+    margin-bottom: 24px;
+  }
+
+  .tools-group {
+    margin-bottom: 20px;
+  }
+
+  .tools-group-title {
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6B7A8D;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+  }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+
+    @media (max-width: 1024px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .tool-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #FFFFFF;
+    border: 1px solid #E0E4EA;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &:hover {
+      border-color: #1A3A5C;
+      box-shadow: 0 2px 8px rgba(26, 58, 92, 0.12);
+    }
+
+    .tool-icon {
+      color: #1A3A5C;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .tool-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tool-name {
+      font-family: Inter, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1C2B3A;
+    }
+
+    .tool-desc {
+      font-family: Inter, sans-serif;
+      font-size: 12px;
+      color: #6B7A8D;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tool-open {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: #6B7A8D;
+      flex-shrink: 0;
+    }
+  }
+
   .metrics-section {
     margin-bottom: 24px;
   }
