@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser } from '../models/super-admin.model';
+import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics } from '../models/super-admin.model';
 
 @Injectable({ providedIn: 'root' })
 export class SuperAdminService {
@@ -27,5 +27,9 @@ export class SuperAdminService {
 
   deleteUser(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/users/${id}`);
+  }
+
+  getMetrics(): Observable<SuperAdminMetrics> {
+    return this.http.get<SuperAdminMetrics>(`${this.base}/metrics`);
   }
 }

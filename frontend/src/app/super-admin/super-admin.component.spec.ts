@@ -8,7 +8,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { SuperAdminComponent } from './super-admin.component';
 import { SuperAdminService } from '../core/services/super-admin.service';
 import { AuthService } from '../core/services/auth.service';
-import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser } from '../core/models/super-admin.model';
+import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics } from '../core/models/super-admin.model';
 
 const mockWorkspaces: SuperAdminWorkspace[] = [
   { id: 'ws-1', name: 'Cabinet Alpha', slug: 'alpha', planCode: 'STARTER', status: 'ACTIVE', expiresAt: null, memberCount: 2, createdAt: '2026-01-01T00:00:00Z' }
@@ -19,6 +19,11 @@ const mockUsage: SuperAdminUsage[] = [
 const mockUsers: SuperAdminUser[] = [
   { id: 'u-1', email: 'alice@example.com', firstName: 'Alice', lastName: 'Dupont', workspaceCount: 1 }
 ];
+const mockMetrics: SuperAdminMetrics = {
+  totalWorkspaces: 10, activeWorkspaces30d: 7, inactiveWorkspaces30d: 3,
+  trialWorkspaces: 6, paidWorkspaces: 4, conversionRatePct: 40.0,
+  analysesLast7Days: 12, analysesLast30Days: 45, newWorkspacesLast30Days: 2
+};
 
 describe('SuperAdminComponent', () => {
   let component: SuperAdminComponent;
@@ -28,14 +33,15 @@ describe('SuperAdminComponent', () => {
   let dialog: jasmine.SpyObj<MatDialog>;
   let router: Router;
 
-  async function setup(isSuperAdmin: boolean, wsReturn: any, usageReturn: any, usersReturn: any) {
-    superAdminService = jasmine.createSpyObj('SuperAdminService', ['listWorkspaces', 'getUsage', 'listUsers', 'deleteWorkspace', 'deleteUser']);
+  async function setup(isSuperAdmin: boolean, wsReturn: any, usageReturn: any, usersReturn: any, metricsReturn: any = of(mockMetrics)) {
+    superAdminService = jasmine.createSpyObj('SuperAdminService', ['listWorkspaces', 'getUsage', 'listUsers', 'deleteWorkspace', 'deleteUser', 'getMetrics']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     superAdminService.listWorkspaces.and.returnValue(wsReturn);
     superAdminService.getUsage.and.returnValue(usageReturn);
     superAdminService.listUsers.and.returnValue(usersReturn);
+    superAdminService.getMetrics.and.returnValue(metricsReturn);
 
     const currentUser = signal<any>({ id: 'u-sa', email: 'sa@test.com', isSuperAdmin });
     const authService = { currentUser };
@@ -96,5 +102,23 @@ describe('SuperAdminComponent', () => {
 
     expect(component.workspaceRows()[0].totalTokensInput).toBe(1000);
     expect(component.workspaceRows()[0].totalCost).toBe(0.012);
+  }));
+
+  // T-05 : métriques chargées et signal renseigné
+  it('charge les métriques et renseigne le signal', fakeAsync(async () => {
+    await setup(true, of(mockWorkspaces), of(mockUsage), of(mockUsers));
+
+    expect(component.metrics()).not.toBeNull();
+    expect(component.metrics()!.totalWorkspaces).toBe(10);
+    expect(component.metrics()!.conversionRatePct).toBe(40.0);
+  }));
+
+  // T-06 : section métriques présente dans le DOM
+  it('affiche la section métriques dans le DOM', fakeAsync(async () => {
+    await setup(true, of(mockWorkspaces), of(mockUsage), of(mockUsers));
+
+    expect(fixture.nativeElement.textContent).toContain('Métriques plateforme');
+    expect(fixture.nativeElement.textContent).toContain('Actifs (30j)');
+    expect(fixture.nativeElement.textContent).toContain('Taux conversion');
   }));
 });

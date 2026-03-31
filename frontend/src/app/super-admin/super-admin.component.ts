@@ -11,7 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../core/services/auth.service';
 import { SuperAdminService } from '../core/services/super-admin.service';
-import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser } from '../core/models/super-admin.model';
+import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics } from '../core/models/super-admin.model';
 import { SuperAdminConfirmDialogComponent } from './super-admin-confirm-dialog.component';
 import { fadeInUp } from '../shared/animations';
 
@@ -37,6 +37,7 @@ interface WorkspaceRow extends SuperAdminWorkspace {
 export class SuperAdminComponent implements OnInit {
   workspaceRows = signal<WorkspaceRow[]>([]);
   users = signal<SuperAdminUser[]>([]);
+  metrics = signal<SuperAdminMetrics | null>(null);
   loading = signal(true);
 
   readonly workspaceColumns = ['name', 'plan', 'members', 'tokensInput', 'tokensOutput', 'cost', 'createdAt', 'actions'];
@@ -63,9 +64,10 @@ export class SuperAdminComponent implements OnInit {
     forkJoin({
       workspaces: this.superAdminService.listWorkspaces(),
       usage: this.superAdminService.getUsage(),
-      users: this.superAdminService.listUsers()
+      users: this.superAdminService.listUsers(),
+      metrics: this.superAdminService.getMetrics()
     }).subscribe({
-      next: ({ workspaces, usage, users }) => {
+      next: ({ workspaces, usage, users, metrics }) => {
         const usageMap = new Map(usage.map(u => [u.workspaceId, u]));
         this.workspaceRows.set(workspaces.map(ws => {
           const u = usageMap.get(ws.id);
@@ -77,6 +79,7 @@ export class SuperAdminComponent implements OnInit {
           };
         }));
         this.users.set(users);
+        this.metrics.set(metrics);
         this.loading.set(false);
       },
       error: (err: any) => {

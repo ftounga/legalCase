@@ -6,6 +6,51 @@
       <mat-spinner diameter="40" />
     </div>
   } @else {
+    <!-- Métriques plateforme -->
+    @if (metrics(); as m) {
+      <section class="metrics-section">
+        <h2 class="metrics-title">Métriques plateforme</h2>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Workspaces total</span>
+            <span class="metric-value">{{ m.totalWorkspaces | number }}</span>
+          </div>
+          <div class="metric-card metric-card--positive">
+            <span class="metric-label">Actifs (30j)</span>
+            <span class="metric-value">{{ m.activeWorkspaces30d | number }}</span>
+          </div>
+          <div class="metric-card metric-card--neutral">
+            <span class="metric-label">Inactifs (30j)</span>
+            <span class="metric-value">{{ m.inactiveWorkspaces30d | number }}</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Essai (FREE)</span>
+            <span class="metric-value">{{ m.trialWorkspaces | number }}</span>
+          </div>
+          <div class="metric-card metric-card--positive">
+            <span class="metric-label">Payants</span>
+            <span class="metric-value">{{ m.paidWorkspaces | number }}</span>
+          </div>
+          <div class="metric-card metric-card--accent">
+            <span class="metric-label">Taux conversion</span>
+            <span class="metric-value">{{ m.conversionRatePct | number:'1.1-1' }}%</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Analyses (7j)</span>
+            <span class="metric-value">{{ m.analysesLast7Days | number }}</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Analyses (30j)</span>
+            <span class="metric-value">{{ m.analysesLast30Days | number }}</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Nouveaux ws (30j)</span>
+            <span class="metric-value">{{ m.newWorkspacesLast30Days | number }}</span>
+          </div>
+        </div>
+      </section>
+    }
+
     <!-- Workspaces -->
     <mat-card class="section-card">
       <mat-card-header>
