@@ -170,6 +170,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-88 | Tour d'onboarding avec dossier de démonstration | V3 | Lorsque le tour guidé démarre et qu'aucun dossier n'existe, créer automatiquement un dossier réel "Dossier de démonstration", naviguer dedans pour les étapes 2-4, puis le supprimer à la fin ou à la fermeture du tour. |
 | F-87 | Export complet d'un dossier (ZIP) | V3 — **Terminée** | SF-87-01 mergée 2026-03-31 : GET /api/v1/case-files/{id}/export, ZIP en mémoire (dossier.json, documents.csv, notes.txt, delais.txt, synthese.json optionnel), Content-Disposition, bouton Exporter dans case-file-detail, 6 unit + 4 IT + 3 tests frontend. |
 | F-86 | Renommage et modification d'un dossier | V3 — **Terminée** | SF-86-01 mergée 2026-03-31 : PATCH /api/v1/case-files/{id}, CaseFileUpdateRequest, audit log CASE_FILE_UPDATED, CaseFileEditDialogComponent pré-rempli, bouton Modifier dans case-file-detail, 4 IT + 3 unit + 5 tests frontend. |
 | F-85 | Barre de progression globale | V3 — **Terminée** | SF-85-01 mergée 2026-03-31 : LoadingService (signal-based, compteur requêtes actives), loadingInterceptor, MatProgressBarModule dans AppComponent, barre fixée top:0 z-index:9999, 4 tests verts. |
