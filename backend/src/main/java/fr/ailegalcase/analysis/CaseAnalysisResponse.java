@@ -18,6 +18,7 @@ public record CaseAnalysisResponse(
         List<String> pointsJuridiques,
         List<String> risques,
         List<String> questionsOuvertes,
+        List<String> piecesManquantes,
         String modelUsed,
         Instant updatedAt
 ) {
@@ -64,6 +65,8 @@ public record CaseAnalysisResponse(
         List<String> risques = List.of();
         List<String> questionsOuvertes = List.of();
 
+        List<String> piecesManquantes = List.of();
+
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
             try {
@@ -73,6 +76,7 @@ public record CaseAnalysisResponse(
                 pointsJuridiques = extractStringList(root, "points_juridiques");
                 risques = extractStringList(root, "risques");
                 questionsOuvertes = extractStringList(root, "questions_ouvertes");
+                piecesManquantes = extractStringList(root, "pieces_manquantes");
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -88,6 +92,7 @@ public record CaseAnalysisResponse(
                 pointsJuridiques,
                 risques,
                 questionsOuvertes,
+                piecesManquantes,
                 analysis.getModelUsed(),
                 analysis.getUpdatedAt()
         );

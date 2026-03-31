@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-92 | Détection de pièces manquantes | V3 — `À spécifier` | Section `pieces_manquantes` ajoutée à la synthèse IA après analyse. L'IA déduit les pièces attendues selon le type de dossier et signale celles absentes. Option A validée : signal dans la synthèse, pas avant l'upload. |
 | F-78 | Page contact — formulaire email | **Terminée** | SF-78-01 (backend POST /api/v1/contact, 2 emails fail-open) + SF-78-02 (ContactComponent /contact, 5 champs, lien footer) mergées 2026-03-30. 22 tests backend + 6 tests frontend. |
 | F-77 | Google Analytics 4 — tracking + bannière consentement RGPD | **Terminée** | SF-77-01 mergée 2026-03-30 : ConsentService + CookieConsentBannerComponent, injection dynamique GA4, localStorage, gaId G-2JPL8JTXE7, 10 tests. SF-77-02 mergée 2026-03-31 : AnalyticsService fail-open, events analysis_launched/pdf_exported/upgrade_clicked, fix UI barre filtres dossiers (toggles compacts), 406 tests verts. |
 | F-75 | SEO technique — meta tags, Open Graph, sitemap, robots.txt | **Terminée** | index.html enrichi (OG + Twitter Card), LandingComponent/LegalPageComponent injectent Title+Meta dynamiquement, robots.txt bloque routes auth, sitemap.xml liste 4 URLs publiques. SF-75-01 mergée 2026-03-30. 328 tests verts. |

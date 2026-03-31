@@ -119,6 +119,48 @@ class CaseAnalysisResponseTest {
         assertThat(analysis.getFaitsCount()).isNull();
     }
 
+    // U-08 : piecesManquantes — JSON avec liste → retourne la liste
+    @Test
+    void from_withPiecesManquantes_returnsList() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "faits": ["fait1"],
+                  "pieces_manquantes": ["Contrat de travail", "Bulletins de salaire"]
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.piecesManquantes()).containsExactly("Contrat de travail", "Bulletins de salaire");
+    }
+
+    // U-09 : piecesManquantes — champ absent du JSON → liste vide (fail-open)
+    @Test
+    void from_missingPiecesManquantes_returnsEmptyList() {
+        CaseAnalysis analysis = analysis("""
+                {"faits": ["fait1"]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.piecesManquantes()).isEmpty();
+    }
+
+    // U-10 : piecesManquantes — champ vide → liste vide
+    @Test
+    void from_emptyPiecesManquantes_returnsEmptyList() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "faits": ["fait1"],
+                  "pieces_manquantes": []
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.piecesManquantes()).isEmpty();
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);

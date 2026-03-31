@@ -14,38 +14,31 @@ class AnalysisJsonTruncator {
     private AnalysisJsonTruncator() {}
 
     static String truncateDocumentAnalysis(String json, AnalysisLimitsProperties.LevelLimits limits) {
-        return truncate(json,
-                limits.getFaits(),
-                limits.getPointsJuridiques(),
-                limits.getRisques(),
-                limits.getQuestionsOuvertes(),
-                Integer.MAX_VALUE);
-    }
-
-    static String truncateCaseAnalysis(String json, AnalysisLimitsProperties.LevelLimits limits) {
-        return truncate(json,
-                limits.getFaits(),
-                limits.getPointsJuridiques(),
-                limits.getRisques(),
-                limits.getQuestionsOuvertes(),
-                limits.getTimeline());
-    }
-
-    private static String truncate(String json,
-                                    int maxFaits,
-                                    int maxPointsJuridiques,
-                                    int maxRisques,
-                                    int maxQuestionsOuvertes,
-                                    int maxTimeline) {
         if (json == null || json.isBlank()) return json;
         String stripped = CaseAnalysisResponse.stripMarkdownCodeBlock(json);
         try {
             ObjectNode root = (ObjectNode) MAPPER.readTree(stripped);
-            truncateArray(root, "faits", maxFaits);
-            truncateArray(root, "points_juridiques", maxPointsJuridiques);
-            truncateArray(root, "risques", maxRisques);
-            truncateArray(root, "questions_ouvertes", maxQuestionsOuvertes);
-            truncateArray(root, "timeline", maxTimeline);
+            truncateArray(root, "faits", limits.getFaits());
+            truncateArray(root, "points_juridiques", limits.getPointsJuridiques());
+            truncateArray(root, "risques", limits.getRisques());
+            truncateArray(root, "questions_ouvertes", limits.getQuestionsOuvertes());
+            return MAPPER.writeValueAsString(root);
+        } catch (Exception e) {
+            return json;
+        }
+    }
+
+    static String truncateCaseAnalysis(String json, AnalysisLimitsProperties.LevelLimits limits) {
+        if (json == null || json.isBlank()) return json;
+        String stripped = CaseAnalysisResponse.stripMarkdownCodeBlock(json);
+        try {
+            ObjectNode root = (ObjectNode) MAPPER.readTree(stripped);
+            truncateArray(root, "faits", limits.getFaits());
+            truncateArray(root, "points_juridiques", limits.getPointsJuridiques());
+            truncateArray(root, "risques", limits.getRisques());
+            truncateArray(root, "questions_ouvertes", limits.getQuestionsOuvertes());
+            truncateArray(root, "timeline", limits.getTimeline());
+            truncateArray(root, "pieces_manquantes", limits.getPiecesManquantes());
             return MAPPER.writeValueAsString(root);
         } catch (Exception e) {
             // JSON invalide (ex: tronqué par max_tokens) — on retourne tel quel
