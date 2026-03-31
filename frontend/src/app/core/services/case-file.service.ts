@@ -22,4 +22,12 @@ export class CaseFileService {
   create(request: CreateCaseFileRequest): Observable<CaseFile> {
     return this.http.post<CaseFile>(this.apiUrl, request);
   }
+
+  update(id: string, payload: { title: string; description: string | null }): Observable<CaseFile> {
+    return this.http.patch<CaseFile>(`${this.apiUrl}/${id}`, payload);
+  }
+
+  exportZip(id: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${id}/export`, { responseType: 'blob' });
+  }
 }

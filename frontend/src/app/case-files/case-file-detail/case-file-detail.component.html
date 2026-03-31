@@ -8,8 +8,15 @@
     </button>
     <div class="title-row">
       <h1 class="page-title">{{ caseFile()!.title }}</h1>
+      <button mat-icon-button (click)="openEditDialog()" aria-label="Modifier le dossier" title="Modifier">
+        <mat-icon>edit</mat-icon>
+      </button>
       <span class="badge" [class]="statusClass(caseFile()!.status)">{{ statusLabel(caseFile()!.status) }}</span>
       <div class="status-actions">
+        <button mat-button (click)="exportZip()" title="Exporter le dossier en ZIP">
+          <mat-icon>download</mat-icon>
+          Exporter
+        </button>
         @if (caseFile()!.status === 'OPEN') {
           <button mat-stroked-button (click)="closeCaseFile()">
             <mat-icon>lock</mat-icon>

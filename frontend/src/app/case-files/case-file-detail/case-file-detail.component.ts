@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
 import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
+import { CaseFileEditDialogComponent, CaseFileEditDialogData } from '../case-file-edit-dialog/case-file-edit-dialog.component';
 import { ShareDialogComponent, ShareDialogData } from '../share-dialog/share-dialog.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseFileStatusService } from '../../core/services/case-file-status.service';
@@ -675,6 +676,41 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           }
         }
       });
+    });
+  }
+
+  exportZip(): void {
+    const id = this.caseFile()?.id;
+    if (!id) return;
+    this.caseFileService.exportZip(id).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dossier.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.snackBar.open("Erreur lors de l'export", 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  openEditDialog(): void {
+    const cf = this.caseFile();
+    if (!cf) return;
+    const ref = this.dialog.open(CaseFileEditDialogComponent, {
+      data: { id: cf.id, title: cf.title, description: cf.description } satisfies CaseFileEditDialogData,
+      width: '500px',
+      maxWidth: '95vw'
+    });
+    ref.afterClosed().subscribe(updated => {
+      if (!updated) return;
+      this.caseFile.update(current => current ? { ...current, title: updated.title, description: updated.description } : current);
+      this.snackBar.open('Dossier modifié avec succès', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
     });
   }
 }

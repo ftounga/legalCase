@@ -1,5 +1,7 @@
 package fr.ailegalcase.casefile;
 
+import fr.ailegalcase.audit.AuditLog;
+import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.shared.CurrentUserResolver;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,13 +35,14 @@ class CaseFileServiceTest {
     @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private PlanLimitService planLimitService;
+    @Mock private AuditLogRepository auditLogRepository;
     @Mock private OidcUser oidcUser;
 
     private CaseFileService service;
 
     @BeforeEach
     void setUp() {
-        service = new CaseFileService(caseFileRepository, currentUserResolver, workspaceMemberRepository, planLimitService);
+        service = new CaseFileService(caseFileRepository, currentUserResolver, workspaceMemberRepository, planLimitService, auditLogRepository);
     }
 
     private Workspace mockUserAndWorkspace() {
@@ -142,5 +146,70 @@ class CaseFileServiceTest {
         CaseFileResponse response = service.create(request, oidcUser, "GOOGLE", null);
 
         assertThat(response).isNotNull();
+    }
+
+    // U-07 : update valide → titre et description mis à jour
+    @Test
+    void update_validRequest_updatesTitleAndDescription() {
+        Workspace workspace = mockUserAndWorkspace();
+
+        CaseFile existing = new CaseFile();
+        existing.setWorkspace(workspace);
+        existing.setTitle("Ancien titre");
+        existing.setDescription("Ancienne description");
+        existing.setStatus("OPEN");
+        existing.setLegalDomain("DROIT_DU_TRAVAIL");
+
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).thenReturn(Optional.of(existing));
+        when(caseFileRepository.save(any(CaseFile.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(auditLogRepository.save(any(AuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CaseFileUpdateRequest request = new CaseFileUpdateRequest("Nouveau titre", "Nouvelle description");
+        CaseFileResponse response = service.update(UUID.randomUUID(), request, oidcUser, "GOOGLE", null);
+
+        assertThat(response.title()).isEqualTo("Nouveau titre");
+        assertThat(response.description()).isEqualTo("Nouvelle description");
+        verify(auditLogRepository).save(any(AuditLog.class));
+    }
+
+    // U-08 : update avec dossier inexistant → 404
+    @Test
+    void update_unknownId_throws404() {
+        mockUserAndWorkspace();
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).thenReturn(Optional.empty());
+
+        CaseFileUpdateRequest request = new CaseFileUpdateRequest("Titre", null);
+
+        assertThatThrownBy(() -> service.update(UUID.randomUUID(), request, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    // U-09 : update avec dossier d'un autre workspace → 403
+    @Test
+    void update_differentWorkspace_throws403() {
+        mockUserAndWorkspace();
+
+        Workspace otherWorkspace = new Workspace();
+        otherWorkspace.setId(UUID.fromString("00000000-0000-0000-0000-000000000099"));
+        otherWorkspace.setName("other");
+        otherWorkspace.setSlug("other-slug");
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherWorkspace.setPlanCode("STARTER");
+        otherWorkspace.setStatus("ACTIVE");
+
+        CaseFile otherCaseFile = new CaseFile();
+        otherCaseFile.setWorkspace(otherWorkspace);
+        otherCaseFile.setTitle("Titre autre");
+        otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
+
+        when(caseFileRepository.findByIdAndDeletedAtIsNull(any(UUID.class))).thenReturn(Optional.of(otherCaseFile));
+
+        CaseFileUpdateRequest request = new CaseFileUpdateRequest("Titre modifié", null);
+
+        assertThatThrownBy(() -> service.update(UUID.randomUUID(), request, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN));
     }
 }
