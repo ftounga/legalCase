@@ -170,6 +170,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-85 | Barre de progression globale | V3 | Barre fine en haut de page pendant les appels HTTP via intercepteur Angular (compteur requêtes actives, MatProgressBarModule). |
+| F-84 | Filtres sur la liste des dossiers | V3 | Sélecteurs Statut et Domaine dans /case-files. Filtrage côté frontend compatible avec F-80 (recherche) et F-82 (tri). |
 | F-83 | Page d'erreur 404 — route inconnue | V3 — **Terminée** | SF-83-01 mergée 2026-03-31 : NotFoundComponent, route wildcard **, lien retour /case-files, 3 tests verts. |
 | F-82 | Tri de la liste des dossiers | V3 — **Terminée** | SF-82-01 mergée 2026-03-31 : MatSortModule, 4 colonnes triables, compatible filtre F-80, 18 tests verts. |
 | F-81 | Gestion expiration de session — returnUrl + snackbar | V3 — **Terminée** | SF-81-01 mergée 2026-03-31 : intercepteur 401 snackbar + sessionStorage returnUrl, login local navigue returnUrl, authGuard OAuth2 redirect returnUrl. 19 tests verts. |
