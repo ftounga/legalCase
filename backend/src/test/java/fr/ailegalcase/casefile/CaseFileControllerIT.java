@@ -295,6 +295,106 @@ class CaseFileControllerIT {
     }
 
     // =========================================================
+    // SF-86-01 — Modifier titre et description d'un dossier
+    // =========================================================
+
+    // I-30 : PATCH /{id} → 200 avec payload valide
+    @Test
+    void update_validPayload_returns200() throws Exception {
+        String id = createCaseFile("Titre initial");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Titre modifié","description":"Nouvelle description"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Titre modifié"))
+                .andExpect(jsonPath("$.description").value("Nouvelle description"));
+    }
+
+    // I-31 : PATCH /{id} → 400 si titre vide
+    @Test
+    void update_emptyTitle_returns400() throws Exception {
+        String id = createCaseFile("Titre initial");
+
+        mockMvc.perform(patch("/api/v1/case-files/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"","description":"desc"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-32 : PATCH /{id} → 403 si dossier appartient à un autre workspace
+    @Test
+    void update_differentWorkspace_returns403() throws Exception {
+        User otherUser = new User();
+        otherUser.setEmail("other-update@example.com");
+        otherUser.setStatus("ACTIVE");
+        userRepository.save(otherUser);
+
+        AuthAccount otherAccount = new AuthAccount();
+        otherAccount.setUser(otherUser);
+        otherAccount.setProvider("GOOGLE");
+        otherAccount.setProviderUserId("google-other-update-sub");
+        authAccountRepository.save(otherAccount);
+
+        Workspace otherWorkspace = new Workspace();
+        otherWorkspace.setName("other-update@example.com");
+        otherWorkspace.setSlug("update-other-slug-" + System.currentTimeMillis());
+        otherWorkspace.setOwner(otherUser);
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherWorkspace.setPlanCode("STARTER");
+        otherWorkspace.setStatus("ACTIVE");
+        workspaceRepository.save(otherWorkspace);
+
+        WorkspaceMember otherMember = new WorkspaceMember();
+        otherMember.setWorkspace(otherWorkspace);
+        otherMember.setUser(otherUser);
+        otherMember.setMemberRole("OWNER");
+        otherMember.setPrimary(true);
+        workspaceMemberRepository.save(otherMember);
+
+        OAuth2AuthenticationToken otherAuth = buildGoogleAuth("google-other-update-sub", "other-update@example.com");
+
+        // Créer un dossier dans l'autre workspace
+        String createResponse = mockMvc.perform(post("/api/v1/case-files")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Dossier autre workspace"}
+                                """)
+                        .with(authentication(otherAuth)))
+                .andReturn().getResponse().getContentAsString();
+
+        String otherId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(createResponse).get("id").asText();
+
+        // Le premier user essaie de modifier le dossier de l'autre → 403
+        mockMvc.perform(patch("/api/v1/case-files/" + otherId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Tentative modification"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-33 : PATCH /{id} → 404 si dossier inexistant
+    @Test
+    void update_unknownId_returns404() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/" + UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Titre quelconque"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // =========================================================
     // SF-53-01 — Statut des dossiers
     // =========================================================
 
@@ -426,6 +526,85 @@ class CaseFileControllerIT {
 
         mockMvc.perform(get("/api/v1/case-files/" + id).with(authentication(auth)))
                 .andExpect(status().isNotFound());
+    }
+
+    // =========================================================
+    // SF-87-01 — Export ZIP
+    // =========================================================
+
+    // I-24 : GET /{id}/export → 200 + Content-Type application/zip
+    @Test
+    void export_existingCaseFile_returns200WithZipContentType() throws Exception {
+        String id = createCaseFile("Dossier Export Test");
+
+        mockMvc.perform(get("/api/v1/case-files/" + id + "/export")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/zip")))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".zip")));
+    }
+
+    // I-25 : GET /{id}/export → 404 si dossier inexistant
+    @Test
+    void export_unknownId_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + java.util.UUID.randomUUID() + "/export")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-26 : GET /{id}/export → 403 si dossier appartient à un autre workspace
+    @Test
+    void export_differentWorkspace_returns403() throws Exception {
+        User otherUser = new User();
+        otherUser.setEmail("export-other@example.com");
+        otherUser.setStatus("ACTIVE");
+        userRepository.save(otherUser);
+
+        AuthAccount otherAccount = new AuthAccount();
+        otherAccount.setUser(otherUser);
+        otherAccount.setProvider("GOOGLE");
+        otherAccount.setProviderUserId("google-export-other-sub");
+        authAccountRepository.save(otherAccount);
+
+        Workspace otherWorkspace = new Workspace();
+        otherWorkspace.setName("export-other@example.com");
+        otherWorkspace.setSlug("export-other-slug-" + System.currentTimeMillis());
+        otherWorkspace.setOwner(otherUser);
+        otherWorkspace.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherWorkspace.setPlanCode("STARTER");
+        otherWorkspace.setStatus("ACTIVE");
+        workspaceRepository.save(otherWorkspace);
+
+        WorkspaceMember otherMember = new WorkspaceMember();
+        otherMember.setWorkspace(otherWorkspace);
+        otherMember.setUser(otherUser);
+        otherMember.setMemberRole("OWNER");
+        otherMember.setPrimary(true);
+        workspaceMemberRepository.save(otherMember);
+
+        OAuth2AuthenticationToken otherAuth = buildGoogleAuth("google-export-other-sub", "export-other@example.com");
+
+        String createResponse = mockMvc.perform(post("/api/v1/case-files")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Dossier Autre Export"}
+                                """)
+                        .with(authentication(otherAuth)))
+                .andReturn().getResponse().getContentAsString();
+
+        String otherId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(createResponse).get("id").asText();
+
+        mockMvc.perform(get("/api/v1/case-files/" + otherId + "/export")
+                        .with(authentication(auth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-27 : GET /{id}/export → 401 sans auth
+    @Test
+    void export_withoutAuth_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/case-files/" + java.util.UUID.randomUUID() + "/export"))
+                .andExpect(status().isUnauthorized());
     }
 
     private String createCaseFile(String title) throws Exception {
