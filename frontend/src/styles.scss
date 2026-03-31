@@ -208,12 +208,10 @@ h4 { font-size: 18px; font-weight: 600; }
   height: var(--spacing-3xl);
 }
 
-// ─── Tour highlight ───────────────────────────────────────────────────────
-.tour-highlight {
-  outline: 3px solid #C9973A;
-  outline-offset: 3px;
-  border-radius: 4px;
-  box-shadow: 0 0 0 6px rgba(201, 151, 58, 0.18);
+// ─── Tour spotlight ───────────────────────────────────────────────────────
+.tour-spotlight {
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
+  border-radius: 8px;
   position: relative;
-  z-index: 1050;
+  z-index: 9001;
 }
