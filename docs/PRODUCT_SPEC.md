@@ -164,7 +164,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-76 | Tableau de bord super-admin — métriques produit | V3 — **Terminée** | SF-76-01 mergée 2026-03-31 : GET /api/v1/super-admin/metrics, 9 métriques agrégées (totalWorkspaces, activeWorkspaces30d, inactiveWorkspaces30d, trialWorkspaces, paidWorkspaces, conversionRatePct, analysesLast7Days, analysesLast30Days, newWorkspacesLast30Days), 368 tests verts. SF-76-02 mergée 2026-03-31 : section métriques en haut de /super-admin, 9 cartes en grille 3 colonnes responsive, design system, 346 tests verts. |
-| F-79 | Pagination super-admin — workspaces et utilisateurs | V3 | Paginer les tableaux workspaces et utilisateurs dans /super-admin côté serveur (page/size). Évite les problèmes de performance quand la plateforme grandit. Backend : GET /api/v1/super-admin/workspaces?page=X&size=Y et GET /api/v1/super-admin/users?page=X&size=Y retournant Page<T>. Frontend : MatPaginator sur les deux tableaux. |
+| F-79 | Pagination super-admin — workspaces et utilisateurs | V3 — **Terminée** | SF-79-01 mergée 2026-03-31 : GET /workspaces et /users retournent Page<T>, @PageableDefault, 29 tests verts. SF-79-02 mergée 2026-03-31 : MatPaginator sous chaque tableau, PageResponse<T>, appels API ciblés, 10 tests verts. |
 
 ### UX & exploitation
 
@@ -217,6 +217,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-79 Terminée — SF-79-01 (Page<T> workspaces+users, @PageableDefault, 29 tests) + SF-79-02 (MatPaginator, PageResponse<T>, appels ciblés, 10 tests) | Product owner |
 | 2026-03-31 | F-76 Terminée — SF-76-01 (GET /api/v1/super-admin/metrics, 9 métriques, 368 tests) + SF-76-02 (section métriques /super-admin, 9 cartes responsive, 346 tests) | Product owner |
 | 2026-03-30 | F-78 Terminée — SF-78-01 (POST /api/v1/contact, 2 emails, 22 tests) + SF-78-02 (ContactComponent /contact, 5 champs, footer link, 6 tests) | Product owner |
 | 2026-03-30 | F-77 Terminée — SF-77-01 mergée : ConsentService (injection GA4 dynamique, localStorage), CookieConsentBannerComponent (responsive, design system), gaId G-2JPL8JTXE7, 10 tests verts | Product owner |
