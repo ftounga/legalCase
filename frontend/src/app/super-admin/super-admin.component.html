@@ -105,6 +105,14 @@
         @if (workspaceRows().length === 0) {
           <p class="empty-state">Aucun workspace.</p>
         }
+        <mat-paginator
+          [length]="wsTotalElements()"
+          [pageIndex]="wsPage()"
+          [pageSize]="wsSize()"
+          [pageSizeOptions]="[10, 20, 50]"
+          (page)="onWsPageChange($event)"
+          aria-label="Pagination workspaces">
+        </mat-paginator>
       </mat-card-content>
     </mat-card>
 
@@ -144,6 +152,14 @@
         @if (users().length === 0) {
           <p class="empty-state">Aucun utilisateur.</p>
         }
+        <mat-paginator
+          [length]="usersTotalElements()"
+          [pageIndex]="usersPage()"
+          [pageSize]="usersSize()"
+          [pageSizeOptions]="[10, 20, 50]"
+          (page)="onUsersPageChange($event)"
+          aria-label="Pagination utilisateurs">
+        </mat-paginator>
       </mat-card-content>
     </mat-card>
   }
