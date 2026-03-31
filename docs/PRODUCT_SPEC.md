@@ -170,7 +170,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-89 | Refonte UX de la comparaison d'analyses | V3 — **Partielle** | Amélioration de la page /diff : suppression du bouton "Comparer" (auto-trigger), grands compteurs numériques à la place de la stats-bar 6px, callout visuel pour le champ "reason" de l'IA, border-left colorée sur les section cards selon le type dominant, empty state guidant. SF-89-02 : ajout des stats par version (faits/points/risques) dans CaseAnalysisVersionSummary (backend) + affichage dans les version cards (frontend). |
+| F-89 | Refonte UX de la comparaison d'analyses | V3 — **Terminée** | SF-89-01 mergée 2026-03-31 : auto-trigger effect(), compteurs 26px, callout Raison IA, border-left section cards, empty state guidant, 19 tests. SF-89-02 mergée 2026-03-31 : 5 colonnes nullable (faits/points/risques/questionsOuvertes/timeline count) sur case_analyses, populateCounts() fail-open, VersionSummary étendu, version cards affichent les stats si non-null, 9 tests backend + 35 tests frontend. |
 | F-88 | Tour d'onboarding avec dossier de démonstration | V3 — **Terminée** | SF-88-01 mergée 2026-03-31 : advanceToStep2() crée un dossier "Dossier de démonstration" si workspace vide, stocke l'ID en mémoire, navigue dans le dossier, le supprime silencieusement à la fin/skip via cleanup(). Effet spotlight : tour-backdrop z-index 9000 + .tour-spotlight (box-shadow 9999px) z-index 9001 remplace l'outline doré. 18 tests verts. |
 | F-87 | Export complet d'un dossier (ZIP) | V3 — **Terminée** | SF-87-01 mergée 2026-03-31 : GET /api/v1/case-files/{id}/export, ZIP en mémoire (dossier.json, documents.csv, notes.txt, delais.txt, synthese.json optionnel), Content-Disposition, bouton Exporter dans case-file-detail, 6 unit + 4 IT + 3 tests frontend. |
 | F-86 | Renommage et modification d'un dossier | V3 — **Terminée** | SF-86-01 mergée 2026-03-31 : PATCH /api/v1/case-files/{id}, CaseFileUpdateRequest, audit log CASE_FILE_UPDATED, CaseFileEditDialogComponent pré-rempli, bouton Modifier dans case-file-detail, 4 IT + 3 unit + 5 tests frontend. |
@@ -227,7 +227,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
-| 2026-03-31 | F-89 SF-89-01 mergée — auto-trigger effect(), compteurs 26px, callout Raison IA, border-left section cards, empty state guidant, 19 tests. Statut : Partielle (SF-89-02 backend stats en attente) | Product owner |
+| 2026-03-31 | F-89 Terminée — SF-89-02 (5 colonnes nullable case_analyses, populateCounts fail-open, version cards stats, migration 039, 9 tests backend + 35 frontend) | Product owner |
+| 2026-03-31 | F-89 SF-89-01 mergée — auto-trigger effect(), compteurs 26px, callout Raison IA, border-left section cards, empty state guidant, 19 tests | Product owner |
 | 2026-03-31 | F-89 ajoutée au backlog — Refonte UX comparaison d'analyses (2 subfeatures prévues : frontend pur + stats par version backend) | Product owner |
 | 2026-03-31 | F-88 Terminée — SF-88-01 (advanceToStep2 dossier demo, cleanup silencieux, effet spotlight backdrop+box-shadow, 18 tests) | Product owner |
 | 2026-03-31 | F-87 Terminée — SF-87-01 (GET /export ZIP, 5 fichiers, CaseFileExportService, bouton Exporter, 6 unit + 4 IT + 3 frontend) | Product owner |
