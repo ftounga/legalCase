@@ -1,6 +1,10 @@
 package fr.ailegalcase.superadmin;
 
 import fr.ailegalcase.shared.OAuthProviderResolver;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -26,10 +30,11 @@ public class SuperAdminController {
     }
 
     @GetMapping("/workspaces")
-    public List<SuperAdminWorkspaceResponse> listWorkspaces(
+    public Page<SuperAdminWorkspaceResponse> listWorkspaces(
             @AuthenticationPrincipal OidcUser oidcUser,
-            Principal principal) {
-        return superAdminService.listAllWorkspaces(oidcUser, OAuthProviderResolver.resolve(principal));
+            Principal principal,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return superAdminService.listAllWorkspaces(oidcUser, OAuthProviderResolver.resolve(principal), pageable);
     }
 
     @GetMapping("/usage")
@@ -49,10 +54,11 @@ public class SuperAdminController {
     }
 
     @GetMapping("/users")
-    public List<SuperAdminUserResponse> listUsers(
+    public Page<SuperAdminUserResponse> listUsers(
             @AuthenticationPrincipal OidcUser oidcUser,
-            Principal principal) {
-        return superAdminService.listAllUsers(oidcUser, OAuthProviderResolver.resolve(principal));
+            Principal principal,
+            @PageableDefault(size = 20, sort = "email", direction = Sort.Direction.ASC) Pageable pageable) {
+        return superAdminService.listAllUsers(oidcUser, OAuthProviderResolver.resolve(principal), pageable);
     }
 
     @DeleteMapping("/users/{id}")
