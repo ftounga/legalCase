@@ -53,6 +53,7 @@ public class AnalysisLimitsProperties {
         private int risques;
         private int questionsOuvertes;
         private int timeline;
+        private int piecesManquantes = 5;
 
         public int getFaits() { return faits; }
         public void setFaits(int v) { this.faits = v; }
@@ -68,5 +69,8 @@ public class AnalysisLimitsProperties {
 
         public int getTimeline() { return timeline; }
         public void setTimeline(int v) { this.timeline = v; }
+
+        public int getPiecesManquantes() { return piecesManquantes; }
+        public void setPiecesManquantes(int v) { this.piecesManquantes = v; }
     }
 }

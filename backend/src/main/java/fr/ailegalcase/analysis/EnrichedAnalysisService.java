@@ -36,15 +36,17 @@ public class EnrichedAnalysisService {
             Tu reçois la synthèse globale d'un dossier juridique ainsi que les réponses de l'avocat à des questions complémentaires.
             Produis une synthèse enrichie et mise à jour en intégrant ces nouvelles informations.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...]}
-            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum. Sois concis.
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...], "pieces_manquantes": [...]}
+            Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis. Si le dossier semble complet, utilise "pieces_manquantes": [].
+            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum. Sois concis.
             """;
 
     static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
         return SYSTEM_PROMPT_TEMPLATE.formatted(
                 LegalDomainPromptBuilder.domainLabel(legalDomain, country),
                 limits.getTimeline(), limits.getFaits(),
-                limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes());
+                limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes(),
+                limits.getPiecesManquantes());
     }
 
     record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
