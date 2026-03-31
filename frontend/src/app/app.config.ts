@@ -7,12 +7,13 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { paymentRequiredInterceptor } from './core/interceptors/payment-required.interceptor';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor, loadingInterceptor])),
     provideAnimationsAsync(),
     { provide: ErrorHandler, useValue: Sentry.createErrorHandler() },
     { provide: Sentry.TraceService, deps: [Router] },
