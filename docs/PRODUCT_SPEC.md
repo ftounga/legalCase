@@ -170,7 +170,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-91 | Hub opérationnel super-admin — liens plateformes tierces | V3 — `En cours` | Section "Outils & monitoring" dans /super-admin : liens rapides vers GA4, Sentry, Stripe, Brevo, n8n, AWS Console, RabbitMQ, RDS. SF-91-01 en cours. |
+| F-91 | Hub opérationnel super-admin — liens plateformes tierces | V3 — **Terminée** | SF-91-01 mergée 2026-03-31 : section "Outils & monitoring" dans /super-admin, 7 liens (GA4, Sentry, Stripe, Brevo, n8n, AWS, RabbitMQ), ingress RabbitMQ staging + prod, rabbitmqUrl par environment.ts, 409 tests verts. |
 | F-89 | Refonte UX de la comparaison d'analyses | V3 — **Terminée** | SF-89-01 mergée 2026-03-31 : auto-trigger effect(), compteurs 26px, callout Raison IA, border-left section cards, empty state guidant, 19 tests. SF-89-02 mergée 2026-03-31 : 5 colonnes nullable (faits/points/risques/questionsOuvertes/timeline count) sur case_analyses, populateCounts() fail-open, VersionSummary étendu, version cards affichent les stats si non-null, 9 tests backend + 35 tests frontend. |
 | F-88 | Tour d'onboarding avec dossier de démonstration | V3 — **Terminée** | SF-88-01 mergée 2026-03-31 : advanceToStep2() crée un dossier "Dossier de démonstration" si workspace vide, stocke l'ID en mémoire, navigue dans le dossier, le supprime silencieusement à la fin/skip via cleanup(). Effet spotlight : tour-backdrop z-index 9000 + .tour-spotlight (box-shadow 9999px) z-index 9001 remplace l'outline doré. 18 tests verts. |
 | F-87 | Export complet d'un dossier (ZIP) | V3 — **Terminée** | SF-87-01 mergée 2026-03-31 : GET /api/v1/case-files/{id}/export, ZIP en mémoire (dossier.json, documents.csv, notes.txt, delais.txt, synthese.json optionnel), Content-Disposition, bouton Exporter dans case-file-detail, 6 unit + 4 IT + 3 tests frontend. |
@@ -229,6 +229,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-91 Terminée — SF-91-01 : hub outils super-admin (7 liens, ingress RabbitMQ staging+prod, env-based URLs, 409 tests) | Product owner |
 | 2026-03-31 | F-90 Terminée — SF-90-01 (garde étendu Q&A||chat, buildChatSummary Haiku fail-open, section [Échanges libres] conditionnelle, 11 unit + 8 IT) | Product owner |
 | 2026-03-31 | F-90 ajoutée au backlog — Chat comme contexte analyse enrichie (résumé Haiku, garde étendu Q&A||chat) | Product owner |
 | 2026-03-31 | F-23 Abandonnée — partage couvert par modèle workspace, notes couvertes par F-70 | Product owner |
