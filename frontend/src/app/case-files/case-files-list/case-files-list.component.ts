@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -25,7 +26,7 @@ import { fadeInUp, listStagger } from '../../shared/animations';
   imports: [
     RouterLink, NgClass, DatePipe,
     MatTableModule, MatPaginatorModule, MatSortModule, MatButtonModule, MatIconModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonToggleModule
   ],
   templateUrl: './case-files-list.component.html',
   styleUrl: './case-files-list.component.scss',
