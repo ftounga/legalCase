@@ -170,6 +170,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-87 | Export complet d'un dossier (ZIP) | V3 | Télécharger l'intégralité d'un dossier (synthèse PDF + liste documents + notes + délais) en archive ZIP. Bouton dans la page dossier. Backend `GET /api/v1/case-files/{id}/export`, isolation workspace. |
+| F-86 | Renommage et modification d'un dossier | V3 | Modifier le titre et la description d'un dossier existant depuis la page dossier. Endpoint `PATCH /api/v1/case-files/{id}`, dialog Angular, isolation workspace, tracé dans audit_logs. |
 | F-85 | Barre de progression globale | V3 — **Terminée** | SF-85-01 mergée 2026-03-31 : LoadingService (signal-based, compteur requêtes actives), loadingInterceptor, MatProgressBarModule dans AppComponent, barre fixée top:0 z-index:9999, 4 tests verts. |
 | F-84 | Filtres sur la liste des dossiers | V3 — **Terminée** | SF-84-01 mergée 2026-03-31 : sélecteurs Statut (Ouvert/Clôturé) et Domaine (Travail/Immigration/Famille) dans /case-files, filtrage client-side cumulable avec F-80 et F-82, reset au changement workspace, 5 tests verts (23 total). |
 | F-83 | Page d'erreur 404 — route inconnue | V3 — **Terminée** | SF-83-01 mergée 2026-03-31 : NotFoundComponent, route wildcard **, lien retour /case-files, 3 tests verts. |
