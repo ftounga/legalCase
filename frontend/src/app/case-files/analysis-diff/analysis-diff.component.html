@@ -86,16 +86,6 @@
     </div>
   }
 
-  <!-- ── Bouton Comparer ────────────────────────────────────────────── -->
-  <div class="compare-action">
-    <button mat-flat-button color="primary"
-            [disabled]="!canCompute()"
-            (click)="onVersionChange()">
-      <mat-icon>compare_arrows</mat-icon>
-      Comparer
-    </button>
-  </div>
-
   <!-- ── Loading diff ───────────────────────────────────────────────── -->
   @if (diffLoading()) {
     <div class="loading-center">
@@ -107,67 +97,62 @@
   <!-- ── Placeholder quand aucune sélection ───────────────────────── -->
   @if (!canCompute() && !diffLoading()) {
     <div class="empty-state">
-      <mat-icon class="empty-icon">compare</mat-icon>
-      <p>Sélectionnez deux versions différentes pour afficher les différences.</p>
+      <mat-icon class="empty-icon">compare_arrows</mat-icon>
+      <p class="empty-title">Choisissez deux versions à comparer</p>
+      <p class="empty-subtitle">Sélectionnez la version de référence à gauche, puis la version à analyser à droite. Le diff s'affichera automatiquement.</p>
     </div>
   }
 
   <!-- ── Résultats ──────────────────────────────────────────────── -->
   @if (diff() && !diffLoading()) {
 
-    <!-- Sticky wrapper : summary bar + unchanged toggle -->
+    <!-- Sticky wrapper : counters + unchanged toggle -->
     <div class="diff-summary-wrapper">
       <div class="diff-summary">
-        <div class="summary-left">
-          <div class="summary-versions">
-            <span class="summary-badge summary-badge--from">v{{ diff()!.from.version }}</span>
-            <mat-icon class="summary-arrow">east</mat-icon>
-            <span class="summary-badge summary-badge--to">v{{ diff()!.to.version }}</span>
-          </div>
-          @if (totalAll() > 0) {
-            <div class="stats-bar"
-                 matTooltip="{{ totalAdded() }} ajout(s) · {{ totalRemoved() }} suppression(s) · {{ totalEnriched() }} enrichi(s) · {{ totalUnchanged() }} inchangé(s)"
-                 matTooltipPosition="below">
-              @if (statPct(totalAdded()) > 0) {
-                <div class="stats-bar__segment stats-bar__segment--added" [style.width.%]="statPct(totalAdded())"></div>
-              }
-              @if (statPct(totalRemoved()) > 0) {
-                <div class="stats-bar__segment stats-bar__segment--removed" [style.width.%]="statPct(totalRemoved())"></div>
-              }
-              @if (statPct(totalEnriched()) > 0) {
-                <div class="stats-bar__segment stats-bar__segment--enriched" [style.width.%]="statPct(totalEnriched())"></div>
-              }
-              @if (statPct(totalUnchanged()) > 0) {
-                <div class="stats-bar__segment stats-bar__segment--unchanged" [style.width.%]="statPct(totalUnchanged())"></div>
-              }
-            </div>
-          }
+        <div class="summary-versions">
+          <span class="summary-badge summary-badge--from">v{{ diff()!.from.version }}</span>
+          <mat-icon class="summary-arrow">east</mat-icon>
+          <span class="summary-badge summary-badge--to">v{{ diff()!.to.version }}</span>
         </div>
 
-        <div class="summary-counts">
-          <button class="count-chip count-chip--all" [class.active]="activeFilter() === 'all'" (click)="setFilter('all')">
-            <mat-icon>list</mat-icon>Tout
+        <div class="diff-counters">
+          <!-- Tout -->
+          <button class="counter-chip counter-chip--all"
+                  [class.active]="activeFilter() === 'all'"
+                  (click)="setFilter('all')">
+            <span class="counter-number">{{ totalAll() }}</span>
+            <span class="counter-label">total</span>
           </button>
-          @if (totalAdded() > 0) {
-            <button class="count-chip count-chip--added" [class.active]="activeFilter() === 'added'" (click)="setFilter('added')">
-              <mat-icon>add</mat-icon>{{ totalAdded() }} ajout{{ totalAdded() > 1 ? 's' : '' }}
-            </button>
-          }
-          @if (totalRemoved() > 0) {
-            <button class="count-chip count-chip--removed" [class.active]="activeFilter() === 'removed'" (click)="setFilter('removed')">
-              <mat-icon>remove</mat-icon>{{ totalRemoved() }} suppression{{ totalRemoved() > 1 ? 's' : '' }}
-            </button>
-          }
-          @if (totalEnriched() > 0) {
-            <button class="count-chip count-chip--enriched" [class.active]="activeFilter() === 'enriched'" (click)="setFilter('enriched')">
-              <mat-icon>auto_awesome</mat-icon>{{ totalEnriched() }} enrichi{{ totalEnriched() > 1 ? 's' : '' }}
-            </button>
-          }
-          @if (totalAdded() === 0 && totalRemoved() === 0 && totalEnriched() === 0) {
-            <span class="count-chip count-chip--neutral">
-              <mat-icon>check</mat-icon>Aucune différence
-            </span>
-          }
+
+          <!-- Ajouts -->
+          <button class="counter-chip counter-chip--added"
+                  [class.active]="activeFilter() === 'added'"
+                  [class.counter-chip--zero]="totalAdded() === 0"
+                  [disabled]="totalAdded() === 0"
+                  (click)="totalAdded() > 0 && setFilter('added')">
+            <span class="counter-number">+{{ totalAdded() }}</span>
+            <span class="counter-label">ajout{{ totalAdded() > 1 ? 's' : '' }}</span>
+          </button>
+
+          <!-- Suppressions -->
+          <button class="counter-chip counter-chip--removed"
+                  [class.active]="activeFilter() === 'removed'"
+                  [class.counter-chip--zero]="totalRemoved() === 0"
+                  [disabled]="totalRemoved() === 0"
+                  (click)="totalRemoved() > 0 && setFilter('removed')">
+            <span class="counter-number">−{{ totalRemoved() }}</span>
+            <span class="counter-label">suppression{{ totalRemoved() > 1 ? 's' : '' }}</span>
+          </button>
+
+          <!-- Enrichis -->
+          <button class="counter-chip counter-chip--enriched"
+                  [class.active]="activeFilter() === 'enriched'"
+                  [class.counter-chip--zero]="totalEnriched() === 0"
+                  [disabled]="totalEnriched() === 0"
+                  (click)="totalEnriched() > 0 && setFilter('enriched')">
+            <span class="counter-number">~{{ totalEnriched() }}</span>
+            <span class="counter-label">enrichi{{ totalEnriched() > 1 ? 's' : '' }}</span>
+          </button>
         </div>
       </div>
 
@@ -187,7 +172,13 @@
 
     <!-- Sections -->
     @for (section of sections(); track section.title) {
-      <mat-card class="section-card" [class.section-card--collapsed]="isSectionCollapsed(section.title)">
+      <mat-card class="section-card"
+                [class.section-card--collapsed]="isSectionCollapsed(section.title)"
+                [class.section-card--added]="sectionDominantType(section) === 'added'"
+                [class.section-card--removed]="sectionDominantType(section) === 'removed'"
+                [class.section-card--enriched]="sectionDominantType(section) === 'enriched'"
+                [class.section-card--mixed]="sectionDominantType(section) === 'mixed'"
+                [class.section-card--neutral]="sectionDominantType(section) === 'neutral'">
         <div class="section-header" (click)="toggleSection(section.title)">
           <div class="section-title">
             <mat-icon class="section-icon">{{ section.icon }}</mat-icon>
@@ -227,7 +218,10 @@
                     <div class="item-content">
                       <span>{{ item.text }}</span>
                       @if (item.reason) {
-                        <span class="item-reason item-reason--added">{{ item.reason }}</span>
+                        <div class="item-reason item-reason--added">
+                          <span class="item-reason__label">Raison IA :</span>
+                          {{ item.reason }}
+                        </div>
                       }
                     </div>
                   </div>
@@ -240,7 +234,10 @@
                     <div class="item-content">
                       <span class="item-text--removed">{{ item.text }}</span>
                       @if (item.reason) {
-                        <span class="item-reason item-reason--removed">{{ item.reason }}</span>
+                        <div class="item-reason item-reason--removed">
+                          <span class="item-reason__label">Raison IA :</span>
+                          {{ item.reason }}
+                        </div>
                       }
                     </div>
                   </div>
@@ -253,7 +250,10 @@
                     <div class="item-content">
                       <span>{{ item.text }}</span>
                       @if (item.reason) {
-                        <span class="item-reason item-reason--enriched">{{ item.reason }}</span>
+                        <div class="item-reason item-reason--enriched">
+                          <span class="item-reason__label">Raison IA :</span>
+                          {{ item.reason }}
+                        </div>
                       }
                     </div>
                   </div>
@@ -280,7 +280,10 @@
                         <span>{{ entry.evenement }}</span>
                       </div>
                       @if (entry.reason) {
-                        <span class="item-reason item-reason--added">{{ entry.reason }}</span>
+                        <div class="item-reason item-reason--added">
+                          <span class="item-reason__label">Raison IA :</span>
+                          {{ entry.reason }}
+                        </div>
                       }
                     </div>
                   </div>
@@ -297,7 +300,10 @@
                         <span class="item-text--removed">{{ entry.evenement }}</span>
                       </div>
                       @if (entry.reason) {
-                        <span class="item-reason item-reason--removed">{{ entry.reason }}</span>
+                        <div class="item-reason item-reason--removed">
+                          <span class="item-reason__label">Raison IA :</span>
+                          {{ entry.reason }}
+                        </div>
                       }
                     </div>
                   </div>
@@ -314,7 +320,10 @@
                         <span>{{ entry.evenement }}</span>
                       </div>
                       @if (entry.reason) {
-                        <span class="item-reason item-reason--enriched">{{ entry.reason }}</span>
+                        <div class="item-reason item-reason--enriched">
+                          <span class="item-reason__label">Raison IA :</span>
+                          {{ entry.reason }}
+                        </div>
                       }
                     </div>
                   </div>

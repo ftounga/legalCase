@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, effect } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -131,7 +131,13 @@ export class AnalysisDiffComponent implements OnInit {
     private caseFileService: CaseFileService,
     private caseAnalysisService: CaseAnalysisService,
     private snackBar: MatSnackBar
-  ) {}
+  ) {
+    effect(() => {
+      if (this.canCompute()) {
+        this.loadDiff();
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.caseFileId = this.route.snapshot.paramMap.get('id')!;
@@ -161,9 +167,15 @@ export class AnalysisDiffComponent implements OnInit {
     });
   }
 
-  onVersionChange(): void {
-    if (!this.canCompute()) return;
-    this.loadDiff();
+  sectionDominantType(section: DiffSection): 'added' | 'removed' | 'enriched' | 'neutral' | 'mixed' {
+    const added    = this.sectionAddedCount(section);
+    const removed  = this.sectionRemovedCount(section);
+    const enriched = this.sectionEnrichedCount(section);
+    if (added === 0 && removed === 0 && enriched === 0) return 'neutral';
+    if (added > removed && added > enriched)    return 'added';
+    if (removed > added && removed > enriched)  return 'removed';
+    if (enriched > added && enriched > removed) return 'enriched';
+    return 'mixed';
   }
 
   private loadDiff(): void {
