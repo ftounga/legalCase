@@ -170,7 +170,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-81 | Gestion expiration de session — returnUrl + snackbar | V3 | Sur 401, sauvegarder l'URL courante dans sessionStorage, afficher un snackbar "Session expirée", rediriger vers /login. Après reconnexion (locale ou OAuth2), naviguer vers l'URL sauvegardée. Aucun changement backend. |
+| F-81 | Gestion expiration de session — returnUrl + snackbar | V3 — **Terminée** | SF-81-01 mergée 2026-03-31 : intercepteur 401 snackbar + sessionStorage returnUrl, login local navigue returnUrl, authGuard OAuth2 redirect returnUrl. 19 tests verts. |
 | F-80 | Recherche dans la liste des dossiers | V3 — **Terminée** | SF-80-01 mergée 2026-03-31 : barre de recherche dans /case-files, filtre client par titre (insensible casse), bouton ×, message différencié, responsive mobile, 14 tests verts. |
 | F-64 | Recherche full-text dans les synthèses | V2 — **Terminée** | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel et terme surligné. SF-64-01 mergée 2026-03-29 (backend GET /api/v1/search). SF-64-02 mergée 2026-03-29 (frontend /search, debounce, HighlightTermPipe). |
 | F-66 | Modèles de questions Q&A réutilisables | ~~Abandonné~~ | L'IA génère les questions pertinentes depuis les documents — des modèles prédéfinis n'apportent pas de valeur différenciante. Arbitrage 2026-03-29. |
@@ -219,6 +219,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-81 Terminée — SF-81-01 (intercepteur 401 snackbar + sessionStorage returnUrl, login local + authGuard OAuth2 redirect, 19 tests) | Product owner |
 | 2026-03-31 | F-80 Terminée — SF-80-01 (barre recherche /case-files, filtre client par titre, bouton ×, responsive, 14 tests) | Product owner |
 | 2026-03-31 | F-79 Terminée — SF-79-01 (Page<T> workspaces+users, @PageableDefault, 29 tests) + SF-79-02 (MatPaginator, PageResponse<T>, appels ciblés, 10 tests) | Product owner |
 | 2026-03-31 | F-76 Terminée — SF-76-01 (GET /api/v1/super-admin/metrics, 9 métriques, 368 tests) + SF-76-02 (section métriques /super-admin, 9 cartes responsive, 346 tests) | Product owner |
