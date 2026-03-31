@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { MENTIONS_LEGALES, POLITIQUE_CONFIDENTIALITE, CGU } from './legal/legal-content';
+import { NotFoundComponent } from './not-found/not-found.component';
 
 export const routes: Routes = [
   {
@@ -114,5 +115,5 @@ export const routes: Routes = [
     loadComponent: () => import('./legal/legal-page.component').then(m => m.LegalPageComponent),
     data: { title: 'Conditions Générales d\'Utilisation', sections: CGU }
   },
-  { path: '**', redirectTo: '' }
+  { path: '**', component: NotFoundComponent }
 ];
