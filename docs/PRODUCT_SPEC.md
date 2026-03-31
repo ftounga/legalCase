@@ -210,8 +210,9 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-22 | SSO entreprise (Azure AD, Google Workspace, SAML) | V2+ | Auth avancée pour cabinets |
-| F-23 | Collaboration avancée | V2+ | Partage de dossiers entre membres, commentaires |
+| F-23 | Collaboration avancée | ~~V2+~~ — **Abandonné** | Partage de dossiers déjà couvert par le modèle workspace (tous les membres voient tous les dossiers). Notes internes couvertes par F-70. Arbitrage 2026-03-31. |
 | F-24 | Génération d'argumentaire | V2+ | Hors scope V1 — complexité juridique trop élevée |
+| F-90 | Chat comme contexte de l'analyse enrichie | V3 — **Backlog** | Injecter un résumé Haiku du chat libre dans le prompt de l'analyse enrichie, en complément des Q&A. Garde étendu : enrichie autorisée si nouveau message chat OU nouvelle réponse Q&A depuis la dernière analyse enrichie. Résumé Haiku préalable pour éviter la pollution de contexte sur les chats longs. |
 
 ### Infrastructure & qualité
 
@@ -227,6 +228,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-90 ajoutée au backlog — Chat comme contexte analyse enrichie (résumé Haiku, garde étendu Q&A||chat) | Product owner |
+| 2026-03-31 | F-23 Abandonnée — partage couvert par modèle workspace, notes couvertes par F-70 | Product owner |
 | 2026-03-31 | F-89 Terminée — SF-89-02 (5 colonnes nullable case_analyses, populateCounts fail-open, version cards stats, migration 039, 9 tests backend + 35 frontend) | Product owner |
 | 2026-03-31 | F-89 SF-89-01 mergée — auto-trigger effect(), compteurs 26px, callout Raison IA, border-left section cards, empty state guidant, 19 tests | Product owner |
 | 2026-03-31 | F-89 ajoutée au backlog — Refonte UX comparaison d'analyses (2 subfeatures prévues : frontend pur + stats par version backend) | Product owner |
