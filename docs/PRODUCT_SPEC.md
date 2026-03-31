@@ -170,7 +170,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-80 | Recherche dans la liste des dossiers | V3 | Barre de recherche dans `/case-files` filtrant instantanément la liste par nom de dossier côté frontend. Aucun nouvel endpoint. |
+| F-80 | Recherche dans la liste des dossiers | V3 — **Terminée** | SF-80-01 mergée 2026-03-31 : barre de recherche dans /case-files, filtre client par titre (insensible casse), bouton ×, message différencié, responsive mobile, 14 tests verts. |
 | F-64 | Recherche full-text dans les synthèses | V2 — **Terminée** | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel et terme surligné. SF-64-01 mergée 2026-03-29 (backend GET /api/v1/search). SF-64-02 mergée 2026-03-29 (frontend /search, debounce, HighlightTermPipe). |
 | F-66 | Modèles de questions Q&A réutilisables | ~~Abandonné~~ | L'IA génère les questions pertinentes depuis les documents — des modèles prédéfinis n'apportent pas de valeur différenciante. Arbitrage 2026-03-29. |
 | F-69 | Suivi des délais légaux | V2 — **Terminée** | Associer des échéances à un dossier (prescription, délai d'appel, délai de réponse). Alertes J-15 et J-7. Affichage dans la page dossier. Scoped au workspace. SF-69-01 mergée 2026-03-29 (backend CRUD, migration 037). SF-69-02 mergée 2026-03-29 (frontend CaseDeadlinesSectionComponent, indicateur J-X). SF-69-03 mergée 2026-03-29 (DeadlineAlertService @Scheduled 8h, fail-open). |
@@ -218,6 +218,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-80 Terminée — SF-80-01 (barre recherche /case-files, filtre client par titre, bouton ×, responsive, 14 tests) | Product owner |
 | 2026-03-31 | F-79 Terminée — SF-79-01 (Page<T> workspaces+users, @PageableDefault, 29 tests) + SF-79-02 (MatPaginator, PageResponse<T>, appels ciblés, 10 tests) | Product owner |
 | 2026-03-31 | F-76 Terminée — SF-76-01 (GET /api/v1/super-admin/metrics, 9 métriques, 368 tests) + SF-76-02 (section métriques /super-admin, 9 cartes responsive, 346 tests) | Product owner |
 | 2026-03-30 | F-78 Terminée — SF-78-01 (POST /api/v1/contact, 2 emails, 22 tests) + SF-78-02 (ContactComponent /contact, 5 champs, footer link, 6 tests) | Product owner |
