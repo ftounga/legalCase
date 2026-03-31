@@ -150,7 +150,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-78 | Page contact — formulaire email | **Terminée** | SF-78-01 (backend POST /api/v1/contact, 2 emails fail-open) + SF-78-02 (ContactComponent /contact, 5 champs, lien footer) mergées 2026-03-30. 22 tests backend + 6 tests frontend. |
-| F-77 | Google Analytics 4 — tracking + bannière consentement RGPD | **Terminée** | SF-77-01 mergée 2026-03-30. ConsentService + CookieConsentBannerComponent, injection dynamique GA4 après consentement, localStorage, gaId G-2JPL8JTXE7, 10 tests verts. |
+| F-77 | Google Analytics 4 — tracking + bannière consentement RGPD | **Terminée** | SF-77-01 mergée 2026-03-30 : ConsentService + CookieConsentBannerComponent, injection dynamique GA4, localStorage, gaId G-2JPL8JTXE7, 10 tests. SF-77-02 mergée 2026-03-31 : AnalyticsService fail-open, events analysis_launched/pdf_exported/upgrade_clicked, fix UI barre filtres dossiers (toggles compacts), 406 tests verts. |
 | F-75 | SEO technique — meta tags, Open Graph, sitemap, robots.txt | **Terminée** | index.html enrichi (OG + Twitter Card), LandingComponent/LegalPageComponent injectent Title+Meta dynamiquement, robots.txt bloque routes auth, sitemap.xml liste 4 URLs publiques. SF-75-01 mergée 2026-03-30. 328 tests verts. |
 | F-74 | Pages légales — mentions légales, CGU, politique de confidentialité | **Terminée** | 3 pages statiques Angular accessibles publiquement (/mentions-legales, /cgu, /privacy). Lien dans le footer de la landing page. |
 | F-73 | Séquence email onboarding | Terminée | 5 emails automatiques post-inscription : J+0 bienvenue, J+2 tip analyse (si aucune analyse), J+5 tip partage client, J+12 conversion avant expiration trial, J+15 récupération post-expiration. Table `email_sends` pour éviter les doublons. Brevo comme provider. |
@@ -246,6 +246,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-03-31 | F-79 Terminée — SF-79-01 (Page<T> workspaces+users, @PageableDefault, 29 tests) + SF-79-02 (MatPaginator, PageResponse<T>, appels ciblés, 10 tests) | Product owner |
 | 2026-03-31 | F-76 Terminée — SF-76-01 (GET /api/v1/super-admin/metrics, 9 métriques, 368 tests) + SF-76-02 (section métriques /super-admin, 9 cartes responsive, 346 tests) | Product owner |
 | 2026-03-30 | F-78 Terminée — SF-78-01 (POST /api/v1/contact, 2 emails, 22 tests) + SF-78-02 (ContactComponent /contact, 5 champs, footer link, 6 tests) | Product owner |
+| 2026-03-31 | F-77 Terminée — SF-77-02 mergée : AnalyticsService fail-open (analysis_launched, pdf_exported, upgrade_clicked), redesign barre filtres dossiers (toggles compacts), 406 tests verts | Product owner |
 | 2026-03-30 | F-77 Terminée — SF-77-01 mergée : ConsentService (injection GA4 dynamique, localStorage), CookieConsentBannerComponent (responsive, design system), gaId G-2JPL8JTXE7, 10 tests verts | Product owner |
 | 2026-03-30 | F-75 Terminée — SF-75-01 mergée : index.html OG + Twitter Card, LandingComponent Title+Meta dynamiques, LegalPageComponent title depuis route data, robots.txt, sitemap.xml, 328 tests verts | Product owner |
 | 2026-03-29 | F-74 Terminée — SF-74-01 mergée : LegalPageComponent standalone, 3 routes publiques (/mentions-legales /privacy /cgu), footer landing mis à jour, 324 tests verts | Product owner |
