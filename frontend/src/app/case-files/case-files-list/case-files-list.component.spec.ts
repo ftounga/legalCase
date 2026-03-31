@@ -19,7 +19,7 @@ const mockWorkspace: Workspace = { id: 'ws-1', name: 'Test', slug: 'test', planC
 const mockPage: Page<CaseFile> = {
   content: [
     { id: 'cf1', title: 'Dossier Alpha', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z', lastDocumentDeletedAt: null },
-    { id: 'cf2', title: 'Cabinet Beta', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-18T10:00:00Z', lastDocumentDeletedAt: null }
+    { id: 'cf2', title: 'Cabinet Beta', legalDomain: 'DROIT_IMMIGRATION', description: null, status: 'CLOSED', createdAt: '2026-03-18T10:00:00Z', lastDocumentDeletedAt: null }
   ],
   totalElements: 2, totalPages: 1, size: 20, number: 0
 };
@@ -189,5 +189,52 @@ describe('CaseFilesListComponent', () => {
     component.onSort({ active: 'title', direction: 'asc' });
     expect(component.filteredDataSource.length).toBe(1);
     expect(component.filteredDataSource[0].title).toBe('Dossier Alpha');
+  });
+
+  // F-01 : filtre statut OPEN → seul cf1 retourné
+  it('F-01: filterStatus OPEN → seul dossier OPEN retourné', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onFilterStatus('OPEN');
+    expect(component.filteredDataSource.length).toBe(1);
+    expect(component.filteredDataSource[0].id).toBe('cf1');
+  });
+
+  // F-02 : filtre statut CLOSED → seul cf2 retourné
+  it('F-02: filterStatus CLOSED → seul dossier CLOSED retourné', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onFilterStatus('CLOSED');
+    expect(component.filteredDataSource.length).toBe(1);
+    expect(component.filteredDataSource[0].id).toBe('cf2');
+  });
+
+  // F-03 : filtre domaine DROIT_IMMIGRATION → seul cf2 retourné
+  it('F-03: filterDomain DROIT_IMMIGRATION → seul dossier correspondant retourné', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onFilterDomain('DROIT_IMMIGRATION');
+    expect(component.filteredDataSource.length).toBe(1);
+    expect(component.filteredDataSource[0].id).toBe('cf2');
+  });
+
+  // F-04 : reset filtre statut → liste complète restaurée
+  it('F-04: reset filterStatus → filteredDataSource complet', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onFilterStatus('OPEN');
+    expect(component.filteredDataSource.length).toBe(1);
+    component.onFilterStatus('');
+    expect(component.filteredDataSource.length).toBe(2);
+  });
+
+  // F-05 : filtre statut + recherche combinés
+  it('F-05: filterStatus + searchTerm combinés → résultat cumulé', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onFilterStatus('OPEN');
+    component.onSearch('alpha');
+    expect(component.filteredDataSource.length).toBe(1);
+    expect(component.filteredDataSource[0].id).toBe('cf1');
   });
 });
