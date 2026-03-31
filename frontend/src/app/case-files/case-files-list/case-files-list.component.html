@@ -17,28 +17,28 @@
   </div>
 </div>
 
-<mat-table [dataSource]="filteredDataSource" class="case-files-table" [@listStagger]="filteredDataSource.length">
+<mat-table [dataSource]="filteredDataSource" class="case-files-table" [@listStagger]="filteredDataSource.length" matSort (matSortChange)="onSort($event)">
   <ng-container matColumnDef="title">
-    <mat-header-cell *matHeaderCellDef>Titre</mat-header-cell>
+    <mat-header-cell *matHeaderCellDef mat-sort-header>Titre</mat-header-cell>
     <mat-cell *matCellDef="let row">
       <a [routerLink]="['/case-files', row.id]" class="case-file-link">{{ row.title }}</a>
     </mat-cell>
   </ng-container>
 
   <ng-container matColumnDef="legalDomain">
-    <mat-header-cell *matHeaderCellDef>Domaine</mat-header-cell>
+    <mat-header-cell *matHeaderCellDef mat-sort-header>Domaine</mat-header-cell>
     <mat-cell *matCellDef="let row">{{ row.legalDomain }}</mat-cell>
   </ng-container>
 
   <ng-container matColumnDef="status">
-    <mat-header-cell *matHeaderCellDef>Statut</mat-header-cell>
+    <mat-header-cell *matHeaderCellDef mat-sort-header>Statut</mat-header-cell>
     <mat-cell *matCellDef="let row">
       <span class="badge" [ngClass]="statusClass(row.status)">{{ statusLabel(row.status) }}</span>
     </mat-cell>
   </ng-container>
 
   <ng-container matColumnDef="createdAt">
-    <mat-header-cell *matHeaderCellDef>Créé le</mat-header-cell>
+    <mat-header-cell *matHeaderCellDef mat-sort-header>Créé le</mat-header-cell>
     <mat-cell *matCellDef="let row">{{ row.createdAt | date:'dd/MM/yyyy' }}</mat-cell>
   </ng-container>
 

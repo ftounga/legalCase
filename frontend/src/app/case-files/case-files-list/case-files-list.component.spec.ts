@@ -154,4 +154,40 @@ describe('CaseFilesListComponent', () => {
     component.onSearch('zzz_inexistant');
     expect(component.filteredDataSource.length).toBe(0);
   });
+
+  // T-06 : tri ASC par titre → ordre alphabétique
+  it('T-06: tri ASC par titre → premier élément "Cabinet Beta"', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSort({ active: 'title', direction: 'asc' });
+    expect(component.filteredDataSource[0].title).toBe('Cabinet Beta');
+    expect(component.filteredDataSource[1].title).toBe('Dossier Alpha');
+  });
+
+  // T-07 : tri DESC par titre → ordre inversé
+  it('T-07: tri DESC par titre → premier élément "Dossier Alpha"', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSort({ active: 'title', direction: 'desc' });
+    expect(component.filteredDataSource[0].title).toBe('Dossier Alpha');
+  });
+
+  // T-08 : tri par date ASC → ordre chronologique
+  it('T-08: tri ASC par date → cf1 avant cf2', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSort({ active: 'createdAt', direction: 'asc' });
+    expect(component.filteredDataSource[0].id).toBe('cf1');
+    expect(component.filteredDataSource[1].id).toBe('cf2');
+  });
+
+  // T-09 : tri + filtre combinés → résultat cohérent
+  it('T-09: tri + filtre combinés → seul résultat filtré, trié', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSearch('alpha');
+    component.onSort({ active: 'title', direction: 'asc' });
+    expect(component.filteredDataSource.length).toBe(1);
+    expect(component.filteredDataSource[0].title).toBe('Dossier Alpha');
+  });
 });

@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
@@ -22,7 +23,7 @@ import { fadeInUp, listStagger } from '../../shared/animations';
   standalone: true,
   imports: [
     RouterLink, NgClass, DatePipe,
-    MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule,
+    MatTableModule, MatPaginatorModule, MatSortModule, MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule
   ],
   templateUrl: './case-files-list.component.html',
@@ -37,11 +38,24 @@ export class CaseFilesListComponent implements OnInit {
   pageSize = 20;
   pageIndex = 0;
   searchTerm = '';
+  sortColumn = '';
+  sortDirection: 'asc' | 'desc' | '' = '';
 
   get filteredDataSource(): CaseFile[] {
     const term = this.searchTerm.trim().toLowerCase();
-    if (!term) return this.dataSource;
-    return this.dataSource.filter(cf => cf.title.toLowerCase().includes(term));
+    const filtered = term
+      ? this.dataSource.filter(cf => cf.title.toLowerCase().includes(term))
+      : [...this.dataSource];
+
+    if (!this.sortColumn || !this.sortDirection) return filtered;
+
+    return filtered.sort((a, b) => {
+      const dir = this.sortDirection === 'asc' ? 1 : -1;
+      const col = this.sortColumn as keyof CaseFile;
+      const va = (a[col] ?? '') as string;
+      const vb = (b[col] ?? '') as string;
+      return va.localeCompare(vb) * dir;
+    });
   }
 
   private destroyRef = inject(DestroyRef);
@@ -94,6 +108,11 @@ export class CaseFilesListComponent implements OnInit {
 
   onSearch(value: string): void {
     this.searchTerm = value;
+  }
+
+  onSort(sort: Sort): void {
+    this.sortColumn = sort.active;
+    this.sortDirection = sort.direction;
   }
 
   openCreateDialog(): void {
