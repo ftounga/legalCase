@@ -17,8 +17,11 @@ import { Workspace } from '../../core/models/workspace.model';
 const mockWorkspace: Workspace = { id: 'ws-1', name: 'Test', slug: 'test', planCode: 'SOLO', status: 'ACTIVE' };
 
 const mockPage: Page<CaseFile> = {
-  content: [{ id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z', lastDocumentDeletedAt: null }],
-  totalElements: 1, totalPages: 1, size: 20, number: 0
+  content: [
+    { id: 'cf1', title: 'Dossier Alpha', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z', lastDocumentDeletedAt: null },
+    { id: 'cf2', title: 'Cabinet Beta', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-18T10:00:00Z', lastDocumentDeletedAt: null }
+  ],
+  totalElements: 2, totalPages: 1, size: 20, number: 0
 };
 
 const emptyPage: Page<CaseFile> = { content: [], totalElements: 0, totalPages: 0, size: 20, number: 0 };
@@ -79,8 +82,8 @@ describe('CaseFilesListComponent', () => {
   it('liste avec items → dataSource peuplé', () => {
     caseFileServiceSpy.list.and.returnValue(of(mockPage));
     component.loadCaseFiles();
-    expect(component.dataSource.length).toBe(1);
-    expect(component.totalElements).toBe(1);
+    expect(component.dataSource.length).toBe(2);
+    expect(component.totalElements).toBe(2);
   });
 
   it('erreur API → affiche snackbar', () => {
@@ -106,5 +109,49 @@ describe('CaseFilesListComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const btn = el.querySelector('[data-tour-target="new-dossier-btn"]');
     expect(btn).withContext('data-tour-target="new-dossier-btn" manquant dans le template').not.toBeNull();
+  });
+
+  // T-01 : searchTerm vide → filteredDataSource = dataSource complet
+  it('T-01: searchTerm vide → filteredDataSource retourne tous les dossiers', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.searchTerm = '';
+    expect(component.filteredDataSource.length).toBe(2);
+  });
+
+  // T-02 : saisie partielle → filtre appliqué sur le nom
+  it('T-02: saisie "alpha" → seul "Dossier Alpha" retourné', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSearch('alpha');
+    expect(component.filteredDataSource.length).toBe(1);
+    expect(component.filteredDataSource[0].title).toBe('Dossier Alpha');
+  });
+
+  // T-03 : filtre insensible à la casse
+  it('T-03: filtre insensible à la casse — "ALPHA" correspond à "Dossier Alpha"', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSearch('ALPHA');
+    expect(component.filteredDataSource.length).toBe(1);
+    expect(component.filteredDataSource[0].id).toBe('cf1');
+  });
+
+  // T-04 : effacement du champ → liste complète restaurée
+  it('T-04: effacement du champ → filteredDataSource restauré complet', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSearch('alpha');
+    expect(component.filteredDataSource.length).toBe(1);
+    component.onSearch('');
+    expect(component.filteredDataSource.length).toBe(2);
+  });
+
+  // T-05 : aucune correspondance → filteredDataSource vide
+  it('T-05: aucune correspondance → filteredDataSource vide', () => {
+    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    component.loadCaseFiles();
+    component.onSearch('zzz_inexistant');
+    expect(component.filteredDataSource.length).toBe(0);
   });
 });

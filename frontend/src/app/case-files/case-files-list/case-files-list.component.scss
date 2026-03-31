@@ -9,6 +9,20 @@
   }
 }
 
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.search-field {
+  width: 280px;
+
+  .mat-mdc-form-field-infix {
+    min-height: unset;
+  }
+}
+
 .case-files-table {
   width: 100%;
   background: var(--color-surface);
@@ -45,6 +59,15 @@ mat-paginator {
   .page-header {
     flex-wrap: wrap;
     gap: var(--spacing-sm);
+  }
+
+  .page-header-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .search-field {
+    width: 100%;
   }
 
   /* Masquer les colonnes secondaires sur mobile */

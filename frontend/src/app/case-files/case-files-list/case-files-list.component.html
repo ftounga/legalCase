@@ -1,12 +1,23 @@
 <div class="page-header">
   <h1 class="page-title">Dossiers</h1>
-  <button mat-flat-button color="primary" data-tour-target="new-dossier-btn" (click)="openCreateDialog()">
-    <mat-icon>add</mat-icon>
-    Nouveau dossier
-  </button>
+  <div class="page-header-actions">
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput placeholder="Rechercher un dossier…" [value]="searchTerm" (input)="onSearch($any($event.target).value)" aria-label="Rechercher un dossier" />
+      @if (searchTerm) {
+        <button matSuffix mat-icon-button aria-label="Effacer" (click)="onSearch('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+    <button mat-flat-button color="primary" data-tour-target="new-dossier-btn" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Nouveau dossier
+    </button>
+  </div>
 </div>
 
-<mat-table [dataSource]="dataSource" class="case-files-table" [@listStagger]="dataSource.length">
+<mat-table [dataSource]="filteredDataSource" class="case-files-table" [@listStagger]="filteredDataSource.length">
   <ng-container matColumnDef="title">
     <mat-header-cell *matHeaderCellDef>Titre</mat-header-cell>
     <mat-cell *matCellDef="let row">
@@ -45,7 +56,11 @@
 
   <tr class="mat-row" *matNoDataRow>
     <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
-      Aucun dossier. Créez votre premier dossier avec le bouton ci-dessus.
+      @if (searchTerm) {
+        Aucun dossier ne correspond à votre recherche.
+      } @else {
+        Aucun dossier. Créez votre premier dossier avec le bouton ci-dessus.
+      }
     </td>
   </tr>
 </mat-table>

@@ -6,6 +6,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
@@ -20,7 +22,8 @@ import { fadeInUp, listStagger } from '../../shared/animations';
   standalone: true,
   imports: [
     RouterLink, NgClass, DatePipe,
-    MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule
+    MatTableModule, MatPaginatorModule, MatButtonModule, MatIconModule,
+    MatFormFieldModule, MatInputModule
   ],
   templateUrl: './case-files-list.component.html',
   styleUrl: './case-files-list.component.scss',
@@ -33,6 +36,13 @@ export class CaseFilesListComponent implements OnInit {
   totalElements = 0;
   pageSize = 20;
   pageIndex = 0;
+  searchTerm = '';
+
+  get filteredDataSource(): CaseFile[] {
+    const term = this.searchTerm.trim().toLowerCase();
+    if (!term) return this.dataSource;
+    return this.dataSource.filter(cf => cf.title.toLowerCase().includes(term));
+  }
 
   private destroyRef = inject(DestroyRef);
 
@@ -51,6 +61,7 @@ export class CaseFilesListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.pageIndex = 0;
+        this.searchTerm = '';
         this.loadCaseFiles();
       });
   }
@@ -79,6 +90,10 @@ export class CaseFilesListComponent implements OnInit {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
     this.loadCaseFiles();
+  }
+
+  onSearch(value: string): void {
+    this.searchTerm = value;
   }
 
   openCreateDialog(): void {
