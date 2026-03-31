@@ -13,16 +13,16 @@ Statuts : `Prospect` → `Contacté` → `Répondu` → `Démo planifiée` → `
 | 04 | — | Seror Fellous Avocats | — | — | — | `Bloqué` | Audrey Seror installée à Londres — trouver associé restant |
 | 05 | Eric | Eric Rocheblave Avocat | [profil](https://www.linkedin.com/in/ericrocheblave/) | cabinet@rocheblave.com | 2026-03-30 | `Contacté` | Message LinkedIn envoyé |
 | 06 | Damien | Cabinet DB Avocats | [profil](https://www.linkedin.com/in/damien-busquet-8a06731a) | — | 2026-03-30 | `Contacté` | Message LinkedIn envoyé |
-| 07 | Alina | Cabinet A-P | [profil](https://www.linkedin.com/in/paragyios) | — | — | `Prospect` | — |
-| 08 | Aurélie | Cabinet 2A Avocats | [profil](https://www.linkedin.com/in/aurelie-arnaud-53a0b88/) | — | — | `Prospect` | — |
-| 09 | Johan | Cabinet Zenou | [profil](https://www.linkedin.com/in/johan-zenou-92975038) | — | — | `Prospect` | — |
-| 10 | Guillaume | Edgar Avocats | [profil](https://www.linkedin.com/in/guillaume-br%C3%A9don-8344bb5/) | — | — | `Prospect` | — |
-| 11 | Lorenzo | Delfini Avocat | [profil](https://www.linkedin.com/in/lorenzo-delfini-103a1032/) | — | — | `Prospect` | — |
-| 12 | Fabien | FD Avocats | [profil](https://www.linkedin.com/in/fabien-desmazure-7a2b36b8/) | — | — | `Prospect` | — |
-| 13 | Frédéric | ARAIZ-CALVETTI-ENSLEN | [profil](https://www.linkedin.com/in/fr%C3%A9d%C3%A9ric-enslen-02682812/) | — | — | `Prospect` | — |
-| 14 | Dominique | La Garanderie Avocats | ⚠️ À trouver | — | — | `Prospect` | — |
-| 15 | — | Voltaire Avocats | ⚠️ À trouver | — | — | `Prospect` | — |
-| 16 | — | Cabinet Ngawa | ⚠️ À trouver | — | — | `Prospect` | — |
+| 07 | Alina | Cabinet A-P | [profil](https://www.linkedin.com/in/paragyios) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
+| 08 | Aurélie | Cabinet 2A Avocats | [profil](https://www.linkedin.com/in/aurelie-arnaud-53a0b88/) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
+| 09 | Johan | Cabinet Zenou | [profil](https://www.linkedin.com/in/johan-zenou-92975038) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
+| 10 | Guillaume | Edgar Avocats | [profil](https://www.linkedin.com/in/guillaume-br%C3%A9don-8344bb5/) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
+| 11 | Lorenzo | Delfini Avocat | [profil](https://www.linkedin.com/in/lorenzo-delfini-103a1032/) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
+| 12 | Fabien | FD Avocats | [profil](https://www.linkedin.com/in/fabien-desmazure-7a2b36b8/) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
+| 13 | Frédéric | ARAIZ-CALVETTI-ENSLEN | [profil](https://fr.linkedin.com/in/fr%C3%A9d%C3%A9ric-enslen-02682812) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
+| 14 | Dominique | La Garanderie Avocats | ⚠️ LinkedIn non trouvé | — | 2026-03-31 | `Contacté` | Message envoyé — ton formel (ancienne bâtonnière) |
+| 15 | David | Voltaire Avocats | [profil](https://fr.linkedin.com/company/voltaire-avocats) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé — contact : David Guillouet (associé) |
+| 16 | Sylvanie | Cabinet Ngawa | [profil](https://www.linkedin.com/in/avocattravailparis/) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
 | 17 | Sandra | Cabinet L&R Avocats | [profil](https://www.linkedin.com/in/sandra-ramos-avocat-droit-social/) | — | — | `Prospect` | — |
 | 18 | Virginie | Cabinet Virginie Langlet | [profil](https://www.linkedin.com/in/virginie-langlet-5b391850/) | — | — | `Prospect` | — |
 | 19 | Aurélie | Cabinet Aurélie Thevenin | [profil](https://fr.linkedin.com/in/aur%C3%A9lie-thevenin-38547333) | — | — | `Prospect` | — |
@@ -69,6 +69,16 @@ Statuts : `Prospect` → `Contacté` → `Répondu` → `Démo planifiée` → `
 | 03 | Cyrille Rollin | 2026-03-30 | 2026-04-06 |
 | 05 | Eric Rocheblave | 2026-03-30 | 2026-04-06 |
 | 06 | Damien Busquet | 2026-03-30 | 2026-04-06 |
+| 07 | Alina (Cabinet A-P) | 2026-03-31 | 2026-04-07 |
+| 08 | Aurélie Arnaud (2A Avocats) | 2026-03-31 | 2026-04-07 |
+| 09 | Johan Zenou | 2026-03-31 | 2026-04-07 |
+| 10 | Guillaume Brédon (Edgar Avocats) | 2026-03-31 | 2026-04-07 |
+| 11 | Lorenzo Delfini | 2026-03-31 | 2026-04-07 |
+| 12 | Fabien Desmazure (FD Avocats) | 2026-03-31 | 2026-04-07 |
+| 13 | Frédéric Enslen (ARAIZ-CALVETTI-ENSLEN) | 2026-03-31 | 2026-04-07 |
+| 14 | Dominique de La Garanderie | 2026-03-31 | 2026-04-07 |
+| 15 | David Guillouet (Voltaire Avocats) | 2026-03-31 | 2026-04-07 |
+| 16 | Sylvanie Ngawa (Cabinet Ngawa) | 2026-03-31 | 2026-04-07 |
 
 ---
 

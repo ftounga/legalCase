@@ -25,6 +25,7 @@ import { GlobalAnalysisNotificationService } from '../../core/services/global-an
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
@@ -138,7 +139,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     protected authService: AuthService,
     private workspaceMemberService: WorkspaceMemberService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private analyticsService: AnalyticsService
   ) {}
 
   ngOnInit(): void {
@@ -321,6 +323,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
     this.caseAnalysisCommandService.triggerAnalysis(id).subscribe({
       next: () => {
+        this.analyticsService.trackEvent('analysis_launched', { type: 'STANDARD' });
         this.analyzing.set(false);
         this.loadAnalysisJobs(id, true);
         this.globalNotificationService.track(id);

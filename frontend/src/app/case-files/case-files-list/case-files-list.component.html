@@ -1,35 +1,48 @@
 <div class="page-header">
   <h1 class="page-title">Dossiers</h1>
-  <div class="page-header-actions">
-    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-      <mat-icon matPrefix>search</mat-icon>
-      <input matInput placeholder="Rechercher un dossier…" [value]="searchTerm" (input)="onSearch($any($event.target).value)" aria-label="Rechercher un dossier" />
-      @if (searchTerm) {
-        <button matSuffix mat-icon-button aria-label="Effacer" (click)="onSearch('')">
-          <mat-icon>close</mat-icon>
-        </button>
-      }
-    </mat-form-field>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
-      <mat-select [value]="filterStatus" (selectionChange)="onFilterStatus($event.value)" aria-label="Filtrer par statut">
-        <mat-option value="">Tous les statuts</mat-option>
-        <mat-option value="OPEN">Ouvert</mat-option>
-        <mat-option value="CLOSED">Clôturé</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
-      <mat-select [value]="filterDomain" (selectionChange)="onFilterDomain($event.value)" aria-label="Filtrer par domaine">
-        <mat-option value="">Tous les domaines</mat-option>
-        <mat-option value="DROIT_DU_TRAVAIL">Droit du travail</mat-option>
-        <mat-option value="DROIT_IMMIGRATION">Droit de l'immigration</mat-option>
-        <mat-option value="DROIT_FAMILLE">Droit de la famille</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <button mat-flat-button color="primary" data-tour-target="new-dossier-btn" (click)="openCreateDialog()">
-      <mat-icon>add</mat-icon>
-      Nouveau dossier
-    </button>
+  <button mat-flat-button color="primary" data-tour-target="new-dossier-btn" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    Nouveau dossier
+  </button>
+</div>
+
+<div class="page-filters">
+  <div class="search-wrap">
+    <mat-icon class="search-icon">search</mat-icon>
+    <input
+      class="search-input"
+      placeholder="Rechercher un dossier…"
+      [value]="searchTerm"
+      (input)="onSearch($any($event.target).value)"
+      aria-label="Rechercher un dossier"
+    />
+    @if (searchTerm) {
+      <button class="search-clear" (click)="onSearch('')" aria-label="Effacer">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
   </div>
+
+  <mat-button-toggle-group
+    [value]="filterStatus"
+    (change)="onFilterStatus($event.value)"
+    aria-label="Filtrer par statut"
+    class="filter-toggle">
+    <mat-button-toggle value="">Tous</mat-button-toggle>
+    <mat-button-toggle value="OPEN">Ouvert</mat-button-toggle>
+    <mat-button-toggle value="CLOSED">Clôturé</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <mat-button-toggle-group
+    [value]="filterDomain"
+    (change)="onFilterDomain($event.value)"
+    aria-label="Filtrer par domaine"
+    class="filter-toggle">
+    <mat-button-toggle value="">Tous les domaines</mat-button-toggle>
+    <mat-button-toggle value="DROIT_DU_TRAVAIL">Travail</mat-button-toggle>
+    <mat-button-toggle value="DROIT_IMMIGRATION">Immigration</mat-button-toggle>
+    <mat-button-toggle value="DROIT_FAMILLE">Famille</mat-button-toggle>
+  </mat-button-toggle-group>
 </div>
 
 <mat-table [dataSource]="filteredDataSource" class="case-files-table" [@listStagger]="filteredDataSource.length" matSort (matSortChange)="onSort($event)">

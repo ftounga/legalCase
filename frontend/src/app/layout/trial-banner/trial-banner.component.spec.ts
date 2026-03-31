@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TrialBannerComponent } from './trial-banner.component';
 import { BillingService } from '../../core/services/billing.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
@@ -30,7 +31,8 @@ describe('TrialBannerComponent', () => {
       providers: [
         provideHttpClient(),
         { provide: BillingService, useValue: billingServiceSpy },
-        { provide: Router, useValue: routerSpy }
+        { provide: Router, useValue: routerSpy },
+        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
       ]
     }).compileComponents();
 
@@ -59,6 +61,12 @@ describe('TrialBannerComponent', () => {
   it('goToPlans — navigue vers /workspace/billing', () => {
     component.goToPlans();
     expect(routerSpy.navigate).toHaveBeenCalledWith(['/workspace/billing']);
+  });
+
+  it('goToPlans — trackEvent upgrade_clicked', () => {
+    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
+    component.goToPlans();
+    expect(analyticsService.trackEvent).toHaveBeenCalledWith('upgrade_clicked');
   });
 
   it('dismiss — masque la bannière', () => {

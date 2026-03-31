@@ -15,6 +15,7 @@ import { CaseFileStatsService } from '../../core/services/case-file-stats.servic
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { CaseNoteService } from '../../core/services/case-note.service';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -62,12 +63,14 @@ describe('CaseFileDetailComponent', () => {
   let dialogSpy: jasmine.SpyObj<MatDialog>;
   let caseNoteServiceSpy: jasmine.SpyObj<CaseNoteService>;
   let caseDeadlineServiceSpy: jasmine.SpyObj<CaseDeadlineService>;
+  let analyticsServiceSpy: jasmine.SpyObj<AnalyticsService>;
 
   beforeEach(async () => {
     caseNoteServiceSpy = jasmine.createSpyObj('CaseNoteService', ['list', 'create', 'update', 'delete']);
     caseNoteServiceSpy.list.and.returnValue(of([]));
     caseDeadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService', ['list', 'create', 'update', 'delete']);
     caseDeadlineServiceSpy.list.and.returnValue(of([]));
+    analyticsServiceSpy = jasmine.createSpyObj('AnalyticsService', ['trackEvent']);
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById', 'exportZip']);
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl', 'delete']);
@@ -123,6 +126,7 @@ describe('CaseFileDetailComponent', () => {
         },
         { provide: CaseNoteService, useValue: caseNoteServiceSpy },
         { provide: CaseDeadlineService, useValue: caseDeadlineServiceSpy },
+        { provide: AnalyticsService, useValue: analyticsServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideRouter([]),
@@ -374,6 +378,12 @@ describe('CaseFileDetailComponent', () => {
     component.triggerAnalysis();
     expect(caseAnalysisCommandServiceSpy.triggerAnalysis).toHaveBeenCalledWith('cf1');
     expect(analysisJobServiceSpy.getJobs).toHaveBeenCalled();
+  });
+
+  it('triggerAnalysis — succès → trackEvent analysis_launched STANDARD', () => {
+    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(of(undefined));
+    component.triggerAnalysis();
+    expect(analyticsServiceSpy.trackEvent).toHaveBeenCalledWith('analysis_launched', { type: 'STANDARD' });
   });
 
   it('triggerAnalysis — 402 → snackbar "Limite atteinte"', () => {

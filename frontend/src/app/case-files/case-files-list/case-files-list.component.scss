@@ -2,27 +2,99 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 
   .page-title {
     margin: 0;
   }
 }
 
-.page-header-actions {
+.page-filters {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
 }
 
-.search-field {
-  width: 280px;
+/* ── Champ de recherche custom ── */
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  padding: 0 10px;
+  height: 36px;
+  transition: border-color 0.15s;
 
-  .mat-mdc-form-field-infix {
-    min-height: unset;
+  &:focus-within {
+    border-color: var(--color-primary);
+  }
+
+  .search-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--color-text-primary);
+    width: 220px;
+
+    &::placeholder {
+      color: var(--color-text-secondary);
+    }
+  }
+
+  .search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    color: var(--color-text-secondary);
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      color: var(--color-text-primary);
+    }
   }
 }
 
+/* ── Toggle filters ── */
+.filter-toggle {
+  height: 36px;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .mat-button-toggle {
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .mat-button-toggle-button {
+    height: 36px;
+    padding: 0 14px;
+  }
+}
+
+/* ── Table ── */
 .case-files-table {
   width: 100%;
   background: var(--color-surface);
@@ -56,21 +128,23 @@ mat-paginator {
 }
 
 @media (max-width: 767px) {
-  .page-header {
-    flex-wrap: wrap;
-    gap: var(--spacing-sm);
+  .page-filters {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .page-header-actions {
-    flex-wrap: wrap;
+  .search-wrap {
+    width: 100%;
+
+    .search-input {
+      width: 100%;
+    }
+  }
+
+  .filter-toggle {
     width: 100%;
   }
 
-  .search-field {
-    width: 100%;
-  }
-
-  /* Masquer les colonnes secondaires sur mobile */
   .mat-column-legalDomain,
   .mat-column-createdAt {
     display: none;

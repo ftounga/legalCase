@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { WorkspaceBillingComponent } from './workspace-billing.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { BillingService } from '../../core/services/billing.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
 import { of, NEVER } from 'rxjs';
@@ -32,7 +33,8 @@ describe('WorkspaceBillingComponent', () => {
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
         { provide: BillingService, useValue: billingServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: ActivatedRoute, useValue: { queryParams: of({}) } }
+        { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
+        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
       ]
     }).compileComponents();
 
@@ -101,6 +103,15 @@ describe('WorkspaceBillingComponent', () => {
 
     expect(billingServiceSpy.createCheckoutSession).toHaveBeenCalledWith('PRO');
     expect(component.upgrading()).toBe('PRO');
+  });
+
+  it('upgrade — trackEvent upgrade_clicked avec le plan', () => {
+    billingServiceSpy.createCheckoutSession.and.returnValue(NEVER);
+    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
+
+    component.upgrade('SOLO');
+
+    expect(analyticsService.trackEvent).toHaveBeenCalledWith('upgrade_clicked', { plan: 'SOLO' });
   });
 
   it('affiche 3 packs topup', () => {
