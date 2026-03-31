@@ -75,4 +75,28 @@ describe('authGuard', () => {
       done();
     });
   });
+
+  // T-04 (SF-81) : user authentifié + returnUrl en sessionStorage → redirect returnUrl + sessionStorage effacé
+  it('user authentifié + returnUrl sessionStorage → redirect returnUrl et sessionStorage effacé', (done) => {
+    sessionStorage.setItem('auth.returnUrl', '/case-files/abc');
+    authService.loadCurrentUser.and.returnValue(of({ email: 'test@example.com' } as any));
+
+    (runGuard() as any).subscribe((result: any) => {
+      expect(result).toBe('/case-files/abc');
+      expect(sessionStorage.getItem('auth.returnUrl')).toBeNull();
+      done();
+    });
+  });
+
+  // T-05 (SF-81) : user authentifié + pas de returnUrl → comportement normal (workspace check)
+  it('user authentifié + pas de returnUrl → true (comportement normal)', (done) => {
+    sessionStorage.removeItem('auth.returnUrl');
+    authService.loadCurrentUser.and.returnValue(of({ email: 'test@example.com' } as any));
+    workspaceService.getCurrentWorkspace.and.returnValue(of({} as any));
+
+    (runGuard() as any).subscribe((result: any) => {
+      expect(result).toBeTrue();
+      done();
+    });
+  });
 });
