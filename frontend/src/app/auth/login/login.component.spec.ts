@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { provideRouter, RouterModule } from '@angular/router';
+import { provideRouter, RouterModule, Router } from '@angular/router';
 import { Component } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
@@ -13,6 +13,7 @@ describe('LoginComponent', () => {
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
   let authSpy: jasmine.SpyObj<AuthService>;
+  let router: Router;
 
   beforeEach(async () => {
     authSpy = jasmine.createSpyObj('AuthService', [
@@ -29,6 +30,9 @@ describe('LoginComponent', () => {
 
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
+    sessionStorage.removeItem('auth.returnUrl');
     fixture.detectChanges();
   });
 
@@ -109,5 +113,25 @@ describe('LoginComponent', () => {
     tick();
     fixture.detectChanges();
     expect(component.registerError()).toBe('Cet email est déjà utilisé.');
+  }));
+
+  // T-02 (SF-81) : login local avec returnUrl → navigation vers returnUrl
+  it('login local avec returnUrl → navigue vers returnUrl', fakeAsync(() => {
+    sessionStorage.setItem('auth.returnUrl', '/case-files/abc');
+    authSpy.loginLocal.and.returnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
+    component.loginForm.setValue({ email: 'alice@example.com', password: 'password123' });
+    component.submitLogin();
+    tick();
+    expect(router.navigate).toHaveBeenCalledWith(['/case-files/abc']);
+    expect(sessionStorage.getItem('auth.returnUrl')).toBeNull();
+  }));
+
+  // T-03 (SF-81) : login local sans returnUrl → navigation vers /case-files
+  it('login local sans returnUrl → navigue vers /case-files', fakeAsync(() => {
+    authSpy.loginLocal.and.returnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
+    component.loginForm.setValue({ email: 'alice@example.com', password: 'password123' });
+    component.submitLogin();
+    tick();
+    expect(router.navigate).toHaveBeenCalledWith(['/case-files']);
   }));
 });

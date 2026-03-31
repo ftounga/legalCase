@@ -67,7 +67,9 @@ export class LoginComponent {
     this.auth.loginLocal(this.loginForm.value).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/case-files']);
+        const returnUrl = sessionStorage.getItem('auth.returnUrl');
+        sessionStorage.removeItem('auth.returnUrl');
+        this.router.navigate([returnUrl && returnUrl !== '/login' ? returnUrl : '/case-files']);
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);

@@ -12,6 +12,13 @@ export const authGuard: CanActivateFn = () => {
   return auth.loadCurrentUser().pipe(
     switchMap(user => {
       if (!user) return of(router.createUrlTree(['/login']));
+
+      const returnUrl = sessionStorage.getItem('auth.returnUrl');
+      if (returnUrl && returnUrl !== '/login') {
+        sessionStorage.removeItem('auth.returnUrl');
+        return of(router.createUrlTree([returnUrl]));
+      }
+
       return workspace.getCurrentWorkspace().pipe(
         map(() => true),
         catchError(err => {
