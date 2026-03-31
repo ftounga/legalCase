@@ -170,7 +170,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-88 | Tour d'onboarding avec dossier de démonstration | V3 | Lorsque le tour guidé démarre et qu'aucun dossier n'existe, créer automatiquement un dossier réel "Dossier de démonstration", naviguer dedans pour les étapes 2-4, puis le supprimer à la fin ou à la fermeture du tour. |
+| F-88 | Tour d'onboarding avec dossier de démonstration | V3 — **Terminée** | SF-88-01 mergée 2026-03-31 : advanceToStep2() crée un dossier "Dossier de démonstration" si workspace vide, stocke l'ID en mémoire, navigue dans le dossier, le supprime silencieusement à la fin/skip via cleanup(). Effet spotlight : tour-backdrop z-index 9000 + .tour-spotlight (box-shadow 9999px) z-index 9001 remplace l'outline doré. 18 tests verts. |
 | F-87 | Export complet d'un dossier (ZIP) | V3 — **Terminée** | SF-87-01 mergée 2026-03-31 : GET /api/v1/case-files/{id}/export, ZIP en mémoire (dossier.json, documents.csv, notes.txt, delais.txt, synthese.json optionnel), Content-Disposition, bouton Exporter dans case-file-detail, 6 unit + 4 IT + 3 tests frontend. |
 | F-86 | Renommage et modification d'un dossier | V3 — **Terminée** | SF-86-01 mergée 2026-03-31 : PATCH /api/v1/case-files/{id}, CaseFileUpdateRequest, audit log CASE_FILE_UPDATED, CaseFileEditDialogComponent pré-rempli, bouton Modifier dans case-file-detail, 4 IT + 3 unit + 5 tests frontend. |
 | F-85 | Barre de progression globale | V3 — **Terminée** | SF-85-01 mergée 2026-03-31 : LoadingService (signal-based, compteur requêtes actives), loadingInterceptor, MatProgressBarModule dans AppComponent, barre fixée top:0 z-index:9999, 4 tests verts. |
@@ -226,6 +226,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-88 Terminée — SF-88-01 (advanceToStep2 dossier demo, cleanup silencieux, effet spotlight backdrop+box-shadow, 18 tests) | Product owner |
 | 2026-03-31 | F-87 Terminée — SF-87-01 (GET /export ZIP, 5 fichiers, CaseFileExportService, bouton Exporter, 6 unit + 4 IT + 3 frontend) | Product owner |
 | 2026-03-31 | F-86 Terminée — SF-86-01 (PATCH /case-files/{id}, audit CASE_FILE_UPDATED, CaseFileEditDialogComponent, 4 IT + 3 unit + 5 frontend) | Product owner |
 | 2026-03-31 | F-85 Terminée — SF-85-01 (LoadingService signal-based, loadingInterceptor, MatProgressBarModule, barre fixe top:0, 4 tests) | Product owner |
