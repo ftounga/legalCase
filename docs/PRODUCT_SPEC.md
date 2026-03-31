@@ -170,6 +170,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-83 | Page d'erreur 404 — route inconnue | V3 | Afficher un NotFoundComponent sur toute route inconnue au lieu d'une page blanche. Lien retour /case-files. |
+| F-82 | Tri de la liste des dossiers | V3 | Colonnes triables (titre, domaine, statut, date) dans /case-files. Tri côté frontend sur la page courante, aucun appel HTTP supplémentaire. |
 | F-81 | Gestion expiration de session — returnUrl + snackbar | V3 — **Terminée** | SF-81-01 mergée 2026-03-31 : intercepteur 401 snackbar + sessionStorage returnUrl, login local navigue returnUrl, authGuard OAuth2 redirect returnUrl. 19 tests verts. |
 | F-80 | Recherche dans la liste des dossiers | V3 — **Terminée** | SF-80-01 mergée 2026-03-31 : barre de recherche dans /case-files, filtre client par titre (insensible casse), bouton ×, message différencié, responsive mobile, 14 tests verts. |
 | F-64 | Recherche full-text dans les synthèses | V2 — **Terminée** | Rechercher un mot-clé dans toutes les synthèses du workspace (faits, points juridiques, risques, timeline). Résultats groupés par dossier avec extrait contextuel et terme surligné. SF-64-01 mergée 2026-03-29 (backend GET /api/v1/search). SF-64-02 mergée 2026-03-29 (frontend /search, debounce, HighlightTermPipe). |
