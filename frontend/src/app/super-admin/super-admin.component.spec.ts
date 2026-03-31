@@ -161,6 +161,43 @@ describe('SuperAdminComponent', () => {
     expect(component.usersTotalElements()).toBe(17);
   }));
 
+  // T-H1 : section outils présente dans le DOM
+  it('affiche la section Outils & monitoring', fakeAsync(async () => {
+    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    tick();
+    fixture.detectChanges();
+
+    const section = fixture.nativeElement.querySelector('.tools-section');
+    expect(section).toBeTruthy();
+  }));
+
+  // T-H2 : les 7 outils sont rendus
+  it('affiche les 7 outils avec leur data-testid', fakeAsync(async () => {
+    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    tick();
+    fixture.detectChanges();
+
+    const tools = ['tool-ga4', 'tool-sentry', 'tool-stripe', 'tool-brevo', 'tool-n8n', 'tool-aws', 'tool-rabbitmq'];
+    tools.forEach(id => {
+      const el = fixture.nativeElement.querySelector(`[data-testid="${id}"]`);
+      expect(el).withContext(`tool ${id} manquant`).toBeTruthy();
+    });
+  }));
+
+  // T-H3 : chaque lien a target="_blank" et rel="noopener noreferrer"
+  it('chaque lien outil a target="_blank" et rel="noopener noreferrer"', fakeAsync(async () => {
+    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    tick();
+    fixture.detectChanges();
+
+    const links: NodeListOf<HTMLAnchorElement> = fixture.nativeElement.querySelectorAll('.tool-card');
+    expect(links.length).toBe(7);
+    links.forEach(link => {
+      expect(link.target).withContext(`target manquant sur ${link.href}`).toBe('_blank');
+      expect(link.rel).withContext(`rel manquant sur ${link.href}`).toBe('noopener noreferrer');
+    });
+  }));
+
   // T-10 : erreur sur changement de page workspaces → snackbar, tableau inchangé
   it('affiche un snackbar si erreur lors du changement de page workspaces', fakeAsync(async () => {
     await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
