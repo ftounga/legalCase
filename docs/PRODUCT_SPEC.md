@@ -149,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-92 | Détection de pièces manquantes | V3 — `En cours` | Section `pieces_manquantes` dans la synthèse IA. SF-92-01 mergée 2026-03-31 : prompt + extraction backend, 389 tests. SF-92-02 : affichage frontend (à venir). |
+| F-92 | Détection de pièces manquantes | V3 — **Terminée** | Section `pieces_manquantes` dans la synthèse IA. SF-92-01 mergée 2026-03-31 : prompt CaseAnalysisService+EnrichedAnalysisService, extraction fail-open, truncation, 389 tests. SF-92-02 mergée 2026-03-31 : panneau conditionnel SynthesisComponent, icône orange, rétrocompat, 411 tests. |
 | F-78 | Page contact — formulaire email | **Terminée** | SF-78-01 (backend POST /api/v1/contact, 2 emails fail-open) + SF-78-02 (ContactComponent /contact, 5 champs, lien footer) mergées 2026-03-30. 22 tests backend + 6 tests frontend. |
 | F-77 | Google Analytics 4 — tracking + bannière consentement RGPD | **Terminée** | SF-77-01 mergée 2026-03-30 : ConsentService + CookieConsentBannerComponent, injection dynamique GA4, localStorage, gaId G-2JPL8JTXE7, 10 tests. SF-77-02 mergée 2026-03-31 : AnalyticsService fail-open, events analysis_launched/pdf_exported/upgrade_clicked, fix UI barre filtres dossiers (toggles compacts), 406 tests verts. |
 | F-75 | SEO technique — meta tags, Open Graph, sitemap, robots.txt | **Terminée** | index.html enrichi (OG + Twitter Card), LandingComponent/LegalPageComponent injectent Title+Meta dynamiquement, robots.txt bloque routes auth, sitemap.xml liste 4 URLs publiques. SF-75-01 mergée 2026-03-30. 328 tests verts. |
@@ -230,6 +230,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-03-31 | F-92 Terminée — SF-92-02 mergée : panneau Pièces manquantes SynthesisComponent, icône orange, 411 tests | Product owner |
 | 2026-03-31 | F-92 ajoutée + SF-92-01 mergée — backend pieces_manquantes : prompt + extraction fail-open + truncation, 389 tests | Product owner |
 | 2026-03-31 | F-91 Terminée — SF-91-01 : hub outils super-admin (7 liens, ingress RabbitMQ staging+prod, env-based URLs, 409 tests) | Product owner |
 | 2026-03-31 | F-90 Terminée — SF-90-01 (garde étendu Q&A||chat, buildChatSummary Haiku fail-open, section [Échanges libres] conditionnelle, 11 unit + 8 IT) | Product owner |
