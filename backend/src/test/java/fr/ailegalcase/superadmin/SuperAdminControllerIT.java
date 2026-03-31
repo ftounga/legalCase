@@ -128,7 +128,7 @@ class SuperAdminControllerIT {
                         .accept(MediaType.APPLICATION_JSON)
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     // I-04 : GET /api/v1/super-admin/workspaces → memberCount correct pour chaque workspace
@@ -185,7 +185,7 @@ class SuperAdminControllerIT {
                         .accept(MediaType.APPLICATION_JSON)
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.name == 'Cabinet Deux Membres')].memberCount").value(2));
+                .andExpect(jsonPath("$.content[?(@.name == 'Cabinet Deux Membres')].memberCount").value(2));
     }
 
     // I-05 : GET /api/v1/super-admin/usage → 403 non super-admin
@@ -455,7 +455,7 @@ class SuperAdminControllerIT {
                         .accept(MediaType.APPLICATION_JSON)
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     // I-12 : GET /api/v1/super-admin/users avec non super-admin → 403
@@ -586,7 +586,57 @@ class SuperAdminControllerIT {
         assertThat(userRepository.findById(target.getId())).isPresent();
     }
 
-    // I-14 : GET /api/v1/super-admin/metrics → 403 pour non super-admin
+    // I-14 : GET /api/v1/super-admin/workspaces?size=1 → page de 1 élément, totalElements correct
+    @Test
+    void listWorkspaces_pagination_returnsCorrectPage() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-page@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-page-sub");
+        authAccountRepository.save(account);
+
+        User owner = new User();
+        owner.setEmail("owner-page@example.com");
+        owner.setStatus("ACTIVE");
+        userRepository.save(owner);
+
+        for (int i = 1; i <= 3; i++) {
+            Workspace ws = new Workspace();
+            ws.setName("Cabinet Page " + i);
+            ws.setSlug("cabinet-page-" + i + "-" + System.currentTimeMillis());
+            ws.setOwner(owner);
+            ws.setPlanCode("FREE");
+            ws.setStatus("ACTIVE");
+            ws.setLegalDomain("DROIT_DU_TRAVAIL");
+            workspaceRepository.save(ws);
+
+            WorkspaceMember m = new WorkspaceMember();
+            m.setWorkspace(ws);
+            m.setUser(owner);
+            m.setMemberRole("OWNER");
+            m.setPrimary(true);
+            workspaceMemberRepository.save(m);
+        }
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-page-sub", "superadmin-page@example.com");
+
+        mockMvc.perform(get("/api/v1/super-admin/workspaces?size=1&page=0")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.totalElements").isNumber())
+                .andExpect(jsonPath("$.size").value(1));
+    }
+
+    // I-15 : GET /api/v1/super-admin/metrics → 403 pour non super-admin
     @Test
     void getMetrics_withoutSuperAdmin_returns403() throws Exception {
         User regular = new User();

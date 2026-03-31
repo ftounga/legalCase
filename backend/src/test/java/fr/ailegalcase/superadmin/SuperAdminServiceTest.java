@@ -23,6 +23,10 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -69,18 +73,18 @@ class SuperAdminServiceTest {
                 .thenReturn(Optional.of(account));
 
         Workspace ws = buildWorkspace("Cabinet Alpha");
-        when(workspaceRepository.findAll()).thenReturn(List.of(ws));
+        when(workspaceRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(ws)));
         when(subscriptionRepository.findByWorkspaceId(ws.getId())).thenReturn(Optional.empty());
         when(workspaceMemberRepository.findByWorkspace_Id(ws.getId())).thenReturn(
                 List.of(new WorkspaceMember(), new WorkspaceMember())
         );
 
-        List<SuperAdminWorkspaceResponse> result = service.listAllWorkspaces(buildOidcUser("google-sa-sub"), "GOOGLE");
+        var result = service.listAllWorkspaces(buildOidcUser("google-sa-sub"), "GOOGLE", PageRequest.of(0, 20));
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).name()).isEqualTo("Cabinet Alpha");
-        assertThat(result.get(0).memberCount()).isEqualTo(2);
-        assertThat(result.get(0).expiresAt()).isNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Cabinet Alpha");
+        assertThat(result.getContent().get(0).memberCount()).isEqualTo(2);
+        assertThat(result.getContent().get(0).expiresAt()).isNull();
     }
 
     // U-03 : getUsageByWorkspace super-admin → agrégation correcte par workspace
@@ -153,7 +157,7 @@ class SuperAdminServiceTest {
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-regular-sub"))
                 .thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> service.listAllWorkspaces(buildOidcUser("google-regular-sub"), "GOOGLE"))
+        assertThatThrownBy(() -> service.listAllWorkspaces(buildOidcUser("google-regular-sub"), "GOOGLE", PageRequest.of(0, 20)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Super-admin access required");
     }
@@ -168,15 +172,15 @@ class SuperAdminServiceTest {
 
         User u1 = buildUser(false);
         User u2 = buildUser(false);
-        when(userRepository.findAll()).thenReturn(List.of(u1, u2));
+        when(userRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(u1, u2)));
         when(workspaceMemberRepository.findByUser(u1)).thenReturn(List.of(new WorkspaceMember()));
         when(workspaceMemberRepository.findByUser(u2)).thenReturn(List.of());
 
-        List<SuperAdminUserResponse> result = service.listAllUsers(buildOidcUser("google-sa-users-sub"), "GOOGLE");
+        var result = service.listAllUsers(buildOidcUser("google-sa-users-sub"), "GOOGLE", PageRequest.of(0, 20));
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).workspaceCount()).isEqualTo(1);
-        assertThat(result.get(1).workspaceCount()).isZero();
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).workspaceCount()).isEqualTo(1);
+        assertThat(result.getContent().get(1).workspaceCount()).isZero();
     }
 
     // U-10 : listAllUsers — non super-admin → 403
@@ -187,7 +191,7 @@ class SuperAdminServiceTest {
         when(authAccountRepository.findByProviderAndProviderUserId("GOOGLE", "google-regular-users-sub"))
                 .thenReturn(Optional.of(account));
 
-        assertThatThrownBy(() -> service.listAllUsers(buildOidcUser("google-regular-users-sub"), "GOOGLE"))
+        assertThatThrownBy(() -> service.listAllUsers(buildOidcUser("google-regular-users-sub"), "GOOGLE", PageRequest.of(0, 20)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Super-admin access required");
     }

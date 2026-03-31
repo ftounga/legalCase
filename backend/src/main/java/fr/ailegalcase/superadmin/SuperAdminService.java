@@ -31,6 +31,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -104,7 +107,7 @@ public class SuperAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<SuperAdminWorkspaceResponse> listAllWorkspaces(OidcUser oidcUser, String provider) {
+    public Page<SuperAdminWorkspaceResponse> listAllWorkspaces(OidcUser oidcUser, String provider, Pageable pageable) {
         User user = authAccountRepository
                 .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
@@ -114,9 +117,7 @@ public class SuperAdminService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super-admin access required");
         }
 
-        return workspaceRepository.findAll().stream()
-                .map(this::toResponse)
-                .toList();
+        return workspaceRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -223,7 +224,7 @@ public class SuperAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<SuperAdminUserResponse> listAllUsers(OidcUser oidcUser, String provider) {
+    public Page<SuperAdminUserResponse> listAllUsers(OidcUser oidcUser, String provider, Pageable pageable) {
         User caller = authAccountRepository
                 .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
@@ -233,11 +234,9 @@ public class SuperAdminService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super-admin access required");
         }
 
-        return userRepository.findAll().stream()
-                .map(u -> new SuperAdminUserResponse(
-                        u.getId(), u.getEmail(), u.getFirstName(), u.getLastName(),
-                        workspaceMemberRepository.findByUser(u).size()))
-                .toList();
+        return userRepository.findAll(pageable).map(u -> new SuperAdminUserResponse(
+                u.getId(), u.getEmail(), u.getFirstName(), u.getLastName(),
+                workspaceMemberRepository.findByUser(u).size()));
     }
 
     @Transactional
