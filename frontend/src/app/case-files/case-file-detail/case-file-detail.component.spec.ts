@@ -68,7 +68,7 @@ describe('CaseFileDetailComponent', () => {
     caseNoteServiceSpy.list.and.returnValue(of([]));
     caseDeadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService', ['list', 'create', 'update', 'delete']);
     caseDeadlineServiceSpy.list.and.returnValue(of([]));
-    caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById']);
+    caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById', 'exportZip']);
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl', 'delete']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
@@ -519,6 +519,47 @@ describe('CaseFileDetailComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const link = el.querySelector('[data-tour-target="synthesis-link"]');
     expect(link).withContext('data-tour-target="synthesis-link" manquant dans le template').not.toBeNull();
+  });
+
+  // --- Tests SF-87-01 : export ZIP ---
+
+  it('exportZip — appelle caseFileService.exportZip avec l\'id du dossier', () => {
+    const blob = new Blob(['PK'], { type: 'application/zip' });
+    caseFileServiceSpy.exportZip.and.returnValue(of(blob));
+
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:test-url');
+    spyOn(URL, 'revokeObjectURL');
+
+    const fakeAnchor = document.createElement('a');
+    spyOn(document, 'createElement').and.returnValue(fakeAnchor);
+    spyOn(fakeAnchor, 'click');
+
+    component.exportZip();
+
+    expect(caseFileServiceSpy.exportZip).toHaveBeenCalledWith('cf1');
+    expect(fakeAnchor.download).toBe('dossier.zip');
+    expect(fakeAnchor.click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-url');
+  });
+
+  it('exportZip — erreur API → snackbar d\'erreur affiché', () => {
+    caseFileServiceSpy.exportZip.and.returnValue(throwError(() => ({ status: 500 })));
+
+    component.exportZip();
+
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      jasmine.stringContaining("Erreur lors de l'export"),
+      jasmine.any(String),
+      jasmine.any(Object)
+    );
+  });
+
+  it('bouton Exporter présent dans le DOM', () => {
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const buttons = el.querySelectorAll('button');
+    const exportBtn = Array.from(buttons).find(b => b.textContent?.includes('Exporter'));
+    expect(exportBtn).withContext('Bouton Exporter manquant dans le template').not.toBeUndefined();
   });
 
 });
