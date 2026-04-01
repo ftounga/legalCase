@@ -60,6 +60,12 @@ public class CaseAnalysis {
     @Column(name = "timeline_count")
     private Integer timelineCount;
 
+    @Column(name = "risk_level", length = 10)
+    private String riskLevel;
+
+    @Column(name = "risk_score")
+    private Integer riskScore;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

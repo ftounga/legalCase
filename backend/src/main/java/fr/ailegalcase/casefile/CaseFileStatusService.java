@@ -169,6 +169,7 @@ public class CaseFileStatusService {
 
     private CaseFileResponse toResponse(CaseFile cf) {
         return new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
-                cf.getDescription(), cf.getStatus(), cf.getCreatedAt(), cf.getLastDocumentDeletedAt());
+                cf.getDescription(), cf.getStatus(), cf.getCreatedAt(), cf.getLastDocumentDeletedAt(),
+                null, null);
     }
 }

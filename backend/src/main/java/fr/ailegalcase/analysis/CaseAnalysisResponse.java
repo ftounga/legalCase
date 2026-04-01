@@ -20,6 +20,8 @@ public record CaseAnalysisResponse(
         List<String> questionsOuvertes,
         List<String> piecesManquantes,
         List<String> pointsProcedure,
+        String riskLevel,
+        Integer riskScore,
         String modelUsed,
         Instant updatedAt
 ) {
@@ -51,6 +53,31 @@ public record CaseAnalysisResponse(
             analysis.setTimelineCount(sizeOf(root, "timeline"));
         } catch (Exception ignored) {
             // JSON malformé — compteurs restent null (fail-open)
+        }
+    }
+
+    public static void populateRiskScore(CaseAnalysis analysis, String rawResult) {
+        if (rawResult == null || rawResult.isBlank()) return;
+        try {
+            JsonNode root = MAPPER.readTree(stripMarkdownCodeBlock(rawResult));
+            JsonNode scoreNode = root.get("score_risque");
+            if (scoreNode == null || !scoreNode.isObject()) return;
+            JsonNode niveauNode = scoreNode.get("niveau");
+            JsonNode valeurNode = scoreNode.get("valeur");
+            if (niveauNode != null && niveauNode.isTextual()) {
+                String niveau = niveauNode.asText().toUpperCase();
+                if (niveau.equals("FAIBLE") || niveau.equals("MOYEN") || niveau.equals("ELEVE")) {
+                    analysis.setRiskLevel(niveau);
+                }
+            }
+            if (valeurNode != null && valeurNode.isNumber()) {
+                int valeur = valeurNode.asInt();
+                if (valeur >= 0 && valeur <= 100) {
+                    analysis.setRiskScore(valeur);
+                }
+            }
+        } catch (Exception ignored) {
+            // JSON malformé — risk score reste null (fail-open)
         }
     }
 
@@ -96,6 +123,8 @@ public record CaseAnalysisResponse(
                 questionsOuvertes,
                 piecesManquantes,
                 pointsProcedure,
+                analysis.getRiskLevel(),
+                analysis.getRiskScore(),
                 analysis.getModelUsed(),
                 analysis.getUpdatedAt()
         );

@@ -1,5 +1,6 @@
 package fr.ailegalcase.casefile;
 
+import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.audit.AuditLog;
 import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
@@ -36,13 +37,14 @@ class CaseFileServiceTest {
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private PlanLimitService planLimitService;
     @Mock private AuditLogRepository auditLogRepository;
+    @Mock private CaseAnalysisRepository caseAnalysisRepository;
     @Mock private OidcUser oidcUser;
 
     private CaseFileService service;
 
     @BeforeEach
     void setUp() {
-        service = new CaseFileService(caseFileRepository, currentUserResolver, workspaceMemberRepository, planLimitService, auditLogRepository);
+        service = new CaseFileService(caseFileRepository, currentUserResolver, workspaceMemberRepository, planLimitService, auditLogRepository, caseAnalysisRepository);
     }
 
     private Workspace mockUserAndWorkspace() {

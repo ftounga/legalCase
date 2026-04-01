@@ -1,5 +1,7 @@
 package fr.ailegalcase.casefile;
 
+import fr.ailegalcase.analysis.AnalysisStatus;
+import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.audit.AuditLog;
 import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
@@ -28,17 +30,20 @@ public class CaseFileService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final PlanLimitService planLimitService;
     private final AuditLogRepository auditLogRepository;
+    private final CaseAnalysisRepository caseAnalysisRepository;
 
     public CaseFileService(CaseFileRepository caseFileRepository,
                            CurrentUserResolver currentUserResolver,
                            WorkspaceMemberRepository workspaceMemberRepository,
                            PlanLimitService planLimitService,
-                           AuditLogRepository auditLogRepository) {
+                           AuditLogRepository auditLogRepository,
+                           CaseAnalysisRepository caseAnalysisRepository) {
         this.caseFileRepository = caseFileRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.planLimitService = planLimitService;
         this.auditLogRepository = auditLogRepository;
+        this.caseAnalysisRepository = caseAnalysisRepository;
     }
 
     @Transactional
@@ -68,7 +73,7 @@ public class CaseFileService {
 
         return new CaseFileResponse(caseFile.getId(), caseFile.getTitle(), caseFile.getLegalDomain(),
                 caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt(),
-                caseFile.getLastDocumentDeletedAt());
+                caseFile.getLastDocumentDeletedAt(), null, null);
     }
 
     @Transactional(readOnly = true)
@@ -81,9 +86,16 @@ public class CaseFileService {
                 .getWorkspace();
 
         return caseFileRepository.findByWorkspaceAndDeletedAtIsNull(workspace, pageable)
-                .map(cf -> new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
-                        cf.getDescription(), cf.getStatus(), cf.getCreatedAt(),
-                        cf.getLastDocumentDeletedAt()));
+                .map(cf -> {
+                    var latestAnalysis = caseAnalysisRepository
+                            .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(cf.getId(), AnalysisStatus.DONE)
+                            .orElse(null);
+                    String riskLevel = latestAnalysis != null ? latestAnalysis.getRiskLevel() : null;
+                    Integer riskScore = latestAnalysis != null ? latestAnalysis.getRiskScore() : null;
+                    return new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
+                            cf.getDescription(), cf.getStatus(), cf.getCreatedAt(),
+                            cf.getLastDocumentDeletedAt(), riskLevel, riskScore);
+                });
     }
 
     @Transactional(readOnly = true)
@@ -104,7 +116,7 @@ public class CaseFileService {
 
         return new CaseFileResponse(caseFile.getId(), caseFile.getTitle(), caseFile.getLegalDomain(),
                 caseFile.getDescription(), caseFile.getStatus(), caseFile.getCreatedAt(),
-                caseFile.getLastDocumentDeletedAt());
+                caseFile.getLastDocumentDeletedAt(), null, null);
     }
 
     @Transactional
@@ -133,7 +145,7 @@ public class CaseFileService {
 
         return new CaseFileResponse(updated.getId(), updated.getTitle(), updated.getLegalDomain(),
                 updated.getDescription(), updated.getStatus(), updated.getCreatedAt(),
-                updated.getLastDocumentDeletedAt());
+                updated.getLastDocumentDeletedAt(), null, null);
     }
 
     private void saveAuditLog(String action, CaseFile caseFile, User user, UUID workspaceId) {

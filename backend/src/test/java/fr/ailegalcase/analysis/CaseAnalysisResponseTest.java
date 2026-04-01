@@ -206,6 +206,58 @@ class CaseAnalysisResponseTest {
         assertThat(response.faits().get(0).extrait()).isNull();
     }
 
+    // U-11 : populateRiskScore — JSON nominal → riskLevel="MOYEN", riskScore=55
+    @Test
+    void populateRiskScore_nominalJson_setsLevelAndScore() {
+        CaseAnalysis analysis = analysis("""
+                {"score_risque": {"niveau": "MOYEN", "valeur": 55}}
+                """);
+
+        CaseAnalysisResponse.populateRiskScore(analysis, analysis.getAnalysisResult());
+
+        assertThat(analysis.getRiskLevel()).isEqualTo("MOYEN");
+        assertThat(analysis.getRiskScore()).isEqualTo(55);
+    }
+
+    // U-12 : populateRiskScore — champ absent → null, null (fail-open)
+    @Test
+    void populateRiskScore_missingField_remainsNull() {
+        CaseAnalysis analysis = analysis("""
+                {"faits": ["f1"]}
+                """);
+
+        CaseAnalysisResponse.populateRiskScore(analysis, analysis.getAnalysisResult());
+
+        assertThat(analysis.getRiskLevel()).isNull();
+        assertThat(analysis.getRiskScore()).isNull();
+    }
+
+    // U-13 : populateRiskScore — niveau inconnu → riskLevel null (fail-open)
+    @Test
+    void populateRiskScore_unknownNiveau_riskLevelNull() {
+        CaseAnalysis analysis = analysis("""
+                {"score_risque": {"niveau": "CRITIQUE", "valeur": 90}}
+                """);
+
+        CaseAnalysisResponse.populateRiskScore(analysis, analysis.getAnalysisResult());
+
+        assertThat(analysis.getRiskLevel()).isNull();
+        assertThat(analysis.getRiskScore()).isEqualTo(90);
+    }
+
+    // U-14 : populateRiskScore — valeur hors [0-100] → riskScore null (fail-open)
+    @Test
+    void populateRiskScore_valueOutOfRange_riskScoreNull() {
+        CaseAnalysis analysis = analysis("""
+                {"score_risque": {"niveau": "ELEVE", "valeur": 150}}
+                """);
+
+        CaseAnalysisResponse.populateRiskScore(analysis, analysis.getAnalysisResult());
+
+        assertThat(analysis.getRiskLevel()).isEqualTo("ELEVE");
+        assertThat(analysis.getRiskScore()).isNull();
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
