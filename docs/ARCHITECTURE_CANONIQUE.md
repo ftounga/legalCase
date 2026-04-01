@@ -1096,6 +1096,45 @@ idx_case_deadlines_case_file_id
 
 ---
 
+# 25d — Checklist procédurale (F-96 / SF-96-01)
+
+Table :
+
+procedure_checks
+
+Champs :
+
+id (UUID PK — généré par JPA)
+case_analysis_id (UUID FK → case_analyses, cascade delete)
+workspace_id (UUID FK → workspaces, cascade delete — dénormalisé pour isolation)
+ordre (INT, non nullable — index dans le tableau points_procedure du JSON LLM)
+description (TEXT, non nullable — libellé du point procédural)
+statut (VARCHAR 20, non nullable, DEFAULT 'TO_CHECK' — TO_CHECK | VERIFIED | NON_COMPLIANT)
+created_at (timestamptz, non nullable)
+updated_at (timestamptz, non nullable)
+
+Règles :
+
+- Créés automatiquement par ProcedureCheckService.createChecks() à la fin de chaque analyse (STANDARD et ENRICHED)
+- Extraction fail-open : si points_procedure absent ou JSON invalide → aucun check créé, pas d'exception
+- Les checks sont recréés à chaque nouvelle version d'analyse (les anciens de la même analyse sont supprimés)
+- workspace_id dénormalisé pour simplifier les requêtes d'isolation (même pattern que case_deadlines)
+- GET : isolation vérifiée via case_file.workspace_id
+- PATCH : isolation vérifiée via procedure_check.workspace_id
+- Migration : 040-create-procedure-checks.xml
+
+Endpoints :
+
+GET  /api/v1/case-files/{caseFileId}/analyses/{analysisId}/procedure-checks — liste ordonnée par ordre ASC
+PATCH /api/v1/procedure-checks/{checkId} — body {statut: "VERIFIED"} — met à jour le statut
+
+Index :
+
+idx_procedure_checks_case_analysis_id
+idx_procedure_checks_workspace_id
+
+---
+
 ## email_sends
 
 Déduplication des emails automatiques (onboarding, etc.) — évite les doublons d'envoi.
