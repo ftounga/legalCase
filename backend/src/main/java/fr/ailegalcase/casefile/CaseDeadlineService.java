@@ -1,9 +1,15 @@
 package fr.ailegalcase.casefile;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.CaseAnalysis;
+import fr.ailegalcase.analysis.CaseAnalysisResponse;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -11,11 +17,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class CaseDeadlineService {
+
+    private static final Logger log = LoggerFactory.getLogger(CaseDeadlineService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final CaseDeadlineRepository deadlineRepository;
     private final CaseFileRepository caseFileRepository;
@@ -70,6 +80,72 @@ public class CaseDeadlineService {
         resolveCaseFileForUser(caseFileId, user);
         CaseDeadline deadline = resolveDeadlineForWorkspace(deadlineId, caseFileId);
         deadlineRepository.delete(deadline);
+    }
+
+    /**
+     * Crée les délais IA détectés à partir du JSON brut de l'analyse.
+     * Fail-open : si delais_detectes absent, mal formé ou date invalide, les entrées concernées sont ignorées.
+     * La méthode ne propage jamais d'exception.
+     */
+    @Transactional
+    public void createAiDetectedDeadlines(CaseAnalysis analysis, String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) return;
+        try {
+            String stripped = CaseAnalysisResponse.stripMarkdownCodeBlock(rawJson);
+            JsonNode root = MAPPER.readTree(stripped);
+            JsonNode delaisNode = root.get("delais_detectes");
+            if (delaisNode == null || !delaisNode.isArray()) return;
+
+            CaseFile caseFile = analysis.getCaseFile();
+            for (JsonNode item : delaisNode) {
+                try {
+                    JsonNode labelNode = item.get("label");
+                    JsonNode dateNode = item.get("date_detectee");
+                    if (labelNode == null || dateNode == null) continue;
+                    String label = labelNode.asText();
+                    LocalDate dueDate = LocalDate.parse(dateNode.asText());
+
+                    CaseDeadline deadline = new CaseDeadline();
+                    deadline.setCaseFile(caseFile);
+                    deadline.setLabel(label);
+                    deadline.setDueDate(dueDate);
+                    deadline.setSource("AI");
+                    deadline.setAiStatus("PENDING");
+                    deadlineRepository.save(deadline);
+                } catch (Exception e) {
+                    log.debug("Skipping invalid deadline entry in analysis {} — {}", analysis.getId(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Fail-open: AI deadline detection failed for analysis {}: {}", analysis.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Valide (ACCEPT ou REJECT) un délai IA en attente.
+     * ACCEPT → aiStatus = ACCEPTED
+     * REJECT → suppression physique du délai
+     *
+     * @return la réponse mise à jour (ACCEPT), ou null (REJECT)
+     */
+    @Transactional
+    public CaseDeadlineResponse validate(UUID caseFileId, UUID deadlineId, String action,
+                                         OidcUser oidcUser, Principal principal) {
+        User user = resolveUser(oidcUser, principal);
+        resolveCaseFileForUser(caseFileId, user);
+        CaseDeadline deadline = resolveDeadlineForWorkspace(deadlineId, caseFileId);
+
+        if (!"PENDING".equals(deadline.getAiStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ce délai a déjà été traité.");
+        }
+
+        if ("ACCEPT".equals(action)) {
+            deadline.setAiStatus("ACCEPTED");
+            return CaseDeadlineResponse.from(deadlineRepository.save(deadline));
+        } else {
+            deadlineRepository.delete(deadline);
+            return null;
+        }
     }
 
     private User resolveUser(OidcUser oidcUser, Principal principal) {

@@ -1,6 +1,7 @@
 package fr.ailegalcase.casefile;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.validation.annotation.Validated;
@@ -53,5 +54,16 @@ public class CaseDeadlineController {
                        @AuthenticationPrincipal OidcUser oidcUser,
                        Principal principal) {
         deadlineService.delete(caseFileId, deadlineId, oidcUser, principal);
+    }
+
+    @PatchMapping("/{deadlineId}/validate")
+    public ResponseEntity<CaseDeadlineResponse> validate(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID deadlineId,
+            @RequestBody @jakarta.validation.Valid CaseDeadlineValidateRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        CaseDeadlineResponse resp = deadlineService.validate(caseFileId, deadlineId, request.action(), oidcUser, principal);
+        return resp != null ? ResponseEntity.ok(resp) : ResponseEntity.noContent().build();
     }
 }
