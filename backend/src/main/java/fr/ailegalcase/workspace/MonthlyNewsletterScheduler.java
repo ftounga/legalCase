@@ -36,7 +36,19 @@ public class MonthlyNewsletterScheduler {
         new String[]{"Analyse enrichie multi-sources", "L'IA croise tous vos documents pour produire une synthèse approfondie avec sources croisées."},
         new String[]{"Délais légaux automatiques", "Les délais importants de votre dossier sont détectés et affichés avec leur date limite."},
         new String[]{"Questions interactives de l'IA", "L'IA peut vous poser des questions ciblées pour affiner son analyse quand des informations manquent."},
-        new String[]{"Tableau de bord super-admin", "Suivez les métriques de conversion et d'usage de toute la plateforme en temps réel."}
+        new String[]{"Tableau de bord super-admin", "Suivez les métriques de conversion et d'usage de toute la plateforme en temps réel."},
+        new String[]{"Invitations membres", "Invitez des collaborateurs dans votre workspace avec gestion des rôles."},
+        new String[]{"Versioning des analyses", "Chaque re-analyse crée une nouvelle version — retrouvez l'historique complet."},
+        new String[]{"Analyse standard et enrichie", "Deux niveaux d'analyse : rapide pour les dossiers simples, enrichie pour les cas complexes."},
+        new String[]{"Page de partage client", "Votre client accède à la synthèse via une page dédiée, sans créer de compte."},
+        new String[]{"Alertes délais par email", "Recevez un email automatique J-7, J-3 et J-0 avant chaque délai critique."},
+        new String[]{"Multi-domaines juridiques", "Droit du travail, droit de la famille, droit de l'immigration — un seul outil."},
+        new String[]{"Prise de rendez-vous intégrée", "Planifiez une démo ou un échange directement depuis la page d'accueil."},
+        new String[]{"Gestion de l'abonnement", "Passez du plan Solo au plan Pro en quelques clics, sans interruption de service."},
+        new String[]{"Séquence d'onboarding guidée", "Une série d'emails vous accompagne pour tirer le meilleur parti de l'outil dès le départ."},
+        new String[]{"Conformité RGPD", "Bannière de consentement, politique de confidentialité et CGU intégrées."},
+        new String[]{"Workspace dédié par cabinet", "Isolation totale des données entre cabinets — vos dossiers restent les vôtres."},
+        new String[]{"Authentification Google & Microsoft", "Connectez-vous avec votre compte professionnel, sans mot de passe supplémentaire."}
     );
 
     private static final List<String> PAID_PLANS = List.of("SOLO", "TEAM", "PRO");
