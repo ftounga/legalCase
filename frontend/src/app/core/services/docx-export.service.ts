@@ -16,7 +16,7 @@ export class DocxExportService {
       const typeLabel = synthesis.analysisType === 'ENRICHED' ? 'Synthèse enrichie' : 'Synthèse initiale';
       const versionLabel = `v${synthesis.version} — ${typeLabel} — Exporté le ${exportDate}`;
 
-      const children: Paragraph[] = [
+      const children = [
         new Paragraph({
           text: caseFile.title || 'Synthèse juridique',
           heading: HeadingLevel.TITLE,
@@ -51,7 +51,7 @@ export class DocxExportService {
           new Paragraph({ text: 'Faits établis', heading: HeadingLevel.HEADING_1 })
         );
         for (const item of synthesis.faits) {
-          const runs: TextRun[] = [new TextRun({ text: item.texte })];
+          const runs = [new TextRun({ text: item.texte })];
           if (item.source) {
             runs.push(new TextRun({ text: ` [Source : ${item.source}` + (item.extrait ? ` — « ${item.extrait} »` : '') + ']', italics: true }));
           }
@@ -65,7 +65,7 @@ export class DocxExportService {
           new Paragraph({ text: 'Points juridiques', heading: HeadingLevel.HEADING_1 })
         );
         for (const item of synthesis.pointsJuridiques) {
-          const runs: TextRun[] = [new TextRun({ text: item.texte })];
+          const runs = [new TextRun({ text: item.texte })];
           if (item.source) {
             runs.push(new TextRun({ text: ` [Source : ${item.source}` + (item.extrait ? ` — « ${item.extrait} »` : '') + ']', italics: true }));
           }
@@ -79,7 +79,7 @@ export class DocxExportService {
           new Paragraph({ text: 'Risques', heading: HeadingLevel.HEADING_1 })
         );
         for (const item of synthesis.risques) {
-          const runs: TextRun[] = [new TextRun({ text: item.texte })];
+          const runs = [new TextRun({ text: item.texte })];
           if (item.source) {
             runs.push(new TextRun({ text: ` [Source : ${item.source}` + (item.extrait ? ` — « ${item.extrait} »` : '') + ']', italics: true }));
           }
