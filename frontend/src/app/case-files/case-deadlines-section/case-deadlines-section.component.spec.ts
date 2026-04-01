@@ -1,30 +1,46 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { CaseDeadlinesSectionComponent } from './case-deadlines-section.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
 
-function makeDeadline(dueDate: string, label = 'Prescription'): CaseDeadline {
-  return { id: 'd-1', label, dueDate, createdAt: '', updatedAt: '' };
+function makeDeadline(
+  dueDate: string,
+  label = 'Prescription',
+  overrides: Partial<CaseDeadline> = {}
+): CaseDeadline {
+  return {
+    id: 'd-1',
+    label,
+    dueDate,
+    createdAt: '',
+    updatedAt: '',
+    source: 'MANUAL',
+    aiStatus: null,
+    ...overrides
+  };
 }
 
 describe('CaseDeadlinesSectionComponent', () => {
   let fixture: ComponentFixture<CaseDeadlinesSectionComponent>;
   let component: CaseDeadlinesSectionComponent;
   let deadlineServiceSpy: jest.Mocked<CaseDeadlineService>;
+  let snackBarSpy: { open: jest.Mock };
 
   beforeEach(async () => {
     deadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService',
-      ['list', 'create', 'update', 'delete']);
+      ['list', 'create', 'update', 'delete', 'validateDeadline']);
     deadlineServiceSpy.list.mockReturnValue(of([]));
+
+    snackBarSpy = { open: jest.fn() };
 
     await TestBed.configureTestingModule({
       imports: [CaseDeadlinesSectionComponent, NoopAnimationsModule],
       providers: [
         { provide: CaseDeadlineService, useValue: deadlineServiceSpy },
-        { provide: MatSnackBar, useValue: { open: () => {} } }
+        { provide: MatSnackBar, useValue: snackBarSpy }
       ]
     }).compileComponents();
 
@@ -96,7 +112,7 @@ describe('CaseDeadlinesSectionComponent', () => {
   });
 
   it('SF71-U-03: double toggle — retour à l\'état replié, badge visible', () => {
-    deadlineServiceSpy.list.mockReturnValue(of([makeDeadline('2026-06-01'), makeDeadline('2026-07-01')]));
+    deadlineServiceSpy.list.mockReturnValue(of([makeDeadline('2026-06-01'), makeDeadline('2026-07-01', 'Autre', { id: 'd-2' })]));
     component.loadDeadlines();
     component.toggleCollapsed();
     component.toggleCollapsed();
@@ -105,5 +121,117 @@ describe('CaseDeadlinesSectionComponent', () => {
     const badge = fixture.nativeElement.querySelector('.section-badge');
     expect(badge).toBeTruthy();
     expect(badge.textContent).toContain('2 délais');
+  });
+
+  // ── SF-97-02 — Détection délais IA ───────────────────────────────────────
+
+  it('SF97-U-01: délai AI+PENDING visible dans propositions IA, absent des confirmés', () => {
+    const aiDeadline = makeDeadline('2026-08-01', 'Délai IA', { id: 'ai-1', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+
+    expect(component.pendingAiDeadlines()).toContain(aiDeadline);
+    expect(component.confirmedDeadlines()).not.toContain(aiDeadline);
+  });
+
+  it('SF97-U-02: délai MANUAL visible dans confirmés, absent des propositions IA', () => {
+    const manualDeadline = makeDeadline('2026-08-01', 'Délai manuel', { id: 'm-1', source: 'MANUAL', aiStatus: null });
+    deadlineServiceSpy.list.mockReturnValue(of([manualDeadline]));
+    component.loadDeadlines();
+
+    expect(component.confirmedDeadlines()).toContain(manualDeadline);
+    expect(component.pendingAiDeadlines()).not.toContain(manualDeadline);
+  });
+
+  it('SF97-U-03: délai AI+ACCEPTED visible dans confirmés, absent des propositions IA', () => {
+    const acceptedDeadline = makeDeadline('2026-08-01', 'Délai accepté', { id: 'ai-2', source: 'AI', aiStatus: 'ACCEPTED' });
+    deadlineServiceSpy.list.mockReturnValue(of([acceptedDeadline]));
+    component.loadDeadlines();
+
+    expect(component.confirmedDeadlines()).toContain(acceptedDeadline);
+    expect(component.pendingAiDeadlines()).not.toContain(acceptedDeadline);
+  });
+
+  it('SF97-U-04: clic Accepter appelle validateDeadline avec ACCEPT', () => {
+    const aiDeadline = makeDeadline('2026-08-01', 'Délai IA', { id: 'ai-1', source: 'AI', aiStatus: 'PENDING' });
+    const acceptedDeadline = { ...aiDeadline, aiStatus: 'ACCEPTED' as const };
+    deadlineServiceSpy.validateDeadline.mockReturnValue(of(acceptedDeadline));
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+
+    component.acceptDeadline(aiDeadline);
+
+    expect(deadlineServiceSpy.validateDeadline).toHaveBeenCalledWith('cf-1', 'ai-1', 'ACCEPT');
+  });
+
+  it('SF97-U-05: après ACCEPT réussi — délai dans confirmés, absent de pending', () => {
+    const aiDeadline = makeDeadline('2026-08-01', 'Délai IA', { id: 'ai-1', source: 'AI', aiStatus: 'PENDING' });
+    const acceptedDeadline = { ...aiDeadline, aiStatus: 'ACCEPTED' as const };
+    deadlineServiceSpy.validateDeadline.mockReturnValue(of(acceptedDeadline));
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+
+    component.acceptDeadline(aiDeadline);
+
+    expect(component.confirmedDeadlines()).toContainEqual(acceptedDeadline);
+    expect(component.pendingAiDeadlines()).toHaveLength(0);
+  });
+
+  it('SF97-U-06: clic Rejeter appelle validateDeadline avec REJECT', () => {
+    const aiDeadline = makeDeadline('2026-08-01', 'Délai IA', { id: 'ai-1', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.validateDeadline.mockReturnValue(of(null));
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+
+    component.rejectDeadline(aiDeadline);
+
+    expect(deadlineServiceSpy.validateDeadline).toHaveBeenCalledWith('cf-1', 'ai-1', 'REJECT');
+  });
+
+  it('SF97-U-07: après REJECT — délai absent des deux sections', () => {
+    const aiDeadline = makeDeadline('2026-08-01', 'Délai IA', { id: 'ai-1', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.validateDeadline.mockReturnValue(of(null));
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+
+    component.rejectDeadline(aiDeadline);
+
+    expect(component.pendingAiDeadlines()).toHaveLength(0);
+    expect(component.confirmedDeadlines()).toHaveLength(0);
+  });
+
+  it('SF97-U-08: erreur PATCH affiche snackbar erreur', () => {
+    const aiDeadline = makeDeadline('2026-08-01', 'Délai IA', { id: 'ai-1', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.validateDeadline.mockReturnValue(throwError(() => new Error('Network error')));
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+
+    component.acceptDeadline(aiDeadline);
+
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Erreur lors de la validation du délai.',
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] })
+    );
+  });
+
+  it('SF97-U-09: sous-section Propositions IA absente si aucun délai pending', () => {
+    const manualDeadline = makeDeadline('2026-08-01', 'Délai manuel', { id: 'm-1', source: 'MANUAL', aiStatus: null });
+    deadlineServiceSpy.list.mockReturnValue(of([manualDeadline]));
+    component.loadDeadlines();
+    component.collapsed.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.ai-proposals-section')).toBeNull();
+  });
+
+  it('SF97-U-10: sous-section Propositions IA visible si un délai AI PENDING existe', () => {
+    const aiDeadline = makeDeadline('2026-08-01', 'Délai IA', { id: 'ai-1', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+    component.collapsed.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.ai-proposals-section')).toBeTruthy();
   });
 });

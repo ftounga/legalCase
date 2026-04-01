@@ -20,12 +20,12 @@
       </button>
     </div>
 
-    @if (deadlines().length === 0) {
+    @if (confirmedDeadlines().length === 0 && pendingAiDeadlines().length === 0) {
       <p class="deadlines-empty">Aucun délai pour ce dossier.</p>
     }
 
     <div class="deadlines-list">
-      @for (d of deadlines(); track d.id) {
+      @for (d of confirmedDeadlines(); track d.id) {
         <div class="deadline-item" [class]="deadlineClass(d.dueDate)">
           @if (editingDeadlineId() === d.id) {
             <div class="edit-form">
@@ -60,5 +60,30 @@
         </div>
       }
     </div>
+
+    @if (pendingAiDeadlines().length > 0) {
+      <div class="ai-proposals-section">
+        <h4>Propositions IA</h4>
+        @for (deadline of pendingAiDeadlines(); track deadline.id) {
+          <div class="ai-proposal-item">
+            <span class="ai-badge">IA</span>
+            <span class="ai-proposal-label">{{ deadline.label }}</span>
+            <span class="ai-proposal-date">{{ deadline.dueDate | date:'dd/MM/yyyy' }}</span>
+            <button mat-icon-button color="primary"
+                    [disabled]="validating() === deadline.id"
+                    (click)="acceptDeadline(deadline)"
+                    aria-label="Accepter">
+              <mat-icon>check</mat-icon>
+            </button>
+            <button mat-icon-button color="warn"
+                    [disabled]="validating() === deadline.id"
+                    (click)="rejectDeadline(deadline)"
+                    aria-label="Rejeter">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    }
   }
 </div>

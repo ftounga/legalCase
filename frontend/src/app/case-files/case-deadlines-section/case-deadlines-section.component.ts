@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, computed, Input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -25,6 +25,15 @@ export class CaseDeadlinesSectionComponent implements OnInit {
 
   deadlines = signal<CaseDeadline[]>([]);
   collapsed = signal(true);
+  validating = signal<string | null>(null);
+
+  confirmedDeadlines = computed(() =>
+    this.deadlines().filter(d => d.source === 'MANUAL' || d.aiStatus === 'ACCEPTED')
+  );
+
+  pendingAiDeadlines = computed(() =>
+    this.deadlines().filter(d => d.source === 'AI' && d.aiStatus === 'PENDING')
+  );
 
   toggleCollapsed(): void { this.collapsed.update(v => !v); }
   newLabel = '';
@@ -130,5 +139,39 @@ export class CaseDeadlinesSectionComponent implements OnInit {
     if (days === 0) return 'Aujourd\'hui';
     if (days < 0) return `J+${Math.abs(days)} (dépassé)`;
     return `J-${days}`;
+  }
+
+  acceptDeadline(deadline: CaseDeadline): void {
+    this.validating.set(deadline.id);
+    this.deadlineService.validateDeadline(this.caseFileId, deadline.id, 'ACCEPT').subscribe({
+      next: updated => {
+        if (updated) {
+          this.deadlines.update(list => list.map(d => d.id === deadline.id ? updated : d));
+        }
+        this.snackBar.open('Délai accepté.', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de la validation du délai.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      },
+      complete: () => this.validating.set(null)
+    });
+  }
+
+  rejectDeadline(deadline: CaseDeadline): void {
+    this.validating.set(deadline.id);
+    this.deadlineService.validateDeadline(this.caseFileId, deadline.id, 'REJECT').subscribe({
+      next: () => {
+        this.deadlines.update(list => list.filter(d => d.id !== deadline.id));
+        this.snackBar.open('Délai rejeté.', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de la validation du délai.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      },
+      complete: () => this.validating.set(null)
+    });
   }
 }
