@@ -180,7 +180,14 @@ public class EnrichedAnalysisService {
         AnalysisLimitsProperties.LevelLimits limits = analysisLimitsProperties.forDomain(legalDomain).getDossier();
         String systemPrompt = buildSystemPrompt(legalDomain, country, limits);
         String chatSummary = buildChatSummary(caseFileId);
-        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary);
+        List<String> nonCompliantChecks;
+        try {
+            nonCompliantChecks = procedureCheckService.listNonCompliant(caseFile);
+        } catch (Exception e) {
+            log.warn("listNonCompliant failed for caseFile {} — enriched analysis will proceed without it", caseFileId, e);
+            nonCompliantChecks = List.of();
+        }
+        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary, nonCompliantChecks);
         return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId, limits);
     }
 
@@ -281,7 +288,8 @@ public class EnrichedAnalysisService {
         }
     }
 
-    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary) {
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -306,6 +314,11 @@ public class EnrichedAnalysisService {
 
         if (chatSummary != null && !chatSummary.isBlank()) {
             prompt.append("\n\n[Échanges libres avec l'assistant — points clés]\n").append(chatSummary);
+        }
+
+        if (nonCompliantChecks != null && !nonCompliantChecks.isEmpty()) {
+            prompt.append("\n\n[Points procéduraux non conformes]\n");
+            nonCompliantChecks.forEach(c -> prompt.append("- ").append(c).append("\n"));
         }
 
         return prompt.toString();
