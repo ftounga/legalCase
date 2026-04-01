@@ -6,6 +6,8 @@ export interface CaseFile {
   status: string;
   createdAt: string;
   lastDocumentDeletedAt: string | null;
+  riskLevel: string | null;
+  riskScore: number | null;
 }
 
 export interface CreateCaseFileRequest {

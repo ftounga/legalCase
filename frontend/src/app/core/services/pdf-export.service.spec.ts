@@ -28,6 +28,8 @@ const mockSynthesis: CaseAnalysisResult = {
   ],
   questionsOuvertes: ['Convention collective applicable ?'],
   piecesManquantes: [],
+  riskLevel: null,
+  riskScore: null,
   modelUsed: 'claude-3',
   updatedAt: '2026-03-24T10:00:00Z',
 };

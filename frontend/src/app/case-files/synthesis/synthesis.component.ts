@@ -222,6 +222,19 @@ export class SynthesisComponent implements OnInit {
     return this.synthesis()?.analysisType === 'ENRICHED';
   }
 
+  riskLabel(synthesis: CaseAnalysisResult): string {
+    const labels: Record<string, string> = { FAIBLE: 'Faible', MOYEN: 'Moyen', ELEVE: 'Élevé' };
+    const label = labels[synthesis.riskLevel!] ?? synthesis.riskLevel!;
+    return synthesis.riskScore != null ? `${label} (${synthesis.riskScore})` : label;
+  }
+
+  riskClass(riskLevel: string | null): string {
+    if (riskLevel === 'FAIBLE') return 'risk-badge risk-badge--faible';
+    if (riskLevel === 'MOYEN') return 'risk-badge risk-badge--moyen';
+    if (riskLevel === 'ELEVE') return 'risk-badge risk-badge--eleve';
+    return '';
+  }
+
   private loadChatHistory(id: string): void {
     this.chatService.getHistory(id).subscribe({
       next: msgs => this.chatMessages.set(msgs),

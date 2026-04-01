@@ -42,6 +42,9 @@
       <span class="badge" [class.badge--accent]="isEnriched()" [class.badge--secondary]="!isEnriched()">
         {{ isEnriched() ? 'Synthèse enrichie' : 'Synthèse initiale' }}
       </span>
+      @if (synthesis()?.riskLevel) {
+        <span [class]="riskClass(synthesis()!.riskLevel)">{{ riskLabel(synthesis()!) }}</span>
+      }
     </div>
 
     <div class="version-row">
