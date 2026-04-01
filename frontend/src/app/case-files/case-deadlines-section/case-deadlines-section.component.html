@@ -69,6 +69,9 @@
             <span class="ai-badge">IA</span>
             <span class="ai-proposal-label">{{ deadline.label }}</span>
             <span class="ai-proposal-date">{{ deadline.dueDate | date:'dd/MM/yyyy' }}</span>
+            @if (isExpired(deadline.dueDate)) {
+              <span class="ai-proposal-expired-badge">Dépassé</span>
+            }
             <button mat-icon-button color="primary"
                     [disabled]="validating() === deadline.id"
                     (click)="acceptDeadline(deadline)"

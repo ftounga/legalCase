@@ -6,8 +6,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-case-deadlines-section',
@@ -44,7 +46,8 @@ export class CaseDeadlinesSectionComponent implements OnInit {
 
   constructor(
     private deadlineService: CaseDeadlineService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -141,7 +144,31 @@ export class CaseDeadlinesSectionComponent implements OnInit {
     return `J-${days}`;
   }
 
+  isExpired(dueDate: string): boolean {
+    return this.daysUntil(dueDate) < 0;
+  }
+
   acceptDeadline(deadline: CaseDeadline): void {
+    if (this.isExpired(deadline.dueDate)) {
+      const [y, m, d] = deadline.dueDate.split('-');
+      const dateFormatted = `${d}/${m}/${y}`;
+      const ref = this.dialog.open(ConfirmDialogComponent, {
+        data: {
+          title: 'Délai déjà dépassé',
+          message: `Ce délai est déjà dépassé (${dateFormatted}). Voulez-vous quand même l'ajouter à vos délais ?`,
+          confirmLabel: 'Ajouter quand même',
+          confirmColor: 'warn'
+        }
+      });
+      ref.afterClosed().subscribe(confirmed => {
+        if (confirmed) this.doAccept(deadline);
+      });
+      return;
+    }
+    this.doAccept(deadline);
+  }
+
+  private doAccept(deadline: CaseDeadline): void {
     this.validating.set(deadline.id);
     this.deadlineService.validateDeadline(this.caseFileId, deadline.id, 'ACCEPT').subscribe({
       next: updated => {

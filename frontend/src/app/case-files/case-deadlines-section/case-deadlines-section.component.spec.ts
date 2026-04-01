@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
+import { Subject } from 'rxjs';
 import { CaseDeadlinesSectionComponent } from './case-deadlines-section.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
@@ -28,6 +30,8 @@ describe('CaseDeadlinesSectionComponent', () => {
   let component: CaseDeadlinesSectionComponent;
   let deadlineServiceSpy: jest.Mocked<CaseDeadlineService>;
   let snackBarSpy: { open: jest.Mock };
+  let dialogSpy: { open: jest.Mock };
+  let dialogAfterClosedSubject: Subject<boolean>;
 
   beforeEach(async () => {
     deadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService',
@@ -35,12 +39,17 @@ describe('CaseDeadlinesSectionComponent', () => {
     deadlineServiceSpy.list.mockReturnValue(of([]));
 
     snackBarSpy = { open: jest.fn() };
+    dialogAfterClosedSubject = new Subject<boolean>();
+    dialogSpy = {
+      open: jest.fn().mockReturnValue({ afterClosed: () => dialogAfterClosedSubject.asObservable() } as Partial<MatDialogRef<unknown>>)
+    };
 
     await TestBed.configureTestingModule({
       imports: [CaseDeadlinesSectionComponent, NoopAnimationsModule],
       providers: [
         { provide: CaseDeadlineService, useValue: deadlineServiceSpy },
-        { provide: MatSnackBar, useValue: snackBarSpy }
+        { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: MatDialog, useValue: dialogSpy }
       ]
     }).compileComponents();
 
@@ -233,5 +242,85 @@ describe('CaseDeadlinesSectionComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.ai-proposals-section')).toBeTruthy();
+  });
+
+  // ── SF-97 fix délais expirés ──────────────────────────────────────────────
+
+  it('SF97-U-11: isExpired retourne true pour une date passée', () => {
+    expect(component.isExpired('2020-01-01')).toBe(true);
+  });
+
+  it('SF97-U-12: isExpired retourne false pour une date future', () => {
+    expect(component.isExpired('2099-12-31')).toBe(false);
+  });
+
+  it('SF97-U-13: badge Dépassé visible pour un délai AI expiré', () => {
+    const aiDeadline = makeDeadline('2020-01-01', 'Délai expiré', { id: 'ai-exp', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+    component.collapsed.set(false);
+    fixture.detectChanges();
+
+    const badge = fixture.nativeElement.querySelector('.ai-proposal-expired-badge');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain('Dépassé');
+  });
+
+  it('SF97-U-14: badge Dépassé absent pour un délai AI futur', () => {
+    const aiDeadline = makeDeadline('2099-12-31', 'Délai futur', { id: 'ai-fut', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.list.mockReturnValue(of([aiDeadline]));
+    component.loadDeadlines();
+    component.collapsed.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.ai-proposal-expired-badge')).toBeNull();
+  });
+
+  it('SF97-U-15: accepter un délai expiré ouvre le dialog de confirmation', () => {
+    const expiredDeadline = makeDeadline('2020-01-01', 'Délai expiré', { id: 'ai-exp', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.list.mockReturnValue(of([expiredDeadline]));
+    component.loadDeadlines();
+
+    component.acceptDeadline(expiredDeadline);
+
+    expect(dialogSpy.open).toHaveBeenCalled();
+    expect(deadlineServiceSpy.validateDeadline).not.toHaveBeenCalled();
+  });
+
+  it('SF97-U-16: confirmer le dialog sur délai expiré appelle validateDeadline', () => {
+    const expiredDeadline = makeDeadline('2020-01-01', 'Délai expiré', { id: 'ai-exp', source: 'AI', aiStatus: 'PENDING' });
+    const acceptedDeadline = { ...expiredDeadline, aiStatus: 'ACCEPTED' as const };
+    deadlineServiceSpy.validateDeadline.mockReturnValue(of(acceptedDeadline));
+    deadlineServiceSpy.list.mockReturnValue(of([expiredDeadline]));
+    component.loadDeadlines();
+
+    component.acceptDeadline(expiredDeadline);
+    dialogAfterClosedSubject.next(true);
+
+    expect(deadlineServiceSpy.validateDeadline).toHaveBeenCalledWith('cf-1', 'ai-exp', 'ACCEPT');
+  });
+
+  it('SF97-U-17: annuler le dialog sur délai expiré ne lance pas la validation', () => {
+    const expiredDeadline = makeDeadline('2020-01-01', 'Délai expiré', { id: 'ai-exp', source: 'AI', aiStatus: 'PENDING' });
+    deadlineServiceSpy.list.mockReturnValue(of([expiredDeadline]));
+    component.loadDeadlines();
+
+    component.acceptDeadline(expiredDeadline);
+    dialogAfterClosedSubject.next(false);
+
+    expect(deadlineServiceSpy.validateDeadline).not.toHaveBeenCalled();
+  });
+
+  it('SF97-U-18: accepter un délai futur ne ouvre pas le dialog', () => {
+    const futureDeadline = makeDeadline('2099-12-31', 'Délai futur', { id: 'ai-fut', source: 'AI', aiStatus: 'PENDING' });
+    const acceptedDeadline = { ...futureDeadline, aiStatus: 'ACCEPTED' as const };
+    deadlineServiceSpy.validateDeadline.mockReturnValue(of(acceptedDeadline));
+    deadlineServiceSpy.list.mockReturnValue(of([futureDeadline]));
+    component.loadDeadlines();
+
+    component.acceptDeadline(futureDeadline);
+
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    expect(deadlineServiceSpy.validateDeadline).toHaveBeenCalledWith('cf-1', 'ai-fut', 'ACCEPT');
   });
 });
