@@ -39,6 +39,11 @@
     </div>
   </div>
 
+  <app-case-dashboard-stepper
+    [steps]="dashboardSteps()"
+    [caseFileId]="caseFile()!.id">
+  </app-case-dashboard-stepper>
+
   <div class="detail-grid" [@listStagger]="3">
     <!-- Colonne gauche : infos + documents -->
     <div class="col-left" @fadeInUp>
@@ -82,7 +87,7 @@
         </mat-card>
       }
 
-      <div class="section-header">
+      <div id="section-documents" class="section-header">
         <h2 class="section-title">Documents</h2>
         <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden (change)="onFileSelected($event)">
         <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn" (click)="triggerUpload()" [disabled]="!canUpload()">
@@ -180,7 +185,7 @@
 
     <!-- Colonne droite : analyse IA -->
     <div class="col-right" @fadeInUp>
-      <div class="section-header section-header--first">
+      <div id="section-analyse" class="section-header section-header--first">
         <h2 class="section-title">Analyse IA</h2>
         @if (fullAnalysisRunning()) {
           <div class="analyze-running">
@@ -299,8 +304,10 @@
     </div>
   </div>
 
-  <app-case-deadlines-section [caseFileId]="caseFile()!.id">
-  </app-case-deadlines-section>
+  <div id="section-deadlines">
+    <app-case-deadlines-section [caseFileId]="caseFile()!.id">
+    </app-case-deadlines-section>
+  </div>
 
   <app-case-notes-section
     [caseFileId]="caseFile()!.id"

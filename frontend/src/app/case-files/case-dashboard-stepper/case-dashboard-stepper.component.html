@@ -1,0 +1,24 @@
+<div class="stepper">
+  @for (step of steps; track step.id; let last = $last) {
+    <div
+      class="step"
+      [class]="'step step--' + step.status"
+      [class.step--clickable]="step.status !== 'done'"
+      (click)="onStepClick(step)"
+      [attr.role]="step.status !== 'done' ? 'button' : null"
+      [attr.tabindex]="step.status !== 'done' ? '0' : null"
+      (keydown.enter)="onStepClick(step)"
+    >
+      <mat-icon class="step-icon">{{ stepIcon(step.status) }}</mat-icon>
+      <div class="step-content">
+        <span class="step-label">{{ step.label }}</span>
+        @if (step.detail) {
+          <span class="step-detail">{{ step.detail }}</span>
+        }
+      </div>
+    </div>
+    @if (!last) {
+      <div class="step-connector" [class.step-connector--done]="step.status === 'done'"></div>
+    }
+  }
+</div>
