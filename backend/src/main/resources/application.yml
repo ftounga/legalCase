@@ -53,6 +53,7 @@ app:
           questions-ouvertes: 5
           timeline: 5
           pieces-manquantes: 5
+          points-procedure: 8
       droit-immigration:
         document:
           faits: 7
@@ -67,6 +68,7 @@ app:
           questions-ouvertes: 5
           timeline: 8
           pieces-manquantes: 5
+          points-procedure: 8
       droit-famille:
         document:
           faits: 5
@@ -81,6 +83,7 @@ app:
           questions-ouvertes: 5
           timeline: 5
           pieces-manquantes: 5
+          points-procedure: 8
   stripe:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}

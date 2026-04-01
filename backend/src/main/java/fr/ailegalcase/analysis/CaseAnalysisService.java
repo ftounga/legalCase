@@ -35,10 +35,11 @@ public class CaseAnalysisService {
             Tu reçois les analyses de plusieurs documents d'un dossier juridique.
             Produis une synthèse globale du dossier en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...], "pieces_manquantes": [...]}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...]}
             La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis (ex: "Contrat de travail", "Bulletins de salaire"). Si le dossier semble complet, utilise "pieces_manquantes": [].
-            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum. Sois concis.
+            Le champ "points_procedure" liste les étapes procédurales légalement requises dans ce type de dossier (ex: "Entretien préalable tenu dans les délais", "Lettre de licenciement motivée"). Si la procédure semble conforme, utilise "points_procedure": [].
+            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
             """;
 
     static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
@@ -46,7 +47,7 @@ public class CaseAnalysisService {
                 LegalDomainPromptBuilder.domainLabel(legalDomain, country),
                 limits.getTimeline(), limits.getFaits(),
                 limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes(),
-                limits.getPiecesManquantes());
+                limits.getPiecesManquantes(), limits.getPointsProcedure());
     }
 
     record PreparedCaseAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
@@ -62,6 +63,7 @@ public class CaseAnalysisService {
     private final ApplicationEventPublisher eventPublisher;
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
     private final AnalysisLimitsProperties analysisLimitsProperties;
+    private final ProcedureCheckService procedureCheckService;
 
     @Lazy @Autowired
     private CaseAnalysisService self;
@@ -75,7 +77,8 @@ public class CaseAnalysisService {
                                UsageEventService usageEventService,
                                ApplicationEventPublisher eventPublisher,
                                AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
-                               AnalysisLimitsProperties analysisLimitsProperties) {
+                               AnalysisLimitsProperties analysisLimitsProperties,
+                               ProcedureCheckService procedureCheckService) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
@@ -86,6 +89,7 @@ public class CaseAnalysisService {
         this.eventPublisher = eventPublisher;
         this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
         this.analysisLimitsProperties = analysisLimitsProperties;
+        this.procedureCheckService = procedureCheckService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
@@ -183,6 +187,10 @@ public class CaseAnalysisService {
             CaseAnalysisResponse.populateCounts(analysis, truncated);
         }
         caseAnalysisRepository.save(analysis);
+
+        if (failure == null) {
+            procedureCheckService.createChecks(analysis, analysis.getAnalysisResult());
+        }
 
         AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS)
                 .orElseGet(() -> {
