@@ -73,11 +73,11 @@ public class SemanticDiffService {
 
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             Future<AnalysisDiffResponse.SectionDiff> faitsFuture =
-                    executor.submit(() -> diffSection("faits", context, from.faits(), to.faits(), from, to));
+                    executor.submit(() -> diffSection("faits", context, toTexts(from.faits()), toTexts(to.faits()), from, to));
             Future<AnalysisDiffResponse.SectionDiff> pointsFuture =
-                    executor.submit(() -> diffSection("points_juridiques", context, from.pointsJuridiques(), to.pointsJuridiques(), from, to));
+                    executor.submit(() -> diffSection("points_juridiques", context, toTexts(from.pointsJuridiques()), toTexts(to.pointsJuridiques()), from, to));
             Future<AnalysisDiffResponse.SectionDiff> risquesFuture =
-                    executor.submit(() -> diffSection("risques", context, from.risques(), to.risques(), from, to));
+                    executor.submit(() -> diffSection("risques", context, toTexts(from.risques()), toTexts(to.risques()), from, to));
             Future<AnalysisDiffResponse.SectionDiff> questionsFuture =
                     executor.submit(() -> diffSection("questions_ouvertes", context, from.questionsOuvertes(), to.questionsOuvertes(), from, to));
             Future<AnalysisDiffResponse.TimelineSectionDiff> timelineFuture =
@@ -186,15 +186,15 @@ public class SemanticDiffService {
         String context = buildContext(fromDocs, toDocs, toType, toAnalysisId, caseFileId);
         StringBuilder sb = new StringBuilder(context);
         sb.append("[Version de base]\n");
-        appendSection(sb, "faits", from.faits());
-        appendSection(sb, "points_juridiques", from.pointsJuridiques());
-        appendSection(sb, "risques", from.risques());
+        appendSection(sb, "faits", toTexts(from.faits()));
+        appendSection(sb, "points_juridiques", toTexts(from.pointsJuridiques()));
+        appendSection(sb, "risques", toTexts(from.risques()));
         appendSection(sb, "questions_ouvertes", from.questionsOuvertes());
         appendTimeline(sb, "timeline", from.timeline());
         sb.append("\n[Nouvelle version]\n");
-        appendSection(sb, "faits", to.faits());
-        appendSection(sb, "points_juridiques", to.pointsJuridiques());
-        appendSection(sb, "risques", to.risques());
+        appendSection(sb, "faits", toTexts(to.faits()));
+        appendSection(sb, "points_juridiques", toTexts(to.pointsJuridiques()));
+        appendSection(sb, "risques", toTexts(to.risques()));
         appendSection(sb, "questions_ouvertes", to.questionsOuvertes());
         appendTimeline(sb, "timeline", to.timeline());
         return sb.toString();
@@ -204,9 +204,9 @@ public class SemanticDiffService {
                                    CaseAnalysis fromAnalysis, CaseAnalysis toAnalysis) {
         return new AnalysisDiffResponse(
                 toVersionInfo(fromAnalysis), toVersionInfo(toAnalysis),
-                exactSectionDiff(from.faits(), to.faits()),
-                exactSectionDiff(from.pointsJuridiques(), to.pointsJuridiques()),
-                exactSectionDiff(from.risques(), to.risques()),
+                exactSectionDiff(toTexts(from.faits()), toTexts(to.faits())),
+                exactSectionDiff(toTexts(from.pointsJuridiques()), toTexts(to.pointsJuridiques())),
+                exactSectionDiff(toTexts(from.risques()), toTexts(to.risques())),
                 exactSectionDiff(from.questionsOuvertes(), to.questionsOuvertes()),
                 exactTimelineDiff(from.timeline(), to.timeline())
         );
@@ -264,6 +264,10 @@ public class SemanticDiffService {
             }
         }
         return new AnalysisDiffResponse.TimelineSectionDiff(added, removed, unchanged, enriched);
+    }
+
+    private static List<String> toTexts(List<AnalysisItem> items) {
+        return items.stream().map(AnalysisItem::texte).toList();
     }
 
     private AnalysisDiffResponse.SectionDiff exactSectionDiff(List<String> from, List<String> to) {

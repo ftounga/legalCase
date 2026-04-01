@@ -14,9 +14,9 @@ public record CaseAnalysisResponse(
         String analysisType,
         String status,
         List<TimelineEntry> timeline,
-        List<String> faits,
-        List<String> pointsJuridiques,
-        List<String> risques,
+        List<AnalysisItem> faits,
+        List<AnalysisItem> pointsJuridiques,
+        List<AnalysisItem> risques,
         List<String> questionsOuvertes,
         List<String> piecesManquantes,
         List<String> pointsProcedure,
@@ -61,11 +61,10 @@ public record CaseAnalysisResponse(
 
     public static CaseAnalysisResponse from(CaseAnalysis analysis) {
         List<TimelineEntry> timeline = List.of();
-        List<String> faits = List.of();
-        List<String> pointsJuridiques = List.of();
-        List<String> risques = List.of();
+        List<AnalysisItem> faits = List.of();
+        List<AnalysisItem> pointsJuridiques = List.of();
+        List<AnalysisItem> risques = List.of();
         List<String> questionsOuvertes = List.of();
-
         List<String> piecesManquantes = List.of();
         List<String> pointsProcedure = List.of();
 
@@ -74,9 +73,9 @@ public record CaseAnalysisResponse(
             try {
                 JsonNode root = MAPPER.readTree(raw);
                 timeline = extractTimeline(root);
-                faits = extractStringList(root, "faits");
-                pointsJuridiques = extractStringList(root, "points_juridiques");
-                risques = extractStringList(root, "risques");
+                faits = extractItemList(root, "faits");
+                pointsJuridiques = extractItemList(root, "points_juridiques");
+                risques = extractItemList(root, "risques");
                 questionsOuvertes = extractStringList(root, "questions_ouvertes");
                 piecesManquantes = extractStringList(root, "pieces_manquantes");
                 pointsProcedure = extractStringList(root, "points_procedure");
@@ -100,6 +99,31 @@ public record CaseAnalysisResponse(
                 analysis.getModelUsed(),
                 analysis.getUpdatedAt()
         );
+    }
+
+    /**
+     * Parse un array JSON en List<AnalysisItem>. Fail-open :
+     * - item string → AnalysisItem(texte, null, null)
+     * - item objet {texte, source?, extrait?} → AnalysisItem complet
+     * - item malformé → ignoré
+     */
+    static List<AnalysisItem> extractItemList(JsonNode root, String field) {
+        JsonNode node = root.get(field);
+        if (node == null || !node.isArray()) return List.of();
+        List<AnalysisItem> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (item.isTextual()) {
+                result.add(AnalysisItem.ofText(item.asText()));
+            } else if (item.isObject()) {
+                String texte = item.has("texte") ? item.get("texte").asText() : item.toString();
+                String source = item.has("source") && !item.get("source").isNull()
+                        ? item.get("source").asText() : null;
+                String extrait = item.has("extrait") && !item.get("extrait").isNull()
+                        ? item.get("extrait").asText() : null;
+                result.add(new AnalysisItem(texte, source, extrait));
+            }
+        }
+        return List.copyOf(result);
     }
 
     private static List<String> extractStringList(JsonNode root, String field) {

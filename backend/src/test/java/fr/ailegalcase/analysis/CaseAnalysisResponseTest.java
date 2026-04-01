@@ -27,9 +27,9 @@ class CaseAnalysisResponseTest {
         assertThat(response.timeline()).hasSize(1);
         assertThat(response.timeline().get(0).date()).isEqualTo("2024-01-15");
         assertThat(response.timeline().get(0).evenement()).isEqualTo("Embauche");
-        assertThat(response.faits()).containsExactly("fait1", "fait2");
-        assertThat(response.pointsJuridiques()).containsExactly("point1");
-        assertThat(response.risques()).containsExactly("risque1");
+        assertThat(response.faits()).extracting(AnalysisItem::texte).containsExactly("fait1", "fait2");
+        assertThat(response.pointsJuridiques()).extracting(AnalysisItem::texte).containsExactly("point1");
+        assertThat(response.risques()).extracting(AnalysisItem::texte).containsExactly("risque1");
         assertThat(response.questionsOuvertes()).containsExactly("question1");
         assertThat(response.modelUsed()).isEqualTo("claude-sonnet-4-6");
     }
@@ -43,7 +43,7 @@ class CaseAnalysisResponseTest {
 
         CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
 
-        assertThat(response.faits()).containsExactly("fait1");
+        assertThat(response.faits()).extracting(AnalysisItem::texte).containsExactly("fait1");
         assertThat(response.timeline()).isEmpty();
         assertThat(response.pointsJuridiques()).isEmpty();
         assertThat(response.risques()).isEmpty();
@@ -159,6 +159,51 @@ class CaseAnalysisResponseTest {
         CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
 
         assertThat(response.piecesManquantes()).isEmpty();
+    }
+
+    // TC-01 : item string → AnalysisItem(texte, null, null) — rétrocompatibilité
+    @Test
+    void extractItemList_stringItem_returnsItemWithNullSource() {
+        CaseAnalysis analysis = analysis("""
+                {"faits": ["fait ancien"]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.faits()).hasSize(1);
+        assertThat(response.faits().get(0).texte()).isEqualTo("fait ancien");
+        assertThat(response.faits().get(0).source()).isNull();
+        assertThat(response.faits().get(0).extrait()).isNull();
+    }
+
+    // TC-02 : item objet complet {texte, source, extrait} → AnalysisItem complet
+    @Test
+    void extractItemList_objectItem_returnsCompleteAnalysisItem() {
+        CaseAnalysis analysis = analysis("""
+                {"faits": [{"texte": "Licenciement sans motif", "source": "Document 0", "extrait": "Il est mis fin au contrat"}]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.faits()).hasSize(1);
+        assertThat(response.faits().get(0).texte()).isEqualTo("Licenciement sans motif");
+        assertThat(response.faits().get(0).source()).isEqualTo("Document 0");
+        assertThat(response.faits().get(0).extrait()).isEqualTo("Il est mis fin au contrat");
+    }
+
+    // TC-03 : item objet sans source → source null (fail-open)
+    @Test
+    void extractItemList_objectItemWithoutSource_returnsNullSource() {
+        CaseAnalysis analysis = analysis("""
+                {"faits": [{"texte": "Fait sans source"}]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.faits()).hasSize(1);
+        assertThat(response.faits().get(0).texte()).isEqualTo("Fait sans source");
+        assertThat(response.faits().get(0).source()).isNull();
+        assertThat(response.faits().get(0).extrait()).isNull();
     }
 
     private CaseAnalysis analysis(String result) {

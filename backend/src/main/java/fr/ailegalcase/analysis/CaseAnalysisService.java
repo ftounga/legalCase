@@ -35,7 +35,8 @@ public class CaseAnalysisService {
             Tu reçois les analyses de plusieurs documents d'un dossier juridique.
             Produis une synthèse globale du dossier en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...]}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "Document N", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "Document N", "extrait": "..."}], "risques": [{"texte": "...", "source": "Document N", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...]}
+            Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (ex: "Document 0") et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
             La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis (ex: "Contrat de travail", "Bulletins de salaire"). Si le dossier semble complet, utilise "pieces_manquantes": [].
             Le champ "points_procedure" liste les étapes procédurales légalement requises dans ce type de dossier (ex: "Entretien préalable tenu dans les délais", "Lettre de licenciement motivée"). Si la procédure semble conforme, utilise "points_procedure": [].
@@ -254,7 +255,12 @@ public class CaseAnalysisService {
                 .sorted((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
                 .toList();
         return IntStream.range(0, sorted.size())
-                .mapToObj(i -> "Document %d : %s".formatted(i, sorted.get(i).getAnalysisResult()))
+                .mapToObj(i -> {
+                    String filename = sorted.get(i).getDocument().getOriginalFilename();
+                    String label = filename != null ? "Document %d (%s)".formatted(i, filename)
+                                                    : "Document %d".formatted(i);
+                    return "%s : %s".formatted(label, sorted.get(i).getAnalysisResult());
+                })
                 .collect(Collectors.joining("\n"));
     }
 }
