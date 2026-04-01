@@ -48,7 +48,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
 | M-10 | Brief designer — livré | Haute | `Terminé` | PDF + captures HD 8 écrans livrés le 2026-03-29 |
-| M-11 | Réalisation vidéo 60-90s (format 16:9) | Haute | `À faire` | Basé sur le brief designer |
+| M-11 | Réalisation vidéo — 4 scripts motion design | Haute | `En cours` | Motion designer contacté, devis 1000€ accepté. 4 vidéos en production. **Priorité de livraison : V1 → V4 → V2 → V3.** V1 (60s "La synthèse en 15 secondes") : landing page + Google Ads. V4 (45s "Ne rien rater") : outreach + événements. V2 (45s "Du document à la décision") : LinkedIn. V3 (45s "L'IA qui apprend de vous") : nurturing prospects chauds. **Prérequis avant livraison : confirmer l'URL finale (ailegalcase.fr ou legalcase.ng-itconsulting.com), fournir screen recordings avec données démo propres, confirmer voix off incluse ou budget ~200€ en plus.** |
 | M-12 | Déclinaison carré LinkedIn/Instagram (1:1) | Haute | `À faire` | Après livraison M-11 |
 | M-13 | Déclinaison Stories/Reels (9:16) | Moyenne | `À faire` | Après livraison M-11 |
 | M-14 | Teaser 15s pour bannière web | Moyenne | `À faire` | Après livraison M-11 |
