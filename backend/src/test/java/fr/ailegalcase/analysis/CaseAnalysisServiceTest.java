@@ -222,7 +222,7 @@ class CaseAnalysisServiceTest {
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(anthropicService).analyze(any(), promptCaptor.capture(), anyInt());
         String prompt = promptCaptor.getValue();
-        assertThat(prompt.indexOf("Document 0")).isLessThan(prompt.indexOf("Document 1"));
+        assertThat(prompt.indexOf("document-0")).isLessThan(prompt.indexOf("document-1"));
         assertThat(prompt).contains("{\"faits\":[\"A\"]}");
         assertThat(prompt.indexOf("{\"faits\":[\"A\"]}")).isLessThan(prompt.indexOf("{\"faits\":[\"B\"]}"));
     }
