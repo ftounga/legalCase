@@ -19,7 +19,8 @@ public class EmailSend {
         ONBOARDING_TIP_ANALYSIS,
         ONBOARDING_TIP_SHARE,
         ONBOARDING_BEFORE_EXPIRY,
-        ONBOARDING_EXPIRED
+        ONBOARDING_EXPIRED,
+        NEWSLETTER_MONTHLY
     }
 
     @Id
