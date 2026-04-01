@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-96 | Checklist procédurale interactive | V3 — `À spécifier` | L'IA génère après l'analyse un champ `points_procedure` (étapes légales à vérifier selon le type de dossier). L'avocat coche chaque point : ✅ Vérifié / ❌ Non respecté / ⚠️ À vérifier. Les points "Non respecté" alimentent la prochaine re-synthèse enrichie. Table `procedure_checks`. 3 subfeatures : SF-96-01 backend (prompt + extraction + CRUD statuts), SF-96-02 frontend (checklist interactive), SF-96-03 intégration re-synthèse. |
 | F-95 | Export Word (.docx) de la synthèse | V3 — `À spécifier` | Export de la synthèse en fichier .docx éditable (sections structurées : timeline, faits, points juridiques, risques, questions ouvertes, pièces manquantes). Complément au PDF existant (F-40). Les avocats travaillent dans Word. |
 | F-94 | Score de risque global du dossier | V3 — `À spécifier` | Indicateur synthétique Faible/Moyen/Élevé + score 0-100 calculé depuis les risques identifiés dans la synthèse. Visible sur la liste des dossiers et en haut de la page synthèse. Calculé par le LLM lors de la case analysis. |
 | F-93 | Traçabilité des sources IA | V3 — `À spécifier` | Chaque fait, risque et point juridique cite le document source et l'extrait exact dont il est tiré. Renforce la confiance de l'avocat dans les conclusions IA. Différenciant fort vs Jimini/Ordalie. |
@@ -233,6 +234,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-01 | F-96 ajoutée — Checklist procédurale interactive niveau 2 (statuts + intégration re-synthèse) | Product owner |
 | 2026-04-01 | F-93/F-94/F-95 ajoutées au backlog — Traçabilité sources IA, Score de risque, Export Word (.docx) | Product owner |
 | 2026-03-31 | F-92 Terminée — SF-92-02 mergée : panneau Pièces manquantes SynthesisComponent, icône orange, 411 tests | Product owner |
 | 2026-03-31 | F-92 ajoutée + SF-92-01 mergée — backend pieces_manquantes : prompt + extraction fail-open + truncation, 389 tests | Product owner |
