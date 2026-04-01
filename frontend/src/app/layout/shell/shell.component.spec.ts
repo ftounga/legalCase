@@ -19,13 +19,13 @@ const ws2: Workspace = { id: 'ws-2', name: 'Cabinet Beta', slug: 'beta', planCod
 describe('ShellComponent — invitation pendante', () => {
   let fixture: ComponentFixture<ShellComponent>;
   let component: ShellComponent;
-  let workspaceService: jasmine.SpyObj<WorkspaceService>;
-  let invitationService: jasmine.SpyObj<WorkspaceInvitationService>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let workspaceService: jest.Mocked<WorkspaceService>;
+  let invitationService: jest.Mocked<WorkspaceInvitationService>;
+  let snackBar: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
-    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
     invitationService = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
@@ -51,12 +51,12 @@ describe('ShellComponent — invitation pendante', () => {
 
   // T-01 : sans token pending → ready passe à true après getCurrentWorkspace
   it('sans token pending, ready passe à true après chargement workspace', fakeAsync(() => {
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
 
     fixture.detectChanges();
     tick();
 
-    expect(component.ready()).toBeTrue();
+    expect(component.ready()).toBe(true);
     expect(component.workspace()).toEqual(ws1);
     expect(invitationService.acceptInvitation).not.toHaveBeenCalled();
   }));
@@ -64,10 +64,10 @@ describe('ShellComponent — invitation pendante', () => {
   // T-02 : avec token pending + succès → ready false pendant acceptation, true après reload workspace
   it('avec token pending, ready reste false puis passe à true après reload', fakeAsync(() => {
     localStorage.setItem(PENDING_INVITATION_TOKEN_KEY, 'tok-abc');
-    invitationService.acceptInvitation.and.returnValue(of(void 0));
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
+    invitationService.acceptInvitation.mockReturnValue(of(void 0));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
 
-    expect(component.ready()).toBeFalse();
+    expect(component.ready()).toBe(false);
     fixture.detectChanges();
 
     expect(invitationService.acceptInvitation).toHaveBeenCalledWith('tok-abc');
@@ -75,37 +75,37 @@ describe('ShellComponent — invitation pendante', () => {
 
     tick();
 
-    expect(component.ready()).toBeTrue();
+    expect(component.ready()).toBe(true);
     expect(component.workspace()).toEqual(ws1);
   }));
 
   // T-03 : token pending + erreur acceptation → ready passe à true (fail-open)
   it('token pending + erreur acceptation : ready passe à true (fail-open)', fakeAsync(() => {
     localStorage.setItem(PENDING_INVITATION_TOKEN_KEY, 'tok-expired');
-    invitationService.acceptInvitation.and.returnValue(throwError(() => ({ status: 409 })));
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
+    invitationService.acceptInvitation.mockReturnValue(throwError(() => ({ status: 409 })));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
 
     fixture.detectChanges();
     tick();
 
-    expect(component.ready()).toBeTrue();
+    expect(component.ready()).toBe(true);
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('invalide'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('invalide'), expect.any(String), expect.any(Object)
     );
   }));
 
   // T-04 : token pending + succès → workspace rechargé avec la nouvelle valeur
   it('token pending + succès : workspace mis à jour avec la valeur rechargée', fakeAsync(() => {
     localStorage.setItem(PENDING_INVITATION_TOKEN_KEY, 'tok-valid');
-    invitationService.acceptInvitation.and.returnValue(of(void 0));
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
+    invitationService.acceptInvitation.mockReturnValue(of(void 0));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
 
     fixture.detectChanges();
     tick();
 
     expect(component.workspace()).toEqual(ws1);
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Invitation acceptée'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('Invitation acceptée'), expect.any(String), expect.any(Object)
     );
   }));
 });
@@ -113,9 +113,9 @@ describe('ShellComponent — invitation pendante', () => {
 describe('ShellComponent — workspace switcher', () => {
   let fixture: ComponentFixture<ShellComponent>;
   let component: ShellComponent;
-  let workspaceService: jasmine.SpyObj<WorkspaceService>;
+  let workspaceService: jest.Mocked<WorkspaceService>;
   let router: Router;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let snackBar: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
@@ -144,8 +144,8 @@ describe('ShellComponent — workspace switcher', () => {
 
   // T-05 : 1 workspace → workspaces.length = 1
   it('un seul workspace → signal workspaces contient 1 élément', fakeAsync(() => {
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
-    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
 
     fixture.detectChanges();
     tick();
@@ -155,8 +155,8 @@ describe('ShellComponent — workspace switcher', () => {
 
   // T-06 : 2 workspaces → workspaces.length = 2
   it('deux workspaces → signal workspaces contient 2 éléments', fakeAsync(() => {
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
-    workspaceService.listWorkspaces.and.returnValue(of([ws1, ws2]));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1, ws2]));
 
     fixture.detectChanges();
     tick();
@@ -167,10 +167,10 @@ describe('ShellComponent — workspace switcher', () => {
   // T-07 : switchTo → switchWorkspace appelé + workspace rechargé + navigate /case-files
   it('switchTo → appel switchWorkspace, workspace mis à jour, navigate /case-files', fakeAsync(() => {
     const navigateSpy = spyOn(router, 'navigate');
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
-    workspaceService.listWorkspaces.and.returnValue(of([ws1, ws2]));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1, ws2]));
     const switched = { ...ws2, primary: true };
-    workspaceService.switchWorkspace.and.returnValue(of(switched));
+    workspaceService.switchWorkspace.mockReturnValue(of(switched));
 
     fixture.detectChanges();
     tick();
@@ -185,9 +185,9 @@ describe('ShellComponent — workspace switcher', () => {
 
   // T-08 : erreur switch → snackbar erreur, workspace inchangé
   it('erreur switch → snackbar erreur, workspace inchangé', fakeAsync(() => {
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
-    workspaceService.listWorkspaces.and.returnValue(of([ws1, ws2]));
-    workspaceService.switchWorkspace.and.returnValue(throwError(() => ({ status: 403 })));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1, ws2]));
+    workspaceService.switchWorkspace.mockReturnValue(throwError(() => ({ status: 403 })));
 
     fixture.detectChanges();
     tick();
@@ -196,7 +196,7 @@ describe('ShellComponent — workspace switcher', () => {
     tick();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Erreur'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('Erreur'), expect.any(String), expect.any(Object)
     );
     expect(component.workspace()).toEqual(ws1);
   }));
@@ -207,8 +207,8 @@ describe('ShellComponent — domainColor()', () => {
 
   beforeEach(async () => {
     const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
-    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
     const authServiceStub = { currentUser: signal(null), logout: () => {} };
     const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
 
@@ -246,10 +246,10 @@ describe('ShellComponent — domainColor()', () => {
 describe('ShellComponent — lien super-admin', () => {
   let fixture: ComponentFixture<ShellComponent>;
 
-  async function setupWithSuperAdmin(isSuperAdmin: boolean) {
+  function setupWithSuperAdmin(isSuperAdmin: boolean) {
     const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
-    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
 
     const authServiceStub = {
       currentUser: signal<any>({ id: 'u-1', email: 'user@test.com', isSuperAdmin }),
@@ -257,7 +257,7 @@ describe('ShellComponent — lien super-admin', () => {
     };
     const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
 
-    await TestBed.configureTestingModule({
+    TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
         provideHttpClient(),
@@ -266,7 +266,7 @@ describe('ShellComponent — lien super-admin', () => {
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
         { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) }
       ]
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(ShellComponent);
     fixture.detectChanges();
@@ -276,13 +276,13 @@ describe('ShellComponent — lien super-admin', () => {
 
   // T-09 : lien super-admin visible si isSuperAdmin = true
   it('affiche le lien Super-admin si isSuperAdmin = true', fakeAsync(async () => {
-    await setupWithSuperAdmin(true);
+    setupWithSuperAdmin(true);
     expect(fixture.nativeElement.textContent).toContain('Super-admin');
   }));
 
   // T-10 : lien super-admin absent si isSuperAdmin = false
   it('n\'affiche pas le lien Super-admin si isSuperAdmin = false', fakeAsync(async () => {
-    await setupWithSuperAdmin(false);
+    setupWithSuperAdmin(false);
     expect(fixture.nativeElement.textContent).not.toContain('Super-admin');
   }));
 });
@@ -290,20 +290,20 @@ describe('ShellComponent — lien super-admin', () => {
 describe('ShellComponent — responsive mobile', () => {
   let fixture: ComponentFixture<ShellComponent>;
   let component: ShellComponent;
-  let breakpointObserver: jasmine.SpyObj<BreakpointObserver>;
+  let breakpointObserver: jest.Mocked<BreakpointObserver>;
 
-  async function setup(mobileMatches: boolean) {
+  function setup(mobileMatches: boolean) {
     breakpointObserver = jasmine.createSpyObj('BreakpointObserver', ['observe']);
-    breakpointObserver.observe.and.returnValue(of({ matches: mobileMatches, breakpoints: {} }));
+    breakpointObserver.observe.mockReturnValue(of({ matches: mobileMatches, breakpoints: {} }));
 
     const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
-    workspaceService.getCurrentWorkspace.and.returnValue(of(ws1));
-    workspaceService.listWorkspaces.and.returnValue(of([ws1]));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
 
     const authServiceStub = { currentUser: signal(null), logout: () => {} };
     const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
 
-    await TestBed.configureTestingModule({
+    TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
         provideHttpClient(),
@@ -313,7 +313,7 @@ describe('ShellComponent — responsive mobile', () => {
         { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
         { provide: BreakpointObserver, useValue: breakpointObserver }
       ]
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(ShellComponent);
     component = fixture.componentInstance;
@@ -322,33 +322,33 @@ describe('ShellComponent — responsive mobile', () => {
 
   // T-11 : isMobile = true si BreakpointObserver émet matches = true
   it('isMobile = true si le breakpoint mobile correspond', fakeAsync(async () => {
-    await setup(true);
+    setup(true);
     tick();
-    expect(component.isMobile()).toBeTrue();
+    expect(component.isMobile()).toBe(true);
   }));
 
   // T-12 : sidenavOpen = false au init quand isMobile = true
   it('sidenavOpen = false au init quand mobile', fakeAsync(async () => {
-    await setup(true);
+    setup(true);
     tick();
-    expect(component.sidenavOpen()).toBeFalse();
+    expect(component.sidenavOpen()).toBe(false);
   }));
 
   // T-13 : onNavClick() ferme la sidenav sur mobile
   it('onNavClick ferme la sidenav sur mobile', fakeAsync(async () => {
-    await setup(true);
+    setup(true);
     tick();
     component.sidenavOpen.set(true);
     component.onNavClick();
-    expect(component.sidenavOpen()).toBeFalse();
+    expect(component.sidenavOpen()).toBe(false);
   }));
 
   // T-14 : onNavClick() ne ferme pas la sidenav sur desktop
   it('onNavClick ne ferme pas la sidenav sur desktop', fakeAsync(async () => {
-    await setup(false);
+    setup(false);
     tick();
     component.sidenavOpen.set(true);
     component.onNavClick();
-    expect(component.sidenavOpen()).toBeTrue();
+    expect(component.sidenavOpen()).toBe(true);
   }));
 });

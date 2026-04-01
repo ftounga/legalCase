@@ -49,9 +49,9 @@ function buildTestBed(getDiffReturn: any) {
   const caseFileServiceSpy     = jasmine.createSpyObj('CaseFileService', ['getById']);
   const snackBarSpy            = jasmine.createSpyObj('MatSnackBar', ['open']);
 
-  caseFileServiceSpy.getById.and.returnValue(of({ id: 'cf-1', title: 'Dossier test' } as any));
-  caseAnalysisServiceSpy.getVersions.and.returnValue(of(MOCK_VERSIONS));
-  caseAnalysisServiceSpy.getDiff.and.returnValue(getDiffReturn);
+  caseFileServiceSpy.getById.mockReturnValue(of({ id: 'cf-1', title: 'Dossier test' } as any));
+  caseAnalysisServiceSpy.getVersions.mockReturnValue(of(MOCK_VERSIONS));
+  caseAnalysisServiceSpy.getDiff.mockReturnValue(getDiffReturn);
 
   TestBed.configureTestingModule({
     imports: [AnalysisDiffComponent, NoopAnimationsModule],
@@ -72,8 +72,8 @@ function buildTestBed(getDiffReturn: any) {
 describe('AnalysisDiffComponent', () => {
   let fixture: ComponentFixture<AnalysisDiffComponent>;
   let component: AnalysisDiffComponent;
-  let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let caseAnalysisServiceSpy: jest.Mocked<CaseAnalysisService>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
   let router: Router;
 
   beforeEach(async () => {
@@ -104,19 +104,19 @@ describe('AnalysisDiffComponent', () => {
   it('canCompute() is false when no versions selected', () => {
     component.fromId.set('');
     component.toId.set('');
-    expect(component.canCompute()).toBeFalse();
+    expect(component.canCompute()).toBe(false);
   });
 
   it('canCompute() is false when fromId equals toId', () => {
     component.fromId.set('v1-id');
     component.toId.set('v1-id');
-    expect(component.canCompute()).toBeFalse();
+    expect(component.canCompute()).toBe(false);
   });
 
   it('canCompute() is true when two different versions selected', () => {
     component.fromId.set('v1-id');
     component.toId.set('v2-id');
-    expect(component.canCompute()).toBeTrue();
+    expect(component.canCompute()).toBe(true);
   });
 
   // ── Sections & totals ─────────────────────────────────────────────────
@@ -179,9 +179,9 @@ describe('AnalysisDiffComponent', () => {
   });
 
   it('toggleUnchanged() flips unchangedVisible', () => {
-    expect(component.unchangedVisible()).toBeFalse();
+    expect(component.unchangedVisible()).toBe(false);
     component.toggleUnchanged();
-    expect(component.unchangedVisible()).toBeTrue();
+    expect(component.unchangedVisible()).toBe(true);
   });
 
   // ── Navigation ────────────────────────────────────────────────────────

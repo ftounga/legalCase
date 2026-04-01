@@ -12,7 +12,7 @@ class StubComponent {}
 describe('LoginComponent', () => {
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
-  let authSpy: jasmine.SpyObj<AuthService>;
+  let authSpy: jest.Mocked<AuthService>;
   let router: Router;
 
   beforeEach(async () => {
@@ -61,7 +61,7 @@ describe('LoginComponent', () => {
 
   // T-05 : soumission login valide → loginLocal() appelé
   it('soumission login valide → loginLocal() appelé', fakeAsync(() => {
-    authSpy.loginLocal.and.returnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
+    authSpy.loginLocal.mockReturnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
     component.loginForm.setValue({ email: 'alice@example.com', password: 'password123' });
     component.submitLogin();
     tick();
@@ -70,7 +70,7 @@ describe('LoginComponent', () => {
 
   // T-07 : erreur 401 → message "Identifiants invalides."
   it('erreur 401 login → affiche message identifiants invalides', fakeAsync(() => {
-    authSpy.loginLocal.and.returnValue(throwError(() => ({ status: 401 })));
+    authSpy.loginLocal.mockReturnValue(throwError(() => ({ status: 401 })));
     component.loginForm.setValue({ email: 'alice@example.com', password: 'wrong' });
     component.submitLogin();
     tick();
@@ -81,7 +81,7 @@ describe('LoginComponent', () => {
 
   // T-08 : erreur 403 → message email non vérifié
   it('erreur 403 login → affiche message email non vérifié', fakeAsync(() => {
-    authSpy.loginLocal.and.returnValue(throwError(() => ({ status: 403 })));
+    authSpy.loginLocal.mockReturnValue(throwError(() => ({ status: 403 })));
     component.loginForm.setValue({ email: 'alice@example.com', password: 'password123' });
     component.submitLogin();
     tick();
@@ -91,7 +91,7 @@ describe('LoginComponent', () => {
 
   // T-09 : soumission inscription → register() appelé
   it('soumission inscription → register() appelé', fakeAsync(() => {
-    authSpy.register.and.returnValue(of(undefined));
+    authSpy.register.mockReturnValue(of(undefined));
     component.registerForm.setValue({
       firstName: 'Alice', lastName: 'Dupont',
       email: 'alice@example.com', password: 'password123'
@@ -99,12 +99,12 @@ describe('LoginComponent', () => {
     component.submitRegister();
     tick();
     expect(authSpy.register).toHaveBeenCalled();
-    expect(component.registerSuccess()).toBeTrue();
+    expect(component.registerSuccess()).toBe(true);
   }));
 
   // T-10 : erreur 409 inscription → message email déjà utilisé
   it('erreur 409 inscription → affiche message email déjà utilisé', fakeAsync(() => {
-    authSpy.register.and.returnValue(throwError(() => ({ status: 409 })));
+    authSpy.register.mockReturnValue(throwError(() => ({ status: 409 })));
     component.registerForm.setValue({
       firstName: 'Alice', lastName: 'Dupont',
       email: 'dup@example.com', password: 'password123'
@@ -118,7 +118,7 @@ describe('LoginComponent', () => {
   // T-02 (SF-81) : login local avec returnUrl → navigation vers returnUrl
   it('login local avec returnUrl → navigue vers returnUrl', fakeAsync(() => {
     sessionStorage.setItem('auth.returnUrl', '/case-files/abc');
-    authSpy.loginLocal.and.returnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
+    authSpy.loginLocal.mockReturnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
     component.loginForm.setValue({ email: 'alice@example.com', password: 'password123' });
     component.submitLogin();
     tick();
@@ -128,7 +128,7 @@ describe('LoginComponent', () => {
 
   // T-03 (SF-81) : login local sans returnUrl → navigation vers /case-files
   it('login local sans returnUrl → navigue vers /case-files', fakeAsync(() => {
-    authSpy.loginLocal.and.returnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
+    authSpy.loginLocal.mockReturnValue(of({ id: '1', email: 'a@a.com', firstName: 'A', lastName: 'B', provider: 'LOCAL', isSuperAdmin: false }));
     component.loginForm.setValue({ email: 'alice@example.com', password: 'password123' });
     component.submitLogin();
     tick();

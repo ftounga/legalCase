@@ -12,7 +12,7 @@ describe('AnalyticsService', () => {
   });
 
   it('calls gtag with event name and params when gtag is present', () => {
-    const gtag = jasmine.createSpy('gtag');
+    const gtag = jest.fn();
     (window as any).gtag = gtag;
 
     service.trackEvent('analysis_launched', { type: 'STANDARD' });
@@ -21,7 +21,7 @@ describe('AnalyticsService', () => {
   });
 
   it('calls gtag with empty params when no params provided', () => {
-    const gtag = jasmine.createSpy('gtag');
+    const gtag = jest.fn();
     (window as any).gtag = gtag;
 
     service.trackEvent('pdf_exported');

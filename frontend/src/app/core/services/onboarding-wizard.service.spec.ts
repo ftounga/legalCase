@@ -20,12 +20,12 @@ describe('OnboardingWizardService', () => {
   });
 
   it('shouldShow — clé absente → true', () => {
-    expect(service.shouldShow(WS_ID)).toBeTrue();
+    expect(service.shouldShow(WS_ID)).toBe(true);
   });
 
   it('shouldShow — clé présente → false', () => {
     localStorage.setItem(`onboarding_wizard_done_${WS_ID}`, '1');
-    expect(service.shouldShow(WS_ID)).toBeFalse();
+    expect(service.shouldShow(WS_ID)).toBe(false);
   });
 
   it('markDone — pose la clé localStorage', () => {
@@ -35,14 +35,14 @@ describe('OnboardingWizardService', () => {
 
   it('shouldShow — après markDone → false', () => {
     service.markDone(WS_ID);
-    expect(service.shouldShow(WS_ID)).toBeFalse();
+    expect(service.shouldShow(WS_ID)).toBe(false);
   });
 
   it('shouldShow — workspaceId null → false', () => {
-    expect(service.shouldShow(null)).toBeFalse();
+    expect(service.shouldShow(null)).toBe(false);
   });
 
   it('shouldShow — workspaceId undefined → false', () => {
-    expect(service.shouldShow(undefined)).toBeFalse();
+    expect(service.shouldShow(undefined)).toBe(false);
   });
 });

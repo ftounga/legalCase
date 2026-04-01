@@ -19,11 +19,11 @@ const NOTE_OTHER: CaseNote = {
 describe('CaseNotesSectionComponent', () => {
   let fixture: ComponentFixture<CaseNotesSectionComponent>;
   let component: CaseNotesSectionComponent;
-  let noteServiceSpy: jasmine.SpyObj<CaseNoteService>;
+  let noteServiceSpy: jest.Mocked<CaseNoteService>;
 
   beforeEach(async () => {
     noteServiceSpy = jasmine.createSpyObj('CaseNoteService', ['list', 'create', 'update', 'delete']);
-    noteServiceSpy.list.and.returnValue(of([]));
+    noteServiceSpy.list.mockReturnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [CaseNotesSectionComponent, NoopAnimationsModule],
@@ -48,7 +48,7 @@ describe('CaseNotesSectionComponent', () => {
   });
 
   it('U-02: renders note items when notes exist (expanded)', () => {
-    noteServiceSpy.list.and.returnValue(of([NOTE_OWN]));
+    noteServiceSpy.list.mockReturnValue(of([NOTE_OWN]));
     component.loadNotes();
     component.toggleCollapsed();
     fixture.detectChanges();
@@ -61,14 +61,14 @@ describe('CaseNotesSectionComponent', () => {
     component.toggleCollapsed();
     fixture.detectChanges();
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.new-note-actions button');
-    expect(btn.disabled).toBeTrue();
+    expect(btn.disabled).toBe(true);
     component.newContent = 'une note';
     fixture.detectChanges();
-    expect(btn.disabled).toBeFalse();
+    expect(btn.disabled).toBe(false);
   });
 
   it('U-04: edit/delete buttons visible only for own notes', () => {
-    noteServiceSpy.list.and.returnValue(of([NOTE_OWN, NOTE_OTHER]));
+    noteServiceSpy.list.mockReturnValue(of([NOTE_OWN, NOTE_OTHER]));
     component.loadNotes();
     component.toggleCollapsed();
     fixture.detectChanges();
@@ -78,8 +78,8 @@ describe('CaseNotesSectionComponent', () => {
   });
 
   it('U-05: saveEdit calls noteService.update with trimmed content', () => {
-    noteServiceSpy.list.and.returnValue(of([NOTE_OWN]));
-    noteServiceSpy.update.and.returnValue(of({ ...NOTE_OWN, content: 'Modifiée' }));
+    noteServiceSpy.list.mockReturnValue(of([NOTE_OWN]));
+    noteServiceSpy.update.mockReturnValue(of({ ...NOTE_OWN, content: 'Modifiée' }));
     component.loadNotes();
     fixture.detectChanges();
     component.startEdit(NOTE_OWN);
@@ -91,28 +91,28 @@ describe('CaseNotesSectionComponent', () => {
   // ── Collapsible (SF-71-01) ────────────────────────────────────────────────
 
   it('SF71-U-04: section repliée par défaut — contenu masqué', () => {
-    expect(component.collapsed()).toBeTrue();
+    expect(component.collapsed()).toBe(true);
     const noteField = fixture.nativeElement.querySelector('.new-note-field');
     expect(noteField).toBeNull();
   });
 
   it('SF71-U-05: après toggleCollapsed() — contenu visible, badge masqué', () => {
-    noteServiceSpy.list.and.returnValue(of([NOTE_OWN]));
+    noteServiceSpy.list.mockReturnValue(of([NOTE_OWN]));
     component.loadNotes();
     component.toggleCollapsed();
     fixture.detectChanges();
-    expect(component.collapsed()).toBeFalse();
+    expect(component.collapsed()).toBe(false);
     expect(fixture.nativeElement.querySelector('.new-note-field')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.section-badge')).toBeNull();
   });
 
   it('SF71-U-06: double toggle — retour à l\'état replié, badge visible', () => {
-    noteServiceSpy.list.and.returnValue(of([NOTE_OWN, NOTE_OTHER]));
+    noteServiceSpy.list.mockReturnValue(of([NOTE_OWN, NOTE_OTHER]));
     component.loadNotes();
     component.toggleCollapsed();
     component.toggleCollapsed();
     fixture.detectChanges();
-    expect(component.collapsed()).toBeTrue();
+    expect(component.collapsed()).toBe(true);
     const badge = fixture.nativeElement.querySelector('.section-badge');
     expect(badge).toBeTruthy();
     expect(badge.textContent).toContain('2 notes');

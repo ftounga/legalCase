@@ -37,7 +37,7 @@ describe('DocumentService', () => {
     service.upload('cf1', file).subscribe(doc => expect(doc).toEqual(mockDocument));
     const req = http.expectOne('/api/v1/case-files/cf1/documents');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body instanceof FormData).toBeTrue();
+    expect(req.request.body instanceof FormData).toBe(true);
     req.flush(mockDocument);
   });
 

@@ -8,8 +8,8 @@ import { authInterceptor } from './auth.interceptor';
 describe('authInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;
-  let router: jasmine.SpyObj<Router>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let router: jest.Mocked<Router>;
+  let snackBar: jest.Mocked<MatSnackBar>;
 
   beforeEach(() => {
     router = jasmine.createSpyObj('Router', ['navigate'], { url: '/case-files/abc' });
@@ -42,9 +42,9 @@ describe('authInterceptor', () => {
     req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('expir'),
+      expect.stringContaining('expir'),
       'Fermer',
-      jasmine.objectContaining({ panelClass: ['snack-error'] })
+      expect.objectContaining({ panelClass: ['snack-error'] })
     );
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
     expect(sessionStorage.getItem('auth.returnUrl')).toBe('/case-files/abc');

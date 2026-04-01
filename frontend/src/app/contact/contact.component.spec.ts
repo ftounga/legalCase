@@ -8,7 +8,7 @@ import { of, throwError } from 'rxjs';
 describe('ContactComponent', () => {
   let fixture: ComponentFixture<ContactComponent>;
   let component: ContactComponent;
-  let contactService: jasmine.SpyObj<ContactService>;
+  let contactService: jest.Mocked<ContactService>;
 
   beforeEach(async () => {
     const spy = jasmine.createSpyObj('ContactService', ['send']);
@@ -18,7 +18,7 @@ describe('ContactComponent', () => {
       providers: [{ provide: ContactService, useValue: spy }]
     }).compileComponents();
 
-    contactService = TestBed.inject(ContactService) as jasmine.SpyObj<ContactService>;
+    contactService = TestBed.inject(ContactService) as jest.Mocked<ContactService>;
     fixture = TestBed.createComponent(ContactComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -35,7 +35,7 @@ describe('ContactComponent', () => {
   });
 
   it('calls ContactService.send() on valid form submission', () => {
-    contactService.send.and.returnValue(of({ status: 'sent' }));
+    contactService.send.mockReturnValue(of({ status: 'sent' }));
     component.form.setValue({
       nom: 'Alice', email: 'alice@example.com',
       telephone: '', sujet: 'Test', message: 'Bonjour'
@@ -45,7 +45,7 @@ describe('ContactComponent', () => {
   });
 
   it('shows success state after successful submission', () => {
-    contactService.send.and.returnValue(of({ status: 'sent' }));
+    contactService.send.mockReturnValue(of({ status: 'sent' }));
     component.form.setValue({
       nom: 'Alice', email: 'alice@example.com',
       telephone: '', sujet: 'Test', message: 'Bonjour'
@@ -55,7 +55,7 @@ describe('ContactComponent', () => {
   });
 
   it('shows snackbar on API error', () => {
-    contactService.send.and.returnValue(throwError(() => new Error('500')));
+    contactService.send.mockReturnValue(throwError(() => new Error('500')));
     component.form.setValue({
       nom: 'Alice', email: 'alice@example.com',
       telephone: '', sujet: 'Test', message: 'Bonjour'

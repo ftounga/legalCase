@@ -35,11 +35,11 @@ const emptyPage: Page<CaseFile> = { content: [], totalElements: 0, totalPages: 0
 describe('CaseFilesListComponent', () => {
   let fixture: ComponentFixture<CaseFilesListComponent>;
   let component: CaseFilesListComponent;
-  let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
-  let workspaceServiceSpy: jasmine.SpyObj<WorkspaceService>;
-  let tourServiceSpy: jasmine.SpyObj<TourService>;
-  let dialogSpy: jasmine.SpyObj<MatDialog>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let caseFileServiceSpy: jest.Mocked<CaseFileService>;
+  let workspaceServiceSpy: jest.Mocked<WorkspaceService>;
+  let tourServiceSpy: jest.Mocked<TourService>;
+  let dialogSpy: jest.Mocked<MatDialog>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['list']);
@@ -50,8 +50,8 @@ describe('CaseFilesListComponent', () => {
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
-    caseFileServiceSpy.list.and.returnValue(of(emptyPage));
-    workspaceServiceSpy.getCurrentWorkspace.and.returnValue(of(mockWorkspace));
+    caseFileServiceSpy.list.mockReturnValue(of(emptyPage));
+    workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
 
     await TestBed.configureTestingModule({
       imports: [CaseFilesListComponent],
@@ -86,14 +86,14 @@ describe('CaseFilesListComponent', () => {
   });
 
   it('liste avec items → dataSource peuplé', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     expect(component.dataSource.length).toBe(2);
     expect(component.totalElements).toBe(2);
   });
 
   it('erreur API → affiche snackbar', () => {
-    caseFileServiceSpy.list.and.returnValue(throwError(() => new Error('500')));
+    caseFileServiceSpy.list.mockReturnValue(throwError(() => new Error('500')));
     component.loadCaseFiles();
     expect(snackBarSpy.open).toHaveBeenCalled();
   });
@@ -114,12 +114,12 @@ describe('CaseFilesListComponent', () => {
   it('C-01: bouton "Nouveau dossier" a data-tour-target="new-dossier-btn"', () => {
     const el: HTMLElement = fixture.nativeElement;
     const btn = el.querySelector('[data-tour-target="new-dossier-btn"]');
-    expect(btn).withContext('data-tour-target="new-dossier-btn" manquant dans le template').not.toBeNull();
+    expect(btn).not.toBeNull(); // data-tour-target="new-dossier-btn" manquant dans le template
   });
 
   // T-01 : searchTerm vide → filteredDataSource = dataSource complet
   it('T-01: searchTerm vide → filteredDataSource retourne tous les dossiers', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.searchTerm = '';
     expect(component.filteredDataSource.length).toBe(2);
@@ -127,7 +127,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-02 : saisie partielle → filtre appliqué sur le nom
   it('T-02: saisie "alpha" → seul "Dossier Alpha" retourné', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSearch('alpha');
     expect(component.filteredDataSource.length).toBe(1);
@@ -136,7 +136,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-03 : filtre insensible à la casse
   it('T-03: filtre insensible à la casse — "ALPHA" correspond à "Dossier Alpha"', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSearch('ALPHA');
     expect(component.filteredDataSource.length).toBe(1);
@@ -145,7 +145,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-04 : effacement du champ → liste complète restaurée
   it('T-04: effacement du champ → filteredDataSource restauré complet', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSearch('alpha');
     expect(component.filteredDataSource.length).toBe(1);
@@ -155,7 +155,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-05 : aucune correspondance → filteredDataSource vide
   it('T-05: aucune correspondance → filteredDataSource vide', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSearch('zzz_inexistant');
     expect(component.filteredDataSource.length).toBe(0);
@@ -163,7 +163,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-06 : tri ASC par titre → ordre alphabétique
   it('T-06: tri ASC par titre → premier élément "Cabinet Beta"', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSort({ active: 'title', direction: 'asc' });
     expect(component.filteredDataSource[0].title).toBe('Cabinet Beta');
@@ -172,7 +172,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-07 : tri DESC par titre → ordre inversé
   it('T-07: tri DESC par titre → premier élément "Dossier Alpha"', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSort({ active: 'title', direction: 'desc' });
     expect(component.filteredDataSource[0].title).toBe('Dossier Alpha');
@@ -180,7 +180,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-08 : tri par date ASC → ordre chronologique
   it('T-08: tri ASC par date → cf1 avant cf2', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSort({ active: 'createdAt', direction: 'asc' });
     expect(component.filteredDataSource[0].id).toBe('cf1');
@@ -189,7 +189,7 @@ describe('CaseFilesListComponent', () => {
 
   // T-09 : tri + filtre combinés → résultat cohérent
   it('T-09: tri + filtre combinés → seul résultat filtré, trié', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onSearch('alpha');
     component.onSort({ active: 'title', direction: 'asc' });
@@ -199,7 +199,7 @@ describe('CaseFilesListComponent', () => {
 
   // F-01 : filtre statut OPEN → seul cf1 retourné
   it('F-01: filterStatus OPEN → seul dossier OPEN retourné', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onFilterStatus('OPEN');
     expect(component.filteredDataSource.length).toBe(1);
@@ -208,7 +208,7 @@ describe('CaseFilesListComponent', () => {
 
   // F-02 : filtre statut CLOSED → seul cf2 retourné
   it('F-02: filterStatus CLOSED → seul dossier CLOSED retourné', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onFilterStatus('CLOSED');
     expect(component.filteredDataSource.length).toBe(1);
@@ -217,7 +217,7 @@ describe('CaseFilesListComponent', () => {
 
   // F-03 : filtre domaine DROIT_IMMIGRATION → seul cf2 retourné
   it('F-03: filterDomain DROIT_IMMIGRATION → seul dossier correspondant retourné', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onFilterDomain('DROIT_IMMIGRATION');
     expect(component.filteredDataSource.length).toBe(1);
@@ -226,7 +226,7 @@ describe('CaseFilesListComponent', () => {
 
   // F-04 : reset filtre statut → liste complète restaurée
   it('F-04: reset filterStatus → filteredDataSource complet', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onFilterStatus('OPEN');
     expect(component.filteredDataSource.length).toBe(1);
@@ -236,7 +236,7 @@ describe('CaseFilesListComponent', () => {
 
   // F-05 : filtre statut + recherche combinés
   it('F-05: filterStatus + searchTerm combinés → résultat cumulé', () => {
-    caseFileServiceSpy.list.and.returnValue(of(mockPage));
+    caseFileServiceSpy.list.mockReturnValue(of(mockPage));
     component.loadCaseFiles();
     component.onFilterStatus('OPEN');
     component.onSearch('alpha');
@@ -250,7 +250,7 @@ describe('CaseFilesListComponent', () => {
       content: [makeCaseFile({ riskLevel: 'MOYEN', riskScore: 65 })],
       totalElements: 1, totalPages: 1, size: 20, number: 0
     };
-    caseFileServiceSpy.list.and.returnValue(of(page));
+    caseFileServiceSpy.list.mockReturnValue(of(page));
     component.loadCaseFiles();
     fixture.detectChanges();
     const badge = fixture.nativeElement.querySelector('.risk-badge');
@@ -265,7 +265,7 @@ describe('CaseFilesListComponent', () => {
       content: [makeCaseFile({ riskLevel: null, riskScore: null })],
       totalElements: 1, totalPages: 1, size: 20, number: 0
     };
-    caseFileServiceSpy.list.and.returnValue(of(page));
+    caseFileServiceSpy.list.mockReturnValue(of(page));
     component.loadCaseFiles();
     fixture.detectChanges();
     const badge = fixture.nativeElement.querySelector('.risk-badge');

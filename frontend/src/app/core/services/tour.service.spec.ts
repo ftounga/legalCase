@@ -8,8 +8,8 @@ import { CaseFileStatusService } from './case-file-status.service';
 
 describe('TourService', () => {
   let service: TourService;
-  let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
-  let caseFileStatusServiceSpy: jasmine.SpyObj<CaseFileStatusService>;
+  let caseFileServiceSpy: jest.Mocked<CaseFileService>;
+  let caseFileStatusServiceSpy: jest.Mocked<CaseFileStatusService>;
   let router: Router;
 
   const WS_ID = 'ws-test-1';
@@ -18,7 +18,7 @@ describe('TourService', () => {
   beforeEach(() => {
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['create']);
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['delete']);
-    caseFileStatusServiceSpy.delete.and.returnValue(of(undefined));
+    caseFileStatusServiceSpy.delete.mockReturnValue(of(undefined));
 
     localStorage.clear();
     TestBed.configureTestingModule({
@@ -30,31 +30,31 @@ describe('TourService', () => {
     });
     service = TestBed.inject(TourService);
     router = TestBed.inject(Router);
-    spyOn(router, 'navigate').and.returnValue(Promise.resolve(true));
+    spyOn(router, 'navigate').mockReturnValue(Promise.resolve(true));
   });
 
   afterEach(() => localStorage.clear());
 
   // U-01 : shouldShow — clé absente → true
   it('U-01: shouldShow returns true when key absent', () => {
-    expect(service.shouldShow(WS_ID)).toBeTrue();
+    expect(service.shouldShow(WS_ID)).toBe(true);
   });
 
   // U-02 : shouldShow — clé présente → false
   it('U-02: shouldShow returns false when key present', () => {
     localStorage.setItem(STORAGE_KEY, '1');
-    expect(service.shouldShow(WS_ID)).toBeFalse();
+    expect(service.shouldShow(WS_ID)).toBe(false);
   });
 
   // U-03 : shouldShow — workspaceId null → false
   it('U-03: shouldShow returns false for null workspaceId', () => {
-    expect(service.shouldShow(null)).toBeFalse();
+    expect(service.shouldShow(null)).toBe(false);
   });
 
   // U-04 : start() → isActive = true, currentStep = 0
   it('U-04: start() activates tour at step 0', () => {
     service.start(WS_ID);
-    expect(service.isActive()).toBeTrue();
+    expect(service.isActive()).toBe(true);
     expect(service.currentStep()).toBe(0);
   });
 
@@ -73,7 +73,7 @@ describe('TourService', () => {
     service.next(); // → 3
     service.next(); // → 4
     service.next(); // → stop (5 >= TOTAL_STEPS)
-    expect(service.isActive()).toBeFalse();
+    expect(service.isActive()).toBe(false);
     expect(localStorage.getItem(STORAGE_KEY)).toBe('1');
   });
 
@@ -81,24 +81,25 @@ describe('TourService', () => {
   it('U-07: skip() stops tour and sets localStorage', () => {
     service.start(WS_ID);
     service.skip();
-    expect(service.isActive()).toBeFalse();
+    expect(service.isActive()).toBe(false);
     expect(localStorage.getItem(STORAGE_KEY)).toBe('1');
   });
 
   // U-08 : advanceToStep2 — 0 dossiers → CaseFileService.create() appelé avec le bon titre
   it('U-08: advanceToStep2 with no files calls create() with demo title', fakeAsync(() => {
-    caseFileServiceSpy.create.and.returnValue(of({ id: 'cf-demo-1', title: 'Dossier de démonstration' } as any));
+    caseFileServiceSpy.create.mockReturnValue(of({ id: 'cf-demo-1', title: 'Dossier de démonstration' } as any));
     service.start(WS_ID);
 
     service.advanceToStep2(false);
     tick();
 
-    expect(caseFileServiceSpy.create).toHaveBeenCalledOnceWith({ title: 'Dossier de démonstration' });
+    expect(caseFileServiceSpy.create).toHaveBeenCalledTimes(1);
+    expect(caseFileServiceSpy.create).toHaveBeenCalledWith({ title: 'Dossier de démonstration' });
   }));
 
   // U-09 : advanceToStep2 — 0 dossiers → navigation vers /case-files/{id}
   it('U-09: advanceToStep2 with no files navigates to demo case file', fakeAsync(() => {
-    caseFileServiceSpy.create.and.returnValue(of({ id: 'cf-demo-1', title: 'Dossier de démonstration' } as any));
+    caseFileServiceSpy.create.mockReturnValue(of({ id: 'cf-demo-1', title: 'Dossier de démonstration' } as any));
     service.start(WS_ID);
 
     service.advanceToStep2(false);
@@ -111,7 +112,7 @@ describe('TourService', () => {
 
   // U-10 : stop() après création demo → CaseFileStatusService.delete() appelé
   it('U-10: stop() after demo creation calls delete() with demo id', fakeAsync(() => {
-    caseFileServiceSpy.create.and.returnValue(of({ id: 'cf-demo-1', title: 'Dossier de démonstration' } as any));
+    caseFileServiceSpy.create.mockReturnValue(of({ id: 'cf-demo-1', title: 'Dossier de démonstration' } as any));
     service.start(WS_ID);
     service.advanceToStep2(false);
     tick();
@@ -139,7 +140,7 @@ describe('TourService', () => {
 
   // U-13 : advanceToStep2 — échec create → step 2 sans bloquer, demoCaseFileId null
   it('U-13: advanceToStep2 create failure advances to step 2, demoCaseFileId stays null', fakeAsync(() => {
-    caseFileServiceSpy.create.and.returnValue(throwError(() => new Error('Network error')));
+    caseFileServiceSpy.create.mockReturnValue(throwError(() => new Error('Network error')));
     service.start(WS_ID);
 
     service.advanceToStep2(false);

@@ -22,17 +22,17 @@ const mockInvitation: WorkspaceInvitation = {
 
 describe('WorkspaceMembersComponent', () => {
   let component: WorkspaceMembersComponent;
-  let memberService: jasmine.SpyObj<WorkspaceMemberService>;
-  let invitationService: jasmine.SpyObj<WorkspaceInvitationService>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let memberService: jest.Mocked<WorkspaceMemberService>;
+  let invitationService: jest.Mocked<WorkspaceInvitationService>;
+  let snackBar: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     memberService = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers', 'removeMember']);
     invitationService = jasmine.createSpyObj('WorkspaceInvitationService', ['getInvitations', 'createInvitation', 'revokeInvitation']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
-    memberService.getMembers.and.returnValue(of([mockMember]));
-    invitationService.getInvitations.and.returnValue(of([mockInvitation]));
+    memberService.getMembers.mockReturnValue(of([mockMember]));
+    invitationService.getInvitations.mockReturnValue(of([mockInvitation]));
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceMembersComponent, NoopAnimationsModule, ReactiveFormsModule],
@@ -65,27 +65,27 @@ describe('WorkspaceMembersComponent', () => {
   });
 
   it('sendInvitation — form valide → appelle createInvitation', () => {
-    invitationService.createInvitation.and.returnValue(of(mockInvitation));
-    invitationService.getInvitations.and.returnValue(of([mockInvitation]));
+    invitationService.createInvitation.mockReturnValue(of(mockInvitation));
+    invitationService.getInvitations.mockReturnValue(of([mockInvitation]));
     component.inviteForm.setValue({ email: 'bob@test.com', role: 'LAWYER' });
     component.sendInvitation();
     expect(invitationService.createInvitation).toHaveBeenCalledWith('bob@test.com', 'LAWYER');
   });
 
   it('removeMember — retire le membre de la liste', () => {
-    memberService.removeMember.and.returnValue(of(undefined as unknown as void));
+    memberService.removeMember.mockReturnValue(of(undefined as unknown as void));
     component.removeMember(mockMember);
     expect(component.members.length).toBe(0);
   });
 
   it('revokeInvitation — retire l\'invitation de la liste', () => {
-    invitationService.revokeInvitation.and.returnValue(of(undefined as unknown as void));
+    invitationService.revokeInvitation.mockReturnValue(of(undefined as unknown as void));
     component.revokeInvitation(mockInvitation);
     expect(component.invitations.length).toBe(0);
   });
 
   it('isCurrentUser — renvoie true pour l\'utilisateur connecté', () => {
-    expect(component.isCurrentUser(mockMember)).toBeTrue();
+    expect(component.isCurrentUser(mockMember)).toBe(true);
   });
 
   it('roleLabel — renvoie le libellé français', () => {

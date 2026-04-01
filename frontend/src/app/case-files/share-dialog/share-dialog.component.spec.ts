@@ -19,14 +19,14 @@ const DIALOG_DATA: ShareDialogData = { caseFileId: 'cf-1', caseFileTitle: 'Dossi
 describe('ShareDialogComponent', () => {
   let fixture: ComponentFixture<ShareDialogComponent>;
   let component: ShareDialogComponent;
-  let shareService: jasmine.SpyObj<CaseFileShareService>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let shareService: jest.Mocked<CaseFileShareService>;
+  let snackBar: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     shareService = jasmine.createSpyObj('CaseFileShareService', ['listShares', 'createShare', 'revokeShare']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
-    shareService.listShares.and.returnValue(of([MOCK_SHARE]));
+    shareService.listShares.mockReturnValue(of([MOCK_SHARE]));
 
     await TestBed.configureTestingModule({
       imports: [ShareDialogComponent],
@@ -47,13 +47,13 @@ describe('ShareDialogComponent', () => {
   it('T-01: should load active shares on init', () => {
     expect(shareService.listShares).toHaveBeenCalledWith('cf-1');
     expect(component.activeShares().length).toBe(1);
-    expect(component.loadingShares()).toBeFalse();
+    expect(component.loadingShares()).toBe(false);
   });
 
   // T-02: generateLink sets generatedLink and prepends to activeShares
   it('T-02: should generate link and prepend to active shares', fakeAsync(() => {
     const newShare: ShareResponse = { ...MOCK_SHARE, id: 'share-2', shareUrl: 'https://app.example.com/share/new' };
-    shareService.createShare.and.returnValue(of(newShare));
+    shareService.createShare.mockReturnValue(of(newShare));
 
     component.generateLink();
     tick();
@@ -61,25 +61,25 @@ describe('ShareDialogComponent', () => {
     expect(shareService.createShare).toHaveBeenCalledWith('cf-1', 7);
     expect(component.generatedLink()?.id).toBe('share-2');
     expect(component.activeShares()[0].id).toBe('share-2');
-    expect(component.generating()).toBeFalse();
+    expect(component.generating()).toBe(false);
   }));
 
   // T-03: generateLink error shows snackbar
   it('T-03: should show error snackbar when generateLink fails', fakeAsync(() => {
-    shareService.createShare.and.returnValue(throwError(() => new Error('server error')));
+    shareService.createShare.mockReturnValue(throwError(() => new Error('server error')));
 
     component.generateLink();
     tick();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      'Erreur lors de la génération du lien.', 'Fermer', jasmine.objectContaining({ duration: 4000 })
+      'Erreur lors de la génération du lien.', 'Fermer', expect.objectContaining({ duration: 4000 })
     );
-    expect(component.generating()).toBeFalse();
+    expect(component.generating()).toBe(false);
   }));
 
   // T-04: revokeShare removes share from list
   it('T-04: should remove revoked share from activeShares', fakeAsync(() => {
-    shareService.revokeShare.and.returnValue(of(void 0));
+    shareService.revokeShare.mockReturnValue(of(void 0));
 
     component.revokeShare(MOCK_SHARE);
     tick();
@@ -91,8 +91,8 @@ describe('ShareDialogComponent', () => {
 
   // T-05: revokeShare also clears generatedLink if it's the same share
   it('T-05: should clear generatedLink when the generated share is revoked', fakeAsync(() => {
-    shareService.createShare.and.returnValue(of(MOCK_SHARE));
-    shareService.revokeShare.and.returnValue(of(void 0));
+    shareService.createShare.mockReturnValue(of(MOCK_SHARE));
+    shareService.revokeShare.mockReturnValue(of(void 0));
 
     component.generateLink();
     tick();

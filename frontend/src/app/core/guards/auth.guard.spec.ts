@@ -8,15 +8,15 @@ import { ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/r
 import { runInInjectionContext } from '@angular/core';
 
 describe('authGuard', () => {
-  let router: jasmine.SpyObj<Router>;
-  let authService: jasmine.SpyObj<AuthService>;
-  let workspaceService: jasmine.SpyObj<WorkspaceService>;
+  let router: jest.Mocked<Router>;
+  let authService: jest.Mocked<AuthService>;
+  let workspaceService: jest.Mocked<WorkspaceService>;
 
   beforeEach(() => {
     router = jasmine.createSpyObj('Router', ['createUrlTree']);
     authService = jasmine.createSpyObj('AuthService', ['loadCurrentUser']);
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
-    router.createUrlTree.and.callFake((commands: any[]) => commands[0] as any);
+    router.createUrlTree.mockImplementation((commands: any[]) => commands[0] as any);
 
     TestBed.configureTestingModule({
       providers: [
@@ -35,7 +35,7 @@ describe('authGuard', () => {
 
   // T-04 : user non authentifié → redirect /login
   it('user non authentifié → redirect /login', (done) => {
-    authService.loadCurrentUser.and.returnValue(of(null));
+    authService.loadCurrentUser.mockReturnValue(of(null));
 
     (runGuard() as any).subscribe((result: any) => {
       expect(result).toBe('/login');
@@ -45,19 +45,19 @@ describe('authGuard', () => {
 
   // T-05 : user authentifié + workspace existant → accès autorisé
   it('user authentifié + workspace existant → true', (done) => {
-    authService.loadCurrentUser.and.returnValue(of({ email: 'test@example.com' } as any));
-    workspaceService.getCurrentWorkspace.and.returnValue(of({} as any));
+    authService.loadCurrentUser.mockReturnValue(of({ email: 'test@example.com' } as any));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({} as any));
 
     (runGuard() as any).subscribe((result: any) => {
-      expect(result).toBeTrue();
+      expect(result).toBe(true);
       done();
     });
   });
 
   // T-06 : user authentifié + pas de workspace (404) → redirect /onboarding
   it('user authentifié + 404 workspace → redirect /onboarding', (done) => {
-    authService.loadCurrentUser.and.returnValue(of({ email: 'test@example.com' } as any));
-    workspaceService.getCurrentWorkspace.and.returnValue(throwError(() => ({ status: 404 })));
+    authService.loadCurrentUser.mockReturnValue(of({ email: 'test@example.com' } as any));
+    workspaceService.getCurrentWorkspace.mockReturnValue(throwError(() => ({ status: 404 })));
 
     (runGuard() as any).subscribe((result: any) => {
       expect(result).toBe('/onboarding');
@@ -67,11 +67,11 @@ describe('authGuard', () => {
 
   // T-07 : user authentifié + erreur non-404 → accès autorisé (fail-open)
   it('user authentifié + erreur réseau → true (fail-open)', (done) => {
-    authService.loadCurrentUser.and.returnValue(of({ email: 'test@example.com' } as any));
-    workspaceService.getCurrentWorkspace.and.returnValue(throwError(() => ({ status: 500 })));
+    authService.loadCurrentUser.mockReturnValue(of({ email: 'test@example.com' } as any));
+    workspaceService.getCurrentWorkspace.mockReturnValue(throwError(() => ({ status: 500 })));
 
     (runGuard() as any).subscribe((result: any) => {
-      expect(result).toBeTrue();
+      expect(result).toBe(true);
       done();
     });
   });
@@ -79,7 +79,7 @@ describe('authGuard', () => {
   // T-04 (SF-81) : user authentifié + returnUrl en sessionStorage → redirect returnUrl + sessionStorage effacé
   it('user authentifié + returnUrl sessionStorage → redirect returnUrl et sessionStorage effacé', (done) => {
     sessionStorage.setItem('auth.returnUrl', '/case-files/abc');
-    authService.loadCurrentUser.and.returnValue(of({ email: 'test@example.com' } as any));
+    authService.loadCurrentUser.mockReturnValue(of({ email: 'test@example.com' } as any));
 
     (runGuard() as any).subscribe((result: any) => {
       expect(result).toBe('/case-files/abc');
@@ -91,11 +91,11 @@ describe('authGuard', () => {
   // T-05 (SF-81) : user authentifié + pas de returnUrl → comportement normal (workspace check)
   it('user authentifié + pas de returnUrl → true (comportement normal)', (done) => {
     sessionStorage.removeItem('auth.returnUrl');
-    authService.loadCurrentUser.and.returnValue(of({ email: 'test@example.com' } as any));
-    workspaceService.getCurrentWorkspace.and.returnValue(of({} as any));
+    authService.loadCurrentUser.mockReturnValue(of({ email: 'test@example.com' } as any));
+    workspaceService.getCurrentWorkspace.mockReturnValue(of({} as any));
 
     (runGuard() as any).subscribe((result: any) => {
-      expect(result).toBeTrue();
+      expect(result).toBe(true);
       done();
     });
   });

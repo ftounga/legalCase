@@ -14,20 +14,20 @@ function makeRoute(token: string) {
 describe('VerifyEmailComponent', () => {
   let fixture: ComponentFixture<VerifyEmailComponent>;
   let component: VerifyEmailComponent;
-  let authSpy: jasmine.SpyObj<AuthService>;
+  let authSpy: jest.Mocked<AuthService>;
 
-  async function setup(token: string, serviceResult: any) {
+  function setup(token: string, serviceResult: any) {
     authSpy = jasmine.createSpyObj('AuthService', ['verifyEmail']);
-    authSpy.verifyEmail.and.returnValue(serviceResult);
+    authSpy.verifyEmail.mockReturnValue(serviceResult);
 
-    await TestBed.configureTestingModule({
+    TestBed.configureTestingModule({
       imports: [VerifyEmailComponent, NoopAnimationsModule],
       providers: [
         { provide: AuthService, useValue: authSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: makeRoute(token) }
       ]
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(VerifyEmailComponent);
     component = fixture.componentInstance;
@@ -35,7 +35,7 @@ describe('VerifyEmailComponent', () => {
 
   // T-11 : au chargement → verifyEmail() appelé avec le token de l'URL
   it('au chargement → verifyEmail() appelé avec le token', fakeAsync(async () => {
-    await setup('my-token', of({ message: 'Email validé.' }));
+    setup('my-token', of({ message: 'Email validé.' }));
     fixture.detectChanges();
     tick();
     expect(authSpy.verifyEmail).toHaveBeenCalledWith('my-token');
@@ -43,21 +43,21 @@ describe('VerifyEmailComponent', () => {
 
   // T-12 : succès → message de succès affiché
   it('succès → affiche message de succès', fakeAsync(async () => {
-    await setup('valid-token', of({ message: 'Email validé.' }));
+    setup('valid-token', of({ message: 'Email validé.' }));
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
-    expect(component.success()).toBeTrue();
+    expect(component.success()).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Email validé');
   }));
 
   // T-13 : erreur → message d'erreur affiché
   it('erreur → affiche message d\'erreur', fakeAsync(async () => {
-    await setup('bad-token', throwError(() => ({ status: 400 })));
+    setup('bad-token', throwError(() => ({ status: 400 })));
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
-    expect(component.success()).toBeFalse();
+    expect(component.success()).toBe(false);
     expect(component.errorMessage()).toContain('invalide');
   }));
 });

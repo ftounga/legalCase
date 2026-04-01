@@ -45,9 +45,9 @@ describe('LegalPageComponent', () => {
     const fixture = await setup('Mentions légales', MENTIONS_LEGALES);
     const links = fixture.nativeElement.querySelectorAll('.legal-footer a');
     const hrefs = Array.from(links).map((a: any) => a.getAttribute('href') ?? a.getAttribute('ng-reflect-router-link'));
-    expect(hrefs.some(h => h?.includes('mentions-legales'))).toBeTrue();
-    expect(hrefs.some(h => h?.includes('privacy'))).toBeTrue();
-    expect(hrefs.some(h => h?.includes('cgu'))).toBeTrue();
+    expect(hrefs.some(h => h?.includes('mentions-legales'))).toBe(true);
+    expect(hrefs.some(h => h?.includes('privacy'))).toBe(true);
+    expect(hrefs.some(h => h?.includes('cgu'))).toBe(true);
   });
 
   it('T5 — définit le title du navigateur depuis route data', async () => {

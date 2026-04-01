@@ -15,9 +15,9 @@ const mockCaseFile: CaseFile = {
 describe('CaseFileCreateDialogComponent', () => {
   let fixture: ComponentFixture<CaseFileCreateDialogComponent>;
   let component: CaseFileCreateDialogComponent;
-  let dialogRefSpy: jasmine.SpyObj<MatDialogRef<CaseFileCreateDialogComponent>>;
-  let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let dialogRefSpy: jest.Mocked<MatDialogRef<CaseFileCreateDialogComponent>>;
+  let caseFileServiceSpy: jest.Mocked<CaseFileService>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
@@ -45,16 +45,16 @@ describe('CaseFileCreateDialogComponent', () => {
 
   it('formulaire invalide si titre vide', () => {
     component.form.controls.title.setValue('');
-    expect(component.form.invalid).toBeTrue();
+    expect(component.form.invalid).toBe(true);
   });
 
   it('formulaire valide si titre renseigné', () => {
     component.form.controls.title.setValue('Licenciement Dupont');
-    expect(component.form.valid).toBeTrue();
+    expect(component.form.valid).toBe(true);
   });
 
   it('submit — succès → ferme la dialog avec le dossier créé', () => {
-    caseFileServiceSpy.create.and.returnValue(of(mockCaseFile));
+    caseFileServiceSpy.create.mockReturnValue(of(mockCaseFile));
     component.form.controls.title.setValue('Licenciement Dupont');
     component.submit();
     expect(caseFileServiceSpy.create).toHaveBeenCalledWith({
@@ -65,7 +65,7 @@ describe('CaseFileCreateDialogComponent', () => {
   });
 
   it('submit — erreur API → affiche snackbar, ne ferme pas la dialog', () => {
-    caseFileServiceSpy.create.and.returnValue(throwError(() => new Error('500')));
+    caseFileServiceSpy.create.mockReturnValue(throwError(() => new Error('500')));
     component.form.controls.title.setValue('Licenciement Dupont');
     component.submit();
     expect(snackBarSpy.open).toHaveBeenCalled();

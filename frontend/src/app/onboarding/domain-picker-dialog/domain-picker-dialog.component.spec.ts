@@ -6,7 +6,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 describe('DomainPickerDialogComponent', () => {
   let fixture: ComponentFixture<DomainPickerDialogComponent>;
   let component: DomainPickerDialogComponent;
-  let dialogRefSpy: jasmine.SpyObj<MatDialogRef<DomainPickerDialogComponent>>;
+  let dialogRefSpy: jest.Mocked<MatDialogRef<DomainPickerDialogComponent>>;
 
   beforeEach(async () => {
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
@@ -73,28 +73,28 @@ describe('DomainPickerDialogComponent', () => {
   // D-05 : bouton Confirmer désactivé sans pays
   it('canConfirm est false si le pays est réinitialisé', () => {
     component.selectedCountry = '';
-    expect(component.canConfirm).toBeFalse();
+    expect(component.canConfirm).toBe(false);
   });
 
   // D-06 : bouton Confirmer désactivé si domaine réinitialisé
   it('canConfirm est false si domaine vide même avec pays sélectionné', () => {
     component.selected = '';
     component.selectedCountry = 'FRANCE';
-    expect(component.canConfirm).toBeFalse();
+    expect(component.canConfirm).toBe(false);
   });
 
   // D-07 : bouton Confirmer désactivé sans domaine
   it('canConfirm est false si seulement le pays est sélectionné', () => {
     component.selected = '';
     component.selectedCountry = 'FRANCE';
-    expect(component.canConfirm).toBeFalse();
+    expect(component.canConfirm).toBe(false);
   });
 
   // D-08 : bouton Confirmer actif avec domaine + pays
   it('canConfirm est true si domaine et pays sont sélectionnés', () => {
     component.selected = 'DROIT_IMMIGRATION';
     component.selectedCountry = 'BELGIQUE';
-    expect(component.canConfirm).toBeTrue();
+    expect(component.canConfirm).toBe(true);
   });
 
   // D-09 : confirm() retourne { legalDomain, country }

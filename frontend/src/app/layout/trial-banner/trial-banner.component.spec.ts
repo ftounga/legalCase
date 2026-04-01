@@ -19,8 +19,8 @@ const starterWorkspace: Workspace = {
 describe('TrialBannerComponent', () => {
   let component: TrialBannerComponent;
   let fixture: ComponentFixture<TrialBannerComponent>;
-  let billingServiceSpy: jasmine.SpyObj<BillingService>;
-  let routerSpy: jasmine.SpyObj<Router>;
+  let billingServiceSpy: jest.Mocked<BillingService>;
+  let routerSpy: jest.Mocked<Router>;
 
   beforeEach(async () => {
     billingServiceSpy = jasmine.createSpyObj('BillingService', ['shouldShowTrialBanner']);
@@ -45,17 +45,17 @@ describe('TrialBannerComponent', () => {
   });
 
   it('visible si plan FREE et shouldShowTrialBanner → true', () => {
-    billingServiceSpy.shouldShowTrialBanner.and.returnValue(true);
+    billingServiceSpy.shouldShowTrialBanner.mockReturnValue(true);
     component.workspace = freeWorkspace;
     component.ngOnChanges();
-    expect(component.visible()).toBeTrue();
+    expect(component.visible()).toBe(true);
   });
 
   it('non visible si plan STARTER', () => {
-    billingServiceSpy.shouldShowTrialBanner.and.returnValue(false);
+    billingServiceSpy.shouldShowTrialBanner.mockReturnValue(false);
     component.workspace = starterWorkspace;
     component.ngOnChanges();
-    expect(component.visible()).toBeFalse();
+    expect(component.visible()).toBe(false);
   });
 
   it('goToPlans — navigue vers /workspace/billing', () => {
@@ -64,16 +64,16 @@ describe('TrialBannerComponent', () => {
   });
 
   it('goToPlans — trackEvent upgrade_clicked', () => {
-    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
+    const analyticsService = TestBed.inject(AnalyticsService) as jest.Mocked<AnalyticsService>;
     component.goToPlans();
     expect(analyticsService.trackEvent).toHaveBeenCalledWith('upgrade_clicked');
   });
 
   it('dismiss — masque la bannière', () => {
-    billingServiceSpy.shouldShowTrialBanner.and.returnValue(true);
+    billingServiceSpy.shouldShowTrialBanner.mockReturnValue(true);
     component.workspace = freeWorkspace;
     component.ngOnChanges();
     component.dismiss();
-    expect(component.visible()).toBeFalse();
+    expect(component.visible()).toBe(false);
   });
 });
