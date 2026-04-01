@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -61,6 +61,24 @@ export class SynthesisComponent implements OnInit {
   chatDisabled = signal(false);
   chatQuestion = '';
   useEnriched = false;
+
+  sourceMap = computed(() => {
+    const map = new Map<string, string>();
+    const docs = this.synthesis()?.analysisDocuments;
+    if (!docs) return map;
+    for (const doc of docs) {
+      map.set(`Document ${doc.index}`, doc.name);
+    }
+    return map;
+  });
+
+  resolveSource(source: string | null): string | null {
+    if (!source) return null;
+    if (/^Document \d+$/i.test(source)) {
+      return this.sourceMap().get(source) ?? source;
+    }
+    return source;
+  }
 
   constructor(
     private route: ActivatedRoute,

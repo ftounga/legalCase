@@ -463,4 +463,79 @@ describe('SynthesisComponent', () => {
     // So we verify synthesis() is null, which would disable the button
     expect(component.synthesis()).toBeNull();
   });
+
+  // SRC-01 : resolveSource avec "Document 0" et analysisDocuments → retourne le nom du fichier
+  it('SRC-01: resolveSource("Document 0") returns the file name when analysisDocuments contains index 0', () => {
+    component.synthesis.set({
+      ...makeSynthesis(1, 'STANDARD'),
+      analysisDocuments: [{ index: 0, name: 'contrat.pdf' }]
+    });
+
+    expect(component.resolveSource('Document 0')).toBe('contrat.pdf');
+  });
+
+  // SRC-02 : resolveSource avec un nom de fichier direct → retourné tel quel
+  it('SRC-02: resolveSource("contrat.pdf") returns "contrat.pdf" unchanged', () => {
+    component.synthesis.set({
+      ...makeSynthesis(1, 'STANDARD'),
+      analysisDocuments: [{ index: 0, name: 'contrat.pdf' }]
+    });
+
+    expect(component.resolveSource('contrat.pdf')).toBe('contrat.pdf');
+  });
+
+  // SRC-03 : resolveSource(null) → null
+  it('SRC-03: resolveSource(null) returns null', () => {
+    expect(component.resolveSource(null)).toBeNull();
+  });
+
+  // SRC-04 : resolveSource("Document 5") sans cet index dans analysisDocuments → fallback sur la valeur brute
+  it('SRC-04: resolveSource("Document 5") returns "Document 5" when index 5 is not in analysisDocuments', () => {
+    component.synthesis.set({
+      ...makeSynthesis(1, 'STANDARD'),
+      analysisDocuments: [{ index: 0, name: 'contrat.pdf' }]
+    });
+
+    expect(component.resolveSource('Document 5')).toBe('Document 5');
+  });
+
+  // SRC-05 : resolveSource sans analysisDocuments → retourne la source brute sans erreur
+  it('SRC-05: resolveSource returns raw source when analysisDocuments is absent', () => {
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    expect(component.resolveSource('Document 0')).toBe('Document 0');
+  });
+
+  // SRC-06 : sourceMap avec analysisDocuments → map correctement construite
+  it('SRC-06: sourceMap is correctly built from analysisDocuments', () => {
+    component.synthesis.set({
+      ...makeSynthesis(1, 'STANDARD'),
+      analysisDocuments: [
+        { index: 0, name: 'contrat.pdf' },
+        { index: 1, name: 'lettre.pdf' }
+      ]
+    });
+
+    const map = component.sourceMap();
+    expect(map.get('Document 0')).toBe('contrat.pdf');
+    expect(map.get('Document 1')).toBe('lettre.pdf');
+    expect(map.size).toBe(2);
+  });
+
+  // SRC-07 : DOM — badge source affiche le nom résolu pour un fait avec source "Document 0"
+  it('SRC-07: source badge shows resolved file name for a fait with source "Document 0"', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of({
+      ...makeSynthesis(1, 'STANDARD'),
+      faits: [makeItem('Licenciement injustifié', 'Document 0')],
+      analysisDocuments: [{ index: 0, name: 'lettre.pdf' }]
+    }));
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    const badge = el.querySelector('.source-badge');
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toContain('lettre.pdf');
+    expect(badge!.textContent).not.toContain('Document 0');
+  });
 });
