@@ -149,6 +149,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-98 | Génération de courrier / conclusions | V4 — `À spécifier` | Génération d'un premier draft de courrier (lettre de mise en demeure, conclusions, courrier de contestation) basé sur la synthèse du dossier. Brouillon non contractuel avec mention explicite "document généré par IA — à valider par l'avocat". Garde-fous obligatoires : watermark, disclaimer légal, pas d'envoi direct. |
+| F-97 | Détection automatique des délais légaux | V3 — `À spécifier` | Extension de F-69 : l'IA détecte et propose les délais légaux applicables depuis les documents (date de licenciement → délai de recours prud'homal, date de naissance → délai de reconnaissance, etc.) sans saisie manuelle. L'avocat valide ou rejette chaque délai proposé avant persistance. |
 | F-96 | Checklist procédurale interactive | V3 — `À spécifier` | L'IA génère après l'analyse un champ `points_procedure` (étapes légales à vérifier selon le type de dossier). L'avocat coche chaque point : ✅ Vérifié / ❌ Non respecté / ⚠️ À vérifier. Les points "Non respecté" alimentent la prochaine re-synthèse enrichie. Table `procedure_checks`. 3 subfeatures : SF-96-01 backend (prompt + extraction + CRUD statuts), SF-96-02 frontend (checklist interactive), SF-96-03 intégration re-synthèse. |
 | F-95 | Export Word (.docx) de la synthèse | V3 — `À spécifier` | Export de la synthèse en fichier .docx éditable (sections structurées : timeline, faits, points juridiques, risques, questions ouvertes, pièces manquantes). Complément au PDF existant (F-40). Les avocats travaillent dans Word. |
 | F-94 | Score de risque global du dossier | V3 — `À spécifier` | Indicateur synthétique Faible/Moyen/Élevé + score 0-100 calculé depuis les risques identifiés dans la synthèse. Visible sur la liste des dossiers et en haut de la page synthèse. Calculé par le LLM lors de la case analysis. |
@@ -234,6 +236,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-01 | F-97/F-98 ajoutées — Délais légaux auto-détectés (extension F-69) + Génération de courrier V4 avec garde-fous | Product owner |
 | 2026-04-01 | F-96 ajoutée — Checklist procédurale interactive niveau 2 (statuts + intégration re-synthèse) | Product owner |
 | 2026-04-01 | F-93/F-94/F-95 ajoutées au backlog — Traçabilité sources IA, Score de risque, Export Word (.docx) | Product owner |
 | 2026-03-31 | F-92 Terminée — SF-92-02 mergée : panneau Pièces manquantes SynthesisComponent, icône orange, 411 tests | Product owner |
