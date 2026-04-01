@@ -173,7 +173,7 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
                 .thenReturn(Optional.of(answer));
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{\"faits\":[\"fait1\"]}", null);
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{\"faits\":[\"fait1\"]}", null, List.of());
 
         assertThat(prompt).contains("{\"faits\":[\"fait1\"]}");
         assertThat(prompt).contains("Question test ?");
@@ -189,7 +189,7 @@ class EnrichedAnalysisServiceTest {
         UUID caseFileId = UUID.randomUUID();
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "Point clé 1 : délai de prescription dépassé");
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "Point clé 1 : délai de prescription dépassé", List.of());
 
         assertThat(prompt).contains("Échanges libres avec l'assistant — points clés");
         assertThat(prompt).contains("Point clé 1 : délai de prescription dépassé");
@@ -201,7 +201,7 @@ class EnrichedAnalysisServiceTest {
         UUID caseFileId = UUID.randomUUID();
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "   ");
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "   ", List.of());
 
         assertThat(prompt).doesNotContain("Échanges libres");
     }
@@ -282,6 +282,58 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("timeline");
         assertThat(prompt).contains("faits");
         assertThat(prompt).contains("enrichie");
+    }
+
+    // TC-01 : buildEnrichedPrompt avec checks NON_COMPLIANT → section injectée
+    @Test
+    void buildEnrichedPrompt_withNonCompliantChecks_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        List<String> checks = List.of("Entretien préalable non convoqué par LRAR", "Notification hors délai");
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, checks);
+
+        assertThat(prompt).contains("[Points procéduraux non conformes]");
+        assertThat(prompt).contains("- Entretien préalable non convoqué par LRAR");
+        assertThat(prompt).contains("- Notification hors délai");
+    }
+
+    // TC-02 : buildEnrichedPrompt sans checks NON_COMPLIANT → section absente
+    @Test
+    void buildEnrichedPrompt_withNoNonCompliantChecks_omitsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of());
+
+        assertThat(prompt).doesNotContain("[Points procéduraux non conformes]");
+    }
+
+    // TC-03 : listNonCompliant lève exception → fail-open, re-analyse sans la section
+    @Test
+    void prepareEnrichedAnalysis_listNonCompliantThrows_proceedsWithoutSection() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(procedureCheckService.listNonCompliant(any())).thenThrow(new RuntimeException("DB error"));
+        when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of());
+
+        var prepared = service.prepareEnrichedAnalysis(new ReAnalysisMessage(caseFileId));
+
+        assertThat(prepared).isNotNull();
+        assertThat(prepared.prompt()).doesNotContain("[Points procéduraux non conformes]");
     }
 
     private AiQuestion answeredQuestion(UUID caseFileId, String text) {

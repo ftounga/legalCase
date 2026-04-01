@@ -85,6 +85,25 @@ public class ProcedureCheckService {
         }
     }
 
+    /**
+     * Retourne les descriptions des checks NON_COMPLIANT de la dernière analyse DONE du dossier.
+     * Fail-open : toute exception retourne une liste vide.
+     */
+    @Transactional(readOnly = true)
+    public List<String> listNonCompliant(CaseFile caseFile) {
+        try {
+            return caseAnalysisRepository
+                    .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFile.getId(), AnalysisStatus.DONE)
+                    .map(analysis -> procedureCheckRepository
+                            .findByCaseAnalysisIdAndStatutOrderByOrdreAsc(analysis.getId(), ProcedureCheckStatus.NON_COMPLIANT)
+                            .stream().map(ProcedureCheck::getDescription).toList())
+                    .orElse(List.of());
+        } catch (Exception e) {
+            log.warn("listNonCompliant failed for caseFile {} — skipping", caseFile.getId(), e);
+            return List.of();
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<ProcedureCheckResponse> list(UUID caseFileId, UUID analysisId,
                                               OidcUser oidcUser, Principal principal) {

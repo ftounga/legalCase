@@ -10,6 +10,8 @@ public interface ProcedureCheckRepository extends JpaRepository<ProcedureCheck, 
 
     List<ProcedureCheck> findByCaseAnalysisIdOrderByOrdreAsc(UUID caseAnalysisId);
 
+    List<ProcedureCheck> findByCaseAnalysisIdAndStatutOrderByOrdreAsc(UUID caseAnalysisId, ProcedureCheckStatus statut);
+
     Optional<ProcedureCheck> findByIdAndWorkspaceId(UUID id, UUID workspaceId);
 
     void deleteByCaseAnalysisId(UUID caseAnalysisId);
