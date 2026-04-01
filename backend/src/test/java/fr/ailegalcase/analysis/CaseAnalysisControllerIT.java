@@ -46,6 +46,7 @@ class CaseAnalysisControllerIT {
     @Autowired private CaseAnalysisRepository caseAnalysisRepository;
     @Autowired private AnalysisJobRepository analysisJobRepository;
     @Autowired private DocumentAnalysisRepository documentAnalysisRepository;
+    @Autowired private AnalysisDocumentRepository analysisDocumentRepository;
     @Autowired private ChunkAnalysisRepository chunkAnalysisRepository;
     @Autowired private DocumentChunkRepository documentChunkRepository;
     @Autowired private DocumentExtractionRepository documentExtractionRepository;
@@ -61,6 +62,7 @@ class CaseAnalysisControllerIT {
         documentAnalysisRepository.deleteAll();
         documentExtractionRepository.deleteAll();
         analysisJobRepository.deleteAll();
+        analysisDocumentRepository.deleteAll();
         caseAnalysisRepository.deleteAll();
         documentRepository.deleteAll();
         caseFileRepository.deleteAll();
@@ -135,11 +137,45 @@ class CaseAnalysisControllerIT {
                 .andExpect(jsonPath("$.status").value("DONE"))
                 .andExpect(jsonPath("$.timeline[0].date").value("2024-01-15"))
                 .andExpect(jsonPath("$.timeline[0].evenement").value("Embauche"))
-                .andExpect(jsonPath("$.faits[0]").value("Le salarié a été embauché."))
-                .andExpect(jsonPath("$.pointsJuridiques[0]").value("Article L1232-1"))
-                .andExpect(jsonPath("$.risques[0]").value("Risque de requalification"))
+                .andExpect(jsonPath("$.faits[0].texte").value("Le salarié a été embauché."))
+                .andExpect(jsonPath("$.pointsJuridiques[0].texte").value("Article L1232-1"))
+                .andExpect(jsonPath("$.risques[0].texte").value("Risque de requalification"))
                 .andExpect(jsonPath("$.questionsOuvertes[0]").value("Délais respectés ?"))
                 .andExpect(jsonPath("$.modelUsed").value("claude-sonnet-4-6"));
+    }
+
+    // I-01b : GET analyse DONE avec documents snapshotés → analysisDocuments présent dans la réponse
+    @Test
+    void get_doneAnalysisWithDocuments_returnsAnalysisDocuments() throws Exception {
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+        analysis.setAnalysisStatus(AnalysisStatus.DONE);
+        analysis.setAnalysisType(AnalysisType.STANDARD);
+        analysis.setVersion(1);
+        analysis.setModelUsed("claude-sonnet-4-6");
+        analysis.setAnalysisResult("{\"faits\":[],\"points_juridiques\":[],\"risques\":[],\"questions_ouvertes\":[],\"timeline\":[]}");
+        caseAnalysisRepository.save(analysis);
+
+        AnalysisDocument doc1 = new AnalysisDocument();
+        doc1.setAnalysisId(analysis.getId());
+        doc1.setDocumentId(java.util.UUID.randomUUID());
+        doc1.setDocumentName("contrat.pdf");
+        analysisDocumentRepository.save(doc1);
+
+        AnalysisDocument doc2 = new AnalysisDocument();
+        doc2.setAnalysisId(analysis.getId());
+        doc2.setDocumentId(java.util.UUID.randomUUID());
+        doc2.setDocumentName("bulletin.pdf");
+        analysisDocumentRepository.save(doc2);
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/case-analysis", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisDocuments").isArray())
+                .andExpect(jsonPath("$.analysisDocuments[0].index").value(0))
+                .andExpect(jsonPath("$.analysisDocuments[0].name").value("contrat.pdf"))
+                .andExpect(jsonPath("$.analysisDocuments[1].index").value(1))
+                .andExpect(jsonPath("$.analysisDocuments[1].name").value("bulletin.pdf"));
     }
 
     // I-02 : GET sans analyse DONE → 404
@@ -238,10 +274,10 @@ class CaseAnalysisControllerIT {
                         .param("toId", v2.getId().toString())
                         .with(authentication(auth)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.faits.removed[0]").value("Fait A"))
-                .andExpect(jsonPath("$.faits.added[0]").value("Fait C"))
-                .andExpect(jsonPath("$.faits.unchanged[0]").value("Fait B"))
-                .andExpect(jsonPath("$.pointsJuridiques.unchanged[0]").value("Art. L1234"))
+                .andExpect(jsonPath("$.faits.removed[0].text").value("Fait A"))
+                .andExpect(jsonPath("$.faits.added[0].text").value("Fait C"))
+                .andExpect(jsonPath("$.faits.unchanged[0].text").value("Fait B"))
+                .andExpect(jsonPath("$.pointsJuridiques.unchanged[0].text").value("Art. L1234"))
                 .andExpect(jsonPath("$.timeline.unchanged[0].evenement").value("Embauche"))
                 .andExpect(jsonPath("$.timeline.added[0].evenement").value("Licenciement"))
                 .andExpect(jsonPath("$.from.id").value(v1.getId().toString()))
