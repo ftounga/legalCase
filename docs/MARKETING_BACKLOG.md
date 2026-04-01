@@ -101,7 +101,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
 | M-50 | Dashboard de conversion — inscription / activation / paiement | Haute | `Terminé` | Couvert par F-76 (super-admin) : totalWorkspaces, trialWorkspaces, paidWorkspaces, conversionRatePct, activeWorkspaces30d — déployé en production 2026-03-31 |
-| M-51 | Tracking événements clés (analyse lancée, PDF exporté, lien partagé) | Moyenne | `À faire` | Mesurer l'engagement produit |
+| M-51 | Tracking événements clés (analyse lancée, PDF exporté, lien partagé) | Moyenne | `Terminé` | analysis_launched (STANDARD+ENRICHED), pdf_exported, upgrade_clicked, docx_exported, chat_message_sent, share_link_created — déployé en prod via CI |
 | M-52 | NPS — enquête satisfaction client | Basse | `À faire` | Dès 10 clients actifs |
 
 ---
