@@ -54,6 +54,7 @@ public class AnalysisLimitsProperties {
         private int questionsOuvertes;
         private int timeline;
         private int piecesManquantes = 5;
+        private int pointsProcedure = 8;
 
         public int getFaits() { return faits; }
         public void setFaits(int v) { this.faits = v; }
@@ -72,5 +73,8 @@ public class AnalysisLimitsProperties {
 
         public int getPiecesManquantes() { return piecesManquantes; }
         public void setPiecesManquantes(int v) { this.piecesManquantes = v; }
+
+        public int getPointsProcedure() { return pointsProcedure; }
+        public void setPointsProcedure(int v) { this.pointsProcedure = v; }
     }
 }

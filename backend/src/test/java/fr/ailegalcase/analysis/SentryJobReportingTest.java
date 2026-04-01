@@ -39,10 +39,12 @@ class SentryJobReportingTest {
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
     private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
 
+    private final ProcedureCheckService procedureCheckService = mock(ProcedureCheckService.class);
+
     private final CaseAnalysisService caseAnalysisService = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisLimitsProperties);
+            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService);
 
     private final AiQuestionRepository aiQuestionRepository = mock(AiQuestionRepository.class);
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository = mock(AiQuestionAnswerRepository.class);
@@ -53,7 +55,7 @@ class SentryJobReportingTest {
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository);
+            chatMessageRepository, procedureCheckService);
 
     @BeforeEach
     void setUp() {

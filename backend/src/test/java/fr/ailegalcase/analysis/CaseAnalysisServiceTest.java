@@ -33,11 +33,12 @@ class CaseAnalysisServiceTest {
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
     private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
+    private final ProcedureCheckService procedureCheckService = mock(ProcedureCheckService.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisLimitsProperties);
+            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService);
 
     @BeforeEach
     void setUp() {

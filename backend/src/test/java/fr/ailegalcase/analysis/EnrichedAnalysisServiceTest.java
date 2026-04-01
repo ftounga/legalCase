@@ -36,12 +36,13 @@ class EnrichedAnalysisServiceTest {
     private final AnalysisQaSnapshotService analysisQaSnapshotService = mock(AnalysisQaSnapshotService.class);
     private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
     private final ChatMessageRepository chatMessageRepository = mock(ChatMessageRepository.class);
+    private final ProcedureCheckService procedureCheckService = mock(ProcedureCheckService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository);
+            chatMessageRepository, procedureCheckService);
 
     @BeforeEach
     void setUp() {

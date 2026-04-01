@@ -36,9 +36,10 @@ public class EnrichedAnalysisService {
             Tu reçois la synthèse globale d'un dossier juridique ainsi que les réponses de l'avocat à des questions complémentaires.
             Produis une synthèse enrichie et mise à jour en intégrant ces nouvelles informations.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...], "pieces_manquantes": [...]}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [...], "points_juridiques": [...], "risques": [...], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...]}
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis. Si le dossier semble complet, utilise "pieces_manquantes": [].
-            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum. Sois concis.
+            Le champ "points_procedure" liste les étapes procédurales légalement requises dans ce type de dossier (ex: "Entretien préalable tenu dans les délais", "Lettre de licenciement motivée"). Si la procédure semble conforme, utilise "points_procedure": [].
+            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
             """;
 
     static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
@@ -46,7 +47,7 @@ public class EnrichedAnalysisService {
                 LegalDomainPromptBuilder.domainLabel(legalDomain, country),
                 limits.getTimeline(), limits.getFaits(),
                 limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes(),
-                limits.getPiecesManquantes());
+                limits.getPiecesManquantes(), limits.getPointsProcedure());
     }
 
     record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
@@ -64,6 +65,7 @@ public class EnrichedAnalysisService {
     private final AnalysisQaSnapshotService analysisQaSnapshotService;
     private final AnalysisLimitsProperties analysisLimitsProperties;
     private final ChatMessageRepository chatMessageRepository;
+    private final ProcedureCheckService procedureCheckService;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -79,7 +81,8 @@ public class EnrichedAnalysisService {
                                    AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
                                    AnalysisQaSnapshotService analysisQaSnapshotService,
                                    AnalysisLimitsProperties analysisLimitsProperties,
-                                   ChatMessageRepository chatMessageRepository) {
+                                   ChatMessageRepository chatMessageRepository,
+                                   ProcedureCheckService procedureCheckService) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -92,6 +95,7 @@ public class EnrichedAnalysisService {
         this.analysisQaSnapshotService = analysisQaSnapshotService;
         this.analysisLimitsProperties = analysisLimitsProperties;
         this.chatMessageRepository = chatMessageRepository;
+        this.procedureCheckService = procedureCheckService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -197,6 +201,10 @@ public class EnrichedAnalysisService {
             CaseAnalysisResponse.populateCounts(enrichedAnalysis, truncated);
         }
         caseAnalysisRepository.save(enrichedAnalysis);
+
+        if (failure == null) {
+            procedureCheckService.createChecks(enrichedAnalysis, enrichedAnalysis.getAnalysisResult());
+        }
 
         AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)
                 .orElseGet(() -> {
