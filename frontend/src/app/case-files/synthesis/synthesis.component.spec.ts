@@ -14,11 +14,14 @@ import { AnalyticsService } from '../../core/services/analytics.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { of, throwError } from 'rxjs';
-import { CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
+import { AnalysisItem, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 const CASE_FILE_ID = 'cf-1';
+
+const makeItem = (texte: string, source: string | null = null, extrait: string | null = null): AnalysisItem =>
+  ({ texte, source, extrait });
 
 const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = []) => ({
   id: `analysis-${version}`,
@@ -26,7 +29,7 @@ const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', p
   analysisType,
   status: 'DONE',
   timeline: [],
-  faits: ['fait1'],
+  faits: [makeItem('fait1')],
   pointsJuridiques: [],
   risques: [],
   questionsOuvertes: [],
@@ -350,6 +353,35 @@ describe('SynthesisComponent', () => {
 
     expect(component.procedureChecks()[0].statut).toBe('VERIFIED');
     expect(component.updatingCheckId()).toBeNull();
+  });
+
+  // TS-01 : item avec source → badge source affiché
+  it('renders source badge when item has a source', () => {
+    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.and.returnValue(of({
+      ...makeSynthesis(1, 'STANDARD'),
+      faits: [makeItem('Licenciement abusif', 'Document 0 (contrat.pdf)', 'Il est mis fin au contrat')]
+    }));
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Licenciement abusif');
+    expect(el.textContent).toContain('Document 0 (contrat.pdf)');
+    expect(el.textContent).toContain('Il est mis fin au contrat');
+  });
+
+  // TS-02 : item sans source → pas de badge
+  it('does not render source badge when source is null', () => {
+    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.and.returnValue(of({
+      ...makeSynthesis(1, 'STANDARD'),
+      faits: [makeItem('Fait sans source')]
+    }));
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Fait sans source');
+    expect(el.querySelectorAll('.source-badge').length).toBe(0);
   });
 
   // TC-05 : updateCheckStatus erreur → snackbar, statut non modifié

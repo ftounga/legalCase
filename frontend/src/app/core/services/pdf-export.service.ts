@@ -146,7 +146,7 @@ export class PdfExportService {
     if (synthesis.faits.length > 0) {
       sections.push(
         this.buildSectionHeader('Faits', 'faits', synthesis.faits.length, 'fait'),
-        ...this.buildNumberedList(synthesis.faits, ACCENT),
+        ...this.buildNumberedList(synthesis.faits.map(i => i.texte), ACCENT),
         { text: '', margin: [0, 0, 0, 16] }
       );
     }
@@ -154,7 +154,7 @@ export class PdfExportService {
     if (synthesis.pointsJuridiques.length > 0) {
       sections.push(
         this.buildSectionHeader('Points juridiques', 'juridique', synthesis.pointsJuridiques.length, 'point'),
-        ...this.buildNumberedList(synthesis.pointsJuridiques, PRIMARY),
+        ...this.buildNumberedList(synthesis.pointsJuridiques.map(i => i.texte), PRIMARY),
         { text: '', margin: [0, 0, 0, 16] }
       );
     }
@@ -162,7 +162,7 @@ export class PdfExportService {
     if (synthesis.risques.length > 0) {
       sections.push(
         this.buildSectionHeader('Risques', 'risques', synthesis.risques.length, 'risque'),
-        ...this.buildRisquesList(synthesis.risques),
+        ...this.buildRisquesList(synthesis.risques.map(i => i.texte)),
         { text: '', margin: [0, 0, 0, 16] }
       );
     }

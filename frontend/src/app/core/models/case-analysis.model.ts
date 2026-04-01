@@ -3,15 +3,21 @@ export interface TimelineEntry {
   evenement: string;
 }
 
+export interface AnalysisItem {
+  texte: string;
+  source: string | null;
+  extrait: string | null;
+}
+
 export interface CaseAnalysisResult {
   id: string;
   version: number;
   analysisType: 'STANDARD' | 'ENRICHED';
   status: string;
   timeline: TimelineEntry[];
-  faits: string[];
-  pointsJuridiques: string[];
-  risques: string[];
+  faits: AnalysisItem[];
+  pointsJuridiques: AnalysisItem[];
+  risques: AnalysisItem[];
   questionsOuvertes: string[];
   piecesManquantes: string[];
   modelUsed: string | null;

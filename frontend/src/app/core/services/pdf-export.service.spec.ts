@@ -14,9 +14,18 @@ const mockSynthesis: CaseAnalysisResult = {
     { date: '01/01/2024', evenement: 'Licenciement notifié' },
     { date: '15/01/2024', evenement: 'Lettre de contestation envoyée' },
   ],
-  faits: ['Salarié embauché en 2018', 'Licencié sans cause réelle'],
-  pointsJuridiques: ['Article L1232-1 Code du travail', 'Absence de cause réelle et sérieuse'],
-  risques: ['Condamnation à indemnités', 'Risque de requalification'],
+  faits: [
+    { texte: 'Salarié embauché en 2018', source: null, extrait: null },
+    { texte: 'Licencié sans cause réelle', source: null, extrait: null },
+  ],
+  pointsJuridiques: [
+    { texte: 'Article L1232-1 Code du travail', source: null, extrait: null },
+    { texte: 'Absence de cause réelle et sérieuse', source: null, extrait: null },
+  ],
+  risques: [
+    { texte: 'Condamnation à indemnités', source: null, extrait: null },
+    { texte: 'Risque de requalification', source: null, extrait: null },
+  ],
   questionsOuvertes: ['Convention collective applicable ?'],
   piecesManquantes: [],
   modelUsed: 'claude-3',
