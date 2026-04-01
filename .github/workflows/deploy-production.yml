@@ -20,6 +20,7 @@ concurrency:
 env:
   AWS_REGION: eu-west-3
   EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+  ECR_REPOSITORY_FRONTEND: legalcase-frontend
 
 jobs:
   deploy-production:
@@ -43,6 +44,19 @@ jobs:
       - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build frontend with production config
+        id: build-frontend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          FRONTEND_TAG: ${{ github.event.inputs.frontend_tag }}
+        run: |
+          PROD_TAG=${FRONTEND_TAG}-prod
+          docker build --build-arg BUILD_CONFIGURATION=production \
+                       -t $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$PROD_TAG \
+                       ./frontend
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$PROD_TAG
+          echo "prod_tag=$PROD_TAG" >> $GITHUB_OUTPUT
 
       - name: Update kubeconfig
         run: |
@@ -145,7 +159,7 @@ jobs:
 
           sed -i "s|legalcase-backend:BACKEND_IMAGE_TAG|legalcase-backend:$BACKEND_TAG|g" \
             k8s/base/backend/deployment.yaml
-          sed -i "s|legalcase-frontend:FRONTEND_IMAGE_TAG|legalcase-frontend:$FRONTEND_TAG|g" \
+          sed -i "s|legalcase-frontend:FRONTEND_IMAGE_TAG|legalcase-frontend:${{ steps.build-frontend.outputs.prod_tag }}|g" \
             k8s/base/frontend/deployment.yaml
 
           kubectl apply -k k8s/overlays/production/
