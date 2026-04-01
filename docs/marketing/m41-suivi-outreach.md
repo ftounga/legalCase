@@ -23,10 +23,10 @@ Statuts : `Prospect` → `Contacté` → `Répondu` → `Démo planifiée` → `
 | 14 | Dominique | La Garanderie Avocats | ⚠️ LinkedIn non trouvé | — | 2026-03-31 | `Contacté` | Message envoyé — ton formel (ancienne bâtonnière) |
 | 15 | David | Voltaire Avocats | [profil](https://fr.linkedin.com/company/voltaire-avocats) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé — contact : David Guillouet (associé) |
 | 16 | Sylvanie | Cabinet Ngawa | [profil](https://www.linkedin.com/in/avocattravailparis/) | — | 2026-03-31 | `Contacté` | Message LinkedIn envoyé |
-| 17 | Sandra | Cabinet L&R Avocats | [profil](https://www.linkedin.com/in/sandra-ramos-avocat-droit-social/) | — | — | `Prospect` | — |
-| 18 | Virginie | Cabinet Virginie Langlet | [profil](https://www.linkedin.com/in/virginie-langlet-5b391850/) | — | — | `Prospect` | — |
-| 19 | Aurélie | Cabinet Aurélie Thevenin | [profil](https://fr.linkedin.com/in/aur%C3%A9lie-thevenin-38547333) | — | — | `Prospect` | — |
-| 20 | Stéphanie | Cabinet ASL | [profil](https://www.linkedin.com/in/st%C3%A9phanie-lambert-982258173/) | — | — | `Prospect` | — |
+| 17 | Sandra | Cabinet L&R Avocats | [profil](https://www.linkedin.com/in/sandra-ramos-avocat-droit-social/) | — | 2026-04-01 | `Contacté` | Message LinkedIn envoyé |
+| 18 | Virginie | Cabinet Virginie Langlet | [profil](https://www.linkedin.com/in/virginie-langlet-5b391850/) | — | 2026-04-01 | `Contacté` | Message LinkedIn envoyé |
+| 19 | Aurélie | Cabinet Aurélie Thevenin | [profil](https://fr.linkedin.com/in/aur%C3%A9lie-thevenin-38547333) | — | 2026-04-01 | `Contacté` | Message LinkedIn envoyé |
+| 20 | Stéphanie | Cabinet ASL | [profil](https://www.linkedin.com/in/st%C3%A9phanie-lambert-982258173/) | — | 2026-04-01 | `Contacté` | Message LinkedIn envoyé |
 | 21 | Eric | Flichy Grangé Avocats | [profil](https://www.linkedin.com/in/eric-le-quellenec-7032567/) | — | — | `Prospect` | Phase 2 |
 | 22 | Maud | Fromont Briens | [profil](https://www.linkedin.com/in/maud-perilli-0a28686a/) | — | — | `Prospect` | Phase 2 |
 | 23 | Luc | Capstan Avocats | [profil](https://www.linkedin.com/in/luc-bachelot-ba64a9133/) | — | — | `Prospect` | Phase 2 |
@@ -51,7 +51,7 @@ Statuts : `Prospect` → `Contacté` → `Répondu` → `Démo planifiée` → `
 | 42 | — | Linklaters | ⚠️ Après références | — | — | `Prospect` | Phase 3 |
 | 43 | — | Proskauer Rose | ⚠️ Après références | — | — | `Prospect` | Phase 3 |
 | 44 | — | Jeantet | ⚠️ Après références | — | — | `Prospect` | Phase 3 |
-| 45 | Marlène | CILAOS Avocats | [profil](https://www.linkedin.com/in/marl%C3%A8ne-elmassian-0a907765/) | — | — | `Prospect` | — |
+| 45 | Marlène | CILAOS Avocats | [profil](https://www.linkedin.com/in/marl%C3%A8ne-elmassian-0a907765/) | — | 2026-04-01 | `Contacté` | Message LinkedIn envoyé |
 | 46 | Stéphane | Bonin & Associés | [profil](https://fr.linkedin.com/in/st%C3%A9phane-bonin-3809b734) | — | — | `Prospect` | — |
 | 47 | Grégoire | Anders Avocats | [profil](https://www.linkedin.com/in/gregoirebravais/) | — | — | `Prospect` | — |
 | 48 | Renaud | Cabinet Renaud Rialland | [profil](https://www.linkedin.com/in/renaud-rialland-avocat-en-droit-du-travail-paris/) | — | — | `Prospect` | — |
@@ -61,6 +61,16 @@ Statuts : `Prospect` → `Contacté` → `Répondu` → `Démo planifiée` → `
 ---
 
 ## Relances J+7 à planifier
+
+| # | Contact | Date envoi | Date relance |
+|---|---------|------------|-------------|
+| 17 | Sandra Ramos (L&R Avocats) | 2026-04-01 | 2026-04-08 |
+| 18 | Virginie Langlet | 2026-04-01 | 2026-04-08 |
+| 19 | Aurélie Thevenin | 2026-04-01 | 2026-04-08 |
+| 20 | Stéphanie Lambert (Cabinet ASL) | 2026-04-01 | 2026-04-08 |
+| 45 | Marlène Elmassian (CILAOS Avocats) | 2026-04-01 | 2026-04-08 |
+
+## Relances J+7 — vague précédente
 
 | # | Contact | Date envoi | Date relance |
 |---|---------|------------|-------------|
