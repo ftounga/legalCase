@@ -91,8 +91,9 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-41 | Liste de 50 cabinets cibles (droit travail, Paris/IDF) | Haute | `Terminé` | 50 cabinets, 47 URLs LinkedIn vérifiées. Suivi outreach dans m41-suivi-outreach.md. 5 premiers messages envoyés le 2026-03-30. |
 | M-42 | Script d'outreach LinkedIn — message de prospection | Haute | `Rédigé` | 4 templates livrés le 2026-03-29 — docs/marketing/m42-script-outreach-linkedin.md |
 | M-43 | Démo en ligne — Calendly ou équivalent | Haute | `Terminé` | https://calendly.com/tounga-franck-ng-itconsulting/30min — intégré dans Template E de M-42 |
-| M-44 | Partenariats barreaux / associations d'avocats | Moyenne | `À faire` | Canal d'acquisition B2B |
+| M-44 | Partenariats barreaux / associations d'avocats | Moyenne | `À faire` | Canal d'acquisition B2B — email + cibles dans docs/marketing/m44-partenariats-barreaux.md |
 | M-45 | Programme de référence — un mois offert pour parrainage | Moyenne | `À faire` | Croissance organique |
+| M-53 | Partenariat éditorial Village de la Justice | Haute | `À faire` | Newsletter 60 000 professionnels du droit — article sponsorisé ou tribune sur l'IA en cabinet. Un seul interlocuteur, pas de validation collective. Contact : village-justice.com/contact |
 
 ---
 
