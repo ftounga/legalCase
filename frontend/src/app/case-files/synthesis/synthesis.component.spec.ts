@@ -23,7 +23,7 @@ const CASE_FILE_ID = 'cf-1';
 const makeItem = (texte: string, source: string | null = null, extrait: string | null = null): AnalysisItem =>
   ({ texte, source, extrait });
 
-const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = []) => ({
+const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = [], riskLevel: string | null = null, riskScore: number | null = null) => ({
   id: `analysis-${version}`,
   version,
   analysisType,
@@ -34,6 +34,8 @@ const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', p
   risques: [],
   questionsOuvertes: [],
   piecesManquantes,
+  riskLevel,
+  riskScore,
   modelUsed: 'claude-sonnet-4-6',
   updatedAt: '2026-03-23T10:00:00Z'
 });
@@ -252,7 +254,7 @@ describe('SynthesisComponent', () => {
     const router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     reAnalysisService.reAnalyze.and.returnValue(of(undefined));
     spyOn(router, 'navigate');
-    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null });
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
 
     component.reAnalyze();
 
@@ -263,7 +265,7 @@ describe('SynthesisComponent', () => {
   it('exportPdf success → trackEvent pdf_exported', () => {
     const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
     const pdfExportService = TestBed.inject(PdfExportService) as jasmine.SpyObj<PdfExportService>;
-    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null });
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
     component.synthesis.set(makeSynthesis(1, 'STANDARD'));
 
     component.exportPdf();
@@ -400,5 +402,25 @@ describe('SynthesisComponent', () => {
       jasmine.stringContaining('statut'), 'Fermer', jasmine.any(Object)
     );
     expect(component.updatingCheckId()).toBeNull();
+  });
+
+  // R-03 : badge de risque présent dans le header si riskLevel non null
+  it('R-03: synthesis avec riskLevel → badge .risk-badge présent dans le header', () => {
+    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', [], 'ELEVE', 82)));
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector('.risk-badge');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toContain('Élevé');
+    expect(badge.textContent).toContain('82');
+  });
+
+  // R-04 : badge absent si riskLevel null
+  it('R-04: synthesis sans riskLevel → badge .risk-badge absent', () => {
+    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', [], null, null)));
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector('.risk-badge');
+    expect(badge).toBeNull();
   });
 });

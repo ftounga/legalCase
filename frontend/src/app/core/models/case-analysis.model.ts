@@ -20,6 +20,8 @@ export interface CaseAnalysisResult {
   risques: AnalysisItem[];
   questionsOuvertes: string[];
   piecesManquantes: string[];
+  riskLevel: string | null;
+  riskScore: number | null;
   modelUsed: string | null;
   updatedAt: string | null;
 }

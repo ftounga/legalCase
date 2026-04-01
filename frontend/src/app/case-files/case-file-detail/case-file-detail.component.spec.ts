@@ -31,7 +31,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 const mockCaseFile: CaseFile = {
   id: 'cf1', title: 'Dossier A', legalDomain: 'DROIT_DU_TRAVAIL',
   description: 'Description test', status: 'OPEN', createdAt: '2026-03-17T10:00:00Z',
-  lastDocumentDeletedAt: null
+  lastDocumentDeletedAt: null, riskLevel: null, riskScore: null
 };
 
 const mockDocument: Document = {
@@ -311,6 +311,8 @@ describe('CaseFileDetailComponent', () => {
       risques: [],
       questionsOuvertes: [],
       piecesManquantes: [],
+      riskLevel: null,
+      riskScore: null,
       modelUsed: null,
       updatedAt: null
     };
@@ -416,7 +418,7 @@ describe('CaseFileDetailComponent', () => {
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
       timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
-      modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
     expect(component.deletedSinceLastAnalysis()).toBeFalse();
   });
@@ -426,7 +428,7 @@ describe('CaseFileDetailComponent', () => {
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
       timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
-      modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
     expect(component.deletedSinceLastAnalysis()).toBeTrue();
   });
@@ -436,7 +438,7 @@ describe('CaseFileDetailComponent', () => {
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
       timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
-      modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
     // doc added after synthesis
     component.documents.set([{ ...mockDocument, createdAt: '2026-03-22T10:00:00Z' }]);
@@ -524,7 +526,7 @@ describe('CaseFileDetailComponent', () => {
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
       timeline: [], faits: [{ texte: 'un fait', source: null, extrait: null }], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
-      modelUsed: null, updatedAt: '2026-03-29T10:00:00Z'
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-29T10:00:00Z'
     });
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;

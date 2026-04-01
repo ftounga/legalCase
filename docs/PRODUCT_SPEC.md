@@ -226,6 +226,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-99 | Migration tests frontend Karma → Jest | V3 — `À spécifier` | Remplacer Karma + Chrome Headless par Jest + jest-preset-angular. Objectif : réduire le temps d'exécution de la suite (~400 tests actuellement, ~2min) à ~20s. Aucun navigateur à démarrer, parallélisation native, watch mode instantané. La migration doit conserver 100% des tests existants sans les modifier. |
 | F-46 | Tests E2E smoke branchés CI | V2 — **Terminée** | Workflow `smoke.yml` déclenché après `Backend CI/CD` et `Frontend CI/CD` (workflow_run, conclusion success) + workflow_dispatch. Playwright chromium, Node 22, secrets E2E_LOCAL_EMAIL/PASSWORD, rapport artifact sur échec. Compte e2e créé en base staging. SF-46-01 mergée 2026-03-28. |
 | F-47 | Monitoring & alertes applicatives | V2 — **Terminée** | Sentry backend (`sentry-spring-boot-starter-jakarta`) + frontend (`@sentry/angular`). Capture automatique exceptions + événement manuel sur job IA FAILED. DSN via env var, désactivé en dev. SF-47-01 + SF-47-02 mergées 2026-03-25. |
 | F-50 | Déploiement V1 — AWS EKS | V1 — **Terminée** | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. 6 subfeatures toutes terminées : SF-50-01 Dockerfiles ✅, SF-50-02 Terraform infra ✅, SF-50-03 K8s manifests ✅, SF-50-04 CI/CD ✅, SF-50-05 Config prod OAuth2 (Google)/Stripe ✅, SF-50-06 Monitoring Sentry ✅. Premier déploiement production 2026-03-25. |
@@ -236,6 +237,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-01 | F-99 ajoutée — Migration tests frontend Karma → Jest (infrastructure & qualité, V3) | Product owner |
 | 2026-04-01 | F-94 SF-94-01 mergée — backend score de risque : prompts, migration 041, populateRiskScore fail-open, CaseFileResponse enrichi, 405 tests | Product owner |
 | 2026-04-01 | F-93 SF-93-01 mergée — backend sources IA : AnalysisItem{texte,source,extrait}, filename dans prompt, SemanticDiff adapté, 401 tests | Product owner |
 | 2026-04-01 | F-96 Terminée — SF-96-03 mergée : injection NON_COMPLIANT dans prompt enrichi, fail-open, 398 tests | Product owner |

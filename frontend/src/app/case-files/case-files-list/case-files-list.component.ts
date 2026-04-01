@@ -154,4 +154,18 @@ export class CaseFilesListComponent implements OnInit {
   statusClass(status: string): string {
     return status === 'OPEN' ? 'badge--success' : 'badge--neutral';
   }
+
+  riskLabel(cf: CaseFile): string {
+    if (!cf.riskLevel) return '';
+    const labels: Record<string, string> = { FAIBLE: 'Faible', MOYEN: 'Moyen', ELEVE: 'Élevé' };
+    const label = labels[cf.riskLevel] ?? cf.riskLevel;
+    return cf.riskScore != null ? `${label} (${cf.riskScore})` : label;
+  }
+
+  riskClass(riskLevel: string | null): string {
+    if (riskLevel === 'FAIBLE') return 'risk-badge risk-badge--faible';
+    if (riskLevel === 'MOYEN') return 'risk-badge risk-badge--moyen';
+    if (riskLevel === 'ELEVE') return 'risk-badge risk-badge--eleve';
+    return '';
+  }
 }

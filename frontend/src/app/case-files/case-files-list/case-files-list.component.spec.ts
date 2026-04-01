@@ -16,10 +16,16 @@ import { Workspace } from '../../core/models/workspace.model';
 
 const mockWorkspace: Workspace = { id: 'ws-1', name: 'Test', slug: 'test', planCode: 'SOLO', status: 'ACTIVE' };
 
+const makeCaseFile = (overrides: Partial<CaseFile> = {}): CaseFile => ({
+  id: 'cf1', title: 'Dossier Alpha', legalDomain: 'DROIT_DU_TRAVAIL', description: null,
+  status: 'OPEN', createdAt: '2026-03-17T10:00:00Z', lastDocumentDeletedAt: null,
+  riskLevel: null, riskScore: null, ...overrides
+});
+
 const mockPage: Page<CaseFile> = {
   content: [
-    { id: 'cf1', title: 'Dossier Alpha', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '2026-03-17T10:00:00Z', lastDocumentDeletedAt: null },
-    { id: 'cf2', title: 'Cabinet Beta', legalDomain: 'DROIT_IMMIGRATION', description: null, status: 'CLOSED', createdAt: '2026-03-18T10:00:00Z', lastDocumentDeletedAt: null }
+    makeCaseFile({ id: 'cf1', title: 'Dossier Alpha', status: 'OPEN' }),
+    makeCaseFile({ id: 'cf2', title: 'Cabinet Beta', legalDomain: 'DROIT_IMMIGRATION', status: 'CLOSED', createdAt: '2026-03-18T10:00:00Z' })
   ],
   totalElements: 2, totalPages: 1, size: 20, number: 0
 };
@@ -236,5 +242,33 @@ describe('CaseFilesListComponent', () => {
     component.onSearch('alpha');
     expect(component.filteredDataSource.length).toBe(1);
     expect(component.filteredDataSource[0].id).toBe('cf1');
+  });
+
+  // R-01 : badge de risque présent si riskLevel non null
+  it('R-01: riskLevel non null → badge .risk-badge présent dans le DOM', () => {
+    const page: Page<CaseFile> = {
+      content: [makeCaseFile({ riskLevel: 'MOYEN', riskScore: 65 })],
+      totalElements: 1, totalPages: 1, size: 20, number: 0
+    };
+    caseFileServiceSpy.list.and.returnValue(of(page));
+    component.loadCaseFiles();
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector('.risk-badge');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toContain('Moyen');
+    expect(badge.textContent).toContain('65');
+  });
+
+  // R-02 : badge absent si riskLevel null
+  it('R-02: riskLevel null → pas de badge .risk-badge', () => {
+    const page: Page<CaseFile> = {
+      content: [makeCaseFile({ riskLevel: null, riskScore: null })],
+      totalElements: 1, totalPages: 1, size: 20, number: 0
+    };
+    caseFileServiceSpy.list.and.returnValue(of(page));
+    component.loadCaseFiles();
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector('.risk-badge');
+    expect(badge).toBeNull();
   });
 });

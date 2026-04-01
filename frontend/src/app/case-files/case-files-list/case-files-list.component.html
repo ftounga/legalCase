@@ -62,6 +62,9 @@
     <mat-header-cell *matHeaderCellDef mat-sort-header>Statut</mat-header-cell>
     <mat-cell *matCellDef="let row">
       <span class="badge" [ngClass]="statusClass(row.status)">{{ statusLabel(row.status) }}</span>
+      @if (row.riskLevel) {
+        <span [class]="riskClass(row.riskLevel)">{{ riskLabel(row) }}</span>
+      }
     </mat-cell>
   </ng-container>
 

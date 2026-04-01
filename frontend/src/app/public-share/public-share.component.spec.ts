@@ -25,6 +25,8 @@ const MOCK_PUBLIC_SHARE: PublicShareResponse = {
     questionsOuvertes: [],
     piecesManquantes: [],
     timeline: [{ date: '01/01/2026', evenement: 'Licenciement' }],
+    riskLevel: null,
+    riskScore: null,
     modelUsed: null,
     updatedAt: '2026-03-28T00:00:00Z'
   }
