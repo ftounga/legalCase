@@ -12,8 +12,10 @@ import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { ChatService } from '../../core/services/chat.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { of, throwError } from 'rxjs';
 import { CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 const CASE_FILE_ID = 'cf-1';
@@ -45,21 +47,28 @@ const makeVersion = (version: number, analysisType: 'STANDARD' | 'ENRICHED'): Ca
   timelineCount: null
 });
 
+const makeCheck = (id: string, ordre: number, statut: 'TO_CHECK' | 'VERIFIED' | 'NON_COMPLIANT' = 'TO_CHECK'): ProcedureCheck => ({
+  id, ordre, description: `Point ${ordre}`, statut
+});
+
 describe('SynthesisComponent', () => {
   let fixture: ComponentFixture<SynthesisComponent>;
   let component: SynthesisComponent;
   let caseAnalysisService: jasmine.SpyObj<CaseAnalysisService>;
   let aiQuestionService: jasmine.SpyObj<AiQuestionService>;
+  let procedureCheckService: jasmine.SpyObj<ProcedureCheckService>;
 
   beforeEach(async () => {
     caseAnalysisService = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getByVersion', 'getAnalysis']);
     aiQuestionService = jasmine.createSpyObj('AiQuestionService', ['getQuestions', 'getQuestionsByAnalysisId']);
+    procedureCheckService = jasmine.createSpyObj('ProcedureCheckService', ['list', 'updateStatus']);
 
     const caseFileService = jasmine.createSpyObj('CaseFileService', ['getById']);
     caseFileService.getById.and.returnValue(of({ id: CASE_FILE_ID, title: 'Dossier test' }));
 
     aiQuestionService.getQuestionsByAnalysisId.and.returnValue(of([]));
     aiQuestionService.getQuestions.and.returnValue(of([]));
+    procedureCheckService.list.and.returnValue(of([]));
 
     const chatService = jasmine.createSpyObj('ChatService', ['getHistory', 'sendMessage']);
     chatService.getHistory.and.returnValue(of([]));
@@ -77,6 +86,7 @@ describe('SynthesisComponent', () => {
         { provide: ChatService, useValue: chatService },
         { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
         { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export']) },
+        { provide: ProcedureCheckService, useValue: procedureCheckService },
       ]
     }).compileComponents();
 
@@ -292,5 +302,71 @@ describe('SynthesisComponent', () => {
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).not.toContain('Pièces manquantes');
+  });
+
+  // TC-01 : loadChecksForVersion appelé au chargement initial
+  it('calls loadChecksForVersion for the most recent version on load', () => {
+    const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+    caseAnalysisService.getVersions.and.returnValue(of(versions));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(2, 'STANDARD')));
+
+    fixture.detectChanges();
+
+    expect(procedureCheckService.list).toHaveBeenCalledWith(CASE_FILE_ID, 'analysis-2');
+  });
+
+  // TC-02 : onVersionChange réinitialise procedureChecks puis recharge
+  it('onVersionChange resets procedureChecks and reloads for new version', () => {
+    const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+    caseAnalysisService.getVersions.and.returnValue(of(versions));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    component.procedureChecks.set([makeCheck('c1', 1)]);
+
+    fixture.detectChanges();
+    component.onVersionChange(1);
+
+    expect(procedureCheckService.list).toHaveBeenCalledWith(CASE_FILE_ID, 'analysis-1');
+  });
+
+  // TC-03 : checks vides → panneau checklist absent du template
+  it('does not render checklist panel when procedureChecks is empty', () => {
+    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    procedureCheckService.list.and.returnValue(of([]));
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).not.toContain('Checklist procédurale');
+  });
+
+  // TC-04 : updateCheckStatus succès → statut mis à jour localement
+  it('updateCheckStatus updates check status locally on success', () => {
+    const check = makeCheck('c1', 1, 'TO_CHECK');
+    component.procedureChecks.set([check]);
+    const updated: ProcedureCheck = { ...check, statut: 'VERIFIED' };
+    procedureCheckService.updateStatus.and.returnValue(of(updated));
+
+    component.updateCheckStatus(check, 'VERIFIED');
+
+    expect(component.procedureChecks()[0].statut).toBe('VERIFIED');
+    expect(component.updatingCheckId()).toBeNull();
+  });
+
+  // TC-05 : updateCheckStatus erreur → snackbar, statut non modifié
+  it('updateCheckStatus shows snackbar on error without modifying status', () => {
+    const snackBar = TestBed.inject(MatSnackBar);
+    spyOn(snackBar, 'open');
+
+    const check = makeCheck('c1', 1, 'TO_CHECK');
+    component.procedureChecks.set([check]);
+    procedureCheckService.updateStatus.and.returnValue(throwError(() => ({ status: 500 })));
+
+    component.updateCheckStatus(check, 'VERIFIED');
+
+    expect(component.procedureChecks()[0].statut).toBe('TO_CHECK');
+    expect(snackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('statut'), 'Fermer', jasmine.any(Object)
+    );
+    expect(component.updatingCheckId()).toBeNull();
   });
 });

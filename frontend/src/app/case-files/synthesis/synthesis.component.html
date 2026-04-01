@@ -175,6 +175,49 @@
           </ul>
         </mat-expansion-panel>
       }
+
+      @if (procedureChecks().length > 0) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--checklist">checklist</mat-icon>
+              Checklist procédurale
+            </mat-panel-title>
+            <mat-panel-description>{{ procedureChecks().length }} point(s) à vérifier</mat-panel-description>
+          </mat-expansion-panel-header>
+          <div class="checklist-list">
+            @for (check of procedureChecks(); track check.id) {
+              <div class="checklist-item">
+                <span class="checklist-description">{{ check.ordre }}. {{ check.description }}</span>
+                <div class="checklist-actions">
+                  @if (updatingCheckId() === check.id) {
+                    <mat-spinner diameter="20" class="check-spinner"></mat-spinner>
+                  } @else {
+                    <button class="status-btn status-btn--verified"
+                            [class.status-btn--active]="check.statut === 'VERIFIED'"
+                            (click)="updateCheckStatus(check, 'VERIFIED')">
+                      <mat-icon>check_circle</mat-icon>
+                      Vérifié
+                    </button>
+                    <button class="status-btn status-btn--non-compliant"
+                            [class.status-btn--active]="check.statut === 'NON_COMPLIANT'"
+                            (click)="updateCheckStatus(check, 'NON_COMPLIANT')">
+                      <mat-icon>cancel</mat-icon>
+                      Non conforme
+                    </button>
+                    <button class="status-btn status-btn--to-check"
+                            [class.status-btn--active]="check.statut === 'TO_CHECK'"
+                            (click)="updateCheckStatus(check, 'TO_CHECK')">
+                      <mat-icon>help_outline</mat-icon>
+                      À vérifier
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </mat-expansion-panel>
+      }
     </mat-accordion>
   }
 
