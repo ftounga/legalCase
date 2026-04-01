@@ -6,6 +6,8 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -19,19 +21,24 @@ import java.util.UUID;
 @Service
 public class CaseAnalysisQueryService {
 
+    private static final Logger log = LoggerFactory.getLogger(CaseAnalysisQueryService.class);
+
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+    private final AnalysisDocumentRepository analysisDocumentRepository;
 
     public CaseAnalysisQueryService(CaseAnalysisRepository caseAnalysisRepository,
                                     CaseFileRepository caseFileRepository,
                                     CurrentUserResolver currentUserResolver,
-                                    WorkspaceMemberRepository workspaceMemberRepository) {
+                                    WorkspaceMemberRepository workspaceMemberRepository,
+                                    AnalysisDocumentRepository analysisDocumentRepository) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
+        this.analysisDocumentRepository = analysisDocumentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -54,7 +61,7 @@ public class CaseAnalysisQueryService {
                 .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No analysis available"));
 
-        return CaseAnalysisResponse.from(analysis);
+        return CaseAnalysisResponse.from(analysis, loadDocuments(analysis.getId()));
     }
 
     @Transactional(readOnly = true)
@@ -104,6 +111,15 @@ public class CaseAnalysisQueryService {
                 .findByCaseFileIdAndAnalysisStatusAndVersion(caseFileId, AnalysisStatus.DONE, version)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
-        return CaseAnalysisResponse.from(analysis);
+        return CaseAnalysisResponse.from(analysis, loadDocuments(analysis.getId()));
+    }
+
+    private List<AnalysisDocument> loadDocuments(UUID analysisId) {
+        try {
+            return analysisDocumentRepository.findByAnalysisIdOrderByCreatedAt(analysisId);
+        } catch (Exception e) {
+            log.warn("Fail-open: could not load analysis documents for analysisId {}: {}", analysisId, e.getMessage());
+            return List.of();
+        }
     }
 }

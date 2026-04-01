@@ -23,10 +23,13 @@ public record CaseAnalysisResponse(
         String riskLevel,
         Integer riskScore,
         String modelUsed,
-        Instant updatedAt
+        Instant updatedAt,
+        List<AnalysisDocumentEntry> analysisDocuments
 ) {
 
     public record TimelineEntry(String date, String evenement) {}
+
+    public record AnalysisDocumentEntry(int index, String name) {}
 
     public record VersionSummary(
             UUID id,
@@ -87,6 +90,10 @@ public record CaseAnalysisResponse(
     }
 
     public static CaseAnalysisResponse from(CaseAnalysis analysis) {
+        return from(analysis, List.of());
+    }
+
+    public static CaseAnalysisResponse from(CaseAnalysis analysis, List<AnalysisDocument> documents) {
         List<TimelineEntry> timeline = List.of();
         List<AnalysisItem> faits = List.of();
         List<AnalysisItem> pointsJuridiques = List.of();
@@ -111,6 +118,8 @@ public record CaseAnalysisResponse(
             }
         }
 
+        List<AnalysisDocumentEntry> analysisDocuments = buildAnalysisDocuments(documents);
+
         return new CaseAnalysisResponse(
                 analysis.getId(),
                 analysis.getVersion(),
@@ -126,8 +135,18 @@ public record CaseAnalysisResponse(
                 analysis.getRiskLevel(),
                 analysis.getRiskScore(),
                 analysis.getModelUsed(),
-                analysis.getUpdatedAt()
+                analysis.getUpdatedAt(),
+                analysisDocuments
         );
+    }
+
+    private static List<AnalysisDocumentEntry> buildAnalysisDocuments(List<AnalysisDocument> documents) {
+        if (documents == null || documents.isEmpty()) return List.of();
+        List<AnalysisDocumentEntry> result = new ArrayList<>();
+        for (int i = 0; i < documents.size(); i++) {
+            result.add(new AnalysisDocumentEntry(i, documents.get(i).getDocumentName()));
+        }
+        return List.copyOf(result);
     }
 
     /**

@@ -3,6 +3,8 @@ package fr.ailegalcase.analysis;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -258,6 +260,54 @@ class CaseAnalysisResponseTest {
         assertThat(analysis.getRiskScore()).isNull();
     }
 
+    // U-15 : analysisDocuments — liste de 2 documents → correctement indexés
+    @Test
+    void from_withDocuments_buildsAnalysisDocuments() {
+        CaseAnalysis analysis = analysis(null);
+        List<AnalysisDocument> docs = List.of(
+                analysisDocument("contrat.pdf"),
+                analysisDocument("bulletin.pdf")
+        );
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis, docs);
+
+        assertThat(response.analysisDocuments()).hasSize(2);
+        assertThat(response.analysisDocuments().get(0).index()).isEqualTo(0);
+        assertThat(response.analysisDocuments().get(0).name()).isEqualTo("contrat.pdf");
+        assertThat(response.analysisDocuments().get(1).index()).isEqualTo(1);
+        assertThat(response.analysisDocuments().get(1).name()).isEqualTo("bulletin.pdf");
+    }
+
+    // U-16 : analysisDocuments — liste vide → []
+    @Test
+    void from_withEmptyDocuments_returnsEmptyAnalysisDocuments() {
+        CaseAnalysis analysis = analysis(null);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis, List.of());
+
+        assertThat(response.analysisDocuments()).isEmpty();
+    }
+
+    // U-17 : analysisDocuments — null → [] (fail-open)
+    @Test
+    void from_withNullDocuments_returnsEmptyAnalysisDocuments() {
+        CaseAnalysis analysis = analysis(null);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis, null);
+
+        assertThat(response.analysisDocuments()).isEmpty();
+    }
+
+    // U-18 : from(analysis) sans documents → analysisDocuments vide
+    @Test
+    void from_withoutDocuments_returnsEmptyAnalysisDocuments() {
+        CaseAnalysis analysis = analysis(null);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.analysisDocuments()).isEmpty();
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
@@ -267,5 +317,13 @@ class CaseAnalysisResponseTest {
         a.setModelUsed("claude-sonnet-4-6");
         a.setUpdatedAt(Instant.now());
         return a;
+    }
+
+    private AnalysisDocument analysisDocument(String documentName) {
+        AnalysisDocument doc = new AnalysisDocument();
+        doc.setAnalysisId(UUID.randomUUID());
+        doc.setDocumentId(UUID.randomUUID());
+        doc.setDocumentName(documentName);
+        return doc;
     }
 }
