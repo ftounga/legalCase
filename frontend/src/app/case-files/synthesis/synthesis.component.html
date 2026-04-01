@@ -36,6 +36,14 @@
         <mat-icon>picture_as_pdf</mat-icon>
         Exporter PDF
       </button>
+      <button mat-stroked-button
+              class="export-btn"
+              [disabled]="!synthesis()"
+              (click)="exportDocx()"
+              matTooltip="Télécharger la synthèse en Word (.docx)">
+        <mat-icon>article</mat-icon>
+        Exporter (.docx)
+      </button>
     </div>
     <div class="title-row">
       <h1 class="page-title">{{ caseFile()!.title }}</h1>

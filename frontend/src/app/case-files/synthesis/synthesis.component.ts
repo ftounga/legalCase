@@ -19,6 +19,7 @@ import { GlobalAnalysisNotificationService } from '../../core/services/global-an
 import { ChatService } from '../../core/services/chat.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
@@ -73,6 +74,7 @@ export class SynthesisComponent implements OnInit {
     private chatService: ChatService,
     private snackBar: MatSnackBar,
     private pdfExportService: PdfExportService,
+    private docxExportService: DocxExportService,
     private analyticsService: AnalyticsService,
     private procedureCheckService: ProcedureCheckService
   ) {}
@@ -310,6 +312,13 @@ export class SynthesisComponent implements OnInit {
         duration: 4000, panelClass: ['snack-error']
       });
     }
+  }
+
+  exportDocx(): void {
+    const cf = this.caseFile();
+    const syn = this.synthesis();
+    if (!cf || !syn) return;
+    this.docxExportService.export(cf, syn);
   }
 
   reAnalyze(): void {
