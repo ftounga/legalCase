@@ -306,7 +306,7 @@ describe('CaseFileDetailComponent', () => {
       analysisType: 'STANDARD',
       status: 'DONE',
       timeline: [],
-      faits: ['fait1'],
+      faits: [{ texte: 'fait1', source: null, extrait: null }],
       pointsJuridiques: [],
       risques: [],
       questionsOuvertes: [],
@@ -523,7 +523,7 @@ describe('CaseFileDetailComponent', () => {
   it('C-04: lien "Voir la synthèse" a data-tour-target="synthesis-link" quand synthesis() est non null', () => {
     component.synthesis.set({
       id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
-      timeline: [], faits: ['un fait'], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
+      timeline: [], faits: [{ texte: 'un fait', source: null, extrait: null }], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
       modelUsed: null, updatedAt: '2026-03-29T10:00:00Z'
     });
     fixture.detectChanges();

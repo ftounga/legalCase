@@ -102,7 +102,15 @@
           </mat-expansion-panel-header>
           <ol class="synthesis-list" [@listStagger]="synthesis()!.faits.length">
             @for (item of synthesis()!.faits; track $index) {
-              <li @fadeInUp>{{ item }}</li>
+              <li @fadeInUp>
+                {{ item.texte }}
+                @if (item.source) {
+                  <span class="source-badge">
+                    <mat-icon class="source-icon">description</mat-icon>
+                    {{ item.source }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
+                  </span>
+                }
+              </li>
             }
           </ol>
         </mat-expansion-panel>
@@ -119,7 +127,15 @@
           </mat-expansion-panel-header>
           <ol class="synthesis-list" [@listStagger]="synthesis()!.pointsJuridiques.length">
             @for (item of synthesis()!.pointsJuridiques; track $index) {
-              <li @fadeInUp>{{ item }}</li>
+              <li @fadeInUp>
+                {{ item.texte }}
+                @if (item.source) {
+                  <span class="source-badge">
+                    <mat-icon class="source-icon">description</mat-icon>
+                    {{ item.source }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
+                  </span>
+                }
+              </li>
             }
           </ol>
         </mat-expansion-panel>
@@ -136,7 +152,15 @@
           </mat-expansion-panel-header>
           <ol class="synthesis-list" [@listStagger]="synthesis()!.risques.length">
             @for (item of synthesis()!.risques; track $index) {
-              <li @fadeInUp>{{ item }}</li>
+              <li @fadeInUp>
+                {{ item.texte }}
+                @if (item.source) {
+                  <span class="source-badge">
+                    <mat-icon class="source-icon">description</mat-icon>
+                    {{ item.source }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
+                  </span>
+                }
+              </li>
             }
           </ol>
         </mat-expansion-panel>
@@ -159,7 +183,7 @@
         </mat-expansion-panel>
       }
 
-      @if (synthesis()!.piecesManquantes?.length > 0) {
+      @if ((synthesis()!.piecesManquantes?.length ?? 0) > 0) {
         <mat-expansion-panel expanded>
           <mat-expansion-panel-header>
             <mat-panel-title>
