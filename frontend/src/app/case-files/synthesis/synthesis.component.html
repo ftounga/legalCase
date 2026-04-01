@@ -118,7 +118,7 @@
                 @if (item.source) {
                   <span class="source-badge">
                     <mat-icon class="source-icon">description</mat-icon>
-                    {{ item.source }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
+                    {{ resolveSource(item.source) }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
                   </span>
                 }
               </li>
@@ -143,7 +143,7 @@
                 @if (item.source) {
                   <span class="source-badge">
                     <mat-icon class="source-icon">description</mat-icon>
-                    {{ item.source }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
+                    {{ resolveSource(item.source) }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
                   </span>
                 }
               </li>
@@ -168,7 +168,7 @@
                 @if (item.source) {
                   <span class="source-badge">
                     <mat-icon class="source-icon">description</mat-icon>
-                    {{ item.source }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
+                    {{ resolveSource(item.source) }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
                   </span>
                 }
               </li>

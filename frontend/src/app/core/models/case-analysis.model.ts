@@ -24,6 +24,7 @@ export interface CaseAnalysisResult {
   riskScore: number | null;
   modelUsed: string | null;
   updatedAt: string | null;
+  analysisDocuments?: { index: number; name: string }[];
 }
 
 export interface CaseAnalysisVersionSummary {
