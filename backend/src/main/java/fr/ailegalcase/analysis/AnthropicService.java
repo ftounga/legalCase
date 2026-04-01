@@ -77,6 +77,7 @@ public class AnthropicService {
         Map<String, Object> body = Map.of(
                 "model", modelId,
                 "max_tokens", maxTokens,
+                "temperature", 0,
                 "system", systemPrompt,
                 "messages", List.of(Map.of("role", "user", "content", userMessage))
         );
