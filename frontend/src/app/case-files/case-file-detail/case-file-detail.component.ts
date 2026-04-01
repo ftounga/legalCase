@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, inject } from '@angular/core';
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -35,6 +35,9 @@ import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
+import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
+import { CaseDeadlineService } from '../../core/services/case-deadline.service';
+import { CaseDeadline } from '../../core/models/case-deadline.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
 
 @Component({
@@ -45,7 +48,7 @@ import { fadeInUp, listStagger } from '../../shared/animations';
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
-    CaseDeadlinesSectionComponent
+    CaseDeadlinesSectionComponent, CaseDashboardStepperComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',
@@ -101,6 +104,57 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     return new Date(deletedAt) > new Date(synUpdatedAt);
   });
 
+  deadlines = signal<CaseDeadline[]>([]);
+
+  readonly dashboardSteps = computed((): DashboardStep[] => {
+    const docs = this.documents();
+    const syn = this.synthesis();
+    const qs = this.questions();
+    const dl = this.deadlines();
+
+    const pendingQuestions = qs.filter(q => q.answerText === null).length;
+    const pendingAiDeadlines = dl.filter(d => d.source === 'AI' && d.aiStatus === 'PENDING').length;
+    const piecesCount = syn?.piecesManquantes?.length ?? 0;
+
+    return [
+      {
+        id: 'documents',
+        label: 'Documents',
+        status: docs.length > 0 ? 'done' : 'pending',
+        detail: docs.length > 0 ? `${docs.length} document${docs.length > 1 ? 's' : ''}` : null,
+        anchorId: 'section-documents',
+      },
+      {
+        id: 'analyse',
+        label: 'Analyse IA',
+        status: this.fullAnalysisRunning() ? 'in_progress' : syn !== null ? 'done' : 'pending',
+        detail: this.fullAnalysisRunning() ? 'En cours…' : syn !== null ? 'Terminée' : null,
+        anchorId: 'section-analyse',
+      },
+      {
+        id: 'questions',
+        label: 'Questions IA',
+        status: syn === null ? 'pending' : (qs.length > 0 && pendingQuestions === 0) ? 'done' : 'pending',
+        detail: syn !== null && pendingQuestions > 0 ? `${pendingQuestions} en attente` : null,
+        anchorId: null,
+      },
+      {
+        id: 'delais',
+        label: 'Délais légaux',
+        status: pendingAiDeadlines === 0 ? 'done' : 'pending',
+        detail: pendingAiDeadlines > 0 ? `${pendingAiDeadlines} proposition${pendingAiDeadlines > 1 ? 's' : ''} IA en attente` : null,
+        anchorId: 'section-deadlines',
+      },
+      {
+        id: 'pieces',
+        label: 'Pièces manquantes',
+        status: syn === null ? 'pending' : piecesCount === 0 ? 'done' : 'pending',
+        detail: piecesCount > 0 ? `${piecesCount} identifiée${piecesCount > 1 ? 's' : ''}` : null,
+        anchorId: null,
+      },
+    ];
+  });
+
   canCompare = signal(false);
   deletingDocId = signal<string | null>(null);
   pendingFiles = signal<File[]>([]);
@@ -140,7 +194,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private workspaceMemberService: WorkspaceMemberService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
-    private analyticsService: AnalyticsService
+    private analyticsService: AnalyticsService,
+    private caseDeadlineService: CaseDeadlineService
   ) {}
 
   ngOnInit(): void {
@@ -166,6 +221,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.loadDocuments(id);
         this.loadAnalysisJobs(id);
         this.loadStats(id);
+        this.loadDeadlines(id);
       },
       error: () => {
         this.loading.set(false);
@@ -180,6 +236,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.eventsSub?.unsubscribe();
+  }
+
+  loadDeadlines(caseFileId: string): void {
+    this.caseDeadlineService.list(caseFileId).subscribe({
+      next: dl => this.deadlines.set(dl),
+      error: () => { /* fail-open — stepper étape 4 reste pending */ }
+    });
   }
 
   loadStats(caseFileId: string): void {

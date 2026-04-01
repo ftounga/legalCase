@@ -178,6 +178,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-101 | Tableau de bord dossier enrichi | Stepper horizontal 5 étapes en haut de la page dossier : Documents uploadés, Analyse IA, Questions IA, Délais légaux, Pièces manquantes. Chaque étape affiche son statut (done/in_progress/pending) et est cliquable pour naviguer vers la section concernée. Pure frontend. | `En cours` |
 | F-91 | Hub opérationnel super-admin — liens plateformes tierces | V3 — **Terminée** | SF-91-01 mergée 2026-03-31 : section "Outils & monitoring" dans /super-admin, 7 liens (GA4, Sentry, Stripe, Brevo, n8n, AWS, RabbitMQ), ingress RabbitMQ staging + prod, rabbitmqUrl par environment.ts, 409 tests verts. |
 | F-89 | Refonte UX de la comparaison d'analyses | V3 — **Terminée** | SF-89-01 mergée 2026-03-31 : auto-trigger effect(), compteurs 26px, callout Raison IA, border-left section cards, empty state guidant, 19 tests. SF-89-02 mergée 2026-03-31 : 5 colonnes nullable (faits/points/risques/questionsOuvertes/timeline count) sur case_analyses, populateCounts() fail-open, VersionSummary étendu, version cards affichent les stats si non-null, 9 tests backend + 35 tests frontend. |
 | F-88 | Tour d'onboarding avec dossier de démonstration | V3 — **Terminée** | SF-88-01 mergée 2026-03-31 : advanceToStep2() crée un dossier "Dossier de démonstration" si workspace vide, stocke l'ID en mémoire, navigue dans le dossier, le supprime silencieusement à la fin/skip via cleanup(). Effet spotlight : tour-backdrop z-index 9000 + .tour-spotlight (box-shadow 9999px) z-index 9001 remplace l'outline doré. 18 tests verts. |
@@ -238,6 +239,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-01 | F-101 ajoutée — Tableau de bord dossier enrichi : stepper 5 étapes, pure frontend, SF-101-01 en cours | Product owner |
 | 2026-04-01 | F-93 Terminée — SF-93-02 mergée : badge source + extrait dans SynthesisComponent, 422 tests | Product owner |
 | 2026-04-01 | F-100 Terminée — SF-100-02 mergée : resolveSource(), sourceMap computed, rétrocompat, 454 tests | Product owner |
 | 2026-04-01 | F-100 SF-100-01 mergée — prompt filename, analysisDocuments dans CaseAnalysisResponse, 34 tests | Product owner |

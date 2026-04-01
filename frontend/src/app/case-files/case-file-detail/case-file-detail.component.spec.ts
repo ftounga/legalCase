@@ -575,4 +575,127 @@ describe('CaseFileDetailComponent', () => {
     expect(exportBtn).not.toBeUndefined(); // Bouton Exporter manquant dans le template
   });
 
+  // --- Tests SF-101-01 : dashboardSteps computed ---
+
+  it('SF101-C-01: étape documents pending si aucun document', () => {
+    component.documents.set([]);
+    const step = component.dashboardSteps().find(s => s.id === 'documents')!;
+    expect(step.status).toBe('pending');
+    expect(step.detail).toBeNull();
+  });
+
+  it('SF101-C-02: étape documents done avec detail si N documents', () => {
+    component.documents.set([mockDocument, { ...mockDocument, id: 'doc2' }]);
+    const step = component.dashboardSteps().find(s => s.id === 'documents')!;
+    expect(step.status).toBe('done');
+    expect(step.detail).toBe('2 documents');
+  });
+
+  it('SF101-C-03: étape analyse in_progress si fullAnalysisRunning', () => {
+    component.analysisJobs.set([
+      { jobType: 'CASE_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
+    ]);
+    const step = component.dashboardSteps().find(s => s.id === 'analyse')!;
+    expect(step.status).toBe('in_progress');
+    expect(step.detail).toBe('En cours…');
+  });
+
+  it('SF101-C-04: étape analyse done si synthesis non null', () => {
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: [],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    const step = component.dashboardSteps().find(s => s.id === 'analyse')!;
+    expect(step.status).toBe('done');
+  });
+
+  it('SF101-C-05: étape questions pending si synthesis null', () => {
+    component.synthesis.set(null);
+    const step = component.dashboardSteps().find(s => s.id === 'questions')!;
+    expect(step.status).toBe('pending');
+    expect(step.detail).toBeNull();
+  });
+
+  it('SF101-C-06: étape questions done si toutes répondues', () => {
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: [],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    component.questions.set([
+      { id: 'q1', orderIndex: 0, questionText: 'Q1?', answerText: 'Réponse' }
+    ]);
+    const step = component.dashboardSteps().find(s => s.id === 'questions')!;
+    expect(step.status).toBe('done');
+  });
+
+  it('SF101-C-07: étape questions affiche le nombre en attente', () => {
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: [],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    component.questions.set([
+      { id: 'q1', orderIndex: 0, questionText: 'Q1?', answerText: null }
+    ]);
+    const step = component.dashboardSteps().find(s => s.id === 'questions')!;
+    expect(step.detail).toBe('1 en attente');
+  });
+
+  it('SF101-C-08: étape délais done si aucun délai IA en attente', () => {
+    component.deadlines.set([
+      { id: 'd1', label: 'Appel', dueDate: '2026-05-01', createdAt: '', updatedAt: '', source: 'MANUAL', aiStatus: null }
+    ]);
+    const step = component.dashboardSteps().find(s => s.id === 'delais')!;
+    expect(step.status).toBe('done');
+  });
+
+  it('SF101-C-09: étape délais pending avec detail si délais IA en attente', () => {
+    component.deadlines.set([
+      { id: 'd1', label: 'Délai IA', dueDate: '2026-05-01', createdAt: '', updatedAt: '', source: 'AI', aiStatus: 'PENDING' }
+    ]);
+    const step = component.dashboardSteps().find(s => s.id === 'delais')!;
+    expect(step.status).toBe('pending');
+    expect(step.detail).toBe('1 proposition IA en attente');
+  });
+
+  it('SF101-C-10: étape pièces done si piecesManquantes vide', () => {
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: [],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    const step = component.dashboardSteps().find(s => s.id === 'pieces')!;
+    expect(step.status).toBe('done');
+  });
+
+  it('SF101-C-11: étape pièces affiche le nombre identifié', () => {
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: ['Convocation', 'Avertissement'],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
+    const step = component.dashboardSteps().find(s => s.id === 'pieces')!;
+    expect(step.status).toBe('pending');
+    expect(step.detail).toBe('2 identifiées');
+  });
+
+  it('SF101-C-12: loadDeadlines — erreur API → deadlines() reste vide (fail-open)', () => {
+    caseDeadlineServiceSpy.list.mockReturnValue(throwError(() => new Error('500')));
+    component.loadDeadlines('cf1');
+    expect(component.deadlines()).toEqual([]);
+  });
+
+  it('SF101-C-13: stepper rendu dans le DOM avec 5 étapes', () => {
+    fixture.detectChanges();
+    const stepper = fixture.nativeElement.querySelector('app-case-dashboard-stepper');
+    expect(stepper).not.toBeNull();
+  });
+
 });
