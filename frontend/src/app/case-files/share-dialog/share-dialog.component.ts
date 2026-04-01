@@ -8,6 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileShareService } from '../../core/services/case-file-share.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { ShareResponse } from '../../core/models/share.model';
 
 export interface ShareDialogData {
@@ -37,7 +38,8 @@ export class ShareDialogComponent {
   constructor(
     @Inject(MAT_DIALOG_DATA) readonly data: ShareDialogData,
     private shareService: CaseFileShareService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private analyticsService: AnalyticsService
   ) {
     this.loadShares();
   }
@@ -59,6 +61,7 @@ export class ShareDialogComponent {
         this.generatedLink.set(share);
         this.activeShares.update(list => [share, ...list]);
         this.generating.set(false);
+        this.analyticsService.trackEvent('share_link_created', { expiresInDays: this.expiresInDays });
       },
       error: () => {
         this.snackBar.open('Erreur lors de la génération du lien.', 'Fermer', { duration: 4000 });

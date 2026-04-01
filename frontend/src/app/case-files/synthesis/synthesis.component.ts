@@ -276,6 +276,7 @@ export class SynthesisComponent implements OnInit {
         this.chatMessages.update(msgs => [...msgs, msg]);
         this.chatQuestion = '';
         this.chatLoading.set(false);
+        this.analyticsService.trackEvent('chat_message_sent', { enriched: this.useEnriched });
       },
       error: (err: any) => {
         this.chatLoading.set(false);
@@ -337,6 +338,7 @@ export class SynthesisComponent implements OnInit {
     const syn = this.synthesis();
     if (!cf || !syn) return;
     this.docxExportService.export(cf, syn);
+    this.analyticsService.trackEvent('docx_exported');
   }
 
   reAnalyze(): void {

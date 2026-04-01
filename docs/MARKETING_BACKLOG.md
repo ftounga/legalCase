@@ -100,7 +100,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
-| M-50 | Dashboard de conversion — inscription / activation / paiement | Haute | `À faire` | Funnel de base |
+| M-50 | Dashboard de conversion — inscription / activation / paiement | Haute | `Terminé` | Couvert par F-76 (super-admin) : totalWorkspaces, trialWorkspaces, paidWorkspaces, conversionRatePct, activeWorkspaces30d — déployé en production 2026-03-31 |
 | M-51 | Tracking événements clés (analyse lancée, PDF exporté, lien partagé) | Moyenne | `À faire` | Mesurer l'engagement produit |
 | M-52 | NPS — enquête satisfaction client | Basse | `À faire` | Dès 10 clients actifs |
 
