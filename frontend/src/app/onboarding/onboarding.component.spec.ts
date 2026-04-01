@@ -11,20 +11,20 @@ import { RouterModule } from '@angular/router';
 describe('OnboardingComponent', () => {
   let fixture: ComponentFixture<OnboardingComponent>;
   let component: OnboardingComponent;
-  let workspaceService: jasmine.SpyObj<WorkspaceService>;
-  let router: jasmine.SpyObj<Router>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
-  let dialog: jasmine.SpyObj<MatDialog>;
-  let dialogRefSpy: jasmine.SpyObj<MatDialogRef<any>>;
+  let workspaceService: jest.Mocked<WorkspaceService>;
+  let router: jest.Mocked<Router>;
+  let snackBar: jest.Mocked<MatSnackBar>;
+  let dialog: jest.Mocked<MatDialog>;
+  let dialogRefSpy: jest.Mocked<MatDialogRef<any>>;
 
   beforeEach(async () => {
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['createWorkspace']);
     router = jasmine.createSpyObj('Router', ['navigate']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed']);
-    dialogRefSpy.afterClosed.and.returnValue(of({ legalDomain: 'DROIT_DU_TRAVAIL', country: 'FRANCE' }));
+    dialogRefSpy.afterClosed.mockReturnValue(of({ legalDomain: 'DROIT_DU_TRAVAIL', country: 'FRANCE' }));
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
-    dialog.open.and.returnValue(dialogRefSpy);
+    dialog.open.mockReturnValue(dialogRefSpy);
 
     await TestBed.configureTestingModule({
       imports: [OnboardingComponent, NoopAnimationsModule, RouterModule.forRoot([])],
@@ -43,7 +43,7 @@ describe('OnboardingComponent', () => {
 
   // T-01 : soumission avec nom valide → dialog ouverte + createWorkspace appelé + redirect
   it('soumission avec nom valide → dialog ouverte, createWorkspace appelé avec legalDomain, redirect vers /case-files', fakeAsync(() => {
-    workspaceService.createWorkspace.and.returnValue(of({} as any));
+    workspaceService.createWorkspace.mockReturnValue(of({} as any));
 
     component.form.setValue({ name: 'Cabinet Martin' });
     component.submit();
@@ -66,15 +66,15 @@ describe('OnboardingComponent', () => {
 
   // T-03 : erreur réseau → snackbar erreur, saving = false
   it('erreur réseau → snackbar erreur affiché, bouton réactivé', fakeAsync(() => {
-    workspaceService.createWorkspace.and.returnValue(throwError(() => ({ status: 500 })));
+    workspaceService.createWorkspace.mockReturnValue(throwError(() => ({ status: 500 })));
 
     component.form.setValue({ name: 'Mon Cabinet' });
     component.submit();
     tick();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Erreur'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('Erreur'), expect.any(String), expect.any(Object)
     );
-    expect(component.saving).toBeFalse();
+    expect(component.saving).toBe(false);
   }));
 });

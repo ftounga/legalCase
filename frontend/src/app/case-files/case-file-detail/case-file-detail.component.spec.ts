@@ -48,28 +48,28 @@ const mockJobs: AnalysisJob[] = [
 describe('CaseFileDetailComponent', () => {
   let fixture: ComponentFixture<CaseFileDetailComponent>;
   let component: CaseFileDetailComponent;
-  let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
-  let caseFileStatusServiceSpy: jasmine.SpyObj<CaseFileStatusService>;
-  let documentServiceSpy: jasmine.SpyObj<DocumentService>;
-  let analysisJobServiceSpy: jasmine.SpyObj<AnalysisJobService>;
-  let caseAnalysisServiceSpy: jasmine.SpyObj<CaseAnalysisService>;
-  let caseAnalysisCommandServiceSpy: jasmine.SpyObj<CaseAnalysisCommandService>;
-  let aiQuestionServiceSpy: jasmine.SpyObj<AiQuestionService>;
-  let aiQuestionAnswerServiceSpy: jasmine.SpyObj<AiQuestionAnswerService>;
-  let reAnalysisServiceSpy: jasmine.SpyObj<ReAnalysisService>;
-  let workspaceMemberServiceSpy: jasmine.SpyObj<WorkspaceMemberService>;
-  let caseFileStatsServiceSpy: jasmine.SpyObj<CaseFileStatsService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
-  let dialogSpy: jasmine.SpyObj<MatDialog>;
-  let caseNoteServiceSpy: jasmine.SpyObj<CaseNoteService>;
-  let caseDeadlineServiceSpy: jasmine.SpyObj<CaseDeadlineService>;
-  let analyticsServiceSpy: jasmine.SpyObj<AnalyticsService>;
+  let caseFileServiceSpy: jest.Mocked<CaseFileService>;
+  let caseFileStatusServiceSpy: jest.Mocked<CaseFileStatusService>;
+  let documentServiceSpy: jest.Mocked<DocumentService>;
+  let analysisJobServiceSpy: jest.Mocked<AnalysisJobService>;
+  let caseAnalysisServiceSpy: jest.Mocked<CaseAnalysisService>;
+  let caseAnalysisCommandServiceSpy: jest.Mocked<CaseAnalysisCommandService>;
+  let aiQuestionServiceSpy: jest.Mocked<AiQuestionService>;
+  let aiQuestionAnswerServiceSpy: jest.Mocked<AiQuestionAnswerService>;
+  let reAnalysisServiceSpy: jest.Mocked<ReAnalysisService>;
+  let workspaceMemberServiceSpy: jest.Mocked<WorkspaceMemberService>;
+  let caseFileStatsServiceSpy: jest.Mocked<CaseFileStatsService>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
+  let dialogSpy: jest.Mocked<MatDialog>;
+  let caseNoteServiceSpy: jest.Mocked<CaseNoteService>;
+  let caseDeadlineServiceSpy: jest.Mocked<CaseDeadlineService>;
+  let analyticsServiceSpy: jest.Mocked<AnalyticsService>;
 
   beforeEach(async () => {
     caseNoteServiceSpy = jasmine.createSpyObj('CaseNoteService', ['list', 'create', 'update', 'delete']);
-    caseNoteServiceSpy.list.and.returnValue(of([]));
+    caseNoteServiceSpy.list.mockReturnValue(of([]));
     caseDeadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService', ['list', 'create', 'update', 'delete']);
-    caseDeadlineServiceSpy.list.and.returnValue(of([]));
+    caseDeadlineServiceSpy.list.mockReturnValue(of([]));
     analyticsServiceSpy = jasmine.createSpyObj('AnalyticsService', ['trackEvent']);
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById', 'exportZip']);
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
@@ -85,20 +85,20 @@ describe('CaseFileDetailComponent', () => {
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
-    caseFileServiceSpy.getById.and.returnValue(of(mockCaseFile));
-    caseFileStatusServiceSpy.close.and.returnValue(of({ ...mockCaseFile, status: 'CLOSED' }));
-    caseFileStatusServiceSpy.reopen.and.returnValue(of({ ...mockCaseFile, status: 'OPEN' }));
-    caseFileStatusServiceSpy.delete.and.returnValue(of(undefined));
-    documentServiceSpy.list.and.returnValue(of([mockDocument]));
-    documentServiceSpy.downloadUrl.and.returnValue('/api/v1/case-files/cf1/documents/doc1/download');
-    analysisJobServiceSpy.getJobs.and.returnValue(of([]));
-    caseAnalysisServiceSpy.getAnalysis.and.returnValue(throwError(() => new Error('404')));
-    aiQuestionServiceSpy.getQuestions.and.returnValue(of([]));
-    aiQuestionAnswerServiceSpy.submitAnswer.and.returnValue(of(undefined));
-    reAnalysisServiceSpy.reAnalyze.and.returnValue(of(undefined));
-    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(of(undefined));
-    caseFileStatsServiceSpy.getStats.and.returnValue(of({ documentCount: 1, analysisCount: 0, totalTokens: 0 }));
-    workspaceMemberServiceSpy.getMembers.and.returnValue(of([
+    caseFileServiceSpy.getById.mockReturnValue(of(mockCaseFile));
+    caseFileStatusServiceSpy.close.mockReturnValue(of({ ...mockCaseFile, status: 'CLOSED' }));
+    caseFileStatusServiceSpy.reopen.mockReturnValue(of({ ...mockCaseFile, status: 'OPEN' }));
+    caseFileStatusServiceSpy.delete.mockReturnValue(of(undefined));
+    documentServiceSpy.list.mockReturnValue(of([mockDocument]));
+    documentServiceSpy.downloadUrl.mockReturnValue('/api/v1/case-files/cf1/documents/doc1/download');
+    analysisJobServiceSpy.getJobs.mockReturnValue(of([]));
+    caseAnalysisServiceSpy.getAnalysis.mockReturnValue(throwError(() => new Error('404')));
+    aiQuestionServiceSpy.getQuestions.mockReturnValue(of([]));
+    aiQuestionAnswerServiceSpy.submitAnswer.mockReturnValue(of(undefined));
+    reAnalysisServiceSpy.reAnalyze.mockReturnValue(of(undefined));
+    caseAnalysisCommandServiceSpy.triggerAnalysis.mockReturnValue(of(undefined));
+    caseFileStatsServiceSpy.getStats.mockReturnValue(of({ documentCount: 1, analysisCount: 0, totalTokens: 0 }));
+    workspaceMemberServiceSpy.getMembers.mockReturnValue(of([
       { userId: 'user-1', email: 'owner@test.com', firstName: null, lastName: null, memberRole: 'OWNER', createdAt: '' }
     ]));
 
@@ -118,7 +118,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: CaseFileStatsService, useValue: caseFileStatsServiceSpy },
         {
           provide: GlobalAnalysisNotificationService,
-          useValue: { events$: new Subject(), track: jasmine.createSpy('track') }
+          useValue: { events$: new Subject(), track: jest.fn() }
         },
         {
           provide: AuthService,
@@ -149,18 +149,18 @@ describe('CaseFileDetailComponent', () => {
     expect(documentServiceSpy.list).toHaveBeenCalledWith('cf1');
     expect(component.caseFile()).toEqual(mockCaseFile);
     expect(component.documents().length).toBe(1);
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
   });
 
   it('ngOnInit — erreur dossier → snackbar + loading false', () => {
-    caseFileServiceSpy.getById.and.returnValue(throwError(() => new Error('404')));
+    caseFileServiceSpy.getById.mockReturnValue(throwError(() => new Error('404')));
     component.ngOnInit();
     expect(snackBarSpy.open).toHaveBeenCalled();
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
   });
 
   it('loadDocuments — erreur → snackbar affiché', () => {
-    documentServiceSpy.list.and.returnValue(throwError(() => new Error('500')));
+    documentServiceSpy.list.mockReturnValue(throwError(() => new Error('500')));
     component.loadDocuments('cf1');
     expect(snackBarSpy.open).toHaveBeenCalled();
   });
@@ -201,17 +201,17 @@ describe('CaseFileDetailComponent', () => {
     const file = new File(['content'], 'doc.pdf', { type: 'application/pdf' });
     component.pendingFiles.set([file]);
 
-    expect(component.canSubmitUpload()).toBeTrue();
+    expect(component.canSubmitUpload()).toBe(true);
   });
 
   it('canSubmitUpload — false si panier vide', () => {
     component.pendingFiles.set([]);
-    expect(component.canSubmitUpload()).toBeFalse();
+    expect(component.canSubmitUpload()).toBe(false);
   });
 
   it('uploadPendingFiles — succès → documents mis à jour, panier vidé', () => {
     const newDoc: Document = { ...mockDocument, id: 'doc2', originalFilename: 'avenant.pdf' };
-    documentServiceSpy.upload.and.returnValue(of(newDoc));
+    documentServiceSpy.upload.mockReturnValue(of(newDoc));
 
     const file = new File(['content'], 'avenant.pdf', { type: 'application/pdf' });
     component.pendingFiles.set([file]);
@@ -220,12 +220,12 @@ describe('CaseFileDetailComponent', () => {
 
     expect(component.pendingFiles().length).toBe(0);
     expect(component.documents()[0].originalFilename).toBe('avenant.pdf');
-    expect(component.uploading()).toBeFalse();
+    expect(component.uploading()).toBe(false);
     expect(snackBarSpy.open).toHaveBeenCalled();
   });
 
   it('uploadPendingFiles — erreur → snackbar erreur, panier vidé', () => {
-    documentServiceSpy.upload.and.returnValue(throwError(() => ({ status: 500 })));
+    documentServiceSpy.upload.mockReturnValue(throwError(() => ({ status: 500 })));
 
     const file = new File(['content'], 'bad.pdf', { type: 'application/pdf' });
     component.pendingFiles.set([file]);
@@ -233,7 +233,7 @@ describe('CaseFileDetailComponent', () => {
     component.uploadPendingFiles();
 
     expect(component.pendingFiles().length).toBe(0);
-    expect(component.uploading()).toBeFalse();
+    expect(component.uploading()).toBe(false);
     expect(snackBarSpy.open).toHaveBeenCalled();
   });
 
@@ -261,7 +261,7 @@ describe('CaseFileDetailComponent', () => {
   // --- Tests SF-11-03 : section Analyse IA ---
 
   it('section Analyse IA absente si aucun job', () => {
-    analysisJobServiceSpy.getJobs.and.returnValue(of([]));
+    analysisJobServiceSpy.getJobs.mockReturnValue(of([]));
     component.loadAnalysisJobs('cf1');
     fixture.detectChanges();
 
@@ -270,7 +270,7 @@ describe('CaseFileDetailComponent', () => {
   });
 
   it('section Analyse IA présente si jobs non vides', () => {
-    analysisJobServiceSpy.getJobs.and.returnValue(of(mockJobs));
+    analysisJobServiceSpy.getJobs.mockReturnValue(of(mockJobs));
     component.loadAnalysisJobs('cf1');
     fixture.detectChanges();
 
@@ -332,7 +332,7 @@ describe('CaseFileDetailComponent', () => {
   });
 
   it('loadQuestions — erreur API → questions() reste vide', () => {
-    aiQuestionServiceSpy.getQuestions.and.returnValue(throwError(() => new Error('500')));
+    aiQuestionServiceSpy.getQuestions.mockReturnValue(throwError(() => new Error('500')));
     component.loadQuestions('cf1');
     expect(component.questions()).toEqual([]);
   });
@@ -351,7 +351,7 @@ describe('CaseFileDetailComponent', () => {
     component.analysisJobs.set([
       { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 }
     ]);
-    expect(component.canAnalyze()).toBeTrue();
+    expect(component.canAnalyze()).toBe(true);
   });
 
   it('canAnalyze — false si CASE_ANALYSIS PROCESSING', () => {
@@ -359,49 +359,49 @@ describe('CaseFileDetailComponent', () => {
       { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 },
       { jobType: 'CASE_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
     ]);
-    expect(component.canAnalyze()).toBeFalse();
+    expect(component.canAnalyze()).toBe(false);
   });
 
   it('canAnalyze — false si aucun DOCUMENT_ANALYSIS DONE', () => {
     component.analysisJobs.set([
       { jobType: 'DOCUMENT_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
     ]);
-    expect(component.canAnalyze()).toBeFalse();
+    expect(component.canAnalyze()).toBe(false);
   });
 
   it('caseAnalysisRunning — true si CASE_ANALYSIS PENDING', () => {
     component.analysisJobs.set([
       { jobType: 'CASE_ANALYSIS', status: 'PENDING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
     ]);
-    expect(component.caseAnalysisRunning()).toBeTrue();
+    expect(component.caseAnalysisRunning()).toBe(true);
   });
 
   it('triggerAnalysis — succès → service appelé + loadAnalysisJobs', () => {
-    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(of(undefined));
+    caseAnalysisCommandServiceSpy.triggerAnalysis.mockReturnValue(of(undefined));
     component.triggerAnalysis();
     expect(caseAnalysisCommandServiceSpy.triggerAnalysis).toHaveBeenCalledWith('cf1');
     expect(analysisJobServiceSpy.getJobs).toHaveBeenCalled();
   });
 
   it('triggerAnalysis — succès → trackEvent analysis_launched STANDARD', () => {
-    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(of(undefined));
+    caseAnalysisCommandServiceSpy.triggerAnalysis.mockReturnValue(of(undefined));
     component.triggerAnalysis();
     expect(analyticsServiceSpy.trackEvent).toHaveBeenCalledWith('analysis_launched', { type: 'STANDARD' });
   });
 
   it('triggerAnalysis — 402 → snackbar "Limite atteinte"', () => {
-    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(throwError(() => ({ status: 402 })));
+    caseAnalysisCommandServiceSpy.triggerAnalysis.mockReturnValue(throwError(() => ({ status: 402 })));
     component.triggerAnalysis();
     expect(snackBarSpy.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Limite'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('Limite'), expect.any(String), expect.any(Object)
     );
   });
 
   it('triggerAnalysis — 409 → snackbar "déjà en cours"', () => {
-    caseAnalysisCommandServiceSpy.triggerAnalysis.and.returnValue(throwError(() => ({ status: 409 })));
+    caseAnalysisCommandServiceSpy.triggerAnalysis.mockReturnValue(throwError(() => ({ status: 409 })));
     component.triggerAnalysis();
     expect(snackBarSpy.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('cours'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('cours'), expect.any(String), expect.any(Object)
     );
   });
 
@@ -420,7 +420,7 @@ describe('CaseFileDetailComponent', () => {
       timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
       riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
-    expect(component.deletedSinceLastAnalysis()).toBeFalse();
+    expect(component.deletedSinceLastAnalysis()).toBe(false);
   });
 
   it('deletedSinceLastAnalysis — true si lastDocumentDeletedAt > synthesis.updatedAt', () => {
@@ -430,7 +430,7 @@ describe('CaseFileDetailComponent', () => {
       timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [], piecesManquantes: [],
       riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
     });
-    expect(component.deletedSinceLastAnalysis()).toBeTrue();
+    expect(component.deletedSinceLastAnalysis()).toBe(true);
   });
 
   it('message adaptatif — additions + suppressions → message combiné', () => {
@@ -453,7 +453,7 @@ describe('CaseFileDetailComponent', () => {
       { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE', totalItems: 1, processedItems: 1, progressPercentage: 100 },
       { jobType: 'CASE_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 0 }
     ]);
-    expect(component.canDeleteDocument()).toBeFalse();
+    expect(component.canDeleteDocument()).toBe(false);
   });
 
   // --- Tests SF-53-02 : gestion statut dossier ---
@@ -472,32 +472,32 @@ describe('CaseFileDetailComponent', () => {
 
   it('canReopen — true si rôle OWNER', () => {
     component.currentMemberRole.set('OWNER');
-    expect(component.canReopen()).toBeTrue();
+    expect(component.canReopen()).toBe(true);
   });
 
   it('canReopen — true si rôle ADMIN', () => {
     component.currentMemberRole.set('ADMIN');
-    expect(component.canReopen()).toBeTrue();
+    expect(component.canReopen()).toBe(true);
   });
 
   it('canReopen — false si rôle LAWYER', () => {
     component.currentMemberRole.set('LAWYER');
-    expect(component.canReopen()).toBeFalse();
+    expect(component.canReopen()).toBe(false);
   });
 
   it('canDelete — true si rôle OWNER', () => {
     component.currentMemberRole.set('OWNER');
-    expect(component.canDelete()).toBeTrue();
+    expect(component.canDelete()).toBe(true);
   });
 
   it('canDelete — false si rôle ADMIN', () => {
     component.currentMemberRole.set('ADMIN');
-    expect(component.canDelete()).toBeFalse();
+    expect(component.canDelete()).toBe(false);
   });
 
   it('canDelete — false si rôle LAWYER', () => {
     component.currentMemberRole.set('LAWYER');
-    expect(component.canDelete()).toBeFalse();
+    expect(component.canDelete()).toBe(false);
   });
 
   // --- Contrats data-tour-target (C-02, C-03, C-04) ---
@@ -507,7 +507,7 @@ describe('CaseFileDetailComponent', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const btn = el.querySelector('[data-tour-target="upload-trigger-btn"]');
-    expect(btn).withContext('data-tour-target="upload-trigger-btn" manquant dans le template').not.toBeNull();
+    expect(btn).not.toBeNull(); // data-tour-target="upload-trigger-btn" manquant dans le template
   });
 
   // C-03 : bouton "Analyser le dossier" a data-tour-target="analyze-btn" quand canAnalyze() est vrai
@@ -518,7 +518,7 @@ describe('CaseFileDetailComponent', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const btn = el.querySelector('[data-tour-target="analyze-btn"]');
-    expect(btn).withContext('data-tour-target="analyze-btn" manquant dans le template').not.toBeNull();
+    expect(btn).not.toBeNull(); // data-tour-target="analyze-btn" manquant dans le template
   });
 
   // C-04 : lien "Voir la synthèse" a data-tour-target="synthesis-link" quand synthesis() est non null
@@ -531,20 +531,20 @@ describe('CaseFileDetailComponent', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const link = el.querySelector('[data-tour-target="synthesis-link"]');
-    expect(link).withContext('data-tour-target="synthesis-link" manquant dans le template').not.toBeNull();
+    expect(link).not.toBeNull(); // data-tour-target="synthesis-link" manquant dans le template
   });
 
   // --- Tests SF-87-01 : export ZIP ---
 
   it('exportZip — appelle caseFileService.exportZip avec l\'id du dossier', () => {
     const blob = new Blob(['PK'], { type: 'application/zip' });
-    caseFileServiceSpy.exportZip.and.returnValue(of(blob));
+    caseFileServiceSpy.exportZip.mockReturnValue(of(blob));
 
-    spyOn(URL, 'createObjectURL').and.returnValue('blob:test-url');
+    spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-url');
     spyOn(URL, 'revokeObjectURL');
 
     const fakeAnchor = document.createElement('a');
-    spyOn(document, 'createElement').and.returnValue(fakeAnchor);
+    spyOn(document, 'createElement').mockReturnValue(fakeAnchor);
     spyOn(fakeAnchor, 'click');
 
     component.exportZip();
@@ -556,14 +556,14 @@ describe('CaseFileDetailComponent', () => {
   });
 
   it('exportZip — erreur API → snackbar d\'erreur affiché', () => {
-    caseFileServiceSpy.exportZip.and.returnValue(throwError(() => ({ status: 500 })));
+    caseFileServiceSpy.exportZip.mockReturnValue(throwError(() => ({ status: 500 })));
 
     component.exportZip();
 
     expect(snackBarSpy.open).toHaveBeenCalledWith(
-      jasmine.stringContaining("Erreur lors de l'export"),
-      jasmine.any(String),
-      jasmine.any(Object)
+      expect.stringContaining("Erreur lors de l'export"),
+      expect.any(String),
+      expect.any(Object)
     );
   });
 
@@ -572,7 +572,7 @@ describe('CaseFileDetailComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const buttons = el.querySelectorAll('button');
     const exportBtn = Array.from(buttons).find(b => b.textContent?.includes('Exporter'));
-    expect(exportBtn).withContext('Bouton Exporter manquant dans le template').not.toBeUndefined();
+    expect(exportBtn).not.toBeUndefined(); // Bouton Exporter manquant dans le template
   });
 
 });

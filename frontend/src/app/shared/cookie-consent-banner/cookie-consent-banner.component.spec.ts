@@ -5,7 +5,7 @@ import { ConsentService } from '../../core/services/consent.service';
 describe('CookieConsentBannerComponent', () => {
   let fixture: ComponentFixture<CookieConsentBannerComponent>;
   let component: CookieConsentBannerComponent;
-  let consentService: jasmine.SpyObj<ConsentService>;
+  let consentService: jest.Mocked<ConsentService>;
 
   beforeEach(async () => {
     const spy = jasmine.createSpyObj('ConsentService', ['hasConsent', 'grantConsent', 'denyConsent']);
@@ -15,11 +15,11 @@ describe('CookieConsentBannerComponent', () => {
       providers: [{ provide: ConsentService, useValue: spy }]
     }).compileComponents();
 
-    consentService = TestBed.inject(ConsentService) as jasmine.SpyObj<ConsentService>;
+    consentService = TestBed.inject(ConsentService) as jest.Mocked<ConsentService>;
   });
 
   it('is visible when no consent stored', () => {
-    consentService.hasConsent.and.returnValue(null);
+    consentService.hasConsent.mockReturnValue(null);
     fixture = TestBed.createComponent(CookieConsentBannerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -27,7 +27,7 @@ describe('CookieConsentBannerComponent', () => {
   });
 
   it('is hidden when consent already stored', () => {
-    consentService.hasConsent.and.returnValue(true);
+    consentService.hasConsent.mockReturnValue(true);
     fixture = TestBed.createComponent(CookieConsentBannerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -35,7 +35,7 @@ describe('CookieConsentBannerComponent', () => {
   });
 
   it('accept() calls grantConsent() and hides the banner', () => {
-    consentService.hasConsent.and.returnValue(null);
+    consentService.hasConsent.mockReturnValue(null);
     fixture = TestBed.createComponent(CookieConsentBannerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -46,7 +46,7 @@ describe('CookieConsentBannerComponent', () => {
   });
 
   it('deny() calls denyConsent() and hides the banner', () => {
-    consentService.hasConsent.and.returnValue(null);
+    consentService.hasConsent.mockReturnValue(null);
     fixture = TestBed.createComponent(CookieConsentBannerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

@@ -7,8 +7,8 @@ import { OnboardingWizardService } from '../../core/services/onboarding-wizard.s
 describe('OnboardingWizardDialogComponent', () => {
   let component: OnboardingWizardDialogComponent;
   let fixture: ComponentFixture<OnboardingWizardDialogComponent>;
-  let dialogRefSpy: jasmine.SpyObj<MatDialogRef<OnboardingWizardDialogComponent>>;
-  let wizardServiceSpy: jasmine.SpyObj<OnboardingWizardService>;
+  let dialogRefSpy: jest.Mocked<MatDialogRef<OnboardingWizardDialogComponent>>;
+  let wizardServiceSpy: jest.Mocked<OnboardingWizardService>;
 
   beforeEach(async () => {
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
@@ -53,12 +53,12 @@ describe('OnboardingWizardDialogComponent', () => {
   });
 
   it('isLastStep — false en étape 0', () => {
-    expect(component.isLastStep).toBeFalse();
+    expect(component.isLastStep).toBe(false);
   });
 
   it('isLastStep — true en étape 3', () => {
     component.next(); component.next(); component.next();
-    expect(component.isLastStep).toBeTrue();
+    expect(component.isLastStep).toBe(true);
   });
 
   it('next() sur dernière étape → ferme le dialog', () => {
@@ -76,7 +76,7 @@ describe('OnboardingWizardDialogComponent', () => {
 
   it('étape 4 a le label "Commencer"', () => {
     component.next(); component.next(); component.next();
-    expect(component.isLastStep).toBeTrue();
+    expect(component.isLastStep).toBe(true);
     // label vérifié dans le template : "Commencer" si isLastStep
   });
 });

@@ -21,9 +21,9 @@ const dialogData: CaseFileEditDialogData = {
 describe('CaseFileEditDialogComponent', () => {
   let fixture: ComponentFixture<CaseFileEditDialogComponent>;
   let component: CaseFileEditDialogComponent;
-  let dialogRefSpy: jasmine.SpyObj<MatDialogRef<CaseFileEditDialogComponent>>;
-  let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let dialogRefSpy: jest.Mocked<MatDialogRef<CaseFileEditDialogComponent>>;
+  let caseFileServiceSpy: jest.Mocked<CaseFileService>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
@@ -53,11 +53,11 @@ describe('CaseFileEditDialogComponent', () => {
 
   it('titre vide → bouton submit désactivé (formulaire invalide)', () => {
     component.form.controls.title.setValue('');
-    expect(component.form.invalid).toBeTrue();
+    expect(component.form.invalid).toBe(true);
   });
 
   it('succès API → dialog fermé avec le dossier mis à jour', () => {
-    caseFileServiceSpy.update.and.returnValue(of(mockCaseFile));
+    caseFileServiceSpy.update.mockReturnValue(of(mockCaseFile));
     component.form.controls.title.setValue('Titre modifié');
     component.form.controls.description.setValue('Nouvelle description');
     component.submit();
@@ -69,7 +69,7 @@ describe('CaseFileEditDialogComponent', () => {
   });
 
   it('erreur API → snackbar affiché, dialog non fermé', () => {
-    caseFileServiceSpy.update.and.returnValue(throwError(() => ({ status: 500 })));
+    caseFileServiceSpy.update.mockReturnValue(throwError(() => ({ status: 500 })));
     component.form.controls.title.setValue('Titre modifié');
     component.submit();
     expect(snackBarSpy.open).toHaveBeenCalled();

@@ -13,12 +13,12 @@ function makeDeadline(dueDate: string, label = 'Prescription'): CaseDeadline {
 describe('CaseDeadlinesSectionComponent', () => {
   let fixture: ComponentFixture<CaseDeadlinesSectionComponent>;
   let component: CaseDeadlinesSectionComponent;
-  let deadlineServiceSpy: jasmine.SpyObj<CaseDeadlineService>;
+  let deadlineServiceSpy: jest.Mocked<CaseDeadlineService>;
 
   beforeEach(async () => {
     deadlineServiceSpy = jasmine.createSpyObj('CaseDeadlineService',
       ['list', 'create', 'update', 'delete']);
-    deadlineServiceSpy.list.and.returnValue(of([]));
+    deadlineServiceSpy.list.mockReturnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [CaseDeadlinesSectionComponent, NoopAnimationsModule],
@@ -58,19 +58,19 @@ describe('CaseDeadlinesSectionComponent', () => {
     component.newDueDate = '';
     fixture.detectChanges();
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.add-deadline-form button');
-    expect(btn.disabled).toBeTrue();
+    expect(btn.disabled).toBe(true);
 
     component.newLabel = 'Prescription';
     fixture.detectChanges();
-    expect(btn.disabled).toBeTrue(); // date still empty
+    expect(btn.disabled).toBe(true); // date still empty
 
     component.newDueDate = '2026-06-01';
     fixture.detectChanges();
-    expect(btn.disabled).toBeFalse();
+    expect(btn.disabled).toBe(false);
   });
 
   it('U-05: addDeadline calls deadlineService.create with trimmed label and dueDate', () => {
-    deadlineServiceSpy.create.and.returnValue(of(makeDeadline('2026-06-01')));
+    deadlineServiceSpy.create.mockReturnValue(of(makeDeadline('2026-06-01')));
     component.newLabel = '  Prescription  ';
     component.newDueDate = '2026-06-01';
     component.addDeadline();
@@ -80,28 +80,28 @@ describe('CaseDeadlinesSectionComponent', () => {
   // ── Collapsible (SF-71-01) ────────────────────────────────────────────────
 
   it('SF71-U-01: section repliée par défaut — contenu masqué', () => {
-    expect(component.collapsed()).toBeTrue();
+    expect(component.collapsed()).toBe(true);
     const addForm = fixture.nativeElement.querySelector('.add-deadline-form');
     expect(addForm).toBeNull();
   });
 
   it('SF71-U-02: après toggleCollapsed() — contenu visible, badge masqué', () => {
-    deadlineServiceSpy.list.and.returnValue(of([makeDeadline('2026-06-01')]));
+    deadlineServiceSpy.list.mockReturnValue(of([makeDeadline('2026-06-01')]));
     component.loadDeadlines();
     component.toggleCollapsed();
     fixture.detectChanges();
-    expect(component.collapsed()).toBeFalse();
+    expect(component.collapsed()).toBe(false);
     expect(fixture.nativeElement.querySelector('.add-deadline-form')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.section-badge')).toBeNull();
   });
 
   it('SF71-U-03: double toggle — retour à l\'état replié, badge visible', () => {
-    deadlineServiceSpy.list.and.returnValue(of([makeDeadline('2026-06-01'), makeDeadline('2026-07-01')]));
+    deadlineServiceSpy.list.mockReturnValue(of([makeDeadline('2026-06-01'), makeDeadline('2026-07-01')]));
     component.loadDeadlines();
     component.toggleCollapsed();
     component.toggleCollapsed();
     fixture.detectChanges();
-    expect(component.collapsed()).toBeTrue();
+    expect(component.collapsed()).toBe(true);
     const badge = fixture.nativeElement.querySelector('.section-badge');
     expect(badge).toBeTruthy();
     expect(badge.textContent).toContain('2 délais');

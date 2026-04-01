@@ -34,7 +34,7 @@ jobs:
         run: cd frontend && npm ci
 
       - name: Run tests
-        run: cd frontend && npx ng test --watch=false --browsers=ChromeHeadless
+        run: cd frontend && npx jest --ci
 
   build-and-deploy:
     name: Build & Deploy

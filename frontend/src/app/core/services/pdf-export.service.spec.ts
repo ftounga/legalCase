@@ -50,7 +50,7 @@ describe('PdfExportService', () => {
     const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
     expect(doc).toBeTruthy();
     expect(doc.content).toBeDefined();
-    expect(Array.isArray(doc.content)).toBeTrue();
+    expect(Array.isArray(doc.content)).toBe(true);
     expect(doc.pageSize).toBe('A4');
   });
 

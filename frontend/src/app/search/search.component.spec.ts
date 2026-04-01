@@ -29,8 +29,8 @@ const emptyResponse: SynthesisSearchResponse = {
 describe('SearchComponent', () => {
   let fixture: ComponentFixture<SearchComponent>;
   let component: SearchComponent;
-  let searchServiceSpy: jasmine.SpyObj<SynthesisSearchService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let searchServiceSpy: jest.Mocked<SynthesisSearchService>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     searchServiceSpy = jasmine.createSpyObj('SynthesisSearchService', ['search']);
@@ -60,7 +60,7 @@ describe('SearchComponent', () => {
 
   // U-02 : 2+ chars après debounce → search() appelé
   it('should call search() after debounce with 2+ chars', fakeAsync(() => {
-    searchServiceSpy.search.and.returnValue(of(mockResponse));
+    searchServiceSpy.search.mockReturnValue(of(mockResponse));
     component.queryControl.setValue('licenciement');
     tick(500);
     expect(searchServiceSpy.search).toHaveBeenCalledWith('licenciement');
@@ -68,26 +68,26 @@ describe('SearchComponent', () => {
 
   // U-03 : résultats reçus → results signal alimenté
   it('should populate results signal on success', fakeAsync(() => {
-    searchServiceSpy.search.and.returnValue(of(mockResponse));
+    searchServiceSpy.search.mockReturnValue(of(mockResponse));
     component.queryControl.setValue('licenciement');
     tick(500);
     expect(component.results().length).toBe(1);
     expect(component.results()[0].caseFileTitle).toBe('Dossier Dupont');
-    expect(component.searched()).toBeTrue();
+    expect(component.searched()).toBe(true);
   }));
 
   // U-04 : erreur HTTP → snackbar affiché
   it('should show snackbar on HTTP error', fakeAsync(() => {
-    searchServiceSpy.search.and.returnValue(throwError(() => new Error('500')));
+    searchServiceSpy.search.mockReturnValue(throwError(() => new Error('500')));
     component.queryControl.setValue('licenciement');
     tick(500);
     expect(snackBarSpy.open).toHaveBeenCalled();
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
   }));
 
   // U-05 : champ vidé → résultats effacés
   it('should clear results when query is cleared', fakeAsync(() => {
-    searchServiceSpy.search.and.returnValue(of(mockResponse));
+    searchServiceSpy.search.mockReturnValue(of(mockResponse));
     component.queryControl.setValue('licenciement');
     tick(500);
     expect(component.results().length).toBe(1);
@@ -95,15 +95,15 @@ describe('SearchComponent', () => {
     component.queryControl.setValue('');
     tick(500);
     expect(component.results().length).toBe(0);
-    expect(component.searched()).toBeFalse();
+    expect(component.searched()).toBe(false);
   }));
 
   // U-06 : 0 résultats → searched() true et results vide
   it('should set searched true with empty results', fakeAsync(() => {
-    searchServiceSpy.search.and.returnValue(of(emptyResponse));
+    searchServiceSpy.search.mockReturnValue(of(emptyResponse));
     component.queryControl.setValue('xyz123');
     tick(500);
     expect(component.results().length).toBe(0);
-    expect(component.searched()).toBeTrue();
+    expect(component.searched()).toBe(true);
   }));
 });

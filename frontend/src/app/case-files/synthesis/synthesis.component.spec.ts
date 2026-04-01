@@ -59,9 +59,9 @@ const makeCheck = (id: string, ordre: number, statut: 'TO_CHECK' | 'VERIFIED' | 
 describe('SynthesisComponent', () => {
   let fixture: ComponentFixture<SynthesisComponent>;
   let component: SynthesisComponent;
-  let caseAnalysisService: jasmine.SpyObj<CaseAnalysisService>;
-  let aiQuestionService: jasmine.SpyObj<AiQuestionService>;
-  let procedureCheckService: jasmine.SpyObj<ProcedureCheckService>;
+  let caseAnalysisService: jest.Mocked<CaseAnalysisService>;
+  let aiQuestionService: jest.Mocked<AiQuestionService>;
+  let procedureCheckService: jest.Mocked<ProcedureCheckService>;
 
   beforeEach(async () => {
     caseAnalysisService = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getByVersion', 'getAnalysis']);
@@ -69,14 +69,14 @@ describe('SynthesisComponent', () => {
     procedureCheckService = jasmine.createSpyObj('ProcedureCheckService', ['list', 'updateStatus']);
 
     const caseFileService = jasmine.createSpyObj('CaseFileService', ['getById']);
-    caseFileService.getById.and.returnValue(of({ id: CASE_FILE_ID, title: 'Dossier test' }));
+    caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier test' }));
 
-    aiQuestionService.getQuestionsByAnalysisId.and.returnValue(of([]));
-    aiQuestionService.getQuestions.and.returnValue(of([]));
-    procedureCheckService.list.and.returnValue(of([]));
+    aiQuestionService.getQuestionsByAnalysisId.mockReturnValue(of([]));
+    aiQuestionService.getQuestions.mockReturnValue(of([]));
+    procedureCheckService.list.mockReturnValue(of([]));
 
     const chatService = jasmine.createSpyObj('ChatService', ['getHistory', 'sendMessage']);
-    chatService.getHistory.and.returnValue(of([]));
+    chatService.getHistory.mockReturnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [SynthesisComponent, NoopAnimationsModule, RouterTestingModule],
@@ -102,8 +102,8 @@ describe('SynthesisComponent', () => {
   // T-01 : au chargement → version la plus récente sélectionnée (index 0)
   it('selects most recent version on load', () => {
     const versions = [makeVersion(3, 'ENRICHED'), makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
-    caseAnalysisService.getVersions.and.returnValue(of(versions));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(3, 'ENRICHED')));
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(3, 'ENRICHED')));
 
     fixture.detectChanges();
 
@@ -114,8 +114,8 @@ describe('SynthesisComponent', () => {
   // T-02 : changement de version → loadSynthesisForVersion et loadQuestionsForVersion appelés
   it('reloads synthesis and questions on version change', () => {
     const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
-    caseAnalysisService.getVersions.and.returnValue(of(versions));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
     fixture.detectChanges();
 
     component.onVersionChange(1);
@@ -126,26 +126,26 @@ describe('SynthesisComponent', () => {
 
   // T-03 : analysisType ENRICHED → isEnriched() true
   it('returns true for isEnriched when analysisType is ENRICHED', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'ENRICHED')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'ENRICHED')));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'ENRICHED')));
     fixture.detectChanges();
 
-    expect(component.isEnriched()).toBeTrue();
+    expect(component.isEnriched()).toBe(true);
   });
 
   // T-04 : analysisType STANDARD → isEnriched() false
   it('returns false for isEnriched when analysisType is STANDARD', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
     fixture.detectChanges();
 
-    expect(component.isEnriched()).toBeFalse();
+    expect(component.isEnriched()).toBe(false);
   });
 
   // T-05 : une seule version → versions().length === 1
   it('exposes single version without selector interaction', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
     fixture.detectChanges();
 
     expect(component.versions().length).toBe(1);
@@ -153,25 +153,25 @@ describe('SynthesisComponent', () => {
 
   // T-06 : versions vides → synthesis() null, loading false
   it('leaves synthesis null when no versions available', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([]));
+    caseAnalysisService.getVersions.mockReturnValue(of([]));
     fixture.detectChanges();
 
     expect(component.synthesis()).toBeNull();
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
   });
 
   // T-07 : changement de version ne recharge pas le chat
   it('does not reload chat on version change', () => {
-    const chatService = TestBed.inject(ChatService) as jasmine.SpyObj<ChatService>;
+    const chatService = TestBed.inject(ChatService) as jest.Mocked<ChatService>;
     const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
-    caseAnalysisService.getVersions.and.returnValue(of(versions));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
     fixture.detectChanges();
 
-    const callsBefore = chatService.getHistory.calls.count();
+    const callsBefore = chatService.getHistory.mock.calls.length;
     component.onVersionChange(1);
 
-    expect(chatService.getHistory.calls.count()).toBe(callsBefore);
+    expect(chatService.getHistory.mock.calls.length).toBe(callsBefore);
   });
 
   // T-08 : versionLabel — ENRICHED affiche le badge Enrichie
@@ -208,7 +208,7 @@ describe('SynthesisComponent', () => {
 
   // T-13 : submitEdit texte vide → service non appelé
   it('submitEdit does not call service when text is empty', () => {
-    const answerService = TestBed.inject(AiQuestionAnswerService) as jasmine.SpyObj<AiQuestionAnswerService>;
+    const answerService = TestBed.inject(AiQuestionAnswerService) as jest.Mocked<AiQuestionAnswerService>;
     const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
     component.submitEdit(q, '   ');
     expect(answerService.submitAnswer).not.toHaveBeenCalled();
@@ -216,8 +216,8 @@ describe('SynthesisComponent', () => {
 
   // T-14 : submitEdit nominal → service appelé, question mise à jour, editingQuestionId null
   it('submitEdit calls service and updates question on success', () => {
-    const answerService = TestBed.inject(AiQuestionAnswerService) as jasmine.SpyObj<AiQuestionAnswerService>;
-    answerService.submitAnswer.and.returnValue(of(undefined));
+    const answerService = TestBed.inject(AiQuestionAnswerService) as jest.Mocked<AiQuestionAnswerService>;
+    answerService.submitAnswer.mockReturnValue(of(undefined));
 
     const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'Ancienne réponse' };
     component.questions.set([q]);
@@ -232,9 +232,9 @@ describe('SynthesisComponent', () => {
 
   // T-15 : submitEdit erreur → snackbar, editingQuestionId inchangé
   it('submitEdit shows snackbar on error and keeps editingQuestionId', () => {
-    const answerService = TestBed.inject(AiQuestionAnswerService) as jasmine.SpyObj<AiQuestionAnswerService>;
-    const snackBar = TestBed.inject(MatSnackBar) as jasmine.SpyObj<MatSnackBar>;
-    answerService.submitAnswer.and.returnValue(throwError(() => new Error('API error')));
+    const answerService = TestBed.inject(AiQuestionAnswerService) as jest.Mocked<AiQuestionAnswerService>;
+    const snackBar = TestBed.inject(MatSnackBar) as jest.Mocked<MatSnackBar>;
+    answerService.submitAnswer.mockReturnValue(throwError(() => new Error('API error')));
     spyOn(snackBar, 'open');
 
     const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
@@ -242,17 +242,17 @@ describe('SynthesisComponent', () => {
     component.submitEdit(q, 'Nouvelle réponse');
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('modification'), 'Fermer', jasmine.any(Object)
+      expect.stringContaining('modification'), 'Fermer', expect.any(Object)
     );
     expect(component.editingQuestionId()).toBe('q-1');
   });
 
   // T-A1 : reAnalyze succès → trackEvent analysis_launched ENRICHED
   it('reAnalyze success → trackEvent analysis_launched ENRICHED', () => {
-    const reAnalysisService = TestBed.inject(ReAnalysisService) as jasmine.SpyObj<ReAnalysisService>;
-    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
-    const router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
-    reAnalysisService.reAnalyze.and.returnValue(of(undefined));
+    const reAnalysisService = TestBed.inject(ReAnalysisService) as jest.Mocked<ReAnalysisService>;
+    const analyticsService = TestBed.inject(AnalyticsService) as jest.Mocked<AnalyticsService>;
+    const router = TestBed.inject(Router) as jest.Mocked<Router>;
+    reAnalysisService.reAnalyze.mockReturnValue(of(undefined));
     spyOn(router, 'navigate');
     component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
 
@@ -263,8 +263,8 @@ describe('SynthesisComponent', () => {
 
   // T-A2 : exportPdf succès → trackEvent pdf_exported
   it('exportPdf success → trackEvent pdf_exported', () => {
-    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
-    const pdfExportService = TestBed.inject(PdfExportService) as jasmine.SpyObj<PdfExportService>;
+    const analyticsService = TestBed.inject(AnalyticsService) as jest.Mocked<AnalyticsService>;
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
     component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
     component.synthesis.set(makeSynthesis(1, 'STANDARD'));
 
@@ -277,8 +277,8 @@ describe('SynthesisComponent', () => {
   // T-16 : onVersionChange réinitialise editingQuestionId
   it('onVersionChange resets editingQuestionId', () => {
     const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
-    caseAnalysisService.getVersions.and.returnValue(of(versions));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
     fixture.detectChanges();
 
     const q: AiQuestion = { id: 'q-1', orderIndex: 0, questionText: 'Q?', answerText: 'R' };
@@ -290,8 +290,8 @@ describe('SynthesisComponent', () => {
 
   // T-20 : piecesManquantes non vides → section rendue dans le template
   it('renders pieces manquantes section when list is non-empty', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', ['Contrat de travail', 'Bulletins de salaire'])));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD', ['Contrat de travail', 'Bulletins de salaire'])));
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -301,8 +301,8 @@ describe('SynthesisComponent', () => {
 
   // T-21 : piecesManquantes vides → section absente du template
   it('does not render pieces manquantes section when list is empty', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', [])));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD', [])));
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -312,8 +312,8 @@ describe('SynthesisComponent', () => {
   // TC-01 : loadChecksForVersion appelé au chargement initial
   it('calls loadChecksForVersion for the most recent version on load', () => {
     const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
-    caseAnalysisService.getVersions.and.returnValue(of(versions));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(2, 'STANDARD')));
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(2, 'STANDARD')));
 
     fixture.detectChanges();
 
@@ -323,8 +323,8 @@ describe('SynthesisComponent', () => {
   // TC-02 : onVersionChange réinitialise procedureChecks puis recharge
   it('onVersionChange resets procedureChecks and reloads for new version', () => {
     const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
-    caseAnalysisService.getVersions.and.returnValue(of(versions));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
     component.procedureChecks.set([makeCheck('c1', 1)]);
 
     fixture.detectChanges();
@@ -335,9 +335,9 @@ describe('SynthesisComponent', () => {
 
   // TC-03 : checks vides → panneau checklist absent du template
   it('does not render checklist panel when procedureChecks is empty', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD')));
-    procedureCheckService.list.and.returnValue(of([]));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    procedureCheckService.list.mockReturnValue(of([]));
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
@@ -349,7 +349,7 @@ describe('SynthesisComponent', () => {
     const check = makeCheck('c1', 1, 'TO_CHECK');
     component.procedureChecks.set([check]);
     const updated: ProcedureCheck = { ...check, statut: 'VERIFIED' };
-    procedureCheckService.updateStatus.and.returnValue(of(updated));
+    procedureCheckService.updateStatus.mockReturnValue(of(updated));
 
     component.updateCheckStatus(check, 'VERIFIED');
 
@@ -359,8 +359,8 @@ describe('SynthesisComponent', () => {
 
   // TS-01 : item avec source → badge source affiché
   it('renders source badge when item has a source', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of({
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of({
       ...makeSynthesis(1, 'STANDARD'),
       faits: [makeItem('Licenciement abusif', 'Document 0 (contrat.pdf)', 'Il est mis fin au contrat')]
     }));
@@ -374,8 +374,8 @@ describe('SynthesisComponent', () => {
 
   // TS-02 : item sans source → pas de badge
   it('does not render source badge when source is null', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of({
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of({
       ...makeSynthesis(1, 'STANDARD'),
       faits: [makeItem('Fait sans source')]
     }));
@@ -393,21 +393,21 @@ describe('SynthesisComponent', () => {
 
     const check = makeCheck('c1', 1, 'TO_CHECK');
     component.procedureChecks.set([check]);
-    procedureCheckService.updateStatus.and.returnValue(throwError(() => ({ status: 500 })));
+    procedureCheckService.updateStatus.mockReturnValue(throwError(() => ({ status: 500 })));
 
     component.updateCheckStatus(check, 'VERIFIED');
 
     expect(component.procedureChecks()[0].statut).toBe('TO_CHECK');
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('statut'), 'Fermer', jasmine.any(Object)
+      expect.stringContaining('statut'), 'Fermer', expect.any(Object)
     );
     expect(component.updatingCheckId()).toBeNull();
   });
 
   // R-03 : badge de risque présent dans le header si riskLevel non null
   it('R-03: synthesis avec riskLevel → badge .risk-badge présent dans le header', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', [], 'ELEVE', 82)));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD', [], 'ELEVE', 82)));
     fixture.detectChanges();
     const badge = fixture.nativeElement.querySelector('.risk-badge');
     expect(badge).not.toBeNull();
@@ -417,8 +417,8 @@ describe('SynthesisComponent', () => {
 
   // R-04 : badge absent si riskLevel null
   it('R-04: synthesis sans riskLevel → badge .risk-badge absent', () => {
-    caseAnalysisService.getVersions.and.returnValue(of([makeVersion(1, 'STANDARD')]));
-    caseAnalysisService.getByVersion.and.returnValue(of(makeSynthesis(1, 'STANDARD', [], null, null)));
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD', [], null, null)));
     fixture.detectChanges();
     const badge = fixture.nativeElement.querySelector('.risk-badge');
     expect(badge).toBeNull();

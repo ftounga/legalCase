@@ -36,22 +36,22 @@ const mockMembers: WorkspaceMember[] = [
 describe('WorkspaceAdminComponent', () => {
   let component: WorkspaceAdminComponent;
   let fixture: ComponentFixture<WorkspaceAdminComponent>;
-  let workspaceService: jasmine.SpyObj<WorkspaceService>;
-  let memberService: jasmine.SpyObj<WorkspaceMemberService>;
-  let adminUsageService: jasmine.SpyObj<AdminUsageService>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let workspaceService: jest.Mocked<WorkspaceService>;
+  let memberService: jest.Mocked<WorkspaceMemberService>;
+  let adminUsageService: jest.Mocked<AdminUsageService>;
+  let snackBar: jest.Mocked<MatSnackBar>;
 
-  async function setup(wsReturn: any, membersReturn: any) {
+  function setup(wsReturn: any, membersReturn: any) {
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
     memberService = jasmine.createSpyObj('WorkspaceMemberService', ['getMembers']);
     adminUsageService = jasmine.createSpyObj('AdminUsageService', ['getSummary']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
-    workspaceService.getCurrentWorkspace.and.returnValue(wsReturn);
-    memberService.getMembers.and.returnValue(membersReturn);
-    adminUsageService.getSummary.and.returnValue(of(mockUsageSummary));
+    workspaceService.getCurrentWorkspace.mockReturnValue(wsReturn);
+    memberService.getMembers.mockReturnValue(membersReturn);
+    adminUsageService.getSummary.mockReturnValue(of(mockUsageSummary));
 
-    await TestBed.configureTestingModule({
+    TestBed.configureTestingModule({
       imports: [WorkspaceAdminComponent, NoopAnimationsModule],
       providers: [
         { provide: WorkspaceService, useValue: workspaceService },
@@ -60,7 +60,7 @@ describe('WorkspaceAdminComponent', () => {
         { provide: MatSnackBar, useValue: snackBar },
         provideRouter([])
       ]
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(WorkspaceAdminComponent);
     component = fixture.componentInstance;
@@ -71,9 +71,9 @@ describe('WorkspaceAdminComponent', () => {
 
   // T-01 : chargement nominal — plan et membres affichés
   it('affiche le plan et les membres au chargement nominal', fakeAsync(async () => {
-    await setup(of(mockWorkspace), of(mockMembers));
+    setup(of(mockWorkspace), of(mockMembers));
 
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
     expect(component.workspace()).toEqual(mockWorkspace);
     expect(component.members().length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('STARTER');
@@ -83,33 +83,33 @@ describe('WorkspaceAdminComponent', () => {
 
   // T-02 : 403 → accessDenied = true, message affiché
   it('affiche le message accès refusé si 403', fakeAsync(async () => {
-    await setup(throwError(() => ({ status: 403 })), of(mockMembers));
+    setup(throwError(() => ({ status: 403 })), of(mockMembers));
 
-    expect(component.accessDenied()).toBeTrue();
+    expect(component.accessDenied()).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Accès réservé');
   }));
 
   // T-03 : erreur réseau → snackbar erreur
   it('affiche un snackbar si erreur réseau', fakeAsync(async () => {
-    await setup(throwError(() => ({ status: 500 })), of(mockMembers));
+    setup(throwError(() => ({ status: 500 })), of(mockMembers));
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Erreur'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('Erreur'), expect.any(String), expect.any(Object)
     );
-    expect(component.accessDenied()).toBeFalse();
+    expect(component.accessDenied()).toBe(false);
   }));
 
   // T-04 : plan FREE avec date d'expiration → date affichée
   it('affiche la date d\'expiration trial si plan FREE avec expiresAt', fakeAsync(async () => {
-    await setup(of(mockWorkspaceFreeWithExpiry), of(mockMembers));
+    setup(of(mockWorkspaceFreeWithExpiry), of(mockMembers));
 
-    expect(component.isTrial(mockWorkspaceFreeWithExpiry)).toBeTrue();
+    expect(component.isTrial(mockWorkspaceFreeWithExpiry)).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Fin d\'essai');
   }));
 
   // T-05 : bouton "Voir le journal complet" présent, section journal absente
   it('affiche le bouton lien vers le journal et non le tableau', fakeAsync(async () => {
-    await setup(of(mockWorkspace), of(mockMembers));
+    setup(of(mockWorkspace), of(mockMembers));
 
     expect(fixture.nativeElement.textContent).toContain('Voir le journal complet');
     expect(fixture.nativeElement.querySelector('table.audit-table')).toBeNull();

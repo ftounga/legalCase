@@ -11,21 +11,21 @@ function makeTourServiceStub(step: number) {
   return {
     currentStep: signal(step),
     isActive: signal(true),
-    next: jasmine.createSpy('next'),
-    skip: jasmine.createSpy('skip'),
-    advanceToStep2: jasmine.createSpy('advanceToStep2')
+    next: jest.fn(),
+    skip: jest.fn(),
+    advanceToStep2: jest.fn()
   };
 }
 
 describe('TourOverlayComponent', () => {
   let fixture: ComponentFixture<TourOverlayComponent>;
   let stub: ReturnType<typeof makeTourServiceStub>;
-  let caseFileServiceSpy: jasmine.SpyObj<CaseFileService>;
+  let caseFileServiceSpy: jest.Mocked<CaseFileService>;
 
   function setup(step: number): void {
     stub = makeTourServiceStub(step);
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['list', 'create', 'update', 'exportZip']);
-    caseFileServiceSpy.list.and.returnValue(of({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 1 }));
+    caseFileServiceSpy.list.mockReturnValue(of({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 1 }));
 
     TestBed.configureTestingModule({
       imports: [TourOverlayComponent],
@@ -75,7 +75,7 @@ describe('TourOverlayComponent', () => {
   // U-12 : clic "Suivant" à step 1 → caseFileService.list() puis tourService.advanceToStep2() appelés
   it('U-12: clicking next at step 1 calls advanceToStep2() with correct flag', async () => {
     setup(1);
-    caseFileServiceSpy.list.and.returnValue(of({ content: [], totalElements: 3, totalPages: 1, number: 0, size: 1 }));
+    caseFileServiceSpy.list.mockReturnValue(of({ content: [], totalElements: 3, totalPages: 1, number: 0, size: 1 }));
 
     const buttons: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('button');
     const nextBtn = Array.from(buttons).find(b => b.textContent?.includes('Suivant'));

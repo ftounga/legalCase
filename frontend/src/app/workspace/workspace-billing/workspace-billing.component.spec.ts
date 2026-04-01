@@ -16,16 +16,16 @@ const mockWorkspace: Workspace = {
 describe('WorkspaceBillingComponent', () => {
   let component: WorkspaceBillingComponent;
   let fixture: ComponentFixture<WorkspaceBillingComponent>;
-  let workspaceServiceSpy: jasmine.SpyObj<WorkspaceService>;
-  let billingServiceSpy: jasmine.SpyObj<BillingService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let workspaceServiceSpy: jest.Mocked<WorkspaceService>;
+  let billingServiceSpy: jest.Mocked<BillingService>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
     workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
     billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
-    workspaceServiceSpy.getCurrentWorkspace.and.returnValue(of(mockWorkspace));
+    workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceBillingComponent, NoopAnimationsModule],
@@ -79,25 +79,25 @@ describe('WorkspaceBillingComponent', () => {
     ['SOLO', 'TEAM', 'PRO'].forEach(code => {
       const plan = component.plans.find(p => p.code === code)!;
       const enriched = plan.features.find(f => f.label.toLowerCase().includes('re-synthèse'))!;
-      expect(enriched.included).toBeTrue();
+      expect(enriched.included).toBe(true);
     });
   });
 
   it('re-synthèse enrichie disponible (1 essai) sur FREE', () => {
     const free = component.plans.find(p => p.code === 'FREE')!;
     const enriched = free.features.find(f => f.label.toLowerCase().includes('re-synthèse'))!;
-    expect(enriched.included).toBeTrue();
+    expect(enriched.included).toBe(true);
     expect(enriched.label).toContain('1 essai');
   });
 
   it('isCurrentPlan — SOLO pour workspace SOLO', () => {
-    expect(component.isCurrentPlan('SOLO')).toBeTrue();
-    expect(component.isCurrentPlan('PRO')).toBeFalse();
-    expect(component.isCurrentPlan('FREE')).toBeFalse();
+    expect(component.isCurrentPlan('SOLO')).toBe(true);
+    expect(component.isCurrentPlan('PRO')).toBe(false);
+    expect(component.isCurrentPlan('FREE')).toBe(false);
   });
 
   it('upgrade — appelle BillingService.createCheckoutSession', () => {
-    billingServiceSpy.createCheckoutSession.and.returnValue(NEVER);
+    billingServiceSpy.createCheckoutSession.mockReturnValue(NEVER);
 
     component.upgrade('PRO');
 
@@ -106,8 +106,8 @@ describe('WorkspaceBillingComponent', () => {
   });
 
   it('upgrade — trackEvent upgrade_clicked avec le plan', () => {
-    billingServiceSpy.createCheckoutSession.and.returnValue(NEVER);
-    const analyticsService = TestBed.inject(AnalyticsService) as jasmine.SpyObj<AnalyticsService>;
+    billingServiceSpy.createCheckoutSession.mockReturnValue(NEVER);
+    const analyticsService = TestBed.inject(AnalyticsService) as jest.Mocked<AnalyticsService>;
 
     component.upgrade('SOLO');
 
@@ -120,7 +120,7 @@ describe('WorkspaceBillingComponent', () => {
   });
 
   it('buyTopup — appelle BillingService.createTopupSession', () => {
-    billingServiceSpy.createTopupSession.and.returnValue(NEVER);
+    billingServiceSpy.createTopupSession.mockReturnValue(NEVER);
 
     component.buyTopup('TOKENS_1M');
 
@@ -131,15 +131,15 @@ describe('WorkspaceBillingComponent', () => {
 });
 
 describe('WorkspaceBillingComponent — topup query params', () => {
-  let workspaceServiceSpy: jasmine.SpyObj<WorkspaceService>;
-  let billingServiceSpy: jasmine.SpyObj<BillingService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
+  let workspaceServiceSpy: jest.Mocked<WorkspaceService>;
+  let billingServiceSpy: jest.Mocked<BillingService>;
+  let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   const setupWith = async (queryParams: Record<string, string>) => {
     workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
     billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
-    workspaceServiceSpy.getCurrentWorkspace.and.returnValue(of(mockWorkspace));
+    workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceBillingComponent, NoopAnimationsModule],
@@ -158,14 +158,14 @@ describe('WorkspaceBillingComponent — topup query params', () => {
   it('?topup=success — affiche le snackbar de confirmation', async () => {
     await setupWith({ topup: 'success' });
     expect(snackBarSpy.open).toHaveBeenCalledWith(
-      'Tokens ajoutés à votre compte !', 'Fermer', jasmine.objectContaining({ duration: 6000 })
+      'Tokens ajoutés à votre compte !', 'Fermer', expect.objectContaining({ duration: 6000 })
     );
   });
 
   it('?topup=canceled — affiche le snackbar d\'annulation', async () => {
     await setupWith({ topup: 'canceled' });
     expect(snackBarSpy.open).toHaveBeenCalledWith(
-      'Achat de tokens annulé.', 'Fermer', jasmine.objectContaining({ duration: 4000 })
+      'Achat de tokens annulé.', 'Fermer', expect.objectContaining({ duration: 4000 })
     );
   });
 });

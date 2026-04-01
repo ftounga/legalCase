@@ -33,25 +33,25 @@ function pageOf<T>(content: T[], total?: number): PageResponse<T> {
 describe('SuperAdminComponent', () => {
   let component: SuperAdminComponent;
   let fixture: ComponentFixture<SuperAdminComponent>;
-  let superAdminService: jasmine.SpyObj<SuperAdminService>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
-  let dialog: jasmine.SpyObj<MatDialog>;
+  let superAdminService: jest.Mocked<SuperAdminService>;
+  let snackBar: jest.Mocked<MatSnackBar>;
+  let dialog: jest.Mocked<MatDialog>;
   let router: Router;
 
-  async function setup(isSuperAdmin: boolean, wsReturn: any, usageReturn: any, usersReturn: any, metricsReturn: any = of(mockMetrics)) {
+  function setup(isSuperAdmin: boolean, wsReturn: any, usageReturn: any, usersReturn: any, metricsReturn: any = of(mockMetrics)) {
     superAdminService = jasmine.createSpyObj('SuperAdminService', ['listWorkspaces', 'getUsage', 'listUsers', 'deleteWorkspace', 'deleteUser', 'getMetrics']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
-    superAdminService.listWorkspaces.and.returnValue(wsReturn);
-    superAdminService.getUsage.and.returnValue(usageReturn);
-    superAdminService.listUsers.and.returnValue(usersReturn);
-    superAdminService.getMetrics.and.returnValue(metricsReturn);
+    superAdminService.listWorkspaces.mockReturnValue(wsReturn);
+    superAdminService.getUsage.mockReturnValue(usageReturn);
+    superAdminService.listUsers.mockReturnValue(usersReturn);
+    superAdminService.getMetrics.mockReturnValue(metricsReturn);
 
     const currentUser = signal<any>({ id: 'u-sa', email: 'sa@test.com', isSuperAdmin });
     const authService = { currentUser };
 
-    await TestBed.configureTestingModule({
+    TestBed.configureTestingModule({
       imports: [SuperAdminComponent, NoopAnimationsModule],
       providers: [
         { provide: SuperAdminService, useValue: superAdminService },
@@ -60,7 +60,7 @@ describe('SuperAdminComponent', () => {
         { provide: MatDialog, useValue: dialog },
         provideRouter([{ path: 'case-files', component: SuperAdminComponent }])
       ]
-    }).compileComponents();
+    });
 
     router = TestBed.inject(Router);
     spyOn(router, 'navigate');
@@ -74,9 +74,9 @@ describe('SuperAdminComponent', () => {
 
   // T-01 : chargement nominal — tableaux affichés
   it('affiche les tableaux workspaces et utilisateurs au chargement nominal', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
 
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
     expect(component.workspaceRows().length).toBe(1);
     expect(component.users().length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Cabinet Alpha');
@@ -85,7 +85,7 @@ describe('SuperAdminComponent', () => {
 
   // T-02 : 403 → redirection vers /case-files
   it('redirige vers /case-files si 403 au chargement', fakeAsync(async () => {
-    await setup(true,
+    setup(true,
       throwError(() => ({ status: 403 })),
       of(mockUsage),
       of(pageOf(mockUsers))
@@ -96,14 +96,14 @@ describe('SuperAdminComponent', () => {
 
   // T-03 : non super-admin → redirection au ngOnInit
   it('redirige vers /case-files si isSuperAdmin = false', fakeAsync(async () => {
-    await setup(false, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(false, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
 
     expect(router.navigate).toHaveBeenCalledWith(['/case-files']);
   }));
 
   // T-04 : usage fusionné dans les lignes workspace
   it('fusionne les données de consommation dans les lignes workspace', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
 
     expect(component.workspaceRows()[0].totalTokensInput).toBe(1000);
     expect(component.workspaceRows()[0].totalCost).toBe(0.012);
@@ -111,7 +111,7 @@ describe('SuperAdminComponent', () => {
 
   // T-05 : métriques chargées et signal renseigné
   it('charge les métriques et renseigne le signal', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
 
     expect(component.metrics()).not.toBeNull();
     expect(component.metrics()!.totalWorkspaces).toBe(10);
@@ -120,7 +120,7 @@ describe('SuperAdminComponent', () => {
 
   // T-06 : section métriques présente dans le DOM
   it('affiche la section métriques dans le DOM', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
 
     expect(fixture.nativeElement.textContent).toContain('Métriques plateforme');
     expect(fixture.nativeElement.textContent).toContain('Actifs (30j)');
@@ -129,8 +129,8 @@ describe('SuperAdminComponent', () => {
 
   // T-07 : changement de page workspaces → listWorkspaces appelé avec page=1
   it('appelle listWorkspaces avec page=1 lors du changement de page workspaces', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces, 25)), of(mockUsage), of(pageOf(mockUsers)));
-    superAdminService.listWorkspaces.and.returnValue(of(pageOf(mockWorkspaces, 25)));
+    setup(true, of(pageOf(mockWorkspaces, 25)), of(mockUsage), of(pageOf(mockUsers)));
+    superAdminService.listWorkspaces.mockReturnValue(of(pageOf(mockWorkspaces, 25)));
 
     const event: PageEvent = { pageIndex: 1, pageSize: 20, length: 25 };
     component.onWsPageChange(event);
@@ -142,8 +142,8 @@ describe('SuperAdminComponent', () => {
 
   // T-08 : changement de taille utilisateurs → listUsers appelé avec size=5
   it('appelle listUsers avec size=5 lors du changement de taille', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers, 10)));
-    superAdminService.listUsers.and.returnValue(of(pageOf(mockUsers, 10)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers, 10)));
+    superAdminService.listUsers.mockReturnValue(of(pageOf(mockUsers, 10)));
 
     const event: PageEvent = { pageIndex: 0, pageSize: 5, length: 10 };
     component.onUsersPageChange(event);
@@ -155,7 +155,7 @@ describe('SuperAdminComponent', () => {
 
   // T-09 : totalElements renseigné dans les signals
   it('renseigne wsTotalElements et usersTotalElements depuis la réponse backend', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces, 42)), of(mockUsage), of(pageOf(mockUsers, 17)));
+    setup(true, of(pageOf(mockWorkspaces, 42)), of(mockUsage), of(pageOf(mockUsers, 17)));
 
     expect(component.wsTotalElements()).toBe(42);
     expect(component.usersTotalElements()).toBe(17);
@@ -163,7 +163,7 @@ describe('SuperAdminComponent', () => {
 
   // T-H1 : section outils présente dans le DOM
   it('affiche la section Outils & monitoring', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
     tick();
     fixture.detectChanges();
 
@@ -173,35 +173,35 @@ describe('SuperAdminComponent', () => {
 
   // T-H2 : les 7 outils sont rendus
   it('affiche les 7 outils avec leur data-testid', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
     tick();
     fixture.detectChanges();
 
     const tools = ['tool-ga4', 'tool-sentry', 'tool-stripe', 'tool-brevo', 'tool-n8n', 'tool-aws', 'tool-rabbitmq'];
     tools.forEach(id => {
       const el = fixture.nativeElement.querySelector(`[data-testid="${id}"]`);
-      expect(el).withContext(`tool ${id} manquant`).toBeTruthy();
+      expect(el).toBeTruthy(); // tool ${id} manquant
     });
   }));
 
   // T-H3 : chaque lien a target="_blank" et rel="noopener noreferrer"
   it('chaque lien outil a target="_blank" et rel="noopener noreferrer"', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
     tick();
     fixture.detectChanges();
 
     const links: NodeListOf<HTMLAnchorElement> = fixture.nativeElement.querySelectorAll('.tool-card');
     expect(links.length).toBe(7);
     links.forEach(link => {
-      expect(link.target).withContext(`target manquant sur ${link.href}`).toBe('_blank');
-      expect(link.rel).withContext(`rel manquant sur ${link.href}`).toBe('noopener noreferrer');
+      expect(link.target).toBe('_blank'); // target manquant sur ${link.href}
+      expect(link.rel).toBe('noopener noreferrer'); // rel manquant sur ${link.href}
     });
   }));
 
   // T-10 : erreur sur changement de page workspaces → snackbar, tableau inchangé
   it('affiche un snackbar si erreur lors du changement de page workspaces', fakeAsync(async () => {
-    await setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
-    superAdminService.listWorkspaces.and.returnValue(throwError(() => ({ status: 500 })));
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    superAdminService.listWorkspaces.mockReturnValue(throwError(() => ({ status: 500 })));
 
     const rowsBefore = component.workspaceRows();
     const event: PageEvent = { pageIndex: 1, pageSize: 20, length: 100 };
@@ -209,7 +209,7 @@ describe('SuperAdminComponent', () => {
     tick();
 
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('workspaces'), jasmine.any(String), jasmine.any(Object)
+      expect.stringContaining('workspaces'), expect.any(String), expect.any(Object)
     );
     expect(component.workspaceRows()).toEqual(rowsBefore);
   }));

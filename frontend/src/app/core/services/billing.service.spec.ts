@@ -49,15 +49,15 @@ describe('BillingService', () => {
   });
 
   it('shouldShowTrialBanner — FREE plan, première fois → true', () => {
-    expect(service.shouldShowTrialBanner(freeWorkspace)).toBeTrue();
+    expect(service.shouldShowTrialBanner(freeWorkspace)).toBe(true);
   });
 
   it('shouldShowTrialBanner — FREE plan, deuxième fois → false (déjà montré)', () => {
     service.shouldShowTrialBanner(freeWorkspace); // première fois
-    expect(service.shouldShowTrialBanner(freeWorkspace)).toBeFalse();
+    expect(service.shouldShowTrialBanner(freeWorkspace)).toBe(false);
   });
 
   it('shouldShowTrialBanner — plan STARTER → false', () => {
-    expect(service.shouldShowTrialBanner(starterWorkspace)).toBeFalse();
+    expect(service.shouldShowTrialBanner(starterWorkspace)).toBe(false);
   });
 });

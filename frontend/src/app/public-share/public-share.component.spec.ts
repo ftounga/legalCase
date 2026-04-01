@@ -35,11 +35,11 @@ const MOCK_PUBLIC_SHARE: PublicShareResponse = {
 describe('PublicShareComponent', () => {
   let fixture: ComponentFixture<PublicShareComponent>;
   let component: PublicShareComponent;
-  let shareService: jasmine.SpyObj<CaseFileShareService>;
+  let shareService: jest.Mocked<CaseFileShareService>;
 
   function setup(response: any): void {
     shareService = jasmine.createSpyObj('CaseFileShareService', ['getPublicShare']);
-    shareService.getPublicShare.and.returnValue(response);
+    shareService.getPublicShare.mockReturnValue(response);
 
     TestBed.configureTestingModule({
       imports: [PublicShareComponent],
@@ -64,7 +64,7 @@ describe('PublicShareComponent', () => {
     fixture.detectChanges();
 
     expect(component.share()).toEqual(MOCK_PUBLIC_SHARE);
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
     expect(component.error()).toBeNull();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.case-title')?.textContent).toContain('Affaire Dupont');
@@ -77,7 +77,7 @@ describe('PublicShareComponent', () => {
     fixture.detectChanges();
 
     expect(component.error()).toBe('not_found');
-    expect(component.loading()).toBeFalse();
+    expect(component.loading()).toBe(false);
   }));
 
   // T-08: shows expired error on 410
