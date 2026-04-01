@@ -19,11 +19,13 @@ import { GlobalAnalysisNotificationService } from '../../core/services/global-an
 import { ChatService } from '../../core/services/chat.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
+import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedure-check.model';
 
 @Component({
   selector: 'app-synthesis',
@@ -50,6 +52,9 @@ export class SynthesisComponent implements OnInit {
   editingQuestionId = signal<string | null>(null);
   submittingEdit = signal<string | null>(null);
 
+  procedureChecks = signal<ProcedureCheck[]>([]);
+  updatingCheckId = signal<string | null>(null);
+
   chatMessages = signal<ChatMessage[]>([]);
   chatLoading = signal(false);
   chatDisabled = signal(false);
@@ -68,7 +73,8 @@ export class SynthesisComponent implements OnInit {
     private chatService: ChatService,
     private snackBar: MatSnackBar,
     private pdfExportService: PdfExportService,
-    private analyticsService: AnalyticsService
+    private analyticsService: AnalyticsService,
+    private procedureCheckService: ProcedureCheckService
   ) {}
 
   ngOnInit(): void {
@@ -93,6 +99,7 @@ export class SynthesisComponent implements OnInit {
         if (versions.length > 0) {
           this.loadSynthesisForVersion(caseFileId, versions[0].version);
           this.loadQuestionsForVersion(caseFileId, versions[0].id);
+          this.loadChecksForVersion(caseFileId, versions[0].id);
         } else {
           this.loading.set(false);
         }
@@ -123,6 +130,48 @@ export class SynthesisComponent implements OnInit {
     });
   }
 
+  loadChecksForVersion(caseFileId: string, analysisId: string): void {
+    this.procedureCheckService.list(caseFileId, analysisId).subscribe({
+      next: checks => this.procedureChecks.set(checks),
+      error: () => this.procedureChecks.set([])
+    });
+  }
+
+  updateCheckStatus(check: ProcedureCheck, statut: ProcedureCheckStatus): void {
+    if (this.updatingCheckId() === check.id) return;
+    this.updatingCheckId.set(check.id);
+    this.procedureCheckService.updateStatus(check.id, statut).subscribe({
+      next: updated => {
+        this.procedureChecks.update(list =>
+          list.map(c => c.id === updated.id ? updated : c)
+        );
+        this.updatingCheckId.set(null);
+      },
+      error: () => {
+        this.updatingCheckId.set(null);
+        this.snackBar.open('Erreur lors de la mise à jour du statut', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  checkStatusLabel(statut: ProcedureCheckStatus): string {
+    switch (statut) {
+      case 'VERIFIED': return 'Vérifié';
+      case 'NON_COMPLIANT': return 'Non conforme';
+      default: return 'À vérifier';
+    }
+  }
+
+  checkStatusIcon(statut: ProcedureCheckStatus): string {
+    switch (statut) {
+      case 'VERIFIED': return 'check_circle';
+      case 'NON_COMPLIANT': return 'cancel';
+      default: return 'help_outline';
+    }
+  }
+
   onVersionChange(versionNumber: number): void {
     const caseFileId = this.caseFile()?.id;
     if (!caseFileId) return;
@@ -130,9 +179,11 @@ export class SynthesisComponent implements OnInit {
     if (!selected) return;
     this.synthesis.set(null);
     this.questions.set([]);
+    this.procedureChecks.set([]);
     this.editingQuestionId.set(null);
     this.loadSynthesisForVersion(caseFileId, selected.version);
     this.loadQuestionsForVersion(caseFileId, selected.id);
+    this.loadChecksForVersion(caseFileId, selected.id);
   }
 
   startEdit(question: AiQuestion): void {

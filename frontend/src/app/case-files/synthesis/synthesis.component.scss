@@ -183,6 +183,7 @@
   &--risques    { color: #C0392B; }
   &--questions  { color: #C9973A; }
   &--manquantes { color: #E67E22; }
+  &--checklist  { color: #27AE60; }
 }
 
 .timeline {
@@ -475,4 +476,108 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+// Checklist procédurale
+.checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #E0E4EA;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.checklist-description {
+  flex: 1;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  color: #1C2B3A;
+  line-height: 1.5;
+  min-width: 200px;
+}
+
+.checklist-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.check-spinner {
+  margin: 0 8px;
+}
+
+.status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  border: 1.5px solid;
+  background: transparent;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &--verified {
+    border-color: #27AE60;
+    color: #27AE60;
+
+    &.status-btn--active {
+      background: #27AE60;
+      color: #fff;
+    }
+
+    &:hover:not(.status-btn--active) {
+      background: #f0faf4;
+    }
+  }
+
+  &--non-compliant {
+    border-color: #C0392B;
+    color: #C0392B;
+
+    &.status-btn--active {
+      background: #C0392B;
+      color: #fff;
+    }
+
+    &:hover:not(.status-btn--active) {
+      background: #fdf3f2;
+    }
+  }
+
+  &--to-check {
+    border-color: #6B7A8D;
+    color: #6B7A8D;
+
+    &.status-btn--active {
+      background: #6B7A8D;
+      color: #fff;
+    }
+
+    &:hover:not(.status-btn--active) {
+      background: #F5F6FA;
+    }
+  }
 }
