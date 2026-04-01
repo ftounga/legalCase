@@ -65,7 +65,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-23 | Séquence onboarding — email J+12 (avant expiration trial) | Haute | `Terminé` | Scheduler nightly 8h opérationnel en staging |
 | M-24 | Email de conversion — FREE expiré | Haute | `Terminé` | Scheduler nightly 8h opérationnel en staging |
 | M-25 | Choix d'un outil d'emailing + intégration | Haute | `Terminé` | Brevo déjà intégré via JavaMailSender SMTP — utilisé pour invitations, vérification email, reset MDP. Aucune action supplémentaire requise. |
-| M-26 | Newsletter mensuelle — template | Basse | `À faire` | Fidélisation clients actifs |
+| M-26 | Newsletter mensuelle — template | Basse | `Terminé` | PR #207 mergée 2026-04-01 — scheduler mensuel 1er du mois 8h, stats dynamiques par workspace, 24 features en rotation déterministe (2 ans), déduplication via email_sends |
 
 ---
 
