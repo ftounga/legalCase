@@ -239,6 +239,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |------|-------------|------------|
 | 2026-04-01 | F-93 Terminée — SF-93-02 mergée : badge source + extrait dans SynthesisComponent, 422 tests | Product owner |
 | 2026-04-01 | F-94 Terminée — SF-94-02 mergée : badge score de risque dans liste et synthèse, couleurs design system, 422 tests | Product owner |
+| 2026-04-01 | F-97 SF-97-01 mergée — backend détection délais IA : migration 042, source/aiStatus, PATCH validate, fail-open, 40 tests | Product owner |
 | 2026-04-01 | F-95 Terminée — SF-95-01 mergée : export .docx synthèse, DocxExportService, bouton SynthesisComponent, 37 tests | Product owner |
 | 2026-04-01 | F-99 Terminée — SF-99-01 mergée : Karma → Jest, 422/422 verts, CI migrée, shim Jasmine + polyfills jsdom | Product owner |
 | 2026-04-01 | F-99 ajoutée — Migration tests frontend Karma → Jest (infrastructure & qualité, V3) | Product owner |
