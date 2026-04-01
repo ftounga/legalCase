@@ -26,4 +26,11 @@ export class CaseDeadlineService {
   delete(caseFileId: string, deadlineId: string): Observable<void> {
     return this.http.delete<void>(`${this.url(caseFileId)}/${deadlineId}`);
   }
+
+  validateDeadline(caseFileId: string, deadlineId: string, action: 'ACCEPT' | 'REJECT'): Observable<CaseDeadline | null> {
+    return this.http.patch<CaseDeadline | null>(
+      `${this.url(caseFileId)}/${deadlineId}/validate`,
+      { action }
+    );
+  }
 }

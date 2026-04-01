@@ -170,3 +170,57 @@
   gap: 8px;
   align-items: center;
 }
+
+.ai-proposals-section {
+  margin-top: 24px;
+  padding: 16px;
+  border-left: 3px solid #1A3A5C;
+  background: #f5f7fa;
+  border-radius: 0 8px 8px 0;
+
+  h4 {
+    font-family: 'Merriweather', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1A3A5C;
+    margin: 0 0 12px 0;
+  }
+}
+
+.ai-proposal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #E0E4EA;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #1A3A5C;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.ai-proposal-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1C2B3A;
+  flex: 1;
+}
+
+.ai-proposal-date {
+  font-size: 13px;
+  color: #6B7A8D;
+  flex-shrink: 0;
+}
