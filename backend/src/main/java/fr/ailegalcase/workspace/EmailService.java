@@ -316,6 +316,50 @@ public class EmailService {
                 ? user.getFirstName() : "Maître";
     }
 
+    // ── Monthly newsletter ────────────────────────────────────────────────────
+
+    @Transactional
+    public void sendMonthlyNewsletter(User user, long analysisCount, long activeCaseFiles,
+                                       long documentsUploaded, String featureTitle, String featureDescription,
+                                       String monthLabel) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — newsletter skipped for {}", user.getEmail());
+            return;
+        }
+        String subject = "[AI LegalCase] Votre récapitulatif de " + monthLabel;
+        String body =
+                "Bonjour " + firstName(user) + ",\n\n" +
+                "Voici votre récapitulatif pour le mois de " + monthLabel + " :\n\n" +
+                "Votre activité\n" +
+                "- " + analysisCount + " analyse(s) lancée(s)\n" +
+                "- " + activeCaseFiles + " dossier(s) actif(s)\n" +
+                "- " + documentsUploaded + " document(s) uploadé(s)\n\n" +
+                "Feature du mois : " + featureTitle + "\n" +
+                featureDescription + "\n\n" +
+                "Accédez à votre espace :\n" +
+                frontendUrl + "\n\n" +
+                "L'équipe AI LegalCase";
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(user.getEmail());
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
+
+            EmailSend record = new EmailSend();
+            record.setUser(user);
+            record.setEmailType(EmailSend.EmailType.NEWSLETTER_MONTHLY);
+            record.setSentAt(Instant.now());
+            emailSendRepository.save(record);
+
+            log.info("Monthly newsletter sent to {}", user.getEmail());
+        } catch (MailException e) {
+            log.warn("Failed to send monthly newsletter to {} — {}", user.getEmail(), e.getMessage());
+        }
+    }
+
     public void sendInvitation(String toEmail, String workspaceName, String token) {
         if (!mailEnabled) {
             log.debug("Mail disabled — invitation email skipped for {}", toEmail);

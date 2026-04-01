@@ -44,4 +44,7 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
 
     @Query("SELECT DISTINCT ca.caseFile.workspace.id FROM CaseAnalysis ca WHERE ca.analysisStatus = fr.ailegalcase.analysis.AnalysisStatus.DONE AND ca.createdAt >= :since")
     Set<UUID> findDistinctWorkspaceIdsWithDoneAnalysisSince(@Param("since") Instant since);
+
+    @Query("SELECT COUNT(ca) FROM CaseAnalysis ca WHERE ca.caseFile.workspace.id = :workspaceId AND ca.analysisStatus = fr.ailegalcase.analysis.AnalysisStatus.DONE AND ca.createdAt >= :since")
+    long countDoneByWorkspaceIdAndCreatedAtAfter(@Param("workspaceId") UUID workspaceId, @Param("since") Instant since);
 }
