@@ -93,7 +93,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-43 | Démo en ligne — Calendly ou équivalent | Haute | `Terminé` | https://calendly.com/tounga-franck-ng-itconsulting/30min — intégré dans Template E de M-42 |
 | M-44 | Partenariats barreaux / associations d'avocats | Moyenne | `À faire` | Canal d'acquisition B2B — email + cibles dans docs/marketing/m44-partenariats-barreaux.md |
 | M-45 | Programme de référence — un mois offert pour parrainage | Moyenne | `À faire` | Croissance organique |
-| M-53 | Partenariat éditorial Village de la Justice | Haute | `À faire` | Newsletter 60 000 professionnels du droit — article sponsorisé ou tribune sur l'IA en cabinet. Un seul interlocuteur, pas de validation collective. Contact : village-justice.com/contact |
+| M-53 | Partenariat éditorial Village de la Justice | Haute | `En cours` | Newsletter 60 000 professionnels du droit. Email de contact envoyé le 2026-04-01 via village-justice.com/articles/publiez-vous-publiez-ici-charte-publication,2846.html. En attente de réponse. Prochain message : brief de la tribune (angle "ce qui fonctionne vraiment en cabinet, ce qui ne fonctionne pas encore", 800-1 200 mots) — rédigé et prêt dans docs/marketing/m53-tribune-brief.md |
 
 ---
 
