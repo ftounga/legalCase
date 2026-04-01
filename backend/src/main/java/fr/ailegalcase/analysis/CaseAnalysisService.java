@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.casefile.CaseDeadlineService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import io.sentry.Sentry;
@@ -35,12 +36,13 @@ public class CaseAnalysisService {
             Tu reçois les analyses de plusieurs documents d'un dossier juridique.
             Produis une synthèse globale du dossier en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "Document N", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "Document N", "extrait": "..."}], "risques": [{"texte": "...", "source": "Document N", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "Document N", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "Document N", "extrait": "..."}], "risques": [{"texte": "...", "source": "Document N", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "delais_detectes": [{"label": "...", "date_detectee": "YYYY-MM-DD", "source": "Document N"}]}
             Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (ex: "Document 0") et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
             La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis (ex: "Contrat de travail", "Bulletins de salaire"). Si le dossier semble complet, utilise "pieces_manquantes": [].
             Le champ "points_procedure" liste les étapes procédurales légalement requises dans ce type de dossier (ex: "Entretien préalable tenu dans les délais", "Lettre de licenciement motivée"). Si la procédure semble conforme, utilise "points_procedure": [].
             Le champ "score_risque" est obligatoire : évalue le niveau de risque global du dossier. "niveau" est l'un de "FAIBLE", "MOYEN" ou "ELEVE". "valeur" est un entier entre 0 et 100 reflétant l'intensité du risque (0 = aucun risque, 100 = risque maximum).
+            Le champ "delais_detectes" liste les délais légaux détectés dans les documents (ex: délai de recours, délai de prescription). Format : [{"label": "Délai de recours prud'homal", "date_detectee": "YYYY-MM-DD", "source": "Document N"}]. Si aucun délai détectable, utilise "delais_detectes": [].
             Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
             """;
 
@@ -66,6 +68,7 @@ public class CaseAnalysisService {
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
     private final AnalysisLimitsProperties analysisLimitsProperties;
     private final ProcedureCheckService procedureCheckService;
+    private final CaseDeadlineService caseDeadlineService;
 
     @Lazy @Autowired
     private CaseAnalysisService self;
@@ -80,7 +83,8 @@ public class CaseAnalysisService {
                                ApplicationEventPublisher eventPublisher,
                                AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
                                AnalysisLimitsProperties analysisLimitsProperties,
-                               ProcedureCheckService procedureCheckService) {
+                               ProcedureCheckService procedureCheckService,
+                               CaseDeadlineService caseDeadlineService) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
@@ -92,6 +96,7 @@ public class CaseAnalysisService {
         this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
         this.analysisLimitsProperties = analysisLimitsProperties;
         this.procedureCheckService = procedureCheckService;
+        this.caseDeadlineService = caseDeadlineService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
@@ -193,6 +198,11 @@ public class CaseAnalysisService {
 
         if (failure == null) {
             procedureCheckService.createChecks(analysis, analysis.getAnalysisResult());
+            try {
+                caseDeadlineService.createAiDetectedDeadlines(analysis, analysis.getAnalysisResult());
+            } catch (Exception e) {
+                log.warn("Fail-open: AI deadline detection failed for analysis {}: {}", analysis.getId(), e.getMessage());
+            }
         }
 
         AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS)

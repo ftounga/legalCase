@@ -1,5 +1,6 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.casefile.CaseDeadlineService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.Document;
@@ -34,11 +35,12 @@ class CaseAnalysisServiceTest {
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService = mock(AnalysisDocumentSnapshotService.class);
     private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
     private final ProcedureCheckService procedureCheckService = mock(ProcedureCheckService.class);
+    private final CaseDeadlineService caseDeadlineService = mock(CaseDeadlineService.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService);
+            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, caseDeadlineService);
 
     @BeforeEach
     void setUp() {
@@ -181,6 +183,16 @@ class CaseAnalysisServiceTest {
         assertThat(prompt).contains("timeline");
         assertThat(prompt).contains("date");
         assertThat(prompt).contains("evenement");
+    }
+
+    // U-05 : le system prompt contient le champ delais_detectes
+    @Test
+    void systemPrompt_containsDelaisDetectesField() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        assertThat(prompt).contains("delais_detectes");
+        assertThat(prompt).contains("date_detectee");
     }
 
     // U-06 : le prompt agrège les documents dans l'ordre chronologique

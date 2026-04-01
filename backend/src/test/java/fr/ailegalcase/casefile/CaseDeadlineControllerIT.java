@@ -197,11 +197,156 @@ class CaseDeadlineControllerIT {
                 .andExpect(status().isUnauthorized());
     }
 
+    // ===== PATCH /validate =====
+
+    // IT-10 : ACCEPT → 200, aiStatus = ACCEPTED
+    @Test
+    void validate_accept_returns200WithAcceptedStatus() throws Exception {
+        CaseDeadline deadline = saveAiDeadline("Délai IA", LocalDate.of(2026, 9, 1), "PENDING");
+
+        mockMvc.perform(patch("/api/v1/case-files/{id}/deadlines/{did}/validate", caseFile.getId(), deadline.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"ACCEPT"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.aiStatus").value("ACCEPTED"))
+                .andExpect(jsonPath("$.source").value("AI"));
+    }
+
+    // IT-11 : REJECT → 204, délai absent de GET /deadlines
+    @Test
+    void validate_reject_returns204AndDeadlineIsGone() throws Exception {
+        CaseDeadline deadline = saveAiDeadline("Délai IA à rejeter", LocalDate.of(2026, 9, 1), "PENDING");
+
+        mockMvc.perform(patch("/api/v1/case-files/{id}/deadlines/{did}/validate", caseFile.getId(), deadline.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"REJECT"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/deadlines", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    // IT-12 : action invalide → 400
+    @Test
+    void validate_invalidAction_returns400() throws Exception {
+        CaseDeadline deadline = saveAiDeadline("Délai IA", LocalDate.of(2026, 9, 1), "PENDING");
+
+        mockMvc.perform(patch("/api/v1/case-files/{id}/deadlines/{did}/validate", caseFile.getId(), deadline.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"UNKNOWN"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // IT-13 : deadlineId inexistant → 404
+    @Test
+    void validate_deadlineNotFound_returns404() throws Exception {
+        mockMvc.perform(patch("/api/v1/case-files/{id}/deadlines/{did}/validate", caseFile.getId(), UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"ACCEPT"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // IT-14 : délai d'un autre workspace → 403 (via un autre caseFile non accessible)
+    @Test
+    void validate_deadlineFromOtherWorkspace_returns403() throws Exception {
+        // Create a second workspace with its own case file and deadline
+        User user2 = new User();
+        user2.setEmail("other-user@example.com");
+        user2.setStatus("ACTIVE");
+        userRepository.save(user2);
+
+        Workspace workspace2 = new Workspace();
+        workspace2.setName("OTHER");
+        workspace2.setSlug("other-slug-" + System.currentTimeMillis());
+        workspace2.setOwner(user2);
+        workspace2.setLegalDomain("DROIT_DU_TRAVAIL");
+        workspace2.setPlanCode("STARTER");
+        workspace2.setStatus("ACTIVE");
+        workspaceRepository.save(workspace2);
+
+        CaseFile otherCaseFile = new CaseFile();
+        otherCaseFile.setTitle("Dossier autre");
+        otherCaseFile.setLegalDomain("DROIT_DU_TRAVAIL");
+        otherCaseFile.setStatus("OPEN");
+        otherCaseFile.setWorkspace(workspace2);
+        otherCaseFile.setCreatedBy(user2);
+        caseFileRepository.save(otherCaseFile);
+
+        CaseDeadline otherDeadline = saveAiDeadlineForFile(otherCaseFile, "Délai autre WS", LocalDate.of(2026, 9, 1), "PENDING");
+
+        // caseFileId belongs to auth user but deadlineId belongs to another case file
+        mockMvc.perform(patch("/api/v1/case-files/{id}/deadlines/{did}/validate", caseFile.getId(), otherDeadline.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"ACCEPT"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound()); // 404 because resolveDeadlineForWorkspace checks caseFileId match
+    }
+
+    // IT-15 : délai déjà traité → 409
+    @Test
+    void validate_alreadyAccepted_returns409() throws Exception {
+        CaseDeadline deadline = saveAiDeadline("Délai déjà accepté", LocalDate.of(2026, 9, 1), "ACCEPTED");
+
+        mockMvc.perform(patch("/api/v1/case-files/{id}/deadlines/{did}/validate", caseFile.getId(), deadline.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"action":"ACCEPT"}
+                                """)
+                        .with(authentication(auth)))
+                .andExpect(status().isConflict());
+    }
+
+    // IT-16 : GET /deadlines retourne les délais PENDING avec source=AI et aiStatus=PENDING
+    @Test
+    void list_returnsPendingAiDeadlinesWithSourceAndAiStatus() throws Exception {
+        saveAiDeadline("Délai IA PENDING", LocalDate.of(2026, 8, 1), "PENDING");
+        saveDeadline("Délai manuel", LocalDate.of(2026, 9, 1));
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/deadlines", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].source").value("AI"))
+                .andExpect(jsonPath("$[0].aiStatus").value("PENDING"))
+                .andExpect(jsonPath("$[1].source").value("MANUAL"))
+                .andExpect(jsonPath("$[1].aiStatus").doesNotExist());
+    }
+
     private CaseDeadline saveDeadline(String label, LocalDate dueDate) {
         CaseDeadline d = new CaseDeadline();
         d.setCaseFile(caseFile);
         d.setLabel(label);
         d.setDueDate(dueDate);
+        return deadlineRepository.save(d);
+    }
+
+    private CaseDeadline saveAiDeadline(String label, LocalDate dueDate, String aiStatus) {
+        return saveAiDeadlineForFile(caseFile, label, dueDate, aiStatus);
+    }
+
+    private CaseDeadline saveAiDeadlineForFile(CaseFile file, String label, LocalDate dueDate, String aiStatus) {
+        CaseDeadline d = new CaseDeadline();
+        d.setCaseFile(file);
+        d.setLabel(label);
+        d.setDueDate(dueDate);
+        d.setSource("AI");
+        d.setAiStatus(aiStatus);
         return deadlineRepository.save(d);
     }
 

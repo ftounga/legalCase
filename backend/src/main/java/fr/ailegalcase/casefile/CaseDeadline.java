@@ -28,6 +28,12 @@ public class CaseDeadline {
     @Column(nullable = false)
     private LocalDate dueDate;
 
+    @Column(nullable = false, length = 10)
+    private String source = "MANUAL";
+
+    @Column(length = 20)
+    private String aiStatus;
+
     @Column(nullable = false)
     private Instant createdAt;
 

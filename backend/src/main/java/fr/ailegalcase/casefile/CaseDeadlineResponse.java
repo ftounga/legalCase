@@ -8,11 +8,13 @@ public record CaseDeadlineResponse(
         UUID id,
         String label,
         LocalDate dueDate,
+        String source,
+        String aiStatus,
         Instant createdAt,
         Instant updatedAt
 ) {
     static CaseDeadlineResponse from(CaseDeadline d) {
         return new CaseDeadlineResponse(d.getId(), d.getLabel(), d.getDueDate(),
-                d.getCreatedAt(), d.getUpdatedAt());
+                d.getSource(), d.getAiStatus(), d.getCreatedAt(), d.getUpdatedAt());
     }
 }
