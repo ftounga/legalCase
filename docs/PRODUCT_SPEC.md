@@ -149,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-102 | Optimisation performance pipeline IA | V3 — **En cours** | Réduction du temps de traitement : chunk size 1000→3000 chars, dénormalisation du `ChunkAnalysisMessage` (élimination de 6 requêtes DB par chunk), prefetch RabbitMQ explicite. SF-102-01 backend uniquement. |
+| F-102 | Optimisation performance pipeline IA | V3 — **Terminée** | Réduction du temps de traitement : chunk size 1000→3000 chars, dénormalisation du `ChunkAnalysisMessage` (élimination de 6 requêtes DB par chunk), prefetch RabbitMQ explicite. SF-102-01 mergée 2026-04-02 : CaseFileContext, findContextById(), 428 tests. |
 | F-100 | Noms de documents dans les sources IA | V3 — **Terminée** | Les badges source affichent le nom réel du fichier ("contrat.pdf") au lieu de "Document 0". SF-100-01 mergée 2026-04-01 : prompt filename, `analysisDocuments` dans `CaseAnalysisResponse`, 34 tests. SF-100-02 mergée 2026-04-01 : `resolveSource()` + `sourceMap` computed, rétrocompat, 454 tests. |
 | F-98 | Génération de courrier / conclusions | ~~V4~~ — **Hors scope** | Mis en stand-by 2026-04-01 — à valider avec des utilisateurs réels avant toute spécification. Risques : qualité rédactionnelle, responsabilité juridique, complexité templates. Reprendre si retour terrain positif. |
 | F-97 | Détection automatique des délais légaux | V3 — **Terminée** | L'IA détecte les délais légaux depuis les documents (`delais_detectes` dans le prompt), persistés comme `CaseDeadline source=AI aiStatus=PENDING`. Sous-section "Propositions IA" dans CaseDeadlinesSectionComponent avec boutons Accepter/Rejeter. SF-97-01 mergée 2026-04-01 (migration 042, PATCH validate, 40 tests). SF-97-02 mergée 2026-04-01 (frontend, 22 tests). |
@@ -240,6 +240,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-02 | F-102 Terminée — SF-102-01 mergée : CHUNK_SIZE 1000→3000, ChunkAnalysisMessage enrichi (-6 DB lookups/chunk), CaseFileContext JPQL, prefetchCount=5, 428 tests | Product owner |
 | 2026-04-01 | F-101 Terminée — SF-101-01 mergée : CaseDashboardStepperComponent, 5 étapes colorées, scroll/navigate, responsive mobile, 478 tests | Product owner |
 | 2026-04-01 | F-101 ajoutée — Tableau de bord dossier enrichi : stepper 5 étapes, pure frontend, SF-101-01 en cours | Product owner |
 | 2026-04-01 | F-93 Terminée — SF-93-02 mergée : badge source + extrait dans SynthesisComponent, 422 tests | Product owner |
