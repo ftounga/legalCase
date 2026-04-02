@@ -25,8 +25,8 @@ public class ChunkingService {
 
     private static final Logger log = LoggerFactory.getLogger(ChunkingService.class);
 
-    static final int CHUNK_SIZE = 1000;
-    static final int OVERLAP = 200;
+    static final int CHUNK_SIZE = 3000;
+    static final int OVERLAP = 400;
 
     private final DocumentExtractionRepository extractionRepository;
     private final DocumentChunkRepository chunkRepository;

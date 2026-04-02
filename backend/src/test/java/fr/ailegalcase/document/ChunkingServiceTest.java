@@ -93,6 +93,6 @@ class ChunkingServiceTest {
         service.chunk(extractionId, "a".repeat(600001));
 
         assertThat(saved).isNotEmpty();
-        assertThat(saved.get(0).getTokenCount()).isEqualTo(250); // 1000 / 4
+        assertThat(saved.get(0).getTokenCount()).isEqualTo(750); // 3000 / 4
     }
 }

@@ -1,5 +1,6 @@
 package fr.ailegalcase.casefile;
 
+import fr.ailegalcase.analysis.CaseFileContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -43,4 +44,7 @@ public interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
 
     @Query("SELECT c.createdBy.email FROM CaseFile c WHERE c.id = :id")
     Optional<String> findCreatorEmailById(@Param("id") UUID id);
+
+    @Query("SELECT new fr.ailegalcase.analysis.CaseFileContext(c.workspace.id, c.workspace.legalDomain, c.workspace.country, c.createdBy.id) FROM CaseFile c WHERE c.id = :id")
+    Optional<CaseFileContext> findContextById(@Param("id") UUID id);
 }

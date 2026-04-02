@@ -147,6 +147,8 @@ public class RabbitMQConfig {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(jsonMessageConverter);
+        // Aligned with max consumer concurrency (5 chunk + 5 document + 3 case = 13 max)
+        factory.setPrefetchCount(5);
         return factory;
     }
 }
