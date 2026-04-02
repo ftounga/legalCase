@@ -7,7 +7,7 @@ metadata:
   annotations:
     # Replace with output of: terraform output -raw cluster_autoscaler_role_arn
     # from legalcase-infra/cluster/
-    eks.amazonaws.com/role-arn: CA_IRSA_ROLE_ARN_PLACEHOLDER
+    eks.amazonaws.com/role-arn: arn:aws:iam::504895205419:role/legalcase-shared-cluster-autoscaler-role
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
