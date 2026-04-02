@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { PageResponse, SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics } from '../models/super-admin.model';
+import { PageResponse, SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics, PipelineHealth } from '../models/super-admin.model';
 
 @Injectable({ providedIn: 'root' })
 export class SuperAdminService {
@@ -35,5 +35,9 @@ export class SuperAdminService {
 
   getMetrics(): Observable<SuperAdminMetrics> {
     return this.http.get<SuperAdminMetrics>(`${this.base}/metrics`);
+  }
+
+  getPipelineHealth(): Observable<PipelineHealth> {
+    return this.http.get<PipelineHealth>(`${this.base}/pipeline-health`);
   }
 }

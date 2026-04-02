@@ -13,7 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../core/services/auth.service';
 import { SuperAdminService } from '../core/services/super-admin.service';
-import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics } from '../core/models/super-admin.model';
+import { SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics, PipelineHealth } from '../core/models/super-admin.model';
 import { SuperAdminConfirmDialogComponent } from './super-admin-confirm-dialog.component';
 import { fadeInUp } from '../shared/animations';
 
@@ -48,6 +48,7 @@ export class SuperAdminComponent implements OnInit {
   usersSize = signal(20);
 
   metrics = signal<SuperAdminMetrics | null>(null);
+  pipelineHealth = signal<PipelineHealth | null>(null);
   loading = signal(true);
 
   private usageMap = new Map<string, SuperAdminUsage>();
@@ -78,14 +79,16 @@ export class SuperAdminComponent implements OnInit {
       workspaces: this.superAdminService.listWorkspaces(this.wsPage(), this.wsSize()),
       usage: this.superAdminService.getUsage(),
       users: this.superAdminService.listUsers(this.usersPage(), this.usersSize()),
-      metrics: this.superAdminService.getMetrics()
+      metrics: this.superAdminService.getMetrics(),
+      pipelineHealth: this.superAdminService.getPipelineHealth()
     }).subscribe({
-      next: ({ workspaces, usage, users, metrics }) => {
+      next: ({ workspaces, usage, users, metrics, pipelineHealth }) => {
         this.usageMap = new Map(usage.map(u => [u.workspaceId, u]));
         this.applyWorkspacePage(workspaces.content, workspaces.totalElements);
         this.users.set(users.content);
         this.usersTotalElements.set(users.totalElements);
         this.metrics.set(metrics);
+        this.pipelineHealth.set(pipelineHealth);
         this.loading.set(false);
       },
       error: (err: any) => {
@@ -167,6 +170,13 @@ export class SuperAdminComponent implements OnInit {
         })
       });
     });
+  }
+
+  queueLabel(name: string): string {
+    if (name.includes('chunk')) return 'Chunks';
+    if (name.includes('document')) return 'Documents';
+    if (name.includes('case')) return 'Dossiers';
+    return name;
   }
 
   planLabel(code: string): string {
