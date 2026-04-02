@@ -120,6 +120,46 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- Section Facturation -->
+    <mat-card class="section-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>timer</mat-icon>
+          Facturation
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="billing-rate-hint">Définissez votre taux horaire pour le calcul des honoraires dans le suivi du temps.</p>
+        <div class="billing-rate-row">
+          <mat-form-field appearance="outline" class="billing-rate-field">
+            <mat-label>Taux horaire (€/h)</mat-label>
+            <input
+              matInput
+              type="number"
+              min="1"
+              [ngModel]="billingRateInput()"
+              (ngModelChange)="billingRateInput.set($event)"
+              placeholder="Ex. 250"
+            />
+            @if ((billingRateInput() ?? 0) <= 0 && billingRateInput() !== null) {
+              <mat-error>Le taux horaire doit être supérieur à 0</mat-error>
+            }
+          </mat-form-field>
+          <button
+            mat-flat-button
+            color="primary"
+            [disabled]="savingBillingRate() || (billingRateInput() ?? 0) <= 0"
+            (click)="saveBillingRate()">
+            @if (savingBillingRate()) {
+              <mat-spinner diameter="18" />
+            } @else {
+              Enregistrer
+            }
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <!-- Section Journal d'actions -->
     <mat-card class="section-card">
       <mat-card-header>
