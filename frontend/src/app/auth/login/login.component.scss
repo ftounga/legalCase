@@ -1,50 +1,184 @@
+// ─── Layout principal split-screen ───────────────────────────────────────────
+
 .login-page {
+  display: flex;
   min-height: 100%;
-  background-color: var(--color-background);
+}
+
+// ─── Colonne gauche — Branding ────────────────────────────────────────────────
+
+.login-branding {
+  width: 45%;
+  background-color: #1A3A5C;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.branding-logo-wrap {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: inline-block;
+  margin-bottom: 48px;
+  width: fit-content;
+
+  img {
+    display: block;
+    width: 180px;
+    height: auto;
+  }
+}
+
+.branding-tagline {
+  font-family: 'Merriweather', serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #ffffff;
+  margin: 0 0 32px;
+}
+
+.branding-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+
+    mat-icon {
+      color: #C9973A;
+      flex-shrink: 0;
+      margin-top: 0;
+    }
+  }
+}
+
+.branding-trust {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+// ─── Colonne droite — Formulaire ─────────────────────────────────────────────
+
+.login-form-panel {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-md);
+  padding: 32px 24px;
+  background-color: #F5F6FA;
+  overflow-y: auto;
 }
 
-.login-card {
-  width: 480px;
-  max-width: 100%;
-  padding: var(--spacing-xl);
+.form-card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 40px;
+
+  @media (max-width: 768px) {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 24px 16px;
+    max-width: 100%;
+  }
+}
+
+// Logo mobile (visible uniquement sur mobile quand la colonne gauche est masquée)
+.mobile-logo {
+  display: none;
+  margin-bottom: 24px;
   text-align: center;
+
+  img {
+    width: 160px;
+    height: auto;
+  }
+
+  @media (max-width: 768px) {
+    display: block;
+  }
 }
 
-.login-logo {
-  width: 220px;
-  margin-bottom: var(--spacing-lg);
+.form-heading {
+  font-family: 'Merriweather', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1C2B3A;
+  margin: 0 0 8px;
 }
 
-.auth-tabs {
-  text-align: left;
+.form-subheading {
+  font-size: 15px;
+  color: #6B7A8D;
+  margin: 0 0 32px;
 }
 
-.tab-content {
-  padding-top: var(--spacing-lg);
-}
+// ─── Bouton Google ────────────────────────────────────────────────────────────
 
 .oauth-buttons {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
-.oauth-btn {
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
   height: 48px;
+  background: #ffffff;
+  border: 1.5px solid #E0E4EA;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 500;
+  color: #1C2B3A;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: #1A3A5C;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active {
+    background: #F5F6FA;
+  }
 }
+
+// ─── Séparateur ───────────────────────────────────────────────────────────────
 
 .separator {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin: var(--spacing-lg) 0;
-  color: var(--color-text-secondary);
+  gap: 12px;
+  margin: 0 0 24px;
+  color: #6B7A8D;
   font-size: 13px;
 
   &::before,
@@ -52,21 +186,19 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--color-divider);
+    background: #E0E4EA;
   }
 }
 
-.full-width {
-  width: 100%;
-}
+// ─── Formulaire ───────────────────────────────────────────────────────────────
+
+.full-width { width: 100%; }
 
 .name-row {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: 12px;
 
-  .half-width {
-    flex: 1;
-  }
+  .half-width { flex: 1; }
 }
 
 .submit-btn {
@@ -74,7 +206,7 @@
   height: 48px;
   font-size: 14px;
   font-weight: 500;
-  margin-top: var(--spacing-sm);
+  margin-top: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -82,40 +214,54 @@
 
 .form-error {
   font-size: 13px;
-  color: var(--color-error);
-  margin: 0 0 var(--spacing-sm);
+  color: #C0392B;
+  margin: 0 0 12px;
 }
 
 .form-success {
   font-size: 13px;
-  color: var(--color-success);
-  margin: 0 0 var(--spacing-sm);
+  color: #27AE60;
+  margin: 0 0 12px;
 }
 
+// ─── Mot de passe oublié ──────────────────────────────────────────────────────
+
 .forgot-section {
-  margin-top: var(--spacing-md);
+  margin-top: 16px;
   text-align: center;
 }
 
-.forgot-link {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
 .forgot-form {
-  margin-top: var(--spacing-sm);
+  margin-top: 12px;
   text-align: left;
 }
+
+// ─── Liens de navigation entre vues ──────────────────────────────────────────
+
+.switch-view {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #6B7A8D;
+}
+
+.text-link {
+  font-size: 13px;
+  color: #1A3A5C;
+  font-weight: 500;
+}
+
+// ─── Boîte succès inscription ─────────────────────────────────────────────────
 
 .success-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-lg);
+  gap: 12px;
+  padding: 24px;
   background: #f0faf4;
   border-radius: 8px;
-  color: var(--color-success);
+  color: #27AE60;
   text-align: center;
 
   .success-icon {
@@ -127,6 +273,6 @@
   p {
     margin: 0;
     font-size: 14px;
-    color: var(--color-text-primary);
+    color: #1C2B3A;
   }
 }

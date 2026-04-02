@@ -16,12 +16,18 @@ import { loginLocal, logout, TEST_USER } from '../helpers/auth.helper';
 
 test.describe('Auth — chemins critiques', () => {
 
-  test('la page /login charge avec les deux onglets', async ({ page }) => {
+  test('la page /login charge avec le formulaire et le bouton Google', async ({ page }) => {
     await page.goto('/login');
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole('tab', { name: /se connecter/i })).toBeVisible();
-    await expect(page.getByRole('tab', { name: /s'inscrire/i })).toBeVisible();
+    // Heading principal visible (layout split-screen, plus de tabs)
+    await expect(page.getByRole('heading', { name: /bienvenue/i })).toBeVisible();
+    // Bouton Google visible
     await expect(page.getByRole('button', { name: /google/i })).toBeVisible();
+    // Formulaire email + mot de passe présents
+    await expect(page.getByLabel('Email')).toBeVisible();
+    await expect(page.getByLabel('Mot de passe')).toBeVisible();
+    // Lien vers la vue inscription présent
+    await expect(page.getByRole('button', { name: /s'inscrire/i })).toBeVisible();
   });
 
   test('login local valide → redirigé vers /case-files', async ({ page }) => {

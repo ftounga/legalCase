@@ -180,6 +180,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-105 | Refonte page de login — split-screen branding juridique | V3 | Layout deux colonnes : colonne gauche fond #1A3A5C (logo blanc, tagline, 3 bullet points valeur), colonne droite formulaire. Suppression des onglets Se connecter/S'inscrire au profit d'une vue par défaut "Se connecter" + lien discret "Pas encore de compte ?". Pure frontend. SF-105-01. |
 | F-104 | Chatbot d'aide produit intégré | V3 — **Terminée** | SF-104-01 mergée 2026-04-02 : POST /api/v1/help/chat, HelpDocumentLoader (RAG statique 7 fichiers md), HelpChatService (system prompt + Haiku 512 tokens), 435 tests verts. SF-104-02 mergée 2026-04-02 : HelpChatWidgetComponent (bulle fixe, panneau 360px, 3 suggestions, compteur 500 chars, états loading/answer/error, conditionné à l'auth), HelpService, intégré dans AppComponent, 493 tests verts. |
 | F-101 | Tableau de bord dossier enrichi | Stepper horizontal 5 étapes en haut de la page dossier : Documents uploadés, Analyse IA, Questions IA, Délais légaux, Pièces manquantes. Chaque étape affiche son statut (done/in_progress/pending) et est cliquable pour naviguer vers la section concernée. Pure frontend. | `Terminée` |
 | F-91 | Hub opérationnel super-admin — liens plateformes tierces | V3 — **Terminée** | SF-91-01 mergée 2026-03-31 : section "Outils & monitoring" dans /super-admin, 7 liens (GA4, Sentry, Stripe, Brevo, n8n, AWS, RabbitMQ), ingress RabbitMQ staging + prod, rabbitmqUrl par environment.ts, 409 tests verts. |
