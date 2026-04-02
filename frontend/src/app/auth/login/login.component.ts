@@ -5,8 +5,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,8 +16,8 @@ import { fadeInUp } from '../../shared/animations';
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatCardModule, MatButtonModule, MatIconModule, MatDividerModule,
-    MatTabsModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule
+    MatCardModule, MatButtonModule, MatIconModule,
+    MatFormFieldModule, MatInputModule, MatProgressSpinnerModule
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
@@ -30,6 +28,8 @@ export class LoginComponent {
   loginForm: FormGroup;
   registerForm: FormGroup;
   forgotForm: FormGroup;
+
+  showRegister = signal(false);
 
   loginError = signal('');
   registerSuccess = signal(false);
