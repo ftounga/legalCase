@@ -180,6 +180,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-106 | Suivi du temps facturable par dossier | V4 — `À spécifier` | Timer start/stop par dossier, taux horaire configurable par workspace, rapport mensuel heures/dossier, export CSV, insight IA "ce dossier représente Xh — score de risque Élevé, ajuste ton honoraire". Différenciant : aucun outil d'analyse IA ne combine time tracking + score de risque. Cible : avocats solos (douleur n°1 selon Wolters Kluwer 2026 : 55% facturent moins de 50% de leur temps). |
 | F-105 | Refonte page de login — split-screen branding juridique | V3 — **Terminée** | SF-105-01 mergée 2026-04-02 : layout split-screen navy/blanc, bouton Google SVG outlined, signal showRegister (plus de tabs), tagline repositionnée, carte formulaire blanche avec ombre, RGPD lisible, smoke tests 11/11 verts. |
 | F-104 | Chatbot d'aide produit intégré | V3 — **Terminée** | SF-104-01 mergée 2026-04-02 : POST /api/v1/help/chat, HelpDocumentLoader (RAG statique 7 fichiers md), HelpChatService (system prompt + Haiku 512 tokens), 435 tests verts. SF-104-02 mergée 2026-04-02 : HelpChatWidgetComponent (bulle fixe, panneau 360px, 3 suggestions, compteur 500 chars, états loading/answer/error, conditionné à l'auth), HelpService, intégré dans AppComponent, 493 tests verts. |
 | F-101 | Tableau de bord dossier enrichi | Stepper horizontal 5 étapes en haut de la page dossier : Documents uploadés, Analyse IA, Questions IA, Délais légaux, Pièces manquantes. Chaque étape affiche son statut (done/in_progress/pending) et est cliquable pour naviguer vers la section concernée. Pure frontend. | `Terminée` |
@@ -243,6 +244,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-02 | F-106 ajoutée — Suivi du temps facturable par dossier : timer start/stop, taux horaire, rapport mensuel, export CSV, insight IA risk score + temps. V4. | Product owner |
 | 2026-04-02 | F-105 Terminée — SF-105-01 mergée : page login split-screen branding juridique, bouton Google SVG, signal showRegister, tagline repositionnée, carte formulaire blanche, smoke tests 11/11 | Product owner |
 | 2026-04-02 | F-104 Terminée — SF-104-02 mergée : HelpChatWidgetComponent bulle flottante + panneau, HelpService, 3 suggestions, 493 tests verts | Product owner |
 | 2026-04-02 | F-104 SF-104-01 mergée — POST /api/v1/help/chat, RAG statique 7 docs md, Haiku 512 tokens, 435 tests verts | Product owner |
