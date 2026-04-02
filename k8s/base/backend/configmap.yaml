@@ -8,6 +8,7 @@ data:
   SPRING_RABBITMQ_HOST: "rabbitmq"
   SPRING_RABBITMQ_PORT: "5672"
   RABBITMQ_MANAGEMENT_URL: "http://rabbitmq:15672"
+  RABBITMQ_VHOST: "/"
   S3_REGION: "eu-west-3"
   S3_PATH_STYLE_ACCESS: "false"
   APP_FRONTEND_URL: "https://staging.legalcase.ng-itconsulting.com"
