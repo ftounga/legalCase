@@ -46,6 +46,7 @@ class ChunkAnalysisServiceTest {
         List<UUID> chunkIds = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(caseFileRepository.findContextById(caseFileId)).thenReturn(Optional.empty());
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -105,7 +106,7 @@ class ChunkAnalysisServiceTest {
                 .thenReturn(1L);
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
+        service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
         verify(anthropicService).analyzeChunk(eq("Texte juridique valide."), any(), any());
 
@@ -145,7 +146,7 @@ class ChunkAnalysisServiceTest {
         when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(anthropicService.analyzeChunk(any(), any(), any())).thenThrow(new RuntimeException("API error"));
 
-        service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
+        service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
         ArgumentCaptor<ChunkAnalysis> captor = ArgumentCaptor.forClass(ChunkAnalysis.class);
         verify(analysisRepository, times(3)).save(captor.capture());
@@ -159,7 +160,7 @@ class ChunkAnalysisServiceTest {
         UUID chunkId = UUID.randomUUID();
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.empty());
 
-        service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
+        service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
         verifyNoInteractions(analysisRepository, anthropicService);
     }
@@ -173,7 +174,7 @@ class ChunkAnalysisServiceTest {
 
         when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
 
-        service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
+        service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
         verifyNoInteractions(analysisRepository, anthropicService);
     }
@@ -210,7 +211,7 @@ class ChunkAnalysisServiceTest {
                 .thenReturn(1L);
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
+        service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
         verify(rabbitTemplate, never()).convertAndSend(
                 eq(RabbitMQConfig.DOCUMENT_ANALYSIS_EXCHANGE),
@@ -253,7 +254,7 @@ class ChunkAnalysisServiceTest {
                 .thenReturn(1L);
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.consumeChunkAnalysis(new ChunkAnalysisMessage(chunkId));
+        service.consumeChunkAnalysis(ChunkAnalysisMessage.forChunk(chunkId));
 
         verify(rabbitTemplate, never()).convertAndSend(
                 eq(RabbitMQConfig.DOCUMENT_ANALYSIS_EXCHANGE),
@@ -277,6 +278,7 @@ class ChunkAnalysisServiceTest {
         existingJob.setProcessedItems(0);
 
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(caseFileRepository.findContextById(caseFileId)).thenReturn(Optional.empty());
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
                 .thenReturn(Optional.of(existingJob));
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -286,5 +288,122 @@ class ChunkAnalysisServiceTest {
         ArgumentCaptor<AnalysisJob> jobCaptor = ArgumentCaptor.forClass(AnalysisJob.class);
         verify(analysisJobRepository).save(jobCaptor.capture());
         assertThat(jobCaptor.getValue().getTotalItems()).isEqualTo(5); // 3 + 2
+    }
+
+    // U-09 : message enrichi → pas d'appel DB findCaseFileIdById ni findWorkspaceIdById, analyse DONE avec bon contexte
+    @Test
+    void consumeChunkAnalysis_enrichedMessage_noCaseFileLookups() {
+        UUID chunkId = UUID.randomUUID();
+        UUID extractionId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        DocumentExtraction extraction = new DocumentExtraction();
+        extraction.setId(extractionId);
+
+        DocumentChunk chunk = new DocumentChunk();
+        chunk.setChunkText("Contrat de travail clause 1.");
+        chunk.setExtraction(extraction);
+
+        AnalysisJob job = new AnalysisJob();
+        job.setCaseFileId(caseFileId);
+        job.setTotalItems(1);
+        job.setProcessedItems(0);
+
+        when(chunkRepository.findById(chunkId)).thenReturn(Optional.of(chunk));
+        when(analysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(anthropicService.analyzeChunk(any(), eq("DROIT_DU_TRAVAIL"), eq("FRANCE"))).thenReturn(
+                new AnthropicResult("{\"faits\":[\"fait\"]}", "claude-haiku-4-5-20251001", 80, 40));
+        when(chunkRepository.countByExtractionId(extractionId)).thenReturn(1L);
+        when(analysisRepository.countByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
+                .thenReturn(1L);
+        when(documentAnalysisRepository.existsByExtractionIdAndAnalysisStatusIn(eq(extractionId), any()))
+                .thenReturn(false);
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
+                .thenReturn(Optional.of(job));
+        when(analysisRepository.countByChunkExtractionDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(1L);
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ChunkAnalysisMessage enrichedMsg = new ChunkAnalysisMessage(
+                chunkId, caseFileId, workspaceId, "DROIT_DU_TRAVAIL", "FRANCE", userId);
+
+        service.consumeChunkAnalysis(enrichedMsg);
+
+        // DB lookups pour caseFileId et workspaceId ne doivent PAS être appelés
+        verify(extractionRepository, never()).findCaseFileIdById(any());
+        verify(caseFileRepository, never()).findWorkspaceIdById(any());
+        verify(caseFileRepository, never()).findLegalDomainById(any());
+        verify(caseFileRepository, never()).findCountryById(any());
+        verify(caseFileRepository, never()).findCreatedByUserIdById(any());
+
+        // Analyse DONE avec le bon legalDomain
+        verify(anthropicService).analyzeChunk(any(), eq("DROIT_DU_TRAVAIL"), eq("FRANCE"));
+
+        // Usage enregistré directement via userId du message
+        verify(usageEventService).record(caseFileId, userId, JobType.CHUNK_ANALYSIS, 80, 40);
+    }
+
+    // U-10 : onChunkingDone avec contexte disponible → messages enrichis publiés
+    @Test
+    void onChunkingDone_withContext_publishesEnrichedMessages() {
+        UUID extractionId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        List<UUID> chunkIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+
+        CaseFileContext context = new CaseFileContext(workspaceId, "DROIT_IMMIGRATION", "FRANCE", userId);
+
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(caseFileRepository.findContextById(caseFileId)).thenReturn(Optional.of(context));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.onChunkingDone(new ChunkingDoneEvent(extractionId, chunkIds));
+
+        ArgumentCaptor<ChunkAnalysisMessage> msgCaptor = ArgumentCaptor.forClass(ChunkAnalysisMessage.class);
+        verify(rabbitTemplate, times(2)).convertAndSend(
+                eq(RabbitMQConfig.CHUNK_ANALYSIS_EXCHANGE),
+                eq(RabbitMQConfig.CHUNK_ANALYSIS_ROUTING_KEY),
+                msgCaptor.capture()
+        );
+        ChunkAnalysisMessage published = msgCaptor.getValue();
+        assertThat(published.caseFileId()).isEqualTo(caseFileId);
+        assertThat(published.workspaceId()).isEqualTo(workspaceId);
+        assertThat(published.legalDomain()).isEqualTo("DROIT_IMMIGRATION");
+        assertThat(published.country()).isEqualTo("FRANCE");
+        assertThat(published.userId()).isEqualTo(userId);
+    }
+
+    // U-11 : onChunkingDone quand findContextById retourne empty → messages sans contexte (pas d'erreur)
+    @Test
+    void onChunkingDone_contextNotFound_publishesMessagesWithoutContext() {
+        UUID extractionId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        List<UUID> chunkIds = List.of(UUID.randomUUID());
+
+        when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
+        when(caseFileRepository.findContextById(caseFileId)).thenReturn(Optional.empty());
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.onChunkingDone(new ChunkingDoneEvent(extractionId, chunkIds));
+
+        ArgumentCaptor<ChunkAnalysisMessage> msgCaptor = ArgumentCaptor.forClass(ChunkAnalysisMessage.class);
+        verify(rabbitTemplate).convertAndSend(
+                eq(RabbitMQConfig.CHUNK_ANALYSIS_EXCHANGE),
+                eq(RabbitMQConfig.CHUNK_ANALYSIS_ROUTING_KEY),
+                msgCaptor.capture()
+        );
+        ChunkAnalysisMessage published = msgCaptor.getValue();
+        assertThat(published.caseFileId()).isNull();
+        assertThat(published.workspaceId()).isNull();
+        assertThat(published.legalDomain()).isNull();
+        assertThat(published.country()).isNull();
+        assertThat(published.userId()).isNull();
     }
 }
