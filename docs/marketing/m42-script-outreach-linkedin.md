@@ -142,6 +142,56 @@
 
 ---
 
+## TEMPLATE G — Argument souveraineté des données (cabinets sensibles)
+
+*À utiliser pour les cabinets traitant des dossiers confidentiels : restructuration, pénal des affaires, RH sensible, litiges stratégiques. Se substitue à Template A ou B pour ces profils.*
+
+> Bonjour [Prénom],
+>
+> [Ligne de personnalisation : ex. "Votre cabinet intervient sur des restructurations d'entreprise — des dossiers où la confidentialité des données est critique."]
+>
+> Quand je regarde les outils IA que proposent Harvey ou Luminance, je remarque une chose : ce sont des entreprises américaines, soumises au **Cloud Act**. Concrètement, une autorité fédérale américaine peut exiger l'accès à leurs données — y compris les vôtres.
+>
+> **AI LegalCase** est hébergé sur AWS en région **eu-west-3 (Paris)**. Vos documents ne quittent pas le territoire européen. Le modèle IA (Anthropic) est contractuellement tenu de ne pas utiliser vos données pour entraîner ses modèles. Un DPA est disponible sur demande.
+>
+> Est-ce que vous avez 20 minutes cette semaine pour voir l'outil en action sur un dossier fictif ?
+>
+> Bien cordialement,
+> [Votre prénom]
+
+---
+
+## TEMPLATE H — Relance Cloud Act (après refus lié à la confidentialité)
+
+*À utiliser si un prospect a décliné en évoquant des réticences sur la confidentialité ou la sécurité des données.*
+
+> Bonjour [Prénom],
+>
+> Je comprends tout à fait la prudence sur ce sujet — les avocats sont soumis au secret professionnel et c'est non négociable.
+>
+> C'est précisément pour ça qu'AI LegalCase n'est pas hébergé aux États-Unis. AWS Paris (eu-west-3), RGPD, pas de Cloud Act. Vos données restent en France.
+>
+> Si ça change quelque chose à votre réflexion, je suis disponible pour une démo rapide. Sinon, pas de problème — je ne relancerai pas.
+>
+> Bonne continuation,
+> [Votre prénom]
+
+---
+
+## Lignes de personnalisation par profil
+
+| Profil détecté | Ligne d'accroche suggérée |
+|---------------|--------------------------|
+| Avocat travail (licenciement) | "Votre profil mentionne les contentieux salariés — c'est exactement le cas d'usage principal de l'outil." |
+| Avocat travail (RH employeurs) | "Votre pratique auprès des employeurs implique souvent beaucoup de documents de procédure — c'est là que l'outil fait gagner du temps." |
+| Avocat immigration | "Les dossiers de titre de séjour et de contentieux préfectoral brassent des volumes importants de pièces — c'est un cas d'usage que l'outil gère bien." |
+| Avocat famille | "Les dossiers de divorce ou succession nécessitent souvent de consolider de nombreuses pièces — c'est ce que l'outil automatise." |
+| Associé / fondateur | "En tant que fondateur de cabinet, réduire le temps de préparation documentaire est souvent un levier direct sur la rentabilité." |
+| Collaborateur (avocat junior) | "Un outil qui prépare la synthèse documentaire en quelques minutes peut significativement alléger la charge sur les dossiers en cours." |
+| **Cabinet sensible (restructuration, pénal affaires, RH stratégique)** | **"Votre cabinet intervient sur des dossiers où la confidentialité des données est critique — c'est un point sur lequel les outils US posent un vrai problème réglementaire."** → **Utiliser Template G** |
+
+---
+
 ## Ce qu'il ne faut pas faire
 
 - ❌ Envoyer le même message à 50 personnes sans personnaliser
