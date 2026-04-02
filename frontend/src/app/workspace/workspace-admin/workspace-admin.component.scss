@@ -193,6 +193,23 @@
   }
 }
 
+.billing-rate-hint {
+  font-size: 14px;
+  color: #6B7A8D;
+  margin: 0 0 16px;
+}
+
+.billing-rate-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.billing-rate-field {
+  width: 200px;
+}
+
 @media (max-width: 767px) {
   /* Table membres admin : masquer la colonne email */
   .mat-column-email {

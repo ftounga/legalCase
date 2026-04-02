@@ -16,6 +16,7 @@ import { GlobalAnalysisNotificationService } from '../../core/services/global-an
 import { CaseNoteService } from '../../core/services/case-note.service';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { TimeService } from '../../core/services/time.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -127,6 +128,17 @@ describe('CaseFileDetailComponent', () => {
         { provide: CaseNoteService, useValue: caseNoteServiceSpy },
         { provide: CaseDeadlineService, useValue: caseDeadlineServiceSpy },
         { provide: AnalyticsService, useValue: analyticsServiceSpy },
+        {
+          provide: TimeService,
+          useValue: {
+            activeEntry: signal(null),
+            entries: signal([]),
+            loadEntries: jest.fn().mockReturnValue(of(void 0)),
+            startTimer: jest.fn(),
+            stopTimer: jest.fn(),
+            formatDuration: jest.fn().mockReturnValue('0s')
+          }
+        },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy },
         provideRouter([]),

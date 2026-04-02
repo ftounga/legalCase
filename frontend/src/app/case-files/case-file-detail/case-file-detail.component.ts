@@ -39,6 +39,7 @@ import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
+import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.component';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -48,7 +49,8 @@ import { fadeInUp, listStagger } from '../../shared/animations';
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
-    CaseDeadlinesSectionComponent, CaseDashboardStepperComponent
+    CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
+    TimerWidgetComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',

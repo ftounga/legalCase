@@ -39,6 +39,8 @@
     </div>
   </div>
 
+  <app-timer-widget [caseFileId]="caseFile()!.id"></app-timer-widget>
+
   <app-case-dashboard-stepper
     [steps]="dashboardSteps()"
     [caseFileId]="caseFile()!.id">
