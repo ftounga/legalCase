@@ -6,10 +6,11 @@ import { TourOverlayComponent } from './tour/tour-overlay.component';
 import { CookieConsentBannerComponent } from './shared/cookie-consent-banner/cookie-consent-banner.component';
 import { ConsentService } from './core/services/consent.service';
 import { LoadingService } from './core/services/loading.service';
+import { HelpChatWidgetComponent } from './help-chat-widget/help-chat-widget.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, TourOverlayComponent, CookieConsentBannerComponent, MatProgressBarModule],
+  imports: [RouterOutlet, TourOverlayComponent, CookieConsentBannerComponent, MatProgressBarModule, HelpChatWidgetComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
