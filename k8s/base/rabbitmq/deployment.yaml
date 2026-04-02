@@ -37,6 +37,12 @@ spec:
               port: 5672
             initialDelaySeconds: 20
             periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
           resources:
             requests:
               cpu: 100m

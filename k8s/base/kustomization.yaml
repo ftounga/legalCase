@@ -6,7 +6,9 @@ resources:
   - backend/deployment.yaml
   - backend/service.yaml
   - backend/hpa.yaml
+  - backend/pdb.yaml
   - frontend/deployment.yaml
+  - frontend/pdb.yaml
   - frontend/service.yaml
   - rabbitmq/pvc.yaml
   - rabbitmq/deployment.yaml
