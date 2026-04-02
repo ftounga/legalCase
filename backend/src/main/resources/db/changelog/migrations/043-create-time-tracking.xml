@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="043-create-user-billing-rates" author="ailegalcase">
+        <createTable tableName="user_billing_rates">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_billing_rates_user"
+                             references="users(id)"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_billing_rates_workspace"
+                             references="workspaces(id)"/>
+            </column>
+            <column name="rate_per_hour" type="NUMERIC(10,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="effective_from" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>ALTER TABLE user_billing_rates ADD CONSTRAINT chk_billing_rate_positive CHECK (rate_per_hour > 0)</sql>
+
+        <createIndex tableName="user_billing_rates" indexName="idx_billing_rates_user_workspace">
+            <column name="user_id"/>
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="043-create-time-entries" author="ailegalcase">
+        <createTable tableName="time_entries">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_time_entries_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_time_entries_workspace"
+                             references="workspaces(id)"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_time_entries_user"
+                             references="users(id)"/>
+            </column>
+            <column name="started_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stopped_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="duration_seconds" type="INTEGER"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="time_entries" indexName="idx_time_entries_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <createIndex tableName="time_entries" indexName="idx_time_entries_workspace_month">
+            <column name="workspace_id"/>
+            <column name="started_at"/>
+        </createIndex>
+
+        <createIndex tableName="time_entries" indexName="idx_time_entries_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
