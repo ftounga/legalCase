@@ -98,6 +98,21 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 ---
 
+## 🎯 Stratégie acquisition 7 000€
+
+Séquence à respecter : M-55 (vidéo) → M-56 (Google Ads) + M-57 (SDR) en parallèle → M-58 (événements).
+
+| ID | Action | Budget | Priorité | Statut | Dépendances | Notes |
+|----|--------|--------|----------|--------|-------------|-------|
+| M-55 | Vidéo démo intégrée landing page | 0€ (M-11 couvre) | Haute | `À faire` | M-11 livré | Extraire la V1 des 4 vidéos motion design et l'intégrer sur la landing page. Prérequis : confirmer URL finale (ailegalcase.fr ou legalcase.ng-itconsulting.com) avant livraison M-11. Screen recordings : docs/marketing/demo-dossier/ |
+| M-56 | Google Ads — campagne mots-clés intention | 1 500€ | Haute | `À faire` | M-55 intégré sur landing | Mots-clés : "logiciel avocat IA", "analyse dossier juridique automatique", "outil IA cabinet avocat", "assistant IA avocat france". Budget ~2-3€/clic = 500-700 visiteurs. Objectif : mesurer coût par inscription trial. Durée : 4-6 semaines. |
+| M-57 | SDR freelance — 6 semaines | 2 400€ | Haute | `À faire` | M-55 intégré sur landing | Recruter sur Malt. Profil : SDR expérience SaaS B2B ou professions libérales. Mission unique : 10-20 RDV qualifiés avocats droit du travail Paris/IDF. Pas de closing — remplir l'agenda. Valider ses messages avant envoi. Briefing 1 semaine + 5 semaines actives. |
+| M-58 | Événements barreaux / associations avocats | 1 000€ | Moyenne | `À faire` | Aucune | Identifier 2 événements du trimestre : journées formation continue barreau Paris, FNUJA (jeunes avocats), LegalTech Hub Paris, commissions droit social. S'inscrire maintenant. Présence physique = conversion 10x LinkedIn. |
+
+**Budget total stratégie : 4 900€** (1 500 Ads + 2 400 SDR + 1 000 événements) + 1 000€ M-11 + 800€ M-53 = **~6 700€**
+
+---
+
 ## 📊 Mesure & analytics
 
 | ID | Action | Priorité | Statut | Notes |
