@@ -241,6 +241,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-02 | F-103 SF-103-01 mergée — backend pipeline health : GET /api/v1/super-admin/pipeline-health, RabbitMQ Management API (multi-pod), JobCounts PostgreSQL 24h/7j, fail-open, 432 tests | Product owner |
+| 2026-04-02 | F-103 ajoutée — Santé pipeline IA dashboard super-admin, sources multi-pods, SF-103-01 backend + SF-103-02 frontend | Product owner |
 | 2026-04-02 | F-102 Terminée — SF-102-01 mergée : CHUNK_SIZE 1000→3000, ChunkAnalysisMessage enrichi (-6 DB lookups/chunk), CaseFileContext JPQL, prefetchCount=5, 428 tests | Product owner |
 | 2026-04-01 | F-101 Terminée — SF-101-01 mergée : CaseDashboardStepperComponent, 5 étapes colorées, scroll/navigate, responsive mobile, 478 tests | Product owner |
 | 2026-04-01 | F-101 ajoutée — Tableau de bord dossier enrichi : stepper 5 étapes, pure frontend, SF-101-01 en cours | Product owner |
