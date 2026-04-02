@@ -24,9 +24,12 @@ import java.util.UUID;
 public class SuperAdminController {
 
     private final SuperAdminService superAdminService;
+    private final PipelineHealthService pipelineHealthService;
 
-    public SuperAdminController(SuperAdminService superAdminService) {
+    public SuperAdminController(SuperAdminService superAdminService,
+                                PipelineHealthService pipelineHealthService) {
         this.superAdminService = superAdminService;
+        this.pipelineHealthService = pipelineHealthService;
     }
 
     @GetMapping("/workspaces")
@@ -75,5 +78,13 @@ public class SuperAdminController {
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         return superAdminService.getMetrics(oidcUser, OAuthProviderResolver.resolve(principal));
+    }
+
+    @GetMapping("/pipeline-health")
+    public PipelineHealthResponse getPipelineHealth(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        superAdminService.assertSuperAdmin(oidcUser, OAuthProviderResolver.resolve(principal));
+        return pipelineHealthService.getHealth();
     }
 }
