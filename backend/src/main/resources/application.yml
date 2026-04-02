@@ -95,6 +95,11 @@ app:
     price-id-tokens-5m: ${STRIPE_PRICE_ID_TOKENS_5M:}
     price-id-tokens-20m: ${STRIPE_PRICE_ID_TOKENS_20M:}
 
+rabbitmq:
+  management:
+    url: ${RABBITMQ_MANAGEMENT_URL:http://localhost:15672}
+    vhost: ${RABBITMQ_VHOST:%2F}
+
 sentry:
   dsn: ${SENTRY_DSN:}
   environment: ${SENTRY_ENV:dev}

@@ -748,6 +748,67 @@ class SuperAdminControllerIT {
         assertThat(active + inactive).isEqualTo(total);
     }
 
+    // IT-01 : GET /api/v1/super-admin/pipeline-health non super-admin → 403
+    @Test
+    void getPipelineHealth_withoutSuperAdmin_returns403() throws Exception {
+        User regular = new User();
+        regular.setEmail("regular-health@example.com");
+        regular.setStatus("ACTIVE");
+        regular.setSuperAdmin(false);
+        userRepository.save(regular);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(regular);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-regular-health-sub");
+        authAccountRepository.save(account);
+
+        mockMvc.perform(get("/api/v1/super-admin/pipeline-health")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(buildGoogleAuth("google-regular-health-sub", "regular-health@example.com"))))
+                .andExpect(status().isForbidden());
+    }
+
+    // IT-02 : GET /api/v1/super-admin/pipeline-health super-admin → 200 structure JSON correcte
+    // RabbitMQ Management API indisponible en test → fail-open : rabbitmqAvailable=false, queues[].available=false
+    @Test
+    void getPipelineHealth_withSuperAdmin_returns200WithCorrectStructure() throws Exception {
+        User superAdmin = new User();
+        superAdmin.setEmail("superadmin-health@example.com");
+        superAdmin.setStatus("ACTIVE");
+        superAdmin.setSuperAdmin(true);
+        userRepository.save(superAdmin);
+
+        AuthAccount account = new AuthAccount();
+        account.setUser(superAdmin);
+        account.setProvider("GOOGLE");
+        account.setProviderUserId("google-superadmin-health-sub");
+        authAccountRepository.save(account);
+
+        OAuth2AuthenticationToken auth = buildGoogleAuth("google-superadmin-health-sub", "superadmin-health@example.com");
+
+        mockMvc.perform(get("/api/v1/super-admin/pipeline-health")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rabbitmqAvailable").isBoolean())
+                .andExpect(jsonPath("$.queues").isArray())
+                .andExpect(jsonPath("$.queues.length()").value(3))
+                .andExpect(jsonPath("$.queues[0].name").isString())
+                .andExpect(jsonPath("$.queues[0].available").isBoolean())
+                .andExpect(jsonPath("$.queues[0].messagesReady").isNumber())
+                .andExpect(jsonPath("$.queues[0].messagesUnacknowledged").isNumber())
+                .andExpect(jsonPath("$.queues[0].consumers").isNumber())
+                .andExpect(jsonPath("$.jobsLast24h.done").isNumber())
+                .andExpect(jsonPath("$.jobsLast24h.failed").isNumber())
+                .andExpect(jsonPath("$.jobsLast24h.processing").isNumber())
+                .andExpect(jsonPath("$.jobsLast24h.pending").isNumber())
+                .andExpect(jsonPath("$.jobsLast7d.done").isNumber())
+                .andExpect(jsonPath("$.jobsLast7d.failed").isNumber())
+                .andExpect(jsonPath("$.jobsLast7d.processing").isNumber())
+                .andExpect(jsonPath("$.jobsLast7d.pending").isNumber());
+    }
+
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
         Map<String, Object> claims = Map.of(
                 "sub", sub,

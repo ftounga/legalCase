@@ -149,6 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-103 | Santé pipeline IA — dashboard super-admin | V3 — **En cours** | Section "Santé pipeline" dans /super-admin : queues RabbitMQ (profondeur, consumers, messages en transit) + jobs stats (DONE/FAILED/PROCESSING 24h/7j) avec code couleur. Sources : RabbitMQ Management API (multi-pod) + PostgreSQL analysis_jobs. SF-103-01 backend + SF-103-02 frontend. |
 | F-102 | Optimisation performance pipeline IA | V3 — **Terminée** | Réduction du temps de traitement : chunk size 1000→3000 chars, dénormalisation du `ChunkAnalysisMessage` (élimination de 6 requêtes DB par chunk), prefetch RabbitMQ explicite. SF-102-01 mergée 2026-04-02 : CaseFileContext, findContextById(), 428 tests. |
 | F-100 | Noms de documents dans les sources IA | V3 — **Terminée** | Les badges source affichent le nom réel du fichier ("contrat.pdf") au lieu de "Document 0". SF-100-01 mergée 2026-04-01 : prompt filename, `analysisDocuments` dans `CaseAnalysisResponse`, 34 tests. SF-100-02 mergée 2026-04-01 : `resolveSource()` + `sourceMap` computed, rétrocompat, 454 tests. |
 | F-98 | Génération de courrier / conclusions | ~~V4~~ — **Hors scope** | Mis en stand-by 2026-04-01 — à valider avec des utilisateurs réels avant toute spécification. Risques : qualité rédactionnelle, responsabilité juridique, complexité templates. Reprendre si retour terrain positif. |

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,9 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, UUID> 
     boolean existsByCaseFileIdAndStatusIn(UUID caseFileId, Collection<AnalysisStatus> statuses);
 
     void deleteByCaseFileIdIn(Collection<UUID> caseFileIds);
+
+    @Query("SELECT COUNT(j) FROM AnalysisJob j WHERE j.status = :status AND j.updatedAt > :since")
+    long countByStatusAndUpdatedAtAfter(@Param("status") AnalysisStatus status, @Param("since") Instant since);
 
     @Modifying
     @Query(value = """

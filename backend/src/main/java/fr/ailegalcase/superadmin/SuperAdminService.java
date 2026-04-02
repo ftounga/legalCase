@@ -106,6 +106,18 @@ public class SuperAdminService {
         this.analysisJobRepository = analysisJobRepository;
     }
 
+    /** Resolves the caller and throws 403 if not super-admin. Reusable by controller-level guards. */
+    public User assertSuperAdmin(OidcUser oidcUser, String provider) {
+        User user = authAccountRepository
+                .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"))
+                .getUser();
+        if (!user.isSuperAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super-admin access required");
+        }
+        return user;
+    }
+
     @Transactional(readOnly = true)
     public Page<SuperAdminWorkspaceResponse> listAllWorkspaces(OidcUser oidcUser, String provider, Pageable pageable) {
         User user = authAccountRepository
