@@ -1156,6 +1156,54 @@ idx_email_sends_user_id
 
 ---
 
+# 25b — Tables time tracking (F-106 — SF-106-01)
+
+## user_billing_rates
+
+Taux horaire facturable par utilisateur et par workspace. Historique conservé — chaque modification insère une nouvelle ligne.
+
+id (UUID PK)
+user_id (UUID FK → users, non nullable)
+workspace_id (UUID FK → workspaces, non nullable)
+rate_per_hour (NUMERIC(10,2), non nullable, CHECK > 0)
+effective_from (DATE, non nullable)
+created_at (TIMESTAMP WITH TIME ZONE, non nullable)
+
+Index : idx_billing_rates_user_workspace (user_id, workspace_id)
+
+Règles :
+- Le taux actif est la ligne dont `effective_from` est la plus récente (≤ date courante).
+- Le taux est résolu par utilisateur — pas par workspace global.
+- Un utilisateur sans taux configuré produit un montant `null` dans le rapport.
+
+---
+
+## time_entries
+
+Sessions de temps facturable par dossier, utilisateur et workspace.
+
+id (UUID PK)
+case_file_id (UUID FK → case_files, non nullable)
+workspace_id (UUID FK → workspaces, non nullable)
+user_id (UUID FK → users, non nullable)
+started_at (TIMESTAMP WITH TIME ZONE, non nullable)
+stopped_at (TIMESTAMP WITH TIME ZONE, nullable — null si timer actif)
+duration_seconds (INTEGER, nullable — calculé à l'arrêt du timer)
+created_at (TIMESTAMP WITH TIME ZONE, non nullable)
+
+Index :
+idx_time_entries_case_file (case_file_id)
+idx_time_entries_workspace_month (workspace_id, started_at)
+idx_time_entries_workspace (workspace_id)
+
+Règles :
+- Un utilisateur ne peut avoir qu'un seul timer actif (`stopped_at IS NULL`) à la fois.
+- Les entrées sans `stopped_at` sont exclues du rapport mensuel.
+- `duration_seconds = EXTRACT(EPOCH FROM stopped_at - started_at)` calculé côté applicatif à l'arrêt.
+- Isolation multi-tenant : toutes les requêtes filtrent par `workspace_id`.
+
+---
+
 # 26 — Principe directeur
 
 AI LegalCase doit rester :
