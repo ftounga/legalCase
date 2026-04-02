@@ -51,6 +51,68 @@
       </section>
     }
 
+    <!-- Pipeline IA -->
+    @if (pipelineHealth(); as ph) {
+      <section class="pipeline-section" data-testid="pipeline-health">
+        <h2 class="metrics-title">Santé du pipeline IA</h2>
+
+        <div class="pipeline-status-banner" [class.pipeline-status-banner--ok]="ph.rabbitmqAvailable" [class.pipeline-status-banner--error]="!ph.rabbitmqAvailable">
+          <mat-icon>{{ ph.rabbitmqAvailable ? 'check_circle' : 'error' }}</mat-icon>
+          <span>RabbitMQ {{ ph.rabbitmqAvailable ? 'disponible' : 'indisponible — données dégradées' }}</span>
+        </div>
+
+        <div class="pipeline-queues" data-testid="pipeline-queues">
+          @for (q of ph.queues; track q.name) {
+            <div class="queue-card" [class.queue-card--ok]="q.available" [class.queue-card--error]="!q.available" [class.queue-card--warning]="q.available && q.messagesReady > 50">
+              <div class="queue-header">
+                <span class="queue-name">{{ queueLabel(q.name) }}</span>
+                <span class="queue-badge" [class.queue-badge--ok]="q.available" [class.queue-badge--error]="!q.available">{{ q.available ? 'OK' : 'KO' }}</span>
+              </div>
+              @if (q.available) {
+                <div class="queue-stats">
+                  <div class="queue-stat">
+                    <span class="queue-stat-label">En attente</span>
+                    <span class="queue-stat-value" [class.queue-stat-value--warning]="q.messagesReady > 50">{{ q.messagesReady }}</span>
+                  </div>
+                  <div class="queue-stat">
+                    <span class="queue-stat-label">En cours</span>
+                    <span class="queue-stat-value">{{ q.messagesUnacknowledged }}</span>
+                  </div>
+                  <div class="queue-stat">
+                    <span class="queue-stat-label">Consumers</span>
+                    <span class="queue-stat-value">{{ q.consumers }}</span>
+                  </div>
+                </div>
+              } @else {
+                <p class="queue-unavailable">Données indisponibles</p>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="pipeline-jobs">
+          <div class="jobs-period" data-testid="jobs-24h">
+            <h3 class="jobs-period-title">Jobs — 24 dernières heures</h3>
+            <div class="jobs-grid">
+              <div class="job-stat job-stat--done"><span class="job-stat-label">Terminés</span><span class="job-stat-value">{{ ph.jobsLast24h.done }}</span></div>
+              <div class="job-stat job-stat--failed" [class.job-stat--alert]="ph.jobsLast24h.failed > 0"><span class="job-stat-label">Échoués</span><span class="job-stat-value">{{ ph.jobsLast24h.failed }}</span></div>
+              <div class="job-stat job-stat--processing"><span class="job-stat-label">En cours</span><span class="job-stat-value">{{ ph.jobsLast24h.processing }}</span></div>
+              <div class="job-stat job-stat--pending"><span class="job-stat-label">En attente</span><span class="job-stat-value">{{ ph.jobsLast24h.pending }}</span></div>
+            </div>
+          </div>
+          <div class="jobs-period" data-testid="jobs-7d">
+            <h3 class="jobs-period-title">Jobs — 7 derniers jours</h3>
+            <div class="jobs-grid">
+              <div class="job-stat job-stat--done"><span class="job-stat-label">Terminés</span><span class="job-stat-value">{{ ph.jobsLast7d.done }}</span></div>
+              <div class="job-stat job-stat--failed" [class.job-stat--alert]="ph.jobsLast7d.failed > 0"><span class="job-stat-label">Échoués</span><span class="job-stat-value">{{ ph.jobsLast7d.failed }}</span></div>
+              <div class="job-stat job-stat--processing"><span class="job-stat-label">En cours</span><span class="job-stat-value">{{ ph.jobsLast7d.processing }}</span></div>
+              <div class="job-stat job-stat--pending"><span class="job-stat-label">En attente</span><span class="job-stat-value">{{ ph.jobsLast7d.pending }}</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
     <!-- Outils & monitoring -->
     <section class="tools-section">
       <h2 class="metrics-title">Outils &amp; monitoring</h2>

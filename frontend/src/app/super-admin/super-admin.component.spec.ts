@@ -9,7 +9,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { SuperAdminComponent } from './super-admin.component';
 import { SuperAdminService } from '../core/services/super-admin.service';
 import { AuthService } from '../core/services/auth.service';
-import { PageResponse, SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics } from '../core/models/super-admin.model';
+import { PageResponse, SuperAdminWorkspace, SuperAdminUsage, SuperAdminUser, SuperAdminMetrics, PipelineHealth } from '../core/models/super-admin.model';
 
 const mockWorkspaces: SuperAdminWorkspace[] = [
   { id: 'ws-1', name: 'Cabinet Alpha', slug: 'alpha', planCode: 'STARTER', status: 'ACTIVE', expiresAt: null, memberCount: 2, createdAt: '2026-01-01T00:00:00Z' }
@@ -25,6 +25,16 @@ const mockMetrics: SuperAdminMetrics = {
   trialWorkspaces: 6, paidWorkspaces: 4, conversionRatePct: 40.0,
   analysesLast7Days: 12, analysesLast30Days: 45, newWorkspacesLast30Days: 2
 };
+const mockPipelineHealth: PipelineHealth = {
+  rabbitmqAvailable: true,
+  queues: [
+    { name: 'chunk-analysis', messagesReady: 3, messagesUnacknowledged: 1, consumers: 5, available: true },
+    { name: 'document-analysis', messagesReady: 0, messagesUnacknowledged: 0, consumers: 5, available: true },
+    { name: 'case-analysis', messagesReady: 0, messagesUnacknowledged: 0, consumers: 5, available: true }
+  ],
+  jobsLast24h: { done: 48, failed: 0, processing: 1, pending: 0 },
+  jobsLast7d: { done: 210, failed: 2, processing: 0, pending: 0 }
+};
 
 function pageOf<T>(content: T[], total?: number): PageResponse<T> {
   return { content, totalElements: total ?? content.length, totalPages: 1, size: 20, number: 0 };
@@ -38,8 +48,8 @@ describe('SuperAdminComponent', () => {
   let dialog: jest.Mocked<MatDialog>;
   let router: Router;
 
-  function setup(isSuperAdmin: boolean, wsReturn: any, usageReturn: any, usersReturn: any, metricsReturn: any = of(mockMetrics)) {
-    superAdminService = jasmine.createSpyObj('SuperAdminService', ['listWorkspaces', 'getUsage', 'listUsers', 'deleteWorkspace', 'deleteUser', 'getMetrics']);
+  function setup(isSuperAdmin: boolean, wsReturn: any, usageReturn: any, usersReturn: any, metricsReturn: any = of(mockMetrics), pipelineHealthReturn: any = of(mockPipelineHealth)) {
+    superAdminService = jasmine.createSpyObj('SuperAdminService', ['listWorkspaces', 'getUsage', 'listUsers', 'deleteWorkspace', 'deleteUser', 'getMetrics', 'getPipelineHealth']);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
@@ -47,6 +57,7 @@ describe('SuperAdminComponent', () => {
     superAdminService.getUsage.mockReturnValue(usageReturn);
     superAdminService.listUsers.mockReturnValue(usersReturn);
     superAdminService.getMetrics.mockReturnValue(metricsReturn);
+    superAdminService.getPipelineHealth.mockReturnValue(pipelineHealthReturn);
 
     const currentUser = signal<any>({ id: 'u-sa', email: 'sa@test.com', isSuperAdmin });
     const authService = { currentUser };
@@ -212,5 +223,59 @@ describe('SuperAdminComponent', () => {
       expect.stringContaining('workspaces'), expect.any(String), expect.any(Object)
     );
     expect(component.workspaceRows()).toEqual(rowsBefore);
+  }));
+
+  // T-11 : pipeline health chargé → signal pipelineHealth renseigné
+  it('charge le pipeline health et renseigne le signal', fakeAsync(async () => {
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+
+    expect(component.pipelineHealth()).not.toBeNull();
+    expect(component.pipelineHealth()!.rabbitmqAvailable).toBe(true);
+    expect(component.pipelineHealth()!.queues.length).toBe(3);
+  }));
+
+  // T-12 : section pipeline health présente dans le DOM
+  it('affiche la section santé pipeline dans le DOM', fakeAsync(async () => {
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    tick();
+    fixture.detectChanges();
+
+    const section = fixture.nativeElement.querySelector('[data-testid="pipeline-health"]');
+    expect(section).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Santé du pipeline IA');
+  }));
+
+  // T-13 : 3 queues rendues dans le DOM
+  it('affiche 3 cartes queues dans la section pipeline', fakeAsync(async () => {
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    tick();
+    fixture.detectChanges();
+
+    const queues = fixture.nativeElement.querySelectorAll('[data-testid="pipeline-queues"] .queue-card');
+    expect(queues.length).toBe(3);
+  }));
+
+  // T-14 : RabbitMQ indisponible → banner affiche "indisponible"
+  it('affiche "indisponible" dans le banner si rabbitmqAvailable=false', fakeAsync(async () => {
+    const unavailable: PipelineHealth = {
+      ...mockPipelineHealth,
+      rabbitmqAvailable: false,
+      queues: mockPipelineHealth.queues.map(q => ({ ...q, available: false, messagesReady: -1 }))
+    };
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)), of(mockMetrics), of(unavailable));
+    tick();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('indisponible');
+  }));
+
+  // T-15 : jobs 24h et 7j présents dans le DOM
+  it('affiche les blocs jobs 24h et 7j', fakeAsync(async () => {
+    setup(true, of(pageOf(mockWorkspaces)), of(mockUsage), of(pageOf(mockUsers)));
+    tick();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="jobs-24h"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="jobs-7d"]')).toBeTruthy();
   }));
 });

@@ -44,3 +44,25 @@ export interface SuperAdminMetrics {
   analysesLast30Days: number;
   newWorkspacesLast30Days: number;
 }
+
+export interface QueueHealth {
+  name: string;
+  messagesReady: number;
+  messagesUnacknowledged: number;
+  consumers: number;
+  available: boolean;
+}
+
+export interface JobStats {
+  done: number;
+  failed: number;
+  processing: number;
+  pending: number;
+}
+
+export interface PipelineHealth {
+  queues: QueueHealth[];
+  jobsLast24h: JobStats;
+  jobsLast7d: JobStats;
+  rabbitmqAvailable: boolean;
+}
