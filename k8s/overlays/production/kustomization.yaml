@@ -37,6 +37,13 @@ patches:
     target:
       kind: Deployment
       name: legalcase-frontend
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+    target:
+      kind: HorizontalPodAutoscaler
+      name: legalcase-backend
 
 commonLabels:
   environment: production
