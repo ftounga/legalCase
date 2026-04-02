@@ -180,7 +180,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-104 | Chatbot d'aide produit intégré | V3 | Widget bulle en bas à droite de l'app (toutes les pages authentifiées). L'avocat pose une question sur l'utilisation du produit ("comment créer un dossier ?", "comment enrichir une analyse ?", "à quoi sert le score de risque ?"). Claude répond en RAG sur la documentation produit rédigée. Disponible 24h/24. Réduit le support humain à zéro sur les questions d'usage. 2 subfeatures : SF-104-01 backend (endpoint POST /api/v1/help/chat, RAG sur docs produit indexées, Haiku, pas d'historique conservé) + SF-104-02 frontend (HelpChatWidgetComponent, bulle flottante, panneau slide-in, 3 suggestions de questions initiales). |
+| F-104 | Chatbot d'aide produit intégré | V3 — **Terminée** | SF-104-01 mergée 2026-04-02 : POST /api/v1/help/chat, HelpDocumentLoader (RAG statique 7 fichiers md), HelpChatService (system prompt + Haiku 512 tokens), 435 tests verts. SF-104-02 mergée 2026-04-02 : HelpChatWidgetComponent (bulle fixe, panneau 360px, 3 suggestions, compteur 500 chars, états loading/answer/error, conditionné à l'auth), HelpService, intégré dans AppComponent, 493 tests verts. |
 | F-101 | Tableau de bord dossier enrichi | Stepper horizontal 5 étapes en haut de la page dossier : Documents uploadés, Analyse IA, Questions IA, Délais légaux, Pièces manquantes. Chaque étape affiche son statut (done/in_progress/pending) et est cliquable pour naviguer vers la section concernée. Pure frontend. | `Terminée` |
 | F-91 | Hub opérationnel super-admin — liens plateformes tierces | V3 — **Terminée** | SF-91-01 mergée 2026-03-31 : section "Outils & monitoring" dans /super-admin, 7 liens (GA4, Sentry, Stripe, Brevo, n8n, AWS, RabbitMQ), ingress RabbitMQ staging + prod, rabbitmqUrl par environment.ts, 409 tests verts. |
 | F-89 | Refonte UX de la comparaison d'analyses | V3 — **Terminée** | SF-89-01 mergée 2026-03-31 : auto-trigger effect(), compteurs 26px, callout Raison IA, border-left section cards, empty state guidant, 19 tests. SF-89-02 mergée 2026-03-31 : 5 colonnes nullable (faits/points/risques/questionsOuvertes/timeline count) sur case_analyses, populateCounts() fail-open, VersionSummary étendu, version cards affichent les stats si non-null, 9 tests backend + 35 tests frontend. |
@@ -242,6 +242,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-02 | F-104 Terminée — SF-104-02 mergée : HelpChatWidgetComponent bulle flottante + panneau, HelpService, 3 suggestions, 493 tests verts | Product owner |
+| 2026-04-02 | F-104 SF-104-01 mergée — POST /api/v1/help/chat, RAG statique 7 docs md, Haiku 512 tokens, 435 tests verts | Product owner |
 | 2026-04-02 | F-104 ajoutée — Chatbot d'aide produit intégré : widget bulle, RAG sur documentation produit, Haiku, 2 subfeatures (backend + frontend) | Product owner |
 | 2026-04-02 | F-103 Terminée — SF-103-02 mergée : section pipeline IA dans super-admin, banner RabbitMQ, 3 cartes queues code couleur, jobs 24h/7j, 18 tests Jest | Product owner |
 | 2026-04-02 | F-103 SF-103-01 mergée — backend pipeline health : GET /api/v1/super-admin/pipeline-health, RabbitMQ Management API (multi-pod), JobCounts PostgreSQL 24h/7j, fail-open, 432 tests | Product owner |
