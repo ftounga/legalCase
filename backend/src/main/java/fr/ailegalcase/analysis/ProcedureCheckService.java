@@ -11,6 +11,7 @@ import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -33,17 +34,20 @@ public class ProcedureCheckService {
     private final CaseFileRepository caseFileRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ProcedureCheckService(ProcedureCheckRepository procedureCheckRepository,
                                  CaseAnalysisRepository caseAnalysisRepository,
                                  CaseFileRepository caseFileRepository,
                                  WorkspaceMemberRepository workspaceMemberRepository,
-                                 CurrentUserResolver currentUserResolver) {
+                                 CurrentUserResolver currentUserResolver,
+                                 ApplicationEventPublisher eventPublisher) {
         this.procedureCheckRepository = procedureCheckRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -109,6 +113,7 @@ public class ProcedureCheckService {
         if (verifiedChecks.isEmpty()) return;
 
         // 2. Appliquer les requalifications sur les checks VERIFIED de l'analyse précédente
+        List<ProcedureCheckRequalifiedEvent.RequalifiedCheck> effective = new ArrayList<>();
         for (CheckRequalification req : requalifications) {
             verifiedChecks.stream()
                     .filter(c -> c.getDescription().equals(req.description()))
@@ -117,7 +122,23 @@ public class ProcedureCheckService {
                         c.setStatut(req.newStatut());
                         c.setRaison(req.raison());
                         procedureCheckRepository.save(c);
+                        effective.add(new ProcedureCheckRequalifiedEvent.RequalifiedCheck(
+                                c.getDescription(), req.newStatut(), req.raison()));
                     });
+        }
+
+        if (!effective.isEmpty()) {
+            try {
+                UUID caseFileId = newAnalysis.getCaseFile().getId();
+                String title = caseFileRepository.findTitleById(caseFileId).orElse(null);
+                String creatorEmail = caseFileRepository.findCreatorEmailById(caseFileId).orElse(null);
+                if (title != null && creatorEmail != null) {
+                    eventPublisher.publishEvent(
+                            new ProcedureCheckRequalifiedEvent(caseFileId, title, creatorEmail, effective));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to publish ProcedureCheckRequalifiedEvent for analysis {} — {}", newAnalysis.getId(), e.getMessage());
+            }
         }
 
         // 3. Propager les VERIFIED encore intacts vers la nouvelle analyse

@@ -1,7 +1,10 @@
 package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.analysis.JobType;
+import fr.ailegalcase.analysis.ProcedureCheckRequalifiedEvent;
 import fr.ailegalcase.auth.User;
+
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -118,6 +121,42 @@ public class EmailService {
             log.info("Analysis-done email sent to {} for caseFile {}", toEmail, caseFileId);
         } catch (MailException e) {
             log.warn("Failed to send analysis-done email to {} for caseFile {} — {}", toEmail, caseFileId, e.getMessage());
+        }
+    }
+
+    public void sendRequalificationAlert(String toEmail, UUID caseFileId, String caseFileTitle,
+                                          List<ProcedureCheckRequalifiedEvent.RequalifiedCheck> checks) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — requalification alert skipped for {}", toEmail);
+            return;
+        }
+        try {
+            StringBuilder body = new StringBuilder();
+            body.append("Bonjour,\n\n")
+                .append("L'IA a réévalué ")
+                .append(checks.size() == 1 ? "un point procédural" : checks.size() + " points procéduraux")
+                .append(" sur le dossier \"").append(caseFileTitle).append("\" :\n\n");
+            for (ProcedureCheckRequalifiedEvent.RequalifiedCheck check : checks) {
+                String statusLabel = check.newStatus().name().equals("NON_COMPLIANT") ? "Non conforme" : "À vérifier";
+                body.append("• ").append(check.description()).append(" → ").append(statusLabel).append("\n");
+                if (check.raison() != null && !check.raison().isBlank()) {
+                    body.append("  Raison : ").append(check.raison()).append("\n");
+                }
+                body.append("\n");
+            }
+            body.append("Accédez à votre dossier ici :\n")
+                .append(frontendUrl).append("/case-files/").append(caseFileId).append("\n\n")
+                .append("L'équipe AI LegalCase");
+
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Point(s) procédural(aux) réévalué(s) sur \"" + caseFileTitle + "\" — action requise");
+            message.setText(body.toString());
+            mailSender.send(message);
+            log.info("Requalification alert sent to {} for caseFile {}", toEmail, caseFileId);
+        } catch (MailException e) {
+            log.warn("Failed to send requalification alert to {} for caseFile {} — {}", toEmail, caseFileId, e.getMessage());
         }
     }
 

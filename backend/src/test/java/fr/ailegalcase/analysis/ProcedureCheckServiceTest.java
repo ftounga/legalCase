@@ -8,6 +8,7 @@ import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,10 +27,11 @@ class ProcedureCheckServiceTest {
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     private final ProcedureCheckService service = new ProcedureCheckService(
             procedureCheckRepository, caseAnalysisRepository, caseFileRepository,
-            workspaceMemberRepository, currentUserResolver);
+            workspaceMemberRepository, currentUserResolver, eventPublisher);
 
     // ---- createChecks ----
 
@@ -272,6 +274,104 @@ class ProcedureCheckServiceTest {
 
         // statut non modifié
         assertThat(verifiedCheck.getStatut()).isEqualTo(ProcedureCheckStatus.VERIFIED);
+    }
+
+    // ---- requalification → event publié ----
+
+    @Test
+    void createChecksWithVerifiedPropagation_effectiveRequalification_publishesEvent() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(caseFileId);
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Entretien préalable tenu");
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+        when(procedureCheckRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseFileRepository.findTitleById(caseFileId)).thenReturn(Optional.of("Affaire Dupont"));
+        when(caseFileRepository.findCreatorEmailById(caseFileId)).thenReturn(Optional.of("avocat@cabinet.fr"));
+
+        String json = """
+                {"points_procedure": [], "checks_a_requalifier": [
+                    {"description": "Entretien préalable tenu", "nouveau_statut": "NON_COMPLIANT", "raison": "Contredit par pièce 3"}
+                ]}""";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        ArgumentCaptor<ProcedureCheckRequalifiedEvent> captor = ArgumentCaptor.forClass(ProcedureCheckRequalifiedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        ProcedureCheckRequalifiedEvent event = captor.getValue();
+        assertThat(event.caseFileId()).isEqualTo(caseFileId);
+        assertThat(event.creatorEmail()).isEqualTo("avocat@cabinet.fr");
+        assertThat(event.requalifiedChecks()).hasSize(1);
+        assertThat(event.requalifiedChecks().get(0).description()).isEqualTo("Entretien préalable tenu");
+        assertThat(event.requalifiedChecks().get(0).raison()).isEqualTo("Contredit par pièce 3");
+    }
+
+    @Test
+    void createChecksWithVerifiedPropagation_noRequalification_noEventPublished() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Entretien préalable tenu");
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+
+        String json = "{\"points_procedure\": [], \"checks_a_requalifier\": []}";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void createChecksWithVerifiedPropagation_requalificationNoMatchingVerified_noEventPublished() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Description différente");
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+
+        String json = """
+                {"points_procedure": [], "checks_a_requalifier": [
+                    {"description": "Description inconnue", "nouveau_statut": "NON_COMPLIANT", "raison": "raison"}
+                ]}""";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     // ---- updateStatus ----
