@@ -20,7 +20,25 @@
       </button>
     </div>
 
-    @if (confirmedDeadlines().length === 0 && pendingAiDeadlines().length === 0) {
+    @if (statutoryDeadlines().length > 0) {
+      <div class="statutory-section">
+        <h4 class="statutory-section__title">
+          <mat-icon class="statutory-section__icon">gavel</mat-icon>
+          Délais légaux applicables
+        </h4>
+        @for (d of statutoryDeadlines(); track d.id) {
+          <div class="statutory-item" [class]="deadlineClass(d.dueDate)">
+            <div class="statutory-item__info">
+              <span class="statutory-item__label">{{ d.label }}</span>
+              <span class="statutory-item__date">{{ d.dueDate | date:'dd/MM/yyyy' }}</span>
+              <span class="deadline-badge" [class]="deadlineClass(d.dueDate)">{{ daysLabel(d.dueDate) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (confirmedDeadlines().length === 0 && pendingAiDeadlines().length === 0 && statutoryDeadlines().length === 0) {
       <p class="deadlines-empty">Aucun délai pour ce dossier.</p>
     }
 

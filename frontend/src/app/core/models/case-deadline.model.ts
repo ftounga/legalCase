@@ -4,6 +4,6 @@ export interface CaseDeadline {
   dueDate: string; // YYYY-MM-DD
   createdAt: string;
   updatedAt: string;
-  source: 'MANUAL' | 'AI';
+  source: 'MANUAL' | 'AI' | 'STATUTORY';
   aiStatus: 'PENDING' | 'ACCEPTED' | 'REJECTED' | null;
 }
