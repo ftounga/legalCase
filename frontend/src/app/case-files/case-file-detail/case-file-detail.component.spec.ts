@@ -659,7 +659,13 @@ describe('CaseFileDetailComponent', () => {
     expect(step.detail).toBe('1 en attente');
   });
 
-  it('SF101-C-08: étape délais done si aucun délai IA en attente', () => {
+  it('SF101-C-08: étape délais done si synthèse présente et aucun délai IA en attente', () => {
+    component.synthesis.set({
+      id: 's1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: [],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: '2026-03-20T10:00:00Z'
+    });
     component.deadlines.set([
       { id: 'd1', label: 'Appel', dueDate: '2026-05-01', createdAt: '', updatedAt: '', source: 'MANUAL', aiStatus: null }
     ]);

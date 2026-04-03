@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,6 +87,84 @@ public class ProcedureCheckService {
     }
 
     /**
+     * Crée les procedure_checks pour une analyse enrichie.
+     * Propage les checks VERIFIED de l'analyse précédente (sauf ceux requalifiés dans checks_a_requalifier).
+     * Applique les requalifications demandées par Claude avant de propager.
+     * Fail-open sur toutes les opérations de propagation.
+     */
+    @Transactional
+    public void createChecksWithVerifiedPropagation(CaseAnalysis newAnalysis, String rawJson,
+                                                     UUID previousAnalysisId) {
+        // 1. Créer les nouveaux checks TO_CHECK depuis points_procedure
+        createChecks(newAnalysis, rawJson);
+
+        if (previousAnalysisId == null) return;
+
+        String stripped = CaseAnalysisResponse.stripMarkdownCodeBlock(rawJson != null ? rawJson : "");
+        List<CheckRequalification> requalifications = parseRequalifications(stripped, newAnalysis.getId());
+
+        List<ProcedureCheck> verifiedChecks = procedureCheckRepository
+                .findByCaseAnalysisIdAndStatutOrderByOrdreAsc(previousAnalysisId, ProcedureCheckStatus.VERIFIED);
+
+        if (verifiedChecks.isEmpty()) return;
+
+        // 2. Appliquer les requalifications sur les checks VERIFIED de l'analyse précédente
+        for (CheckRequalification req : requalifications) {
+            verifiedChecks.stream()
+                    .filter(c -> c.getDescription().equals(req.description()))
+                    .findFirst()
+                    .ifPresent(c -> {
+                        c.setStatut(req.newStatut());
+                        c.setRaison(req.raison());
+                        procedureCheckRepository.save(c);
+                    });
+        }
+
+        // 3. Propager les VERIFIED encore intacts vers la nouvelle analyse
+        Workspace workspace = newAnalysis.getCaseFile().getWorkspace();
+        int ordreOffset = procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysis.getId()).size();
+        int offset = ordreOffset;
+        for (ProcedureCheck src : verifiedChecks) {
+            if (src.getStatut() != ProcedureCheckStatus.VERIFIED) continue;
+            ProcedureCheck copy = new ProcedureCheck();
+            copy.setCaseAnalysis(newAnalysis);
+            copy.setWorkspace(workspace);
+            copy.setOrdre(offset++);
+            copy.setDescription(src.getDescription());
+            copy.setStatut(ProcedureCheckStatus.VERIFIED);
+            copy.setRaison(src.getRaison());
+            procedureCheckRepository.save(copy);
+        }
+    }
+
+    private record CheckRequalification(String description, ProcedureCheckStatus newStatut, String raison) {}
+
+    private List<CheckRequalification> parseRequalifications(String stripped, UUID analysisId) {
+        List<CheckRequalification> result = new ArrayList<>();
+        try {
+            JsonNode root = MAPPER.readTree(stripped);
+            JsonNode node = root.get("checks_a_requalifier");
+            if (node == null || !node.isArray()) return result;
+            for (JsonNode item : node) {
+                String desc = item.has("description") ? item.get("description").asText(null) : null;
+                String statutStr = item.has("nouveau_statut") ? item.get("nouveau_statut").asText(null) : null;
+                String raison = item.has("raison") ? item.get("raison").asText(null) : null;
+                if (desc == null || statutStr == null) continue;
+                try {
+                    ProcedureCheckStatus statut = ProcedureCheckStatus.valueOf(statutStr);
+                    if (statut == ProcedureCheckStatus.VERIFIED) continue; // invalide
+                    result.add(new CheckRequalification(desc, statut, raison));
+                } catch (IllegalArgumentException e) {
+                    log.debug("checks_a_requalifier statut invalide '{}' pour analysis {} — ignoré", statutStr, analysisId);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("checks_a_requalifier extraction failed for analysis {} — skipping", analysisId);
+        }
+        return result;
+    }
+
+    /**
      * Retourne les descriptions des checks NON_COMPLIANT de la dernière analyse DONE du dossier.
      * Fail-open : toute exception retourne une liste vide.
      */
@@ -100,6 +179,25 @@ public class ProcedureCheckService {
                     .orElse(List.of());
         } catch (Exception e) {
             log.warn("listNonCompliant failed for caseFile {} — skipping", caseFile.getId(), e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Retourne les descriptions des checks VERIFIED de la dernière analyse DONE du dossier.
+     * Fail-open : toute exception retourne une liste vide.
+     */
+    @Transactional(readOnly = true)
+    public List<String> listVerified(CaseFile caseFile) {
+        try {
+            return caseAnalysisRepository
+                    .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFile.getId(), AnalysisStatus.DONE)
+                    .map(analysis -> procedureCheckRepository
+                            .findByCaseAnalysisIdAndStatutOrderByOrdreAsc(analysis.getId(), ProcedureCheckStatus.VERIFIED)
+                            .stream().map(ProcedureCheck::getDescription).toList())
+                    .orElse(List.of());
+        } catch (Exception e) {
+            log.warn("listVerified failed for caseFile {} — skipping", caseFile.getId(), e);
             return List.of();
         }
     }

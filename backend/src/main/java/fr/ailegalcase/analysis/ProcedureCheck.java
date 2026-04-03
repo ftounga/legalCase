@@ -36,6 +36,9 @@ public class ProcedureCheck {
     @Column(nullable = false, length = 20)
     private ProcedureCheckStatus statut = ProcedureCheckStatus.TO_CHECK;
 
+    @Column(columnDefinition = "TEXT")
+    private String raison;
+
     @Column(nullable = false)
     private Instant createdAt;
 

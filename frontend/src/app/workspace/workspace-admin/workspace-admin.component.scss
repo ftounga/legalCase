@@ -193,45 +193,6 @@
   }
 }
 
-.billing-rate-hint {
-  font-size: 14px;
-  color: #6B7A8D;
-  margin: 0 0 16px;
-}
-
-.rates-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-
-  th {
-    color: #1A3A5C;
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    padding: 8px 12px;
-    text-align: left;
-    border-bottom: 2px solid #E0E4EA;
-  }
-
-  td {
-    padding: 8px 12px;
-    border-bottom: 1px solid #F0F2F5;
-    vertical-align: middle;
-  }
-
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-
-  .cell-mono {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    color: #1C2B3A;
-  }
-}
 
 .rate-input-field {
   width: 120px;

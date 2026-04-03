@@ -104,6 +104,44 @@
               <span class="role-badge role-{{ m.memberRole.toLowerCase() }}">{{ m.memberRole }}</span>
             </td>
           </ng-container>
+          <ng-container matColumnDef="rateActuel">
+            <th mat-header-cell *matHeaderCellDef>Taux actuel (€/h)</th>
+            <td mat-cell *matCellDef="let m" class="cell-mono">
+              {{ getMemberRate(m.userId) != null ? (getMemberRate(m.userId) | number:'1.2-2') + ' €/h' : '—' }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="rateNouv">
+            <th mat-header-cell *matHeaderCellDef>Nouveau taux</th>
+            <td mat-cell *matCellDef="let m">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rate-input-field">
+                <input
+                  matInput
+                  type="number"
+                  min="1"
+                  placeholder="Ex. 250"
+                  [ngModel]="getMemberRateInput(m.userId)"
+                  (ngModelChange)="setMemberRateInput(m.userId, $event)"
+                />
+              </mat-form-field>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="rateAction">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let m">
+              <button
+                mat-flat-button
+                color="primary"
+                class="save-rate-btn"
+                [disabled]="savingRateFor() === m.userId || (getMemberRateInput(m.userId) ?? 0) <= 0"
+                (click)="saveRateForMember(m.userId)">
+                @if (savingRateFor() === m.userId) {
+                  <mat-spinner diameter="16" />
+                } @else {
+                  Enregistrer
+                }
+              </button>
+            </td>
+          </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="memberColumns"></tr>
           <tr mat-row *matRowDef="let row; columns: memberColumns;"></tr>
@@ -117,65 +155,6 @@
           <mat-icon>manage_accounts</mat-icon>
           Gérer les membres
         </a>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Section Taux horaires membres -->
-    <mat-card class="section-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>timer</mat-icon>
-          Taux horaires membres
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="billing-rate-hint">Définissez le taux horaire de chaque membre pour le calcul des honoraires.</p>
-        <table class="rates-table">
-          <thead>
-            <tr>
-              <th>Membre</th>
-              <th>Rôle</th>
-              <th>Taux actuel (€/h)</th>
-              <th>Nouveau taux</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (m of members(); track m.userId) {
-              <tr>
-                <td>{{ m.email }}</td>
-                <td><span class="role-badge role-{{ m.memberRole.toLowerCase() }}">{{ m.memberRole }}</span></td>
-                <td class="cell-mono">{{ getMemberRate(m.userId) != null ? (getMemberRate(m.userId) | number:'1.2-2') + ' €/h' : '—' }}</td>
-                <td>
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rate-input-field">
-                    <input
-                      matInput
-                      type="number"
-                      min="1"
-                      placeholder="Ex. 250"
-                      [ngModel]="getMemberRateInput(m.userId)"
-                      (ngModelChange)="setMemberRateInput(m.userId, $event)"
-                    />
-                  </mat-form-field>
-                </td>
-                <td>
-                  <button
-                    mat-flat-button
-                    color="primary"
-                    class="save-rate-btn"
-                    [disabled]="savingRateFor() === m.userId || (getMemberRateInput(m.userId) ?? 0) <= 0"
-                    (click)="saveRateForMember(m.userId)">
-                    @if (savingRateFor() === m.userId) {
-                      <mat-spinner diameter="16" />
-                    } @else {
-                      Enregistrer
-                    }
-                  </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
       </mat-card-content>
     </mat-card>
 

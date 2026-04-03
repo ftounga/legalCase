@@ -173,7 +173,7 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
                 .thenReturn(Optional.of(answer));
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{\"faits\":[\"fait1\"]}", null, List.of(), List.of());
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{\"faits\":[\"fait1\"]}", null, List.of(), List.of(), List.of());
 
         assertThat(prompt).contains("{\"faits\":[\"fait1\"]}");
         assertThat(prompt).contains("Question test ?");
@@ -189,7 +189,7 @@ class EnrichedAnalysisServiceTest {
         UUID caseFileId = UUID.randomUUID();
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "Point clé 1 : délai de prescription dépassé", List.of(), List.of());
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "Point clé 1 : délai de prescription dépassé", List.of(), List.of(), List.of());
 
         assertThat(prompt).contains("Échanges libres avec l'assistant — points clés");
         assertThat(prompt).contains("Point clé 1 : délai de prescription dépassé");
@@ -201,7 +201,7 @@ class EnrichedAnalysisServiceTest {
         UUID caseFileId = UUID.randomUUID();
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "   ", List.of(), List.of());
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", "   ", List.of(), List.of(), List.of());
 
         assertThat(prompt).doesNotContain("Échanges libres");
     }
@@ -263,6 +263,7 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(procedureCheckService.listNonCompliant(any())).thenReturn(List.of());
         when(procedureCheckService.listToCheck(any())).thenReturn(List.of());
+        when(procedureCheckService.listVerified(any())).thenReturn(List.of());
         when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
 
@@ -293,7 +294,7 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
         List<String> checks = List.of("Entretien préalable non convoqué par LRAR", "Notification hors délai");
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, checks, List.of());
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, checks, List.of(), List.of());
 
         assertThat(prompt).contains("[Points procéduraux non conformes]");
         assertThat(prompt).contains("- Entretien préalable non convoqué par LRAR");
@@ -306,7 +307,7 @@ class EnrichedAnalysisServiceTest {
         UUID caseFileId = UUID.randomUUID();
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), List.of());
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), List.of(), List.of());
 
         assertThat(prompt).doesNotContain("[Points procéduraux non conformes]");
     }
@@ -318,7 +319,7 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
         List<String> toCheck = List.of("Entretien préalable tenu dans les délais", "Convocation par LRAR");
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), toCheck);
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), toCheck, List.of());
 
         assertThat(prompt).contains("[Points procéduraux à vérifier — non encore qualifiés par l'avocat]");
         assertThat(prompt).contains("- Entretien préalable tenu dans les délais");
@@ -331,7 +332,7 @@ class EnrichedAnalysisServiceTest {
         UUID caseFileId = UUID.randomUUID();
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
 
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), List.of());
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), List.of(), List.of());
 
         assertThat(prompt).doesNotContain("[Points procéduraux à vérifier");
     }
@@ -344,7 +345,7 @@ class EnrichedAnalysisServiceTest {
 
         List<String> nonCompliant = List.of("Lettre de licenciement non motivée");
         List<String> toCheck = List.of("Entretien préalable dans les délais");
-        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, nonCompliant, toCheck);
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, nonCompliant, toCheck, List.of());
 
         assertThat(prompt).contains("[Points procéduraux non conformes]");
         assertThat(prompt).contains("- Lettre de licenciement non motivée");
@@ -372,12 +373,54 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
         when(procedureCheckService.listNonCompliant(any())).thenThrow(new RuntimeException("DB error"));
         when(procedureCheckService.listToCheck(any())).thenReturn(List.of());
+        when(procedureCheckService.listVerified(any())).thenReturn(List.of());
         when(chatMessageRepository.findByCaseFileIdOrderByCreatedAtAsc(caseFileId)).thenReturn(List.of());
 
         var prepared = service.prepareEnrichedAnalysis(new ReAnalysisMessage(caseFileId));
 
         assertThat(prepared).isNotNull();
         assertThat(prepared.prompt()).doesNotContain("[Points procéduraux non conformes]");
+    }
+
+    // TC-07 : buildEnrichedPrompt avec VERIFIED → section injectée
+    @Test
+    void buildEnrichedPrompt_withVerifiedChecks_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        List<String> verified = List.of("Entretien préalable tenu dans les délais", "Convocation par LRAR");
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), List.of(), verified);
+
+        assertThat(prompt).contains("[Points procéduraux vérifiés — à reconsidérer si nécessaire]");
+        assertThat(prompt).contains("- Entretien préalable tenu dans les délais");
+        assertThat(prompt).contains("- Convocation par LRAR");
+    }
+
+    // TC-08 : buildEnrichedPrompt sans VERIFIED → section absente
+    @Test
+    void buildEnrichedPrompt_withNoVerifiedChecks_omitsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, List.of(), List.of(), List.of());
+
+        assertThat(prompt).doesNotContain("[Points procéduraux vérifiés");
+    }
+
+    // TC-09 : buildEnrichedPrompt avec NON_COMPLIANT + TO_CHECK + VERIFIED → 3 sections distinctes
+    @Test
+    void buildEnrichedPrompt_withAllThreeTypes_injectsThreeSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        List<String> nonCompliant = List.of("Lettre de licenciement non motivée");
+        List<String> toCheck = List.of("Entretien préalable dans les délais");
+        List<String> verified = List.of("Convocation par LRAR envoyée");
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null, nonCompliant, toCheck, verified);
+
+        assertThat(prompt).contains("[Points procéduraux non conformes]");
+        assertThat(prompt).contains("[Points procéduraux à vérifier — non encore qualifiés par l'avocat]");
+        assertThat(prompt).contains("[Points procéduraux vérifiés — à reconsidérer si nécessaire]");
     }
 
     private AiQuestion answeredQuestion(UUID caseFileId, String text) {
