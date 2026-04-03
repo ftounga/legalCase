@@ -207,7 +207,8 @@
   &--risques    { color: #C0392B; }
   &--questions  { color: #C9973A; }
   &--manquantes { color: #E67E22; }
-  &--checklist  { color: #27AE60; }
+  &--checklist     { color: #27AE60; }
+  &--compensation  { color: #C9973A; }
 }
 
 .timeline {
@@ -523,6 +524,66 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+// Indemnités estimées
+.compensation-block {
+  padding: 4px 0 8px;
+}
+
+.compensation-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef6e7;
+  border: 1px solid #C9973A;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #7A5A1E;
+
+  &__icon {
+    font-size: 18px;
+    color: #C9973A;
+    flex-shrink: 0;
+  }
+}
+
+.compensation-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compensation-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+
+  &--main {
+    padding: 4px 0;
+    .compensation-label { font-weight: 600; font-size: 14px; color: #1C2B3A; }
+    .compensation-value { font-weight: 700; font-size: 15px; color: #1A3A5C; }
+  }
+
+  &--detail {
+    .compensation-label { font-size: 13px; color: #6B7A8D; }
+    .compensation-value { font-size: 13px; color: #4A5568; }
+  }
+
+  &--separator {
+    border-top: 1px solid #E0E4EA;
+    margin: 8px 0 4px;
+  }
+}
+
+.compensation-disclaimer {
+  font-size: 11px;
+  color: #6B7A8D;
+  font-style: italic;
+  margin: 16px 0 0;
 }
 
 // Checklist procédurale

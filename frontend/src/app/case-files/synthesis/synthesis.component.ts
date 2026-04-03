@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, LowerCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,7 +23,7 @@ import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
-import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
+import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
 import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedure-check.model';
@@ -34,7 +34,7 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
   selector: 'app-synthesis',
   standalone: true,
   imports: [
-    RouterLink, DatePipe, FormsModule,
+    RouterLink, DatePipe, LowerCasePipe, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatExpansionModule,
     MatCheckboxModule, MatTooltipModule
@@ -287,6 +287,35 @@ export class SynthesisComponent implements OnInit {
     if (riskLevel === 'MOYEN') return 'risk-badge risk-badge--moyen';
     if (riskLevel === 'ELEVE') return 'risk-badge risk-badge--eleve';
     return '';
+  }
+
+  get compensationEstimate(): CompensationEstimate | null {
+    return this.synthesis()?.compensationEstimate ?? null;
+  }
+
+  formatTypeRupture(type: string): string {
+    const labels: Record<string, string> = {
+      LICENCIEMENT: 'Licenciement',
+      LICENCIEMENT_ECONOMIQUE: 'Licenciement économique',
+      RUPTURE_CONVENTIONNELLE: 'Rupture conventionnelle',
+    };
+    return labels[type] ?? type;
+  }
+
+  formatAnciennete(annees: number, mois: number): string {
+    if (annees === 0 && mois === 0) return 'moins d\'1 an';
+    const parts: string[] = [];
+    if (annees > 0) parts.push(`${annees} an${annees > 1 ? 's' : ''}`);
+    if (mois > 0)   parts.push(`${mois} mois`);
+    return parts.join(' ');
+  }
+
+  formatEuros(amount: number): string {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+  }
+
+  formatPlafond(mois: number, salaire: number): string {
+    return this.formatEuros(Math.round(mois * salaire));
   }
 
   private loadChatHistory(id: string): void {

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
-import { CaseAnalysisResult } from '../models/case-analysis.model';
+import { CaseAnalysisResult, CompensationEstimate } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
@@ -176,7 +176,84 @@ export class PdfExportService {
       );
     }
 
+    if (synthesis.compensationEstimate) {
+      sections.push(
+        ...this.buildCompensationSection(synthesis.compensationEstimate),
+        { text: '', margin: [0, 0, 0, 16] }
+      );
+    }
+
     return sections;
+  }
+
+  private buildCompensationSection(est: CompensationEstimate): object[] {
+    const typeLabels: Record<string, string> = {
+      LICENCIEMENT: 'Licenciement',
+      LICENCIEMENT_ECONOMIQUE: 'Licenciement économique',
+      RUPTURE_CONVENTIONNELLE: 'Rupture conventionnelle',
+    };
+    const typeLabel = typeLabels[est.typeRupture] ?? est.typeRupture;
+
+    const parts: string[] = [];
+    if (est.ancienneteAnnees > 0) parts.push(`${est.ancienneteAnnees} an${est.ancienneteAnnees > 1 ? 's' : ''}`);
+    if (est.ancienneteMois > 0)   parts.push(`${est.ancienneteMois} mois`);
+    const ancienneteLabel = parts.length > 0 ? parts.join(' ') : "moins d'1 an";
+
+    const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+    const plafondMin = fmt(Math.round(est.plafondMinMois * est.salaireReference));
+    const plafondMax = fmt(Math.round(est.plafondMaxMois * est.salaireReference));
+
+    const rows: object[] = [
+      [
+        { text: `Indemnité légale de ${typeLabel.toLowerCase()}`, bold: true, fontSize: 11, color: TEXT },
+        { text: fmt(est.indemnite), bold: true, fontSize: 12, color: PRIMARY, alignment: 'right' }
+      ],
+      [
+        { text: `Ancienneté : ${ancienneteLabel}`, fontSize: 10, color: TEXT_SECONDARY },
+        { text: `Salaire de référence : ${fmt(est.salaireReference)}/mois`, fontSize: 10, color: TEXT_SECONDARY, alignment: 'right' }
+      ],
+      [
+        { text: 'Plafond prud\'homal (barème Macron)', bold: true, fontSize: 11, color: TEXT, margin: [0, 8, 0, 0] },
+        { text: `${est.plafondMinMois} — ${est.plafondMaxMois} mois`, bold: true, fontSize: 12, color: PRIMARY, alignment: 'right', margin: [0, 8, 0, 0] }
+      ],
+      [
+        { text: `Soit : ${plafondMin} — ${plafondMax}`, fontSize: 10, color: TEXT_SECONDARY },
+        { text: '', fontSize: 10 }
+      ],
+    ];
+
+    const result: object[] = [
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: [[
+            { text: 'Indemnités estimées', color: SURFACE, bold: true, fontSize: 13, margin: [12, 8, 0, 8] },
+            { text: typeLabel, color: SURFACE, fontSize: 9, italics: true, margin: [0, 10, 12, 8], alignment: 'right' }
+          ]]
+        },
+        layout: { fillColor: () => ACCENT, hLineColor: () => ACCENT, vLineColor: () => ACCENT },
+        margin: [0, 0, 0, 8],
+      },
+      {
+        table: { widths: ['*', 'auto'], body: rows },
+        layout: 'noBorders',
+        margin: [8, 0, 8, 0],
+      },
+    ];
+
+    if (est.donneesPartielles) {
+      result.push({
+        text: '⚠ Données partielles — vérifier l\'ancienneté et le salaire de référence',
+        fontSize: 9, color: ACCENT, italics: true, margin: [8, 6, 8, 0]
+      });
+    }
+
+    result.push({
+      text: 'Estimation indicative — données extraites par l\'IA, non certifiées',
+      fontSize: 9, color: TEXT_SECONDARY, italics: true, margin: [8, 4, 8, 0]
+    });
+
+    return result;
   }
 
   private buildSectionHeader(label: string, _key: string, count: number, unit: string): object {

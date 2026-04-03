@@ -144,4 +144,47 @@ describe('PdfExportService', () => {
     const name = service.buildChecklistFileName('');
     expect(name).toMatch(/^checklist-dossier-\d{4}-\d{2}-\d{2}\.pdf$/);
   });
+
+  // --- SF-DT-01-01 : section indemnités dans l'export PDF ---
+
+  const mockEstimate = {
+    indemnite: 8050,
+    salaireReference: 2800,
+    ancienneteAnnees: 6,
+    ancienneteMois: 4,
+    typeRupture: 'LICENCIEMENT',
+    plafondMinMois: 3,
+    plafondMaxMois: 7,
+    donneesPartielles: false,
+  };
+
+  it('PDF-COMP-01: buildDocument() inclut section indemnités si compensationEstimate présent', () => {
+    const synthWithComp = { ...mockSynthesis, compensationEstimate: mockEstimate };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthWithComp) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).toContain('Indemnités estimées');
+    expect(contentStr).toContain('Licenciement');
+  });
+
+  it('PDF-COMP-02: buildDocument() n\'inclut pas section indemnités si compensationEstimate null', () => {
+    const synthNoComp = { ...mockSynthesis, compensationEstimate: null };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthNoComp) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).not.toContain('Indemnités estimées');
+  });
+
+  it('PDF-COMP-03: buildDocument() inclut avertissement données partielles si donneesPartielles=true', () => {
+    const partial = { ...mockEstimate, donneesPartielles: true };
+    const synthPartial = { ...mockSynthesis, compensationEstimate: partial };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthPartial) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).toContain('Données partielles');
+  });
+
+  it('PDF-COMP-04: buildDocument() n\'inclut pas avertissement si donneesPartielles=false', () => {
+    const synthComp = { ...mockSynthesis, compensationEstimate: mockEstimate };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthComp) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).not.toContain('Données partielles');
+  });
 });

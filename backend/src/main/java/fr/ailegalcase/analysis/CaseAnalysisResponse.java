@@ -24,7 +24,8 @@ public record CaseAnalysisResponse(
         Integer riskScore,
         String modelUsed,
         Instant updatedAt,
-        List<AnalysisDocumentEntry> analysisDocuments
+        List<AnalysisDocumentEntry> analysisDocuments,
+        CompensationCalculator.CompensationEstimate compensationEstimate
 ) {
 
     public record TimelineEntry(String date, String evenement) {}
@@ -101,6 +102,7 @@ public record CaseAnalysisResponse(
         List<String> questionsOuvertes = List.of();
         List<String> piecesManquantes = List.of();
         List<String> pointsProcedure = List.of();
+        CompensationCalculator.CompensationEstimate compensationEstimate = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -113,6 +115,7 @@ public record CaseAnalysisResponse(
                 questionsOuvertes = extractStringList(root, "questions_ouvertes");
                 piecesManquantes = extractStringList(root, "pieces_manquantes");
                 pointsProcedure = extractStringList(root, "points_procedure");
+                compensationEstimate = extractCompensationEstimate(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -136,8 +139,27 @@ public record CaseAnalysisResponse(
                 analysis.getRiskScore(),
                 analysis.getModelUsed(),
                 analysis.getUpdatedAt(),
-                analysisDocuments
+                analysisDocuments,
+                compensationEstimate
         );
+    }
+
+    static CompensationCalculator.CompensationEstimate extractCompensationEstimate(JsonNode root) {
+        JsonNode compNode = root.get("compensation_data");
+        if (compNode == null || !compNode.isObject()) return null;
+        try {
+            String typeRupture = compNode.has("type_rupture") && !compNode.get("type_rupture").isNull()
+                    ? compNode.get("type_rupture").asText() : null;
+            Integer annees  = compNode.has("anciennete_annees")  && !compNode.get("anciennete_annees").isNull()
+                    ? compNode.get("anciennete_annees").intValue() : null;
+            Integer mois    = compNode.has("anciennete_mois")    && !compNode.get("anciennete_mois").isNull()
+                    ? compNode.get("anciennete_mois").intValue() : null;
+            Double salaire  = compNode.has("salaire_reference_mensuel") && !compNode.get("salaire_reference_mensuel").isNull()
+                    ? compNode.get("salaire_reference_mensuel").doubleValue() : null;
+            return CompensationCalculator.calculate(typeRupture, annees, mois, salaire).orElse(null);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static List<AnalysisDocumentEntry> buildAnalysisDocuments(List<AnalysisDocument> documents) {
