@@ -375,6 +375,12 @@ export class SynthesisComponent implements OnInit {
     this.analyticsService.trackEvent('docx_exported');
   }
 
+  exportChecklistPdf(): void {
+    const cf = this.caseFile();
+    if (!cf) return;
+    this.pdfExportService.exportChecklist(cf, this.procedureChecks());
+  }
+
   reAnalyze(): void {
     const id = this.caseFile()?.id;
     if (!id) return;

@@ -93,4 +93,55 @@ describe('PdfExportService', () => {
     const name = service.buildFileName('', mockSynthesis);
     expect(name).toMatch(/^synthese-export-v2-\d{4}-\d{2}-\d{2}\.pdf$/);
   });
+
+  // --- exportChecklist ---
+
+  const mockChecks = [
+    { id: 'c1', ordre: 2, description: 'Vérifier la clause', statut: 'VERIFIED' as const, raison: 'Conforme selon contrat' },
+    { id: 'c2', ordre: 1, description: 'Vérifier la prescription', statut: 'NON_COMPLIANT' as const, raison: null },
+    { id: 'c3', ordre: 3, description: 'Contrôler délai', statut: 'TO_CHECK' as const, raison: undefined },
+  ];
+
+  it('buildChecklistDocument() should return a valid pdfmake document', () => {
+    const doc = service.buildChecklistDocument(mockCaseFile as CaseFile, mockChecks) as any;
+    expect(doc).toBeTruthy();
+    expect(doc.pageSize).toBe('A4');
+    expect(Array.isArray(doc.content)).toBe(true);
+  });
+
+  it('buildChecklistDocument() should sort checks by ordre', () => {
+    const doc = service.buildChecklistDocument(mockCaseFile as CaseFile, mockChecks) as any;
+    const contentStr = JSON.stringify(doc.content);
+    const idx1 = contentStr.indexOf('Vérifier la prescription');
+    const idx2 = contentStr.indexOf('Vérifier la clause');
+    const idx3 = contentStr.indexOf('Contrôler délai');
+    expect(idx1).toBeLessThan(idx2);
+    expect(idx2).toBeLessThan(idx3);
+  });
+
+  it('buildChecklistDocument() should include "Raison IA" for checks with raison', () => {
+    const doc = service.buildChecklistDocument(mockCaseFile as CaseFile, mockChecks) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).toContain('Raison IA');
+    expect(contentStr).toContain('Conforme selon contrat');
+  });
+
+  it('buildChecklistDocument() should not include "Raison IA" for checks without raison', () => {
+    const checksNoRaison = [
+      { id: 'c1', ordre: 1, description: 'Un point', statut: 'TO_CHECK' as const, raison: null },
+    ];
+    const doc = service.buildChecklistDocument(mockCaseFile as CaseFile, checksNoRaison) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).not.toContain('Raison IA');
+  });
+
+  it('buildChecklistFileName() should slugify the title correctly', () => {
+    const name = service.buildChecklistFileName('Affaire Dupont c/ SA Renault');
+    expect(name).toMatch(/^checklist-affaire-dupont-c-sa-renault-\d{4}-\d{2}-\d{2}\.pdf$/);
+  });
+
+  it('buildChecklistFileName() should use "dossier" as fallback when title is empty', () => {
+    const name = service.buildChecklistFileName('');
+    expect(name).toMatch(/^checklist-dossier-\d{4}-\d{2}-\d{2}\.pdf$/);
+  });
 });
