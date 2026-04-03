@@ -1,20 +1,23 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TimeReportComponent } from './time-report.component';
 import { TimeReportService } from '../../core/services/time-report.service';
+import { TimeService } from '../../core/services/time.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
-import { TimeReportRow } from '../../core/models/time-tracking.models';
+import { BillingRateResponse, TimeReportRow } from '../../core/models/time-tracking.models';
 
 const mockRow: TimeReportRow = {
   caseFileId: 'cf-1',
   caseFileTitle: 'Dossier Dupont',
   userId: 'u-1',
-  userEmail: "alice@test.com",
+  userEmail: 'alice@test.com',
   totalSeconds: 3661,
   ratePerHour: 200,
   amount: 203.39
 };
+
+const mockRate: BillingRateResponse = { ratePerHour: 200, effectiveFrom: '2026-01-01' };
 
 describe('TimeReportComponent', () => {
   let component: TimeReportComponent;
@@ -24,9 +27,14 @@ describe('TimeReportComponent', () => {
 
   beforeEach(async () => {
     const reportSpy = {
-      getReport: jest.fn().mockReturnValue(of([])),
+      getMyReport: jest.fn().mockReturnValue(of([])),
       exportCsv: jest.fn().mockReturnValue(of(new Blob([''], { type: 'text/csv' })))
     } as unknown as jest.Mocked<TimeReportService>;
+
+    const timeSpy = {
+      getBillingRate: jest.fn().mockReturnValue(of(mockRate)),
+      saveBillingRate: jest.fn().mockReturnValue(of(mockRate))
+    } as unknown as jest.Mocked<TimeService>;
 
     const snackSpy = { open: jest.fn() } as unknown as jest.Mocked<MatSnackBar>;
 
@@ -34,6 +42,7 @@ describe('TimeReportComponent', () => {
       imports: [TimeReportComponent, NoopAnimationsModule],
       providers: [
         { provide: TimeReportService, useValue: reportSpy },
+        { provide: TimeService, useValue: timeSpy },
         { provide: MatSnackBar, useValue: snackSpy }
       ]
     }).compileComponents();
@@ -49,12 +58,12 @@ describe('TimeReportComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('charge le rapport au ngOnInit', () => {
-    expect(reportService.getReport).toHaveBeenCalledWith(component.months[0].value);
+  it('charge le rapport personnel au ngOnInit', () => {
+    expect(reportService.getMyReport).toHaveBeenCalledWith(component.months[0].value);
   });
 
   it('affiche les lignes du rapport', () => {
-    reportService.getReport.mockReturnValue(of([mockRow]));
+    reportService.getMyReport.mockReturnValue(of([mockRow]));
     component.load();
     fixture.detectChanges();
     expect(component.rows()).toHaveLength(1);
@@ -68,8 +77,8 @@ describe('TimeReportComponent', () => {
     expect(el.querySelector('.empty-state')).toBeTruthy();
   });
 
-  it('affiche une erreur si getReport() échoue', () => {
-    reportService.getReport.mockReturnValue(throwError(() => new Error('500')));
+  it('affiche une erreur si getMyReport() échoue', () => {
+    reportService.getMyReport.mockReturnValue(throwError(() => new Error('500')));
     component.load();
     fixture.detectChanges();
     expect(component.loadError()).toBe(true);
@@ -78,14 +87,14 @@ describe('TimeReportComponent', () => {
   });
 
   it('onMonthChange() recharge le rapport', () => {
-    reportService.getReport.mockReturnValue(of([mockRow]));
+    reportService.getMyReport.mockReturnValue(of([mockRow]));
     component.selectedMonth.set('2026-03');
     component.onMonthChange();
-    expect(reportService.getReport).toHaveBeenCalledWith('2026-03');
+    expect(reportService.getMyReport).toHaveBeenCalledWith('2026-03');
   });
 
   it('exportCsv() appelle le service et affiche le snackbar succès', () => {
-    reportService.getReport.mockReturnValue(of([mockRow]));
+    reportService.getMyReport.mockReturnValue(of([mockRow]));
     component.load();
     component.exportCsv();
     expect(reportService.exportCsv).toHaveBeenCalledWith(component.selectedMonth());
@@ -121,13 +130,13 @@ describe('TimeReportComponent', () => {
   });
 
   it('totalSeconds() somme correctement', () => {
-    reportService.getReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, amount: 100 }]));
+    reportService.getMyReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, amount: 100 }]));
     component.load();
     expect(component.totalSeconds()).toBe(3661 + 1800);
   });
 
   it('totalAmount() somme correctement', () => {
-    reportService.getReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, amount: 100 }]));
+    reportService.getMyReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, amount: 100 }]));
     component.load();
     expect(component.totalAmount()).toBeCloseTo(303.39, 1);
   });
