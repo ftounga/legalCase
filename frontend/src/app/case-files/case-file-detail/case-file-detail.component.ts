@@ -143,7 +143,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       {
         id: 'delais',
         label: 'Délais légaux',
-        status: pendingAiDeadlines === 0 ? 'done' : 'pending',
+        status: syn === null ? 'pending' : pendingAiDeadlines > 0 ? 'in_progress' : 'done',
         detail: pendingAiDeadlines > 0 ? `${pendingAiDeadlines} proposition${pendingAiDeadlines > 1 ? 's' : ''} IA en attente` : null,
         anchorId: 'section-deadlines',
       },

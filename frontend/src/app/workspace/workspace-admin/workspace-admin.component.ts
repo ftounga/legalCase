@@ -57,7 +57,7 @@ export class WorkspaceAdminComponent implements OnInit {
   memberRateInputs = signal<Record<string, number | null>>({});
   savingRateFor = signal<string | null>(null);
 
-  readonly memberColumns = ['email', 'role'];
+  readonly memberColumns = ['email', 'role', 'rateActuel', 'rateNouv', 'rateAction'];
 
   readonly reportMonths = this.buildMonths();
   selectedReportMonth = signal(this.buildMonths()[0].value);
