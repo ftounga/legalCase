@@ -27,6 +27,8 @@ import { CaseAnalysisResult, CaseAnalysisVersionSummary } from '../../core/model
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
 import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedure-check.model';
+import { TimeService } from '../../core/services/time.service';
+import { TimeEntryResponse } from '../../core/models/time-tracking.models';
 
 @Component({
   selector: 'app-synthesis',
@@ -45,6 +47,25 @@ import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedur
 export class SynthesisComponent implements OnInit {
   caseFile = signal<CaseFile | null>(null);
   synthesis = signal<CaseAnalysisResult | null>(null);
+  timeEntries = signal<TimeEntryResponse[]>([]);
+
+  readonly totalBilledSeconds = computed(() =>
+    this.timeEntries()
+      .filter(e => e.durationSeconds != null)
+      .reduce((acc, e) => acc + e.durationSeconds!, 0)
+  );
+
+  readonly showInsight = computed(() =>
+    this.synthesis()?.riskLevel != null && this.totalBilledSeconds() > 0
+  );
+
+  readonly insightText = computed(() => {
+    const level = this.synthesis()?.riskLevel;
+    if (!level || this.totalBilledSeconds() === 0) return '';
+    const labels: Record<string, string> = { FAIBLE: 'Faible', MOYEN: 'Moyen', ELEVE: 'Élevé' };
+    const levelLabel = labels[level] ?? level;
+    return `Ce dossier représente ${this.formatInsightDuration(this.totalBilledSeconds())} de travail enregistré — risque ${levelLabel}. Pensez à vérifier votre honoraire.`;
+  });
   versions = signal<CaseAnalysisVersionSummary[]>([]);
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
@@ -94,7 +115,8 @@ export class SynthesisComponent implements OnInit {
     private pdfExportService: PdfExportService,
     private docxExportService: DocxExportService,
     private analyticsService: AnalyticsService,
-    private procedureCheckService: ProcedureCheckService
+    private procedureCheckService: ProcedureCheckService,
+    private timeService: TimeService
   ) {}
 
   ngOnInit(): void {
@@ -104,6 +126,10 @@ export class SynthesisComponent implements OnInit {
         this.caseFile.set(cf);
         this.loadVersions(id);
         this.loadChatHistory(id);
+        this.timeService.loadEntries(id).subscribe({
+          next: () => this.timeEntries.set(this.timeService.entries()),
+          error: () => {}
+        });
       },
       error: () => {
         this.loading.set(false);
@@ -240,6 +266,14 @@ export class SynthesisComponent implements OnInit {
 
   isEnriched(): boolean {
     return this.synthesis()?.analysisType === 'ENRICHED';
+  }
+
+  formatInsightDuration(seconds: number): string {
+    if (seconds < 60) return '< 1min';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}h ${String(m).padStart(2, '0')}min`;
+    return `${m}min`;
   }
 
   riskLabel(synthesis: CaseAnalysisResult): string {
