@@ -1,10 +1,10 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TimerWidgetComponent } from './timer-widget.component';
 import { TimeService } from '../../core/services/time.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
-import { TimeEntryResponse } from '../../core/models/time-tracking.models';
+import { BillingRateResponse, TimeEntryResponse } from '../../core/models/time-tracking.models';
 import { signal } from '@angular/core';
 
 const mockEntry = (overrides: Partial<TimeEntryResponse> = {}): TimeEntryResponse => ({
@@ -14,10 +14,12 @@ const mockEntry = (overrides: Partial<TimeEntryResponse> = {}): TimeEntryRespons
   ...overrides
 });
 
+const mockRate: BillingRateResponse = { ratePerHour: 200, effectiveFrom: '2026-01-01' };
+
 describe('TimerWidgetComponent', () => {
   let component: TimerWidgetComponent;
   let fixture: ComponentFixture<TimerWidgetComponent>;
-  let timeServiceSpy: jest.Mocked<Partial<TimeService>> & { activeEntry: ReturnType<typeof signal<TimeEntryResponse | null>>; entries: ReturnType<typeof signal<TimeEntryResponse[]>> };
+  let timeServiceSpy: any;
   let snackBarSpy: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
@@ -28,10 +30,11 @@ describe('TimerWidgetComponent', () => {
       activeEntry,
       entries,
       loadEntries: jest.fn().mockReturnValue(of(void 0)),
+      getBillingRate: jest.fn().mockReturnValue(of(mockRate)),
       startTimer: jest.fn(),
       stopTimer: jest.fn(),
       formatDuration: jest.fn((s: number) => `${s}s`)
-    } as any;
+    };
 
     snackBarSpy = { open: jest.fn() } as any;
 
@@ -53,7 +56,7 @@ describe('TimerWidgetComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('affiche le bouton "Démarrer le chrono" quand pas de timer actif', () => {
+  it('affiche le bouton "Démarrer le chrono" quand taux configuré et pas de timer actif', () => {
     timeServiceSpy.activeEntry.set(null);
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('.timer-btn--start');
@@ -71,28 +74,58 @@ describe('TimerWidgetComponent', () => {
 
   it('affiche le chrono HH:MM:SS quand un timer est actif', () => {
     timeServiceSpy.activeEntry.set(mockEntry());
-    component.elapsedSeconds.set(90); // 00:01:30
+    component.elapsedSeconds.set(90);
     fixture.detectChanges();
     const display = fixture.nativeElement.querySelector('.timer-display');
     expect(display).toBeTruthy();
     expect(display.textContent).toBe('00:01:30');
   });
 
+  it('affiche le warning et masque le chrono si aucun taux configuré', () => {
+    timeServiceSpy.getBillingRate.mockReturnValue(of(null));
+    component.noRateConfigured.set(true);
+    fixture.detectChanges();
+    const warning = fixture.nativeElement.querySelector('.no-rate-warning');
+    const btn = fixture.nativeElement.querySelector('.timer-btn--start');
+    expect(warning).toBeTruthy();
+    expect(btn).toBeNull();
+  });
+
+  it('totalSeconds() inclut les entrées terminées et l\'elapsed actif', () => {
+    const done = mockEntry({ durationSeconds: 3600, stoppedAt: new Date().toISOString() });
+    timeServiceSpy.entries.set([done]);
+    timeServiceSpy.activeEntry.set(mockEntry());
+    component.elapsedSeconds.set(600);
+    fixture.detectChanges();
+    expect(component.totalSeconds()).toBe(4200);
+  });
+
+  it('affiche le total enregistré quand totalSeconds > 0', () => {
+    const done = mockEntry({ durationSeconds: 3600, stoppedAt: new Date().toISOString() });
+    timeServiceSpy.entries.set([done]);
+    fixture.detectChanges();
+    const total = fixture.nativeElement.querySelector('.timer-total');
+    expect(total).toBeTruthy();
+  });
+
+  it('n\'affiche pas le total si totalSeconds === 0', () => {
+    timeServiceSpy.entries.set([]);
+    fixture.detectChanges();
+    const total = fixture.nativeElement.querySelector('.timer-total');
+    expect(total).toBeNull();
+  });
+
   describe('onStart()', () => {
     it('appelle startTimer et met à jour l\'état', () => {
       const entry = mockEntry();
-      timeServiceSpy.startTimer!.mockReturnValue(of(entry));
-
+      timeServiceSpy.startTimer.mockReturnValue(of(entry));
       component.onStart();
-
       expect(timeServiceSpy.startTimer).toHaveBeenCalledWith('case-1');
     });
 
     it('gère l\'erreur 409 — bloque le bouton et affiche un message', () => {
-      timeServiceSpy.startTimer!.mockReturnValue(throwError(() => ({ status: 409 })));
-
+      timeServiceSpy.startTimer.mockReturnValue(throwError(() => ({ status: 409 })));
       component.onStart();
-
       expect(component.blockedByOtherTimer()).toBe(true);
       expect(snackBarSpy.open).toHaveBeenCalledWith(
         expect.stringContaining('Un timer est déjà actif'),
@@ -107,10 +140,8 @@ describe('TimerWidgetComponent', () => {
       const entry = mockEntry();
       const stopped = mockEntry({ stoppedAt: new Date().toISOString(), durationSeconds: 60 });
       timeServiceSpy.activeEntry.set(entry);
-      timeServiceSpy.stopTimer!.mockReturnValue(of(stopped));
-
+      timeServiceSpy.stopTimer.mockReturnValue(of(stopped));
       component.onStop();
-
       expect(timeServiceSpy.stopTimer).toHaveBeenCalledWith('entry-1');
     });
 
@@ -118,61 +149,10 @@ describe('TimerWidgetComponent', () => {
       const entry = mockEntry();
       const stopped = mockEntry({ stoppedAt: new Date().toISOString(), durationSeconds: 60 });
       timeServiceSpy.activeEntry.set(entry);
-      timeServiceSpy.stopTimer!.mockReturnValue(of(stopped));
+      timeServiceSpy.stopTimer.mockReturnValue(of(stopped));
       component.elapsedSeconds.set(120);
-
       component.onStop();
-
       expect(component.elapsedSeconds()).toBe(0);
-    });
-  });
-
-  describe('liste des sessions', () => {
-    it('affiche la liste des entrées triées par date décroissante', () => {
-      const older = mockEntry({ id: 'e1', startedAt: '2026-04-01T08:00:00Z', stoppedAt: '2026-04-01T09:00:00Z', durationSeconds: 3600 });
-      const newer = mockEntry({ id: 'e2', startedAt: '2026-04-02T08:00:00Z', stoppedAt: '2026-04-02T09:00:00Z', durationSeconds: 3600 });
-      timeServiceSpy.entries.set([older, newer]);
-      fixture.detectChanges();
-
-      const items = fixture.nativeElement.querySelectorAll('.session-item');
-      expect(items.length).toBe(2);
-      // La plus récente (e2) doit être première
-      expect(items[0].textContent).toContain('02/04/2026');
-    });
-
-    it('affiche le badge "En cours" pour les entrées sans stoppedAt', () => {
-      timeServiceSpy.entries.set([mockEntry()]);
-      fixture.detectChanges();
-
-      const badge = fixture.nativeElement.querySelector('.session-badge--active');
-      expect(badge).toBeTruthy();
-      expect(badge.textContent).toContain('En cours');
-    });
-
-    it('affiche le badge "Terminé" pour les entrées avec stoppedAt', () => {
-      const done = mockEntry({ stoppedAt: new Date().toISOString(), durationSeconds: 120 });
-      timeServiceSpy.entries.set([done]);
-      fixture.detectChanges();
-
-      const badge = fixture.nativeElement.querySelector('.session-badge--done');
-      expect(badge).toBeTruthy();
-      expect(badge.textContent).toContain('Terminé');
-    });
-
-    it('n\'affiche pas plus de 10 entrées', () => {
-      const manyEntries = Array.from({ length: 15 }, (_, i) =>
-        mockEntry({
-          id: `e${i}`,
-          startedAt: new Date(Date.now() - i * 3600000).toISOString(),
-          stoppedAt: new Date(Date.now() - i * 3600000 + 1800000).toISOString(),
-          durationSeconds: 1800
-        })
-      );
-      timeServiceSpy.entries.set(manyEntries);
-      fixture.detectChanges();
-
-      const items = fixture.nativeElement.querySelectorAll('.session-item');
-      expect(items.length).toBe(10);
     });
   });
 

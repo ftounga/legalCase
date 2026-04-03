@@ -134,6 +134,7 @@ describe('CaseFileDetailComponent', () => {
             activeEntry: signal(null),
             entries: signal([]),
             loadEntries: jest.fn().mockReturnValue(of(void 0)),
+            getBillingRate: jest.fn().mockReturnValue(of(null)),
             startTimer: jest.fn(),
             stopTimer: jest.fn(),
             formatDuration: jest.fn().mockReturnValue('0s')

@@ -6,6 +6,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { AdminUsageService } from '../../core/services/admin-usage.service';
 import { TimeService } from '../../core/services/time.service';
+import { TimeReportService } from '../../core/services/time-report.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Workspace } from '../../core/models/workspace.model';
 import { WorkspaceMember } from '../../core/models/workspace-member.model';
@@ -63,6 +64,12 @@ describe('WorkspaceAdminComponent', () => {
           useValue: {
             getBillingRate: jest.fn().mockReturnValue(of(null)),
             saveBillingRate: jest.fn()
+          }
+        },
+        {
+          provide: TimeReportService,
+          useValue: {
+            getReport: jest.fn().mockReturnValue(of([]))
           }
         },
         { provide: MatSnackBar, useValue: snackBar },
