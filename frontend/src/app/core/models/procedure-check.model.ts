@@ -5,4 +5,5 @@ export interface ProcedureCheck {
   ordre: number;
   description: string;
   statut: ProcedureCheckStatus;
+  raison?: string | null;
 }

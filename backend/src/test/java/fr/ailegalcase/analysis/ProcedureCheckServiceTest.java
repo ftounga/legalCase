@@ -111,6 +111,169 @@ class ProcedureCheckServiceTest {
         verify(procedureCheckRepository, never()).save(any());
     }
 
+    // ---- listVerified ----
+
+    @Test
+    void listVerified_returnsVerifiedDescriptions() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID analysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(caseFileId);
+
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setId(analysisId);
+
+        ProcedureCheck check = new ProcedureCheck();
+        check.setDescription("Entretien préalable tenu");
+        check.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(analysis));
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(analysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(check));
+
+        List<String> result = service.listVerified(caseFile);
+
+        assertThat(result).containsExactly("Entretien préalable tenu");
+    }
+
+    @Test
+    void listVerified_noAnalysis_returnsEmpty() {
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(UUID.randomUUID());
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenReturn(Optional.empty());
+
+        assertThat(service.listVerified(caseFile)).isEmpty();
+    }
+
+    @Test
+    void listVerified_repoThrows_returnsEmpty() {
+        CaseFile caseFile = new CaseFile();
+        caseFile.setId(UUID.randomUUID());
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenThrow(new RuntimeException("DB error"));
+
+        assertThat(service.listVerified(caseFile)).isEmpty();
+    }
+
+    // ---- createChecksWithVerifiedPropagation ----
+
+    @Test
+    void createChecksWithVerifiedPropagation_nullPreviousAnalysisId_onlyCreatesNewChecks() {
+        UUID analysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        Workspace workspace = new Workspace();
+        caseFile.setWorkspace(workspace);
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(analysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        String json = "{\"points_procedure\": [\"Entretien préalable tenu\"]}";
+
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, null);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        verify(procedureCheckRepository, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getDescription()).isEqualTo("Entretien préalable tenu");
+        assertThat(captor.getValue().getStatut()).isEqualTo(ProcedureCheckStatus.TO_CHECK);
+    }
+
+    @Test
+    void createChecksWithVerifiedPropagation_propagatesVerifiedFromPreviousAnalysis() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        Workspace workspace = new Workspace();
+        caseFile.setWorkspace(workspace);
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Convocation par LRAR envoyée");
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+        verifiedCheck.setOrdre(0);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+
+        String json = "{\"points_procedure\": [], \"checks_a_requalifier\": []}";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        verify(procedureCheckRepository, atLeastOnce()).save(captor.capture());
+
+        List<ProcedureCheck> saved = captor.getAllValues();
+        assertThat(saved).anyMatch(c -> c.getStatut() == ProcedureCheckStatus.VERIFIED
+                && "Convocation par LRAR envoyée".equals(c.getDescription()));
+    }
+
+    @Test
+    void createChecksWithVerifiedPropagation_requalifiesMatchingVerified() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Entretien préalable tenu");
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+        when(procedureCheckRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String json = """
+                {"points_procedure": [], "checks_a_requalifier": [
+                    {"description": "Entretien préalable tenu", "nouveau_statut": "NON_COMPLIANT", "raison": "Nouveau document contredit ce point"}
+                ]}""";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        assertThat(verifiedCheck.getStatut()).isEqualTo(ProcedureCheckStatus.NON_COMPLIANT);
+        assertThat(verifiedCheck.getRaison()).isEqualTo("Nouveau document contredit ce point");
+    }
+
+    @Test
+    void createChecksWithVerifiedPropagation_invalidNewStatut_ignoredFailOpen() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Entretien préalable tenu");
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+
+        String json = """
+                {"points_procedure": [], "checks_a_requalifier": [
+                    {"description": "Entretien préalable tenu", "nouveau_statut": "STATUT_INVALIDE", "raison": "raison"}
+                ]}""";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        // statut non modifié
+        assertThat(verifiedCheck.getStatut()).isEqualTo(ProcedureCheckStatus.VERIFIED);
+    }
+
     // ---- updateStatus ----
 
     @Test

@@ -36,11 +36,12 @@ public class EnrichedAnalysisService {
             Tu reçois la synthèse globale d'un dossier juridique ainsi que les réponses de l'avocat à des questions complémentaires.
             Produis une synthèse enrichie et mise à jour en intégrant ces nouvelles informations.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "checks_a_requalifier": [{"description": "...", "nouveau_statut": "NON_COMPLIANT"|"TO_CHECK", "raison": "..."}]}
             Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (nom exact du fichier tel qu'il apparaît dans la synthèse précédente) et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis. Si le dossier semble complet, utilise "pieces_manquantes": [].
             Le champ "points_procedure" liste les étapes procédurales légalement requises dans ce type de dossier (ex: "Entretien préalable tenu dans les délais", "Lettre de licenciement motivée"). Si la procédure semble conforme, utilise "points_procedure": [].
             Le champ "score_risque" est obligatoire : évalue le niveau de risque global du dossier. "niveau" est l'un de "FAIBLE", "MOYEN" ou "ELEVE". "valeur" est un entier entre 0 et 100 reflétant l'intensité du risque (0 = aucun risque, 100 = risque maximum).
+            Le champ "checks_a_requalifier" liste les points procéduraux marqués "vérifiés" dans le prompt que tu estimes devoir requalifier à la lumière des nouvelles informations. Pour chaque point : "description" doit correspondre exactement au libellé fourni dans le prompt, "nouveau_statut" est "NON_COMPLIANT" si le point est manifestement non respecté ou "TO_CHECK" si des doutes subsistent, "raison" explique brièvement pourquoi ce point doit être revu. Si aucun point vérifié ne doit être requalifié, utilise "checks_a_requalifier": [].
             Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
             """;
 
@@ -53,7 +54,7 @@ public class EnrichedAnalysisService {
     }
 
     record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
-                                     AnalysisLimitsProperties.LevelLimits limits) {}
+                                     AnalysisLimitsProperties.LevelLimits limits, UUID previousAnalysisId) {}
 
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -124,7 +125,8 @@ public class EnrichedAnalysisService {
             failure = e;
         }
 
-        self.finalizeEnrichedAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure, prepared.limits());
+        self.finalizeEnrichedAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure, prepared.limits(),
+                prepared.previousAnalysisId());
     }
 
     @Transactional
@@ -196,13 +198,22 @@ public class EnrichedAnalysisService {
             log.warn("listToCheck failed for caseFile {} — enriched analysis will proceed without it", caseFileId, e);
             toCheckChecks = List.of();
         }
-        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary, nonCompliantChecks, toCheckChecks);
-        return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId, limits);
+        List<String> verifiedChecks;
+        try {
+            verifiedChecks = procedureCheckService.listVerified(caseFile);
+        } catch (Exception e) {
+            log.warn("listVerified failed for caseFile {} — enriched analysis will proceed without it", caseFileId, e);
+            verifiedChecks = List.of();
+        }
+        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks);
+        return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId, limits,
+                previousAnalysis.getId());
     }
 
     @Transactional
     public void finalizeEnrichedAnalysis(UUID analysisId, UUID caseFileId, AnthropicResult result, Exception failure,
-                                          AnalysisLimitsProperties.LevelLimits limits) {
+                                          AnalysisLimitsProperties.LevelLimits limits, UUID previousAnalysisId) {
         CaseAnalysis enrichedAnalysis = caseAnalysisRepository.findById(analysisId).orElseThrow();
 
         if (failure != null) {
@@ -220,7 +231,8 @@ public class EnrichedAnalysisService {
         caseAnalysisRepository.save(enrichedAnalysis);
 
         if (failure == null) {
-            procedureCheckService.createChecks(enrichedAnalysis, enrichedAnalysis.getAnalysisResult());
+            procedureCheckService.createChecksWithVerifiedPropagation(enrichedAnalysis,
+                    enrichedAnalysis.getAnalysisResult(), previousAnalysisId);
         }
 
         AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)
@@ -299,7 +311,8 @@ public class EnrichedAnalysisService {
     }
 
     String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
-                                List<String> nonCompliantChecks, List<String> toCheckChecks) {
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -334,6 +347,11 @@ public class EnrichedAnalysisService {
         if (toCheckChecks != null && !toCheckChecks.isEmpty()) {
             prompt.append("\n\n[Points procéduraux à vérifier — non encore qualifiés par l'avocat]\n");
             toCheckChecks.forEach(c -> prompt.append("- ").append(c).append("\n"));
+        }
+
+        if (verifiedChecks != null && !verifiedChecks.isEmpty()) {
+            prompt.append("\n\n[Points procéduraux vérifiés — à reconsidérer si nécessaire]\n");
+            verifiedChecks.forEach(c -> prompt.append("- ").append(c).append("\n"));
         }
 
         return prompt.toString();

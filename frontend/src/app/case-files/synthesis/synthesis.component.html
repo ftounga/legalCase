@@ -230,7 +230,12 @@
           <div class="checklist-list">
             @for (check of procedureChecks(); track check.id) {
               <div class="checklist-item">
-                <span class="checklist-description">{{ check.ordre }}. {{ check.description }}</span>
+                <div class="checklist-description-block">
+                  <span class="checklist-description">{{ check.ordre }}. {{ check.description }}</span>
+                  @if (check.raison) {
+                    <span class="checklist-raison">IA : {{ check.raison }}</span>
+                  }
+                </div>
                 <div class="checklist-actions">
                   @if (updatingCheckId() === check.id) {
                     <mat-spinner diameter="20" class="check-spinner"></mat-spinner>
