@@ -15,9 +15,9 @@
 
 .billing-rate-section {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
   background: #F5F6FA;
   border: 1px solid #E0E4EA;
   border-radius: 8px;
@@ -31,14 +31,17 @@
   letter-spacing: 0.4px;
 }
 
-.billing-rate-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.billing-rate-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1A3A5C;
 }
 
-.billing-rate-field {
-  width: 160px;
+.billing-rate-empty {
+  font-size: 13px;
+  color: #6B7A8D;
+  font-style: italic;
 }
 
 .report-title {

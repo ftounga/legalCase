@@ -129,13 +129,23 @@ describe('TimeService', () => {
     });
   });
 
-  describe('saveBillingRate()', () => {
-    it('appelle PUT /api/v1/workspace/billing-rate avec le bon body', () => {
-      service.saveBillingRate(300).subscribe();
-      const req = http.expectOne('/api/v1/workspace/billing-rate');
+  describe('setRateForMember()', () => {
+    it('appelle PUT /api/v1/workspace/members/{userId}/billing-rate avec le bon body', () => {
+      const userId = 'abc-123';
+      service.setRateForMember(userId, 300).subscribe();
+      const req = http.expectOne(`/api/v1/workspace/members/${userId}/billing-rate`);
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual({ ratePerHour: 300 });
       req.flush({ ratePerHour: 300, effectiveFrom: '2026-04-02T00:00:00Z' });
+    });
+  });
+
+  describe('getMemberRates()', () => {
+    it('appelle GET /api/v1/workspace/members/billing-rates', () => {
+      service.getMemberRates().subscribe();
+      const req = http.expectOne('/api/v1/workspace/members/billing-rates');
+      expect(req.request.method).toBe('GET');
+      req.flush({ 'abc-123': { ratePerHour: 300, effectiveFrom: '2026-04-02T00:00:00Z' } });
     });
   });
 });

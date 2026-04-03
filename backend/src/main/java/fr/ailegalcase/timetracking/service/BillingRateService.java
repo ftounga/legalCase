@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,26 +43,48 @@ public class BillingRateService {
     }
 
     @Transactional
-    public BillingRateResponse setRate(BillingRateRequest request, OidcUser oidcUser, Principal principal) {
-        User user = resolveUser(oidcUser, principal);
-        WorkspaceMember member = resolveWorkspaceMember(user);
+    public BillingRateResponse setRateForMember(UUID targetUserId, BillingRateRequest request,
+                                                OidcUser oidcUser, Principal principal) {
+        User caller = resolveUser(oidcUser, principal);
+        WorkspaceMember callerMember = resolveAdminOrOwner(caller);
+
+        WorkspaceMember targetMember = workspaceMemberRepository
+                .findByWorkspace_IdAndUser_Id(callerMember.getWorkspace().getId(), targetUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Target user does not belong to this workspace"));
 
         UserBillingRate rate = new UserBillingRate();
-        rate.setUser(user);
-        rate.setWorkspace(member.getWorkspace());
+        rate.setUser(targetMember.getUser());
+        rate.setWorkspace(callerMember.getWorkspace());
         rate.setRatePerHour(request.ratePerHour());
         rate.setEffectiveFrom(LocalDate.now(ZoneOffset.UTC));
 
         BillingRateResponse saved = BillingRateResponse.from(billingRateRepository.save(rate));
 
         AuditLog log = new AuditLog();
-        log.setWorkspaceId(member.getWorkspace().getId());
-        log.setUserId(user.getId());
+        log.setWorkspaceId(callerMember.getWorkspace().getId());
+        log.setUserId(caller.getId());
         log.setAction("BILLING_RATE_UPDATED");
-        log.setMetadata("ratePerHour=" + request.ratePerHour());
+        log.setMetadata("targetUserId=" + targetUserId + " ratePerHour=" + request.ratePerHour());
         auditLogRepository.save(log);
 
         return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, BillingRateResponse> getMemberRates(OidcUser oidcUser, Principal principal) {
+        User caller = resolveUser(oidcUser, principal);
+        WorkspaceMember callerMember = resolveAdminOrOwner(caller);
+        UUID workspaceId = callerMember.getWorkspace().getId();
+
+        Map<UUID, BillingRateResponse> result = new java.util.LinkedHashMap<>();
+        workspaceMemberRepository.findByWorkspace_Id(workspaceId).forEach(m -> {
+            UUID userId = m.getUser().getId();
+            billingRateRepository.findCurrentRate(userId, workspaceId)
+                    .map(BillingRateResponse::from)
+                    .ifPresent(rate -> result.put(userId, rate));
+        });
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -88,5 +111,15 @@ public class BillingRateService {
         return workspaceMemberRepository
                 .findByUserAndPrimaryTrue(user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"));
+    }
+
+    private WorkspaceMember resolveAdminOrOwner(User user) {
+        WorkspaceMember member = resolveWorkspaceMember(user);
+        String role = member.getMemberRole();
+        if (!"OWNER".equals(role) && !"ADMIN".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only OWNER or ADMIN can set billing rates for members");
+        }
+        return member;
     }
 }

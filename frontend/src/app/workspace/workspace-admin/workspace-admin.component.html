@@ -120,43 +120,62 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Section Facturation -->
+    <!-- Section Taux horaires membres -->
     <mat-card class="section-card">
       <mat-card-header>
         <mat-card-title>
           <mat-icon>timer</mat-icon>
-          Facturation
+          Taux horaires membres
         </mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <p class="billing-rate-hint">Définissez votre taux horaire pour le calcul des honoraires dans le suivi du temps.</p>
-        <div class="billing-rate-row">
-          <mat-form-field appearance="outline" class="billing-rate-field">
-            <mat-label>Taux horaire (€/h)</mat-label>
-            <input
-              matInput
-              type="number"
-              min="1"
-              [ngModel]="billingRateInput()"
-              (ngModelChange)="billingRateInput.set($event)"
-              placeholder="Ex. 250"
-            />
-            @if ((billingRateInput() ?? 0) <= 0 && billingRateInput() !== null) {
-              <mat-error>Le taux horaire doit être supérieur à 0</mat-error>
+        <p class="billing-rate-hint">Définissez le taux horaire de chaque membre pour le calcul des honoraires.</p>
+        <table class="rates-table">
+          <thead>
+            <tr>
+              <th>Membre</th>
+              <th>Rôle</th>
+              <th>Taux actuel (€/h)</th>
+              <th>Nouveau taux</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of members(); track m.userId) {
+              <tr>
+                <td>{{ m.email }}</td>
+                <td><span class="role-badge role-{{ m.memberRole.toLowerCase() }}">{{ m.memberRole }}</span></td>
+                <td class="cell-mono">{{ getMemberRate(m.userId) != null ? (getMemberRate(m.userId) | number:'1.2-2') + ' €/h' : '—' }}</td>
+                <td>
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rate-input-field">
+                    <input
+                      matInput
+                      type="number"
+                      min="1"
+                      placeholder="Ex. 250"
+                      [ngModel]="getMemberRateInput(m.userId)"
+                      (ngModelChange)="setMemberRateInput(m.userId, $event)"
+                    />
+                  </mat-form-field>
+                </td>
+                <td>
+                  <button
+                    mat-flat-button
+                    color="primary"
+                    class="save-rate-btn"
+                    [disabled]="savingRateFor() === m.userId || (getMemberRateInput(m.userId) ?? 0) <= 0"
+                    (click)="saveRateForMember(m.userId)">
+                    @if (savingRateFor() === m.userId) {
+                      <mat-spinner diameter="16" />
+                    } @else {
+                      Enregistrer
+                    }
+                  </button>
+                </td>
+              </tr>
             }
-          </mat-form-field>
-          <button
-            mat-flat-button
-            color="primary"
-            [disabled]="savingBillingRate() || (billingRateInput() ?? 0) <= 0"
-            (click)="saveBillingRate()">
-            @if (savingBillingRate()) {
-              <mat-spinner diameter="18" />
-            } @else {
-              Enregistrer
-            }
-          </button>
-        </div>
+          </tbody>
+        </table>
       </mat-card-content>
     </mat-card>
 

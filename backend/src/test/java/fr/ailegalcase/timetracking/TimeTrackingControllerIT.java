@@ -114,10 +114,10 @@ class TimeTrackingControllerIT {
 
     // ---- BillingRate ----
 
-    // I-BR-01 : PUT billing-rate → 200 avec taux retourné
+    // I-BR-01 : PUT /members/{userId}/billing-rate par OWNER → 200
     @Test
-    void putBillingRate_validRate_returns200() throws Exception {
-        mockMvc.perform(put("/api/v1/workspace/billing-rate")
+    void putMemberBillingRate_byOwner_returns200() throws Exception {
+        mockMvc.perform(put("/api/v1/workspace/members/{userId}/billing-rate", memberUser.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ratePerHour": 250.00}
@@ -128,16 +128,52 @@ class TimeTrackingControllerIT {
                 .andExpect(jsonPath("$.effectiveFrom").isNotEmpty());
     }
 
-    // I-BR-02 : PUT billing-rate avec ratePerHour = 0 → 400
+    // I-BR-02 : PUT /members/{userId}/billing-rate avec ratePerHour = 0 → 400
     @Test
-    void putBillingRate_zeroRate_returns400() throws Exception {
-        mockMvc.perform(put("/api/v1/workspace/billing-rate")
+    void putMemberBillingRate_zeroRate_returns400() throws Exception {
+        mockMvc.perform(put("/api/v1/workspace/members/{userId}/billing-rate", memberUser.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ratePerHour": 0}
                                 """)
                         .with(authentication(ownerAuth)))
                 .andExpect(status().isBadRequest());
+    }
+
+    // I-BR-06 : PUT /members/{userId}/billing-rate par MEMBER → 403
+    @Test
+    void putMemberBillingRate_byMember_returns403() throws Exception {
+        mockMvc.perform(put("/api/v1/workspace/members/{userId}/billing-rate", owner.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ratePerHour": 200.00}
+                                """)
+                        .with(authentication(memberAuth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-BR-07 : PUT /members/{userId}/billing-rate avec userId hors workspace → 403
+    @Test
+    void putMemberBillingRate_userOutsideWorkspace_returns403() throws Exception {
+        UUID outsideUserId = UUID.randomUUID();
+        mockMvc.perform(put("/api/v1/workspace/members/{userId}/billing-rate", outsideUserId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ratePerHour": 200.00}
+                                """)
+                        .with(authentication(ownerAuth)))
+                .andExpect(status().isForbidden());
+    }
+
+    // I-BR-08 : GET /workspace/members/billing-rates par OWNER → retourne les taux
+    @Test
+    void getMemberRates_byOwner_returnsRatesMap() throws Exception {
+        saveBillingRate(memberUser, workspace, new BigDecimal("200.00"), LocalDate.now());
+
+        mockMvc.perform(get("/api/v1/workspace/members/billing-rates")
+                        .with(authentication(ownerAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$." + memberUser.getId()).exists());
     }
 
     // I-BR-03 : GET billing-rate → taux actif retourné
@@ -374,10 +410,10 @@ class TimeTrackingControllerIT {
                 .andExpect(jsonPath("$.lines").isEmpty());
     }
 
-    // I-BR-05 : PUT billing-rate → audit log BILLING_RATE_UPDATED créé
+    // I-BR-05 : PUT /members/{userId}/billing-rate → audit log BILLING_RATE_UPDATED créé
     @Test
-    void putBillingRate_createsAuditLog() throws Exception {
-        mockMvc.perform(put("/api/v1/workspace/billing-rate")
+    void putMemberBillingRate_createsAuditLog() throws Exception {
+        mockMvc.perform(put("/api/v1/workspace/members/{userId}/billing-rate", memberUser.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ratePerHour": 350.00}
