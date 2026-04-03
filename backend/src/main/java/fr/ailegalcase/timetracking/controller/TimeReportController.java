@@ -26,6 +26,13 @@ public class TimeReportController {
         return timeReportService.getMonthlyReport(month, oidcUser, principal);
     }
 
+    @GetMapping("/my")
+    public TimeReportResponse getMyMonthlyReport(@RequestParam String month,
+                                                 @AuthenticationPrincipal OidcUser oidcUser,
+                                                 Principal principal) {
+        return timeReportService.getMyMonthlyReport(month, oidcUser, principal);
+    }
+
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportCsv(@RequestParam String month,
                                             @AuthenticationPrincipal OidcUser oidcUser,

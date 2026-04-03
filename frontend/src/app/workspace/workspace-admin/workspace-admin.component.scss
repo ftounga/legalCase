@@ -210,6 +210,75 @@
   width: 200px;
 }
 
+.report-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.month-selector {
+  min-width: 200px;
+}
+
+.report-loading {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #E0E4EA;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+
+  thead tr {
+    background: #F5F6FA;
+  }
+
+  th {
+    color: #1A3A5C;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid #E0E4EA;
+  }
+
+  td {
+    color: #1C2B3A;
+    padding: 8px 14px;
+    border-bottom: 1px solid #F0F2F5;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tfoot tr.row-total {
+    background: #F5F6FA;
+    border-top: 2px solid #E0E4EA;
+
+    td {
+      font-weight: 600;
+      color: #1A3A5C;
+      padding: 10px 14px;
+      border-bottom: none;
+    }
+  }
+
+  .cell-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+}
+
 @media (max-width: 767px) {
   /* Table membres admin : masquer la colonne email */
   .mat-column-email {

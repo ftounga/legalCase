@@ -11,11 +11,13 @@ describe('TimeReportService', () => {
     caseFileId: 'cf-1',
     caseFileTitle: 'Dossier Dupont',
     userId: 'u-1',
-    userDisplayName: 'Alice',
+    userEmail: 'alice@test.com',
     totalSeconds: 3600,
     ratePerHour: 200,
-    totalAmount: 200
+    amount: 200
   };
+
+  const mockResponse = { month: '2026-04', lines: [mockRow] };
 
   beforeEach(() => {
     TestBed.configureTestingModule({ imports: [HttpClientTestingModule] });
@@ -25,13 +27,15 @@ describe('TimeReportService', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('getReport() appelle GET /api/v1/workspace/time-report?month=2026-04', () => {
+  it('getReport() appelle GET /api/v1/workspace/time-report?month=2026-04 et déroule lines', () => {
     service.getReport('2026-04').subscribe(rows => {
       expect(rows).toEqual([mockRow]);
     });
-    const req = httpMock.expectOne(r => r.url === '/api/v1/workspace/time-report' && r.params.get('month') === '2026-04');
+    const req = httpMock.expectOne(r =>
+      r.url === '/api/v1/workspace/time-report' && r.params.get('month') === '2026-04'
+    );
     expect(req.request.method).toBe('GET');
-    req.flush([mockRow]);
+    req.flush(mockResponse);
   });
 
   it('getReport() retourne un tableau vide si aucune entrée', () => {
@@ -39,7 +43,26 @@ describe('TimeReportService', () => {
       expect(rows).toEqual([]);
     });
     const req = httpMock.expectOne(r => r.url === '/api/v1/workspace/time-report');
-    req.flush([]);
+    req.flush({ month: '2020-01', lines: [] });
+  });
+
+  it('getMyReport() appelle GET /api/v1/workspace/time-report/my?month=2026-04 et déroule lines', () => {
+    service.getMyReport('2026-04').subscribe(rows => {
+      expect(rows).toEqual([mockRow]);
+    });
+    const req = httpMock.expectOne(r =>
+      r.url === '/api/v1/workspace/time-report/my' && r.params.get('month') === '2026-04'
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(mockResponse);
+  });
+
+  it('getMyReport() retourne un tableau vide si aucune entrée', () => {
+    service.getMyReport('2026-04').subscribe(rows => {
+      expect(rows).toEqual([]);
+    });
+    const req = httpMock.expectOne(r => r.url === '/api/v1/workspace/time-report/my');
+    req.flush({ month: '2026-04', lines: [] });
   });
 
   it('exportCsv() appelle GET /api/v1/workspace/time-report/export?month=2026-04', () => {

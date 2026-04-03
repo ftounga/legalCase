@@ -29,5 +29,20 @@ public interface TimeEntryRepository extends JpaRepository<TimeEntry, UUID> {
             @Param("monthStart") Instant monthStart,
             @Param("monthEnd") Instant monthEnd);
 
+    @Query("""
+            SELECT te FROM TimeEntry te
+            WHERE te.workspace.id = :workspaceId
+              AND te.user.id = :userId
+              AND te.stoppedAt IS NOT NULL
+              AND te.startedAt >= :monthStart
+              AND te.startedAt < :monthEnd
+            ORDER BY te.startedAt DESC
+            """)
+    List<TimeEntry> findCompletedByWorkspaceUserAndMonth(
+            @Param("workspaceId") UUID workspaceId,
+            @Param("userId") UUID userId,
+            @Param("monthStart") Instant monthStart,
+            @Param("monthEnd") Instant monthEnd);
+
     Optional<TimeEntry> findByIdAndWorkspace_Id(UUID id, UUID workspaceId);
 }

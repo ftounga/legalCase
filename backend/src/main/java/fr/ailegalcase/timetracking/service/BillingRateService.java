@@ -1,5 +1,7 @@
 package fr.ailegalcase.timetracking.service;
 
+import fr.ailegalcase.audit.AuditLog;
+import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
@@ -17,7 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,13 +29,16 @@ public class BillingRateService {
     private final UserBillingRateRepository billingRateRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final AuditLogRepository auditLogRepository;
 
     public BillingRateService(UserBillingRateRepository billingRateRepository,
                               WorkspaceMemberRepository workspaceMemberRepository,
-                              CurrentUserResolver currentUserResolver) {
+                              CurrentUserResolver currentUserResolver,
+                              AuditLogRepository auditLogRepository) {
         this.billingRateRepository = billingRateRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
+        this.auditLogRepository = auditLogRepository;
     }
 
     @Transactional
@@ -48,7 +52,16 @@ public class BillingRateService {
         rate.setRatePerHour(request.ratePerHour());
         rate.setEffectiveFrom(LocalDate.now(ZoneOffset.UTC));
 
-        return BillingRateResponse.from(billingRateRepository.save(rate));
+        BillingRateResponse saved = BillingRateResponse.from(billingRateRepository.save(rate));
+
+        AuditLog log = new AuditLog();
+        log.setWorkspaceId(member.getWorkspace().getId());
+        log.setUserId(user.getId());
+        log.setAction("BILLING_RATE_UPDATED");
+        log.setMetadata("ratePerHour=" + request.ratePerHour());
+        auditLogRepository.save(log);
+
+        return saved;
     }
 
     @Transactional(readOnly = true)

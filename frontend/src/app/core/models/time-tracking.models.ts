@@ -19,8 +19,8 @@ export interface TimeReportRow {
   caseFileId: string;
   caseFileTitle: string;
   userId: string;
-  userDisplayName: string;
+  userEmail: string;
   totalSeconds: number;
   ratePerHour: number | null;
-  totalAmount: number | null;
+  amount: number | null;
 }

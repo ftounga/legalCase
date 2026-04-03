@@ -160,19 +160,65 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Section Rapport de temps -->
+    <!-- Section Rapport de temps workspace -->
     <mat-card class="section-card">
       <mat-card-header>
         <mat-card-title>
           <mat-icon>schedule</mat-icon>
-          Rapport de temps facturable
+          Rapport de temps — workspace
         </mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <a mat-stroked-button routerLink="/workspace/time-report" class="report-link">
-          <mat-icon>open_in_new</mat-icon>
-          Voir le rapport mensuel
-        </a>
+        <div class="report-controls">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="month-selector">
+            <mat-label>Mois</mat-label>
+            <mat-select [(ngModel)]="selectedReportMonth" (ngModelChange)="onReportMonthChange()">
+              @for (m of reportMonths; track m.value) {
+                <mat-option [value]="m.value">{{ m.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        @if (reportLoading()) {
+          <div class="report-loading">
+            <mat-spinner diameter="32" />
+          </div>
+        } @else if (reportRows().length === 0) {
+          <p class="text-secondary">Aucune session enregistrée pour ce mois.</p>
+        } @else {
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Dossier</th>
+                <th>Utilisateur</th>
+                <th>Durée</th>
+                <th>Taux (€/h)</th>
+                <th>Montant (€)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of reportRows(); track row.caseFileId + row.userId) {
+                <tr>
+                  <td>{{ row.caseFileTitle }}</td>
+                  <td>{{ row.userEmail }}</td>
+                  <td class="cell-mono">{{ formatReportDuration(row.totalSeconds) }}</td>
+                  <td class="cell-mono">{{ row.ratePerHour != null ? (row.ratePerHour | number:'1.2-2') : '—' }}</td>
+                  <td class="cell-mono">{{ row.amount != null ? (row.amount | number:'1.2-2') : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="row-total">
+                <td>Total</td>
+                <td></td>
+                <td class="cell-mono">{{ formatReportDuration(reportTotalSeconds()) }}</td>
+                <td></td>
+                <td class="cell-mono">{{ reportTotalAmount() | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        }
       </mat-card-content>
     </mat-card>
 

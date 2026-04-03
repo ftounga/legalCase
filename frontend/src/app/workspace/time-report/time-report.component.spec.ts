@@ -10,10 +10,10 @@ const mockRow: TimeReportRow = {
   caseFileId: 'cf-1',
   caseFileTitle: 'Dossier Dupont',
   userId: 'u-1',
-  userDisplayName: 'Alice',
+  userEmail: "alice@test.com",
   totalSeconds: 3661,
   ratePerHour: 200,
-  totalAmount: 203.39
+  amount: 203.39
 };
 
 describe('TimeReportComponent', () => {
@@ -121,13 +121,13 @@ describe('TimeReportComponent', () => {
   });
 
   it('totalSeconds() somme correctement', () => {
-    reportService.getReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, totalAmount: 100 }]));
+    reportService.getReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, amount: 100 }]));
     component.load();
     expect(component.totalSeconds()).toBe(3661 + 1800);
   });
 
   it('totalAmount() somme correctement', () => {
-    reportService.getReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, totalAmount: 100 }]));
+    reportService.getReport.mockReturnValue(of([mockRow, { ...mockRow, totalSeconds: 1800, amount: 100 }]));
     component.load();
     expect(component.totalAmount()).toBeCloseTo(303.39, 1);
   });

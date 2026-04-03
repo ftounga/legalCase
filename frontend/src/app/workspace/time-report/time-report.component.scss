@@ -9,10 +9,36 @@
 
 .report-header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 16px;
+}
+
+.billing-rate-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: #F5F6FA;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+}
+
+.billing-rate-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1A3A5C;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.billing-rate-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.billing-rate-field {
+  width: 160px;
 }
 
 .report-title {
@@ -23,8 +49,9 @@
   margin: 0;
 }
 
-.report-actions {
+.report-controls {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 12px;
 }
@@ -71,45 +98,56 @@
 
 .report-table {
   width: 100%;
+  border-collapse: collapse;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #E0E4EA;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
 
-  th.mat-mdc-header-cell {
+  thead tr {
     background: #F5F6FA;
+  }
+
+  th {
     color: #1A3A5C;
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #E0E4EA;
   }
 
-  td.mat-mdc-cell {
-    font-size: 14px;
+  td {
     color: #1C2B3A;
     padding: 10px 16px;
+    border-bottom: 1px solid #F0F2F5;
   }
 
-  tr.mat-mdc-footer-row td {
-    font-weight: 600;
+  tbody tr:hover td {
+    background: rgba(26, 58, 92, 0.03);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tfoot tr.row-total {
     background: #F5F6FA;
     border-top: 2px solid #E0E4EA;
-    padding: 12px 16px;
-    font-size: 14px;
+
+    td {
+      font-weight: 600;
+      color: #1A3A5C;
+      padding: 12px 16px;
+      border-bottom: none;
+    }
   }
 
-  .footer-label {
-    color: #1A3A5C;
-  }
-
-  .footer-value {
-    color: #1A3A5C;
+  .cell-mono {
     font-family: 'JetBrains Mono', monospace;
-  }
-
-  tr.mat-mdc-row:hover td {
-    background: rgba(26, 58, 92, 0.03);
+    font-size: 13px;
   }
 }

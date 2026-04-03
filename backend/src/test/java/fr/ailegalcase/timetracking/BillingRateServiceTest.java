@@ -1,7 +1,10 @@
 package fr.ailegalcase.timetracking;
 
+import fr.ailegalcase.audit.AuditLog;
+import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.timetracking.dto.BillingRateRequest;
 import fr.ailegalcase.timetracking.entity.UserBillingRate;
 import fr.ailegalcase.timetracking.repository.UserBillingRateRepository;
 import fr.ailegalcase.timetracking.service.BillingRateService;
@@ -11,6 +14,7 @@ import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,6 +26,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +35,7 @@ class BillingRateServiceTest {
     @Mock private UserBillingRateRepository billingRateRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private CurrentUserResolver currentUserResolver;
+    @Mock private AuditLogRepository auditLogRepository;
 
     private BillingRateService service;
 
@@ -39,7 +45,7 @@ class BillingRateServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new BillingRateService(billingRateRepository, workspaceMemberRepository, currentUserResolver);
+        service = new BillingRateService(billingRateRepository, workspaceMemberRepository, currentUserResolver, auditLogRepository);
 
         user = new User();
         user.setId(UUID.randomUUID());
@@ -89,6 +95,32 @@ class BillingRateServiceTest {
         var response = service.getCurrentRate(null, null);
 
         assertThat(response).isNull();
+    }
+
+    // U-BR-03b : setRate sauvegarde un AuditLog BILLING_RATE_UPDATED
+    @Test
+    void setRate_savesAuditLog() {
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+
+        UserBillingRate saved = new UserBillingRate();
+        saved.setId(UUID.randomUUID());
+        saved.setUser(user);
+        saved.setWorkspace(workspace);
+        saved.setRatePerHour(new BigDecimal("300.00"));
+        saved.setEffectiveFrom(LocalDate.now());
+        when(billingRateRepository.save(any())).thenReturn(saved);
+        when(auditLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.setRate(new BillingRateRequest(new BigDecimal("300.00")), null, null);
+
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogRepository).save(captor.capture());
+        AuditLog log = captor.getValue();
+        assertThat(log.getAction()).isEqualTo("BILLING_RATE_UPDATED");
+        assertThat(log.getWorkspaceId()).isEqualTo(workspace.getId());
+        assertThat(log.getUserId()).isEqualTo(user.getId());
+        assertThat(log.getMetadata()).contains("300");
     }
 
     // U-BR-03 : taux effectif à une date passée

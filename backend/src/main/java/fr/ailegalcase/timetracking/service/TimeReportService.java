@@ -70,6 +70,21 @@ public class TimeReportService {
     }
 
     @Transactional(readOnly = true)
+    public TimeReportResponse getMyMonthlyReport(String month, OidcUser oidcUser, Principal principal) {
+        validateMonth(month);
+        User user = resolveUser(oidcUser, principal);
+        WorkspaceMember member = workspaceMemberRepository
+                .findByUserAndPrimaryTrue(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"));
+        UUID workspaceId = member.getWorkspace().getId();
+
+        List<TimeEntry> entries = loadEntriesForUser(workspaceId, user.getId(), month);
+        List<TimeReportLineResponse> lines = aggregateEntries(entries, workspaceId);
+
+        return new TimeReportResponse(month, lines);
+    }
+
+    @Transactional(readOnly = true)
     public byte[] exportCsv(String month, OidcUser oidcUser, Principal principal) {
         validateMonth(month);
         User user = resolveUser(oidcUser, principal);
@@ -87,6 +102,13 @@ public class TimeReportService {
         Instant monthStart = yearMonth.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         Instant monthEnd = yearMonth.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         return timeEntryRepository.findCompletedByWorkspaceAndMonth(workspaceId, monthStart, monthEnd);
+    }
+
+    private List<TimeEntry> loadEntriesForUser(UUID workspaceId, UUID userId, String month) {
+        YearMonth yearMonth = YearMonth.parse(month);
+        Instant monthStart = yearMonth.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant monthEnd = yearMonth.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        return timeEntryRepository.findCompletedByWorkspaceUserAndMonth(workspaceId, userId, monthStart, monthEnd);
     }
 
     private List<TimeReportLineResponse> aggregateEntries(List<TimeEntry> entries, UUID workspaceId) {

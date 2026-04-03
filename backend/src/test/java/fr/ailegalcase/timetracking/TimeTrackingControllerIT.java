@@ -1,5 +1,6 @@
 package fr.ailegalcase.timetracking;
 
+import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.AuthAccount;
 import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -49,6 +51,7 @@ class TimeTrackingControllerIT {
     @Autowired private CaseFileRepository caseFileRepository;
     @Autowired private TimeEntryRepository timeEntryRepository;
     @Autowired private UserBillingRateRepository billingRateRepository;
+    @Autowired private AuditLogRepository auditLogRepository;
 
     private OAuth2AuthenticationToken ownerAuth;
     private OAuth2AuthenticationToken memberAuth;
@@ -59,6 +62,7 @@ class TimeTrackingControllerIT {
 
     @BeforeEach
     void setUp() {
+        auditLogRepository.deleteAll();
         timeEntryRepository.deleteAll();
         billingRateRepository.deleteAll();
         caseFileRepository.deleteAll();
@@ -340,6 +344,49 @@ class TimeTrackingControllerIT {
                         .with(authentication(ownerAuth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lines").isEmpty());
+    }
+
+    // I-TR-05 : GET /my → MEMBER peut accéder à son propre rapport
+    @Test
+    void getMyTimeReport_memberCanAccess() throws Exception {
+        mockMvc.perform(get("/api/v1/workspace/time-report/my")
+                        .param("month", "2026-04")
+                        .with(authentication(memberAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.month").value("2026-04"))
+                .andExpect(jsonPath("$.lines").isArray());
+    }
+
+    // I-TR-06 : GET /my → isolation par user (member ne voit pas les entrées de owner)
+    @Test
+    void getMyTimeReport_userIsolation() throws Exception {
+        TimeEntry ownerEntry = saveTimeEntry(owner, workspace, caseFile,
+                Instant.parse("2026-04-10T10:00:00Z"),
+                Instant.parse("2026-04-10T11:00:00Z"));
+        ownerEntry.setDurationSeconds(3600);
+        timeEntryRepository.save(ownerEntry);
+
+        // member demande son propre rapport → ne doit pas voir l'entrée de owner
+        mockMvc.perform(get("/api/v1/workspace/time-report/my")
+                        .param("month", "2026-04")
+                        .with(authentication(memberAuth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lines").isEmpty());
+    }
+
+    // I-BR-05 : PUT billing-rate → audit log BILLING_RATE_UPDATED créé
+    @Test
+    void putBillingRate_createsAuditLog() throws Exception {
+        mockMvc.perform(put("/api/v1/workspace/billing-rate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ratePerHour": 350.00}
+                                """)
+                        .with(authentication(ownerAuth)))
+                .andExpect(status().isOk());
+
+        var logs = auditLogRepository.findTop50ByWorkspaceIdOrderByCreatedAtDesc(workspace.getId());
+        assertThat(logs).anyMatch(l -> "BILLING_RATE_UPDATED".equals(l.getAction()));
     }
 
     // ---- Sans auth ----

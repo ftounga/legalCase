@@ -167,6 +167,44 @@ class TimeReportServiceTest {
                         .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
+    // U-TR-06 : getMyMonthlyReport accessible à un MEMBER (pas de restriction de rôle)
+    @Test
+    void getMyMonthlyReport_memberCanAccess() {
+        WorkspaceMember memberRole = new WorkspaceMember();
+        memberRole.setUser(user);
+        memberRole.setWorkspace(workspace);
+        memberRole.setMemberRole("MEMBER");
+
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(memberRole));
+        when(timeEntryRepository.findCompletedByWorkspaceUserAndMonth(any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        TimeReportResponse response = service.getMyMonthlyReport("2026-04", null, null);
+
+        assertThat(response).isNotNull();
+        assertThat(response.lines()).isEmpty();
+    }
+
+    // U-TR-07 : getMyMonthlyReport ne retourne que les entrées de l'utilisateur courant
+    @Test
+    void getMyMonthlyReport_returnsOnlyCurrentUserEntries() {
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(ownerMember));
+
+        TimeEntry myEntry = buildEntry(3600);
+        when(timeEntryRepository.findCompletedByWorkspaceUserAndMonth(
+                eq(workspace.getId()), eq(user.getId()), any(), any()))
+                .thenReturn(List.of(myEntry));
+        when(caseFileRepository.findTitleById(any())).thenReturn(Optional.of("Dossier Test"));
+        when(billingRateRepository.findRateAtDate(any(), any(), any())).thenReturn(Optional.empty());
+
+        TimeReportResponse response = service.getMyMonthlyReport("2026-04", null, null);
+
+        assertThat(response.lines()).hasSize(1);
+        assertThat(response.lines().get(0).userEmail()).isEqualTo("owner@example.com");
+    }
+
     private TimeEntry buildEntry(int durationSeconds) {
         TimeEntry entry = new TimeEntry();
         entry.setUser(user);

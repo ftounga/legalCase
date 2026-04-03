@@ -6,7 +6,6 @@ import {
   signal,
   computed
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -17,7 +16,7 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
 @Component({
   selector: 'app-timer-widget',
   standalone: true,
-  imports: [DatePipe, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule],
   templateUrl: './timer-widget.component.html',
   styleUrl: './timer-widget.component.scss'
 })
@@ -27,14 +26,20 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
   elapsedSeconds = signal(0);
   /** true si un timer est actif sur un AUTRE dossier (409 reçu) */
   blockedByOtherTimer = signal(false);
+  noRateConfigured = signal(false);
 
   private intervalRef: ReturnType<typeof setInterval> | null = null;
 
   readonly activeEntry = computed(() => this.timeService.activeEntry());
-  readonly entries = computed(() =>
-    [...this.timeService.entries()]
-      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-      .slice(0, 10)
+
+  readonly totalCompletedSeconds = computed(() =>
+    this.timeService.entries()
+      .filter(e => e.durationSeconds != null)
+      .reduce((acc, e) => acc + e.durationSeconds!, 0)
+  );
+
+  readonly totalSeconds = computed(() =>
+    this.totalCompletedSeconds() + (this.activeEntry() ? this.elapsedSeconds() : 0)
   );
 
   constructor(
@@ -43,6 +48,11 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.timeService.getBillingRate().subscribe({
+      next: rate => { this.noRateConfigured.set(rate == null); },
+      error: () => {}
+    });
+
     this.timeService.loadEntries(this.caseFileId).subscribe({
       next: () => {
         const active = this.timeService.activeEntry();
@@ -59,7 +69,7 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
   }
 
   onStart(): void {
-    if (this.blockedByOtherTimer()) return;
+    if (this.blockedByOtherTimer() || this.noRateConfigured()) return;
     this.timeService.startTimer(this.caseFileId).subscribe({
       next: entry => {
         this.elapsedSeconds.set(0);
@@ -117,13 +127,12 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
     ].join(':');
   }
 
-  formatDuration(seconds: number | undefined): string {
-    if (seconds == null) return '—';
-    return this.timeService.formatDuration(seconds);
-  }
-
-  isActiveEntry(entry: TimeEntryResponse): boolean {
-    return !entry.stoppedAt;
+  formatDuration(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}h ${String(m).padStart(2, '0')}min`;
+    if (m > 0) return `${m}min`;
+    return `${seconds}s`;
   }
 
   private resumeTimer(entry: TimeEntryResponse): void {

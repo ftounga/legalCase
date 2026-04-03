@@ -4,12 +4,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatTableModule } from '@angular/material/table';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { TimeReportService } from '../../core/services/time-report.service';
-import { TimeReportRow } from '../../core/models/time-tracking.models';
+import { TimeService } from '../../core/services/time.service';
+import { TimeReportRow, BillingRateResponse } from '../../core/models/time-tracking.models';
 
 @Component({
   selector: 'app-time-report',
@@ -21,7 +22,7 @@ import { TimeReportRow } from '../../core/models/time-tracking.models';
     MatIconModule,
     MatSelectModule,
     MatFormFieldModule,
-    MatTableModule,
+    MatInputModule,
     MatProgressSpinnerModule
   ],
   templateUrl: './time-report.component.html',
@@ -36,22 +37,32 @@ export class TimeReportComponent implements OnInit {
   loadError = signal(false);
   exporting = signal(false);
 
-  readonly displayedColumns = ['caseFileTitle', 'userDisplayName', 'duration', 'ratePerHour', 'totalAmount'];
+  billingRate = signal<BillingRateResponse | null>(null);
+  billingRateInput = signal<number | null>(null);
+  savingBillingRate = signal(false);
 
   readonly totalSeconds = computed(() =>
     this.rows().reduce((acc, r) => acc + r.totalSeconds, 0)
   );
   readonly totalAmount = computed(() =>
-    this.rows().reduce((acc, r) => acc + (r.totalAmount ?? 0), 0)
+    this.rows().reduce((acc, r) => acc + (r.amount ?? 0), 0)
   );
 
   constructor(
     private reportService: TimeReportService,
+    private timeService: TimeService,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
     this.load();
+    this.timeService.getBillingRate().subscribe({
+      next: rate => {
+        this.billingRate.set(rate);
+        if (rate) this.billingRateInput.set(rate.ratePerHour);
+      },
+      error: () => {}
+    });
   }
 
   onMonthChange(): void {
@@ -61,7 +72,7 @@ export class TimeReportComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.loadError.set(false);
-    this.reportService.getReport(this.selectedMonth()).subscribe({
+    this.reportService.getMyReport(this.selectedMonth()).subscribe({
       next: rows => {
         this.rows.set(rows);
         this.loading.set(false);
@@ -90,6 +101,24 @@ export class TimeReportComponent implements OnInit {
       error: () => {
         this.exporting.set(false);
         this.snackBar.open('Erreur lors de l\'export.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+      }
+    });
+  }
+
+  saveBillingRate(): void {
+    const rate = this.billingRateInput();
+    if (rate == null || rate <= 0) return;
+    this.savingBillingRate.set(true);
+    this.timeService.saveBillingRate(rate).subscribe({
+      next: saved => {
+        this.billingRate.set(saved);
+        this.billingRateInput.set(saved.ratePerHour);
+        this.savingBillingRate.set(false);
+        this.snackBar.open('Taux horaire enregistré', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
+      },
+      error: () => {
+        this.savingBillingRate.set(false);
+        this.snackBar.open('Erreur lors de l\'enregistrement.', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
       }
     });
   }

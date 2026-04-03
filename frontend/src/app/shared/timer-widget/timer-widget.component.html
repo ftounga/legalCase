@@ -1,55 +1,42 @@
 <div class="timer-widget">
-  <div class="timer-controls">
-    @if (!activeEntry()) {
-      <button
-        mat-flat-button
-        color="primary"
-        class="timer-btn timer-btn--start"
-        [disabled]="blockedByOtherTimer()"
-        [matTooltip]="blockedByOtherTimer() ? 'Un timer est déjà actif sur un autre dossier' : ''"
-        (click)="onStart()">
-        <mat-icon>play_arrow</mat-icon>
-        Démarrer le chrono
-      </button>
-    } @else {
-      <div class="timer-running">
-        <span class="timer-display">{{ formattedElapsed }}</span>
+  @if (noRateConfigured()) {
+    <div class="no-rate-warning">
+      <mat-icon class="no-rate-icon">info_outline</mat-icon>
+      <span>Configurez votre taux horaire dans <strong>Administration → Facturation</strong> pour démarrer le chrono.</span>
+    </div>
+  } @else {
+    <div class="timer-controls">
+      @if (!activeEntry()) {
         <button
           mat-flat-button
-          color="warn"
-          class="timer-btn timer-btn--stop"
-          (click)="onStop()">
-          <mat-icon>stop</mat-icon>
-          Arrêter
+          color="primary"
+          class="timer-btn timer-btn--start"
+          [disabled]="blockedByOtherTimer()"
+          [matTooltip]="blockedByOtherTimer() ? 'Un timer est déjà actif sur un autre dossier' : ''"
+          (click)="onStart()">
+          <mat-icon>play_arrow</mat-icon>
+          Démarrer le chrono
         </button>
-      </div>
-    }
-  </div>
+      } @else {
+        <div class="timer-running">
+          <span class="timer-display">{{ formattedElapsed }}</span>
+          <button
+            mat-flat-button
+            color="warn"
+            class="timer-btn timer-btn--stop"
+            (click)="onStop()">
+            <mat-icon>stop</mat-icon>
+            Arrêter
+          </button>
+        </div>
+      }
+    </div>
+  }
 
-  @if (entries().length > 0) {
-    <div class="timer-sessions">
-      <h4 class="sessions-title">Sessions</h4>
-      <ul class="sessions-list">
-        @for (entry of entries(); track entry.id) {
-          <li class="session-item">
-            <span class="session-date">
-              {{ entry.startedAt | date:'dd/MM/yyyy HH:mm' }}
-            </span>
-            <span class="session-duration">
-              @if (isActiveEntry(entry)) {
-                {{ formattedElapsed }}
-              } @else {
-                {{ formatDuration(entry.durationSeconds) }}
-              }
-            </span>
-            @if (isActiveEntry(entry)) {
-              <span class="session-badge session-badge--active">En cours</span>
-            } @else {
-              <span class="session-badge session-badge--done">Terminé</span>
-            }
-          </li>
-        }
-      </ul>
+  @if (totalSeconds() > 0) {
+    <div class="timer-total">
+      <span class="timer-total-label">Total enregistré sur ce dossier</span>
+      <span class="timer-total-value">{{ formatDuration(totalSeconds()) }}</span>
     </div>
   }
 </div>
