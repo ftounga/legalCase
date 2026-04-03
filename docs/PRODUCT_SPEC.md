@@ -180,6 +180,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
+| F-109 | Alertes procédurales automatiques | V4 — **À spécifier** | Quand une re-synthèse enrichie requalifie un point VERIFIED en NON_COMPLIANT via `checks_a_requalifier`, envoyer un email à l'avocat ("Point procédural réévalué — action requise"). S'appuie sur F-65 (notifications email) + F-96-05 (requalification). |
+| F-107 | Export PDF de la checklist procédurale | V4 — **À spécifier** | Générer un PDF de la checklist avec les statuts (✅/❌/⚠️), les descriptions et les raisons de requalification Claude. Purement frontend, s'appuie sur `pdfmake` déjà en place (F-40). |
 | F-106 | Suivi du temps facturable par dossier | V4 — **Terminée** | SF-106-01 mergée 2026-04-02 : backend time tracking (migration 043, user_billing_rates, time_entries, 7 endpoints, 448 tests). SF-106-02 mergée 2026-04-03 : TimerWidgetComponent start/stop, TimeService signals, section Facturation workspace-admin, 520 tests. SF-106-03 mergée 2026-04-03 : TimeReportComponent, route workspace/time-report, export CSV, 538 tests. SF-106-04 mergée 2026-04-03 : insight callout doré dans synthèse (temps × risque), 545 tests. SF-106-05 mergée 2026-04-03 : admin définit taux par membre (PUT /workspace/members/{userId}/billing-rate, OWNER/ADMIN), taux lecture seule pour l'avocat, AuditLog BILLING_RATE_UPDATED, 548 tests. |
 | F-105 | Refonte page de login — split-screen branding juridique | V3 — **Terminée** | SF-105-01 mergée 2026-04-02 : layout split-screen navy/blanc, bouton Google SVG outlined, signal showRegister (plus de tabs), tagline repositionnée, carte formulaire blanche avec ombre, RGPD lisible, smoke tests 11/11 verts. |
 | F-104 | Chatbot d'aide produit intégré | V3 — **Terminée** | SF-104-01 mergée 2026-04-02 : POST /api/v1/help/chat, HelpDocumentLoader (RAG statique 7 fichiers md), HelpChatService (system prompt + Haiku 512 tokens), 435 tests verts. SF-104-02 mergée 2026-04-02 : HelpChatWidgetComponent (bulle fixe, panneau 360px, 3 suggestions, compteur 500 chars, états loading/answer/error, conditionné à l'auth), HelpService, intégré dans AppComponent, 493 tests verts. |
@@ -264,6 +266,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-04-01 | F-100 Terminée — SF-100-02 mergée : resolveSource(), sourceMap computed, rétrocompat, 454 tests | Product owner |
 | 2026-04-01 | F-100 SF-100-01 mergée — prompt filename, analysisDocuments dans CaseAnalysisResponse, 34 tests | Product owner |
 | 2026-04-01 | F-100 ajoutée — Noms de documents dans les sources IA (SF-100-01 backend + SF-100-02 frontend) | Product owner |
+| 2026-04-03 | F-107 + F-109 ajoutées au backlog — Export PDF checklist procédurale + Alertes procédurales automatiques | Product owner |
 | 2026-04-03 | F-96 Terminée — SF-96-05 mergée : préservation VERIFIED, requalification auto Claude via checks_a_requalifier, raison visible checklist, migration 044, 33 TU | Product owner |
 | 2026-04-01 | F-94 Terminée — SF-94-02 mergée : badge score de risque dans liste et synthèse, couleurs design system, 422 tests | Product owner |
 | 2026-04-01 | F-97 Terminée — SF-97-02 mergée : sous-section Propositions IA, boutons Accepter/Rejeter, 22 tests | Product owner |
