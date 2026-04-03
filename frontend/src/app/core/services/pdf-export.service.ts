@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
+import { ProcedureCheck } from '../models/procedure-check.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 
 const PRIMARY = '#1A3A5C';
@@ -326,6 +327,153 @@ export class PdfExportService {
         italics: true,
       },
     };
+  }
+
+  exportChecklist(caseFile: CaseFile, checks: ProcedureCheck[]): void {
+    import('pdfmake/build/pdfmake').then(pdfMakeModule => {
+      import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
+        const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
+        const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
+        pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
+
+        const docDefinition = this.buildChecklistDocument(caseFile, checks) as TDocumentDefinitions;
+        const fileName = this.buildChecklistFileName(caseFile.title);
+        pdfMake.createPdf(docDefinition).download(fileName);
+      });
+    });
+  }
+
+  buildChecklistDocument(caseFile: CaseFile, checks: ProcedureCheck[]): object {
+    const exportDate = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+    const sorted = [...checks].sort((a, b) => a.ordre - b.ordre);
+    const verified = sorted.filter(c => c.statut === 'VERIFIED').length;
+    const nonCompliant = sorted.filter(c => c.statut === 'NON_COMPLIANT').length;
+    const toCheck = sorted.filter(c => c.statut === 'TO_CHECK').length;
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [48, 64, 48, 64],
+      content: [
+        { text: '', margin: [0, 40, 0, 0] },
+        {
+          image: LEGALCASE_LOGO_BASE64,
+          width: 180,
+          alignment: 'center',
+          margin: [0, 0, 0, 24],
+        },
+        {
+          canvas: [{ type: 'line', x1: 80, y1: 0, x2: 420, y2: 0, lineWidth: 2, lineColor: ACCENT }],
+          margin: [0, 0, 0, 20],
+        },
+        {
+          text: caseFile.title || 'Dossier',
+          style: 'coverTitle',
+          alignment: 'center',
+          margin: [0, 0, 0, 8],
+        },
+        {
+          text: 'Checklist procédurale',
+          fontSize: 13,
+          color: TEXT_SECONDARY,
+          alignment: 'center',
+          margin: [0, 0, 0, 4],
+        },
+        {
+          text: `Exportée le ${exportDate}`,
+          fontSize: 10,
+          color: TEXT_SECONDARY,
+          alignment: 'center',
+          margin: [0, 0, 0, 24],
+        },
+        {
+          table: {
+            widths: ['*', '*', '*'],
+            body: [[
+              { text: `${verified} vérifié(s)`, alignment: 'center', bold: true, color: '#27AE60', fontSize: 11, margin: [0, 6, 0, 6] },
+              { text: `${nonCompliant} non conforme(s)`, alignment: 'center', bold: true, color: ERROR, fontSize: 11, margin: [0, 6, 0, 6] },
+              { text: `${toCheck} à vérifier`, alignment: 'center', bold: true, color: ACCENT, fontSize: 11, margin: [0, 6, 0, 6] },
+            ]]
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => DIVIDER,
+            vLineColor: () => DIVIDER,
+          },
+          margin: [0, 0, 0, 24],
+        },
+        {
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: DIVIDER }],
+          margin: [0, 0, 0, 16],
+        },
+        ...this.buildChecklistItems(sorted),
+      ],
+      footer: (currentPage: number, pageCount: number) => this.buildFooter(currentPage, pageCount),
+      defaultStyle: { font: 'Roboto', fontSize: 10, color: TEXT, lineHeight: 1.4 },
+      styles: this.buildStyles(),
+    };
+  }
+
+  private buildChecklistItems(checks: ProcedureCheck[]): object[] {
+    const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+      VERIFIED:      { label: '✔ Vérifié',       color: '#27AE60', bg: '#F0FBF4' },
+      NON_COMPLIANT: { label: '✖ Non conforme',  color: ERROR,     bg: ERROR_BG  },
+      TO_CHECK:      { label: '? À vérifier',    color: ACCENT,    bg: '#FDF6EC' },
+    };
+
+    return checks.map(check => {
+      const cfg = STATUS_CONFIG[check.statut] ?? STATUS_CONFIG['TO_CHECK'];
+      const descriptionCell: object[] = [
+        { text: `${check.ordre}. ${check.description}`, fontSize: 10 },
+      ];
+      if (check.raison) {
+        descriptionCell.push({
+          text: `Raison IA : ${check.raison}`,
+          fontSize: 9,
+          italics: true,
+          color: TEXT_SECONDARY,
+          margin: [0, 4, 0, 0],
+        } as object);
+      }
+      return {
+        table: {
+          widths: [110, '*'],
+          body: [[
+            {
+              text: cfg.label,
+              bold: true,
+              color: cfg.color,
+              fillColor: cfg.bg,
+              fontSize: 9,
+              margin: [8, 6, 8, 6],
+              border: [false, false, false, false],
+            },
+            {
+              stack: descriptionCell,
+              fillColor: cfg.bg,
+              margin: [4, 6, 8, 6],
+              border: [false, false, false, false],
+            },
+          ]]
+        },
+        layout: 'noBorders',
+        margin: [0, 0, 0, 4],
+      };
+    });
+  }
+
+  buildChecklistFileName(title: string): string {
+    const slug = (title || 'dossier')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const date = new Date().toISOString().slice(0, 10);
+    return `checklist-${slug}-${date}.pdf`;
   }
 
   buildFileName(title: string, synthesis: CaseAnalysisResult): string {

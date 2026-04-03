@@ -227,6 +227,12 @@
             </mat-panel-title>
             <mat-panel-description>{{ procedureChecks().length }} point(s) à vérifier</mat-panel-description>
           </mat-expansion-panel-header>
+          <div class="checklist-export-bar">
+            <button mat-stroked-button class="export-btn export-btn--checklist" (click)="exportChecklistPdf()">
+              <mat-icon>picture_as_pdf</mat-icon>
+              Exporter PDF
+            </button>
+          </div>
           <div class="checklist-list">
             @for (check of procedureChecks(); track check.id) {
               <div class="checklist-item">

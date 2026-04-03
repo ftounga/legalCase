@@ -526,6 +526,12 @@
 }
 
 // Checklist procédurale
+.checklist-export-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
 .checklist-list {
   display: flex;
   flex-direction: column;
