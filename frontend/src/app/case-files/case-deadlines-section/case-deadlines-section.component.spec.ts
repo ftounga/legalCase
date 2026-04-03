@@ -323,4 +323,55 @@ describe('CaseDeadlinesSectionComponent', () => {
     expect(dialogSpy.open).not.toHaveBeenCalled();
     expect(deadlineServiceSpy.validateDeadline).toHaveBeenCalledWith('cf-1', 'ai-fut', 'ACCEPT');
   });
+
+  // ── SF-DT-03-01 — Délais de prescription légaux ──────────────────────────
+
+  it('SFDT03-U-01: délai STATUTORY visible dans statutoryDeadlines, absent des autres', () => {
+    const statutory = makeDeadline('2026-08-01', 'Prescription — Licenciement (Art. L1471-1)',
+      { id: 's-1', source: 'STATUTORY', aiStatus: null });
+    deadlineServiceSpy.list.mockReturnValue(of([statutory]));
+    component.loadDeadlines();
+
+    expect(component.statutoryDeadlines()).toContain(statutory);
+    expect(component.confirmedDeadlines()).not.toContain(statutory);
+    expect(component.pendingAiDeadlines()).not.toContain(statutory);
+  });
+
+  it('SFDT03-U-02: sous-section Délais légaux applicables visible si STATUTORY présent', () => {
+    const statutory = makeDeadline('2026-08-01', 'Prescription — Licenciement (Art. L1471-1)',
+      { id: 's-1', source: 'STATUTORY', aiStatus: null });
+    deadlineServiceSpy.list.mockReturnValue(of([statutory]));
+    component.loadDeadlines();
+    component.collapsed.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.statutory-section')).toBeTruthy();
+  });
+
+  it('SFDT03-U-03: sous-section Délais légaux applicables absente si aucun STATUTORY', () => {
+    const manual = makeDeadline('2026-08-01', 'Délai manuel', { id: 'm-1' });
+    deadlineServiceSpy.list.mockReturnValue(of([manual]));
+    component.loadDeadlines();
+    component.collapsed.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.statutory-section')).toBeNull();
+  });
+
+  it('SFDT03-U-04: état vide affiché seulement si aucun délai (MANUAL+AI+STATUTORY)', () => {
+    deadlineServiceSpy.list.mockReturnValue(of([]));
+    component.loadDeadlines();
+    component.collapsed.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.deadlines-empty')).toBeTruthy();
+
+    const statutory = makeDeadline('2026-08-01', 'Prescription',
+      { id: 's-1', source: 'STATUTORY', aiStatus: null });
+    deadlineServiceSpy.list.mockReturnValue(of([statutory]));
+    component.loadDeadlines();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.deadlines-empty')).toBeNull();
+  });
 });

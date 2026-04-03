@@ -37,6 +37,10 @@ export class CaseDeadlinesSectionComponent implements OnInit {
     this.deadlines().filter(d => d.source === 'AI' && d.aiStatus === 'PENDING')
   );
 
+  statutoryDeadlines = computed(() =>
+    this.deadlines().filter(d => d.source === 'STATUTORY')
+  );
+
   toggleCollapsed(): void { this.collapsed.update(v => !v); }
   newLabel = '';
   newDueDate = '';

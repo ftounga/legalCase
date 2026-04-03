@@ -2,6 +2,7 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.casefile.StatutoryDeadlineService;
 import fr.ailegalcase.chat.ChatMessage;
 import fr.ailegalcase.chat.ChatMessageRepository;
 import io.sentry.Sentry;
@@ -36,12 +37,14 @@ public class EnrichedAnalysisService {
             Tu reçois la synthèse globale d'un dossier juridique ainsi que les réponses de l'avocat à des questions complémentaires.
             Produis une synthèse enrichie et mise à jour en intégrant ces nouvelles informations.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "checks_a_requalifier": [{"description": "...", "nouveau_statut": "NON_COMPLIANT"|"TO_CHECK", "raison": "..."}]}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "checks_a_requalifier": [{"description": "...", "nouveau_statut": "NON_COMPLIANT"|"TO_CHECK", "raison": "..."}], "type_litige_detecte": "LICENCIEMENT_SANS_CAUSE_REELLE"|"LICENCIEMENT_ECONOMIQUE"|"PRISE_ACTE_RUPTURE"|"HARCELEMENT_MORAL"|"DISCRIMINATION"|"HEURES_SUPPLEMENTAIRES"|"RAPPEL_SALAIRE"|null, "date_reference_prescription": "YYYY-MM-DD"|null}
             Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (nom exact du fichier tel qu'il apparaît dans la synthèse précédente) et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis. Si le dossier semble complet, utilise "pieces_manquantes": [].
             Le champ "points_procedure" liste les étapes procédurales légalement requises dans ce type de dossier (ex: "Entretien préalable tenu dans les délais", "Lettre de licenciement motivée"). Si la procédure semble conforme, utilise "points_procedure": [].
             Le champ "score_risque" est obligatoire : évalue le niveau de risque global du dossier. "niveau" est l'un de "FAIBLE", "MOYEN" ou "ELEVE". "valeur" est un entier entre 0 et 100 reflétant l'intensité du risque (0 = aucun risque, 100 = risque maximum).
             Le champ "checks_a_requalifier" liste les points procéduraux marqués "vérifiés" dans le prompt que tu estimes devoir requalifier à la lumière des nouvelles informations. Pour chaque point : "description" doit correspondre exactement au libellé fourni dans le prompt, "nouveau_statut" est "NON_COMPLIANT" si le point est manifestement non respecté ou "TO_CHECK" si des doutes subsistent, "raison" explique brièvement pourquoi ce point doit être revu. Si aucun point vérifié ne doit être requalifié, utilise "checks_a_requalifier": [].
+            Le champ "type_litige_detecte" identifie le type principal de litige prud'homal du dossier. Utilise l'une des valeurs suivantes (null si non déterminable) : "LICENCIEMENT_SANS_CAUSE_REELLE", "LICENCIEMENT_ECONOMIQUE", "PRISE_ACTE_RUPTURE", "HARCELEMENT_MORAL", "DISCRIMINATION", "HEURES_SUPPLEMENTAIRES", "RAPPEL_SALAIRE".
+            Le champ "date_reference_prescription" est la date à partir de laquelle commence le délai de prescription (ex : date de rupture du contrat, date des faits). Format ISO 8601 (YYYY-MM-DD). Utilise null si non déterminable.
             Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
             """;
 
@@ -69,6 +72,7 @@ public class EnrichedAnalysisService {
     private final AnalysisLimitsProperties analysisLimitsProperties;
     private final ChatMessageRepository chatMessageRepository;
     private final ProcedureCheckService procedureCheckService;
+    private final StatutoryDeadlineService statutoryDeadlineService;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -85,7 +89,8 @@ public class EnrichedAnalysisService {
                                    AnalysisQaSnapshotService analysisQaSnapshotService,
                                    AnalysisLimitsProperties analysisLimitsProperties,
                                    ChatMessageRepository chatMessageRepository,
-                                   ProcedureCheckService procedureCheckService) {
+                                   ProcedureCheckService procedureCheckService,
+                                   StatutoryDeadlineService statutoryDeadlineService) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -99,6 +104,7 @@ public class EnrichedAnalysisService {
         this.analysisLimitsProperties = analysisLimitsProperties;
         this.chatMessageRepository = chatMessageRepository;
         this.procedureCheckService = procedureCheckService;
+        this.statutoryDeadlineService = statutoryDeadlineService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -233,6 +239,8 @@ public class EnrichedAnalysisService {
         if (failure == null) {
             procedureCheckService.createChecksWithVerifiedPropagation(enrichedAnalysis,
                     enrichedAnalysis.getAnalysisResult(), previousAnalysisId);
+            statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,
+                    enrichedAnalysis.getAnalysisResult());
         }
 
         AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)

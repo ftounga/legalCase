@@ -53,11 +53,14 @@ class SentryJobReportingTest {
     private final AnalysisQaSnapshotService analysisQaSnapshotService = mock(AnalysisQaSnapshotService.class);
     private final fr.ailegalcase.chat.ChatMessageRepository chatMessageRepository = mock(fr.ailegalcase.chat.ChatMessageRepository.class);
 
+    private final fr.ailegalcase.casefile.StatutoryDeadlineService statutoryDeadlineService =
+            mock(fr.ailegalcase.casefile.StatutoryDeadlineService.class);
+
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService);
+            chatMessageRepository, procedureCheckService, statutoryDeadlineService);
 
     @BeforeEach
     void setUp() {
