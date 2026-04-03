@@ -104,6 +104,25 @@ public class ProcedureCheckService {
         }
     }
 
+    /**
+     * Retourne les descriptions des checks TO_CHECK de la dernière analyse DONE du dossier.
+     * Fail-open : toute exception retourne une liste vide.
+     */
+    @Transactional(readOnly = true)
+    public List<String> listToCheck(CaseFile caseFile) {
+        try {
+            return caseAnalysisRepository
+                    .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFile.getId(), AnalysisStatus.DONE)
+                    .map(analysis -> procedureCheckRepository
+                            .findByCaseAnalysisIdAndStatutOrderByOrdreAsc(analysis.getId(), ProcedureCheckStatus.TO_CHECK)
+                            .stream().map(ProcedureCheck::getDescription).toList())
+                    .orElse(List.of());
+        } catch (Exception e) {
+            log.warn("listToCheck failed for caseFile {} — skipping", caseFile.getId(), e);
+            return List.of();
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<ProcedureCheckResponse> list(UUID caseFileId, UUID analysisId,
                                               OidcUser oidcUser, Principal principal) {
