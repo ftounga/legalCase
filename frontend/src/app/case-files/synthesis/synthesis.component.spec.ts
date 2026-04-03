@@ -18,6 +18,9 @@ import { of, throwError } from 'rxjs';
 import { AnalysisItem, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { TimeService } from '../../core/services/time.service';
+import { TimeEntryResponse } from '../../core/models/time-tracking.models';
+import { signal } from '@angular/core';
 
 const CASE_FILE_ID = 'cf-1';
 
@@ -79,6 +82,12 @@ describe('SynthesisComponent', () => {
     const chatService = jasmine.createSpyObj('ChatService', ['getHistory', 'sendMessage']);
     chatService.getHistory.mockReturnValue(of([]));
 
+    const timeEntriesSignal = signal<TimeEntryResponse[]>([]);
+    const timeServiceMock = {
+      loadEntries: jest.fn().mockReturnValue(of(undefined as void)),
+      entries: timeEntriesSignal
+    };
+
     await TestBed.configureTestingModule({
       imports: [SynthesisComponent, NoopAnimationsModule, RouterTestingModule],
       providers: [
@@ -94,6 +103,7 @@ describe('SynthesisComponent', () => {
         { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export']) },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
+        { provide: TimeService, useValue: timeServiceMock },
       ]
     }).compileComponents();
 
@@ -537,5 +547,60 @@ describe('SynthesisComponent', () => {
     expect(badge).not.toBeNull();
     expect(badge!.textContent).toContain('lettre.pdf');
     expect(badge!.textContent).not.toContain('Document 0');
+  });
+
+  // TI-01 : totalBilledSeconds — somme uniquement les entrées avec durationSeconds != null
+  it('TI-01: totalBilledSeconds sums only entries with durationSeconds', () => {
+    const entries: TimeEntryResponse[] = [
+      { id: 'e1', caseFileId: 'cf-1', startedAt: '', durationSeconds: 3600 },
+      { id: 'e2', caseFileId: 'cf-1', startedAt: '', durationSeconds: 1800 },
+      { id: 'e3', caseFileId: 'cf-1', startedAt: '', durationSeconds: undefined } // timer actif
+    ];
+    component.timeEntries.set(entries);
+    expect(component.totalBilledSeconds()).toBe(5400);
+  });
+
+  // TI-02 : totalBilledSeconds — aucune entrée terminée → 0
+  it('TI-02: totalBilledSeconds returns 0 when no completed entries', () => {
+    component.timeEntries.set([
+      { id: 'e1', caseFileId: 'cf-1', startedAt: '', durationSeconds: undefined }
+    ]);
+    expect(component.totalBilledSeconds()).toBe(0);
+  });
+
+  // TI-03 : showInsight — true si riskLevel non null ET totalBilledSeconds > 0
+  it('TI-03: showInsight is true when riskLevel set and totalBilledSeconds > 0', () => {
+    component.synthesis.set(makeSynthesis(1, 'STANDARD', [], 'ELEVE', 85));
+    component.timeEntries.set([{ id: 'e1', caseFileId: 'cf-1', startedAt: '', durationSeconds: 3600 }]);
+    expect(component.showInsight()).toBe(true);
+  });
+
+  // TI-04 : showInsight — false si aucune session terminée
+  it('TI-04: showInsight is false when no completed entries', () => {
+    component.synthesis.set(makeSynthesis(1, 'STANDARD', [], 'ELEVE', 85));
+    component.timeEntries.set([]);
+    expect(component.showInsight()).toBe(false);
+  });
+
+  // TI-05 : showInsight — false si riskLevel null
+  it('TI-05: showInsight is false when riskLevel is null', () => {
+    component.synthesis.set(makeSynthesis(1, 'STANDARD', [], null, null));
+    component.timeEntries.set([{ id: 'e1', caseFileId: 'cf-1', startedAt: '', durationSeconds: 3600 }]);
+    expect(component.showInsight()).toBe(false);
+  });
+
+  // TI-06 : insightText — format "2h 15min … Élevé"
+  it('TI-06: insightText formats correctly for hours and minutes', () => {
+    component.synthesis.set(makeSynthesis(1, 'STANDARD', [], 'ELEVE', 85));
+    component.timeEntries.set([{ id: 'e1', caseFileId: 'cf-1', startedAt: '', durationSeconds: 8100 }]); // 2h 15min
+    expect(component.insightText()).toContain('2h 15min');
+    expect(component.insightText()).toContain('Élevé');
+  });
+
+  // TI-07 : formatInsightDuration — "< 1min" si < 60s
+  it('TI-07: formatInsightDuration returns "< 1min" for seconds < 60', () => {
+    expect(component.formatInsightDuration(45)).toBe('< 1min');
+    expect(component.formatInsightDuration(0)).toBe('< 1min');
+    expect(component.formatInsightDuration(59)).toBe('< 1min');
   });
 });

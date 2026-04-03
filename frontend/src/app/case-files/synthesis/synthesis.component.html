@@ -80,6 +80,13 @@
     </div>
   </div>
 
+  @if (showInsight()) {
+    <div class="insight-callout">
+      <mat-icon class="insight-icon">lightbulb</mat-icon>
+      <span class="insight-text">{{ insightText() }}</span>
+    </div>
+  }
+
   @if (synthesis()) {
     <mat-accordion class="synthesis-accordion" multi [@listStagger]="synthesis()!.faits.length + synthesis()!.risques.length + synthesis()!.timeline.length">
       @if (synthesis()!.timeline.length > 0) {
