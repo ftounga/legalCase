@@ -67,6 +67,10 @@
           <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
           <span matListItemTitle>Administration</span>
         </a>
+        <a mat-list-item routerLink="/workspace/time-report" routerLinkActive="sidenav-active" (click)="onNavClick()">
+          <mat-icon matListItemIcon>schedule</mat-icon>
+          <span matListItemTitle>Rapport de temps</span>
+        </a>
         @if (auth.currentUser()?.isSuperAdmin) {
           <a mat-list-item routerLink="/super-admin" routerLinkActive="sidenav-active" (click)="onNavClick()">
             <mat-icon matListItemIcon>security</mat-icon>
