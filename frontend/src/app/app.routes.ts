@@ -60,6 +60,11 @@ export const routes: Routes = [
           .then(m => m.AuditLogScreenComponent)
       },
       {
+        path: 'workspace/time-report',
+        loadComponent: () => import('./workspace/time-report/time-report.component')
+          .then(m => m.TimeReportComponent)
+      },
+      {
         path: 'search',
         loadComponent: () => import('./search/search.component')
           .then(m => m.SearchComponent)

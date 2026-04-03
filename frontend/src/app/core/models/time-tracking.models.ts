@@ -14,3 +14,13 @@ export interface BillingRateResponse {
 export interface BillingRateRequest {
   ratePerHour: number;
 }
+
+export interface TimeReportRow {
+  caseFileId: string;
+  caseFileTitle: string;
+  userId: string;
+  userDisplayName: string;
+  totalSeconds: number;
+  ratePerHour: number | null;
+  totalAmount: number | null;
+}
