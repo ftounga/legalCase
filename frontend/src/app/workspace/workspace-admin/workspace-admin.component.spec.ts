@@ -63,7 +63,8 @@ describe('WorkspaceAdminComponent', () => {
           provide: TimeService,
           useValue: {
             getBillingRate: jest.fn().mockReturnValue(of(null)),
-            saveBillingRate: jest.fn()
+            getMemberRates: jest.fn().mockReturnValue(of({})),
+            setRateForMember: jest.fn()
           }
         },
         {

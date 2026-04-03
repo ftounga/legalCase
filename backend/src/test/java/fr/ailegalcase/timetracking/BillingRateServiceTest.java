@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -97,11 +98,23 @@ class BillingRateServiceTest {
         assertThat(response).isNull();
     }
 
-    // U-BR-03b : setRate sauvegarde un AuditLog BILLING_RATE_UPDATED
+    // U-BR-03b : setRateForMember sauvegarde un AuditLog BILLING_RATE_UPDATED
     @Test
-    void setRate_savesAuditLog() {
-        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
-        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+    void setRateForMember_savesAuditLog() {
+        User admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setEmail("admin@example.com");
+        admin.setStatus("ACTIVE");
+
+        WorkspaceMember adminMember = new WorkspaceMember();
+        adminMember.setUser(admin);
+        adminMember.setWorkspace(workspace);
+        adminMember.setMemberRole("OWNER");
+
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(admin);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(admin)).thenReturn(Optional.of(adminMember));
+        when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), user.getId()))
+                .thenReturn(Optional.of(member));
 
         UserBillingRate saved = new UserBillingRate();
         saved.setId(UUID.randomUUID());
@@ -112,15 +125,54 @@ class BillingRateServiceTest {
         when(billingRateRepository.save(any())).thenReturn(saved);
         when(auditLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.setRate(new BillingRateRequest(new BigDecimal("300.00")), null, null);
+        service.setRateForMember(user.getId(), new BillingRateRequest(new BigDecimal("300.00")), null, null);
 
         ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
         verify(auditLogRepository).save(captor.capture());
         AuditLog log = captor.getValue();
         assertThat(log.getAction()).isEqualTo("BILLING_RATE_UPDATED");
         assertThat(log.getWorkspaceId()).isEqualTo(workspace.getId());
-        assertThat(log.getUserId()).isEqualTo(user.getId());
+        assertThat(log.getUserId()).isEqualTo(admin.getId());
         assertThat(log.getMetadata()).contains("300");
+    }
+
+    // U-BR-03c : setRateForMember par un MEMBER → 403
+    @Test
+    void setRateForMember_memberCaller_throws403() {
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+
+        assertThatThrownBy(() ->
+            service.setRateForMember(UUID.randomUUID(), new BillingRateRequest(new BigDecimal("200.00")), null, null)
+        ).isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+         .satisfies(ex -> assertThat(((org.springframework.web.server.ResponseStatusException) ex).getStatusCode())
+                 .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+    }
+
+    // U-BR-03d : setRateForMember avec userId hors workspace → 403
+    @Test
+    void setRateForMember_targetOutsideWorkspace_throws403() {
+        User admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setEmail("admin@example.com");
+        admin.setStatus("ACTIVE");
+
+        WorkspaceMember adminMember = new WorkspaceMember();
+        adminMember.setUser(admin);
+        adminMember.setWorkspace(workspace);
+        adminMember.setMemberRole("OWNER");
+
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(admin);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(admin)).thenReturn(Optional.of(adminMember));
+        when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(any(), any()))
+                .thenReturn(Optional.empty());
+
+        UUID outsideUserId = UUID.randomUUID();
+        assertThatThrownBy(() ->
+            service.setRateForMember(outsideUserId, new BillingRateRequest(new BigDecimal("200.00")), null, null)
+        ).isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+         .satisfies(ex -> assertThat(((org.springframework.web.server.ResponseStatusException) ex).getStatusCode())
+                 .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
     }
 
     // U-BR-03 : taux effectif à une date passée

@@ -53,9 +53,9 @@ export class WorkspaceAdminComponent implements OnInit {
   loading = signal(true);
   accessDenied = signal(false);
 
-  billingRate = signal<BillingRateResponse | null>(null);
-  billingRateInput = signal<number | null>(null);
-  savingBillingRate = signal(false);
+  memberRates = signal<Record<string, BillingRateResponse>>({});
+  memberRateInputs = signal<Record<string, number | null>>({});
+  savingRateFor = signal<string | null>(null);
 
   readonly memberColumns = ['email', 'role'];
 
@@ -104,14 +104,14 @@ export class WorkspaceAdminComponent implements OnInit {
       }
     });
 
-    this.timeService.getBillingRate().subscribe({
-      next: rate => {
-        this.billingRate.set(rate);
-        if (rate) {
-          this.billingRateInput.set(rate.ratePerHour);
-        }
+    this.timeService.getMemberRates().subscribe({
+      next: rates => {
+        this.memberRates.set(rates);
+        const inputs: Record<string, number | null> = {};
+        Object.entries(rates).forEach(([uid, r]) => { inputs[uid] = r.ratePerHour; });
+        this.memberRateInputs.set(inputs);
       },
-      error: () => { /* fail-open */ }
+      error: () => { /* fail-open si non admin */ }
     });
 
     this.loadTimeReport();
@@ -154,22 +154,33 @@ export class WorkspaceAdminComponent implements OnInit {
     return result;
   }
 
-  saveBillingRate(): void {
-    const rate = this.billingRateInput();
+  getMemberRateInput(userId: string): number | null {
+    return this.memberRateInputs()[userId] ?? null;
+  }
+
+  setMemberRateInput(userId: string, value: number | null): void {
+    this.memberRateInputs.update(inputs => ({ ...inputs, [userId]: value }));
+  }
+
+  getMemberRate(userId: string): number | null {
+    return this.memberRates()[userId]?.ratePerHour ?? null;
+  }
+
+  saveRateForMember(userId: string): void {
+    const rate = this.getMemberRateInput(userId);
     if (rate == null || rate <= 0) return;
-    this.savingBillingRate.set(true);
-    this.timeService.saveBillingRate(rate).subscribe({
+    this.savingRateFor.set(userId);
+    this.timeService.setRateForMember(userId, rate).subscribe({
       next: saved => {
-        this.billingRate.set(saved);
-        this.billingRateInput.set(saved.ratePerHour);
-        this.savingBillingRate.set(false);
-        this.snackBar.open('Taux horaire enregistré', 'Fermer', {
+        this.memberRates.update(r => ({ ...r, [userId]: saved }));
+        this.savingRateFor.set(null);
+        this.snackBar.open('Taux enregistré', 'Fermer', {
           duration: 3000, panelClass: ['snack-success']
         });
       },
       error: () => {
-        this.savingBillingRate.set(false);
-        this.snackBar.open('Erreur lors de l\'enregistrement du taux horaire.', 'Fermer', {
+        this.savingRateFor.set(null);
+        this.snackBar.open('Erreur lors de l\'enregistrement.', 'Fermer', {
           duration: 4000, panelClass: ['snack-error']
         });
       }

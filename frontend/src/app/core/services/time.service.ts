@@ -52,9 +52,17 @@ export class TimeService {
     return this.http.get<BillingRateResponse | null>(`${this.apiUrl}/workspace/billing-rate`);
   }
 
-  saveBillingRate(rate: number): Observable<BillingRateResponse> {
+  getMemberRates(): Observable<Record<string, BillingRateResponse>> {
+    return this.http.get<Record<string, BillingRateResponse>>(
+      `${this.apiUrl}/workspace/members/billing-rates`
+    );
+  }
+
+  setRateForMember(userId: string, rate: number): Observable<BillingRateResponse> {
     const body: BillingRateRequest = { ratePerHour: rate };
-    return this.http.put<BillingRateResponse>(`${this.apiUrl}/workspace/billing-rate`, body);
+    return this.http.put<BillingRateResponse>(
+      `${this.apiUrl}/workspace/members/${userId}/billing-rate`, body
+    );
   }
 
   /**

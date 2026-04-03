@@ -4,30 +4,11 @@
 
     <div class="billing-rate-section">
       <span class="billing-rate-label">Mon taux horaire</span>
-      <div class="billing-rate-row">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="billing-rate-field">
-          <mat-label>Taux (€/h)</mat-label>
-          <input
-            matInput
-            type="number"
-            min="1"
-            [ngModel]="billingRateInput()"
-            (ngModelChange)="billingRateInput.set($event)"
-            placeholder="Ex. 250"
-          />
-        </mat-form-field>
-        <button
-          mat-flat-button
-          color="primary"
-          [disabled]="savingBillingRate() || (billingRateInput() ?? 0) <= 0"
-          (click)="saveBillingRate()">
-          @if (savingBillingRate()) {
-            <mat-spinner diameter="18" />
-          } @else {
-            Enregistrer
-          }
-        </button>
-      </div>
+      @if (billingRate()) {
+        <span class="billing-rate-value">{{ billingRate()!.ratePerHour | number:'1.2-2' }} €/h</span>
+      } @else {
+        <span class="billing-rate-empty">Non configuré — contactez votre administrateur.</span>
+      }
     </div>
 
     <div class="report-controls">
