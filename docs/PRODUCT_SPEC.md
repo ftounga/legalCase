@@ -149,7 +149,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-DT-01 | Calcul d'indemnités automatique | V4 — **À spécifier** | Calculateur légal backend : indemnité de licenciement (ancienneté × 1/4 salaire brut mensuel), rupture conventionnelle, plafond prud'homal. Résultat structuré affiché dans la synthèse. Spécifique DROIT_DU_TRAVAIL. |
+| F-DT-01 | Calcul d'indemnités automatique | `Terminée` | CompensationCalculator (1/4+1/3, pivot 10 ans) + barème Macron. Panneau lecture seule dans synthèse et export PDF. SF-DT-01-01 mergée. |
 | ~~F-DT-02~~ | ~~Détection de clauses abusives~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_DU_TRAVAIL dans `LegalDomainPromptBuilder`. La synthèse existante (`risques` + `points_juridiques`) couvre ce besoin si le prompt l'instruit explicitement. |
 | F-DT-03 | Délais de prescription ciblés par type de litige | `Terminée` | Classification du type de litige (7 types Code du travail) → délai légal correspondant (1/3/5 ans) → calcul date d'expiration → affiché en lecture seule dans le bloc délais. SF-DT-03-01 mergée. |
 | F-DT-04 | Génération fiche prud'homale | V4 — **À spécifier** | Document procédural spécifique CPH distinct de F-95 (synthèse générale) : identification des parties (coordonnées, qualité), exposé des faits, moyens de droit structurés, demandes chiffrées (saisie manuelle ou auto via F-DT-01), liste numérotée des pièces. Export Word/PDF. |
@@ -275,6 +275,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |------|-------------|------------|
 | 2026-04-03 | Features métier par domaine requalifiées avec IDs F-DT/F-IM/F-FA — F-DT-02/F-IM-04/F-FA-03 abandonnées (amélioration prompt suffisante), F-DT-04 maintenue (format CPH distinct de F-95) | Product owner |
 | 2026-04-03 | F-DT-01/03/04 + F-IM-01/02/03 + F-FA-01/02/04 ajoutées au backlog V4 — features métier par domaine nécessitant logique backend ou structure dédiée | Product owner |
+| 2026-04-04 | F-DT-01 Terminée — SF-DT-01-01 mergée : CompensationCalculator (1/4+1/3 + barème Macron), champ compensationEstimate dans CaseAnalysisResponse, panneau synthèse + export PDF, 510+570 tests verts | Product owner |
 | 2026-04-04 | F-DT-03 Terminée — SF-DT-03-01 mergée : LitigationTypeMapper (7 types), StatutoryDeadlineService, prompt enrichi étendu, sous-section "Délais légaux applicables" lecture seule, 487+561 tests verts | Product owner |
 | 2026-04-04 | F-109 Terminée — SF-109-01 mergée : ProcedureCheckRequalifiedEvent, RequalificationAlertService, EmailService.sendRequalificationAlert(), 471 tests verts | Product owner |
 | 2026-04-04 | F-107 Terminée — SF-107-01 mergée : exportChecklist() PdfExportService, bouton export PDF checklist, 62 tests verts | Product owner |
