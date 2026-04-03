@@ -180,7 +180,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-106 | Suivi du temps facturable par dossier | V4 — `En cours` | Timer start/stop par dossier, taux horaire configurable par workspace, rapport mensuel heures/dossier, export CSV, insight IA "ce dossier représente Xh — score de risque Élevé, ajuste ton honoraire". Différenciant : aucun outil d'analyse IA ne combine time tracking + score de risque. Cible : avocats solos (douleur n°1 selon Wolters Kluwer 2026 : 55% facturent moins de 50% de leur temps). |
+| F-106 | Suivi du temps facturable par dossier | V4 — **Terminée** | SF-106-01 mergée 2026-04-02 : backend time tracking (migration 043, user_billing_rates, time_entries, 7 endpoints, 448 tests). SF-106-02 mergée 2026-04-03 : TimerWidgetComponent start/stop, TimeService signals, section Facturation workspace-admin, 520 tests. SF-106-03 mergée 2026-04-03 : TimeReportComponent, route workspace/time-report, export CSV, 538 tests. SF-106-04 mergée 2026-04-03 : insight callout doré dans synthèse (temps × risque), 545 tests. |
 | F-105 | Refonte page de login — split-screen branding juridique | V3 — **Terminée** | SF-105-01 mergée 2026-04-02 : layout split-screen navy/blanc, bouton Google SVG outlined, signal showRegister (plus de tabs), tagline repositionnée, carte formulaire blanche avec ombre, RGPD lisible, smoke tests 11/11 verts. |
 | F-104 | Chatbot d'aide produit intégré | V3 — **Terminée** | SF-104-01 mergée 2026-04-02 : POST /api/v1/help/chat, HelpDocumentLoader (RAG statique 7 fichiers md), HelpChatService (system prompt + Haiku 512 tokens), 435 tests verts. SF-104-02 mergée 2026-04-02 : HelpChatWidgetComponent (bulle fixe, panneau 360px, 3 suggestions, compteur 500 chars, états loading/answer/error, conditionné à l'auth), HelpService, intégré dans AppComponent, 493 tests verts. |
 | F-101 | Tableau de bord dossier enrichi | Stepper horizontal 5 étapes en haut de la page dossier : Documents uploadés, Analyse IA, Questions IA, Délais légaux, Pièces manquantes. Chaque étape affiche son statut (done/in_progress/pending) et est cliquable pour naviguer vers la section concernée. Pure frontend. | `Terminée` |
@@ -244,6 +244,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-03 | F-106 Terminée — SF-106-04 mergée : insight callout doré synthèse (temps × risque IA), computed signals, fail silencieux, 545 tests verts | Product owner |
 | 2026-04-03 | F-106 SF-106-03 mergée — rapport mensuel frontend : TimeReportComponent, TimeReportService, route workspace/time-report, lien sidenav, export CSV, 538 tests verts | Product owner |
 | 2026-04-03 | F-106 SF-106-02 mergée — frontend timer : TimerWidgetComponent, TimeService (signals), section Facturation dans workspace-admin, 520 tests verts | Product owner |
 | 2026-04-02 | F-106 SF-106-01 mergée — backend time tracking : migration 043, user_billing_rates, time_entries, 7 endpoints, 448 tests verts | Product owner |
