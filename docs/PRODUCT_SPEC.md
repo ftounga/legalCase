@@ -145,6 +145,33 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-20 | Droit de l'immigration | V2 — **Terminée** | Domaine DROIT_IMMIGRATION activé dans F-55 : prompts IA dynamiques via LegalDomainPromptBuilder, migration 029, sélection domaine à l'onboarding (DomainPickerDialog). Couvert par SF-55-01 et SF-55-02 mergées 2026-03-26. |
 | F-21 | Droit immobilier | ~~V3~~ — **Abandonné** | Remplacé par DROIT_FAMILLE (déjà implémenté dans F-55). Droit immobilier jugé moins rentable pour la cible V2. |
 
+### Features métier — Droit du travail
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-DT-01 | Calcul d'indemnités automatique | V4 — **À spécifier** | Calculateur légal backend : indemnité de licenciement (ancienneté × 1/4 salaire brut mensuel), rupture conventionnelle, plafond prud'homal. Résultat structuré affiché dans la synthèse. Spécifique DROIT_DU_TRAVAIL. |
+| ~~F-DT-02~~ | ~~Détection de clauses abusives~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_DU_TRAVAIL dans `LegalDomainPromptBuilder`. La synthèse existante (`risques` + `points_juridiques`) couvre ce besoin si le prompt l'instruit explicitement. |
+| F-DT-03 | Délais de prescription ciblés par type de litige | V4 — **À spécifier** | Classification du type de litige (salaires, discrimination, harcèlement, exécution contrat) → application du délai légal correspondant (1, 2 ou 3 ans) → calcul date d'expiration → alerte. Extension de F-97 qui détecte les délais *écrits* dans les documents, pas les délais légaux inférés. |
+| F-DT-04 | Génération fiche prud'homale | V4 — **À spécifier** | Document procédural spécifique CPH distinct de F-95 (synthèse générale) : identification des parties (coordonnées, qualité), exposé des faits, moyens de droit structurés, demandes chiffrées (saisie manuelle ou auto via F-DT-01), liste numérotée des pièces. Export Word/PDF. |
+
+### Features métier — Droit de l'immigration
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-IM-01 | Checklist pièces par type de titre | V4 — **À spécifier** | Checklist interactive typée par procédure (visa étudiant, titre salarié, regroupement familial, naturalisation), différenciée France/Belgique, persistée en DB. Distinct de F-92 (détection pièces manquantes en texte libre non structuré). Intègre la détection UE/pays tiers pour sélectionner la bonne liste. |
+| F-IM-02 | Suivi expiration et alertes renouvellement | V4 — **À spécifier** | Date d'expiration du titre détectée dans les documents. Alertes email multi-seuils à J-90, J-30 et J-7. Table `document_expirations`. Extension de F-69 (alerte unique manuelle) avec multi-seuils automatiques sur titres de séjour. S'appuie sur F-65. |
+| F-IM-03 | Calendrier procédural préfectoral | V4 — **À spécifier** | Référentiel de délais types par procédure (OFPRA, CNDA, recours administratif, renouvellement préfecture) selon le pays (France/Belgique). Génère des deadlines actionnables dans F-69. Données volatiles maintenues hors prompt. |
+| ~~F-IM-04~~ | ~~Détection ressortissant UE vs pays tiers~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_IMMIGRATION dans `LegalDomainPromptBuilder`. L'IA lit la nationalité depuis les documents. L'impact (choix de la bonne checklist) est embarqué dans F-IM-01. |
+
+### Features métier — Droit de la famille
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-FA-01 | Calcul de la prestation compensatoire | V4 — **À spécifier** | Calculateur backend : durée du mariage, revenus des deux parties, patrimoine, âge. Résultat affiché comme fourchette indicative avec les facteurs retenus. Spécifique DROIT_FAMILLE. Non faisable de façon fiable par prompt seul. |
+| F-FA-02 | Grille pension alimentaire | V4 — **À spécifier** | Calcul basé sur le barème UNAF (France) ou table de référence belge (Belgique), revenus des deux parents, nombre d'enfants, mode de garde (alternée vs exclusive). Résultat structuré. |
+| ~~F-FA-03~~ | ~~Détection régime matrimonial~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_FAMILLE. L'IA lit le contrat de mariage et détecte le régime (communauté légale, séparation de biens, participation aux acquêts). La détection est une donnée d'entrée de F-FA-04, pas une feature autonome. |
+| F-FA-04 | Synthèse liquidation de communauté | V4 — **À spécifier** | Tableau structuré de partage : actif commun, biens propres de chaque époux, passif commun. Données extraites des documents + régime matrimonial détecté par prompt. Section UI dédiée + export Word/PDF via F-95. |
+
 ### Pipeline IA & qualité
 
 | ID | Feature | Cible | Notes |
@@ -246,6 +273,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-03 | Features métier par domaine requalifiées avec IDs F-DT/F-IM/F-FA — F-DT-02/F-IM-04/F-FA-03 abandonnées (amélioration prompt suffisante), F-DT-04 maintenue (format CPH distinct de F-95) | Product owner |
+| 2026-04-03 | F-DT-01/03/04 + F-IM-01/02/03 + F-FA-01/02/04 ajoutées au backlog V4 — features métier par domaine nécessitant logique backend ou structure dédiée | Product owner |
 | 2026-04-03 | F-106 SF-106-05 mergée — admin définit taux horaires membres : PUT /workspace/members/{userId}/billing-rate (OWNER/ADMIN), GET /workspace/members/billing-rates, table admin inline, taux lecture seule avocat, AuditLog BILLING_RATE_UPDATED, 548 tests verts | Product owner |
 | 2026-04-03 | F-106 Terminée — SF-106-04 mergée : insight callout doré synthèse (temps × risque IA), computed signals, fail silencieux, 545 tests verts | Product owner |
 | 2026-04-03 | F-106 SF-106-03 mergée — rapport mensuel frontend : TimeReportComponent, TimeReportService, route workspace/time-report, lien sidenav, export CSV, 538 tests verts | Product owner |

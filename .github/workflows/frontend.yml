@@ -62,16 +62,15 @@ jobs:
         id: build
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          SHORT_SHA=${IMAGE_TAG::7}
+          APP_VERSION=$(node -p "require('./frontend/package.json').version")
           docker build --build-arg BUILD_CONFIGURATION=staging \
-                       -t $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA \
+                       -t $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION \
                        -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
                        ./frontend
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$SHORT_SHA
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
 
       - name: Update kubeconfig
         run: |
@@ -82,10 +81,10 @@ jobs:
       - name: Deploy to staging
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          SHORT_SHA: ${{ steps.build.outputs.short_sha }}
+          APP_VERSION: ${{ steps.build.outputs.app_version }}
         run: |
           sed -i "s|REGISTRY_PLACEHOLDER|$ECR_REGISTRY|g" k8s/base/frontend/deployment.yaml
-          sed -i "s|FRONTEND_IMAGE_TAG|$SHORT_SHA|g" k8s/base/frontend/deployment.yaml
+          sed -i "s|FRONTEND_IMAGE_TAG|$APP_VERSION|g" k8s/base/frontend/deployment.yaml
 
           CURRENT_BACKEND=$(kubectl get deployment legalcase-backend -n staging \
             -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null \

@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       backend_tag:
-        description: 'Backend image tag (ex: a1b2c3d)'
+        description: 'Backend image tag (ex: 1.0.0)'
         required: true
       frontend_tag:
-        description: 'Frontend image tag (ex: a1b2c3d)'
+        description: 'Frontend image tag (ex: 1.0.0)'
         required: true
       confirm:
         description: 'Tapez "PRODUCTION" pour confirmer'
