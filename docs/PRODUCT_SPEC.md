@@ -244,6 +244,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-03 | F-106 SF-106-03 mergée — rapport mensuel frontend : TimeReportComponent, TimeReportService, route workspace/time-report, lien sidenav, export CSV, 538 tests verts | Product owner |
+| 2026-04-03 | F-106 SF-106-02 mergée — frontend timer : TimerWidgetComponent, TimeService (signals), section Facturation dans workspace-admin, 520 tests verts | Product owner |
 | 2026-04-02 | F-106 SF-106-01 mergée — backend time tracking : migration 043, user_billing_rates, time_entries, 7 endpoints, 448 tests verts | Product owner |
 | 2026-04-02 | F-106 ajoutée — Suivi du temps facturable par dossier : timer start/stop, taux horaire, rapport mensuel, export CSV, insight IA risk score + temps. V4. | Product owner |
 | 2026-04-02 | F-105 Terminée — SF-105-01 mergée : page login split-screen branding juridique, bouton Google SVG, signal showRegister, tagline repositionnée, carte formulaire blanche, smoke tests 11/11 | Product owner |
