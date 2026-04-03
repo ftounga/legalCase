@@ -100,7 +100,7 @@ describe('SynthesisComponent', () => {
         { provide: ReAnalysisService, useValue: jasmine.createSpyObj('ReAnalysisService', ['reAnalyze']) },
         { provide: ChatService, useValue: chatService },
         { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
-        { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export']) },
+        { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export', 'exportChecklist']) },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: TimeService, useValue: timeServiceMock },
@@ -602,5 +602,96 @@ describe('SynthesisComponent', () => {
     expect(component.formatInsightDuration(45)).toBe('< 1min');
     expect(component.formatInsightDuration(0)).toBe('< 1min');
     expect(component.formatInsightDuration(59)).toBe('< 1min');
+  });
+
+  // CL-PDF-01 : bouton export PDF checklist visible si procedureChecks non vide
+  it('CL-PDF-01: checklist export PDF button is visible when procedureChecks is not empty', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    fixture.detectChanges();
+
+    component.procedureChecks.set([
+      { id: 'c1', ordre: 1, description: 'Un point', statut: 'VERIFIED', raison: null }
+    ]);
+    fixture.detectChanges();
+
+    const btn = fixture.nativeElement.querySelector('.export-btn--checklist');
+    expect(btn).toBeTruthy();
+  });
+
+  // CL-PDF-02 : bouton export PDF checklist absent si procedureChecks vide
+  it('CL-PDF-02: checklist export PDF button is absent when procedureChecks is empty', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    fixture.detectChanges();
+
+    component.procedureChecks.set([]);
+    fixture.detectChanges();
+
+    const btn = fixture.nativeElement.querySelector('.export-btn--checklist');
+    expect(btn).toBeNull();
+  });
+
+  // SF-DT-01-01 : Panneau indemnités estimées
+  it('COMP-01: panneau indemnités visible si compensationEstimate non null', () => {
+    const estimate = {
+      indemnite: 8050, salaireReference: 2800, ancienneteAnnees: 6, ancienneteMois: 4,
+      typeRupture: 'LICENCIEMENT', plafondMinMois: 3, plafondMaxMois: 7, donneesPartielles: false
+    };
+    const synthWithComp = { ...makeSynthesis(1, 'ENRICHED'), compensationEstimate: estimate };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthWithComp));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.compensation-block')).toBeTruthy();
+  });
+
+  it('COMP-02: panneau indemnités absent si compensationEstimate null', () => {
+    const synthNoComp = { ...makeSynthesis(1, 'ENRICHED'), compensationEstimate: null };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthNoComp));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.compensation-block')).toBeNull();
+  });
+
+  it('COMP-03: avertissement données partielles visible si donneesPartielles=true', () => {
+    const estimate = {
+      indemnite: 0, salaireReference: 0, ancienneteAnnees: 5, ancienneteMois: 0,
+      typeRupture: 'LICENCIEMENT', plafondMinMois: 3, plafondMaxMois: 6, donneesPartielles: true
+    };
+    const synthPartial = { ...makeSynthesis(1, 'ENRICHED'), compensationEstimate: estimate };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthPartial));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.compensation-warning')).toBeTruthy();
+  });
+
+  it('COMP-04: formatAnciennete renvoie le bon libellé', () => {
+    expect(component.formatAnciennete(6, 4)).toBe('6 ans 4 mois');
+    expect(component.formatAnciennete(1, 0)).toBe('1 an');
+    expect(component.formatAnciennete(0, 0)).toBe("moins d'1 an");
+  });
+
+  it('COMP-05: formatTypeRupture renvoie le libellé français', () => {
+    expect(component.formatTypeRupture('LICENCIEMENT')).toBe('Licenciement');
+    expect(component.formatTypeRupture('RUPTURE_CONVENTIONNELLE')).toBe('Rupture conventionnelle');
+  });
+
+  // CL-PDF-03 : click sur le bouton → exportChecklistPdf() appelé
+  it('CL-PDF-03: click on checklist PDF button calls exportChecklistPdf()', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    fixture.detectChanges();
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.procedureChecks.set([
+      { id: 'c1', ordre: 1, description: 'Un point', statut: 'VERIFIED', raison: null }
+    ]);
+    fixture.detectChanges();
+
+    const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.export-btn--checklist');
+    btn.click();
+
+    expect(pdfExportService.exportChecklist).toHaveBeenCalled();
   });
 });

@@ -9,6 +9,17 @@ export interface AnalysisItem {
   extrait: string | null;
 }
 
+export interface CompensationEstimate {
+  indemnite: number;
+  salaireReference: number;
+  ancienneteAnnees: number;
+  ancienneteMois: number;
+  typeRupture: string;
+  plafondMinMois: number;
+  plafondMaxMois: number;
+  donneesPartielles: boolean;
+}
+
 export interface CaseAnalysisResult {
   id: string;
   version: number;
@@ -25,6 +36,7 @@ export interface CaseAnalysisResult {
   modelUsed: string | null;
   updatedAt: string | null;
   analysisDocuments?: { index: number; name: string }[];
+  compensationEstimate?: CompensationEstimate | null;
 }
 
 export interface CaseAnalysisVersionSummary {
