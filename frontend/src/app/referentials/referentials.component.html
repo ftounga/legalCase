@@ -48,6 +48,12 @@
                   @if (entry.country) {
                     <mat-chip class="country-chip" [disableRipple]="true">{{ entry.country }}</mat-chip>
                   }
+                  @if (canEdit()) {
+                    <button mat-icon-button class="edit-btn" aria-label="Modifier"
+                            (click)="openEditDialog(entry, section.type); $event.stopPropagation()">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  }
                 </div>
                 <pre class="entry-value">{{ formatValue(entry, section.type) }}</pre>
                 @if (entry.sourceRef) {

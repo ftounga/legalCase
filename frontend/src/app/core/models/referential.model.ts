@@ -1,4 +1,5 @@
 export interface ReferentialEntry {
+  id?: string;
   key: string;
   label: string;
   country?: string | null;
@@ -10,4 +11,10 @@ export interface ReferentialEntry {
 export interface ReferentialResponse {
   domain: string;
   sections: Record<string, ReferentialEntry[]>;
+}
+
+export interface ReferentialUpdateResponse {
+  saved: boolean;
+  entry?: ReferentialEntry;
+  warning?: string | null;
 }

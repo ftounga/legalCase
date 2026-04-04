@@ -132,3 +132,17 @@
   color: #6B7A8D;
   font-style: italic;
 }
+
+.edit-btn {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  margin-left: auto;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #6B7A8D;
+  }
+}

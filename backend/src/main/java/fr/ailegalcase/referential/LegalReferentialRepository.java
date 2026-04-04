@@ -58,4 +58,24 @@ public interface LegalReferentialRepository extends JpaRepository<LegalReferenti
             @Param("domain") String domain,
             @Param("type") String type,
             @Param("key") String key);
+
+    /**
+     * Retourne l'override workspace pour une clé donnée (workspaceId non NULL).
+     * Utilisé pour l'upsert lors d'une modification OWNER/ADMIN.
+     */
+    @Query("""
+            SELECT r FROM LegalReferential r
+            WHERE r.workspaceId = :workspaceId
+              AND r.legalDomain = :domain
+              AND r.referentialType = :type
+              AND r.entryKey = :key
+              AND (:country IS NULL AND r.country IS NULL OR r.country = :country)
+              AND r.active = true
+            """)
+    List<LegalReferential> findWorkspaceEntry(
+            @Param("workspaceId") UUID workspaceId,
+            @Param("domain") String domain,
+            @Param("type") String type,
+            @Param("key") String key,
+            @Param("country") String country);
 }

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,79 @@ public class LegalReferentialService {
 
     public LegalReferentialService(LegalReferentialRepository repository) {
         this.repository = repository;
+    }
+
+    // -----------------------------------------------------------------------
+    // PUT /api/v1/referentials/{id} — modification OWNER/ADMIN
+    // -----------------------------------------------------------------------
+
+    @Transactional
+    public ReferentialUpdateResponse updateReferential(UUID entryId, UUID workspaceId, UUID userId,
+                                                       String newLabel, String newValueJson,
+                                                       boolean force,
+                                                       ReferentialValidationService validationService) {
+        LegalReferential source = repository.findById(entryId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Référentiel introuvable"));
+
+        // Workspace isolation: if workspace entry, must belong to caller's workspace
+        if (source.getWorkspaceId() != null && !workspaceId.equals(source.getWorkspaceId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Accès refusé");
+        }
+
+        // Validate JSON
+        try {
+            MAPPER.readTree(newValueJson);
+        } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "valueJson invalide : JSON mal formé");
+        }
+
+        // IA validation (skip if force=true)
+        if (!force) {
+            var validation = validationService.validate(
+                    source.getLegalDomain(), source.getReferentialType(),
+                    source.getEntryKey(), source.getLabel(),
+                    source.getValueJson(), newValueJson);
+            if (!validation.valid()) {
+                return new ReferentialUpdateResponse(false, null, validation.warning());
+            }
+        }
+
+        // Upsert: system entry → create/update workspace override; workspace entry → update in-place
+        LegalReferential target;
+        if (source.getWorkspaceId() == null) {
+            List<LegalReferential> overrides = repository.findWorkspaceEntry(
+                    workspaceId, source.getLegalDomain(), source.getReferentialType(),
+                    source.getEntryKey(), source.getCountry());
+            if (!overrides.isEmpty()) {
+                target = overrides.get(0);
+            } else {
+                target = new LegalReferential();
+                target.setWorkspaceId(workspaceId);
+                target.setLegalDomain(source.getLegalDomain());
+                target.setReferentialType(source.getReferentialType());
+                target.setEntryKey(source.getEntryKey());
+                target.setCountry(source.getCountry());
+                target.setSystem(false);
+                target.setActive(true);
+                target.setSourceRef(source.getSourceRef());
+            }
+        } else {
+            target = source;
+        }
+
+        target.setLabel(newLabel);
+        target.setValueJson(newValueJson);
+        target.setUpdatedAt(Instant.now());
+        target.setUpdatedBy(userId);
+        LegalReferential saved = repository.save(target);
+
+        return new ReferentialUpdateResponse(true,
+                new ReferentialResponse.Entry(saved.getId(), saved.getEntryKey(), saved.getLabel(),
+                        saved.getCountry(), saved.getValueJson(), saved.isSystem(), saved.getSourceRef()),
+                null);
     }
 
     // -----------------------------------------------------------------------
@@ -111,14 +185,28 @@ public class LegalReferentialService {
 
     public ReferentialResponse getReferentials(String domain, UUID workspaceId) {
         UUID safeWorkspaceId = workspaceId != null ? workspaceId : UUID.fromString("00000000-0000-0000-0000-000000000000");
-        List<LegalReferential> entries = repository.findActiveByDomain(domain, safeWorkspaceId);
+        List<LegalReferential> all = repository.findActiveByDomain(domain, safeWorkspaceId);
 
-        Map<String, List<ReferentialResponse.Entry>> sections = entries.stream()
+        // Deduplicate: workspace override wins over system entry for same (type, key, country).
+        // The query orders system DESC, so workspace entries appear last — we keep the first
+        // occurrence per (type, key, country) after reversing (workspace entries take priority).
+        Map<String, LegalReferential> deduped = new LinkedHashMap<>();
+        // First pass: index system entries
+        all.stream().filter(LegalReferential::isSystem)
+                .forEach(e -> deduped.put(dedupeKey(e), e));
+        // Second pass: workspace overrides replace system entries
+        all.stream().filter(e -> !e.isSystem())
+                .forEach(e -> deduped.put(dedupeKey(e), e));
+
+        Map<String, List<ReferentialResponse.Entry>> sections = deduped.values().stream()
+                .sorted(Comparator.comparing(LegalReferential::getReferentialType)
+                        .thenComparing(LegalReferential::getEntryKey))
                 .collect(Collectors.groupingBy(
                         LegalReferential::getReferentialType,
                         LinkedHashMap::new,
                         Collectors.mapping(
                                 e -> new ReferentialResponse.Entry(
+                                        e.getId(),
                                         e.getEntryKey(),
                                         e.getLabel(),
                                         e.getCountry(),
@@ -128,5 +216,9 @@ public class LegalReferentialService {
                                 Collectors.toList())));
 
         return new ReferentialResponse(domain, sections);
+    }
+
+    private static String dedupeKey(LegalReferential e) {
+        return e.getReferentialType() + "|" + e.getEntryKey() + "|" + (e.getCountry() != null ? e.getCountry() : "");
     }
 }
