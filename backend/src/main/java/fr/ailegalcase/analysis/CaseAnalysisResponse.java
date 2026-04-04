@@ -25,7 +25,8 @@ public record CaseAnalysisResponse(
         String modelUsed,
         Instant updatedAt,
         List<AnalysisDocumentEntry> analysisDocuments,
-        CompensationCalculator.CompensationEstimate compensationEstimate
+        CompensationCalculator.CompensationEstimate compensationEstimate,
+        PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate
 ) {
 
     public record TimelineEntry(String date, String evenement) {}
@@ -103,6 +104,7 @@ public record CaseAnalysisResponse(
         List<String> piecesManquantes = List.of();
         List<String> pointsProcedure = List.of();
         CompensationCalculator.CompensationEstimate compensationEstimate = null;
+        PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -116,6 +118,7 @@ public record CaseAnalysisResponse(
                 piecesManquantes = extractStringList(root, "pieces_manquantes");
                 pointsProcedure = extractStringList(root, "points_procedure");
                 compensationEstimate = extractCompensationEstimate(root);
+                pensionAlimentaireEstimate = extractPensionAlimentaireEstimate(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -140,7 +143,8 @@ public record CaseAnalysisResponse(
                 analysis.getModelUsed(),
                 analysis.getUpdatedAt(),
                 analysisDocuments,
-                compensationEstimate
+                compensationEstimate,
+                pensionAlimentaireEstimate
         );
     }
 
@@ -157,6 +161,24 @@ public record CaseAnalysisResponse(
             Double salaire  = compNode.has("salaire_reference_mensuel") && !compNode.get("salaire_reference_mensuel").isNull()
                     ? compNode.get("salaire_reference_mensuel").doubleValue() : null;
             return CompensationCalculator.calculate(typeRupture, annees, mois, salaire).orElse(null);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    static PensionAlimentaireCalculator.PensionAlimentaireEstimate extractPensionAlimentaireEstimate(JsonNode root) {
+        JsonNode node = root.get("pension_alimentaire_data");
+        if (node == null || !node.isObject()) return null;
+        try {
+            Double revenus = node.has("revenus_net_mensuel_debiteur") && !node.get("revenus_net_mensuel_debiteur").isNull()
+                    ? node.get("revenus_net_mensuel_debiteur").doubleValue() : null;
+            Integer nbEnfants = node.has("nb_enfants") && !node.get("nb_enfants").isNull()
+                    ? node.get("nb_enfants").intValue() : null;
+            String modeGarde = node.has("mode_garde") && !node.get("mode_garde").isNull()
+                    ? node.get("mode_garde").asText() : null;
+            String pays = node.has("pays_applicable") && !node.get("pays_applicable").isNull()
+                    ? node.get("pays_applicable").asText() : null;
+            return PensionAlimentaireCalculator.calculate(revenus, nbEnfants, modeGarde, pays).orElse(null);
         } catch (Exception ignored) {
             return null;
         }
