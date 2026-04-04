@@ -48,13 +48,18 @@
             </li>
           }
         </ul>
+      }
 
-        <div class="checklist-actions">
+      <div class="checklist-actions">
+        @if (checklist()) {
           <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
             @if (saving()) { Enregistrement… } @else { Enregistrer }
           </button>
-        </div>
-      }
+        }
+        <button mat-stroked-button (click)="exportPdf()" [disabled]="!checklist()">
+          <mat-icon>picture_as_pdf</mat-icon> Exporter PDF
+        </button>
+      </div>
     </div>
   }
 </div>

@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { ImmigrationChecklistSectionComponent } from './immigration-checklist-section.component';
 import { ImmigrationChecklistService } from '../../core/services/immigration-checklist.service';
 import { ImmigrationChecklist } from '../../core/models/immigration-checklist.model';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 
 function makeChecklist(pieces: { label: string; statut: string }[] = []): ImmigrationChecklist {
   return {
@@ -20,6 +21,7 @@ describe('ImmigrationChecklistSectionComponent', () => {
   let component: ImmigrationChecklistSectionComponent;
   let serviceSpy: jest.Mocked<ImmigrationChecklistService>;
   let snackBarSpy: { open: jest.Mock };
+  let pdfExportSpy: { exportImmigrationChecklist: jest.Mock };
 
   beforeEach(async () => {
     serviceSpy = {
@@ -31,12 +33,14 @@ describe('ImmigrationChecklistSectionComponent', () => {
     } as unknown as jest.Mocked<ImmigrationChecklistService>;
 
     snackBarSpy = { open: jest.fn() };
+    pdfExportSpy = { exportImmigrationChecklist: jest.fn() };
 
     await TestBed.configureTestingModule({
       imports: [ImmigrationChecklistSectionComponent, NoopAnimationsModule],
       providers: [
         { provide: ImmigrationChecklistService, useValue: serviceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: PdfExportService, useValue: pdfExportSpy },
       ],
     }).compileComponents();
 
@@ -103,5 +107,27 @@ describe('ImmigrationChecklistSectionComponent', () => {
     component.titreType.set('NATURALISATION');
     component.onSelectorChange();
     expect(serviceSpy.get).toHaveBeenCalledWith('cf-1', 'NATURALISATION', 'FRANCE');
+  });
+
+  // TC-IM03-01 : bouton export désactivé si checklist null
+  it('exportPdf button disabled when checklist is null', () => {
+    component.collapsed.set(false);
+    component.checklist.set(null);
+    fixture.detectChanges();
+    const buttons = fixture.nativeElement.querySelectorAll('button');
+    const exportBtn = Array.from(buttons).find((b: any) => b.textContent?.includes('Exporter PDF')) as HTMLButtonElement | undefined;
+    expect(exportBtn).toBeDefined();
+    expect(exportBtn!.disabled).toBe(true);
+  });
+
+  // TC-IM03-02 : clic bouton export → appel exportImmigrationChecklist
+  it('exportPdf button click calls exportImmigrationChecklist', () => {
+    component.caseFileTitle = 'Mon Dossier';
+    fixture.detectChanges();
+    component.exportPdf();
+    expect(pdfExportSpy.exportImmigrationChecklist).toHaveBeenCalledWith(
+      expect.objectContaining({ caseFileId: 'cf-1' }),
+      'Mon Dossier'
+    );
   });
 });

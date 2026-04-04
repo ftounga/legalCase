@@ -4,6 +4,7 @@ import { CaseAnalysisResult, CompensationEstimate } from '../models/case-analysi
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
 import { PrudhomeFiche } from '../models/prudhome-fiche.model';
+import { ImmigrationChecklist } from '../models/immigration-checklist.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 
 const PRIMARY = '#1A3A5C';
@@ -753,5 +754,142 @@ export class PdfExportService {
       .slice(0, 40);
     const date = new Date().toISOString().slice(0, 10);
     return `synthese-${slug}-v${synthesis.version}-${date}.pdf`;
+  }
+
+  exportImmigrationChecklist(checklist: ImmigrationChecklist, caseFileTitle: string): void {
+    import('pdfmake/build/pdfmake').then(pdfMakeModule => {
+      import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
+        const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
+        const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
+        pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
+        const docDefinition = this.buildImmigrationChecklistDocument(checklist, caseFileTitle) as TDocumentDefinitions;
+        const fileName = this.buildImmigrationChecklistFileName(caseFileTitle);
+        pdfMake.createPdf(docDefinition).download(fileName);
+      });
+    });
+  }
+
+  buildImmigrationChecklistDocument(checklist: ImmigrationChecklist, caseFileTitle: string): object {
+    const exportDate = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+    const present = checklist.pieces.filter(p => p.statut === 'PRESENT').length;
+    const absent  = checklist.pieces.filter(p => p.statut === 'ABSENT').length;
+    const inconnu = checklist.pieces.filter(p => p.statut === 'INCONNU').length;
+
+    const STATUT_CONFIG: Record<string, { label: string; color: string }> = {
+      PRESENT: { label: '✔ Présente', color: '#27AE60' },
+      ABSENT:  { label: '✖ Absente',  color: ERROR },
+      INCONNU: { label: '? Inconnue', color: TEXT_SECONDARY },
+    };
+
+    const pieceRows: object[] = checklist.pieces.length === 0
+      ? [{ text: 'Aucune pièce', italics: true, color: TEXT_SECONDARY, margin: [0, 4, 0, 4] }]
+      : checklist.pieces.map(p => {
+          const cfg = STATUT_CONFIG[p.statut] ?? STATUT_CONFIG['INCONNU'];
+          return {
+            columns: [
+              { text: p.label, width: '*', fontSize: 10, color: TEXT, margin: [0, 3, 0, 3] },
+              { text: cfg.label, width: 90, fontSize: 10, bold: true, color: cfg.color, alignment: 'right', margin: [0, 3, 0, 3] },
+            ],
+            margin: [0, 0, 0, 2],
+          };
+        });
+
+    const titreLabelMap: Record<string, string> = {
+      VISA_ETUDIANT: 'Visa étudiant',
+      TITRE_SALARIE: 'Titre salarié',
+      REGROUPEMENT_FAMILIAL: 'Regroupement familial',
+      NATURALISATION: 'Naturalisation',
+    };
+    const countryLabelMap: Record<string, string> = {
+      FRANCE: 'France',
+      BELGIQUE: 'Belgique',
+    };
+    const titreLabel = titreLabelMap[checklist.titreType] ?? checklist.titreType;
+    const countryLabel = countryLabelMap[checklist.country] ?? checklist.country;
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [48, 64, 48, 64],
+      content: [
+        { text: '', margin: [0, 40, 0, 0] },
+        {
+          image: LEGALCASE_LOGO_BASE64,
+          width: 180,
+          alignment: 'center',
+          margin: [0, 0, 0, 24],
+        },
+        {
+          canvas: [{ type: 'line', x1: 80, y1: 0, x2: 420, y2: 0, lineWidth: 2, lineColor: ACCENT }],
+          margin: [0, 0, 0, 20],
+        },
+        {
+          text: caseFileTitle || 'Dossier',
+          style: 'coverTitle',
+          alignment: 'center',
+          margin: [0, 0, 0, 8],
+        },
+        {
+          text: 'Checklist pièces immigration',
+          fontSize: 13,
+          color: TEXT_SECONDARY,
+          alignment: 'center',
+          margin: [0, 0, 0, 4],
+        },
+        {
+          text: `${titreLabel} — ${countryLabel}`,
+          fontSize: 11,
+          color: PRIMARY,
+          bold: true,
+          alignment: 'center',
+          margin: [0, 0, 0, 4],
+        },
+        {
+          text: `Exportée le ${exportDate}`,
+          fontSize: 10,
+          color: TEXT_SECONDARY,
+          alignment: 'center',
+          margin: [0, 0, 0, 24],
+        },
+        {
+          table: {
+            widths: ['*', '*', '*'],
+            body: [[
+              { text: `${present} présente(s)`, alignment: 'center', bold: true, color: '#27AE60', fontSize: 11, margin: [0, 6, 0, 6] },
+              { text: `${absent} absente(s)`,   alignment: 'center', bold: true, color: ERROR,     fontSize: 11, margin: [0, 6, 0, 6] },
+              { text: `${inconnu} inconnue(s)`, alignment: 'center', bold: true, color: TEXT_SECONDARY, fontSize: 11, margin: [0, 6, 0, 6] },
+            ]]
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => DIVIDER,
+            vLineColor: () => DIVIDER,
+          },
+          margin: [0, 0, 0, 24],
+        },
+        {
+          canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: DIVIDER }],
+          margin: [0, 0, 0, 16],
+        },
+        ...pieceRows,
+      ],
+      footer: (currentPage: number, pageCount: number) => this.buildFooter(currentPage, pageCount),
+      defaultStyle: { font: 'Roboto', fontSize: 10, color: TEXT, lineHeight: 1.4 },
+      styles: this.buildStyles(),
+    };
+  }
+
+  buildImmigrationChecklistFileName(title: string): string {
+    const slug = (title || 'dossier')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const date = new Date().toISOString().slice(0, 10);
+    return `checklist-pieces-${slug}-${date}.pdf`;
   }
 }
