@@ -168,7 +168,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-FA-01 | Calcul de la prestation compensatoire | V4 — **À spécifier** | Calculateur backend : durée du mariage, revenus des deux parties, patrimoine, âge. Résultat affiché comme fourchette indicative avec les facteurs retenus. Spécifique DROIT_FAMILLE. Non faisable de façon fiable par prompt seul. |
-| F-FA-02 | Grille pension alimentaire | V4 — **À spécifier** | Calcul basé sur le barème UNAF (France) ou table de référence belge (Belgique), revenus des deux parents, nombre d'enfants, mode de garde (alternée vs exclusive). Résultat structuré. |
+| F-FA-02 | Grille pension alimentaire | V4 — **En cours** | Calcul basé sur le barème UNAF (France) ou table de référence belge (Belgique), revenus des deux parents, nombre d'enfants, mode de garde (alternée vs exclusive). Résultat structuré. SF-FA-02-01 mergée 2026-04-04 (PensionAlimentaireCalculator barème UNAF/CGKR, prompt DROIT_FAMILLE, pensionAlimentaireEstimate dans CaseAnalysisResponse, 564 tests). SF-FA-02-02 (frontend) à venir. |
 | ~~F-FA-03~~ | ~~Détection régime matrimonial~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_FAMILLE. L'IA lit le contrat de mariage et détecte le régime (communauté légale, séparation de biens, participation aux acquêts). La détection est une donnée d'entrée de F-FA-04, pas une feature autonome. |
 | F-FA-04 | Synthèse liquidation de communauté | V4 — **À spécifier** | Tableau structuré de partage : actif commun, biens propres de chaque époux, passif commun. Données extraites des documents + régime matrimonial détecté par prompt. Section UI dédiée + export Word/PDF via F-95. |
 
@@ -275,6 +275,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |------|-------------|------------|
 | 2026-04-03 | Features métier par domaine requalifiées avec IDs F-DT/F-IM/F-FA — F-DT-02/F-IM-04/F-FA-03 abandonnées (amélioration prompt suffisante), F-DT-04 maintenue (format CPH distinct de F-95) | Product owner |
 | 2026-04-03 | F-DT-01/03/04 + F-IM-01/02/03 + F-FA-01/02/04 ajoutées au backlog V4 — features métier par domaine nécessitant logique backend ou structure dédiée | Product owner |
+| 2026-04-04 | F-FA-02 En cours — SF-FA-02-01 mergée : PensionAlimentaireCalculator (barème UNAF FR + CGKR BE, garde exclusive/alternée, fourchette ±10 %), prompt DROIT_FAMILLE (5 champs), pensionAlimentaireEstimate dans CaseAnalysisResponse, 14 tests (564 verts) | Product owner |
 | 2026-04-04 | F-DT-01 Terminée — SF-DT-01-01 mergée : CompensationCalculator (1/4+1/3 + barème Macron), champ compensationEstimate dans CaseAnalysisResponse, panneau synthèse + export PDF, 510+570 tests verts | Product owner |
 | 2026-04-04 | F-DT-03 Terminée — SF-DT-03-01 mergée : LitigationTypeMapper (7 types), StatutoryDeadlineService, prompt enrichi étendu, sous-section "Délais légaux applicables" lecture seule, 487+561 tests verts | Product owner |
 | 2026-04-04 | F-109 Terminée — SF-109-01 mergée : ProcedureCheckRequalifiedEvent, RequalificationAlertService, EmailService.sendRequalificationAlert(), 471 tests verts | Product owner |
