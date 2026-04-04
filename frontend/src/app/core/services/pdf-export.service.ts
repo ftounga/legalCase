@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
-import { CaseAnalysisResult, CompensationEstimate } from '../models/case-analysis.model';
+import { CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
 import { PrudhomeFiche } from '../models/prudhome-fiche.model';
@@ -185,6 +185,13 @@ export class PdfExportService {
       );
     }
 
+    if (synthesis.pensionAlimentaireEstimate) {
+      sections.push(
+        ...this.buildPensionAlimentaireSection(synthesis.pensionAlimentaireEstimate),
+        { text: '', margin: [0, 0, 0, 16] }
+      );
+    }
+
     return sections;
   }
 
@@ -252,6 +259,60 @@ export class PdfExportService {
 
     result.push({
       text: 'Estimation indicative — données extraites par l\'IA, non certifiées',
+      fontSize: 9, color: TEXT_SECONDARY, italics: true, margin: [8, 4, 8, 0]
+    });
+
+    return result;
+  }
+
+  private buildPensionAlimentaireSection(est: PensionAlimentaireEstimate): object[] {
+    const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+    const gardeLabel = est.modeGarde === 'ALTERNEE' ? 'alternée' : 'exclusive';
+    const baremeLabel = est.pays === 'BELGIQUE' ? 'CGKR Belgique' : 'UNAF France';
+
+    const rows: object[] = [
+      [
+        { text: 'Fourchette mensuelle', bold: true, fontSize: 11, color: TEXT },
+        { text: `${fmt(est.montantMin)} – ${fmt(est.montantMax)} / mois`, bold: true, fontSize: 12, color: PRIMARY, alignment: 'right' }
+      ],
+      [
+        { text: `Revenus net débiteur : ${fmt(est.revenus)}/mois`, fontSize: 10, color: TEXT_SECONDARY },
+        { text: `${est.nbEnfants} enfant(s) · garde ${gardeLabel}`, fontSize: 10, color: TEXT_SECONDARY, alignment: 'right' }
+      ],
+      [
+        { text: `Barème : ${baremeLabel}`, fontSize: 10, color: TEXT_SECONDARY },
+        { text: '', fontSize: 10 }
+      ],
+    ];
+
+    const result: object[] = [
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: [[
+            { text: 'Pension alimentaire indicative', color: SURFACE, bold: true, fontSize: 13, margin: [12, 8, 0, 8] },
+            { text: `${est.nbEnfants} enfant(s)`, color: SURFACE, fontSize: 9, italics: true, margin: [0, 10, 12, 8], alignment: 'right' }
+          ]]
+        },
+        layout: { fillColor: () => ACCENT, hLineColor: () => ACCENT, vLineColor: () => ACCENT },
+        margin: [0, 0, 0, 8],
+      },
+      {
+        table: { widths: ['*', 'auto'], body: rows },
+        layout: 'noBorders',
+        margin: [8, 0, 8, 0],
+      },
+    ];
+
+    if (est.donneesPartielles) {
+      result.push({
+        text: '⚠ Données partielles — vérifier les revenus et le nombre d\'enfants',
+        fontSize: 9, color: ACCENT, italics: true, margin: [8, 6, 8, 0]
+      });
+    }
+
+    result.push({
+      text: 'Estimation indicative — ne constitue pas un avis juridique',
       fontSize: 9, color: TEXT_SECONDARY, italics: true, margin: [8, 4, 8, 0]
     });
 
