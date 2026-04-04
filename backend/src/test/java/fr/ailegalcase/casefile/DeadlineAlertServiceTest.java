@@ -25,6 +25,7 @@ import static org.mockito.Mockito.*;
 class DeadlineAlertServiceTest {
 
     @Mock private CaseDeadlineRepository deadlineRepository;
+    @Mock private DeadlineAlertSendRepository alertSendRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private EmailService emailService;
     @InjectMocks private DeadlineAlertService service;
@@ -121,6 +122,90 @@ class DeadlineAlertServiceTest {
         service.sendDailyAlerts();
 
         verify(emailService).sendDeadlineAlert(eq("avocat2@example.com"), any(), any(), any(), any(), anyInt());
+    }
+
+    // U-MT-01 : délai multi-threshold à J-30 → email envoyé, send enregistré
+    @Test
+    void multiThreshold_deadlineAtMatchingThreshold_sendsEmailAndRecords() {
+        LocalDate today = LocalDate.now();
+        CaseDeadline deadline = makeDeadline(today.plusDays(30));
+        deadline.setAlertThresholds("90,30,7");
+        WorkspaceMember member = makeMember("avocat@example.com");
+
+        when(deadlineRepository.findByAlertThresholdsIsNotNullAndCaseFileDeletedAtIsNull())
+                .thenReturn(List.of(deadline));
+        when(alertSendRepository.existsByDeadlineIdAndThresholdDays(deadline.getId(), 30))
+                .thenReturn(false);
+        when(workspaceMemberRepository.findByWorkspace_Id(workspace.getId()))
+                .thenReturn(List.of(member));
+
+        service.sendMultiThresholdAlerts(today);
+
+        verify(emailService).sendDeadlineAlert(
+                eq("avocat@example.com"), eq("Dossier Dupont"), eq(caseFile.getId()),
+                eq("Délai de prescription"), anyString(), eq(30));
+        ArgumentCaptor<DeadlineAlertSend> sendCaptor = ArgumentCaptor.forClass(DeadlineAlertSend.class);
+        verify(alertSendRepository).save(sendCaptor.capture());
+        assertThat(sendCaptor.getValue().getThresholdDays()).isEqualTo(30);
+    }
+
+    // U-MT-02 : threshold déjà envoyé → pas d'email
+    @Test
+    void multiThreshold_alreadySent_skipsEmail() {
+        LocalDate today = LocalDate.now();
+        CaseDeadline deadline = makeDeadline(today.plusDays(7));
+        deadline.setAlertThresholds("90,30,7");
+
+        when(deadlineRepository.findByAlertThresholdsIsNotNullAndCaseFileDeletedAtIsNull())
+                .thenReturn(List.of(deadline));
+        when(alertSendRepository.existsByDeadlineIdAndThresholdDays(deadline.getId(), 7))
+                .thenReturn(true);
+
+        service.sendMultiThresholdAlerts(today);
+
+        verifyNoInteractions(emailService);
+        verify(alertSendRepository, never()).save(any());
+    }
+
+    // U-MT-03 : délai multi-threshold non atteint (J-45) → pas d'email
+    @Test
+    void multiThreshold_thresholdNotReached_skipsEmail() {
+        LocalDate today = LocalDate.now();
+        CaseDeadline deadline = makeDeadline(today.plusDays(45));
+        deadline.setAlertThresholds("90,30,7");
+
+        when(deadlineRepository.findByAlertThresholdsIsNotNullAndCaseFileDeletedAtIsNull())
+                .thenReturn(List.of(deadline));
+
+        service.sendMultiThresholdAlerts(today);
+
+        verifyNoInteractions(emailService);
+        verify(alertSendRepository, never()).save(any());
+    }
+
+    // U-MT-04 : standard path ignore les deadlines avec alertThresholds
+    @Test
+    void standardAlerts_skipsDeadlineWithAlertThresholds() {
+        LocalDate today = LocalDate.now();
+        CaseDeadline withThresholds = makeDeadline(today.plusDays(15));
+        withThresholds.setAlertThresholds("90,30,7");
+
+        when(deadlineRepository.findByDueDateInAndCaseFileDeletedAtIsNull(anyCollection()))
+                .thenReturn(List.of(withThresholds));
+
+        service.sendStandardAlerts(today);
+
+        verifyNoInteractions(emailService);
+    }
+
+    // U-MT-05 : parseThresholds — cas variés
+    @Test
+    void parseThresholds_variousCases() {
+        assertThat(service.parseThresholds("90,30,7")).containsExactly(90, 30, 7);
+        assertThat(service.parseThresholds("15")).containsExactly(15);
+        assertThat(service.parseThresholds(null)).isEmpty();
+        assertThat(service.parseThresholds("  ")).isEmpty();
+        assertThat(service.parseThresholds("7, 30, 90")).containsExactly(7, 30, 90);
     }
 
     // U-04 : workspace avec 2 membres → 2 emails envoyés

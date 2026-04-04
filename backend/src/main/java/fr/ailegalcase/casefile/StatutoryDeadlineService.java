@@ -15,8 +15,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Creates or updates a STATUTORY CaseDeadline from the enriched analysis JSON.
- * Reads "type_litige_detecte" and "date_reference_prescription" fields.
+ * Creates or updates STATUTORY CaseDeadlines from the enriched analysis JSON.
+ * — DROIT_DU_TRAVAIL / DROIT_FAMILLE : reads "type_litige_detecte" + "date_reference_prescription"
+ * — DROIT_IMMIGRATION : reads "date_expiration_titre" + "type_titre_sejour",
+ *   produces a deadline with alertThresholds="90,30,7"
  * Fail-open: any parsing or DB error is logged and swallowed.
  */
 @Service
@@ -38,28 +40,62 @@ public class StatutoryDeadlineService {
             String stripped = CaseAnalysisResponse.stripMarkdownCodeBlock(rawJson);
             JsonNode root = MAPPER.readTree(stripped);
 
-            JsonNode typeNode = root.get("type_litige_detecte");
-            if (typeNode == null || typeNode.isNull()) return;
+            String legalDomain = analysis.getCaseFile().getLegalDomain();
 
-            Optional<LitigationTypeMapper.LitigationPeriod> periodOpt =
-                    LitigationTypeMapper.resolve(typeNode.asText());
-            if (periodOpt.isEmpty()) {
-                log.debug("StatutoryDeadline: unknown litigation type '{}' for analysis {} — skipped",
-                        typeNode.asText(), analysis.getId());
-                return;
+            if ("DROIT_IMMIGRATION".equals(legalDomain)) {
+                createImmigrationTitreDeadline(analysis, root);
+            } else {
+                createPrescriptionDeadline(analysis, root);
             }
-
-            LitigationTypeMapper.LitigationPeriod period = periodOpt.get();
-            LocalDate referenceDate = resolveReferenceDate(root, analysis);
-            LocalDate dueDate = referenceDate.plusYears(period.years());
-            String label = "Prescription — %s (%s)".formatted(period.label(), period.article());
-
-            upsertStatutoryDeadline(analysis.getCaseFile(), label, dueDate);
-
         } catch (Exception e) {
             log.warn("StatutoryDeadline: fail-open for analysis {} — {}",
                     analysis.getId(), e.getMessage());
         }
+    }
+
+    private void createImmigrationTitreDeadline(CaseAnalysis analysis, JsonNode root) {
+        JsonNode dateNode = root.get("date_expiration_titre");
+        if (dateNode == null || dateNode.isNull()) {
+            log.debug("StatutoryDeadline: missing date_expiration_titre for analysis {} — skipped",
+                    analysis.getId());
+            return;
+        }
+        LocalDate expirationDate;
+        try {
+            expirationDate = LocalDate.parse(dateNode.asText());
+        } catch (Exception e) {
+            log.debug("StatutoryDeadline: invalid date_expiration_titre '{}' for analysis {} — skipped",
+                    dateNode.asText(), analysis.getId());
+            return;
+        }
+
+        JsonNode typeNode = root.get("type_titre_sejour");
+        String documentType = (typeNode != null && !typeNode.isNull() && !typeNode.asText().isBlank())
+                ? typeNode.asText()
+                : "TITRE_SEJOUR";
+
+        upsertDeadline(analysis.getCaseFile(), "Expiration titre de séjour",
+                expirationDate, "STATUTORY", "90,30,7", documentType);
+    }
+
+    private void createPrescriptionDeadline(CaseAnalysis analysis, JsonNode root) {
+        JsonNode typeNode = root.get("type_litige_detecte");
+        if (typeNode == null || typeNode.isNull()) return;
+
+        Optional<LitigationTypeMapper.LitigationPeriod> periodOpt =
+                LitigationTypeMapper.resolve(typeNode.asText());
+        if (periodOpt.isEmpty()) {
+            log.debug("StatutoryDeadline: unknown litigation type '{}' for analysis {} — skipped",
+                    typeNode.asText(), analysis.getId());
+            return;
+        }
+
+        LitigationTypeMapper.LitigationPeriod period = periodOpt.get();
+        LocalDate referenceDate = resolveReferenceDate(root, analysis);
+        LocalDate dueDate = referenceDate.plusYears(period.years());
+        String label = "Prescription — %s (%s)".formatted(period.label(), period.article());
+
+        upsertDeadline(analysis.getCaseFile(), label, dueDate, "STATUTORY", null, null);
     }
 
     private LocalDate resolveReferenceDate(JsonNode root, CaseAnalysis analysis) {
@@ -75,11 +111,12 @@ public class StatutoryDeadlineService {
         return analysis.getCaseFile().getCreatedAt().atZone(ZoneOffset.UTC).toLocalDate();
     }
 
-    private void upsertStatutoryDeadline(CaseFile caseFile, String label, LocalDate dueDate) {
+    private void upsertDeadline(CaseFile caseFile, String label, LocalDate dueDate,
+                                String source, String alertThresholds, String documentType) {
         List<CaseDeadline> existing = deadlineRepository
                 .findByCaseFileIdOrderByDueDateAsc(caseFile.getId())
                 .stream()
-                .filter(d -> "STATUTORY".equals(d.getSource()) && label.equals(d.getLabel()))
+                .filter(d -> source.equals(d.getSource()) && label.equals(d.getLabel()))
                 .toList();
         existing.forEach(deadlineRepository::delete);
         deadlineRepository.flush();
@@ -88,7 +125,9 @@ public class StatutoryDeadlineService {
         deadline.setCaseFile(caseFile);
         deadline.setLabel(label);
         deadline.setDueDate(dueDate);
-        deadline.setSource("STATUTORY");
+        deadline.setSource(source);
+        deadline.setAlertThresholds(alertThresholds);
+        deadline.setDocumentType(documentType);
         deadlineRepository.save(deadline);
     }
 }

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="046-extend-case-deadlines-alert-thresholds" author="ailegalcase">
+
+        <addColumn tableName="case_deadlines">
+            <column name="alert_thresholds" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="document_type" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <createTable tableName="deadline_alert_sends">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="deadline_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_deadline_alert_sends_deadline"
+                             references="case_deadlines(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="threshold_days" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sent_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="deadline_alert_sends"
+                columnNames="deadline_id, threshold_days"
+                constraintName="uq_deadline_alert_sends_deadline_threshold"/>
+
+        <createIndex tableName="deadline_alert_sends" indexName="idx_deadline_alert_sends_deadline_id">
+            <column name="deadline_id"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>
