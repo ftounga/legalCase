@@ -30,6 +30,15 @@ export interface PensionAlimentaireEstimate {
   donneesPartielles: boolean;
 }
 
+export interface PrestationCompensatoireEstimate {
+  montantMin: number;
+  montantMax: number;
+  ecartRevenus: number;
+  dureeMarriage: number;
+  pays: 'FRANCE' | 'BELGIQUE';
+  donneesPartielles: boolean;
+}
+
 export interface CaseAnalysisResult {
   id: string;
   version: number;
@@ -48,6 +57,7 @@ export interface CaseAnalysisResult {
   analysisDocuments?: { index: number; name: string }[];
   compensationEstimate?: CompensationEstimate | null;
   pensionAlimentaireEstimate?: PensionAlimentaireEstimate | null;
+  prestationCompensatoireEstimate?: PrestationCompensatoireEstimate | null;
 }
 
 export interface CaseAnalysisVersionSummary {

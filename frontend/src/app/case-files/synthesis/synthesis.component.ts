@@ -23,7 +23,7 @@ import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
-import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate } from '../../core/models/case-analysis.model';
+import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
 import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedure-check.model';
@@ -295,6 +295,10 @@ export class SynthesisComponent implements OnInit {
 
   get pensionAlimentaireEstimate(): PensionAlimentaireEstimate | null {
     return this.synthesis()?.pensionAlimentaireEstimate ?? null;
+  }
+
+  get prestationCompensatoireEstimate(): PrestationCompensatoireEstimate | null {
+    return this.synthesis()?.prestationCompensatoireEstimate ?? null;
   }
 
   formatTypeRupture(type: string): string {
