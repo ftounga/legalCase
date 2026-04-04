@@ -1,4 +1,5 @@
 import { Component, computed, Input, OnInit, signal } from '@angular/core';
+import { LowerCasePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -7,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { ImmigrationChecklistService } from '../../core/services/immigration-checklist.service';
 import { ImmigrationChecklist, ImmigrationPieceItem, ImmigrationStatut } from '../../core/models/immigration-checklist.model';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 
 const STATUT_CYCLE: Record<ImmigrationStatut, ImmigrationStatut> = {
   INCONNU: 'PRESENT',
@@ -19,6 +21,7 @@ const STATUT_CYCLE: Record<ImmigrationStatut, ImmigrationStatut> = {
   standalone: true,
   imports: [
     FormsModule,
+    LowerCasePipe,
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule,
   ],
@@ -27,6 +30,7 @@ const STATUT_CYCLE: Record<ImmigrationStatut, ImmigrationStatut> = {
 })
 export class ImmigrationChecklistSectionComponent implements OnInit {
   @Input() caseFileId!: string;
+  @Input() caseFileTitle: string = '';
 
   collapsed = signal(true);
   saving = signal(false);
@@ -54,6 +58,7 @@ export class ImmigrationChecklistSectionComponent implements OnInit {
   constructor(
     private checklistService: ImmigrationChecklistService,
     private snackBar: MatSnackBar,
+    private pdfExportService: PdfExportService,
   ) {}
 
   ngOnInit(): void {
@@ -78,6 +83,12 @@ export class ImmigrationChecklistSectionComponent implements OnInit {
   cycleStatut(piece: ImmigrationPieceItem): void {
     piece.statut = STATUT_CYCLE[piece.statut];
     this.checklist.update(cl => cl ? { ...cl, pieces: [...cl.pieces] } : cl);
+  }
+
+  exportPdf(): void {
+    const cl = this.checklist();
+    if (!cl) return;
+    this.pdfExportService.exportImmigrationChecklist(cl, this.caseFileTitle);
   }
 
   save(): void {

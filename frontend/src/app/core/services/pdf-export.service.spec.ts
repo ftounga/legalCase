@@ -237,4 +237,52 @@ describe('PdfExportService', () => {
     const name = service.buildPrudhomeFicheFileName('Affaire Dupont c/ SA Renault');
     expect(name).toMatch(/^fiche-prudhomale-affaire-dupont-c-sa-renault-\d{4}-\d{2}-\d{2}\.pdf$/);
   });
+
+  // --- SF-IM-01-03 : export PDF checklist immigration ---
+
+  const mockImmigrationChecklist = {
+    caseFileId: 'cf-1',
+    titreType: 'VISA_ETUDIANT',
+    country: 'FRANCE',
+    pieces: [
+      { label: 'Passeport', statut: 'PRESENT' as const },
+      { label: 'Justificatif hébergement', statut: 'ABSENT' as const },
+      { label: 'Lettre motivation', statut: 'INCONNU' as const },
+    ],
+  };
+
+  it('IM-PDF-01: buildImmigrationChecklistDocument() retourne un document pdfmake valide', () => {
+    const doc = service.buildImmigrationChecklistDocument(mockImmigrationChecklist, 'Dossier Test') as any;
+    expect(doc).toBeTruthy();
+    expect(doc.pageSize).toBe('A4');
+    expect(Array.isArray(doc.content)).toBe(true);
+  });
+
+  it('IM-PDF-02: buildImmigrationChecklistDocument() contient le titre dossier, le type de titre et le pays', () => {
+    const doc = service.buildImmigrationChecklistDocument(mockImmigrationChecklist, 'Dossier Test') as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Dossier Test');
+    expect(s).toContain('Visa étudiant');
+    expect(s).toContain('France');
+  });
+
+  it('IM-PDF-03: buildImmigrationChecklistDocument() contient le résumé compteurs', () => {
+    const doc = service.buildImmigrationChecklistDocument(mockImmigrationChecklist, 'Dossier Test') as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('1 présente(s)');
+    expect(s).toContain('1 absente(s)');
+    expect(s).toContain('1 inconnue(s)');
+  });
+
+  it('IM-PDF-04: buildImmigrationChecklistDocument() avec 0 pièces affiche "Aucune pièce"', () => {
+    const empty = { ...mockImmigrationChecklist, pieces: [] };
+    const doc = service.buildImmigrationChecklistDocument(empty, 'Dossier') as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Aucune pièce');
+  });
+
+  it('IM-PDF-05: buildImmigrationChecklistFileName() génère le bon slug et la bonne date', () => {
+    const name = service.buildImmigrationChecklistFileName('Dossier Immigration Test');
+    expect(name).toMatch(/^checklist-pieces-dossier-immigration-test-\d{4}-\d{2}-\d{2}\.pdf$/);
+  });
 });
