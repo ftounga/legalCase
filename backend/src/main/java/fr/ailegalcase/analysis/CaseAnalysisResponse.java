@@ -27,7 +27,8 @@ public record CaseAnalysisResponse(
         List<AnalysisDocumentEntry> analysisDocuments,
         CompensationCalculator.CompensationEstimate compensationEstimate,
         PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate,
-        PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate
+        PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate,
+        LiquidationCommunauteResult liquidationCommunaute
 ) {
 
     public record TimelineEntry(String date, String evenement) {}
@@ -107,6 +108,7 @@ public record CaseAnalysisResponse(
         CompensationCalculator.CompensationEstimate compensationEstimate = null;
         PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate = null;
         PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate = null;
+        LiquidationCommunauteResult liquidationCommunaute = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -122,6 +124,7 @@ public record CaseAnalysisResponse(
                 compensationEstimate = extractCompensationEstimate(root);
                 pensionAlimentaireEstimate = extractPensionAlimentaireEstimate(root);
                 prestationCompensatoireEstimate = extractPrestationCompensatoireEstimate(root);
+                liquidationCommunaute = extractLiquidationCommunaute(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -148,7 +151,8 @@ public record CaseAnalysisResponse(
                 analysisDocuments,
                 compensationEstimate,
                 pensionAlimentaireEstimate,
-                prestationCompensatoireEstimate
+                prestationCompensatoireEstimate,
+                liquidationCommunaute
         );
     }
 
@@ -204,6 +208,36 @@ public record CaseAnalysisResponse(
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    static LiquidationCommunauteResult extractLiquidationCommunaute(JsonNode root) {
+        JsonNode node = root.get("liquidation_communaute_data");
+        if (node == null || !node.isObject()) return null;
+        try {
+            String regime = node.has("regime_matrimonial") && !node.get("regime_matrimonial").isNull()
+                    ? node.get("regime_matrimonial").asText() : null;
+            List<LiquidationCommunauteResult.BienItem> actifCommun       = extractBienItems(node, "actif_commun", "valeur_estimee");
+            List<LiquidationCommunauteResult.BienItem> biensPropresA     = extractBienItems(node, "biens_propres_epoux_a", "valeur_estimee");
+            List<LiquidationCommunauteResult.BienItem> biensPropresB     = extractBienItems(node, "biens_propres_epoux_b", "valeur_estimee");
+            List<LiquidationCommunauteResult.BienItem> passifCommun      = extractBienItems(node, "passif_commun", "montant");
+            return new LiquidationCommunauteResult(regime, actifCommun, biensPropresA, biensPropresB, passifCommun);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static List<LiquidationCommunauteResult.BienItem> extractBienItems(JsonNode parent, String field, String valeurKey) {
+        JsonNode array = parent.get(field);
+        if (array == null || !array.isArray()) return List.of();
+        java.util.List<LiquidationCommunauteResult.BienItem> result = new java.util.ArrayList<>();
+        for (JsonNode item : array) {
+            if (!item.isObject() || !item.has("libelle")) continue;
+            String libelle = item.get("libelle").asText();
+            Double valeur  = item.has(valeurKey) && !item.get(valeurKey).isNull()
+                    ? item.get(valeurKey).doubleValue() : null;
+            result.add(new LiquidationCommunauteResult.BienItem(libelle, valeur));
+        }
+        return List.copyOf(result);
     }
 
     private static List<AnalysisDocumentEntry> buildAnalysisDocuments(List<AnalysisDocument> documents) {
