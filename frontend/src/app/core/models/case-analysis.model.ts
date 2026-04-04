@@ -39,6 +39,19 @@ export interface PrestationCompensatoireEstimate {
   donneesPartielles: boolean;
 }
 
+export interface BienItem {
+  libelle: string;
+  valeur: number | null;
+}
+
+export interface LiquidationCommunaute {
+  regimeMatrimonial: string | null;
+  actifCommun: BienItem[];
+  biensPropresEpouxA: BienItem[];
+  biensPropresEpouxB: BienItem[];
+  passifCommun: BienItem[];
+}
+
 export interface CaseAnalysisResult {
   id: string;
   version: number;
@@ -58,6 +71,7 @@ export interface CaseAnalysisResult {
   compensationEstimate?: CompensationEstimate | null;
   pensionAlimentaireEstimate?: PensionAlimentaireEstimate | null;
   prestationCompensatoireEstimate?: PrestationCompensatoireEstimate | null;
+  liquidationCommunaute?: LiquidationCommunaute | null;
 }
 
 export interface CaseAnalysisVersionSummary {

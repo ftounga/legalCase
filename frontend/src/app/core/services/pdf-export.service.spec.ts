@@ -325,4 +325,34 @@ describe('PdfExportService', () => {
     const name = service.buildImmigrationChecklistFileName('Dossier Immigration Test');
     expect(name).toMatch(/^checklist-pieces-dossier-immigration-test-\d{4}-\d{2}-\d{2}\.pdf$/);
   });
+
+  // --- SF-FA-04-02 : liquidation communauté PDF ---
+
+  it('PDF-LC-01: buildDocument() inclut section liquidation si liquidationCommunaute présent', () => {
+    const synWithLiquidation: CaseAnalysisResult = {
+      ...mockSynthesis,
+      liquidationCommunaute: {
+        regimeMatrimonial: 'COMMUNAUTE_LEGALE',
+        actifCommun: [{ libelle: 'Résidence principale', valeur: 350000 }],
+        biensPropresEpouxA: [],
+        biensPropresEpouxB: [{ libelle: 'Appartement hérité', valeur: 120000 }],
+        passifCommun: [{ libelle: 'Crédit immobilier', valeur: 80000 }],
+      },
+    };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synWithLiquidation) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Liquidation de communauté');
+    expect(s).toContain('Résidence principale');
+    expect(s).toContain('Communauté légale');
+  });
+
+  it('PDF-LC-02: buildDocument() n\'inclut pas section liquidation si liquidationCommunaute null', () => {
+    const synWithoutLiquidation: CaseAnalysisResult = {
+      ...mockSynthesis,
+      liquidationCommunaute: null,
+    };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synWithoutLiquidation) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Liquidation de communauté');
+  });
 });

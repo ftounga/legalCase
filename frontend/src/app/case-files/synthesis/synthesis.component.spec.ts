@@ -743,6 +743,33 @@ describe('SynthesisComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Données partielles');
   });
 
+  // SF-FA-04-02 : Panneau liquidation de communauté
+  it('FA-LC-01: panneau liquidation visible si liquidationCommunaute non null', () => {
+    const liq = {
+      regimeMatrimonial: 'COMMUNAUTE_LEGALE',
+      actifCommun: [{ libelle: 'Résidence principale', valeur: 280000 }],
+      biensPropresEpouxA: [], biensPropresEpouxB: [],
+      passifCommun: [{ libelle: 'Crédit immobilier', valeur: 95000 }]
+    };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of({ ...makeSynthesis(1, 'ENRICHED'), liquidationCommunaute: liq }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Liquidation de communauté');
+  });
+
+  it('FA-LC-02: panneau liquidation absent si liquidationCommunaute null', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of({ ...makeSynthesis(1, 'ENRICHED'), liquidationCommunaute: null }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Liquidation de communauté');
+  });
+
+  it('FA-LC-03: formatRegime retourne le bon libellé', () => {
+    expect(component.formatRegime('COMMUNAUTE_LEGALE')).toBe('Communauté légale');
+    expect(component.formatRegime('SEPARATION_BIENS')).toBe('Séparation de biens');
+    expect(component.formatRegime(null)).toBe('Non détecté');
+  });
+
   // CL-PDF-03 : click sur le bouton → exportChecklistPdf() appelé
   it('CL-PDF-03: click on checklist PDF button calls exportChecklistPdf()', () => {
     const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
