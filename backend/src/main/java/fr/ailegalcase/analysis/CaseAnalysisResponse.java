@@ -26,7 +26,8 @@ public record CaseAnalysisResponse(
         Instant updatedAt,
         List<AnalysisDocumentEntry> analysisDocuments,
         CompensationCalculator.CompensationEstimate compensationEstimate,
-        PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate
+        PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate,
+        PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate
 ) {
 
     public record TimelineEntry(String date, String evenement) {}
@@ -105,6 +106,7 @@ public record CaseAnalysisResponse(
         List<String> pointsProcedure = List.of();
         CompensationCalculator.CompensationEstimate compensationEstimate = null;
         PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate = null;
+        PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -119,6 +121,7 @@ public record CaseAnalysisResponse(
                 pointsProcedure = extractStringList(root, "points_procedure");
                 compensationEstimate = extractCompensationEstimate(root);
                 pensionAlimentaireEstimate = extractPensionAlimentaireEstimate(root);
+                prestationCompensatoireEstimate = extractPrestationCompensatoireEstimate(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -144,7 +147,8 @@ public record CaseAnalysisResponse(
                 analysis.getUpdatedAt(),
                 analysisDocuments,
                 compensationEstimate,
-                pensionAlimentaireEstimate
+                pensionAlimentaireEstimate,
+                prestationCompensatoireEstimate
         );
     }
 
@@ -179,6 +183,24 @@ public record CaseAnalysisResponse(
             String pays = node.has("pays_applicable") && !node.get("pays_applicable").isNull()
                     ? node.get("pays_applicable").asText() : null;
             return PensionAlimentaireCalculator.calculate(revenus, nbEnfants, modeGarde, pays).orElse(null);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    static PrestationCompensatoireCalculator.PrestationCompensatoireEstimate extractPrestationCompensatoireEstimate(JsonNode root) {
+        JsonNode node = root.get("prestation_compensatoire_data");
+        if (node == null || !node.isObject()) return null;
+        try {
+            Double revenusA    = node.has("revenus_net_mensuel_epoux_a") && !node.get("revenus_net_mensuel_epoux_a").isNull()
+                    ? node.get("revenus_net_mensuel_epoux_a").doubleValue() : null;
+            Double revenusB    = node.has("revenus_net_mensuel_epoux_b") && !node.get("revenus_net_mensuel_epoux_b").isNull()
+                    ? node.get("revenus_net_mensuel_epoux_b").doubleValue() : null;
+            Integer duree      = node.has("duree_mariage_annees") && !node.get("duree_mariage_annees").isNull()
+                    ? node.get("duree_mariage_annees").intValue() : null;
+            String pays        = node.has("pays_applicable") && !node.get("pays_applicable").isNull()
+                    ? node.get("pays_applicable").asText() : null;
+            return PrestationCompensatoireCalculator.calculate(revenusA, revenusB, duree, pays).orElse(null);
         } catch (Exception ignored) {
             return null;
         }

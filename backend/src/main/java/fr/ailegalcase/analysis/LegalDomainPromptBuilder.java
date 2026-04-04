@@ -4,13 +4,19 @@ public final class LegalDomainPromptBuilder {
 
     private static final String FAMILLE_INSTRUCTION = """
 
-            Pour ce dossier de droit de la famille, inclure également dans le JSON le champ suivant :
+            Pour ce dossier de droit de la famille, inclure également dans le JSON les champs suivants :
             "pension_alimentaire_data" : objet avec les champs :
               "revenus_net_mensuel_debiteur" : revenu net mensuel du parent débiteur en euros, null si non détectable.
               "revenus_net_mensuel_creancier" : revenu net mensuel du parent créancier en euros, null si non détectable.
               "nb_enfants" : nombre d'enfants concernés par la pension, null si non détectable.
               "mode_garde" : mode de garde, l'une de ces valeurs exactes : "EXCLUSIVE", "ALTERNEE", null si non détectable.
               "pays_applicable" : pays du barème applicable, l'une de ces valeurs exactes : "FRANCE", "BELGIQUE", null si non détectable.
+            "prestation_compensatoire_data" : objet avec les champs :
+              "revenus_net_mensuel_epoux_a" : revenu net mensuel de l'époux A en euros, null si non détectable.
+              "revenus_net_mensuel_epoux_b" : revenu net mensuel de l'époux B en euros, null si non détectable.
+              "duree_mariage_annees" : durée du mariage en années (entier), null si non détectable.
+              "nb_enfants_charge" : nombre d'enfants à charge communs, null si non détectable.
+              "pays_applicable" : pays applicable, l'une de ces valeurs exactes : "FRANCE", "BELGIQUE", null si non détectable.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """
