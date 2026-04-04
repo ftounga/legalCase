@@ -16,6 +16,7 @@ spec:
       containers:
         - name: backend
           image: REGISTRY_PLACEHOLDER/legalcase-backend:BACKEND_IMAGE_TAG
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:

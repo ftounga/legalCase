@@ -63,7 +63,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          APP_VERSION=$(node -p "require('./frontend/package.json').version")
+          APP_VERSION=${GITHUB_SHA:0:7}
           docker build --build-arg BUILD_CONFIGURATION=staging \
                        -t $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION \
                        -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \

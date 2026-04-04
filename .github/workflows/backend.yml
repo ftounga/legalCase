@@ -69,7 +69,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          APP_VERSION=$(cd backend && ./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          APP_VERSION=${GITHUB_SHA:0:7}
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION \
                        -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
                        ./backend

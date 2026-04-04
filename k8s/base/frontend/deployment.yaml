@@ -15,6 +15,7 @@ spec:
       containers:
         - name: frontend
           image: REGISTRY_PLACEHOLDER/legalcase-frontend:FRONTEND_IMAGE_TAG
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           env:
