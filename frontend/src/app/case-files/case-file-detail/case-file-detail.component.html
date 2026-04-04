@@ -104,11 +104,24 @@
             @for (file of pendingFiles(); track file.name) {
               <div class="pending-file-row">
                 <mat-icon class="pending-file-icon">insert_drive_file</mat-icon>
-                <span class="pending-file-name">{{ file.name }}</span>
-                <span class="pending-file-size">{{ formatSize(file.size) }}</span>
-                <button mat-icon-button (click)="removePendingFile(file)" title="Retirer">
-                  <mat-icon>close</mat-icon>
-                </button>
+                <div class="pending-file-info">
+                  <div class="pending-file-top">
+                    <span class="pending-file-name">{{ file.name }}</span>
+                    <span class="pending-file-size">{{ formatSize(file.size) }}</span>
+                    @if (!uploading()) {
+                      <button mat-icon-button (click)="removePendingFile(file)" title="Retirer">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    }
+                  </div>
+                  @if (uploading()) {
+                    <mat-progress-bar
+                      class="file-upload-bar"
+                      mode="determinate"
+                      [value]="fileUploadProgresses().get(file.name) ?? 0">
+                    </mat-progress-bar>
+                  }
+                </div>
               </div>
             }
           </div>
@@ -212,23 +225,14 @@
         }
       </div>
 
-      @if (visibleJobs().length > 0) {
-        <mat-card class="analysis-card">
-          @for (job of visibleJobs(); track job.jobType) {
-            <div class="analysis-job-row">
-              @if (isJobActive(job)) {
-                <mat-spinner diameter="16" class="job-spinner"></mat-spinner>
-              } @else {
-                <mat-icon class="job-done-icon">check_circle</mat-icon>
-              }
-              <span class="job-label">{{ jobTypeLabel(job.jobType) }}</span>
-              <span class="badge {{ jobStatusClass(job.status) }}">{{ jobStatusLabel(job.status) }}</span>
-              <mat-progress-bar mode="determinate" [value]="clampProgress(job.progressPercentage)" class="job-progress-bar"></mat-progress-bar>
-              <span class="job-percentage">{{ clampProgress(job.progressPercentage) }}%</span>
-            </div>
-          }
-        </mat-card>
-      } @else if (documents().length === 0) {
+      @if (documents().length > 0 || visibleJobs().length > 0 || uploading()) {
+        <app-analysis-pipeline
+          [jobs]="analysisJobs()"
+          [uploading]="uploading()"
+          [uploadProgress]="overallUploadProgress()"
+          [documentsCount]="documents().length">
+        </app-analysis-pipeline>
+      } @else {
         <div class="analysis-placeholder">
           <mat-icon class="placeholder-icon">psychology</mat-icon>
           <p>Ajoutez des documents, puis cliquez sur "Analyser le dossier".</p>

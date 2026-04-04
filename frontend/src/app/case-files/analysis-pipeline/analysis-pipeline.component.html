@@ -1,0 +1,39 @@
+<div class="pipeline">
+  @for (step of steps; track step.jobType; let last = $last) {
+    <div class="pipeline-step">
+      <div class="step-left">
+        <div class="step-icon-wrap" [ngClass]="'step-icon-wrap--' + step.status">
+          @if (step.status === 'active-processing') {
+            <span class="pulse-ring"></span>
+          }
+          <mat-icon class="step-icon">{{ stepIcon(step.status) }}</mat-icon>
+        </div>
+        @if (!last) {
+          <div class="step-connector" [ngClass]="{ 'step-connector--lit': step.status === 'done' }"></div>
+        }
+      </div>
+
+      <div class="step-body">
+        <div class="step-header">
+          <span class="step-label" [ngClass]="'step-label--' + step.status">{{ step.label }}</span>
+          <div class="step-meta">
+            @if (step.counter) {
+              <span class="step-counter">{{ step.counter }}</span>
+            }
+            @if (step.elapsed) {
+              <span class="step-elapsed">{{ step.elapsed }}</span>
+            }
+          </div>
+        </div>
+
+        <mat-progress-bar
+          class="step-bar"
+          [ngClass]="'step-bar--' + step.status"
+          [mode]="step.progressMode"
+          [value]="step.progressValue"
+          [bufferValue]="0">
+        </mat-progress-bar>
+      </div>
+    </div>
+  }
+</div>

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Document } from '../models/document.model';
 
@@ -19,6 +19,13 @@ export class DocumentService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<Document>(this.apiUrl(caseFileId), formData);
+  }
+
+  uploadWithProgress(caseFileId: string, file: File): Observable<HttpEvent<Document>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const req = new HttpRequest('POST', this.apiUrl(caseFileId), formData, { reportProgress: true });
+    return this.http.request<Document>(req);
   }
 
   delete(caseFileId: string, documentId: string): Observable<void> {

@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, inject } from '@angular/core';
 import { Subscription, forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, filter, map, tap } from 'rxjs/operators';
+import { HttpEventType, HttpResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -38,6 +39,7 @@ import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-de
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
+import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
@@ -53,7 +55,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
     TimerWidgetComponent, PrudhomeFicheSectionComponent,
-    ImmigrationChecklistSectionComponent
+    ImmigrationChecklistSectionComponent, AnalysisPipelineComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',
@@ -163,6 +165,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   canCompare = signal(false);
   deletingDocId = signal<string | null>(null);
   pendingFiles = signal<File[]>([]);
+  fileUploadProgresses = signal<Map<string, number>>(new Map());
+
+  readonly overallUploadProgress = computed(() => {
+    const m = this.fileUploadProgresses();
+    if (m.size === 0) return 0;
+    const values = Array.from(m.values());
+    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  });
 
   // true from "Analyser" click until both synthesis and questions are loaded
   readonly fullAnalysisRunning = computed(() => {
@@ -549,8 +559,19 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const caseFileId = this.caseFile()!.id;
     this.uploading.set(true);
 
+    const initialProgresses = new Map<string, number>(files.map(f => [f.name, 0]));
+    this.fileUploadProgresses.set(initialProgresses);
+
     const uploads = files.map(f =>
-      this.documentService.upload(caseFileId, f).pipe(
+      this.documentService.uploadWithProgress(caseFileId, f).pipe(
+        tap(event => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            const pct = Math.round((event.loaded / event.total) * 100);
+            this.fileUploadProgresses.update(m => new Map(m).set(f.name, pct));
+          }
+        }),
+        filter(event => event.type === HttpEventType.Response),
+        map(event => (event as HttpResponse<Document>).body as Document),
         catchError(err => of({ error: err }))
       )
     );
@@ -560,6 +581,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       const failed = results.filter(r => 'error' in r) as { error: any }[];
 
       this.uploading.set(false);
+      this.fileUploadProgresses.set(new Map());
       this.pendingFiles.set([]);
 
       if (succeeded.length > 0) {
