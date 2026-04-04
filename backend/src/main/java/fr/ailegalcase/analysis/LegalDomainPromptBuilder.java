@@ -17,6 +17,12 @@ public final class LegalDomainPromptBuilder {
               "duree_mariage_annees" : durée du mariage en années (entier), null si non détectable.
               "nb_enfants_charge" : nombre d'enfants à charge communs, null si non détectable.
               "pays_applicable" : pays applicable, l'une de ces valeurs exactes : "FRANCE", "BELGIQUE", null si non détectable.
+            "liquidation_communaute_data" : objet avec les champs :
+              "regime_matrimonial" : régime matrimonial détecté, l'une de ces valeurs exactes : "COMMUNAUTE_LEGALE", "SEPARATION_BIENS", "PARTICIPATION_ACQUETS", null si non détectable.
+              "actif_commun" : tableau d'objets {libelle: string, valeur_estimee: number|null} listant les biens communs détectés dans les documents.
+              "biens_propres_epoux_a" : tableau d'objets {libelle: string, valeur_estimee: number|null} listant les biens propres de l'époux A.
+              "biens_propres_epoux_b" : tableau d'objets {libelle: string, valeur_estimee: number|null} listant les biens propres de l'époux B.
+              "passif_commun" : tableau d'objets {libelle: string, montant: number|null} listant les dettes communes détectées.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """
