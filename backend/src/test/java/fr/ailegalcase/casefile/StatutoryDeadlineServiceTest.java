@@ -1,21 +1,35 @@
 package fr.ailegalcase.casefile;
 
 import fr.ailegalcase.analysis.CaseAnalysis;
+import fr.ailegalcase.referential.LegalReferentialService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class StatutoryDeadlineServiceTest {
 
     private final CaseDeadlineRepository repo = mock(CaseDeadlineRepository.class);
-    private final StatutoryDeadlineService service = new StatutoryDeadlineService(repo);
+    private final LegalReferentialService referentialService = mock(LegalReferentialService.class);
+    private final StatutoryDeadlineService service = new StatutoryDeadlineService(repo, referentialService);
+
+    @BeforeEach
+    void setUpReferentialMocks() {
+        // Délègue aux méthodes statiques Java (comportement fallback)
+        when(referentialService.getLitigationPeriod(any()))
+                .thenAnswer(inv -> LitigationTypeMapper.resolve(inv.getArgument(0)));
+        when(referentialService.getImmigrationJalons(any()))
+                .thenAnswer(inv -> ImmigrationProcedureReferentiel.resolve(inv.getArgument(0)));
+    }
 
     private CaseAnalysis makeAnalysis(CaseFile caseFile) {
         CaseAnalysis analysis = new CaseAnalysis();

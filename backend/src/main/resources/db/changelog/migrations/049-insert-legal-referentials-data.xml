@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="049-insert-legal-referentials-data" author="legalcase">
+        <comment>
+            Insère les données référentiels métier initiales migrées depuis les classes Java :
+            LitigationTypeMapper, CompensationCalculator (types rupture), ImmigrationPieceReferentiel,
+            ImmigrationProcedureReferentiel (+REGULARISATION_EXCEPTIONNELLE), PensionAlimentaireCalculator,
+            PrestationCompensatoireCalculator.
+        </comment>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_DU_TRAVAIL — LITIGATION_TYPE (7 types)                 -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000001', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'LICENCIEMENT_SANS_CAUSE_REELLE', '{"years":1,"article":"Art. L1471-1"}', 'Licenciement sans cause réelle et sérieuse', NULL, true, true, 'Art. L1471-1 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000002', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'LICENCIEMENT_ECONOMIQUE', '{"years":1,"article":"Art. L1471-1"}', 'Licenciement économique', NULL, true, true, 'Art. L1471-1 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000003', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'PRISE_ACTE_RUPTURE', '{"years":1,"article":"Art. L1471-1"}', 'Prise d''acte de rupture', NULL, true, true, 'Art. L1471-1 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000004', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'HARCELEMENT_MORAL', '{"years":5,"article":"Art. L1152-1"}', 'Harcèlement moral', NULL, true, true, 'Art. L1152-1 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000005', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'DISCRIMINATION', '{"years":5,"article":"Art. L1132-1"}', 'Discrimination', NULL, true, true, 'Art. L1132-1 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000006', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'HEURES_SUPPLEMENTAIRES', '{"years":3,"article":"Art. L3245-1"}', 'Heures supplémentaires', NULL, true, true, 'Art. L3245-1 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000007', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'RAPPEL_SALAIRE', '{"years":3,"article":"Art. L3245-1"}', 'Rappel de salaire', NULL, true, true, 'Art. L3245-1 Code du travail', NOW(), NULL);
+        </sql>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_DU_TRAVAIL — BAREME_MACRON (3 types rupture supportés)  -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000008', NULL, 'DROIT_DU_TRAVAIL', 'BAREME_MACRON', 'LICENCIEMENT', '{"supported":true}', 'Licenciement', NULL, true, true, 'Art. R1234-2 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000009', NULL, 'DROIT_DU_TRAVAIL', 'BAREME_MACRON', 'LICENCIEMENT_ECONOMIQUE', '{"supported":true}', 'Licenciement économique', NULL, true, true, 'Art. R1234-2 Code du travail', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000010', NULL, 'DROIT_DU_TRAVAIL', 'BAREME_MACRON', 'RUPTURE_CONVENTIONNELLE', '{"supported":true}', 'Rupture conventionnelle', NULL, true, true, 'Art. R1234-2 Code du travail', NOW(), NULL);
+        </sql>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_IMMIGRATION — IMMIGRATION_JALONS (4 procédures)        -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000011', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'RENOUVELLEMENT_TITRE_SEJOUR', '[{"label":"Délai d''instruction préfecture — renouvellement titre de séjour","offsetDays":120},{"label":"Silence vaut rejet — renouvellement titre de séjour","offsetDays":60}]', 'Renouvellement titre de séjour', NULL, true, true, 'CESEDA Art. L412-1', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000012', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'DEMANDE_ASILE_OFPRA', '[{"label":"Convocation entretien OFPRA","offsetDays":21},{"label":"Délai décision OFPRA","offsetDays":180}]', 'Demande d''asile OFPRA', NULL, true, true, 'CESEDA Art. L531-1', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000013', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'RECOURS_CNDA', '[{"label":"Audience CNDA","offsetDays":150},{"label":"Décision CNDA","offsetDays":270}]', 'Recours CNDA', NULL, true, true, 'CESEDA Art. L532-1', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000014', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'REGULARISATION_EXCEPTIONNELLE', '[{"label":"Instruction préfecture — régularisation exceptionnelle","offsetDays":180},{"label":"Silence vaut rejet — régularisation exceptionnelle","offsetDays":120}]', 'Régularisation exceptionnelle', NULL, true, true, 'CESEDA Art. L435-1', NOW(), NULL);
+        </sql>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_IMMIGRATION — IMMIGRATION_PIECES (5 procédures × 2 pays) -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000015', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'VISA_ETUDIANT', '["Passeport en cours de validité","Justificatif d''inscription dans un établissement d''enseignement","Justificatif de ressources suffisantes","Justificatif d''hébergement","Photo d''identité","Formulaire de demande de visa complété"]', 'Visa étudiant', 'FRANCE', true, true, 'Consulat / Campus France', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000016', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'VISA_ETUDIANT', '["Passeport en cours de validité","Lettre d''admission d''un établissement d''enseignement belge","Preuve de paiement des frais d''inscription","Justificatif de ressources suffisantes (620 EUR/mois)","Assurance maladie couvrant la Belgique","Justificatif d''hébergement","Photo d''identité récente"]', 'Visa étudiant', 'BELGIQUE', true, true, 'Office des étrangers', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000017', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TITRE_SALARIE', '["Passeport en cours de validité","Contrat de travail signé par l''employeur","Autorisation de travail délivrée par la DREETS","Justificatif de qualification professionnelle","Justificatif d''hébergement","Photo d''identité","Formulaire de demande CERFA"]', 'Titre salarié', 'FRANCE', true, true, 'CESEDA / DREETS', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000018', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TITRE_SALARIE', '["Passeport en cours de validité","Contrat de travail ou offre d''emploi signée","Permis de travail délivré par la région compétente","Diplômes ou qualifications professionnelles","Justificatif d''hébergement","Casier judiciaire du pays d''origine","Photo d''identité récente"]', 'Titre salarié', 'BELGIQUE', true, true, 'Office des étrangers', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000019', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'REGROUPEMENT_FAMILIAL', '["Passeport en cours de validité du demandeur","Titre de séjour en cours de validité du regroupant","Justificatif de ressources suffisantes du regroupant","Justificatif de logement aux normes (surface habitable)","Acte de mariage ou acte de naissance (apostille)","Photo d''identité","Formulaire de demande de regroupement familial"]', 'Regroupement familial', 'FRANCE', true, true, 'CESEDA Art. L421-1', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000020', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'REGROUPEMENT_FAMILIAL', '["Passeport en cours de validité du demandeur","Titre de séjour du regroupant en Belgique","Preuve du lien familial (acte de mariage ou naissance légalisé)","Justificatif de ressources stables et suffisantes","Justificatif de logement adéquat","Assurance maladie","Photo d''identité récente"]', 'Regroupement familial', 'BELGIQUE', true, true, 'Office des étrangers', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000021', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'NATURALISATION', '["Passeport en cours de validité","Titre de séjour valide depuis au moins 5 ans","Justificatif de résidence habituelle en France","Justificatif d''intégration (niveau de langue B1 minimum)","Justificatif de ressources stables","Casier judiciaire vierge","Formulaire de demande de naturalisation","Photo d''identité"]', 'Naturalisation', 'FRANCE', true, true, 'Décret du 30 décembre 1993', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000022', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'NATURALISATION', '["Passeport en cours de validité","Preuve de résidence légale en Belgique depuis 5 ans","Déclaration de nationalité ou demande de naturalisation","Preuve d''intégration sociale (participation civique, connaissance de la langue)","Justificatif de ressources suffisantes","Casier judiciaire belge et du pays d''origine","Photo d''identité récente"]', 'Naturalisation', 'BELGIQUE', true, true, 'Code de la nationalité belge', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000023', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'REGULARISATION_EXCEPTIONNELLE', '["Passeport en cours de validité","Justificatif de résidence habituelle en France depuis au moins 5 ans","Contrat de travail ou promesse d''embauche","Avis d''imposition des 3 dernières années","Justificatif d''hébergement","Casier judiciaire vierge","Photos d''identité","Formulaire CERFA de demande de titre de séjour"]', 'Régularisation exceptionnelle', 'FRANCE', true, true, 'CESEDA Art. L435-1 (circulaire Valls)', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000024', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'REGULARISATION_EXCEPTIONNELLE', '["Passeport en cours de validité","Preuve de séjour ininterrompu en Belgique depuis au moins 5 ans","Justificatif d''intégration sociale","Justificatif de ressources stables","Casier judiciaire belge et du pays d''origine","Assurance maladie","Photos d''identité récentes"]', 'Régularisation exceptionnelle', 'BELGIQUE', true, true, 'Loi du 15 décembre 1980 Art. 9bis', NOW(), NULL);
+        </sql>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_FAMILLE — PENSION_TAUX (2 pays)                        -->
+        <!-- Index i = nbEnfants-1 (0=1 enfant, ..., 4=5+ enfants)        -->
+        <!-- [0]=garde exclusive, [1]=garde alternée                       -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000025', NULL, 'DROIT_FAMILLE', 'PENSION_TAUX', 'FRANCE', '[[0.18,0.11],[0.26,0.16],[0.30,0.19],[0.33,0.21],[0.35,0.22]]', 'Barème UNAF pension alimentaire', 'FRANCE', true, true, 'Barème UNAF 2025', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000026', NULL, 'DROIT_FAMILLE', 'PENSION_TAUX', 'BELGIQUE', '[[0.15,0.09],[0.22,0.14],[0.27,0.17],[0.31,0.19],[0.33,0.21]]', 'Barème CGKR pension alimentaire', 'BELGIQUE', true, true, 'Barème CGKR 2025', NOW(), NULL);
+        </sql>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_FAMILLE — PRESTATION_COEFF (2 pays)                    -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000027', NULL, 'DROIT_FAMILLE', 'PRESTATION_COEFF', 'FRANCE', '{"coeff":0.30,"dureeReferenceAns":8}', 'Coefficient prestation compensatoire', 'FRANCE', true, true, 'Art. 271 Code civil', NOW(), NULL);
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000028', NULL, 'DROIT_FAMILLE', 'PRESTATION_COEFF', 'BELGIQUE', '{"coeff":0.25,"dureeReferenceAns":8}', 'Coefficient prestation compensatoire', 'BELGIQUE', true, true, 'Art. 301 Code civil belge', NOW(), NULL);
+        </sql>
+
+    </changeSet>
+
+</databaseChangeLog>

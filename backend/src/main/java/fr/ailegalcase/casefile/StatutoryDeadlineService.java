@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisResponse;
+import fr.ailegalcase.casefile.LitigationTypeMapper.LitigationPeriod;
+import fr.ailegalcase.referential.LegalReferentialService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,9 +32,12 @@ public class StatutoryDeadlineService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final CaseDeadlineRepository deadlineRepository;
+    private final LegalReferentialService referentialService;
 
-    public StatutoryDeadlineService(CaseDeadlineRepository deadlineRepository) {
+    public StatutoryDeadlineService(CaseDeadlineRepository deadlineRepository,
+                                    LegalReferentialService referentialService) {
         this.deadlineRepository = deadlineRepository;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -90,7 +95,7 @@ public class StatutoryDeadlineService {
         }
 
         String typeProcedure = typeNode.asText();
-        List<ProcedureJalon> jalons = ImmigrationProcedureReferentiel.resolve(typeProcedure);
+        List<ProcedureJalon> jalons = referentialService.getImmigrationJalons(typeProcedure);
         if (jalons.isEmpty()) {
             log.debug("StatutoryDeadline: unknown type_procedure_detectee '{}' for analysis {} — skipped",
                     typeProcedure, analysis.getId());
@@ -122,15 +127,15 @@ public class StatutoryDeadlineService {
         JsonNode typeNode = root.get("type_litige_detecte");
         if (typeNode == null || typeNode.isNull()) return;
 
-        Optional<LitigationTypeMapper.LitigationPeriod> periodOpt =
-                LitigationTypeMapper.resolve(typeNode.asText());
+        Optional<LitigationPeriod> periodOpt =
+                referentialService.getLitigationPeriod(typeNode.asText());
         if (periodOpt.isEmpty()) {
             log.debug("StatutoryDeadline: unknown litigation type '{}' for analysis {} — skipped",
                     typeNode.asText(), analysis.getId());
             return;
         }
 
-        LitigationTypeMapper.LitigationPeriod period = periodOpt.get();
+        LitigationPeriod period = periodOpt.get();
         LocalDate referenceDate = resolveReferenceDate(root, analysis);
         LocalDate dueDate = referenceDate.plusYears(period.years());
         String label = "Prescription — %s (%s)".formatted(period.label(), period.article());

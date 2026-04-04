@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="048-create-legal-referentials" author="legalcase">
+        <comment>
+            Crée la table legal_referentials pour externaliser les référentiels
+            métier hardcodés (barèmes, délais, procédures) depuis le code Java
+            vers la base de données. workspace_id NULL = donnée système globale.
+        </comment>
+
+        <createTable tableName="legal_referentials">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="true"
+                             foreignKeyName="fk_legal_referentials_workspace"
+                             references="workspaces(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="legal_domain" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="referential_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="entry_key" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value_json" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="label" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="is_system" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_ref" type="VARCHAR(200)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_by" type="UUID">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="legal_referentials"
+                     indexName="idx_legal_referentials_domain_type">
+            <column name="legal_domain"/>
+            <column name="referential_type"/>
+        </createIndex>
+
+        <createIndex tableName="legal_referentials"
+                     indexName="idx_legal_referentials_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
