@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
-import { CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate } from '../models/case-analysis.model';
+import { CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
 import { PrudhomeFiche } from '../models/prudhome-fiche.model';
@@ -199,6 +199,13 @@ export class PdfExportService {
       );
     }
 
+    if (synthesis.liquidationCommunaute) {
+      sections.push(
+        ...this.buildLiquidationCommunauteSection(synthesis.liquidationCommunaute),
+        { text: '', margin: [0, 0, 0, 16] }
+      );
+    }
+
     return sections;
   }
 
@@ -377,6 +384,71 @@ export class PdfExportService {
     });
 
     return result;
+  }
+
+  private buildLiquidationCommunauteSection(liq: LiquidationCommunaute): object[] {
+    const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+    const regimeLabels: Record<string, string> = {
+      COMMUNAUTE_LEGALE:     'Communauté légale',
+      SEPARATION_BIENS:      'Séparation de biens',
+      PARTICIPATION_ACQUETS: 'Participation aux acquêts',
+    };
+    const regimeLabel = liq.regimeMatrimonial ? (regimeLabels[liq.regimeMatrimonial] ?? liq.regimeMatrimonial) : 'Non détecté';
+
+    const sections = [
+      { titre: 'Actif commun',          items: liq.actifCommun },
+      { titre: 'Biens propres époux A', items: liq.biensPropresEpouxA },
+      { titre: 'Biens propres époux B', items: liq.biensPropresEpouxB },
+      { titre: 'Passif commun',         items: liq.passifCommun },
+    ];
+
+    const body: object[][] = [];
+    for (const section of sections) {
+      body.push([
+        { text: section.titre, bold: true, fontSize: 10, color: PRIMARY, colSpan: 2, margin: [0, 6, 0, 2] },
+        {}
+      ]);
+      if (section.items.length === 0) {
+        body.push([
+          { text: 'Aucun bien détecté', fontSize: 9, color: TEXT_SECONDARY, italics: true },
+          { text: '', fontSize: 9 }
+        ]);
+      } else {
+        for (const item of section.items) {
+          body.push([
+            { text: item.libelle, fontSize: 10, color: TEXT },
+            { text: item.valeur != null ? fmt(item.valeur) : '—', fontSize: 10, color: TEXT_SECONDARY, alignment: 'right' }
+          ]);
+        }
+      }
+    }
+
+    return [
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: [[
+            { text: 'Liquidation de communauté', color: SURFACE, bold: true, fontSize: 13, margin: [12, 8, 0, 8] },
+            { text: regimeLabel, color: SURFACE, fontSize: 9, italics: true, margin: [0, 10, 12, 8], alignment: 'right' }
+          ]]
+        },
+        layout: { fillColor: () => ACCENT, hLineColor: () => ACCENT, vLineColor: () => ACCENT },
+        margin: [0, 0, 0, 8],
+      },
+      {
+        table: { widths: ['*', 'auto'], body },
+        layout: {
+          hLineWidth: () => 0.3,
+          vLineWidth: () => 0,
+          hLineColor: () => DIVIDER,
+        },
+        margin: [8, 0, 8, 0],
+      },
+      {
+        text: 'Inventaire extrait par l\'IA — à vérifier et compléter avec les actes notariaux',
+        fontSize: 9, color: TEXT_SECONDARY, italics: true, margin: [8, 6, 8, 0]
+      },
+    ];
   }
 
   private buildSectionHeader(label: string, _key: string, count: number, unit: string): object {

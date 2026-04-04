@@ -23,7 +23,7 @@ import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
-import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate } from '../../core/models/case-analysis.model';
+import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
 import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedure-check.model';
@@ -299,6 +299,19 @@ export class SynthesisComponent implements OnInit {
 
   get prestationCompensatoireEstimate(): PrestationCompensatoireEstimate | null {
     return this.synthesis()?.prestationCompensatoireEstimate ?? null;
+  }
+
+  get liquidationCommunaute(): LiquidationCommunaute | null {
+    return this.synthesis()?.liquidationCommunaute ?? null;
+  }
+
+  formatRegime(regime: string | null): string {
+    const labels: Record<string, string> = {
+      COMMUNAUTE_LEGALE:     'Communauté légale',
+      SEPARATION_BIENS:      'Séparation de biens',
+      PARTICIPATION_ACQUETS: 'Participation aux acquêts',
+    };
+    return regime ? (labels[regime] ?? regime) : 'Non détecté';
   }
 
   formatTypeRupture(type: string): string {
