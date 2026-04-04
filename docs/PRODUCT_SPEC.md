@@ -159,7 +159,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-IM-01 | Checklist pièces par type de titre | V4 — **À spécifier** | Checklist interactive typée par procédure (visa étudiant, titre salarié, regroupement familial, naturalisation), différenciée France/Belgique, persistée en DB. Distinct de F-92 (détection pièces manquantes en texte libre non structuré). Intègre la détection UE/pays tiers pour sélectionner la bonne liste. |
-| F-IM-02 | Suivi expiration et alertes renouvellement | V4 — **À spécifier** | Absorbée dans F-69 (extension) — pas de table séparée. Ajout de `alert_thresholds` (J-90/J-30/J-7) et `document_type` à `case_deadlines`. Extraction IA dans le prompt DROIT_IMMIGRATION uniquement. Scheduler filtre par domaine. UI scopée aux dossiers immigration. |
+| F-IM-02 | Suivi expiration et alertes renouvellement | V4 — **Terminée** | Absorbée dans F-69 (SF-69-04 mergée 2026-04-04) — alert_thresholds CSV + document_type sur case_deadlines, déduplication deadline_alert_sends, StatutoryDeadlineService dispatch DROIT_IMMIGRATION. |
 | F-IM-03 | Calendrier procédural préfectoral | V4 — **Terminée** | Absorbée dans F-69 (SF-69-05 mergée 2026-04-04) — référentiel statique Java (RENOUVELLEMENT_TITRE_SEJOUR, DEMANDE_ASILE_OFPRA, RECOURS_CNDA), 2 jalons chacun. Prompt IA étendu (type_procedure_detectee, date_depot_procedure). Fail-open. Aucune migration. 533 tests verts. |
 | ~~F-IM-04~~ | ~~Détection ressortissant UE vs pays tiers~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_IMMIGRATION dans `LegalDomainPromptBuilder`. L'IA lit la nationalité depuis les documents. L'impact (choix de la bonne checklist) est embarqué dans F-IM-01. |
 
