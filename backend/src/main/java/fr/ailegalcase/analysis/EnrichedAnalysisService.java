@@ -54,7 +54,8 @@ public class EnrichedAnalysisService {
                 LegalDomainPromptBuilder.domainLabel(legalDomain, country),
                 limits.getTimeline(), limits.getFaits(),
                 limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes(),
-                limits.getPiecesManquantes(), limits.getPointsProcedure());
+                limits.getPiecesManquantes(), limits.getPointsProcedure())
+                + LegalDomainPromptBuilder.domainSpecificInstruction(legalDomain);
     }
 
     record PreparedEnrichedAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,

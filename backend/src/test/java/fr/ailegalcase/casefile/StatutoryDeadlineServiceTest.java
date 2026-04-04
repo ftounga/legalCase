@@ -149,6 +149,70 @@ class StatutoryDeadlineServiceTest {
         verify(repo, never()).save(any());
     }
 
+    // PROC-01 : type procédure connu + date dépôt valide → jalons créés avec dates calculées
+    @Test
+    void immigration_procedureConnue_creesJalons() {
+        CaseFile caseFile = makeCaseFile(Instant.parse("2024-01-01T00:00:00Z"), "DROIT_IMMIGRATION");
+        CaseAnalysis analysis = makeAnalysis(caseFile);
+        when(repo.findByCaseFileIdOrderByDueDateAsc(caseFile.getId())).thenReturn(List.of());
+
+        String json = """
+                {"type_procedure_detectee": "DEMANDE_ASILE_OFPRA", "date_depot_procedure": "2026-01-01"}
+                """;
+        service.createStatutoryDeadlines(analysis, json);
+
+        ArgumentCaptor<CaseDeadline> captor = ArgumentCaptor.forClass(CaseDeadline.class);
+        verify(repo, times(2)).save(captor.capture());
+        List<CaseDeadline> saved = captor.getAllValues();
+        assertThat(saved).hasSize(2);
+        assertThat(saved.get(0).getDueDate()).isEqualTo(java.time.LocalDate.of(2026, 1, 22)); // +21 jours
+        assertThat(saved.get(1).getDueDate()).isEqualTo(java.time.LocalDate.of(2026, 6, 30));  // +180 jours
+        assertThat(saved.get(0).getDocumentType()).isEqualTo("DEMANDE_ASILE_OFPRA");
+        assertThat(saved.get(0).getSource()).isEqualTo("STATUTORY");
+    }
+
+    // PROC-02 : type procédure inconnu → aucune deadline créée
+    @Test
+    void immigration_procedureInconnue_noDeadline() {
+        CaseFile caseFile = makeCaseFile(Instant.now(), "DROIT_IMMIGRATION");
+        CaseAnalysis analysis = makeAnalysis(caseFile);
+
+        String json = """
+                {"type_procedure_detectee": "NATURALISATION", "date_depot_procedure": "2026-01-01"}
+                """;
+        service.createStatutoryDeadlines(analysis, json);
+
+        verify(repo, never()).save(any());
+    }
+
+    // PROC-03 : date_depot absente → aucune deadline créée
+    @Test
+    void immigration_dateDepotAbsente_noDeadline() {
+        CaseFile caseFile = makeCaseFile(Instant.now(), "DROIT_IMMIGRATION");
+        CaseAnalysis analysis = makeAnalysis(caseFile);
+
+        String json = """
+                {"type_procedure_detectee": "RECOURS_CNDA"}
+                """;
+        service.createStatutoryDeadlines(analysis, json);
+
+        verify(repo, never()).save(any());
+    }
+
+    // PROC-04 : date_depot invalide → aucune deadline, pas d'exception
+    @Test
+    void immigration_dateDepotInvalide_failOpen() {
+        CaseFile caseFile = makeCaseFile(Instant.now(), "DROIT_IMMIGRATION");
+        CaseAnalysis analysis = makeAnalysis(caseFile);
+
+        String json = """
+                {"type_procedure_detectee": "RECOURS_CNDA", "date_depot_procedure": "not-a-date"}
+                """;
+        service.createStatutoryDeadlines(analysis, json);
+
+        verify(repo, never()).save(any());
+    }
+
     // IM-03 : type_titre_sejour absent → documentType par défaut = "TITRE_SEJOUR"
     @Test
     void immigration_missingTypeTitreSejour_defaultsDocumentType() {

@@ -14,6 +14,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import static fr.ailegalcase.casefile.ImmigrationProcedureReferentiel.ProcedureJalon;
+
 /**
  * Creates or updates STATUTORY CaseDeadlines from the enriched analysis JSON.
  * — DROIT_DU_TRAVAIL / DROIT_FAMILLE : reads "type_litige_detecte" + "date_reference_prescription"
@@ -44,6 +46,7 @@ public class StatutoryDeadlineService {
 
             if ("DROIT_IMMIGRATION".equals(legalDomain)) {
                 createImmigrationTitreDeadline(analysis, root);
+                createImmigrationProcedureDeadlines(analysis, root);
             } else {
                 createPrescriptionDeadline(analysis, root);
             }
@@ -76,6 +79,43 @@ public class StatutoryDeadlineService {
 
         upsertDeadline(analysis.getCaseFile(), "Expiration titre de séjour",
                 expirationDate, "STATUTORY", "90,30,7", documentType);
+    }
+
+    private void createImmigrationProcedureDeadlines(CaseAnalysis analysis, JsonNode root) {
+        JsonNode typeNode = root.get("type_procedure_detectee");
+        if (typeNode == null || typeNode.isNull()) {
+            log.debug("StatutoryDeadline: missing type_procedure_detectee for analysis {} — skipped",
+                    analysis.getId());
+            return;
+        }
+
+        String typeProcedure = typeNode.asText();
+        List<ProcedureJalon> jalons = ImmigrationProcedureReferentiel.resolve(typeProcedure);
+        if (jalons.isEmpty()) {
+            log.debug("StatutoryDeadline: unknown type_procedure_detectee '{}' for analysis {} — skipped",
+                    typeProcedure, analysis.getId());
+            return;
+        }
+
+        JsonNode dateNode = root.get("date_depot_procedure");
+        if (dateNode == null || dateNode.isNull()) {
+            log.debug("StatutoryDeadline: missing date_depot_procedure for analysis {} — skipped",
+                    analysis.getId());
+            return;
+        }
+        LocalDate dateDepot;
+        try {
+            dateDepot = LocalDate.parse(dateNode.asText());
+        } catch (Exception e) {
+            log.debug("StatutoryDeadline: invalid date_depot_procedure '{}' for analysis {} — skipped",
+                    dateNode.asText(), analysis.getId());
+            return;
+        }
+
+        for (ProcedureJalon jalon : jalons) {
+            LocalDate dueDate = dateDepot.plusDays(jalon.offsetDays());
+            upsertDeadline(analysis.getCaseFile(), jalon.label(), dueDate, "STATUTORY", null, typeProcedure);
+        }
     }
 
     private void createPrescriptionDeadline(CaseAnalysis analysis, JsonNode root) {

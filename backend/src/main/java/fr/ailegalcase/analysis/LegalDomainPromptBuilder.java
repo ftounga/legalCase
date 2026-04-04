@@ -2,6 +2,15 @@ package fr.ailegalcase.analysis;
 
 public final class LegalDomainPromptBuilder {
 
+    private static final String IMMIGRATION_INSTRUCTION = """
+
+            Pour ce dossier de droit de l'immigration, inclure également dans le JSON les champs suivants :
+            "date_expiration_titre" : date d'expiration du titre de séjour au format YYYY-MM-DD, null si non détectable.
+            "type_titre_sejour" : type du titre de séjour (ex: "CARTE_RESIDENT", "TITRE_SEJOUR_TEMPORAIRE"), null si non détectable.
+            "type_procedure_detectee" : type de procédure administrative en cours, l'une de ces valeurs exactes : "RENOUVELLEMENT_TITRE_SEJOUR", "DEMANDE_ASILE_OFPRA", "RECOURS_CNDA", null si non détectable.
+            "date_depot_procedure" : date de dépôt de la demande ou du recours au format YYYY-MM-DD, null si non détectable.
+            """;
+
     private LegalDomainPromptBuilder() {}
 
     /**
@@ -22,5 +31,10 @@ public final class LegalDomainPromptBuilder {
         };
 
         return domainPart + " " + countryAdjective;
+    }
+
+    public static String domainSpecificInstruction(String legalDomain) {
+        if ("DROIT_IMMIGRATION".equals(legalDomain)) return IMMIGRATION_INSTRUCTION;
+        return "";
     }
 }

@@ -1080,6 +1080,10 @@ id (UUID PK — généré par JPA)
 case_file_id (UUID FK → case_files, cascade delete)
 label (varchar 255, non nullable)
 due_date (DATE, non nullable — LocalDate, sans timezone)
+source (varchar 10, non nullable — "MANUAL" | "STATUTORY")
+ai_status (varchar 50, nullable)
+alert_thresholds (varchar 50, nullable — CSV ex: "90,30,7" pour délais multi-seuils DROIT_IMMIGRATION)
+document_type (varchar 50, nullable — ex: "TITRE_SEJOUR", "CARTE_RESIDENT")
 created_at (timestamptz, non nullable)
 updated_at (timestamptz, non nullable)
 
@@ -1088,11 +1092,30 @@ Règles :
 - Accès contrôlé : user doit appartenir au workspace propriétaire du dossier
 - CRUD accessible à tout membre du workspace (pas de restriction auteur — données d'équipe)
 - Liste retournée triée par due_date ASC
-- Migration : 037-create-case-deadlines.xml
+- alert_thresholds non null → parcours multi-threshold dans DeadlineAlertService (déduplication via deadline_alert_sends)
+- alert_thresholds null → parcours standard J-15/J-7
+- Migration : 037-create-case-deadlines.xml + 046-extend-case-deadlines-alert-thresholds.xml
 
 Index :
 
 idx_case_deadlines_case_file_id
+
+Table de déduplication :
+
+deadline_alert_sends
+
+Champs :
+
+id (UUID PK — généré par JPA)
+deadline_id (UUID FK → case_deadlines, cascade delete)
+threshold_days (INT, non nullable)
+sent_at (timestamptz, non nullable — @PrePersist)
+
+Contrainte :
+
+UNIQUE(deadline_id, threshold_days) — garantit qu'un seuil n'est envoyé qu'une fois par délai
+
+Règle : enregistrement créé par DeadlineAlertService après chaque envoi multi-threshold réussi
 
 ---
 
