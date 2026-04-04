@@ -18,3 +18,13 @@ export interface ReferentialUpdateResponse {
   entry?: ReferentialEntry;
   warning?: string | null;
 }
+
+export interface ReferentialAlert {
+  id: string;
+  entryId: string;
+  entryKey: string;
+  entryLabel: string;
+  proposedValueJson: string;
+  aiMessage?: string | null;
+  detectedAt: string;
+}

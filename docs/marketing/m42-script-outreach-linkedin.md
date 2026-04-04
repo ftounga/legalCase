@@ -3,10 +3,38 @@
 
 ---
 
+## ⚠️ CONTRAINTE IMPÉRATIVE — Personnalisation individuelle
+
+**Process obligatoire avant de rédiger un message :**
+
+1. **Rechercher le profil LinkedIn** de chaque prospect via WebSearch (query : `"Prénom Nom" site:linkedin.com` ou `"Prénom Nom" cabinet avocat`)
+2. **Lire le profil** : spécialité précise, publications, articles, prises de position, interventions, parcours
+3. **Identifier un élément concret** propre à cette personne : article publié, podcast, conférence, prise de position publique, actualité du cabinet
+4. **Écrire une accroche unique** en 1-2 phrases qui montre qu'on a lu quelque chose de spécifique sur eux
+
+**Ce process est exécuté par l'IA elle-même** (WebSearch + WebFetch) — pas besoin que l'utilisateur fournisse les informations.
+
+**Un message avec juste le nom du cabinet et son domaine n'est PAS personnalisé.**
+
+Exemples d'accroche réellement personnalisée :
+- *"J'ai vu votre article sur les ruptures conventionnelles dans Semaine Sociale Lamy"*
+- *"Votre intervention à la conférence ANDRH sur les PSE m'a amené à vous contacter"*
+- *"Votre podcast sur le droit du travail des salariés et dirigeants m'a beaucoup intéressé"*
+- *"Votre prise de position contre le droit de timbre à 50€ que j'ai lue sur LinkedIn m'a donné envie de vous contacter"*
+
+Exemples d'accroche NON personnalisée (à rejeter) :
+- *"Votre cabinet gère des dossiers prud'homaux"*
+- *"Flichy Grangé est l'une des références en droit social"*
+- *"Votre cabinet intervient sur des restructurations"*
+
+Cette contrainte s'applique à chaque message, sans exception.
+
+---
+
 ## Principe directeur
 
 - **Volume cible** : 5 messages par jour maximum = 25 par semaine (crédibilité > spam)
-- **Personnalisation** : 1 phrase sur le cabinet ou le profil de l'avocat avant le pitch
+- **Personnalisation** : accroche unique par prospect, basée sur une info spécifique lue sur son profil ou son cabinet (voir contrainte ci-dessus)
 - **Longueur** : court (< 150 mots par message), lu sur mobile
 - **Ton** : professionnel, direct, sans jargon startup
 - **Objectif du 1er message** : décrocher une réponse, pas vendre — proposer une démo de 20 min

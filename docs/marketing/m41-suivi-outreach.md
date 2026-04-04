@@ -27,11 +27,11 @@ Statuts : `Prospect` → `Contacté` → `Répondu` → `Démo planifiée` → `
 | 18 | Virginie | Cabinet Virginie Langlet | [profil](https://www.linkedin.com/in/virginie-langlet-5b391850/) | — | 2026-04-01 | `Contacté` | Accroche : podcast droit du travail salariés + dirigeants |
 | 19 | Aurélie | Cabinet Aurélie Thevenin | [profil](https://fr.linkedin.com/in/aur%C3%A9lie-thevenin-38547333) | — | 2026-04-01 | `Contacté` | Accroche : article sur délai 1 mois notif licenciement disciplinaire |
 | 20 | Stéphanie | Cabinet ASL | [profil](https://www.linkedin.com/in/st%C3%A9phanie-lambert-982258173/) | — | 2026-04-01 | `Contacté` | Accroche : 20 ans RH France Télévisions avant le barreau |
-| 21 | Eric | Flichy Grangé Avocats | [profil](https://www.linkedin.com/in/eric-le-quellenec-7032567/) | — | — | `Prospect` | Phase 2 |
-| 22 | Maud | Fromont Briens | [profil](https://www.linkedin.com/in/maud-perilli-0a28686a/) | — | — | `Prospect` | Phase 2 |
-| 23 | Luc | Capstan Avocats | [profil](https://www.linkedin.com/in/luc-bachelot-ba64a9133/) | — | — | `Prospect` | Phase 2 |
-| 24 | Jérôme | Chassany Watrelot & Associés | [profil](https://www.linkedin.com/in/jeromewatrelot/) | — | — | `Prospect` | Phase 2 |
-| 25 | Emmanuelle | August Debouzy | [profil](https://www.linkedin.com/in/emmanuelle-barbara-3a178860/) | — | — | `Prospect` | Phase 2 |
+| 21 | Eric | Flichy Grangé Avocats | [profil](https://www.linkedin.com/in/eric-le-quellenec-7032567/) | — | 2026-04-04 | `Contacté` | Accroche : création pôle Numérique/RGPD/IA chez Flichy Grangé — crédits LinkedIn épuisés après envoi |
+| 22 | Maud | Fromont Briens | [profil](https://www.linkedin.com/in/maud-perilli-0a28686a/) | maud.perilli@fromont-briens.com | 2026-04-04 | `Contacté` | Accroche : 30 ans droit social, dossiers sensibles → arg Cloud Act/AWS Paris — crédits LinkedIn épuisés après envoi |
+| 23 | Luc | Capstan Avocats | [profil](https://www.linkedin.com/in/luc-bachelot-ba64a9133/) | — | — | `À envoyer` | Message prêt — accroche : contributions Cahiers du DRH + Lamy Social sur chômage partiel |
+| 24 | Jérôme | Chassany Watrelot & Associés | [profil](https://www.linkedin.com/in/jeromewatrelot/) | — | — | `À envoyer` | Message prêt — accroche : Legal 500 Hall of Fame 2024, 30 ans restructuration/négociation collective |
+| 25 | Emmanuelle | August Debouzy | [profil](https://www.linkedin.com/in/emmanuelle-barbara-3a178860/) | — | — | `À envoyer` | Message prêt — accroche : analyse "droit social inadapté au travail du 21ème siècle" |
 | 26 | Frédérique | Hoche Avocats | [profil](https://www.linkedin.com/in/fr%C3%A9d%C3%A9rique-cassereau-2261238/) | — | — | `Prospect` | Phase 2 |
 | 27 | Nicolas | Ogletree Deakins | [profil](https://www.linkedin.com/in/nicolas-peixoto-27093029/) | — | — | `Prospect` | Phase 2 |
 | 28 | Julien | Barthélemy Avocats | [profil](https://www.linkedin.com/in/tournairejulien/) | — | — | `Prospect` | Phase 2 |
@@ -60,10 +60,22 @@ Statuts : `Prospect` → `Contacté` → `Répondu` → `Démo planifiée` → `
 
 ---
 
+## Messages prêts à envoyer (crédits LinkedIn à renouveler)
+
+| # | Contact | Cabinet | Message prêt |
+|---|---------|---------|-------------|
+| 23 | Luc Bachelot | Capstan Avocats | Accroche : contributions Cahiers du DRH + Lamy Social sur chômage partiel |
+| 24 | Jérôme Watrelot | Chassany Watrelot & Associés | Accroche : Legal 500 Hall of Fame 2024, 30 ans restructuration/négociation |
+| 25 | Emmanuelle Barbara | August Debouzy | Accroche : analyse "droit social inadapté au travail du 21ème siècle" |
+
+---
+
 ## Relances J+7 à planifier
 
 | # | Contact | Date envoi | Date relance |
 |---|---------|------------|-------------|
+| 21 | Eric Le Quellenec (Flichy Grangé) | 2026-04-04 | 2026-04-11 |
+| 22 | Maud Perilli (Fromont Briens) | 2026-04-04 | 2026-04-11 |
 | 17 | Sandra Ramos (L&R Avocats) | 2026-04-01 | 2026-04-08 |
 | 18 | Virginie Langlet | 2026-04-01 | 2026-04-08 |
 | 19 | Aurélie Thevenin | 2026-04-01 | 2026-04-08 |
