@@ -399,6 +399,57 @@ public class EmailService {
         }
     }
 
+    public void sendReferentialAlert(String toEmail, String frontendUrl) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — referential alert skipped for {}", toEmail);
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Mise à jour requise — Guides & barèmes — AI LegalCase");
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "L'IA a détecté que certaines valeurs de vos référentiels métier (barèmes, délais légaux) " +
+                    "pourraient ne plus être à jour par rapport aux textes officiels en vigueur.\n\n" +
+                    "Veuillez consulter l'écran Guides & barèmes pour valider ou appliquer les valeurs suggérées :\n" +
+                    frontendUrl + "/referentials\n\n" +
+                    "Aucune modification n'a été appliquée automatiquement — votre confirmation est requise.\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Referential alert email sent to {}", toEmail);
+        } catch (MailException e) {
+            log.warn("Failed to send referential alert to {} — {}", toEmail, e.getMessage());
+        }
+    }
+
+    public void sendReferentialAlertReminder(String toEmail, String frontendUrl) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — referential alert reminder skipped for {}", toEmail);
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Rappel — Mise à jour en attente — Guides & barèmes — AI LegalCase");
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "Des mises à jour de vos référentiels métier (barèmes, délais légaux) sont toujours en attente " +
+                    "de votre validation.\n\n" +
+                    "Veuillez consulter l'écran Guides & barèmes :\n" +
+                    frontendUrl + "/referentials\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Referential alert reminder sent to {}", toEmail);
+        } catch (MailException e) {
+            log.warn("Failed to send referential alert reminder to {} — {}", toEmail, e.getMessage());
+        }
+    }
+
     public void sendInvitation(String toEmail, String workspaceName, String token) {
         if (!mailEnabled) {
             log.debug("Mail disabled — invitation email skipped for {}", toEmail);

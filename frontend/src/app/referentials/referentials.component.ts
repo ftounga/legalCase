@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReferentialService } from '../core/services/referential.service';
@@ -18,10 +19,16 @@ import {
   ReferentialEditDialogResult,
 } from './referential-edit-dialog/referential-edit-dialog.component';
 
+interface EntryWithAlert extends ReferentialEntry {
+  alertId?: string;
+  alertProposedValueJson?: string;
+  alertAiMessage?: string | null;
+}
+
 interface SectionDisplay {
   type: string;
   title: string;
-  entries: ReferentialEntry[];
+  entries: EntryWithAlert[];
 }
 
 const SECTION_LABELS: Record<string, string> = {
@@ -38,7 +45,7 @@ const SECTION_LABELS: Record<string, string> = {
   standalone: true,
   imports: [
     MatExpansionModule, MatIconModule, MatProgressSpinnerModule,
-    MatChipsModule, MatButtonModule,
+    MatChipsModule, MatButtonModule, MatTooltipModule,
   ],
   templateUrl: './referentials.component.html',
   styleUrl: './referentials.component.scss',
@@ -51,7 +58,9 @@ export class ReferentialsComponent implements OnInit {
   sections = signal<SectionDisplay[]>([]);
   domainLabel = signal('');
   canEdit = signal(false);
+  pendingAlertsCount = signal(0);
   private domain = '';
+  private alertsById = new Map<string, { alertId: string; proposedValueJson: string; aiMessage?: string | null }>();
 
   constructor(
     private referentialService: ReferentialService,
@@ -102,9 +111,45 @@ export class ReferentialsComponent implements OnInit {
         this.loading.set(false);
       }
     });
+    this.referentialService.getPendingAlertsCount().subscribe({
+      next: res => this.pendingAlertsCount.set(res.count),
+      error: () => {}
+    });
   }
 
-  openEditDialog(entry: ReferentialEntry, sectionType: string): void {
+  applyAlert(entry: EntryWithAlert): void {
+    if (!entry.alertId) return;
+    this.referentialService.applyAlert(entry.alertId).subscribe({
+      next: () => {
+        this.snackBar.open('Valeur mise à jour depuis la suggestion IA.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-success']
+        });
+        this.loadReferentials();
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de l\'application de la mise à jour.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  dismissAlert(entry: EntryWithAlert): void {
+    if (!entry.alertId) return;
+    this.referentialService.dismissAlert(entry.alertId).subscribe({
+      next: () => {
+        this.snackBar.open('Alerte ignorée.', 'Fermer', { duration: 3000 });
+        this.loadReferentials();
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors de l\'ignorance de l\'alerte.', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  openEditDialog(entry: EntryWithAlert, sectionType: string): void {
     const dialogRef = this.dialog.open<
       ReferentialEditDialogComponent,
       ReferentialEditDialogData,
@@ -121,7 +166,7 @@ export class ReferentialsComponent implements OnInit {
     });
   }
 
-  private submitUpdate(entry: ReferentialEntry, result: ReferentialEditDialogResult): void {
+  private submitUpdate(entry: EntryWithAlert, result: ReferentialEditDialogResult): void {
     if (!entry.id) return;
     this.referentialService.updateReferential(entry.id, result.label, result.valueJson, result.force)
       .subscribe({
@@ -143,7 +188,7 @@ export class ReferentialsComponent implements OnInit {
       });
   }
 
-  private showWarningConfirmation(entry: ReferentialEntry, result: ReferentialEditDialogResult, warning: string): void {
+  private showWarningConfirmation(entry: EntryWithAlert, result: ReferentialEditDialogResult, warning: string): void {
     const confirmed = confirm(
       `L'IA a détecté une possible divergence :\n\n${warning}\n\nSauvegarder quand même ?`
     );
@@ -156,7 +201,7 @@ export class ReferentialsComponent implements OnInit {
     return Object.entries(response.sections).map(([type, entries]) => ({
       type,
       title: SECTION_LABELS[type] ?? type,
-      entries,
+      entries: entries as EntryWithAlert[],
     }));
   }
 
@@ -169,7 +214,7 @@ export class ReferentialsComponent implements OnInit {
     }
   }
 
-  formatValue(entry: ReferentialEntry, sectionType: string): string {
+  formatValue(entry: EntryWithAlert, sectionType: string): string {
     try {
       const val = JSON.parse(entry.valueJson);
       switch (sectionType) {

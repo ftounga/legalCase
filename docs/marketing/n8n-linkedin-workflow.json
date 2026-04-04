@@ -1,0 +1,137 @@
+{
+  "name": "LinkedIn AI LegalCase — Auto Post",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [2, 4],
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const posts = [\n  { date: \"2026-04-01\", sujet: \"Lancement officiel\", type: \"texte\", contenu: \"Histoire du fondateur, problème observé dans les cabinets d'avocats, pourquoi on a créé AI LegalCase\" },\n  { date: \"2026-04-03\", sujet: \"Temps perdu par les avocats\", type: \"carousel\", contenu: \"Un avocat passe en moyenne X heures par semaine à lire des pièces. Statistiques et breakdown du temps\" },\n  { date: \"2026-04-08\", sujet: \"Observation terrain\", type: \"texte\", contenu: \"Après avoir parlé à 20 avocats, voici la phrase entendue le plus souvent concernant la surcharge documentaire\" },\n  { date: \"2026-04-10\", sujet: \"Risques analyse manuelle\", type: \"carousel\", contenu: \"Les 5 risques d'une analyse manuelle : pièce manquée, délai oublié, incohérence, fatigue cognitive, sur-facturation\" },\n  { date: \"2026-04-15\", sujet: \"Chiffre choc dossier\", type: \"texte\", contenu: \"Un dossier prud'hommal moyen contient 47 documents. Combien en relisez-vous vraiment ?\" },\n  { date: \"2026-04-17\", sujet: \"Avant Après journée avocat\", type: \"carousel\", contenu: \"Comparaison d'une journée sans et avec outil IA pour un avocat en droit du travail\" },\n  { date: \"2026-04-22\", sujet: \"Question ouverte engagement\", type: \"texte\", contenu: \"Quelle est la tâche dans votre cabinet que vous aimeriez ne plus jamais faire ? Question pour susciter les commentaires\" },\n  { date: \"2026-04-24\", sujet: \"Comment IA lit contrat travail\", type: \"carousel\", contenu: \"Pédagogie sur ce que l'IA identifie dans un contrat : clauses, risques, timeline, points de droit\" },\n  { date: \"2026-04-26\", sujet: \"Synthèse commentaires\", type: \"texte\", contenu: \"Synthèse des réponses à la question du 22 avril, montre qu'on écoute la communauté\" },\n  { date: \"2026-04-29\", sujet: \"Comment ça marche enrichi\", type: \"carousel\", contenu: \"Explication détaillée du fonctionnement d'AI LegalCase avec exemples concrets de sorties IA\" },\n  { date: \"2026-05-01\", sujet: \"Objection 1 remplacement\", type: \"texte\", contenu: \"Non, l'IA ne remplace pas l'analyse juridique de l'avocat. Voici ce qu'elle fait réellement à la place\" },\n  { date: \"2026-05-06\", sujet: \"Cas usage licenciement\", type: \"carousel\", contenu: \"Exemple anonymisé : dossier licenciement sans cause réelle, pièces déposées, synthèse générée, points clés identifiés\" },\n  { date: \"2026-05-08\", sujet: \"Objection 2 confidentialité\", type: \"texte\", contenu: \"Et la confidentialité des données de mes clients ? Réponse claire : hébergement EU, chiffrement, isolation workspace\" },\n  { date: \"2026-05-13\", sujet: \"Types de synthèses\", type: \"carousel\", contenu: \"Les 3 types de synthèses : standard, enrichie, questions IA — quand utiliser chacune\" },\n  { date: \"2026-05-15\", sujet: \"Coulisses retours clients\", type: \"texte\", contenu: \"Voici ce qu'on a changé après nos 10 premiers retours d'avocats — montre l'écoute et l'itération produit\" },\n  { date: \"2026-05-20\", sujet: \"Checklist cabinet prêt IA\", type: \"carousel\", contenu: \"Est-ce que l'IA est utile pour votre cabinet ? Checklist selon type de dossiers, volume, taille cabinet\" },\n  { date: \"2026-05-22\", sujet: \"Objection 3 prise en main\", type: \"texte\", contenu: \"Combien de temps pour prendre en main AI LegalCase ? Réponse : 10 minutes, essai gratuit 14 jours\" },\n  { date: \"2026-05-27\", sujet: \"Anatomie dossier analysé\", type: \"carousel\", contenu: \"Présentation annotée d'une synthèse complète — chaque section expliquée : faits, risques, timeline, points de droit\" },\n  { date: \"2026-05-29\", sujet: \"CTA beta 5 accès\", type: \"texte\", contenu: \"On ouvre 5 accès beta à des cabinets qui veulent tester sur un vrai dossier. DM si intéressé.\" },\n  { date: \"2026-06-03\", sujet: \"Retour client 1\", type: \"texte\", contenu: \"Citation verbatim d'un premier utilisateur sur le gain de temps constaté avec AI LegalCase\" },\n  { date: \"2026-06-05\", sujet: \"Apprentissages 30 utilisateurs\", type: \"carousel\", contenu: \"Ce qu'on a appris de nos 30 premiers utilisateurs : surprises, points forts, améliorations en cours\" },\n  { date: \"2026-06-10\", sujet: \"Chiffre produit\", type: \"texte\", contenu: \"X dossiers analysés depuis le lancement. Les 3 points de droit les plus fréquents identifiés par l'IA\" },\n  { date: \"2026-06-12\", sujet: \"Comparatif taille cabinet\", type: \"carousel\", contenu: \"Comment AI LegalCase s'adapte : cabinet 3 avocats vs cabinet 20 avocats — usages différents\" },\n  { date: \"2026-06-17\", sujet: \"Retour client 2\", type: \"texte\", contenu: \"Témoignage spécifique d'un avocat sur un gain de temps mesuré sur un dossier complexe\" },\n  { date: \"2026-06-19\", sujet: \"Roadmap produit\", type: \"carousel\", contenu: \"Ce qui arrive dans AI LegalCase : prochaines features, domaines juridiques à venir, vision produit\" },\n  { date: \"2026-06-24\", sujet: \"Article 5 signes prêt IA\", type: \"texte\", contenu: \"5 signes que votre cabinet est prêt pour l'IA — article long format éducatif à forte portée\" },\n  { date: \"2026-06-26\", sujet: \"Bilan 3 mois\", type: \"carousel\", contenu: \"Bilan 3 mois AI LegalCase : chiffres clés, apprentissages, ce qu'on construit pour la suite\" },\n  { date: \"2026-06-28\", sujet: \"CTA fort essai gratuit\", type: \"texte\", contenu: \"Essai gratuit 14 jours, aucune carte bancaire. On analyse votre premier dossier avec vous. Lien direct.\" }\n];\n\nconst today = new Date().toISOString().split('T')[0];\nconst post = posts.find(p => p.date === today);\n\nif (!post) {\n  return [{ json: { skip: true, reason: `Aucun post prévu le ${today}` } }];\n}\n\nreturn [{ json: post }];"
+      },
+      "id": "code-planning",
+      "name": "Planning éditorial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "skip-check",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-post-prevu",
+      "name": "Post prévu ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "ANTHROPIC_API_KEY" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-opus-4-6\",\n  \"max_tokens\": 1024,\n  \"system\": \"Tu es le community manager d'AI LegalCase, une startup legaltech française qui aide les avocats à analyser leurs dossiers juridiques par IA.\\n\\nTon rôle : rédiger des posts LinkedIn professionnels, engageants et authentiques ciblant les avocats et juristes français.\\n\\nRègles impératives :\\n- Ton sobre, direct, professionnel — jamais marketing ou trop enthousiaste\\n- Entre 150 et 400 caractères pour les posts texte, 80 caractères max par slide pour les carousels\\n- Commence toujours par une accroche forte (chiffre, question, affirmation contre-intuitive)\\n- Termine toujours par une question ou un call-to-action léger\\n- Hashtags en fin de post : #LegalTech #IA #Avocats #DroitDuTravail (max 4)\\n- Ne jamais mentionner de prix\\n- URL du produit si CTA : https://legalcase.ng-itconsulting.com\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Rédige un post LinkedIn de type '{{ $('Planning éditorial').item.json.type }}' sur le sujet suivant : {{ $('Planning éditorial').item.json.sujet }}.\\n\\nContexte et points à couvrir : {{ $('Planning éditorial').item.json.contenu }}\\n\\nFormat attendu : post prêt à publier, sans commentaire ni explication.\"\n    }\n  ]\n}"
+      },
+      "id": "http-claude",
+      "name": "Génère post Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.item.json;\nconst text = response.content[0].text;\nreturn [{ json: { postText: text } }];"
+      },
+      "id": "extract-text",
+      "name": "Extrait le texte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 220]
+    },
+    {
+      "parameters": {
+        "person": "organization",
+        "organizationId": "LINKEDIN_ORGANIZATION_ID",
+        "text": "={{ $json.postText }}",
+        "additionalFields": {}
+      },
+      "id": "linkedin-post",
+      "name": "Publie sur LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [1340, 220],
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "linkedin-credential",
+          "name": "LinkedIn account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Planning éditorial", "type": "main", "index": 0 }]]
+    },
+    "Planning éditorial": {
+      "main": [[{ "node": "Post prévu ?", "type": "main", "index": 0 }]]
+    },
+    "Post prévu ?": {
+      "main": [[{ "node": "Génère post Claude", "type": "main", "index": 0 }], []]
+    },
+    "Génère post Claude": {
+      "main": [[{ "node": "Extrait le texte", "type": "main", "index": 0 }]]
+    },
+    "Extrait le texte": {
+      "main": [[{ "node": "Publie sur LinkedIn", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

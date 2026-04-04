@@ -7,6 +7,12 @@
         <p class="domain-subtitle">{{ domainLabel() }}</p>
       }
     </div>
+    @if (pendingAlertsCount() > 0) {
+      <div class="alert-count-badge">
+        <mat-icon color="warn">warning</mat-icon>
+        <span>{{ pendingAlertsCount() }} mise{{ pendingAlertsCount() > 1 ? 's' : '' }} à jour suggérée{{ pendingAlertsCount() > 1 ? 's' : '' }} par l'IA</span>
+      </div>
+    }
   </div>
 
   @if (loading()) {
@@ -42,8 +48,12 @@
 
           <div class="entries-list">
             @for (entry of section.entries; track entry.key) {
-              <div class="entry-card">
+              <div class="entry-card" [class.entry-card--alert]="entry.alertId">
                 <div class="entry-header">
+                  @if (entry.alertId) {
+                    <mat-icon class="alert-icon" color="warn"
+                              [matTooltip]="entry.alertAiMessage ?? 'Mise à jour suggérée par l\'IA'">warning</mat-icon>
+                  }
                   <span class="entry-label">{{ entry.label }}</span>
                   @if (entry.country) {
                     <mat-chip class="country-chip" [disableRipple]="true">{{ entry.country }}</mat-chip>
@@ -55,6 +65,22 @@
                     </button>
                   }
                 </div>
+                @if (entry.alertId && canEdit()) {
+                  <div class="alert-banner">
+                    <mat-icon class="alert-banner-icon" color="warn">info</mat-icon>
+                    <span class="alert-banner-text">
+                      Valeur suggérée : <code>{{ entry.alertProposedValueJson }}</code>
+                    </span>
+                    <button mat-stroked-button color="primary" class="alert-action-btn"
+                            (click)="applyAlert(entry); $event.stopPropagation()">
+                      Appliquer
+                    </button>
+                    <button mat-button class="alert-action-btn"
+                            (click)="dismissAlert(entry); $event.stopPropagation()">
+                      Ignorer
+                    </button>
+                  </div>
+                }
                 <pre class="entry-value">{{ formatValue(entry, section.type) }}</pre>
                 @if (entry.sourceRef) {
                   <span class="entry-source">{{ entry.sourceRef }}</span>

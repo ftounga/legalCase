@@ -63,6 +63,13 @@ public interface LegalReferentialRepository extends JpaRepository<LegalReferenti
      * Retourne l'override workspace pour une clé donnée (workspaceId non NULL).
      * Utilisé pour l'upsert lors d'une modification OWNER/ADMIN.
      */
+    @Query("SELECT r FROM LegalReferential r WHERE r.workspaceId IS NULL AND r.active = true")
+    List<LegalReferential> findAllSystemEntries();
+
+    /**
+     * Retourne l'override workspace pour une clé donnée (workspaceId non NULL).
+     * Utilisé pour l'upsert lors d'une modification OWNER/ADMIN.
+     */
     @Query("""
             SELECT r FROM LegalReferential r
             WHERE r.workspaceId = :workspaceId

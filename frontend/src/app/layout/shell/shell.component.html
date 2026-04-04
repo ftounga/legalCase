@@ -52,7 +52,10 @@
           <span matListItemTitle>Dossiers</span>
         </a>
         <a mat-list-item routerLink="/referentials" routerLinkActive="sidenav-active" (click)="onNavClick()">
-          <mat-icon matListItemIcon>menu_book</mat-icon>
+          <mat-icon matListItemIcon
+                    [matBadge]="pendingAlertsCount() > 0 ? pendingAlertsCount() : null"
+                    matBadgeColor="warn"
+                    matBadgeSize="small">menu_book</mat-icon>
           <span matListItemTitle>Guides & barèmes</span>
         </a>
         <a mat-list-item routerLink="/search" routerLinkActive="sidenav-active" (click)="onNavClick()">

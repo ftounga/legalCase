@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="050-create-referential-alerts" author="legalcase">
+        <comment>
+            Crée la table referential_alerts pour stocker les alertes de mise à jour
+            détectées par le cron IA (Claude Haiku web search). Une alerte par entrée système
+            dont la valeur diverge des sources officielles. L'OWNER confirme (apply/dismiss).
+        </comment>
+
+        <createTable tableName="referential_alerts">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="entry_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_referential_alerts_entry"
+                             references="legal_referentials(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="proposed_value_json" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ai_message" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="detected_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resolved_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+            <column name="reminder_sent_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="referential_alerts"
+                     indexName="idx_referential_alerts_status">
+            <column name="status"/>
+        </createIndex>
+
+        <createIndex tableName="referential_alerts"
+                     indexName="idx_referential_alerts_entry_status">
+            <column name="entry_id"/>
+            <column name="status"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

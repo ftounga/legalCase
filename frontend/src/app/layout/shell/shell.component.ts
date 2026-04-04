@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -7,11 +7,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceInvitationService } from '../../core/services/workspace-invitation.service';
+import { ReferentialService } from '../../core/services/referential.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.component';
 import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
@@ -23,23 +25,26 @@ import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
     RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatSidenavModule, MatListModule,
     MatIconModule, MatButtonModule, MatMenuModule,
-    MatProgressSpinnerModule,
+    MatProgressSpinnerModule, MatBadgeModule,
     TrialBannerComponent
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'
 })
-export class ShellComponent implements OnInit {
+export class ShellComponent implements OnInit, OnDestroy {
   workspace = signal<Workspace | null>(null);
   workspaces = signal<Workspace[]>([]);
   ready = signal(false);
   isMobile = signal(false);
   sidenavOpen = signal(true);
+  pendingAlertsCount = signal(0);
+  private alertPollingTimer?: ReturnType<typeof setInterval>;
 
   constructor(
     readonly auth: AuthService,
     private workspaceService: WorkspaceService,
     private invitationService: WorkspaceInvitationService,
+    private referentialService: ReferentialService,
     private snackBar: MatSnackBar,
     private router: Router,
     private breakpointObserver: BreakpointObserver
@@ -50,6 +55,9 @@ export class ShellComponent implements OnInit {
       this.isMobile.set(result.matches);
       this.sidenavOpen.set(!result.matches);
     });
+
+    this.pollAlertCount();
+    this.alertPollingTimer = setInterval(() => this.pollAlertCount(), 5 * 60 * 1000);
 
     const pendingToken = localStorage.getItem(PENDING_INVITATION_TOKEN_KEY);
 
@@ -72,6 +80,19 @@ export class ShellComponent implements OnInit {
     } else {
       this.loadWorkspace();
     }
+  }
+
+  ngOnDestroy(): void {
+    if (this.alertPollingTimer) {
+      clearInterval(this.alertPollingTimer);
+    }
+  }
+
+  private pollAlertCount(): void {
+    this.referentialService.getPendingAlertsCount().subscribe({
+      next: res => this.pendingAlertsCount.set(res.count),
+      error: () => {}
+    });
   }
 
   toggleSidenav(): void {

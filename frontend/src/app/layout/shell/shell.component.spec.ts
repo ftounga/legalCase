@@ -3,6 +3,7 @@ import { ShellComponent } from './shell.component';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceInvitationService } from '../../core/services/workspace-invitation.service';
+import { ReferentialService } from '../../core/services/referential.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.component';
 import { of, throwError } from 'rxjs';
@@ -12,6 +13,10 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { Workspace } from '../../core/models/workspace.model';
 import { BreakpointObserver } from '@angular/cdk/layout';
+
+const referentialServiceStub = {
+  getPendingAlertsCount: () => of({ count: 0 })
+};
 
 const ws1: Workspace = { id: 'ws-1', name: 'Cabinet Alpha', slug: 'alpha', planCode: 'FREE', status: 'ACTIVE', primary: true };
 const ws2: Workspace = { id: 'ws-2', name: 'Cabinet Beta', slug: 'beta', planCode: 'FREE', status: 'ACTIVE', primary: false };
@@ -38,7 +43,8 @@ describe('ShellComponent — invitation pendante', () => {
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationService },
-        { provide: MatSnackBar, useValue: snackBar }
+        { provide: MatSnackBar, useValue: snackBar },
+        { provide: ReferentialService, useValue: referentialServiceStub }
       ]
     }).compileComponents();
 
@@ -131,7 +137,8 @@ describe('ShellComponent — workspace switcher', () => {
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
-        { provide: MatSnackBar, useValue: snackBar }
+        { provide: MatSnackBar, useValue: snackBar },
+        { provide: ReferentialService, useValue: referentialServiceStub }
       ]
     }).compileComponents();
 
@@ -219,7 +226,8 @@ describe('ShellComponent — domainColor()', () => {
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
-        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) }
+        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
+        { provide: ReferentialService, useValue: referentialServiceStub }
       ]
     }).compileComponents();
 
@@ -264,7 +272,8 @@ describe('ShellComponent — lien super-admin', () => {
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
-        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) }
+        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
+        { provide: ReferentialService, useValue: referentialServiceStub }
       ]
     });
 
@@ -284,6 +293,50 @@ describe('ShellComponent — lien super-admin', () => {
   it('n\'affiche pas le lien Super-admin si isSuperAdmin = false', fakeAsync(async () => {
     setupWithSuperAdmin(false);
     expect(fixture.nativeElement.textContent).not.toContain('Super-admin');
+  }));
+});
+
+describe('ShellComponent — badge alertes référentiels', () => {
+  let fixture: ComponentFixture<ShellComponent>;
+  let component: ShellComponent;
+
+  function setup(pendingCount: number) {
+    const workspaceService = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace', 'listWorkspaces', 'switchWorkspace', 'notifyWorkspaceSwitched']);
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+    const authServiceStub = { currentUser: signal(null), logout: () => {} };
+    const invitationServiceStub = jasmine.createSpyObj('WorkspaceInvitationService', ['acceptInvitation']);
+    const referentialMock = { getPendingAlertsCount: () => of({ count: pendingCount }) };
+
+    TestBed.configureTestingModule({
+      imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
+      providers: [
+        provideHttpClient(),
+        { provide: AuthService, useValue: authServiceStub },
+        { provide: WorkspaceService, useValue: workspaceService },
+        { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
+        { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
+        { provide: ReferentialService, useValue: referentialMock }
+      ]
+    });
+
+    fixture = TestBed.createComponent(ShellComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  // T-BADGE-01 : pendingAlertsCount = 0 si API retourne 0
+  it('pendingAlertsCount = 0 si aucune alerte', fakeAsync(() => {
+    setup(0);
+    tick();
+    expect(component.pendingAlertsCount()).toBe(0);
+  }));
+
+  // T-BADGE-02 : pendingAlertsCount = 3 si API retourne 3
+  it('pendingAlertsCount = 3 si 3 alertes en attente', fakeAsync(() => {
+    setup(3);
+    tick();
+    expect(component.pendingAlertsCount()).toBe(3);
   }));
 });
 
@@ -311,7 +364,8 @@ describe('ShellComponent — responsive mobile', () => {
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
         { provide: MatSnackBar, useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
-        { provide: BreakpointObserver, useValue: breakpointObserver }
+        { provide: BreakpointObserver, useValue: breakpointObserver },
+        { provide: ReferentialService, useValue: referentialServiceStub }
       ]
     });
 
