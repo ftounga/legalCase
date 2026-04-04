@@ -47,6 +47,10 @@
   <mat-sidenav-container class="shell-body">
     <mat-sidenav [mode]="isMobile() ? 'over' : 'side'" [opened]="sidenavOpen()" class="shell-sidenav">
       <mat-nav-list>
+        <a mat-list-item routerLink="/dashboard" routerLinkActive="sidenav-active" (click)="onNavClick()">
+          <mat-icon matListItemIcon>dashboard</mat-icon>
+          <span matListItemTitle>Tableau de bord</span>
+        </a>
         <a mat-list-item routerLink="/case-files" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>folder_open</mat-icon>
           <span matListItemTitle>Dossiers</span>

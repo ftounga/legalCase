@@ -1,0 +1,121 @@
+<div class="dashboard-wrapper">
+  <div class="dashboard-header">
+    <mat-icon class="header-icon">dashboard</mat-icon>
+    <h1 class="page-title">Tableau de bord</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-center">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">error_outline</mat-icon>
+      <p>Impossible de charger le tableau de bord. Veuillez réessayer.</p>
+    </div>
+  } @else if (summary()) {
+    @let data = summary()!;
+    <div class="dashboard-grid">
+
+      <!-- Section dossiers ouverts -->
+      <section class="dashboard-section section-cases">
+        <div class="section-header">
+          <mat-icon class="section-icon">folder_open</mat-icon>
+          <h2 class="section-title">Dossiers ouverts</h2>
+          <span class="section-count">{{ data.openCasesCount }}</span>
+        </div>
+        @if (data.openCases.length === 0) {
+          <p class="empty-section">Aucun dossier actif.</p>
+        } @else {
+          <div class="cases-list">
+            @for (cf of data.openCases; track cf.id) {
+              <a class="case-card" [routerLink]="['/case-files', cf.id]">
+                <span class="case-title">{{ cf.title }}</span>
+                <span class="case-domain">{{ domainLabel(cf.legalDomain) }}</span>
+              </a>
+            }
+          </div>
+          <a mat-button color="primary" routerLink="/case-files" class="see-all-btn">
+            Voir tous les dossiers
+          </a>
+        }
+      </section>
+
+      <!-- Section délais urgents -->
+      <section class="dashboard-section section-deadlines">
+        <div class="section-header">
+          <mat-icon class="section-icon">event_busy</mat-icon>
+          <h2 class="section-title">Délais urgents</h2>
+          @if (data.urgentDeadlines.length > 0) {
+            <span class="section-count warn">{{ data.urgentDeadlines.length }}</span>
+          }
+        </div>
+        @if (data.urgentDeadlines.length === 0) {
+          <p class="empty-section">Aucun délai urgent dans les 7 prochains jours.</p>
+        } @else {
+          <div class="deadlines-list">
+            @for (d of data.urgentDeadlines; track d.id) {
+              <div class="deadline-item">
+                <div class="deadline-info">
+                  <span class="deadline-label">{{ d.label }}</span>
+                  <span class="deadline-case">{{ d.caseFileTitle }}</span>
+                </div>
+                <span class="deadline-badge" [class]="deadlineClass(d)"
+                      [matTooltip]="d.dueDate | date:'dd/MM/yyyy'">
+                  J-{{ daysUntil(d.dueDate) }}
+                </span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Section alertes checklist -->
+      <section class="dashboard-section section-checks">
+        <div class="section-header">
+          <mat-icon class="section-icon">warning_amber</mat-icon>
+          <h2 class="section-title">Alertes checklist</h2>
+          @if (data.staleChecks.length > 0) {
+            <span class="section-count warn">{{ data.staleChecks.length }}</span>
+          }
+        </div>
+        @if (data.staleChecks.length === 0) {
+          <p class="empty-section">Aucune alerte checklist en retard.</p>
+        } @else {
+          <div class="checks-list">
+            @for (sc of data.staleChecks; track sc.caseFileId) {
+              <a class="check-item" [routerLink]="['/case-files', sc.caseFileId]">
+                <span class="check-title">{{ sc.caseFileTitle }}</span>
+                <span class="check-count">{{ sc.nonCompliantCount }} point{{ sc.nonCompliantCount > 1 ? 's' : '' }} non conforme{{ sc.nonCompliantCount > 1 ? 's' : '' }}</span>
+              </a>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Section activité récente -->
+      <section class="dashboard-section section-activity">
+        <div class="section-header">
+          <mat-icon class="section-icon">history</mat-icon>
+          <h2 class="section-title">Activité récente</h2>
+        </div>
+        @if (data.recentAnalyses.length === 0) {
+          <p class="empty-section">Aucune analyse récente.</p>
+        } @else {
+          <div class="activity-list">
+            @for (a of data.recentAnalyses; track a.id) {
+              <a class="activity-item" [routerLink]="['/case-files', a.caseFileId, 'synthesis']">
+                <mat-icon class="activity-icon">analytics</mat-icon>
+                <div class="activity-info">
+                  <span class="activity-case">{{ a.caseFileTitle }}</span>
+                  <span class="activity-meta">Analyse {{ analysisTypeLabel(a.analysisType) }} — {{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              </a>
+            }
+          </div>
+        }
+      </section>
+
+    </div>
+  }
+</div>
