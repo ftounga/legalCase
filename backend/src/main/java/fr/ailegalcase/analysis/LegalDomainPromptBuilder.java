@@ -2,6 +2,17 @@ package fr.ailegalcase.analysis;
 
 public final class LegalDomainPromptBuilder {
 
+    private static final String FAMILLE_INSTRUCTION = """
+
+            Pour ce dossier de droit de la famille, inclure également dans le JSON le champ suivant :
+            "pension_alimentaire_data" : objet avec les champs :
+              "revenus_net_mensuel_debiteur" : revenu net mensuel du parent débiteur en euros, null si non détectable.
+              "revenus_net_mensuel_creancier" : revenu net mensuel du parent créancier en euros, null si non détectable.
+              "nb_enfants" : nombre d'enfants concernés par la pension, null si non détectable.
+              "mode_garde" : mode de garde, l'une de ces valeurs exactes : "EXCLUSIVE", "ALTERNEE", null si non détectable.
+              "pays_applicable" : pays du barème applicable, l'une de ces valeurs exactes : "FRANCE", "BELGIQUE", null si non détectable.
+            """;
+
     private static final String IMMIGRATION_INSTRUCTION = """
 
             Pour ce dossier de droit de l'immigration, inclure également dans le JSON les champs suivants :
@@ -35,6 +46,7 @@ public final class LegalDomainPromptBuilder {
 
     public static String domainSpecificInstruction(String legalDomain) {
         if ("DROIT_IMMIGRATION".equals(legalDomain)) return IMMIGRATION_INSTRUCTION;
+        if ("DROIT_FAMILLE".equals(legalDomain))     return FAMILLE_INSTRUCTION;
         return "";
     }
 }
