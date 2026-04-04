@@ -1135,6 +1135,37 @@ idx_procedure_checks_workspace_id
 
 ---
 
+## prudhome_fiches
+
+Fiche prud'homale — document procédural 1:1 avec un dossier. Stocke les parties, faits, demandes et moyens de droit sous forme JSON TEXT (compatible H2 + PostgreSQL).
+
+```
+prudhome_fiches
+  id                UUID PK
+  case_file_id      UUID FK → case_files(id) ON DELETE CASCADE  UNIQUE
+  demandeur         TEXT NOT NULL DEFAULT '{}'   -- JSON sérialisé (nom, prénom, adresse, téléphone, email, profession)
+  defendeur         TEXT NOT NULL DEFAULT '{}'   -- JSON sérialisé (nom, adresse, siret, représentant)
+  demandes          TEXT NOT NULL DEFAULT '[]'   -- JSON sérialisé (label, montant)
+  faits_texte       TEXT
+  moyens_droit_texte TEXT
+  created_at        TIMESTAMPTZ NOT NULL
+  updated_at        TIMESTAMPTZ NOT NULL
+  UNIQUE uq_prudhome_fiches_case_file_id (case_file_id)
+```
+
+Notes :
+- Relation 1:1 stricte avec case_files (UNIQUE constraint sur case_file_id)
+- Upsert via findByCaseFileId + save (pas de requête native)
+- Champs JSON stockés en TEXT pour compatibilité H2 (profil dev) et PostgreSQL
+- La liste des pièces est générée dynamiquement à la lecture depuis la table documents (non persistée)
+- Pré-remplissage des demandes depuis compensationEstimate si une analyse DONE est disponible
+
+Index :
+
+idx_prudhome_fiches_case_file_id
+
+---
+
 ## email_sends
 
 Déduplication des emails automatiques (onboarding, etc.) — évite les doublons d'envoi.
