@@ -152,7 +152,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-DT-01 | Calcul d'indemnités automatique | `Terminée` | CompensationCalculator (1/4+1/3, pivot 10 ans) + barème Macron. Panneau lecture seule dans synthèse et export PDF. SF-DT-01-01 mergée. |
 | ~~F-DT-02~~ | ~~Détection de clauses abusives~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_DU_TRAVAIL dans `LegalDomainPromptBuilder`. La synthèse existante (`risques` + `points_juridiques`) couvre ce besoin si le prompt l'instruit explicitement. |
 | F-DT-03 | Délais de prescription ciblés par type de litige | `Terminée` | Classification du type de litige (7 types Code du travail) → délai légal correspondant (1/3/5 ans) → calcul date d'expiration → affiché en lecture seule dans le bloc délais. SF-DT-03-01 mergée. |
-| F-DT-04 | Génération fiche prud'homale | `En cours` | SF-DT-04-01 mergée (backend CRUD + table prudhome_fiches + pré-remplissage). SF-DT-04-02 (formulaire Angular) et SF-DT-04-03 (export PDF/Word) restants. |
+| F-DT-04 | Génération fiche prud'homale | `En cours` | SF-DT-04-01 + SF-DT-04-02 mergées (backend CRUD + formulaire Angular). SF-DT-04-03 (export PDF/Word) restant. |
 
 ### Features métier — Droit de l'immigration
 
@@ -280,6 +280,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-04-04 | F-109 Terminée — SF-109-01 mergée : ProcedureCheckRequalifiedEvent, RequalificationAlertService, EmailService.sendRequalificationAlert(), 471 tests verts | Product owner |
 | 2026-04-04 | F-107 Terminée — SF-107-01 mergée : exportChecklist() PdfExportService, bouton export PDF checklist, 62 tests verts | Product owner |
 | 2026-04-04 | F-DT-04 En cours — SF-DT-04-01 mergée : table prudhome_fiches (migration 045), PrudhomeFiche JPA, PrudhomeFicheService GET+PUT upsert avec pré-remplissage depuis analyse DONE, 516 tests verts | Product owner |
+| 2026-04-04 | F-DT-04 En cours — SF-DT-04-02 mergée : formulaire Angular réactif (Demandeur/Défendeur/Demandes FormArray/Faits/Moyens/Pièces), PrudhomeFicheService HTTP, section dans CaseFileDetail, 575 tests verts | Product owner |
 | 2026-04-03 | F-106 SF-106-05 mergée — admin définit taux horaires membres : PUT /workspace/members/{userId}/billing-rate (OWNER/ADMIN), GET /workspace/members/billing-rates, table admin inline, taux lecture seule avocat, AuditLog BILLING_RATE_UPDATED, 548 tests verts | Product owner |
 | 2026-04-03 | F-106 Terminée — SF-106-04 mergée : insight callout doré synthèse (temps × risque IA), computed signals, fail silencieux, 545 tests verts | Product owner |
 | 2026-04-03 | F-106 SF-106-03 mergée — rapport mensuel frontend : TimeReportComponent, TimeReportService, route workspace/time-report, lien sidenav, export CSV, 538 tests verts | Product owner |
