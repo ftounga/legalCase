@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PrudhomeFicheService } from '../../core/services/prudhome-fiche.service';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 import { PrudhomeFiche, PrudhomePiece } from '../../core/models/prudhome-fiche.model';
 
 @Component({
@@ -21,6 +22,7 @@ import { PrudhomeFiche, PrudhomePiece } from '../../core/models/prudhome-fiche.m
 })
 export class PrudhomeFicheSectionComponent implements OnInit {
   @Input() caseFileId!: string;
+  @Input() caseFileTitle: string = '';
 
   collapsed = signal(true);
   saving = signal(false);
@@ -31,6 +33,7 @@ export class PrudhomeFicheSectionComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private ficheService: PrudhomeFicheService,
+    private pdfExportService: PdfExportService,
     private snackBar: MatSnackBar
   ) {
     this.form = this.fb.group({
@@ -101,6 +104,27 @@ export class PrudhomeFicheSectionComponent implements OnInit {
         });
       }
     });
+  }
+
+  exportPdf(): void {
+    const value = this.form.getRawValue();
+    const fiche: PrudhomeFiche = {
+      id: null,
+      demandeur: value.demandeur,
+      defendeur: value.defendeur,
+      demandes: value.demandes,
+      faitsTexte: value.faitsTexte || null,
+      moyensDroitTexte: value.moyensDroitTexte || null,
+      piecesList: this.pieces(),
+      updatedAt: null,
+    };
+    try {
+      this.pdfExportService.exportPrudhomeFiche(fiche, this.caseFileTitle);
+    } catch {
+      this.snackBar.open('Erreur lors de la génération du PDF', 'Fermer', {
+        duration: 4000, panelClass: ['snack-error']
+      });
+    }
   }
 
   private patchForm(fiche: PrudhomeFiche): void {

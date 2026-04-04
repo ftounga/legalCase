@@ -187,4 +187,54 @@ describe('PdfExportService', () => {
     const contentStr = JSON.stringify(doc.content);
     expect(contentStr).not.toContain('Données partielles');
   });
+
+  // --- SF-DT-04-03 : export PDF fiche prud'homale ---
+
+  const mockFiche = {
+    id: 'f-1',
+    demandeur: { nom: 'Dupont', prenom: 'Jean', adresse: '12 rue de la Paix', telephone: '0600000000', email: 'j@d.fr', profession: 'Salarié' },
+    defendeur: { nom: 'Renault SAS', adresse: '75 avenue', siret: '12345678901234', representant: 'M. Martin' },
+    demandes: [
+      { label: 'Indemnité licenciement', montant: 5000 },
+      { label: 'Préavis', montant: null },
+    ],
+    faitsTexte: 'Licenciement abusif sans cause réelle.',
+    moyensDroitTexte: 'Art. L1235-3 Code du travail.',
+    piecesList: [
+      { numero: 1, nom: 'contrat.pdf' },
+      { numero: 2, nom: 'lettre-licenciement.pdf' },
+    ],
+    updatedAt: '2026-04-04T10:00:00Z',
+  };
+
+  it('PDF-FICHE-01: buildPrudhomeFicheDocument() retourne un document pdfmake valide avec toutes les sections', () => {
+    const doc = service.buildPrudhomeFicheDocument(mockFiche, 'Affaire Dupont') as any;
+    const s = JSON.stringify(doc.content);
+    expect(doc.pageSize).toBe('A4');
+    expect(s).toContain('Demandeur');
+    expect(s).toContain('Défendeur');
+    expect(s).toContain('Demandes chiffrées');
+    expect(s).toContain('Exposé des faits');
+    expect(s).toContain('Moyens de droit');
+    expect(s).toContain('Bordereau de pièces');
+  });
+
+  it('PDF-FICHE-02: tableau demandes contient les colonnes Intitulé / Montant', () => {
+    const doc = service.buildPrudhomeFicheDocument(mockFiche, 'Affaire') as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Intitulé');
+    expect(s).toContain('Montant');
+    expect(s).toContain('Indemnité licenciement');
+  });
+
+  it('PDF-FICHE-03: montant null affiché "—"', () => {
+    const doc = service.buildPrudhomeFicheDocument(mockFiche, 'Affaire') as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('—');
+  });
+
+  it('PDF-FICHE-04: buildPrudhomeFicheFileName() slugifie le titre correctement', () => {
+    const name = service.buildPrudhomeFicheFileName('Affaire Dupont c/ SA Renault');
+    expect(name).toMatch(/^fiche-prudhomale-affaire-dupont-c-sa-renault-\d{4}-\d{2}-\d{2}\.pdf$/);
+  });
 });
