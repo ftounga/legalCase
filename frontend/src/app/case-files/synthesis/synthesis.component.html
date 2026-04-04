@@ -262,6 +262,41 @@
         </mat-expansion-panel>
       }
 
+      @if (pensionAlimentaireEstimate) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--compensation">family_restroom</mat-icon>
+              Pension alimentaire indicative
+            </mat-panel-title>
+            <mat-panel-description>{{ pensionAlimentaireEstimate.nbEnfants }} enfant(s) · Garde {{ pensionAlimentaireEstimate.modeGarde === 'ALTERNEE' ? 'alternée' : 'exclusive' }}</mat-panel-description>
+          </mat-expansion-panel-header>
+          <div class="compensation-block">
+            @if (pensionAlimentaireEstimate.donneesPartielles) {
+              <div class="compensation-warning">
+                <mat-icon class="compensation-warning__icon">warning_amber</mat-icon>
+                <span>Données partielles — vérifier les revenus et le nombre d'enfants</span>
+              </div>
+            }
+            <div class="compensation-grid">
+              <div class="compensation-row compensation-row--main">
+                <span class="compensation-label">Fourchette mensuelle</span>
+                <span class="compensation-value">{{ formatEuros(pensionAlimentaireEstimate.montantMin) }} – {{ formatEuros(pensionAlimentaireEstimate.montantMax) }} / mois</span>
+              </div>
+              <div class="compensation-row compensation-row--detail">
+                <span class="compensation-label">Revenus net débiteur</span>
+                <span class="compensation-value">{{ formatEuros(pensionAlimentaireEstimate.revenus) }}/mois</span>
+              </div>
+              <div class="compensation-row compensation-row--detail">
+                <span class="compensation-label">Barème</span>
+                <span class="compensation-value">{{ pensionAlimentaireEstimate.pays === 'BELGIQUE' ? 'CGKR Belgique' : 'UNAF France' }}</span>
+              </div>
+            </div>
+            <p class="compensation-disclaimer">Estimation indicative — ne constitue pas un avis juridique</p>
+          </div>
+        </mat-expansion-panel>
+      }
+
       @if (procedureChecks().length > 0) {
         <mat-expansion-panel expanded>
           <mat-expansion-panel-header>

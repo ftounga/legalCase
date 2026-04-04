@@ -676,6 +676,40 @@ describe('SynthesisComponent', () => {
     expect(component.formatTypeRupture('RUPTURE_CONVENTIONNELLE')).toBe('Rupture conventionnelle');
   });
 
+  // SF-FA-02-02 : Panneau pension alimentaire
+  it('FA-PA-01: panneau pension alimentaire visible si pensionAlimentaireEstimate non null', () => {
+    const estimate = {
+      montantMin: 360, montantMax: 440, revenus: 2000, nbEnfants: 1,
+      modeGarde: 'EXCLUSIVE' as const, pays: 'FRANCE' as const, donneesPartielles: false
+    };
+    const synthWithPA = { ...makeSynthesis(1, 'ENRICHED'), pensionAlimentaireEstimate: estimate };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthWithPA));
+    fixture.detectChanges();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Pension alimentaire indicative');
+  });
+
+  it('FA-PA-02: panneau pension alimentaire absent si pensionAlimentaireEstimate null', () => {
+    const synthNoPA = { ...makeSynthesis(1, 'ENRICHED'), pensionAlimentaireEstimate: null };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthNoPA));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Pension alimentaire indicative');
+  });
+
+  it('FA-PA-03: badge données partielles visible si donneesPartielles=true', () => {
+    const estimate = {
+      montantMin: 0, montantMax: 0, revenus: 0, nbEnfants: 2,
+      modeGarde: 'EXCLUSIVE' as const, pays: 'FRANCE' as const, donneesPartielles: true
+    };
+    const synthPartial = { ...makeSynthesis(1, 'ENRICHED'), pensionAlimentaireEstimate: estimate };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthPartial));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Données partielles');
+  });
+
   // CL-PDF-03 : click sur le bouton → exportChecklistPdf() appelé
   it('CL-PDF-03: click on checklist PDF button calls exportChecklistPdf()', () => {
     const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;

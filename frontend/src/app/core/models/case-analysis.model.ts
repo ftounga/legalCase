@@ -20,6 +20,16 @@ export interface CompensationEstimate {
   donneesPartielles: boolean;
 }
 
+export interface PensionAlimentaireEstimate {
+  montantMin: number;
+  montantMax: number;
+  revenus: number;
+  nbEnfants: number;
+  modeGarde: 'EXCLUSIVE' | 'ALTERNEE';
+  pays: 'FRANCE' | 'BELGIQUE';
+  donneesPartielles: boolean;
+}
+
 export interface CaseAnalysisResult {
   id: string;
   version: number;
@@ -37,6 +47,7 @@ export interface CaseAnalysisResult {
   updatedAt: string | null;
   analysisDocuments?: { index: number; name: string }[];
   compensationEstimate?: CompensationEstimate | null;
+  pensionAlimentaireEstimate?: PensionAlimentaireEstimate | null;
 }
 
 export interface CaseAnalysisVersionSummary {

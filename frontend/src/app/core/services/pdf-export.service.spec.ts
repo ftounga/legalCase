@@ -188,6 +188,27 @@ describe('PdfExportService', () => {
     expect(contentStr).not.toContain('Données partielles');
   });
 
+  // --- SF-FA-02-02 : section pension alimentaire dans l'export PDF ---
+
+  const mockPensionEstimate = {
+    montantMin: 396, montantMax: 484, revenus: 2000, nbEnfants: 2,
+    modeGarde: 'EXCLUSIVE' as const, pays: 'FRANCE' as const, donneesPartielles: false,
+  };
+
+  it('PDF-PA-01: buildDocument() inclut section pension alimentaire si pensionAlimentaireEstimate présent', () => {
+    const synthWithPA = { ...mockSynthesis, pensionAlimentaireEstimate: mockPensionEstimate };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthWithPA) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).toContain('Pension alimentaire indicative');
+  });
+
+  it('PDF-PA-02: buildDocument() n\'inclut pas section pension si pensionAlimentaireEstimate null', () => {
+    const synthNoPA = { ...mockSynthesis, pensionAlimentaireEstimate: null };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthNoPA) as any;
+    const contentStr = JSON.stringify(doc.content);
+    expect(contentStr).not.toContain('Pension alimentaire indicative');
+  });
+
   // --- SF-DT-04-03 : export PDF fiche prud'homale ---
 
   const mockFiche = {
