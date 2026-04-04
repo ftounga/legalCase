@@ -34,6 +34,12 @@ public class CaseDeadline {
     @Column(length = 20)
     private String aiStatus;
 
+    @Column(length = 50)
+    private String alertThresholds;
+
+    @Column(length = 50)
+    private String documentType;
+
     @Column(nullable = false)
     private Instant createdAt;
 

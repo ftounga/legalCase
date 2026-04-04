@@ -12,4 +12,6 @@ public interface CaseDeadlineRepository extends JpaRepository<CaseDeadline, UUID
     List<CaseDeadline> findByCaseFileIdOrderByDueDateAsc(UUID caseFileId);
 
     List<CaseDeadline> findByDueDateInAndCaseFileDeletedAtIsNull(Collection<LocalDate> dates);
+
+    List<CaseDeadline> findByAlertThresholdsIsNotNullAndCaseFileDeletedAtIsNull();
 }
