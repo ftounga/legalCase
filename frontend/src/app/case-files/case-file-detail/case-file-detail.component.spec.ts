@@ -17,6 +17,7 @@ import { CaseNoteService } from '../../core/services/case-note.service';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { PrudhomeFicheService } from '../../core/services/prudhome-fiche.service';
+import { ImmigrationChecklistService } from '../../core/services/immigration-checklist.service';
 import { TimeService } from '../../core/services/time.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
@@ -130,6 +131,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: CaseDeadlineService, useValue: caseDeadlineServiceSpy },
         { provide: AnalyticsService, useValue: analyticsServiceSpy },
         { provide: PrudhomeFicheService, useValue: { get: jest.fn().mockReturnValue(of(null)), save: jest.fn() } },
+        { provide: ImmigrationChecklistService, useValue: { get: jest.fn().mockReturnValue(of(null)), upsert: jest.fn() } },
         {
           provide: TimeService,
           useValue: {
@@ -717,6 +719,19 @@ describe('CaseFileDetailComponent', () => {
     fixture.detectChanges();
     const stepper = fixture.nativeElement.querySelector('app-case-dashboard-stepper');
     expect(stepper).not.toBeNull();
+  });
+
+  it('IM01-02: section immigration absente si legalDomain ≠ DROIT_IMMIGRATION', () => {
+    fixture.detectChanges();
+    const section = fixture.nativeElement.querySelector('app-immigration-checklist-section');
+    expect(section).toBeNull();
+  });
+
+  it('IM01-02: section immigration présente si legalDomain = DROIT_IMMIGRATION', () => {
+    component.caseFile.set({ ...mockCaseFile, legalDomain: 'DROIT_IMMIGRATION' });
+    fixture.detectChanges();
+    const section = fixture.nativeElement.querySelector('app-immigration-checklist-section');
+    expect(section).not.toBeNull();
   });
 
 });

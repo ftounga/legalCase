@@ -36,6 +36,7 @@ import { CaseFileStatsService } from '../../core/services/case-file-stats.servic
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
+import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
@@ -51,7 +52,8 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
-    TimerWidgetComponent, PrudhomeFicheSectionComponent
+    TimerWidgetComponent, PrudhomeFicheSectionComponent,
+    ImmigrationChecklistSectionComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',
