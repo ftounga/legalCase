@@ -143,6 +143,10 @@
           }
           Enregistrer la fiche
         </button>
+        <button mat-stroked-button type="button" [disabled]="form.invalid" (click)="exportPdf()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Exporter PDF
+        </button>
       </div>
 
     </form>

@@ -3,6 +3,7 @@ import { TDocumentDefinitions } from 'pdfmake/interfaces';
 import { CaseAnalysisResult, CompensationEstimate } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
+import { PrudhomeFiche } from '../models/prudhome-fiche.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 
 const PRIMARY = '#1A3A5C';
@@ -539,6 +540,195 @@ export class PdfExportService {
         margin: [0, 0, 0, 4],
       };
     });
+  }
+
+  exportPrudhomeFiche(fiche: PrudhomeFiche, caseFileTitle: string): void {
+    import('pdfmake/build/pdfmake').then(pdfMakeModule => {
+      import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
+        const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
+        const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
+        pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
+
+        const docDefinition = this.buildPrudhomeFicheDocument(fiche, caseFileTitle) as TDocumentDefinitions;
+        const fileName = this.buildPrudhomeFicheFileName(caseFileTitle);
+        pdfMake.createPdf(docDefinition).download(fileName);
+      });
+    });
+  }
+
+  buildPrudhomeFicheDocument(fiche: PrudhomeFiche, caseFileTitle: string): object {
+    const exportDate = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+    const fmt = (n: number | null) =>
+      n != null
+        ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+        : '—';
+
+    const content: object[] = [
+      { text: '', margin: [0, 40, 0, 0] },
+      {
+        image: LEGALCASE_LOGO_BASE64,
+        width: 180,
+        alignment: 'center',
+        margin: [0, 0, 0, 24],
+      },
+      {
+        canvas: [{ type: 'line', x1: 80, y1: 0, x2: 420, y2: 0, lineWidth: 2, lineColor: ACCENT }],
+        margin: [0, 0, 0, 20],
+      },
+      {
+        text: caseFileTitle || 'Dossier',
+        style: 'coverTitle',
+        alignment: 'center',
+        margin: [0, 0, 0, 8],
+      },
+      {
+        text: 'Fiche prud\'homale',
+        fontSize: 13,
+        color: TEXT_SECONDARY,
+        alignment: 'center',
+        margin: [0, 0, 0, 4],
+      },
+      {
+        text: `Générée le ${exportDate}`,
+        fontSize: 10,
+        color: TEXT_SECONDARY,
+        alignment: 'center',
+        margin: [0, 0, 0, 4],
+      },
+      {
+        text: 'Document pré-rempli à environ 60-70% — À vérifier avant tout usage',
+        fontSize: 9,
+        color: ACCENT,
+        italics: true,
+        alignment: 'center',
+        margin: [0, 0, 0, 24],
+      },
+      {
+        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: DIVIDER }],
+        margin: [0, 0, 0, 16],
+      },
+
+      // Demandeur
+      this.buildPrudhomeSectionHeader('Demandeur'),
+      {
+        table: {
+          widths: [120, '*'],
+          body: [
+            [{ text: 'Nom', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.demandeur?.nom || '—', fontSize: 10 }],
+            [{ text: 'Prénom', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.demandeur?.prenom || '—', fontSize: 10 }],
+            [{ text: 'Adresse', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.demandeur?.adresse || '—', fontSize: 10 }],
+            [{ text: 'Téléphone', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.demandeur?.telephone || '—', fontSize: 10 }],
+            [{ text: 'Email', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.demandeur?.email || '—', fontSize: 10 }],
+            [{ text: 'Profession', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.demandeur?.profession || '—', fontSize: 10 }],
+          ]
+        },
+        layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+        margin: [0, 0, 0, 16],
+      },
+
+      // Défendeur
+      this.buildPrudhomeSectionHeader('Défendeur'),
+      {
+        table: {
+          widths: [120, '*'],
+          body: [
+            [{ text: 'Nom / Raison sociale', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.nom || '—', fontSize: 10 }],
+            [{ text: 'Adresse', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.adresse || '—', fontSize: 10 }],
+            [{ text: 'SIRET', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.siret || '—', fontSize: 10 }],
+            [{ text: 'Représentant légal', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.representant || '—', fontSize: 10 }],
+          ]
+        },
+        layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+        margin: [0, 0, 0, 16],
+      },
+
+      // Demandes
+      this.buildPrudhomeSectionHeader('Demandes chiffrées'),
+      (fiche.demandes?.length ?? 0) > 0
+        ? {
+            table: {
+              widths: ['*', 100],
+              headerRows: 1,
+              body: [
+                [
+                  { text: 'Intitulé', bold: true, color: SURFACE, fillColor: PRIMARY, fontSize: 9, margin: [8, 5, 4, 5] },
+                  { text: 'Montant', bold: true, color: SURFACE, fillColor: PRIMARY, fontSize: 9, margin: [4, 5, 8, 5], alignment: 'right' },
+                ],
+                ...(fiche.demandes ?? []).map((d, i) => [
+                  { text: d.label, fontSize: 10, fillColor: i % 2 === 0 ? BG : SURFACE, margin: [8, 5, 4, 5] },
+                  { text: fmt(d.montant), fontSize: 10, fillColor: i % 2 === 0 ? BG : SURFACE, margin: [4, 5, 8, 5], alignment: 'right' },
+                ]),
+              ]
+            },
+            layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+            margin: [0, 0, 0, 16],
+          }
+        : { text: 'Aucune demande renseignée.', fontSize: 10, color: TEXT_SECONDARY, italics: true, margin: [0, 0, 0, 16] },
+
+      // Faits
+      this.buildPrudhomeSectionHeader('Exposé des faits'),
+      {
+        text: fiche.faitsTexte || '—',
+        fontSize: 10,
+        margin: [0, 0, 0, 16],
+      },
+
+      // Moyens de droit
+      this.buildPrudhomeSectionHeader('Moyens de droit'),
+      {
+        text: fiche.moyensDroitTexte || '—',
+        fontSize: 10,
+        margin: [0, 0, 0, 16],
+      },
+    ];
+
+    // Bordereau de pièces
+    if ((fiche.piecesList?.length ?? 0) > 0) {
+      content.push(
+        this.buildPrudhomeSectionHeader('Bordereau de pièces'),
+        ...( fiche.piecesList ?? []).map(p => ({
+          text: `${p.numero}. ${p.nom}`,
+          fontSize: 10,
+          margin: [8, 2, 0, 2],
+        }))
+      );
+    }
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [48, 64, 48, 64],
+      content,
+      footer: (currentPage: number, pageCount: number) => this.buildFooter(currentPage, pageCount),
+      defaultStyle: { font: 'Roboto', fontSize: 10, color: TEXT, lineHeight: 1.4 },
+      styles: this.buildStyles(),
+    };
+  }
+
+  private buildPrudhomeSectionHeader(label: string): object {
+    return {
+      table: {
+        widths: ['*'],
+        body: [[
+          { text: label, color: SURFACE, bold: true, fontSize: 12, margin: [12, 7, 0, 7] }
+        ]]
+      },
+      layout: { fillColor: () => PRIMARY, hLineColor: () => PRIMARY, vLineColor: () => PRIMARY },
+      margin: [0, 0, 0, 8],
+    };
+  }
+
+  buildPrudhomeFicheFileName(title: string): string {
+    const slug = (title || 'dossier')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const date = new Date().toISOString().slice(0, 10);
+    return `fiche-prudhomale-${slug}-${date}.pdf`;
   }
 
   buildChecklistFileName(title: string): string {
