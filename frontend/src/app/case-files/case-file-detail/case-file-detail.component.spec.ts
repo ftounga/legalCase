@@ -24,6 +24,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { of, throwError, Subject } from 'rxjs';
+import { HttpResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document } from '../../core/models/document.model';
@@ -76,7 +77,7 @@ describe('CaseFileDetailComponent', () => {
     analyticsServiceSpy = jasmine.createSpyObj('AnalyticsService', ['trackEvent']);
     caseFileServiceSpy = jasmine.createSpyObj('CaseFileService', ['getById', 'exportZip']);
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
-    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'downloadUrl', 'delete']);
+    documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'uploadWithProgress', 'downloadUrl', 'delete']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
     caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
     caseAnalysisCommandServiceSpy = jasmine.createSpyObj('CaseAnalysisCommandService', ['triggerAnalysis']);
@@ -228,7 +229,7 @@ describe('CaseFileDetailComponent', () => {
 
   it('uploadPendingFiles — succès → documents mis à jour, panier vidé', () => {
     const newDoc: Document = { ...mockDocument, id: 'doc2', originalFilename: 'avenant.pdf' };
-    documentServiceSpy.upload.mockReturnValue(of(newDoc));
+    documentServiceSpy.uploadWithProgress.mockReturnValue(of(new HttpResponse({ body: newDoc })));
 
     const file = new File(['content'], 'avenant.pdf', { type: 'application/pdf' });
     component.pendingFiles.set([file]);
@@ -242,7 +243,7 @@ describe('CaseFileDetailComponent', () => {
   });
 
   it('uploadPendingFiles — erreur → snackbar erreur, panier vidé', () => {
-    documentServiceSpy.upload.mockReturnValue(throwError(() => ({ status: 500 })));
+    documentServiceSpy.uploadWithProgress.mockReturnValue(throwError(() => ({ status: 500 })));
 
     const file = new File(['content'], 'bad.pdf', { type: 'application/pdf' });
     component.pendingFiles.set([file]);
@@ -291,8 +292,8 @@ describe('CaseFileDetailComponent', () => {
     component.loadAnalysisJobs('cf1');
     fixture.detectChanges();
 
-    const rows = fixture.nativeElement.querySelectorAll('.analysis-job-row');
-    expect(rows.length).toBe(2); // CHUNK_ANALYSIS masqué
+    const pipeline = fixture.nativeElement.querySelector('app-analysis-pipeline');
+    expect(pipeline).not.toBeNull(); // pipeline remplace les analysis-job-row
   });
 
   it('jobTypeLabel — retourne le libellé correct par jobType', () => {

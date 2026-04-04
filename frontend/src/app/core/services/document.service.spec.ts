@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpEventType } from '@angular/common/http';
 import { DocumentService } from './document.service';
 import { Document } from '../models/document.model';
 
@@ -39,6 +40,22 @@ describe('DocumentService', () => {
     expect(req.request.method).toBe('POST');
     expect(req.request.body instanceof FormData).toBe(true);
     req.flush(mockDocument);
+  });
+
+  // PROG-07 : uploadWithProgress émet des HttpEvents avec reportProgress
+  it('uploadWithProgress — POST avec reportProgress:true, émet des events', () => {
+    const file = new File(['content'], 'contrat.pdf', { type: 'application/pdf' });
+    const events: number[] = [];
+
+    service.uploadWithProgress('cf1', file).subscribe(event => events.push(event.type));
+
+    const req = http.expectOne('/api/v1/case-files/cf1/documents');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.reportProgress).toBe(true);
+    expect(req.request.body instanceof FormData).toBe(true);
+    req.flush(mockDocument);
+
+    expect(events).toContain(HttpEventType.Response);
   });
 
   it('downloadUrl — retourne l\'URL correcte', () => {
