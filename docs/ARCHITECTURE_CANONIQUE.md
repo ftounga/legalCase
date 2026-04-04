@@ -1158,6 +1158,42 @@ idx_procedure_checks_workspace_id
 
 ---
 
+# 25e — Checklist pièces immigration (F-IM-01)
+
+Table :
+
+immigration_piece_checks
+
+Champs :
+
+id (UUID PK — généré par JPA)
+case_file_id (UUID FK → case_files, cascade delete)
+titre_type (VARCHAR 50, non nullable — VISA_ETUDIANT | TITRE_SALARIE | REGROUPEMENT_FAMILIAL | NATURALISATION)
+country (VARCHAR 20, non nullable — FRANCE | BELGIQUE)
+label (VARCHAR 255, non nullable — libellé de la pièce selon le référentiel)
+statut (VARCHAR 20, non nullable, défaut INCONNU — PRESENT | ABSENT | INCONNU)
+created_at (timestamptz, non nullable)
+updated_at (timestamptz, non nullable)
+
+Contrainte :
+
+UNIQUE(case_file_id, titre_type, country, label) — garantit l'idempotence du PUT
+
+Règles :
+
+- Scopé DROIT_IMMIGRATION uniquement — 400 si legalDomain différent
+- Accès contrôlé via workspace du dossier (isolation workspace)
+- Le référentiel des pièces est statique (ImmigrationPieceReferentiel Java) — pas de table de configuration
+- GET fusionne le référentiel et l'historique persisté (pièces sans historique → INCONNU)
+- PUT ignore les labels absents du référentiel pour le type/pays demandé
+- Migration : 047-create-immigration-piece-checks.xml
+
+Index :
+
+idx_immigration_piece_checks_case_file_id
+
+---
+
 ## prudhome_fiches
 
 Fiche prud'homale — document procédural 1:1 avec un dossier. Stocke les parties, faits, demandes et moyens de droit sous forme JSON TEXT (compatible H2 + PostgreSQL).

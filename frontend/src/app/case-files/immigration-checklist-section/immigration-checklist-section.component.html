@@ -1,0 +1,60 @@
+<div class="checklist-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">assignment_turned_in</mat-icon>
+    <span class="section-title">Checklist pièces immigration</span>
+    @if (presentCount() > 0) {
+      <span class="section-badge">{{ presentCount() }} présente(s)</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="checklist-body">
+      <div class="selectors-row">
+        <mat-form-field appearance="outline" class="selector-field">
+          <mat-label>Type de titre</mat-label>
+          <mat-select [(ngModel)]="titreType" (ngModelChange)="onSelectorChange()">
+            @for (t of titreTypes; track t.value) {
+              <mat-option [value]="t.value">{{ t.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="selector-field">
+          <mat-label>Pays</mat-label>
+          <mat-select [(ngModel)]="country" (ngModelChange)="onSelectorChange()">
+            @for (c of countries; track c.value) {
+              <mat-option [value]="c.value">{{ c.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      @if (checklist()) {
+        <ul class="pieces-list">
+          @for (piece of checklist()!.pieces; track piece.label) {
+            <li class="piece-item">
+              <span class="piece-label">{{ piece.label }}</span>
+              <button
+                class="statut-badge statut-{{ piece.statut | lowercase }}"
+                (click)="cycleStatut(piece)"
+                title="Cliquer pour changer le statut">
+                @switch (piece.statut) {
+                  @case ('PRESENT')  { <mat-icon>check_circle</mat-icon> Présente }
+                  @case ('ABSENT')   { <mat-icon>cancel</mat-icon> Absente }
+                  @default           { <mat-icon>help_outline</mat-icon> Inconnue }
+                }
+              </button>
+            </li>
+          }
+        </ul>
+
+        <div class="checklist-actions">
+          <button mat-flat-button color="primary" (click)="save()" [disabled]="saving()">
+            @if (saving()) { Enregistrement… } @else { Enregistrer }
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
