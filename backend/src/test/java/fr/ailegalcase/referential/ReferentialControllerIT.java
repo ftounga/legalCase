@@ -32,8 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "spring.security.oauth2.client.registration.google.client-id=test-google-id",
         "spring.security.oauth2.client.registration.google.client-secret=test-google-secret",
-        "spring.security.oauth2.client.registration.microsoft.client-id=test-ms-id",
-        "spring.security.oauth2.client.registration.microsoft.client-secret=test-ms-secret",
         "anthropic.api-key=test-key"
 })
 @AutoConfigureMockMvc
@@ -49,20 +47,22 @@ class ReferentialControllerIT {
 
     @BeforeEach
     void setUp() {
+        long ts = System.nanoTime();
+
         User user = new User();
-        user.setEmail("ref-it@example.com");
+        user.setEmail("ref-it-" + ts + "@example.com");
         user.setStatus("ACTIVE");
         user = userRepository.save(user);
 
         AuthAccount account = new AuthAccount();
         account.setUser(user);
         account.setProvider("GOOGLE");
-        account.setProviderUserId("google-ref-it-sub");
+        account.setProviderUserId("google-ref-it-" + ts);
         authAccountRepository.save(account);
 
         Workspace ws = new Workspace();
         ws.setName("REF IT WS");
-        ws.setSlug("ref-it-ws-" + System.currentTimeMillis());
+        ws.setSlug("ref-it-ws-" + ts);
         ws.setOwner(user);
         ws.setLegalDomain("DROIT_DU_TRAVAIL");
         ws.setPlanCode("STARTER");
@@ -76,7 +76,7 @@ class ReferentialControllerIT {
         member.setPrimary(true);
         workspaceMemberRepository.save(member);
 
-        auth = buildGoogleAuth("google-ref-it-sub", "ref-it@example.com");
+        auth = buildGoogleAuth("google-ref-it-" + ts, "ref-it-" + ts + "@example.com");
     }
 
     @Test

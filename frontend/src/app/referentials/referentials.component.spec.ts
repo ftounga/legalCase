@@ -2,6 +2,10 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ReferentialsComponent } from './referentials.component';
 import { ReferentialService } from '../core/services/referential.service';
 import { WorkspaceService } from '../core/services/workspace.service';
+import { WorkspaceMemberService } from '../core/services/workspace-member.service';
+import { AuthService } from '../core/services/auth.service';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { of, throwError } from 'rxjs';
 import { ReferentialResponse } from '../core/models/referential.model';
@@ -23,25 +27,39 @@ const mockResponse: ReferentialResponse = {
   }
 };
 
-function buildTestBed(referentialReturn: any) {
-  const referentialServiceSpy = { getReferentials: jest.fn().mockReturnValue(referentialReturn) };
+function buildTestBed(referentialReturn: any, memberRole = 'OWNER') {
+  const referentialServiceSpy = {
+    getReferentials: jest.fn().mockReturnValue(referentialReturn),
+    updateReferential: jest.fn(),
+  };
   const workspaceServiceSpy = { getCurrentWorkspace: jest.fn().mockReturnValue(of(mockWorkspace)) };
+  const workspaceMemberServiceSpy = {
+    getMembers: jest.fn().mockReturnValue(of([{ userId: 'u1', memberRole }]))
+  };
+  const authServiceSpy = { currentUser: jest.fn().mockReturnValue({ id: 'u1' }) };
+  const dialogSpy = { open: jest.fn() };
+  const snackBarSpy = { open: jest.fn() };
+
   return TestBed.configureTestingModule({
     imports: [ReferentialsComponent],
     providers: [
       provideAnimationsAsync(),
       { provide: ReferentialService, useValue: referentialServiceSpy },
       { provide: WorkspaceService, useValue: workspaceServiceSpy },
+      { provide: WorkspaceMemberService, useValue: workspaceMemberServiceSpy },
+      { provide: AuthService, useValue: authServiceSpy },
+      { provide: MatDialog, useValue: dialogSpy },
+      { provide: MatSnackBar, useValue: snackBarSpy },
     ]
   });
 }
 
-describe('ReferentialsComponent — cas nominal', () => {
+describe('ReferentialsComponent — cas nominal (OWNER)', () => {
   let fixture: ComponentFixture<ReferentialsComponent>;
   let component: ReferentialsComponent;
 
   beforeEach(async () => {
-    await buildTestBed(of(mockResponse)).compileComponents();
+    await buildTestBed(of(mockResponse), 'OWNER').compileComponents();
     fixture = TestBed.createComponent(ReferentialsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -93,6 +111,22 @@ describe('ReferentialsComponent — erreur API', () => {
   it('REF-UI-04: affiche un message d\'erreur si l\'API échoue', () => {
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain('Impossible de charger');
+  });
+});
+
+describe('ReferentialsComponent — MEMBER (pas de bouton Modifier)', () => {
+  let fixture: ComponentFixture<ReferentialsComponent>;
+
+  beforeEach(async () => {
+    await buildTestBed(of(mockResponse), 'MEMBER').compileComponents();
+    fixture = TestBed.createComponent(ReferentialsComponent);
+    fixture.detectChanges();
+  });
+
+  // REF-UI-08 : bouton Modifier absent pour MEMBER
+  it('REF-UI-08: bouton "Modifier" absent pour MEMBER', () => {
+    const editBtns = fixture.nativeElement.querySelectorAll('.edit-btn');
+    expect(editBtns.length).toBe(0);
   });
 });
 

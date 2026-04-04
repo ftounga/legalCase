@@ -4,15 +4,20 @@ import fr.ailegalcase.casefile.ImmigrationProcedureReferentiel.ProcedureJalon;
 import fr.ailegalcase.casefile.LitigationTypeMapper.LitigationPeriod;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 class LegalReferentialServiceTest {
 
@@ -130,5 +135,101 @@ class LegalReferentialServiceTest {
 
         assertThat(response.domain()).isEqualTo("DROIT_FAMILLE");
         assertThat(response.sections()).isEmpty();
+    }
+
+    // --- updateReferential ---
+
+    private ReferentialValidationService mockValidationOk() {
+        ReferentialValidationService vs = Mockito.mock(ReferentialValidationService.class);
+        when(vs.validate(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new ReferentialValidationService.ValidationResult(true, null));
+        return vs;
+    }
+
+    private LegalReferential systemEntry(UUID id) {
+        LegalReferential e = new LegalReferential();
+        e.setId(id);
+        e.setWorkspaceId(null);
+        e.setLegalDomain("DROIT_DU_TRAVAIL");
+        e.setReferentialType("LITIGATION_TYPE");
+        e.setEntryKey("DISCRIMINATION");
+        e.setLabel("Discrimination");
+        e.setValueJson("{\"years\":5}");
+        e.setSystem(true);
+        e.setActive(true);
+        return e;
+    }
+
+    // UPD-01 : entrée système → crée workspace override
+    @Test
+    void updateReferential_systemEntry_createsWorkspaceOverride() {
+        UUID entryId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        LegalReferential sys = systemEntry(entryId);
+
+        when(repository.findById(entryId)).thenReturn(Optional.of(sys));
+        when(repository.findWorkspaceEntry(eq(workspaceId), any(), any(), any(), any()))
+                .thenReturn(List.of());
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var response = service.updateReferential(entryId, workspaceId, userId,
+                "Discrimination (modifié)", "{\"years\":4}", false, mockValidationOk());
+
+        assertThat(response.saved()).isTrue();
+        ArgumentCaptor<LegalReferential> captor = ArgumentCaptor.forClass(LegalReferential.class);
+        verify(repository).save(captor.capture());
+        LegalReferential saved = captor.getValue();
+        assertThat(saved.getWorkspaceId()).isEqualTo(workspaceId);
+        assertThat(saved.isSystem()).isFalse();
+        assertThat(saved.getValueJson()).isEqualTo("{\"years\":4}");
+    }
+
+    // UPD-02 : entrée workspace → update in-place
+    @Test
+    void updateReferential_workspaceEntry_updatesInPlace() {
+        UUID entryId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        LegalReferential wsEntry = systemEntry(entryId);
+        wsEntry.setWorkspaceId(workspaceId);
+        wsEntry.setSystem(false);
+
+        when(repository.findById(entryId)).thenReturn(Optional.of(wsEntry));
+        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var response = service.updateReferential(entryId, workspaceId, userId,
+                "Discrimination (modifié)", "{\"years\":4}", false, mockValidationOk());
+
+        assertThat(response.saved()).isTrue();
+        verify(repository, never()).findWorkspaceEntry(any(), any(), any(), any(), any());
+    }
+
+    // UPD-03 : getReferentials déduplique — workspace override masque système
+    @Test
+    void getReferentials_deduplicates_workspaceOverrideWinsOverSystem() {
+        LegalReferential sys = new LegalReferential();
+        sys.setReferentialType("LITIGATION_TYPE");
+        sys.setEntryKey("DISCRIMINATION");
+        sys.setLabel("Discrimination (système)");
+        sys.setValueJson("{\"years\":5}");
+        sys.setSystem(true);
+
+        LegalReferential ws = new LegalReferential();
+        ws.setReferentialType("LITIGATION_TYPE");
+        ws.setEntryKey("DISCRIMINATION");
+        ws.setLabel("Discrimination (custom)");
+        ws.setValueJson("{\"years\":4}");
+        ws.setSystem(false);
+
+        when(repository.findActiveByDomain(any(), any())).thenReturn(List.of(sys, ws));
+
+        ReferentialResponse response = service.getReferentials("DROIT_DU_TRAVAIL", UUID.randomUUID());
+
+        List<ReferentialResponse.Entry> entries = response.sections().get("LITIGATION_TYPE");
+        assertThat(entries).hasSize(1);
+        assertThat(entries.get(0).label()).isEqualTo("Discrimination (custom)");
+        assertThat(entries.get(0).valueJson()).isEqualTo("{\"years\":4}");
     }
 }

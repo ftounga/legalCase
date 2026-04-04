@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ReferentialResponse } from '../models/referential.model';
+import { ReferentialResponse, ReferentialUpdateResponse } from '../models/referential.model';
 
 @Injectable({ providedIn: 'root' })
 export class ReferentialService {
@@ -11,5 +11,9 @@ export class ReferentialService {
     return this.http.get<ReferentialResponse>(`/api/v1/referentials`, {
       params: { domain }
     });
+  }
+
+  updateReferential(id: string, label: string, valueJson: string, force: boolean): Observable<ReferentialUpdateResponse> {
+    return this.http.put<ReferentialUpdateResponse>(`/api/v1/referentials/${id}`, { label, valueJson, force });
   }
 }

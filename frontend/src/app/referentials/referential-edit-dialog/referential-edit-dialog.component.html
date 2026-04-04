@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>Modifier — {{ data.entry.label }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Libellé</mat-label>
+      <input matInput formControlName="label" />
+      @if (form.get('label')?.hasError('required')) {
+        <mat-error>Le libellé est obligatoire.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Valeur (JSON)</mat-label>
+      <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
+      @if (form.get('valueJson')?.hasError('required')) {
+        <mat-error>La valeur est obligatoire.</mat-error>
+      }
+      @if (form.get('valueJson')?.hasError('invalidJson')) {
+        <mat-error>Format JSON invalide.</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-flat-button color="primary" (click)="submit()" [disabled]="form.invalid">
+    Valider
+  </button>
+</mat-dialog-actions>
