@@ -64,6 +64,13 @@
                       <mat-icon>edit</mat-icon>
                     </button>
                   }
+                  @if (canReport()) {
+                    <button mat-icon-button class="report-btn" aria-label="Signaler une anomalie"
+                            [matTooltip]="'Signaler une anomalie'"
+                            (click)="openReportDialog(entry); $event.stopPropagation()">
+                      <mat-icon>flag</mat-icon>
+                    </button>
+                  }
                 </div>
                 @if (entry.alertId && canEdit()) {
                   <div class="alert-banner">

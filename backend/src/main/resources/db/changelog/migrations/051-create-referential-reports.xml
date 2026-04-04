@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="051-create-referential-reports" author="legalcase">
+        <comment>
+            Crée la table referential_reports pour stocker les signalements d'anomalie
+            soumis par les MEMBER sur les valeurs de référentiel. Un MEMBER ne peut
+            soumettre qu'un seul signalement OPEN par entrée (unique entry_id + reporter_id).
+        </comment>
+
+        <createTable tableName="referential_reports">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="entry_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_referential_reports_entry"
+                             references="legal_referentials(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="reporter_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_referential_reports_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_referential_reports_workspace"
+                             references="workspaces(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="comment" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)" defaultValue="OPEN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="referential_reports"
+                             columnNames="entry_id, reporter_id, status"
+                             constraintName="uq_referential_reports_entry_reporter_status"/>
+
+        <createIndex tableName="referential_reports"
+                     indexName="idx_referential_reports_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>
