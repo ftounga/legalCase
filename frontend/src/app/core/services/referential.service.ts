@@ -28,4 +28,8 @@ export class ReferentialService {
   dismissAlert(alertId: string): Observable<void> {
     return this.http.post<void>(`/api/v1/referentials/alerts/${alertId}/dismiss`, {});
   }
+
+  reportAnomaly(entryId: string, comment: string): Observable<void> {
+    return this.http.post<void>(`/api/v1/referentials/${entryId}/reports`, { comment });
+  }
 }

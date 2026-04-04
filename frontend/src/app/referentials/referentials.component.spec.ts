@@ -31,6 +31,8 @@ function buildTestBed(referentialReturn: any, memberRole = 'OWNER') {
   const referentialServiceSpy = {
     getReferentials: jest.fn().mockReturnValue(referentialReturn),
     updateReferential: jest.fn(),
+    getPendingAlertsCount: jest.fn().mockReturnValue(of({ count: 0 })),
+    reportAnomaly: jest.fn().mockReturnValue(of(undefined)),
   };
   const workspaceServiceSpy = { getCurrentWorkspace: jest.fn().mockReturnValue(of(mockWorkspace)) };
   const workspaceMemberServiceSpy = {
@@ -127,6 +129,45 @@ describe('ReferentialsComponent — MEMBER (pas de bouton Modifier)', () => {
   it('REF-UI-08: bouton "Modifier" absent pour MEMBER', () => {
     const editBtns = fixture.nativeElement.querySelectorAll('.edit-btn');
     expect(editBtns.length).toBe(0);
+  });
+});
+
+describe('ReferentialsComponent — OWNER (pas de bouton Signaler)', () => {
+  let fixture: ComponentFixture<ReferentialsComponent>;
+
+  beforeEach(async () => {
+    await buildTestBed(of(mockResponse), 'OWNER').compileComponents();
+    fixture = TestBed.createComponent(ReferentialsComponent);
+    fixture.detectChanges();
+  });
+
+  // REF-UI-09 : bouton Signaler absent pour OWNER
+  it('REF-UI-09: bouton "Signaler" absent pour OWNER', () => {
+    const reportBtns = fixture.nativeElement.querySelectorAll('.report-btn');
+    expect(reportBtns.length).toBe(0);
+  });
+});
+
+describe('ReferentialsComponent — MEMBER (bouton Signaler visible)', () => {
+  let fixture: ComponentFixture<ReferentialsComponent>;
+  let component: ReferentialsComponent;
+
+  beforeEach(async () => {
+    await buildTestBed(of(mockResponse), 'MEMBER').compileComponents();
+    fixture = TestBed.createComponent(ReferentialsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  // REF-UI-10 : bouton Signaler présent pour MEMBER
+  it('REF-UI-10: bouton "Signaler" présent pour MEMBER', () => {
+    const reportBtns = fixture.nativeElement.querySelectorAll('.report-btn');
+    expect(reportBtns.length).toBeGreaterThan(0);
+  });
+
+  // REF-UI-11 : canReport = true pour MEMBER
+  it('REF-UI-11: canReport = true pour MEMBER', () => {
+    expect(component.canReport()).toBe(true);
   });
 });
 

@@ -18,6 +18,11 @@ import {
   ReferentialEditDialogData,
   ReferentialEditDialogResult,
 } from './referential-edit-dialog/referential-edit-dialog.component';
+import {
+  ReferentialReportDialogComponent,
+  ReferentialReportDialogData,
+  ReferentialReportDialogResult,
+} from './referential-report-dialog/referential-report-dialog.component';
 
 interface EntryWithAlert extends ReferentialEntry {
   alertId?: string;
@@ -58,6 +63,7 @@ export class ReferentialsComponent implements OnInit {
   sections = signal<SectionDisplay[]>([]);
   domainLabel = signal('');
   canEdit = signal(false);
+  canReport = signal(false);
   pendingAlertsCount = signal(0);
   private domain = '';
   private alertsById = new Map<string, { alertId: string; proposedValueJson: string; aiMessage?: string | null }>();
@@ -84,6 +90,7 @@ export class ReferentialsComponent implements OnInit {
             const currentUserId = this.authService.currentUser()?.id;
             const me = members.find(m => m.userId === currentUserId);
             this.canEdit.set(me?.memberRole === 'OWNER' || me?.memberRole === 'ADMIN');
+            this.canReport.set(me?.memberRole === 'MEMBER');
           }
         });
 
@@ -195,6 +202,34 @@ export class ReferentialsComponent implements OnInit {
     if (confirmed) {
       this.submitUpdate(entry, { ...result, force: true });
     }
+  }
+
+  openReportDialog(entry: EntryWithAlert): void {
+    const dialogRef = this.dialog.open<
+      ReferentialReportDialogComponent,
+      ReferentialReportDialogData,
+      ReferentialReportDialogResult
+    >(ReferentialReportDialogComponent, {
+      width: '500px',
+      data: { entryLabel: entry.label ?? entry.key },
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && entry.id) {
+        this.referentialService.reportAnomaly(entry.id, result.comment).subscribe({
+          next: () => {
+            this.snackBar.open('Signalement envoyé.', 'Fermer', {
+              duration: 4000, panelClass: ['snack-success']
+            });
+          },
+          error: (err) => {
+            const msg = err.status === 409
+              ? 'Vous avez déjà signalé cette valeur.'
+              : 'Erreur lors de l\'envoi du signalement.';
+            this.snackBar.open(msg, 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+          }
+        });
+      }
+    });
   }
 
   private buildSections(response: ReferentialResponse): SectionDisplay[] {

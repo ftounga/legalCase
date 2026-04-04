@@ -15,4 +15,5 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     List<WorkspaceMember> findByUserAndPrimaryFalse(User user);
     List<WorkspaceMember> findByUser(User user);
     List<WorkspaceMember> findByMemberRole(String memberRole);
+    List<WorkspaceMember> findByWorkspace_IdAndMemberRoleIn(UUID workspaceId, java.util.List<String> roles);
 }

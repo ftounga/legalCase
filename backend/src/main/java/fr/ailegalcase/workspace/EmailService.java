@@ -425,6 +425,35 @@ public class EmailService {
         }
     }
 
+    public void sendReferentialReport(String toEmail, String entryLabel, String currentValueJson,
+                                       String comment, String reporterEmail) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — referential report skipped for {}", toEmail);
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Signalement d'anomalie — " + entryLabel + " — AI LegalCase");
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "Un membre a signalé une anomalie sur la valeur du référentiel :\n\n" +
+                    "Entrée          : " + entryLabel + "\n" +
+                    "Valeur actuelle : " + currentValueJson + "\n" +
+                    "Signalé par     : " + reporterEmail + "\n\n" +
+                    "Commentaire :\n" + comment + "\n\n" +
+                    "Vous pouvez consulter et modifier ce référentiel depuis l'écran Guides & barèmes :\n" +
+                    this.frontendUrl + "/referentials\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Referential report email sent to {} for entry '{}'", toEmail, entryLabel);
+        } catch (MailException e) {
+            log.warn("Failed to send referential report to {} for '{}' — {}", toEmail, entryLabel, e.getMessage());
+        }
+    }
+
     public void sendReferentialAlertReminder(String toEmail, String frontendUrl) {
         if (!mailEnabled) {
             log.debug("Mail disabled — referential alert reminder skipped for {}", toEmail);
