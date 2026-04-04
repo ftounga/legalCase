@@ -209,6 +209,25 @@ describe('PdfExportService', () => {
     expect(contentStr).not.toContain('Pension alimentaire indicative');
   });
 
+  // --- SF-FA-01-02 : section prestation compensatoire dans l'export PDF ---
+
+  const mockPrestationEstimate = {
+    montantMin: 36720, montantMax: 49680, ecartRevenus: 1500, dureeMarriage: 10,
+    pays: 'FRANCE' as const, donneesPartielles: false,
+  };
+
+  it('PDF-PC-01: buildDocument() inclut section prestation compensatoire si estimate présent', () => {
+    const synthWithPC = { ...mockSynthesis, prestationCompensatoireEstimate: mockPrestationEstimate };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthWithPC) as any;
+    expect(JSON.stringify(doc.content)).toContain('Prestation compensatoire indicative');
+  });
+
+  it('PDF-PC-02: buildDocument() n\'inclut pas section prestation si estimate null', () => {
+    const synthNoPC = { ...mockSynthesis, prestationCompensatoireEstimate: null };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synthNoPC) as any;
+    expect(JSON.stringify(doc.content)).not.toContain('Prestation compensatoire indicative');
+  });
+
   // --- SF-DT-04-03 : export PDF fiche prud'homale ---
 
   const mockFiche = {

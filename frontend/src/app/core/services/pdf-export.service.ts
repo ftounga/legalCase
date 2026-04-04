@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
-import { CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate } from '../models/case-analysis.model';
+import { CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
 import { PrudhomeFiche } from '../models/prudhome-fiche.model';
@@ -192,6 +192,13 @@ export class PdfExportService {
       );
     }
 
+    if (synthesis.prestationCompensatoireEstimate) {
+      sections.push(
+        ...this.buildPrestationCompensatoireSection(synthesis.prestationCompensatoireEstimate),
+        { text: '', margin: [0, 0, 0, 16] }
+      );
+    }
+
     return sections;
   }
 
@@ -313,6 +320,59 @@ export class PdfExportService {
 
     result.push({
       text: 'Estimation indicative — ne constitue pas un avis juridique',
+      fontSize: 9, color: TEXT_SECONDARY, italics: true, margin: [8, 4, 8, 0]
+    });
+
+    return result;
+  }
+
+  private buildPrestationCompensatoireSection(est: PrestationCompensatoireEstimate): object[] {
+    const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+    const baremeLabel = est.pays === 'BELGIQUE' ? 'Belgique (coeff. 0.25)' : 'France art. 271 Cciv (coeff. 0.30)';
+
+    const rows: object[] = [
+      [
+        { text: 'Fourchette de capital', bold: true, fontSize: 11, color: TEXT },
+        { text: `${fmt(est.montantMin)} – ${fmt(est.montantMax)}`, bold: true, fontSize: 12, color: PRIMARY, alignment: 'right' }
+      ],
+      [
+        { text: `Écart de revenus : ${fmt(est.ecartRevenus)}/mois`, fontSize: 10, color: TEXT_SECONDARY },
+        { text: `Durée mariage : ${est.dureeMarriage} an${est.dureeMarriage > 1 ? 's' : ''}`, fontSize: 10, color: TEXT_SECONDARY, alignment: 'right' }
+      ],
+      [
+        { text: `Barème : ${baremeLabel}`, fontSize: 10, color: TEXT_SECONDARY },
+        { text: '', fontSize: 10 }
+      ],
+    ];
+
+    const result: object[] = [
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: [[
+            { text: 'Prestation compensatoire indicative', color: SURFACE, bold: true, fontSize: 13, margin: [12, 8, 0, 8] },
+            { text: 'Capital', color: SURFACE, fontSize: 9, italics: true, margin: [0, 10, 12, 8], alignment: 'right' }
+          ]]
+        },
+        layout: { fillColor: () => ACCENT, hLineColor: () => ACCENT, vLineColor: () => ACCENT },
+        margin: [0, 0, 0, 8],
+      },
+      {
+        table: { widths: ['*', 'auto'], body: rows },
+        layout: 'noBorders',
+        margin: [8, 0, 8, 0],
+      },
+    ];
+
+    if (est.donneesPartielles) {
+      result.push({
+        text: '⚠ Données partielles — vérifier les revenus et la durée du mariage',
+        fontSize: 9, color: ACCENT, italics: true, margin: [8, 6, 8, 0]
+      });
+    }
+
+    result.push({
+      text: 'Estimation indicative — fixée discrétionnairement par le juge (art. 271 Cciv)',
       fontSize: 9, color: TEXT_SECONDARY, italics: true, margin: [8, 4, 8, 0]
     });
 

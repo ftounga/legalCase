@@ -710,6 +710,39 @@ describe('SynthesisComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Données partielles');
   });
 
+  // SF-FA-01-02 : Panneau prestation compensatoire
+  it('FA-PC-01: panneau prestation compensatoire visible si prestationCompensatoireEstimate non null', () => {
+    const estimate = {
+      montantMin: 36720, montantMax: 49680, ecartRevenus: 1500, dureeMarriage: 10,
+      pays: 'FRANCE' as const, donneesPartielles: false
+    };
+    const synthWithPC = { ...makeSynthesis(1, 'ENRICHED'), prestationCompensatoireEstimate: estimate };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthWithPC));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Prestation compensatoire indicative');
+  });
+
+  it('FA-PC-02: panneau prestation compensatoire absent si estimate null', () => {
+    const synthNoPC = { ...makeSynthesis(1, 'ENRICHED'), prestationCompensatoireEstimate: null };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthNoPC));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Prestation compensatoire indicative');
+  });
+
+  it('FA-PC-03: badge données partielles visible si donneesPartielles=true', () => {
+    const estimate = {
+      montantMin: 0, montantMax: 0, ecartRevenus: 0, dureeMarriage: 0,
+      pays: 'FRANCE' as const, donneesPartielles: true
+    };
+    const synthPartial = { ...makeSynthesis(1, 'ENRICHED'), prestationCompensatoireEstimate: estimate };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthPartial));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Données partielles');
+  });
+
   // CL-PDF-03 : click sur le bouton → exportChecklistPdf() appelé
   it('CL-PDF-03: click on checklist PDF button calls exportChecklistPdf()', () => {
     const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;

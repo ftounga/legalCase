@@ -297,6 +297,41 @@
         </mat-expansion-panel>
       }
 
+      @if (prestationCompensatoireEstimate) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--compensation">balance</mat-icon>
+              Prestation compensatoire indicative
+            </mat-panel-title>
+            <mat-panel-description>Capital · {{ prestationCompensatoireEstimate.pays === 'BELGIQUE' ? 'Belgique' : 'France' }}</mat-panel-description>
+          </mat-expansion-panel-header>
+          <div class="compensation-block">
+            @if (prestationCompensatoireEstimate.donneesPartielles) {
+              <div class="compensation-warning">
+                <mat-icon class="compensation-warning__icon">warning_amber</mat-icon>
+                <span>Données partielles — vérifier les revenus et la durée du mariage</span>
+              </div>
+            }
+            <div class="compensation-grid">
+              <div class="compensation-row compensation-row--main">
+                <span class="compensation-label">Fourchette de capital</span>
+                <span class="compensation-value">{{ formatEuros(prestationCompensatoireEstimate.montantMin) }} – {{ formatEuros(prestationCompensatoireEstimate.montantMax) }}</span>
+              </div>
+              <div class="compensation-row compensation-row--detail">
+                <span class="compensation-label">Écart de revenus</span>
+                <span class="compensation-value">{{ formatEuros(prestationCompensatoireEstimate.ecartRevenus) }}/mois</span>
+              </div>
+              <div class="compensation-row compensation-row--detail">
+                <span class="compensation-label">Barème</span>
+                <span class="compensation-value">{{ prestationCompensatoireEstimate.pays === 'BELGIQUE' ? 'Belgique (coeff. 0.25)' : 'France art. 271 Cciv (coeff. 0.30)' }}</span>
+              </div>
+            </div>
+            <p class="compensation-disclaimer">Estimation indicative — fixée discrétionnairement par le juge (art. 271 Cciv)</p>
+          </div>
+        </mat-expansion-panel>
+      }
+
       @if (procedureChecks().length > 0) {
         <mat-expansion-panel expanded>
           <mat-expansion-panel-header>
