@@ -65,6 +65,11 @@ export const routes: Routes = [
           .then(m => m.TimeReportComponent)
       },
       {
+        path: 'referentials',
+        loadComponent: () => import('./referentials/referentials.component')
+          .then(m => m.ReferentialsComponent)
+      },
+      {
         path: 'search',
         loadComponent: () => import('./search/search.component')
           .then(m => m.SearchComponent)
