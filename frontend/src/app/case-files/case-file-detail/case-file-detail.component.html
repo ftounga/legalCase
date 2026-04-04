@@ -315,6 +315,9 @@
     [caseFileId]="caseFile()!.id"
     [currentUserEmail]="authService.currentUser()?.email ?? null">
   </app-case-notes-section>
+
+  <app-prudhome-fiche-section [caseFileId]="caseFile()!.id">
+  </app-prudhome-fiche-section>
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }

@@ -16,6 +16,7 @@ import { GlobalAnalysisNotificationService } from '../../core/services/global-an
 import { CaseNoteService } from '../../core/services/case-note.service';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
+import { PrudhomeFicheService } from '../../core/services/prudhome-fiche.service';
 import { TimeService } from '../../core/services/time.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
@@ -128,6 +129,7 @@ describe('CaseFileDetailComponent', () => {
         { provide: CaseNoteService, useValue: caseNoteServiceSpy },
         { provide: CaseDeadlineService, useValue: caseDeadlineServiceSpy },
         { provide: AnalyticsService, useValue: analyticsServiceSpy },
+        { provide: PrudhomeFicheService, useValue: { get: jest.fn().mockReturnValue(of(null)), save: jest.fn() } },
         {
           provide: TimeService,
           useValue: {
