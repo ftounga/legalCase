@@ -1,0 +1,63 @@
+<div class="referentials-wrapper">
+  <div class="referentials-header">
+    <mat-icon class="header-icon">menu_book</mat-icon>
+    <div>
+      <h1 class="page-title">Guides & barèmes</h1>
+      @if (domainLabel()) {
+        <p class="domain-subtitle">{{ domainLabel() }}</p>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-center">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else if (error()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">error_outline</mat-icon>
+      <p>Impossible de charger les référentiels. Veuillez réessayer.</p>
+    </div>
+  } @else if (!domainLabel()) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">help_outline</mat-icon>
+      <p>Domaine juridique non configuré pour ce workspace.</p>
+    </div>
+  } @else if (sections().length === 0) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">info_outline</mat-icon>
+      <p>Aucun référentiel disponible pour ce domaine.</p>
+    </div>
+  } @else {
+    <mat-accordion class="referentials-accordion" multi>
+      @for (section of sections(); track section.type) {
+        <mat-expansion-panel class="section-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="section-icon">{{ sectionIcon(section.type) }}</mat-icon>
+              {{ section.title }}
+            </mat-panel-title>
+            <mat-panel-description>{{ section.entries.length }} entrée{{ section.entries.length > 1 ? 's' : '' }}</mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <div class="entries-list">
+            @for (entry of section.entries; track entry.key) {
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-label">{{ entry.label }}</span>
+                  @if (entry.country) {
+                    <mat-chip class="country-chip" [disableRipple]="true">{{ entry.country }}</mat-chip>
+                  }
+                </div>
+                <pre class="entry-value">{{ formatValue(entry, section.type) }}</pre>
+                @if (entry.sourceRef) {
+                  <span class="entry-source">{{ entry.sourceRef }}</span>
+                }
+              </div>
+            }
+          </div>
+        </mat-expansion-panel>
+      }
+    </mat-accordion>
+  }
+</div>

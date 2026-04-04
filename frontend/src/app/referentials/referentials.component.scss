@@ -1,0 +1,134 @@
+.referentials-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.referentials-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.header-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: #1A3A5C;
+}
+
+.page-title {
+  font-family: 'Merriweather', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1A3A5C;
+  margin: 0 0 4px;
+}
+
+.domain-subtitle {
+  font-size: 14px;
+  color: #6B7A8D;
+  margin: 0;
+}
+
+.spinner-center {
+  display: flex;
+  justify-content: center;
+  padding: 60px 0;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 0;
+  color: #6B7A8D;
+
+  .empty-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #CBD5E0;
+  }
+
+  p {
+    font-size: 15px;
+    margin: 0;
+  }
+}
+
+.referentials-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-panel {
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+
+  .section-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    color: #1A3A5C;
+    vertical-align: middle;
+  }
+}
+
+.entries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+
+.entry-card {
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 12px 16px;
+  background: #FAFAFA;
+}
+
+.entry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.entry-label {
+  font-weight: 500;
+  font-size: 14px;
+  color: #2D3748;
+  flex: 1;
+}
+
+.country-chip {
+  font-size: 11px;
+  height: 20px !important;
+  min-height: 20px !important;
+  background: #EBF4FF !important;
+  color: #1A3A5C !important;
+}
+
+.entry-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #4A5568;
+  background: #F7FAFC;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.entry-source {
+  font-size: 11px;
+  color: #6B7A8D;
+  font-style: italic;
+}
