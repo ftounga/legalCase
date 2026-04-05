@@ -67,8 +67,7 @@ public class LegalReferentialService {
             var validation = validationService.validate(
                     source.getLegalDomain(), source.getReferentialType(),
                     source.getEntryKey(), source.getLabel(),
-                    source.getValueJson(), newValueJson,
-                    newLabel);
+                    source.getValueJson(), newValueJson);
             if (!validation.valid()) {
                 return new ReferentialUpdateResponse(false, null, validation.warning());
             }
@@ -97,7 +96,8 @@ public class LegalReferentialService {
             target = source;
         }
 
-        target.setLabel(newLabel);
+        // System entries: label is locked — always use source label
+        target.setLabel(source.getWorkspaceId() == null ? source.getLabel() : newLabel);
         target.setValueJson(newValueJson);
         target.setUpdatedAt(Instant.now());
         target.setUpdatedBy(userId);

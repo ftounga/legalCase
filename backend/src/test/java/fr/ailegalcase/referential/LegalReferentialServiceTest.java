@@ -141,7 +141,7 @@ class LegalReferentialServiceTest {
 
     private ReferentialValidationService mockValidationOk() {
         ReferentialValidationService vs = Mockito.mock(ReferentialValidationService.class);
-        when(vs.validate(any(), any(), any(), any(), any(), any(), any()))
+        when(vs.validate(any(), any(), any(), any(), any(), any()))
                 .thenReturn(new ReferentialValidationService.ValidationResult(true, null));
         return vs;
     }
@@ -183,6 +183,8 @@ class LegalReferentialServiceTest {
         assertThat(saved.getWorkspaceId()).isEqualTo(workspaceId);
         assertThat(saved.isSystem()).isFalse();
         assertThat(saved.getValueJson()).isEqualTo("{\"years\":4}");
+        // Label système verrouillé : newLabel ignoré, label source conservé
+        assertThat(saved.getLabel()).isEqualTo("Discrimination");
     }
 
     // UPD-02 : entrée workspace → update in-place
