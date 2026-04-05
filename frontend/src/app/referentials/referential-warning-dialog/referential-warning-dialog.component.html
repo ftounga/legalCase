@@ -1,0 +1,14 @@
+<h2 mat-dialog-title class="warning-title">
+  <mat-icon class="warning-icon">warning</mat-icon>
+  Avertissement IA
+</h2>
+
+<mat-dialog-content>
+  <p class="warning-intro">L'IA a détecté une possible divergence avec les valeurs officielles en vigueur :</p>
+  <div class="warning-message">{{ data.warning }}</div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-flat-button color="warn" (click)="confirm()">Sauvegarder quand même</button>
+</mat-dialog-actions>
