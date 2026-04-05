@@ -1,6 +1,7 @@
 export interface TimeEntryResponse {
   id: string;
   caseFileId: string;
+  userId: string;
   startedAt: string; // ISO
   stoppedAt?: string; // ISO, absent si actif
   durationSeconds?: number;
