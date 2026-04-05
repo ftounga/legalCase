@@ -259,6 +259,19 @@ $shadow-hover:  0 4px 12px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
 
 .deadline-arrow { color: $muted; font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
 
+.section-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: .75rem;
+  color: $muted;
+  border-top: 1px solid $border;
+  font-style: italic;
+
+  .more-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
 // ── Alertes checklist ─────────────────────────────────────────
 .check-list { display: flex; flex-direction: column; }
 

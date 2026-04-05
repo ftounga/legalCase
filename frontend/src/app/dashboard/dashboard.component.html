@@ -62,7 +62,7 @@
             </div>
           } @else {
             <div class="deadline-list">
-              @for (d of data.urgentDeadlines; track d.id) {
+              @for (d of data.urgentDeadlines.slice(0, 3); track d.id) {
                 <a class="deadline-card" [class.deadline-critical]="daysUntil(d.dueDate) <= 3"
                    [class.deadline-warn]="daysUntil(d.dueDate) > 3"
                    [routerLink]="['/case-files', d.caseFileId]">
@@ -77,6 +77,12 @@
                 </a>
               }
             </div>
+            @if (data.urgentDeadlines.length > 3) {
+              <div class="section-more">
+                <mat-icon class="more-icon">more_horiz</mat-icon>
+                <span>{{ data.urgentDeadlines.length - 3 }} délai{{ data.urgentDeadlines.length - 3 > 1 ? 's' : '' }} supplémentaire{{ data.urgentDeadlines.length - 3 > 1 ? 's' : '' }}</span>
+              </div>
+            }
           }
         </section>
 
