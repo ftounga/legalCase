@@ -5,9 +5,7 @@
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Libellé</mat-label>
       <input matInput formControlName="label" />
-      @if (data.entry.isSystem) {
-        <mat-hint>Libellé officiel — non modifiable</mat-hint>
-      }
+      <mat-hint>Libellé officiel — non modifiable</mat-hint>
       @if (form.get('label')?.hasError('required')) {
         <mat-error>Le libellé est obligatoire.</mat-error>
       }

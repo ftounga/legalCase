@@ -50,10 +50,7 @@ export class ReferentialEditDialogComponent {
   }
 
   private buildForm(data: ReferentialEditDialogData): FormGroup {
-    const labelControl = data.entry.isSystem
-      ? [{ value: data.entry.label, disabled: true }]
-      : [data.entry.label, [Validators.required, Validators.maxLength(500)]];
-    const base = { label: labelControl };
+    const base = { label: [{ value: data.entry.label, disabled: true }] };
 
     let parsed: any = null;
     try { parsed = JSON.parse(data.entry.valueJson); } catch { /* keep null */ }
