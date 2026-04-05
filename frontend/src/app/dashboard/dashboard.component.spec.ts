@@ -55,7 +55,6 @@ describe('DashboardComponent — chargement', () => {
     await buildTestBed(emptySummary).compileComponents();
     fixture = TestBed.createComponent(DashboardComponent);
     component = fixture.componentInstance;
-    // Avant detectChanges : loading = true
     expect(component.loading()).toBe(true);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -63,14 +62,36 @@ describe('DashboardComponent — chargement', () => {
   });
 });
 
-describe('DashboardComponent — contenu', () => {
+describe('DashboardComponent — KPI bar', () => {
   let fixture: ComponentFixture<DashboardComponent>;
-  let component: DashboardComponent;
 
   beforeEach(async () => {
     await buildTestBed(fullSummary).compileComponents();
     fixture = TestBed.createComponent(DashboardComponent);
-    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  // DASH-UI-06 : barre KPI avec 4 cartes
+  it('DASH-UI-06: affiche 4 cartes KPI', () => {
+    const cards = fixture.nativeElement.querySelectorAll('.kpi-card');
+    expect(cards.length).toBe(4);
+  });
+
+  // DASH-UI-07 : KPI délais urgents en rouge si > 0
+  it('DASH-UI-07: kpi-card délais urgents a la classe kpi-alert-red si count > 0', () => {
+    const red = fixture.nativeElement.querySelector('.kpi-alert-red');
+    expect(red).not.toBeNull();
+  });
+});
+
+describe('DashboardComponent — contenu', () => {
+  let fixture: ComponentFixture<DashboardComponent>;
+
+  beforeEach(async () => {
+    await buildTestBed(fullSummary).compileComponents();
+    fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -82,16 +103,23 @@ describe('DashboardComponent — contenu', () => {
     expect(text).toContain('Dossier Martin');
   });
 
-  // DASH-UI-03 : délai urgent rouge si ≤ 3j
-  it('DASH-UI-03: badge J-2 a la classe urgent-critical', () => {
-    const badge = fixture.nativeElement.querySelector('.urgent-critical');
-    expect(badge).not.toBeNull();
+  // DASH-UI-08 : délai urgent rouge si ≤ 3j
+  it('DASH-UI-08: carte délai J-2 a la classe deadline-critical', () => {
+    const card = fixture.nativeElement.querySelector('.deadline-critical');
+    expect(card).not.toBeNull();
   });
 
-  // DASH-UI-04-inverse : délai à J+6 a la classe urgent-warn
-  it('DASH-UI-03b: badge J-6 a la classe urgent-warn', () => {
-    const warnBadge = fixture.nativeElement.querySelector('.urgent-warn');
-    expect(warnBadge).not.toBeNull();
+  // DASH-UI-03b : délai à J+6 a la classe deadline-warn
+  it('DASH-UI-03b: carte délai J-6 a la classe deadline-warn', () => {
+    const card = fixture.nativeElement.querySelector('.deadline-warn');
+    expect(card).not.toBeNull();
+  });
+
+  // DASH-UI-09 : dossier a border-left coloré via --domain-color
+  it('DASH-UI-09: carte dossier porte la variable CSS --domain-color', () => {
+    const card = fixture.nativeElement.querySelector('.case-card') as HTMLElement;
+    expect(card).not.toBeNull();
+    expect(card.style.getPropertyValue('--domain-color')).toBeTruthy();
   });
 
   // DASH-UI-05 : activité récente affichée
@@ -104,14 +132,46 @@ describe('DashboardComponent — contenu', () => {
 describe('DashboardComponent — sections vides', () => {
   let fixture: ComponentFixture<DashboardComponent>;
 
-  // DASH-UI-04 : message "Aucun délai urgent" si liste vide
-  it('DASH-UI-04: affiche "Aucun délai urgent" si liste vide', async () => {
+  // DASH-UI-11 : empty state délais urgents
+  it('DASH-UI-11: affiche empty state si aucun délai urgent', async () => {
     await buildTestBed(emptySummary).compileComponents();
     fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Aucun délai urgent');
+    expect(text).toContain('Aucun délai dans les 7 prochains jours');
+  });
+});
+
+describe('DashboardComponent — erreur', () => {
+  let fixture: ComponentFixture<DashboardComponent>;
+  let component: DashboardComponent;
+
+  beforeEach(async () => {
+    await buildTestBed(null, true).compileComponents();
+    fixture = TestBed.createComponent(DashboardComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  it('DASH-UI-04: affiche le bouton Réessayer en cas d\'erreur', () => {
+    expect(component.error()).toBe(true);
+    const btn = fixture.nativeElement.querySelector('.error-state button');
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toContain('Réessayer');
+  });
+
+  // DASH-UI-10 : retry() re-déclenche l'appel
+  it('DASH-UI-10: retry() re-appelle getSummary et résout l\'erreur', async () => {
+    const svc = TestBed.inject(DashboardService) as any;
+    svc.getSummary.mockReturnValue(of(emptySummary));
+    component.retry();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(svc.getSummary).toHaveBeenCalledTimes(2);
+    expect(component.error()).toBe(false);
   });
 });
