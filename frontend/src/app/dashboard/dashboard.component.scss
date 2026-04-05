@@ -209,17 +209,15 @@ $shadow-hover:  0 4px 12px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
   &:last-child { border-bottom: none; }
 
   &.deadline-critical {
-    background: $red-bg;
-    border-left: 4px solid $red;
+    border-left: 3px solid $red;
     .deadline-days { background: $red; }
-    &:hover { filter: brightness(.97); }
+    &:hover { background: $red-bg; }
   }
 
   &.deadline-warn {
-    background: $orange-bg;
-    border-left: 4px solid $orange;
+    border-left: 3px solid $orange;
     .deadline-days { background: $orange; }
-    &:hover { filter: brightness(.97); }
+    &:hover { background: $orange-bg; }
   }
 }
 
