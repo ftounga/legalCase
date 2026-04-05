@@ -1,15 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TimerWidgetComponent } from './timer-widget.component';
 import { TimeService } from '../../core/services/time.service';
+import { AuthService } from '../../core/services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { BillingRateResponse, TimeEntryResponse } from '../../core/models/time-tracking.models';
 import { signal } from '@angular/core';
 
+const CURRENT_USER_ID = 'user-1';
+
 const mockEntry = (overrides: Partial<TimeEntryResponse> = {}): TimeEntryResponse => ({
   id: 'entry-1',
   caseFileId: 'case-1',
+  userId: CURRENT_USER_ID,
   startedAt: new Date().toISOString(),
   ...overrides
 });
@@ -21,10 +25,12 @@ describe('TimerWidgetComponent', () => {
   let fixture: ComponentFixture<TimerWidgetComponent>;
   let timeServiceSpy: any;
   let snackBarSpy: jest.Mocked<MatSnackBar>;
+  let authServiceSpy: any;
 
   beforeEach(async () => {
     const activeEntry = signal<TimeEntryResponse | null>(null);
     const entries = signal<TimeEntryResponse[]>([]);
+    const currentUser = signal<{ id: string } | null>({ id: CURRENT_USER_ID });
 
     timeServiceSpy = {
       activeEntry,
@@ -37,11 +43,13 @@ describe('TimerWidgetComponent', () => {
     };
 
     snackBarSpy = { open: jest.fn() } as any;
+    authServiceSpy = { currentUser };
 
     await TestBed.configureTestingModule({
       imports: [TimerWidgetComponent, NoopAnimationsModule],
       providers: [
         { provide: TimeService, useValue: timeServiceSpy },
+        { provide: AuthService, useValue: authServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy }
       ]
     }).compileComponents();
