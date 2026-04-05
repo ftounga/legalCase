@@ -96,7 +96,8 @@ export class AnalysisPipelineComponent implements OnChanges, OnDestroy {
   }
 
   private progressMode(j: AnalysisJob | undefined): PipelineStep['progressMode'] {
-    if (!j || j.status === 'PENDING') return 'buffer';
+    if (!j) return 'determinate';
+    if (j.status === 'PENDING') return 'buffer';
     return 'determinate';
   }
 

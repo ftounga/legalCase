@@ -374,6 +374,138 @@ class ProcedureCheckServiceTest {
         verify(eventPublisher, never()).publishEvent(any());
     }
 
+    // ---- fix #1/#2 : déduplication VERIFIED ----
+
+    @Test
+    void createChecksWithVerifiedPropagation_verifiedWithSameDescriptionAsNewCheck_notDuplicated() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck existingToCheck = new ProcedureCheck();
+        existingToCheck.setDescription("Entretien préalable tenu");
+        existingToCheck.setStatut(ProcedureCheckStatus.TO_CHECK);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Entretien préalable tenu"); // même libellé
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of(existingToCheck));
+
+        String json = "{\"points_procedure\": [], \"checks_a_requalifier\": []}";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        // le VERIFIED ne doit pas être propagé en doublon
+        verify(procedureCheckRepository, never()).save(argThat(
+                c -> c instanceof ProcedureCheck pc
+                        && ProcedureCheckStatus.VERIFIED == pc.getStatut()
+                        && "Entretien préalable tenu".equals(pc.getDescription())));
+    }
+
+    // ---- fix #3 : propagation NON_COMPLIANT ----
+
+    @Test
+    void createChecksWithVerifiedPropagation_nonCompliantWithNoMatchingNew_propagatedAsNewCheck() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck nonCompliantCheck = new ProcedureCheck();
+        nonCompliantCheck.setDescription("Lettre motivée envoyée");
+        nonCompliantCheck.setStatut(ProcedureCheckStatus.NON_COMPLIANT);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.NON_COMPLIANT))
+                .thenReturn(List.of(nonCompliantCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+
+        String json = "{\"points_procedure\": [], \"checks_a_requalifier\": []}";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        verify(procedureCheckRepository, atLeastOnce()).save(captor.capture());
+        assertThat(captor.getAllValues()).anyMatch(c ->
+                ProcedureCheckStatus.NON_COMPLIANT == c.getStatut()
+                        && "Lettre motivée envoyée".equals(c.getDescription()));
+    }
+
+    @Test
+    void createChecksWithVerifiedPropagation_nonCompliantMatchingExistingToCheck_upgradesToNonCompliant() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck existingToCheck = new ProcedureCheck();
+        existingToCheck.setDescription("Entretien préalable tenu");
+        existingToCheck.setStatut(ProcedureCheckStatus.TO_CHECK);
+
+        ProcedureCheck nonCompliantCheck = new ProcedureCheck();
+        nonCompliantCheck.setDescription("Entretien préalable tenu"); // même libellé
+        nonCompliantCheck.setStatut(ProcedureCheckStatus.NON_COMPLIANT);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.NON_COMPLIANT))
+                .thenReturn(List.of(nonCompliantCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of(existingToCheck));
+        when(procedureCheckRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String json = "{\"points_procedure\": [], \"checks_a_requalifier\": []}";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        assertThat(existingToCheck.getStatut()).isEqualTo(ProcedureCheckStatus.NON_COMPLIANT);
+    }
+
+    // ---- fix #4 : matching normalisé ----
+
+    @Test
+    void createChecksWithVerifiedPropagation_requalificationCaseInsensitiveMatch_appliesRequalification() {
+        UUID newAnalysisId = UUID.randomUUID();
+        UUID prevAnalysisId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+
+        CaseAnalysis newAnalysis = new CaseAnalysis();
+        newAnalysis.setId(newAnalysisId);
+        newAnalysis.setCaseFile(caseFile);
+
+        ProcedureCheck verifiedCheck = new ProcedureCheck();
+        verifiedCheck.setDescription("Entretien préalable tenu");
+        verifiedCheck.setStatut(ProcedureCheckStatus.VERIFIED);
+
+        when(procedureCheckRepository.findByCaseAnalysisIdAndStatutOrderByOrdreAsc(prevAnalysisId, ProcedureCheckStatus.VERIFIED))
+                .thenReturn(List.of(verifiedCheck));
+        when(procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysisId))
+                .thenReturn(List.of());
+        when(procedureCheckRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // description avec casse et espaces différents
+        String json = """
+                {"points_procedure": [], "checks_a_requalifier": [
+                    {"description": "  ENTRETIEN PRÉALABLE TENU  ", "nouveau_statut": "NON_COMPLIANT", "raison": "raison"}
+                ]}""";
+        service.createChecksWithVerifiedPropagation(newAnalysis, json, prevAnalysisId);
+
+        assertThat(verifiedCheck.getStatut()).isEqualTo(ProcedureCheckStatus.NON_COMPLIANT);
+    }
+
     // ---- updateStatus ----
 
     @Test

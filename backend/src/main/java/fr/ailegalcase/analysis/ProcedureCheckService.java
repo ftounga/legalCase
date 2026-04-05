@@ -21,7 +21,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ProcedureCheckService {
@@ -92,8 +94,10 @@ public class ProcedureCheckService {
 
     /**
      * Crée les procedure_checks pour une analyse enrichie.
-     * Propage les checks VERIFIED de l'analyse précédente (sauf ceux requalifiés dans checks_a_requalifier).
-     * Applique les requalifications demandées par Claude avant de propager.
+     * - Propage les NON_COMPLIANT de l'analyse précédente (fix #3) : si le libellé correspond à un TO_CHECK
+     *   nouvellement créé, celui-ci est upgradé en NON_COMPLIANT ; sinon ajouté en fin de liste.
+     * - Propage les VERIFIED non requalifiés, sans doublon avec les checks déjà présents (fix #1/#2).
+     * - Matching normalisé (trim + lowercase) pour les requalifications et la déduplication (fix #4).
      * Fail-open sur toutes les opérations de propagation.
      */
     @Transactional
@@ -109,14 +113,16 @@ public class ProcedureCheckService {
 
         List<ProcedureCheck> verifiedChecks = procedureCheckRepository
                 .findByCaseAnalysisIdAndStatutOrderByOrdreAsc(previousAnalysisId, ProcedureCheckStatus.VERIFIED);
+        List<ProcedureCheck> nonCompliantChecks = procedureCheckRepository
+                .findByCaseAnalysisIdAndStatutOrderByOrdreAsc(previousAnalysisId, ProcedureCheckStatus.NON_COMPLIANT);
 
-        if (verifiedChecks.isEmpty()) return;
+        if (verifiedChecks.isEmpty() && nonCompliantChecks.isEmpty()) return;
 
-        // 2. Appliquer les requalifications sur les checks VERIFIED de l'analyse précédente
+        // 2. Appliquer les requalifications sur les VERIFIED de l'analyse précédente (matching normalisé)
         List<ProcedureCheckRequalifiedEvent.RequalifiedCheck> effective = new ArrayList<>();
         for (CheckRequalification req : requalifications) {
             verifiedChecks.stream()
-                    .filter(c -> c.getDescription().equals(req.description()))
+                    .filter(c -> normalize(c.getDescription()).equals(normalize(req.description())))
                     .findFirst()
                     .ifPresent(c -> {
                         c.setStatut(req.newStatut());
@@ -141,12 +147,45 @@ public class ProcedureCheckService {
             }
         }
 
-        // 3. Propager les VERIFIED encore intacts vers la nouvelle analyse
+        // 3. Construire l'index des descriptions déjà présentes dans la nouvelle analyse
+        List<ProcedureCheck> currentChecks = procedureCheckRepository
+                .findByCaseAnalysisIdOrderByOrdreAsc(newAnalysis.getId());
+        Set<String> existingNormalized = currentChecks.stream()
+                .map(c -> normalize(c.getDescription()))
+                .collect(Collectors.toSet());
+        int offset = currentChecks.size();
         Workspace workspace = newAnalysis.getCaseFile().getWorkspace();
-        int ordreOffset = procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(newAnalysis.getId()).size();
-        int offset = ordreOffset;
+
+        // 4. Propager les NON_COMPLIANT : upgrader le TO_CHECK existant si même libellé, sinon ajouter
+        for (ProcedureCheck src : nonCompliantChecks) {
+            String norm = normalize(src.getDescription());
+            if (existingNormalized.contains(norm)) {
+                currentChecks.stream()
+                        .filter(c -> normalize(c.getDescription()).equals(norm)
+                                && c.getStatut() == ProcedureCheckStatus.TO_CHECK)
+                        .findFirst()
+                        .ifPresent(c -> {
+                            c.setStatut(ProcedureCheckStatus.NON_COMPLIANT);
+                            procedureCheckRepository.save(c);
+                        });
+            } else {
+                ProcedureCheck copy = new ProcedureCheck();
+                copy.setCaseAnalysis(newAnalysis);
+                copy.setWorkspace(workspace);
+                copy.setOrdre(offset++);
+                copy.setDescription(src.getDescription());
+                copy.setStatut(ProcedureCheckStatus.NON_COMPLIANT);
+                copy.setRaison(src.getRaison());
+                procedureCheckRepository.save(copy);
+                existingNormalized.add(norm);
+            }
+        }
+
+        // 5. Propager les VERIFIED encore intacts, sans doublon
         for (ProcedureCheck src : verifiedChecks) {
             if (src.getStatut() != ProcedureCheckStatus.VERIFIED) continue;
+            String norm = normalize(src.getDescription());
+            if (existingNormalized.contains(norm)) continue;
             ProcedureCheck copy = new ProcedureCheck();
             copy.setCaseAnalysis(newAnalysis);
             copy.setWorkspace(workspace);
@@ -155,7 +194,12 @@ public class ProcedureCheckService {
             copy.setStatut(ProcedureCheckStatus.VERIFIED);
             copy.setRaison(src.getRaison());
             procedureCheckRepository.save(copy);
+            existingNormalized.add(norm);
         }
+    }
+
+    private static String normalize(String s) {
+        return s == null ? "" : s.trim().toLowerCase();
     }
 
     private record CheckRequalification(String description, ProcedureCheckStatus newStatut, String raison) {}

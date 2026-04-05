@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TimeService } from '../../core/services/time.service';
+import { AuthService } from '../../core/services/auth.service';
 import { TimeEntryResponse } from '../../core/models/time-tracking.models';
 
 @Component({
@@ -30,7 +31,13 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
 
   private intervalRef: ReturnType<typeof setInterval> | null = null;
 
-  readonly activeEntry = computed(() => this.timeService.activeEntry());
+  /** Entrée active appartenant à l'utilisateur courant uniquement */
+  readonly activeEntry = computed(() => {
+    const entry = this.timeService.activeEntry();
+    const currentUserId = this.authService.currentUser()?.id;
+    if (!entry || !currentUserId || entry.userId !== currentUserId) return null;
+    return entry;
+  });
 
   readonly totalCompletedSeconds = computed(() =>
     this.timeService.entries()
@@ -44,6 +51,7 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
 
   constructor(
     readonly timeService: TimeService,
+    readonly authService: AuthService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -55,7 +63,7 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
 
     this.timeService.loadEntries(this.caseFileId).subscribe({
       next: () => {
-        const active = this.timeService.activeEntry();
+        const active = this.activeEntry();
         if (active) {
           this.resumeTimer(active);
         }
