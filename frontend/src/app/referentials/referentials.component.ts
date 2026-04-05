@@ -263,6 +263,15 @@ export class ReferentialsComponent implements OnInit {
           return (val as string[]).join('\n');
         case 'PRESTATION_COEFF':
           return `Coefficient : ${(val.coeff * 100).toFixed(0)} % — Durée de référence : ${val.dureeReferenceAns} ans`;
+        case 'BAREME_MACRON':
+          return val.supported ? 'Barème Macron applicable' : 'Non couvert par le barème Macron';
+        case 'PENSION_TAUX': {
+          const matrix = val as number[][];
+          const labels = ['1 enfant', '2 enfants', '3 enfants', '4 enfants', '5 enfants et +'];
+          return matrix.map((row, i) =>
+            `${labels[i] ?? `${i + 1} enfants`} — garde exclusive : ${(row[0] * 100).toFixed(0)} %  |  garde alternée : ${(row[1] * 100).toFixed(0)} %`
+          ).join('\n');
+        }
         default:
           return JSON.stringify(val, null, 2);
       }
