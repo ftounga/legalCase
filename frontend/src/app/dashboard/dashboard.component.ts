@@ -4,7 +4,6 @@ import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { DashboardService } from '../core/services/dashboard.service';
 import { DashboardSummary, DashboardDeadline } from '../core/models/dashboard.model';
 import { fadeInUp } from '../shared/animations';
@@ -12,7 +11,7 @@ import { fadeInUp } from '../shared/animations';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, DatePipe, MatIconModule, MatButtonModule, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [RouterLink, DatePipe, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   animations: [fadeInUp],
@@ -26,6 +25,20 @@ export class DashboardComponent implements OnInit {
   constructor(private dashboardService: DashboardService) {}
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  retry(): void {
+    this.error.set(false);
+    this.loading.set(true);
+    this.load();
+  }
+
+  scrollTo(sectionId: string): void {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  private load(): void {
     this.dashboardService.getSummary().subscribe({
       next: data => {
         this.summary.set(data);
@@ -50,6 +63,15 @@ export class DashboardComponent implements OnInit {
     const days = this.daysUntil(d.dueDate);
     if (days <= 3) return 'urgent-critical';
     return 'urgent-warn';
+  }
+
+  domainColor(domain: string): string {
+    switch (domain) {
+      case 'DROIT_DU_TRAVAIL':  return '#27AE60';
+      case 'DROIT_FAMILLE':     return '#C9973A';
+      case 'DROIT_IMMIGRATION': return '#1A3A5C';
+      default: return '#1A3A5C';
+    }
   }
 
   domainLabel(domain: string): string {

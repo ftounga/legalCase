@@ -1,121 +1,183 @@
 <div class="dashboard-wrapper">
-  <div class="dashboard-header">
-    <mat-icon class="header-icon">dashboard</mat-icon>
-    <h1 class="page-title">Tableau de bord</h1>
-  </div>
 
   @if (loading()) {
     <div class="spinner-center">
-      <mat-spinner diameter="40" />
+      <mat-spinner diameter="48" />
     </div>
   } @else if (error()) {
-    <div class="empty-state">
-      <mat-icon class="empty-icon">error_outline</mat-icon>
-      <p>Impossible de charger le tableau de bord. Veuillez réessayer.</p>
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <p class="error-text">Impossible de charger le tableau de bord.</p>
+      <button mat-flat-button color="primary" (click)="retry()">Réessayer</button>
     </div>
   } @else if (summary()) {
     @let data = summary()!;
-    <div class="dashboard-grid">
 
-      <!-- Section dossiers ouverts -->
-      <section class="dashboard-section section-cases">
-        <div class="section-header">
-          <mat-icon class="section-icon">folder_open</mat-icon>
-          <h2 class="section-title">Dossiers ouverts</h2>
-          <span class="section-count">{{ data.openCasesCount }}</span>
-        </div>
-        @if (data.openCases.length === 0) {
-          <p class="empty-section">Aucun dossier actif.</p>
-        } @else {
-          <div class="cases-list">
-            @for (cf of data.openCases; track cf.id) {
-              <a class="case-card" [routerLink]="['/case-files', cf.id]">
-                <span class="case-title">{{ cf.title }}</span>
-                <span class="case-domain">{{ domainLabel(cf.legalDomain) }}</span>
-              </a>
+    <!-- KPI Bar -->
+    <div class="kpi-bar">
+      <div class="kpi-card" (click)="scrollTo('cases')">
+        <span class="kpi-value">{{ data.openCasesCount }}</span>
+        <span class="kpi-label">Dossiers actifs</span>
+      </div>
+      <div class="kpi-card" [class.kpi-alert-red]="data.urgentDeadlines.length > 0" (click)="scrollTo('deadlines')">
+        <span class="kpi-value">{{ data.urgentDeadlines.length }}</span>
+        <span class="kpi-label">Délais urgents</span>
+        @if (data.urgentDeadlines.length > 0) {
+          <mat-icon class="kpi-icon-alert">warning</mat-icon>
+        }
+      </div>
+      <div class="kpi-card" [class.kpi-alert-orange]="data.staleChecks.length > 0" (click)="scrollTo('checks')">
+        <span class="kpi-value">{{ data.staleChecks.length }}</span>
+        <span class="kpi-label">Alertes checklist</span>
+        @if (data.staleChecks.length > 0) {
+          <mat-icon class="kpi-icon-alert">report_problem</mat-icon>
+        }
+      </div>
+      <div class="kpi-card" (click)="scrollTo('activity')">
+        <span class="kpi-value">{{ data.recentAnalyses.length }}</span>
+        <span class="kpi-label">Analyses récentes</span>
+      </div>
+    </div>
+
+    <!-- Main layout -->
+    <div class="dashboard-layout">
+
+      <!-- Colonne gauche : urgences -->
+      <div class="col-left">
+
+        <!-- Délais urgents -->
+        <section class="dash-section" id="deadlines">
+          <div class="section-header">
+            <mat-icon class="section-icon icon-red">schedule</mat-icon>
+            <h2 class="section-title">Délais urgents</h2>
+            @if (data.urgentDeadlines.length > 0) {
+              <span class="section-badge badge-red">{{ data.urgentDeadlines.length }}</span>
             }
           </div>
-          <a mat-button color="primary" routerLink="/case-files" class="see-all-btn">
-            Voir tous les dossiers
-          </a>
-        }
-      </section>
 
-      <!-- Section délais urgents -->
-      <section class="dashboard-section section-deadlines">
-        <div class="section-header">
-          <mat-icon class="section-icon">event_busy</mat-icon>
-          <h2 class="section-title">Délais urgents</h2>
-          @if (data.urgentDeadlines.length > 0) {
-            <span class="section-count warn">{{ data.urgentDeadlines.length }}</span>
+          @if (data.urgentDeadlines.length === 0) {
+            <div class="empty-state">
+              <mat-icon class="empty-icon">check_circle</mat-icon>
+              <span>Aucun délai dans les 7 prochains jours</span>
+            </div>
+          } @else {
+            <div class="deadline-list">
+              @for (d of data.urgentDeadlines; track d.id) {
+                <a class="deadline-card" [class.deadline-critical]="daysUntil(d.dueDate) <= 3"
+                   [class.deadline-warn]="daysUntil(d.dueDate) > 3"
+                   [routerLink]="['/case-files', d.caseFileId]">
+                  <div class="deadline-badge-wrap">
+                    <span class="deadline-days">J-{{ daysUntil(d.dueDate) }}</span>
+                  </div>
+                  <div class="deadline-info">
+                    <span class="deadline-label">{{ d.label }}</span>
+                    <span class="deadline-case">{{ d.caseFileTitle }}</span>
+                  </div>
+                  <mat-icon class="deadline-arrow">chevron_right</mat-icon>
+                </a>
+              }
+            </div>
           }
-        </div>
-        @if (data.urgentDeadlines.length === 0) {
-          <p class="empty-section">Aucun délai urgent dans les 7 prochains jours.</p>
-        } @else {
-          <div class="deadlines-list">
-            @for (d of data.urgentDeadlines; track d.id) {
-              <div class="deadline-item">
-                <div class="deadline-info">
-                  <span class="deadline-label">{{ d.label }}</span>
-                  <span class="deadline-case">{{ d.caseFileTitle }}</span>
-                </div>
-                <span class="deadline-badge" [class]="deadlineClass(d)"
-                      [matTooltip]="d.dueDate | date:'dd/MM/yyyy'">
-                  J-{{ daysUntil(d.dueDate) }}
-                </span>
-              </div>
+        </section>
+
+        <!-- Alertes checklist -->
+        <section class="dash-section" id="checks">
+          <div class="section-header">
+            <mat-icon class="section-icon icon-orange">warning_amber</mat-icon>
+            <h2 class="section-title">Alertes checklist</h2>
+            @if (data.staleChecks.length > 0) {
+              <span class="section-badge badge-orange">{{ data.staleChecks.length }}</span>
             }
           </div>
-        }
-      </section>
 
-      <!-- Section alertes checklist -->
-      <section class="dashboard-section section-checks">
-        <div class="section-header">
-          <mat-icon class="section-icon">warning_amber</mat-icon>
-          <h2 class="section-title">Alertes checklist</h2>
-          @if (data.staleChecks.length > 0) {
-            <span class="section-count warn">{{ data.staleChecks.length }}</span>
+          @if (data.staleChecks.length === 0) {
+            <div class="empty-state">
+              <mat-icon class="empty-icon">verified</mat-icon>
+              <span>Toutes les checklists sont à jour</span>
+            </div>
+          } @else {
+            <div class="check-list">
+              @for (sc of data.staleChecks; track sc.caseFileId) {
+                <a class="check-card" [routerLink]="['/case-files', sc.caseFileId]">
+                  <div class="check-info">
+                    <span class="check-title">{{ sc.caseFileTitle }}</span>
+                    <span class="check-count">{{ sc.nonCompliantCount }} point{{ sc.nonCompliantCount > 1 ? 's' : '' }} non conforme{{ sc.nonCompliantCount > 1 ? 's' : '' }}</span>
+                  </div>
+                  <mat-icon class="check-arrow">chevron_right</mat-icon>
+                </a>
+              }
+            </div>
           }
-        </div>
-        @if (data.staleChecks.length === 0) {
-          <p class="empty-section">Aucune alerte checklist en retard.</p>
-        } @else {
-          <div class="checks-list">
-            @for (sc of data.staleChecks; track sc.caseFileId) {
-              <a class="check-item" [routerLink]="['/case-files', sc.caseFileId]">
-                <span class="check-title">{{ sc.caseFileTitle }}</span>
-                <span class="check-count">{{ sc.nonCompliantCount }} point{{ sc.nonCompliantCount > 1 ? 's' : '' }} non conforme{{ sc.nonCompliantCount > 1 ? 's' : '' }}</span>
-              </a>
-            }
-          </div>
-        }
-      </section>
+        </section>
 
-      <!-- Section activité récente -->
-      <section class="dashboard-section section-activity">
-        <div class="section-header">
-          <mat-icon class="section-icon">history</mat-icon>
-          <h2 class="section-title">Activité récente</h2>
-        </div>
-        @if (data.recentAnalyses.length === 0) {
-          <p class="empty-section">Aucune analyse récente.</p>
-        } @else {
-          <div class="activity-list">
-            @for (a of data.recentAnalyses; track a.id) {
-              <a class="activity-item" [routerLink]="['/case-files', a.caseFileId, 'synthesis']">
-                <mat-icon class="activity-icon">analytics</mat-icon>
-                <div class="activity-info">
-                  <span class="activity-case">{{ a.caseFileTitle }}</span>
-                  <span class="activity-meta">Analyse {{ analysisTypeLabel(a.analysisType) }} — {{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-                </div>
-              </a>
-            }
-          </div>
-        }
-      </section>
+      </div>
 
+      <!-- Colonne droite : dossiers + activité -->
+      <div class="col-right">
+
+        <!-- Dossiers ouverts -->
+        <section class="dash-section" id="cases">
+          <div class="section-header">
+            <mat-icon class="section-icon icon-navy">folder_open</mat-icon>
+            <h2 class="section-title">Dossiers ouverts</h2>
+            <span class="section-badge badge-navy">{{ data.openCasesCount }}</span>
+            <a mat-button color="primary" routerLink="/case-files" class="see-all">Voir tout</a>
+          </div>
+
+          @if (data.openCases.length === 0) {
+            <div class="empty-state">
+              <mat-icon class="empty-icon">folder_open</mat-icon>
+              <span>Aucun dossier actif</span>
+            </div>
+          } @else {
+            <div class="case-grid">
+              @for (cf of data.openCases; track cf.id) {
+                <a class="case-card" [routerLink]="['/case-files', cf.id]"
+                   [style.--domain-color]="domainColor(cf.legalDomain)">
+                  <div class="case-domain-bar"></div>
+                  <div class="case-body">
+                    <span class="case-title">{{ cf.title }}</span>
+                    <span class="case-domain-badge" [style.color]="domainColor(cf.legalDomain)">
+                      {{ domainLabel(cf.legalDomain) }}
+                    </span>
+                  </div>
+                </a>
+              }
+            </div>
+          }
+        </section>
+
+        <!-- Activité récente -->
+        <section class="dash-section" id="activity">
+          <div class="section-header">
+            <mat-icon class="section-icon icon-navy">history</mat-icon>
+            <h2 class="section-title">Activité récente</h2>
+          </div>
+
+          @if (data.recentAnalyses.length === 0) {
+            <div class="empty-state">
+              <mat-icon class="empty-icon">analytics</mat-icon>
+              <span>Aucune analyse récente</span>
+            </div>
+          } @else {
+            <div class="activity-list">
+              @for (a of data.recentAnalyses; track a.id) {
+                <a class="activity-item" [routerLink]="['/case-files', a.caseFileId, 'synthesis']">
+                  <mat-icon class="activity-icon">analytics</mat-icon>
+                  <div class="activity-info">
+                    <span class="activity-case">{{ a.caseFileTitle }}</span>
+                    <span class="activity-meta">
+                      Analyse {{ analysisTypeLabel(a.analysisType) }} &middot; {{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                    </span>
+                  </div>
+                  <mat-icon class="activity-arrow">chevron_right</mat-icon>
+                </a>
+              }
+            </div>
+          }
+        </section>
+
+      </div>
     </div>
   }
 </div>
