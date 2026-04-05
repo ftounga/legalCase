@@ -287,6 +287,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | 2026-04-04 | F-111 Terminée — SF-111-02 mergée : DashboardComponent Angular (route /dashboard, 4 sections, badge J-X coloré, lien sidenav, redirection post-login), 641 tests verts | Product owner |
 | 2026-04-04 | F-111 En cours — SF-111-01 mergée : GET /api/v1/dashboard (DashboardSummaryResponse : openCases, openCasesCount, urgentDeadlines J+7, staleChecks NON_COMPLIANT > 7j, recentAnalyses), 612 tests verts | Product owner |
 | 2026-04-04 | F-111 ajoutée au backlog — Tableau de bord opérationnel workspace : /dashboard à la connexion, dossiers ouverts + statut, délais urgents J-7/J-3, alertes checklist en retard > 7j, activité récente | Product owner |
+| 2026-04-05 | F-110 Terminée — SF-110-09 mergée : verrouillage libellé système (dialog readonly + hint, backend ignore newLabel, revert SF-110-07/08) | Product owner |
 | 2026-04-05 | F-110 Terminée — SF-110-08 mergée : fix system prompt IA — validation libellé ET valeur proposés | Product owner |
 | 2026-04-05 | F-110 Terminée — SF-110-07 mergée : fix régression SF-110-06 — validation IA inclut désormais le libellé proposé dans le prompt (Libellé actuel / Libellé proposé), signature validate() enrichie | Product owner |
 | 2026-04-05 | F-110 Terminée — SF-110-06 mergée : formulaires typés dialog édition (LITIGATION_TYPE, BAREME_MACRON, PENSION_TAUX, PRESTATION_COEFF, IMMIGRATION_PIECES), 657 tests verts | Product owner |
