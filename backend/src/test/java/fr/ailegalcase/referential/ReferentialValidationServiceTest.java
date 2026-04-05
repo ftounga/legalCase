@@ -31,7 +31,8 @@ class ReferentialValidationServiceTest {
 
         var result = service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
-                "{\"years\":5}", "{\"years\":5,\"article\":\"Art. L1132-1\"}");
+                "{\"years\":5}", "{\"years\":5,\"article\":\"Art. L1132-1\"}",
+                "Discrimination");
 
         assertThat(result.valid()).isTrue();
         assertThat(result.warning()).isNull();
@@ -47,11 +48,29 @@ class ReferentialValidationServiceTest {
 
         var result = service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
-                "{\"years\":5}", "{\"years\":3}");
+                "{\"years\":5}", "{\"years\":3}",
+                "Discrimination");
 
         assertThat(result.valid()).isFalse();
         assertThat(result.warning()).contains("5 ans");
         assertThat(result.warning()).contains("discrimination");
+    }
+
+    // VAL-04 : prompt contient libellé proposé (pas seulement l'actuel)
+    @Test
+    void validate_promptContainsProposedLabel() {
+        when(anthropicService.analyzeFast(anyString(), anyString(), eq(512)))
+                .thenReturn(new AnthropicResult("VALID", "haiku", 10, 5));
+
+        service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
+                "DISCRIMINATION", "Discrimination",
+                "{\"years\":5}", "{\"years\":5}",
+                "Discrimination (modifié)");
+
+        var promptCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(anthropicService).analyzeFast(anyString(), promptCaptor.capture(), eq(512));
+        assertThat(promptCaptor.getValue()).contains("Libellé actuel : Discrimination");
+        assertThat(promptCaptor.getValue()).contains("Libellé proposé : Discrimination (modifié)");
     }
 
     // VAL-03 : exception Anthropic → fail-open (valid=true)
@@ -62,7 +81,8 @@ class ReferentialValidationServiceTest {
 
         var result = service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
-                "{\"years\":5}", "{\"years\":3}");
+                "{\"years\":5}", "{\"years\":3}",
+                "Discrimination");
 
         assertThat(result.valid()).isTrue();
         assertThat(result.warning()).isNull();
