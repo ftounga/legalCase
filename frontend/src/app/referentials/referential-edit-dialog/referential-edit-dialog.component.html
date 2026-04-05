@@ -10,16 +10,109 @@
       }
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Valeur (JSON)</mat-label>
-      <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
-      @if (form.get('valueJson')?.hasError('required')) {
-        <mat-error>La valeur est obligatoire.</mat-error>
+    @switch (data.sectionType) {
+
+      @case ('LITIGATION_TYPE') {
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Années de prescription</mat-label>
+            <input matInput type="number" formControlName="litigYears" min="1" max="30" />
+            @if (form.get('litigYears')?.hasError('required')) {
+              <mat-error>Obligatoire.</mat-error>
+            }
+            @if (form.get('litigYears')?.hasError('min') || form.get('litigYears')?.hasError('max')) {
+              <mat-error>Entre 1 et 30 ans.</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field-article">
+            <mat-label>Article de référence</mat-label>
+            <input matInput formControlName="litigArticle" maxlength="200" />
+            @if (form.get('litigArticle')?.hasError('required')) {
+              <mat-error>Obligatoire.</mat-error>
+            }
+          </mat-form-field>
+        </div>
       }
-      @if (form.get('valueJson')?.hasError('invalidJson')) {
-        <mat-error>Format JSON invalide.</mat-error>
+
+      @case ('BAREME_MACRON') {
+        <div class="toggle-row">
+          <mat-slide-toggle formControlName="baremeSupported" color="primary">
+            Applicable au barème Macron
+          </mat-slide-toggle>
+        </div>
       }
-    </mat-form-field>
+
+      @case ('PENSION_TAUX') {
+        <div class="pension-grid">
+          <div class="pension-grid-header">
+            <span></span>
+            <span class="pension-col-label">Garde exclusive (%)</span>
+            <span class="pension-col-label">Garde alternée (%)</span>
+          </div>
+          @for (row of pensionRows; track row.label; let i = $index) {
+            <div class="pension-grid-row">
+              <span class="pension-row-label">{{ row.label }}</span>
+              <mat-form-field appearance="outline" class="pension-cell">
+                <input matInput type="number" [formControlName]="'pension_' + i + '_0'" min="0" max="100" step="0.01" />
+                @if (form.get('pension_' + i + '_0')?.invalid) {
+                  <mat-error>0–100</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="pension-cell">
+                <input matInput type="number" [formControlName]="'pension_' + i + '_1'" min="0" max="100" step="0.01" />
+                @if (form.get('pension_' + i + '_1')?.invalid) {
+                  <mat-error>0–100</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          }
+        </div>
+      }
+
+      @case ('PRESTATION_COEFF') {
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Coefficient (%)</mat-label>
+            <input matInput type="number" formControlName="prestCoeff" min="0" max="100" step="0.01" />
+            <mat-hint>Ex : 30 pour 30 %</mat-hint>
+            @if (form.get('prestCoeff')?.invalid) {
+              <mat-error>Entre 0 et 100.</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field-article">
+            <mat-label>Durée de référence (ans)</mat-label>
+            <input matInput type="number" formControlName="prestDuree" min="1" />
+            @if (form.get('prestDuree')?.invalid) {
+              <mat-error>Entier ≥ 1.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      }
+
+      @case ('IMMIGRATION_PIECES') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Pièces requises (une par ligne)</mat-label>
+          <textarea matInput formControlName="piecesText" rows="8"></textarea>
+          @if (form.get('piecesText')?.hasError('required')) {
+            <mat-error>Au moins une pièce requise.</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      @default {
+        <!-- IMMIGRATION_JALONS et types inconnus : textarea JSON conservé -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Valeur (JSON)</mat-label>
+          <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
+          @if (form.get('valueJson')?.hasError('required')) {
+            <mat-error>La valeur est obligatoire.</mat-error>
+          }
+          @if (form.get('valueJson')?.hasError('invalidJson')) {
+            <mat-error>Format JSON invalide.</mat-error>
+          }
+        </mat-form-field>
+      }
+    }
   </form>
 </mat-dialog-content>
 
