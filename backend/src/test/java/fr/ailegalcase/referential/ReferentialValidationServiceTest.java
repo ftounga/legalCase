@@ -56,21 +56,26 @@ class ReferentialValidationServiceTest {
         assertThat(result.warning()).contains("discrimination");
     }
 
-    // VAL-04 : prompt contient libellé proposé (pas seulement l'actuel)
+    // VAL-04 : system prompt demande validation libellé ET valeur — user message contient les deux libellés
     @Test
-    void validate_promptContainsProposedLabel() {
+    void validate_systemPromptValidatesBothLabelAndValue() {
         when(anthropicService.analyzeFast(anyString(), anyString(), eq(512)))
                 .thenReturn(new AnthropicResult("VALID", "haiku", 10, 5));
 
         service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
                 "{\"years\":5}", "{\"years\":5}",
-                "Discrimination (modifié)");
+                "Harcèlement moral");
 
-        var promptCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyzeFast(anyString(), promptCaptor.capture(), eq(512));
-        assertThat(promptCaptor.getValue()).contains("Libellé actuel : Discrimination");
-        assertThat(promptCaptor.getValue()).contains("Libellé proposé : Discrimination (modifié)");
+        var systemCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        var userCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(anthropicService).analyzeFast(systemCaptor.capture(), userCaptor.capture(), eq(512));
+
+        // System prompt demande explicitement la validation du libellé
+        assertThat(systemCaptor.getValue()).contains("libellé proposé");
+        // User message contient libellé actuel ET proposé
+        assertThat(userCaptor.getValue()).contains("Libellé actuel : Discrimination");
+        assertThat(userCaptor.getValue()).contains("Libellé proposé : Harcèlement moral");
     }
 
     // VAL-03 : exception Anthropic → fail-open (valid=true)

@@ -17,12 +17,14 @@ public class ReferentialValidationService {
 
     private static final String SYSTEM_PROMPT = """
             Tu es un expert juridique spécialisé en droit français et belge.
-            Un administrateur de cabinet d'avocats souhaite modifier une valeur de référentiel métier.
-            Ton rôle est de vérifier si la valeur proposée est cohérente avec les valeurs officielles en vigueur.
+            Un administrateur de cabinet d'avocats souhaite modifier un référentiel métier (libellé et/ou valeur).
+            Ton rôle est de vérifier que :
+            1. Le libellé proposé est exact, non trompeur et cohérent avec la valeur et le type de référentiel.
+            2. La valeur proposée est cohérente avec les valeurs officielles en vigueur.
 
             Réponds UNIQUEMENT par l'une des deux formes suivantes :
-            - VALID (si la valeur proposée est conforme au droit en vigueur)
-            - WARNING: [explication courte en français de la valeur officielle correcte] (si divergence)
+            - VALID (si le libellé et la valeur proposés sont tous deux conformes)
+            - WARNING: [explication courte en français identifiant ce qui est incorrect — libellé, valeur, ou les deux] (si divergence)
 
             Ne fournis aucune autre explication. Sois concis.
             """;
