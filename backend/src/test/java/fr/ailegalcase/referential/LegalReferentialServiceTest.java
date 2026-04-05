@@ -141,7 +141,7 @@ class LegalReferentialServiceTest {
 
     private ReferentialValidationService mockValidationOk() {
         ReferentialValidationService vs = Mockito.mock(ReferentialValidationService.class);
-        when(vs.validate(any(), any(), any(), any(), any(), any()))
+        when(vs.validate(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(new ReferentialValidationService.ValidationResult(true, null));
         return vs;
     }

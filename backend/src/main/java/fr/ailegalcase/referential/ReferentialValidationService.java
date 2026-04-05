@@ -38,17 +38,19 @@ public class ReferentialValidationService {
         static ValidationResult warn(String warning) { return new ValidationResult(false, warning); }
     }
 
-    public ValidationResult validate(String domain, String type, String key, String label,
-                                     String currentValueJson, String proposedValueJson) {
+    public ValidationResult validate(String domain, String type, String key, String currentLabel,
+                                     String currentValueJson, String proposedValueJson,
+                                     String proposedLabel) {
         try {
             String userMessage = """
                     Domaine juridique : %s
                     Type de référentiel : %s
                     Clé : %s
-                    Libellé : %s
+                    Libellé actuel : %s
+                    Libellé proposé : %s
                     Valeur actuelle : %s
                     Valeur proposée : %s
-                    """.formatted(domain, type, key, label, currentValueJson, proposedValueJson);
+                    """.formatted(domain, type, key, currentLabel, proposedLabel, currentValueJson, proposedValueJson);
 
             var result = anthropicService.analyzeFast(SYSTEM_PROMPT, userMessage, MAX_TOKENS);
             String content = result.content().trim();

@@ -67,7 +67,8 @@ public class LegalReferentialService {
             var validation = validationService.validate(
                     source.getLegalDomain(), source.getReferentialType(),
                     source.getEntryKey(), source.getLabel(),
-                    source.getValueJson(), newValueJson);
+                    source.getValueJson(), newValueJson,
+                    newLabel);
             if (!validation.valid()) {
                 return new ReferentialUpdateResponse(false, null, validation.warning());
             }
