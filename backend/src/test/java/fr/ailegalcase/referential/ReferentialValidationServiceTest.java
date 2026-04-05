@@ -31,8 +31,7 @@ class ReferentialValidationServiceTest {
 
         var result = service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
-                "{\"years\":5}", "{\"years\":5,\"article\":\"Art. L1132-1\"}",
-                "Discrimination");
+                "{\"years\":5}", "{\"years\":5,\"article\":\"Art. L1132-1\"}");
 
         assertThat(result.valid()).isTrue();
         assertThat(result.warning()).isNull();
@@ -48,34 +47,28 @@ class ReferentialValidationServiceTest {
 
         var result = service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
-                "{\"years\":5}", "{\"years\":3}",
-                "Discrimination");
+                "{\"years\":5}", "{\"years\":3}");
 
         assertThat(result.valid()).isFalse();
         assertThat(result.warning()).contains("5 ans");
         assertThat(result.warning()).contains("discrimination");
     }
 
-    // VAL-04 : system prompt demande validation libellé ET valeur — user message contient les deux libellés
+    // VAL-04 : libellé système verrouillé — validate() ne reçoit que la valeur à comparer
     @Test
-    void validate_systemPromptValidatesBothLabelAndValue() {
+    void validate_systemLabelLocked_onlyValueCompared() {
         when(anthropicService.analyzeFast(anyString(), anyString(), eq(512)))
                 .thenReturn(new AnthropicResult("VALID", "haiku", 10, 5));
 
         service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
-                "{\"years\":5}", "{\"years\":5}",
-                "Harcèlement moral");
+                "{\"years\":5}", "{\"years\":4}");
 
-        var systemCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
         var userCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(anthropicService).analyzeFast(systemCaptor.capture(), userCaptor.capture(), eq(512));
-
-        // System prompt demande explicitement la validation du libellé
-        assertThat(systemCaptor.getValue()).contains("libellé proposé");
-        // User message contient libellé actuel ET proposé
-        assertThat(userCaptor.getValue()).contains("Libellé actuel : Discrimination");
-        assertThat(userCaptor.getValue()).contains("Libellé proposé : Harcèlement moral");
+        verify(anthropicService).analyzeFast(anyString(), userCaptor.capture(), eq(512));
+        assertThat(userCaptor.getValue()).contains("Valeur actuelle");
+        assertThat(userCaptor.getValue()).contains("Valeur proposée");
+        assertThat(userCaptor.getValue()).doesNotContain("Libellé proposé");
     }
 
     // VAL-03 : exception Anthropic → fail-open (valid=true)
@@ -86,8 +79,7 @@ class ReferentialValidationServiceTest {
 
         var result = service.validate("DROIT_DU_TRAVAIL", "LITIGATION_TYPE",
                 "DISCRIMINATION", "Discrimination",
-                "{\"years\":5}", "{\"years\":3}",
-                "Discrimination");
+                "{\"years\":5}", "{\"years\":3}");
 
         assertThat(result.valid()).isTrue();
         assertThat(result.warning()).isNull();

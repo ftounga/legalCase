@@ -50,7 +50,10 @@ export class ReferentialEditDialogComponent {
   }
 
   private buildForm(data: ReferentialEditDialogData): FormGroup {
-    const base = { label: [data.entry.label, [Validators.required, Validators.maxLength(500)]] };
+    const labelControl = data.entry.isSystem
+      ? [{ value: data.entry.label, disabled: true }]
+      : [data.entry.label, [Validators.required, Validators.maxLength(500)]];
+    const base = { label: labelControl };
 
     let parsed: any = null;
     try { parsed = JSON.parse(data.entry.valueJson); } catch { /* keep null */ }
@@ -153,7 +156,7 @@ export class ReferentialEditDialogComponent {
   submit(): void {
     if (this.form.invalid) return;
     this.dialogRef.close({
-      label:     this.form.value.label,
+      label:     this.form.getRawValue().label,
       valueJson: this.serializeValueJson(),
       force:     false,
     });

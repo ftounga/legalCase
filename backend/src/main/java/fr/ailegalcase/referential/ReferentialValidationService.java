@@ -17,14 +17,12 @@ public class ReferentialValidationService {
 
     private static final String SYSTEM_PROMPT = """
             Tu es un expert juridique spécialisé en droit français et belge.
-            Un administrateur de cabinet d'avocats souhaite modifier un référentiel métier (libellé et/ou valeur).
-            Ton rôle est de vérifier que :
-            1. Le libellé proposé est exact, non trompeur et cohérent avec la valeur et le type de référentiel.
-            2. La valeur proposée est cohérente avec les valeurs officielles en vigueur.
+            Un administrateur de cabinet d'avocats souhaite modifier une valeur de référentiel métier.
+            Ton rôle est de vérifier si la valeur proposée est cohérente avec les valeurs officielles en vigueur.
 
             Réponds UNIQUEMENT par l'une des deux formes suivantes :
-            - VALID (si le libellé et la valeur proposés sont tous deux conformes)
-            - WARNING: [explication courte en français identifiant ce qui est incorrect — libellé, valeur, ou les deux] (si divergence)
+            - VALID (si la valeur proposée est conforme au droit en vigueur)
+            - WARNING: [explication courte en français de la valeur officielle correcte] (si divergence)
 
             Ne fournis aucune autre explication. Sois concis.
             """;
@@ -40,19 +38,17 @@ public class ReferentialValidationService {
         static ValidationResult warn(String warning) { return new ValidationResult(false, warning); }
     }
 
-    public ValidationResult validate(String domain, String type, String key, String currentLabel,
-                                     String currentValueJson, String proposedValueJson,
-                                     String proposedLabel) {
+    public ValidationResult validate(String domain, String type, String key, String label,
+                                     String currentValueJson, String proposedValueJson) {
         try {
             String userMessage = """
                     Domaine juridique : %s
                     Type de référentiel : %s
                     Clé : %s
-                    Libellé actuel : %s
-                    Libellé proposé : %s
+                    Libellé : %s
                     Valeur actuelle : %s
                     Valeur proposée : %s
-                    """.formatted(domain, type, key, currentLabel, proposedLabel, currentValueJson, proposedValueJson);
+                    """.formatted(domain, type, key, label, currentValueJson, proposedValueJson);
 
             var result = anthropicService.analyzeFast(SYSTEM_PROMPT, userMessage, MAX_TOKENS);
             String content = result.content().trim();
