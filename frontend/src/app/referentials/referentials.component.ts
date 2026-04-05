@@ -23,6 +23,10 @@ import {
   ReferentialReportDialogData,
   ReferentialReportDialogResult,
 } from './referential-report-dialog/referential-report-dialog.component';
+import {
+  ReferentialWarningDialogComponent,
+  ReferentialWarningDialogData,
+} from './referential-warning-dialog/referential-warning-dialog.component';
 
 interface EntryWithAlert extends ReferentialEntry {
   alertId?: string;
@@ -196,12 +200,15 @@ export class ReferentialsComponent implements OnInit {
   }
 
   private showWarningConfirmation(entry: EntryWithAlert, result: ReferentialEditDialogResult, warning: string): void {
-    const confirmed = confirm(
-      `L'IA a détecté une possible divergence :\n\n${warning}\n\nSauvegarder quand même ?`
+    const dialogRef = this.dialog.open<ReferentialWarningDialogComponent, ReferentialWarningDialogData, boolean>(
+      ReferentialWarningDialogComponent,
+      { width: '480px', data: { warning } }
     );
-    if (confirmed) {
-      this.submitUpdate(entry, { ...result, force: true });
-    }
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.submitUpdate(entry, { ...result, force: true });
+      }
+    });
   }
 
   openReportDialog(entry: EntryWithAlert): void {

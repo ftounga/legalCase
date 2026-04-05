@@ -1,0 +1,30 @@
+.warning-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #E65100;
+}
+
+.warning-icon {
+  color: #E65100;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.warning-intro {
+  color: #4A5568;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.warning-message {
+  background: #FFF3E0;
+  border-left: 4px solid #E65100;
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #1A3A5C;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
