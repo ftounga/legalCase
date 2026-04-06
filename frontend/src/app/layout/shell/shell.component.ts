@@ -17,6 +17,7 @@ import { ReferentialService } from '../../core/services/referential.service';
 import { Workspace } from '../../core/models/workspace.model';
 import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.component';
 import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
+import { NotificationCenterComponent } from '../notification-center/notification-center.component';
 
 @Component({
   selector: 'app-shell',
@@ -26,7 +27,7 @@ import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
     MatToolbarModule, MatSidenavModule, MatListModule,
     MatIconModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatBadgeModule,
-    TrialBannerComponent
+    TrialBannerComponent, NotificationCenterComponent
   ],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'

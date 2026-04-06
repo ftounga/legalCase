@@ -11,6 +11,7 @@ import { signal } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Workspace } from '../../core/models/workspace.model';
 import { BreakpointObserver } from '@angular/cdk/layout';
 
@@ -39,7 +40,7 @@ describe('ShellComponent — invitation pendante', () => {
     await TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(), provideHttpClientTesting(),
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationService },
@@ -133,7 +134,7 @@ describe('ShellComponent — workspace switcher', () => {
     await TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(), provideHttpClientTesting(),
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
@@ -222,7 +223,7 @@ describe('ShellComponent — domainColor()', () => {
     await TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(), provideHttpClientTesting(),
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
@@ -268,7 +269,7 @@ describe('ShellComponent — lien super-admin', () => {
     TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(), provideHttpClientTesting(),
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
@@ -311,7 +312,7 @@ describe('ShellComponent — badge alertes référentiels', () => {
     TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(), provideHttpClientTesting(),
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
@@ -359,7 +360,7 @@ describe('ShellComponent — responsive mobile', () => {
     TestBed.configureTestingModule({
       imports: [ShellComponent, RouterModule.forRoot([]), NoopAnimationsModule],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(), provideHttpClientTesting(),
         { provide: AuthService, useValue: authServiceStub },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: WorkspaceInvitationService, useValue: invitationServiceStub },
