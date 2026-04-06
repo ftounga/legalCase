@@ -153,7 +153,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ~~F-DT-02~~ | ~~Détection de clauses abusives~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_DU_TRAVAIL dans `LegalDomainPromptBuilder`. La synthèse existante (`risques` + `points_juridiques`) couvre ce besoin si le prompt l'instruit explicitement. |
 | F-DT-03 | Délais de prescription ciblés par type de litige | `Terminée` | Classification du type de litige (7 types Code du travail) → délai légal correspondant (1/3/5 ans) → calcul date d'expiration → affiché en lecture seule dans le bloc délais. SF-DT-03-01 mergée. |
 | F-DT-04 | Génération fiche prud'homale | `Terminée` | SF-DT-04-01 (backend CRUD + table prudhome_fiches) + SF-DT-04-02 (formulaire Angular réactif) + SF-DT-04-03 (export PDF pdfmake) mergées. |
-| F-DT-05 | Droit du travail belge — types de litige, prescription et indemnités de préavis | V6 — **Backlog** | Le droit du travail est 100% français. Ajouter : 7 types de litige belges avec prescription (art. 15 Loi 1978), calculateur indemnités de préavis belge (table ancienneté → semaines, indemnité compensatoire, fourchette CCT 109). SF-DT-05-01 : migration données litige belge. SF-DT-05-02 : calculateur préavis belge backend+frontend. |
+| F-DT-05 | Droit du travail belge — types de litige, prescription et indemnités de préavis | V6 — **Terminée** | SF-DT-05-01 : migration 054 (7 types litige belges, UPDATE français country=FRANCE), getLitigationPeriod(type, country), prompt IA dynamique par pays, 621 tests. SF-DT-05-02 : BelgianCompensationCalculator (table préavis Loi 26/12/2013, indemnité compensatoire, fourchette CCT 109), dispatch France/Belgique dans CaseAnalysisResponse, panneau synthèse belge, 635+666 tests. |
 
 ### Features métier — Droit de l'immigration
 
@@ -282,6 +282,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-06 | F-DT-05 Terminée — SF-DT-05-02 mergée : BelgianCompensationCalculator (table préavis, indemnité compensatoire, CCT 109), dispatch France/Belgique, panneau synthèse belge, 635+666 tests verts | Product owner |
+| 2026-04-06 | F-DT-05 En cours — SF-DT-05-01 mergée : 7 types litige belges (migration 054), country=FRANCE sur français, getLitigationPeriod(type, country), prompt IA dynamique, 621 tests verts | Product owner |
 | 2026-04-06 | F-114 Terminée — SF-114-01 mergée : test E2E Playwright parcours métier complet (créer → upload → analyse → synthèse → PDF), fixture PDF, cleanup afterAll, 22 tests E2E | Product owner |
 | 2026-04-06 | F-115 Terminée — SF-115-01 mergée : Spring Session JDBC, migration 053, sessions persistées en base, 621 tests verts | Product owner |
 | 2026-04-06 | F-113 Terminée — SF-113-03 mergée : NotificationCenterComponent (cloche MatBadge, panneau dropdown, polling 60s, markRead + navigation), NotificationService Angular, intégré ShellComponent, 666 tests verts | Product owner |
