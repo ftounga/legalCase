@@ -153,7 +153,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ~~F-DT-02~~ | ~~Détection de clauses abusives~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_DU_TRAVAIL dans `LegalDomainPromptBuilder`. La synthèse existante (`risques` + `points_juridiques`) couvre ce besoin si le prompt l'instruit explicitement. |
 | F-DT-03 | Délais de prescription ciblés par type de litige | `Terminée` | Classification du type de litige (7 types Code du travail) → délai légal correspondant (1/3/5 ans) → calcul date d'expiration → affiché en lecture seule dans le bloc délais. SF-DT-03-01 mergée. |
 | F-DT-04 | Génération fiche prud'homale | `Terminée` | SF-DT-04-01 (backend CRUD + table prudhome_fiches) + SF-DT-04-02 (formulaire Angular réactif) + SF-DT-04-03 (export PDF pdfmake) mergées. |
-| F-DT-06 | Requête contradictoire tribunal du travail belge | V6 — **Backlog** | Équivalent belge de la fiche prud'homale (F-DT-04). Requête contradictoire (art. 702/704 Code judiciaire belge). Champs : identité requérant/défendeur, tribunal (arrondissement + langue), commission paritaire, type contrat, motif rupture, objet/montant demande, exposé des moyens. SF-DT-06-01 : backend CRUD + table. SF-DT-06-02 : formulaire Angular. SF-DT-06-03 : export PDF. |
+| F-DT-06 | Requête contradictoire tribunal du travail belge | V6 — **Terminée** | Équivalent belge de la fiche prud'homale. SF-DT-06-01 : migration 055, CRUD backend, validation country=BELGIQUE, 4 IT. SF-DT-06-02 : TribunalTravailFicheSectionComponent (formulaire réactif, champs belges), affichage conditionnel FRANCE/BELGIQUE, 672 tests. SF-DT-06-03 : export PDF A4 (art. 702/704 Code judiciaire), bouton Exporter PDF, 672 tests. |
 | F-DT-05 | Droit du travail belge — types de litige, prescription et indemnités de préavis | V6 — **Terminée** | SF-DT-05-01 : migration 054 (7 types litige belges, UPDATE français country=FRANCE), getLitigationPeriod(type, country), prompt IA dynamique par pays, 621 tests. SF-DT-05-02 : BelgianCompensationCalculator (table préavis Loi 26/12/2013, indemnité compensatoire, fourchette CCT 109), dispatch France/Belgique dans CaseAnalysisResponse, panneau synthèse belge, 635+666 tests. |
 
 ### Features métier — Droit de l'immigration
@@ -284,6 +284,9 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | Date | Modification | Validé par |
 |------|-------------|------------|
 | 2026-04-06 | F-DT-05 Terminée — SF-DT-05-02 mergée : BelgianCompensationCalculator (table préavis, indemnité compensatoire, CCT 109), dispatch France/Belgique, panneau synthèse belge, 635+666 tests verts | Product owner |
+| 2026-04-07 | F-DT-06 Terminée — SF-DT-06-03 mergée : export PDF requête tribunal travail belge (art. 702/704 Code judiciaire), bouton Exporter PDF, 672 tests verts | Product owner |
+| 2026-04-07 | F-DT-06 En cours — SF-DT-06-02 mergée : TribunalTravailFicheSectionComponent, affichage conditionnel FRANCE/BELGIQUE, workspaceCountry signal, 672 tests verts | Product owner |
+| 2026-04-07 | F-DT-06 En cours — SF-DT-06-01 mergée : migration 055, CRUD backend tribunal_travail_fiches, validation country=BELGIQUE, 4 IT, 635 tests verts | Product owner |
 | 2026-04-06 | F-DT-05 En cours — SF-DT-05-01 mergée : 7 types litige belges (migration 054), country=FRANCE sur français, getLitigationPeriod(type, country), prompt IA dynamique, 621 tests verts | Product owner |
 | 2026-04-06 | F-114 Terminée — SF-114-01 mergée : test E2E Playwright parcours métier complet (créer → upload → analyse → synthèse → PDF), fixture PDF, cleanup afterAll, 22 tests E2E | Product owner |
 | 2026-04-06 | F-115 Terminée — SF-115-01 mergée : Spring Session JDBC, migration 053, sessions persistées en base, 621 tests verts | Product owner |
