@@ -293,6 +293,10 @@ export class SynthesisComponent implements OnInit {
     return this.synthesis()?.compensationEstimate ?? null;
   }
 
+  get belgianCompensationEstimate(): any | null {
+    return this.synthesis()?.belgianCompensationEstimate ?? null;
+  }
+
   get pensionAlimentaireEstimate(): PensionAlimentaireEstimate | null {
     return this.synthesis()?.pensionAlimentaireEstimate ?? null;
   }

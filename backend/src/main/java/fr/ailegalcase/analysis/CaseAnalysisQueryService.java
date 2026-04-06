@@ -61,7 +61,7 @@ public class CaseAnalysisQueryService {
                 .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No analysis available"));
 
-        return CaseAnalysisResponse.from(analysis, loadDocuments(analysis.getId()));
+        return CaseAnalysisResponse.from(analysis, loadDocuments(analysis.getId()), workspace.getCountry());
     }
 
     @Transactional(readOnly = true)
@@ -111,7 +111,7 @@ public class CaseAnalysisQueryService {
                 .findByCaseFileIdAndAnalysisStatusAndVersion(caseFileId, AnalysisStatus.DONE, version)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
-        return CaseAnalysisResponse.from(analysis, loadDocuments(analysis.getId()));
+        return CaseAnalysisResponse.from(analysis, loadDocuments(analysis.getId()), workspace.getCountry());
     }
 
     private List<AnalysisDocument> loadDocuments(UUID analysisId) {

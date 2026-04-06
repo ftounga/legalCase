@@ -52,6 +52,20 @@ export interface LiquidationCommunaute {
   passifCommun: BienItem[];
 }
 
+export interface BelgianCompensationEstimate {
+  preavisSemaines: number;
+  indemniteCompensatoire: number;
+  salaireHebdomadaire: number;
+  salaireReference: number;
+  ancienneteAnnees: number;
+  ancienneteMois: number;
+  cct109MinSemaines: number;
+  cct109MaxSemaines: number;
+  cct109MinEuros: number;
+  cct109MaxEuros: number;
+  donneesPartielles: boolean;
+}
+
 export interface CaseAnalysisResult {
   id: string;
   version: number;
@@ -69,6 +83,7 @@ export interface CaseAnalysisResult {
   updatedAt: string | null;
   analysisDocuments?: { index: number; name: string }[];
   compensationEstimate?: CompensationEstimate | null;
+  belgianCompensationEstimate?: BelgianCompensationEstimate | null;
   pensionAlimentaireEstimate?: PensionAlimentaireEstimate | null;
   prestationCompensatoireEstimate?: PrestationCompensatoireEstimate | null;
   liquidationCommunaute?: LiquidationCommunaute | null;
