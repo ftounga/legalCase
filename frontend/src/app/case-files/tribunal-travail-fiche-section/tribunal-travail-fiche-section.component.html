@@ -1,0 +1,183 @@
+<div class="fiche-section">
+  <button class="section-header" type="button" (click)="toggleCollapsed()" aria-label="Afficher/masquer la requête tribunal du travail">
+    <mat-icon class="section-icon">balance</mat-icon>
+    <span class="section-title">Requête tribunal du travail</span>
+    <mat-icon class="section-chevron">{{ collapsed() ? 'chevron_right' : 'expand_more' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="fiche-info-banner">
+      <mat-icon>info</mat-icon>
+      <span>Requête contradictoire (art. 702/704 Code judiciaire). Pré-remplie à environ 60-70%. À vérifier et compléter.</span>
+    </div>
+
+    <form [formGroup]="form" class="fiche-form">
+
+      <!-- Requérant -->
+      <div class="fiche-card">
+        <h3 class="fiche-card__title">Requérant</h3>
+        <div formGroupName="requerant" class="fiche-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Nom *</mat-label>
+            <input matInput formControlName="nom">
+            @if (form.get('requerant.nom')?.invalid && form.get('requerant.nom')?.touched) {
+              <mat-error>Le nom est obligatoire</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Prénom</mat-label>
+            <input matInput formControlName="prenom">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="fiche-grid--full">
+            <mat-label>Domicile</mat-label>
+            <input matInput formControlName="domicile">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Registre national</mat-label>
+            <input matInput formControlName="registreNational">
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Défendeur -->
+      <div class="fiche-card">
+        <h3 class="fiche-card__title">Défendeur</h3>
+        <div formGroupName="defendeur" class="fiche-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Nom / Raison sociale</mat-label>
+            <input matInput formControlName="nom">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>N° BCE</mat-label>
+            <input matInput formControlName="numeroBce">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="fiche-grid--full">
+            <mat-label>Siège social</mat-label>
+            <input matInput formControlName="siegeSocial">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="fiche-grid--full">
+            <mat-label>Représentant légal</mat-label>
+            <input matInput formControlName="representant">
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Procédure -->
+      <div class="fiche-card">
+        <h3 class="fiche-card__title">Procédure</h3>
+        <div formGroupName="procedureInfo" class="fiche-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Tribunal du travail</mat-label>
+            <input matInput formControlName="tribunal">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Division</mat-label>
+            <input matInput formControlName="division">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Langue</mat-label>
+            <mat-select formControlName="langue">
+              <mat-option value="FR">Français</mat-option>
+              <mat-option value="NL">Néerlandais</mat-option>
+              <mat-option value="DE">Allemand</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Commission paritaire</mat-label>
+            <input matInput formControlName="commissionParitaire">
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Contrat -->
+      <div class="fiche-card">
+        <h3 class="fiche-card__title">Contrat de travail</h3>
+        <div formGroupName="contratInfo" class="fiche-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Type de contrat</mat-label>
+            <mat-select formControlName="typeContrat">
+              <mat-option value="EMPLOYE">Employé</mat-option>
+              <mat-option value="OUVRIER">Ouvrier</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Motif de rupture</mat-label>
+            <input matInput formControlName="motifRupture">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Date de début</mat-label>
+            <input matInput formControlName="dateDebut" placeholder="AAAA-MM-JJ">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Date de fin</mat-label>
+            <input matInput formControlName="dateFin" placeholder="AAAA-MM-JJ">
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Demandes -->
+      <div class="fiche-card">
+        <div class="fiche-card__header">
+          <h3 class="fiche-card__title">Demandes chiffrées</h3>
+          <button mat-stroked-button type="button" (click)="addDemande()">
+            <mat-icon>add</mat-icon>
+            Ajouter une demande
+          </button>
+        </div>
+        <div formArrayName="demandes">
+          @for (demande of demandesArray.controls; track $index) {
+            <div [formGroupName]="$index" class="demande-row">
+              <mat-form-field appearance="outline" class="demande-label">
+                <mat-label>Intitulé *</mat-label>
+                <input matInput formControlName="label">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="demande-montant">
+                <mat-label>Montant (€)</mat-label>
+                <input matInput type="number" min="0" formControlName="montant">
+              </mat-form-field>
+              <button mat-icon-button color="warn" type="button" (click)="removeDemande($index)" aria-label="Supprimer la demande">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+          @if (demandesArray.length === 0) {
+            <p class="empty-demandes">Aucune demande. Cliquez sur "Ajouter une demande".</p>
+          }
+        </div>
+      </div>
+
+      <!-- Exposé des moyens -->
+      <div class="fiche-card">
+        <h3 class="fiche-card__title">Exposé sommaire des moyens</h3>
+        <mat-form-field appearance="outline" class="fiche-textarea">
+          <mat-label>Moyens de fait et de droit</mat-label>
+          <textarea matInput formControlName="exposeDesMoyens" rows="8"></textarea>
+        </mat-form-field>
+      </div>
+
+      <!-- Pièces (lecture seule) -->
+      @if (pieces().length > 0) {
+        <div class="fiche-card">
+          <h3 class="fiche-card__title">Inventaire des pièces</h3>
+          <ol class="pieces-list">
+            @for (piece of pieces(); track piece.numero) {
+              <li class="pieces-list__item">{{ piece.nom }}</li>
+            }
+          </ol>
+        </div>
+      }
+
+      <div class="fiche-actions">
+        <button mat-raised-button color="primary" type="button" [disabled]="form.invalid || saving()" (click)="save()">
+          @if (saving()) {
+            <mat-icon>hourglass_empty</mat-icon>
+          } @else {
+            <mat-icon>save</mat-icon>
+          }
+          Enregistrer la requête
+        </button>
+      </div>
+
+    </form>
+  }
+</div>

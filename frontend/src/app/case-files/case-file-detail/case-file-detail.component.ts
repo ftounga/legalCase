@@ -26,6 +26,7 @@ import { GlobalAnalysisNotificationService } from '../../core/services/global-an
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
+import { WorkspaceService } from '../../core/services/workspace.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
@@ -37,6 +38,7 @@ import { CaseFileStatsService } from '../../core/services/case-file-stats.servic
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
+import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
@@ -54,7 +56,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
-    TimerWidgetComponent, PrudhomeFicheSectionComponent,
+    TimerWidgetComponent, PrudhomeFicheSectionComponent, TribunalTravailFicheSectionComponent,
     ImmigrationChecklistSectionComponent, AnalysisPipelineComponent
   ],
   templateUrl: './case-file-detail.component.html',
@@ -78,6 +80,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   questionsLoading = signal(false);
   questionsLoaded = signal(false);
   currentMemberRole = signal<string | null>(null);
+  workspaceCountry = signal<string>('FRANCE');
 
   // true between upload success and first backend confirmation that new doc analysis started
   private docAnalysisPending = signal(false);
@@ -207,6 +210,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private aiQuestionService: AiQuestionService,
     protected authService: AuthService,
     private workspaceMemberService: WorkspaceMemberService,
+    private workspaceService: WorkspaceService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private analyticsService: AnalyticsService,
@@ -229,6 +233,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           this.loadAnalysisJobs(id);
         }
       });
+    this.workspaceService.getCurrentWorkspace().subscribe({
+      next: ws => this.workspaceCountry.set(ws.country ?? 'FRANCE'),
+      error: () => {}
+    });
     this.caseFileService.getById(id).subscribe({
       next: cf => {
         this.caseFile.set(cf);
