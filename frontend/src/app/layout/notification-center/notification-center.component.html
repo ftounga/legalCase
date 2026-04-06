@@ -1,0 +1,51 @@
+<button mat-icon-button
+        [matMenuTriggerFor]="notifMenu"
+        (menuOpened)="onMenuOpened()"
+        aria-label="Notifications"
+        class="notif-trigger">
+  <mat-icon [matBadge]="unreadCount()"
+            [matBadgeHidden]="unreadCount() === 0"
+            matBadgeColor="warn"
+            matBadgeSize="small">
+    notifications
+  </mat-icon>
+</button>
+
+<mat-menu #notifMenu="matMenu" class="notif-menu">
+  <div class="notif-header" (click)="$event.stopPropagation()">
+    <span class="notif-title">Notifications</span>
+    @if (unreadCount() > 0) {
+      <button mat-button class="mark-all-btn" (click)="markAllRead()">
+        Tout marquer lu
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="notif-loading" (click)="$event.stopPropagation()">
+      Chargement...
+    </div>
+  } @else if (notifications().length === 0) {
+    <div class="notif-empty" (click)="$event.stopPropagation()">
+      Aucune notification
+    </div>
+  } @else {
+    @for (notif of notifications(); track notif.id) {
+      <button mat-menu-item
+              class="notif-item"
+              [class.notif-unread]="!notif.isRead"
+              (click)="onNotificationClick(notif)">
+        <mat-icon [style.color]="notificationIconColor(notif.type)">
+          {{ notificationIcon(notif.type) }}
+        </mat-icon>
+        <div class="notif-content">
+          <div class="notif-item-title">{{ notif.title }}</div>
+          @if (notif.message) {
+            <div class="notif-message">{{ notif.message }}</div>
+          }
+          <div class="notif-date">{{ notif.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+        </div>
+      </button>
+    }
+  }
+</mat-menu>
