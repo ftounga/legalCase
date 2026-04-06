@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="052-create-in-app-notifications" author="legalcase">
+        <comment>
+            Crée la table in_app_notifications pour le centre de notifications in-app.
+            Chaque notification est associée à un utilisateur et un workspace.
+        </comment>
+
+        <createTable tableName="in_app_notifications">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_in_app_notifications_user"
+                             references="users(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_in_app_notifications_workspace"
+                             references="workspaces(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message" type="VARCHAR(1000)"/>
+            <column name="link" type="VARCHAR(500)"/>
+            <column name="is_read" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="read_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+
+        <createIndex tableName="in_app_notifications"
+                     indexName="idx_in_app_notifications_user_workspace_read">
+            <column name="user_id"/>
+            <column name="workspace_id"/>
+            <column name="is_read"/>
+        </createIndex>
+
+        <createIndex tableName="in_app_notifications"
+                     indexName="idx_in_app_notifications_workspace_created">
+            <column name="workspace_id"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>
