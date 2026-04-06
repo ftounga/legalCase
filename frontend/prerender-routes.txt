@@ -1,0 +1,6 @@
+/
+/login
+/contact
+/mentions-legales
+/privacy
+/cgu

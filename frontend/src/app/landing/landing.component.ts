@@ -1,4 +1,5 @@
-import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit } from '@angular/core';
+import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 
@@ -13,6 +14,7 @@ import { Title, Meta } from '@angular/platform-browser';
 export class LandingComponent implements OnInit, AfterViewInit {
   private title = inject(Title);
   private meta = inject(Meta);
+  private platformId = inject(PLATFORM_ID);
 
   ngOnInit(): void {
     this.title.setTitle('AI LegalCase — L\'IA au service de vos dossiers juridiques');
@@ -23,6 +25,10 @@ export class LandingComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     // Scroll animations
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
