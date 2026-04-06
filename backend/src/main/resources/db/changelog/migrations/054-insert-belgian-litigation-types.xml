@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="054-insert-belgian-litigation-types" author="legalcase">
+        <comment>
+            1. Met à jour les types de litige français existants pour ajouter country='FRANCE'
+               (ils avaient country=NULL — empêche le filtrage par pays).
+            2. Insère les 7 types de litige belges en droit du travail (country='BELGIQUE').
+            Prescriptions basées sur la Loi du 3 juillet 1978 (art. 15 : 1 an post-contrat)
+            et le droit commun (5 ans pour harcèlement/discrimination).
+        </comment>
+
+        <!-- ============================================================ -->
+        <!-- Mise à jour des types français : country NULL → FRANCE       -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+UPDATE legal_referentials SET country = 'FRANCE'
+WHERE legal_domain = 'DROIT_DU_TRAVAIL' AND referential_type = 'LITIGATION_TYPE' AND country IS NULL;
+
+UPDATE legal_referentials SET country = 'FRANCE'
+WHERE legal_domain = 'DROIT_DU_TRAVAIL' AND referential_type = 'BAREME_MACRON' AND country IS NULL;
+        </sql>
+
+        <!-- ============================================================ -->
+        <!-- DROIT_DU_TRAVAIL — LITIGATION_TYPE Belgique (7 types)        -->
+        <!-- ============================================================ -->
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b1', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE', '{"years":1,"article":"CCT n° 109 du CNT","postContrat":true}', 'Licenciement manifestement déraisonnable', 'BELGIQUE', true, true, 'CCT n° 109 du CNT, art. 8', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b2', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'LICENCIEMENT_MOTIF_GRAVE', '{"years":1,"article":"Art. 35, Loi du 3 juillet 1978","postContrat":true}', 'Licenciement pour motif grave', 'BELGIQUE', true, true, 'Art. 35, Loi du 3 juillet 1978', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b3', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'RUPTURE_IRREGULIERE', '{"years":1,"article":"Art. 15, Loi du 3 juillet 1978","postContrat":true}', 'Rupture irrégulière (absence de préavis)', 'BELGIQUE', true, true, 'Art. 15, Loi du 3 juillet 1978', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b4', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'HARCELEMENT_MORAL', '{"years":5,"article":"Loi du 4 août 1996, art. 32bis"}', 'Harcèlement moral au travail', 'BELGIQUE', true, true, 'Loi du 4 août 1996, art. 32bis', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b5', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'HARCELEMENT_SEXUEL', '{"years":5,"article":"Loi du 4 août 1996, art. 32ter"}', 'Harcèlement sexuel au travail', 'BELGIQUE', true, true, 'Loi du 4 août 1996, art. 32ter', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b6', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'DISCRIMINATION', '{"years":5,"article":"Loi du 10 mai 2007"}', 'Discrimination', 'BELGIQUE', true, true, 'Loi du 10 mai 2007', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b7', NULL, 'DROIT_DU_TRAVAIL', 'LITIGATION_TYPE', 'RAPPEL_SALAIRE', '{"years":1,"article":"Art. 15, Loi du 3 juillet 1978","postContrat":true}', 'Rappel de salaire et heures supplémentaires', 'BELGIQUE', true, true, 'Art. 15, Loi du 3 juillet 1978', NOW(), NULL);
+        </sql>
+
+    </changeSet>
+
+</databaseChangeLog>

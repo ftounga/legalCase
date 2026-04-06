@@ -27,6 +27,8 @@ class StatutoryDeadlineServiceTest {
         // Délègue aux méthodes statiques Java (comportement fallback)
         when(referentialService.getLitigationPeriod(any()))
                 .thenAnswer(inv -> LitigationTypeMapper.resolve(inv.getArgument(0)));
+        when(referentialService.getLitigationPeriod(any(), any()))
+                .thenAnswer(inv -> LitigationTypeMapper.resolve(inv.getArgument(0)));
         when(referentialService.getImmigrationJalons(any()))
                 .thenAnswer(inv -> ImmigrationProcedureReferentiel.resolve(inv.getArgument(0)));
     }
@@ -42,6 +44,9 @@ class StatutoryDeadlineServiceTest {
         CaseFile cf = new CaseFile();
         cf.setId(UUID.randomUUID());
         cf.setCreatedAt(createdAt);
+        fr.ailegalcase.workspace.Workspace ws = new fr.ailegalcase.workspace.Workspace();
+        ws.setCountry("FRANCE");
+        cf.setWorkspace(ws);
         return cf;
     }
 

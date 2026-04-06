@@ -114,10 +114,20 @@ public class LegalReferentialService {
     // -----------------------------------------------------------------------
 
     public Optional<LitigationPeriod> getLitigationPeriod(String type) {
+        return getLitigationPeriod(type, null);
+    }
+
+    public Optional<LitigationPeriod> getLitigationPeriod(String type, String country) {
         if (type == null) return Optional.empty();
         try {
-            List<LegalReferential> entries = repository.findSystemEntry(
-                    "DROIT_DU_TRAVAIL", "LITIGATION_TYPE", type.trim().toUpperCase());
+            List<LegalReferential> entries;
+            if (country != null) {
+                entries = repository.findSystemEntryByCountry(
+                        "DROIT_DU_TRAVAIL", "LITIGATION_TYPE", type.trim().toUpperCase(), country);
+            } else {
+                entries = repository.findSystemEntry(
+                        "DROIT_DU_TRAVAIL", "LITIGATION_TYPE", type.trim().toUpperCase());
+            }
             if (!entries.isEmpty()) {
                 JsonNode node = MAPPER.readTree(entries.get(0).getValueJson());
                 int years = node.get("years").asInt();
@@ -126,9 +136,26 @@ public class LegalReferentialService {
                 return Optional.of(new LitigationPeriod(years, article, label));
             }
         } catch (Exception e) {
-            log.warn("LegalReferentialService: fallback getLitigationPeriod({}) — {}", type, e.getMessage());
+            log.warn("LegalReferentialService: fallback getLitigationPeriod({}, {}) — {}", type, country, e.getMessage());
         }
         return LitigationTypeMapper.resolve(type);
+    }
+
+    /**
+     * Returns the litigation type keys available for a given country.
+     * Used to dynamically build the IA prompt with the right types.
+     */
+    public List<String> getLitigationTypeKeys(String country) {
+        try {
+            return repository.findSystemEntriesByTypeAndCountry(
+                    "DROIT_DU_TRAVAIL", "LITIGATION_TYPE", country)
+                    .stream()
+                    .map(LegalReferential::getEntryKey)
+                    .toList();
+        } catch (Exception e) {
+            log.warn("LegalReferentialService: getLitigationTypeKeys({}) — {}", country, e.getMessage());
+            return List.of();
+        }
     }
 
     // -----------------------------------------------------------------------

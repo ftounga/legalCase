@@ -44,14 +44,19 @@ public class EnrichedAnalysisService {
             Le champ "score_risque" est obligatoire : évalue le niveau de risque global du dossier. "niveau" est l'un de "FAIBLE", "MOYEN" ou "ELEVE". "valeur" est un entier entre 0 et 100 reflétant l'intensité du risque (0 = aucun risque, 100 = risque maximum).
             Le champ "checks_a_requalifier" liste les points procéduraux marqués "vérifiés" dans le prompt que tu estimes devoir requalifier à la lumière des nouvelles informations. Pour chaque point : "description" doit correspondre exactement au libellé fourni dans le prompt, "nouveau_statut" est "NON_COMPLIANT" si le point est manifestement non respecté ou "TO_CHECK" si des doutes subsistent, "raison" explique brièvement pourquoi ce point doit être revu. Si aucun point vérifié ne doit être requalifié, utilise "checks_a_requalifier": [].
             Le champ "compensation_data" contient les données nécessaires au calcul des indemnités de rupture pour un dossier de droit du travail. Renseigne "type_rupture" parmi : "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE" (null si non déterminable). "anciennete_annees" et "anciennete_mois" sont l'ancienneté totale (entiers). "salaire_reference_mensuel" est le salaire brut mensuel moyen de référence (décimal). Utilise null pour chaque champ non déterminable. Si le dossier ne relève pas du droit du travail ou si aucune rupture n'est identifiée, utilise "compensation_data": null.
-            Le champ "type_litige_detecte" identifie le type principal de litige prud'homal du dossier. Utilise l'une des valeurs suivantes (null si non déterminable) : "LICENCIEMENT_SANS_CAUSE_REELLE", "LICENCIEMENT_ECONOMIQUE", "PRISE_ACTE_RUPTURE", "HARCELEMENT_MORAL", "DISCRIMINATION", "HEURES_SUPPLEMENTAIRES", "RAPPEL_SALAIRE".
+            Le champ "type_litige_detecte" identifie le type principal de litige du dossier. Utilise l'une des valeurs suivantes (null si non déterminable) : %s.
             Le champ "date_reference_prescription" est la date à partir de laquelle commence le délai de prescription (ex : date de rupture du contrat, date des faits). Format ISO 8601 (YYYY-MM-DD). Utilise null si non déterminable.
             Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
             """;
 
-    static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
+    static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits,
+                                     List<String> litigationTypeKeys) {
+        String litigationTypes = litigationTypeKeys.isEmpty()
+                ? "aucun type configuré"
+                : litigationTypeKeys.stream().map(k -> "\"" + k + "\"").collect(java.util.stream.Collectors.joining(", "));
         return SYSTEM_PROMPT_TEMPLATE.formatted(
                 LegalDomainPromptBuilder.domainLabel(legalDomain, country),
+                litigationTypes,
                 limits.getTimeline(), limits.getFaits(),
                 limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes(),
                 limits.getPiecesManquantes(), limits.getPointsProcedure())
@@ -75,6 +80,7 @@ public class EnrichedAnalysisService {
     private final ChatMessageRepository chatMessageRepository;
     private final ProcedureCheckService procedureCheckService;
     private final StatutoryDeadlineService statutoryDeadlineService;
+    private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -92,7 +98,8 @@ public class EnrichedAnalysisService {
                                    AnalysisLimitsProperties analysisLimitsProperties,
                                    ChatMessageRepository chatMessageRepository,
                                    ProcedureCheckService procedureCheckService,
-                                   StatutoryDeadlineService statutoryDeadlineService) {
+                                   StatutoryDeadlineService statutoryDeadlineService,
+                                   fr.ailegalcase.referential.LegalReferentialService legalReferentialService) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -107,6 +114,7 @@ public class EnrichedAnalysisService {
         this.chatMessageRepository = chatMessageRepository;
         this.procedureCheckService = procedureCheckService;
         this.statutoryDeadlineService = statutoryDeadlineService;
+        this.legalReferentialService = legalReferentialService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -190,7 +198,10 @@ public class EnrichedAnalysisService {
         String legalDomain = ws != null ? ws.getLegalDomain() : "DROIT_DU_TRAVAIL";
         String country     = ws != null ? ws.getCountry()     : "FRANCE";
         AnalysisLimitsProperties.LevelLimits limits = analysisLimitsProperties.forDomain(legalDomain).getDossier();
-        String systemPrompt = buildSystemPrompt(legalDomain, country, limits);
+        List<String> litigationTypeKeys = "DROIT_DU_TRAVAIL".equals(legalDomain)
+                ? legalReferentialService.getLitigationTypeKeys(country)
+                : List.of();
+        String systemPrompt = buildSystemPrompt(legalDomain, country, limits, litigationTypeKeys);
         String chatSummary = buildChatSummary(caseFileId);
         List<String> nonCompliantChecks;
         try {

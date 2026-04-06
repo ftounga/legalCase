@@ -39,12 +39,14 @@ class EnrichedAnalysisServiceTest {
     private final ProcedureCheckService procedureCheckService = mock(ProcedureCheckService.class);
     private final fr.ailegalcase.casefile.StatutoryDeadlineService statutoryDeadlineService =
             mock(fr.ailegalcase.casefile.StatutoryDeadlineService.class);
+    private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService =
+            mock(fr.ailegalcase.referential.LegalReferentialService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, statutoryDeadlineService);
+            chatMessageRepository, procedureCheckService, statutoryDeadlineService, legalReferentialService);
 
     @BeforeEach
     void setUp() {
@@ -283,7 +285,8 @@ class EnrichedAnalysisServiceTest {
     void systemPrompt_containsRequiredFields() {
         AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
         l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
-        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l,
+                java.util.List.of("LICENCIEMENT_SANS_CAUSE_REELLE", "HARCELEMENT_MORAL"));
         assertThat(prompt).contains("timeline");
         assertThat(prompt).contains("faits");
         assertThat(prompt).contains("enrichie");

@@ -127,8 +127,9 @@ public class StatutoryDeadlineService {
         JsonNode typeNode = root.get("type_litige_detecte");
         if (typeNode == null || typeNode.isNull()) return;
 
+        String country = analysis.getCaseFile().getWorkspace().getCountry();
         Optional<LitigationPeriod> periodOpt =
-                referentialService.getLitigationPeriod(typeNode.asText());
+                referentialService.getLitigationPeriod(typeNode.asText(), country);
         if (periodOpt.isEmpty()) {
             log.debug("StatutoryDeadline: unknown litigation type '{}' for analysis {} — skipped",
                     typeNode.asText(), analysis.getId());
