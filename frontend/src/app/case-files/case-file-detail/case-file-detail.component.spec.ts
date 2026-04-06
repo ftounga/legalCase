@@ -11,6 +11,7 @@ import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
+import { WorkspaceService } from '../../core/services/workspace.service';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { CaseNoteService } from '../../core/services/case-note.service';
@@ -89,6 +90,9 @@ describe('CaseFileDetailComponent', () => {
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
 
+    const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
+    workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of({ id: 'ws1', name: 'Test', slug: 'test', planCode: 'STARTER', status: 'ACTIVE', country: 'FRANCE' }));
+
     caseFileServiceSpy.getById.mockReturnValue(of(mockCaseFile));
     caseFileStatusServiceSpy.close.mockReturnValue(of({ ...mockCaseFile, status: 'CLOSED' }));
     caseFileStatusServiceSpy.reopen.mockReturnValue(of({ ...mockCaseFile, status: 'OPEN' }));
@@ -147,6 +151,7 @@ describe('CaseFileDetailComponent', () => {
         },
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy },
+        { provide: WorkspaceService, useValue: workspaceServiceSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
         provideAnimationsAsync()
