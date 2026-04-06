@@ -231,6 +231,29 @@ nav a:hover { color: var(--navy); }
   text-transform: uppercase;
 }
 
+/* ─── VIDÉO SHOWCASE ─── */
+.video-showcase {
+  background: var(--bg);
+  padding: 80px 5%;
+  text-align: center;
+}
+
+.video-container {
+  max-width: 840px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  aspect-ratio: 16 / 9;
+  background: var(--navy-deep);
+}
+
+.video-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 /* ─── SECTIONS COMMUNES ─── */
 section { padding: 96px 5%; }
 

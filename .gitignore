@@ -28,5 +28,5 @@ screenshoot
 *.env
 
 # Landing page (artefact de démo, non versionné)
-landing/
+/landing/
 e2e/screenshots/output/
