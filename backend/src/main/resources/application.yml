@@ -3,6 +3,10 @@ spring:
     name: legalcase-backend
   profiles:
     active: dev
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: never
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
   security:
