@@ -272,7 +272,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-46 | Tests E2E smoke branchés CI | V2 — **Terminée** | Workflow `smoke.yml` déclenché après `Backend CI/CD` et `Frontend CI/CD` (workflow_run, conclusion success) + workflow_dispatch. Playwright chromium, Node 22, secrets E2E_LOCAL_EMAIL/PASSWORD, rapport artifact sur échec. Compte e2e créé en base staging. SF-46-01 mergée 2026-03-28. |
 | F-47 | Monitoring & alertes applicatives | V2 — **Terminée** | Sentry backend (`sentry-spring-boot-starter-jakarta`) + frontend (`@sentry/angular`). Capture automatique exceptions + événement manuel sur job IA FAILED. DSN via env var, désactivé en dev. SF-47-01 + SF-47-02 mergées 2026-03-25. |
 | F-50 | Déploiement V1 — AWS EKS | V1 — **Terminée** | Infrastructure AWS (Terraform) + Dockerfiles + Kubernetes manifests + CI/CD GitHub Actions. Région eu-west-3 (Paris). Cluster EKS unique avec namespaces staging/production. RDS PostgreSQL, S3 AWS, ECR, RabbitMQ sur EKS. 6 subfeatures toutes terminées : SF-50-01 Dockerfiles ✅, SF-50-02 Terraform infra ✅, SF-50-03 K8s manifests ✅, SF-50-04 CI/CD ✅, SF-50-05 Config prod OAuth2 (Google)/Stripe ✅, SF-50-06 Monitoring Sentry ✅. Premier déploiement production 2026-03-25. |
-| F-117 | SEO — Mots-clés métier dans meta tags + structured data JSON-LD | V5 — **Backlog** | Enrichir title et meta description avec les mots-clés métier (avocat, droit du travail, contentieux, analyse IA). Ajouter un bloc JSON-LD schema.org SoftwareApplication sur la landing pour les rich snippets Google. Complète F-75 (meta tags) et F-116 (prerendering). |
+| F-117 | SEO — Mots-clés métier dans meta tags + structured data JSON-LD | V5 — **Terminée** | Title et meta description enrichis avec mots-clés métier (avocat, droit du travail, contentieux, cabinet). JSON-LD SoftwareApplication injecté par LandingComponent, présent dans le HTML pré-rendu SSG. OG et Twitter Card cohérents. SF-117-01 mergée 2026-04-06. 657 tests verts. |
 | F-116 | SEO — Prerendering SSG de la landing page | V5 — **Terminée** | Prerendering statique (SSG) via `@angular/ssr` sur 6 routes publiques (`/`, `/login`, `/contact`, `/mentions-legales`, `/privacy`, `/cgu`). Les crawlers reçoivent du HTML complet. `provideClientHydration(withEventReplay())`, `isPlatformBrowser` guard sur LandingComponent, `discoverRoutes: false` + `routesFile`. Routes auth en SPA classique. SF-116-01 mergée 2026-04-06. 657 tests verts. |
 
 ---
@@ -281,6 +281,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-06 | F-117 Terminée — SF-117-01 mergée : title/description enrichis mots-clés métier, JSON-LD SoftwareApplication, OG/Twitter Card cohérents, 657 tests verts | Product owner |
 | 2026-04-06 | F-116 Terminée — SF-116-01 mergée : prerendering SSG @angular/ssr sur 6 routes publiques, provideClientHydration, isPlatformBrowser guard, 657 tests verts | Product owner |
 | 2026-04-05 | F-111 SF-111-03 mergée — refonte visuelle dashboard : KPI bar, layout 2 colonnes, cartes riches, empty states stylisés, 646 tests verts | Product owner |
 | 2026-04-04 | F-112 Terminée — SF-112-01 mergée : AnalysisPipelineComponent 5 étapes, upload reportProgress, modes adaptatifs, compteurs X/Y, temps écoulé, animations, 641 tests verts | Product owner |
