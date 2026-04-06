@@ -1,5 +1,7 @@
 package fr.ailegalcase.analysis;
 
+import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.notification.InAppNotificationService;
 import fr.ailegalcase.workspace.EmailService;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +13,10 @@ import static org.mockito.Mockito.*;
 class RequalificationAlertServiceTest {
 
     private final EmailService emailService = mock(EmailService.class);
-    private final RequalificationAlertService service = new RequalificationAlertService(emailService);
+    private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
+    private final InAppNotificationService inAppNotificationService = mock(InAppNotificationService.class);
+    private final RequalificationAlertService service = new RequalificationAlertService(
+            emailService, caseFileRepository, inAppNotificationService);
 
     @Test
     void onRequalification_callsSendRequalificationAlert() {

@@ -1,5 +1,7 @@
 package fr.ailegalcase.casefile;
 
+import fr.ailegalcase.notification.InAppNotificationService;
+import fr.ailegalcase.notification.NotificationType;
 import fr.ailegalcase.workspace.EmailService;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -24,15 +26,18 @@ public class DeadlineAlertService {
     private final DeadlineAlertSendRepository alertSendRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final EmailService emailService;
+    private final InAppNotificationService inAppNotificationService;
 
     public DeadlineAlertService(CaseDeadlineRepository deadlineRepository,
                                 DeadlineAlertSendRepository alertSendRepository,
                                 WorkspaceMemberRepository workspaceMemberRepository,
-                                EmailService emailService) {
+                                EmailService emailService,
+                                InAppNotificationService inAppNotificationService) {
         this.deadlineRepository = deadlineRepository;
         this.alertSendRepository = alertSendRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.emailService = emailService;
+        this.inAppNotificationService = inAppNotificationService;
     }
 
     @Scheduled(cron = "0 0 8 * * *")
@@ -119,6 +124,16 @@ public class DeadlineAlertService {
                         deadline.getLabel(), dueDateStr, daysRemaining);
             } catch (Exception e) {
                 log.warn("DeadlineAlert: failed to send to {} — {}", email, e.getMessage());
+            }
+            try {
+                inAppNotificationService.create(
+                        member.getUser().getId(), workspaceId,
+                        NotificationType.DEADLINE_APPROACHING,
+                        "Délai J-" + daysRemaining + " : " + deadline.getLabel(),
+                        caseFileTitle + " — Échéance le " + dueDateStr,
+                        "/case-files/" + caseFileId);
+            } catch (Exception e) {
+                log.warn("DeadlineAlert: failed to create in-app notification for member {} — {}", member.getUser().getId(), e.getMessage());
             }
         }
     }

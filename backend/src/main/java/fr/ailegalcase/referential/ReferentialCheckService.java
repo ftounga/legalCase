@@ -1,6 +1,8 @@
 package fr.ailegalcase.referential;
 
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.notification.InAppNotificationService;
+import fr.ailegalcase.notification.NotificationType;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.slf4j.Logger;
@@ -43,6 +45,7 @@ public class ReferentialCheckService {
     private final AnthropicService anthropicService;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final fr.ailegalcase.workspace.EmailService emailService;
+    private final InAppNotificationService inAppNotificationService;
     private final String frontendUrl;
 
     public ReferentialCheckService(
@@ -51,12 +54,14 @@ public class ReferentialCheckService {
             AnthropicService anthropicService,
             WorkspaceMemberRepository workspaceMemberRepository,
             fr.ailegalcase.workspace.EmailService emailService,
+            InAppNotificationService inAppNotificationService,
             @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl) {
         this.referentialRepository = referentialRepository;
         this.alertRepository = alertRepository;
         this.anthropicService = anthropicService;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.emailService = emailService;
+        this.inAppNotificationService = inAppNotificationService;
         this.frontendUrl = frontendUrl;
     }
 
@@ -139,6 +144,17 @@ public class ReferentialCheckService {
                 emailService.sendReferentialAlert(owner.getUser().getEmail(), frontendUrl);
             } catch (Exception e) {
                 log.warn("ReferentialCheckService: failed to notify owner {} — {}", owner.getUser().getEmail(), e.getMessage());
+            }
+            try {
+                inAppNotificationService.create(
+                        owner.getUser().getId(),
+                        java.util.UUID.fromString(wsId),
+                        NotificationType.REFERENTIAL_ALERT,
+                        "Alerte référentiel détectée",
+                        "Une incohérence a été détectée dans les barèmes juridiques.",
+                        "/referentials");
+            } catch (Exception e) {
+                log.warn("ReferentialCheckService: failed to create in-app notification for owner {} — {}", owner.getUser().getEmail(), e.getMessage());
             }
         }));
     }
