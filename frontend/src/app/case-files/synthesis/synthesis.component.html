@@ -262,6 +262,54 @@
         </mat-expansion-panel>
       }
 
+      @if (belgianCompensationEstimate) {
+        <mat-expansion-panel expanded>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--compensation">calculate</mat-icon>
+              Indemnités de préavis (droit belge)
+            </mat-panel-title>
+            <mat-panel-description>Loi du 3 juillet 1978 + CCT n° 109</mat-panel-description>
+          </mat-expansion-panel-header>
+          <div class="compensation-block">
+            @if (belgianCompensationEstimate.donneesPartielles) {
+              <div class="compensation-warning">
+                <mat-icon class="compensation-warning__icon">warning_amber</mat-icon>
+                <span>Données partielles — vérifier l'ancienneté et le salaire de référence</span>
+              </div>
+            }
+            <div class="compensation-grid">
+              <div class="compensation-row compensation-row--main">
+                <span class="compensation-label">Préavis légal</span>
+                <span class="compensation-value">{{ belgianCompensationEstimate.preavisSemaines }} semaines</span>
+              </div>
+              <div class="compensation-row compensation-row--main">
+                <span class="compensation-label">Indemnité compensatoire de préavis</span>
+                <span class="compensation-value">{{ formatEuros(belgianCompensationEstimate.indemniteCompensatoire) }}</span>
+              </div>
+              <div class="compensation-row compensation-row--detail">
+                <span class="compensation-label">Ancienneté</span>
+                <span class="compensation-value">{{ formatAnciennete(belgianCompensationEstimate.ancienneteAnnees, belgianCompensationEstimate.ancienneteMois) }}</span>
+              </div>
+              <div class="compensation-row compensation-row--detail">
+                <span class="compensation-label">Salaire de référence</span>
+                <span class="compensation-value">{{ formatEuros(belgianCompensationEstimate.salaireReference) }}/mois ({{ formatEuros(belgianCompensationEstimate.salaireHebdomadaire) }}/sem.)</span>
+              </div>
+              <div class="compensation-row compensation-row--separator"></div>
+              <div class="compensation-row compensation-row--main">
+                <span class="compensation-label">Fourchette CCT n° 109 (licenciement manifestement déraisonnable)</span>
+                <span class="compensation-value">{{ belgianCompensationEstimate.cct109MinSemaines }} — {{ belgianCompensationEstimate.cct109MaxSemaines }} semaines</span>
+              </div>
+              <div class="compensation-row compensation-row--detail">
+                <span class="compensation-label">Soit</span>
+                <span class="compensation-value">{{ formatEuros(belgianCompensationEstimate.cct109MinEuros) }} — {{ formatEuros(belgianCompensationEstimate.cct109MaxEuros) }}</span>
+              </div>
+            </div>
+            <p class="compensation-disclaimer">Estimation indicative — données extraites par l'IA, non certifiées. Ne tient pas compte des droits acquis avant le 01/01/2014.</p>
+          </div>
+        </mat-expansion-panel>
+      }
+
       @if (pensionAlimentaireEstimate) {
         <mat-expansion-panel expanded>
           <mat-expansion-panel-header>

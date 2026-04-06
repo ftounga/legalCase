@@ -26,6 +26,7 @@ public record CaseAnalysisResponse(
         Instant updatedAt,
         List<AnalysisDocumentEntry> analysisDocuments,
         CompensationCalculator.CompensationEstimate compensationEstimate,
+        BelgianCompensationCalculator.BelgianCompensationEstimate belgianCompensationEstimate,
         PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate,
         PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate,
         LiquidationCommunauteResult liquidationCommunaute
@@ -106,6 +107,7 @@ public record CaseAnalysisResponse(
         List<String> piecesManquantes = List.of();
         List<String> pointsProcedure = List.of();
         CompensationCalculator.CompensationEstimate compensationEstimate = null;
+        BelgianCompensationCalculator.BelgianCompensationEstimate belgianCompensationEstimate = null;
         PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate = null;
         PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate = null;
         LiquidationCommunauteResult liquidationCommunaute = null;
@@ -150,10 +152,30 @@ public record CaseAnalysisResponse(
                 analysis.getUpdatedAt(),
                 analysisDocuments,
                 compensationEstimate,
+                belgianCompensationEstimate,
                 pensionAlimentaireEstimate,
                 prestationCompensatoireEstimate,
                 liquidationCommunaute
         );
+    }
+
+    public static CaseAnalysisResponse from(CaseAnalysis analysis, List<AnalysisDocument> documents, String country) {
+        CaseAnalysisResponse base = from(analysis, documents);
+        if ("BELGIQUE".equals(country) && base.compensationEstimate() != null) {
+            var ce = base.compensationEstimate();
+            var belgian = BelgianCompensationCalculator.calculate(
+                    ce.ancienneteAnnees(), ce.ancienneteMois(), ce.salaireReference()).orElse(null);
+            return new CaseAnalysisResponse(
+                    base.id(), base.version(), base.analysisType(), base.status(),
+                    base.timeline(), base.faits(), base.pointsJuridiques(), base.risques(),
+                    base.questionsOuvertes(), base.piecesManquantes(), base.pointsProcedure(),
+                    base.riskLevel(), base.riskScore(), base.modelUsed(), base.updatedAt(),
+                    base.analysisDocuments(),
+                    null, belgian,
+                    base.pensionAlimentaireEstimate(), base.prestationCompensatoireEstimate(),
+                    base.liquidationCommunaute());
+        }
+        return base;
     }
 
     static CompensationCalculator.CompensationEstimate extractCompensationEstimate(JsonNode root) {
