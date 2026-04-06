@@ -153,6 +153,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ~~F-DT-02~~ | ~~Détection de clauses abusives~~ | ~~Abandonné~~ | Reclassé comme amélioration du prompt DROIT_DU_TRAVAIL dans `LegalDomainPromptBuilder`. La synthèse existante (`risques` + `points_juridiques`) couvre ce besoin si le prompt l'instruit explicitement. |
 | F-DT-03 | Délais de prescription ciblés par type de litige | `Terminée` | Classification du type de litige (7 types Code du travail) → délai légal correspondant (1/3/5 ans) → calcul date d'expiration → affiché en lecture seule dans le bloc délais. SF-DT-03-01 mergée. |
 | F-DT-04 | Génération fiche prud'homale | `Terminée` | SF-DT-04-01 (backend CRUD + table prudhome_fiches) + SF-DT-04-02 (formulaire Angular réactif) + SF-DT-04-03 (export PDF pdfmake) mergées. |
+| F-DT-05 | Droit du travail belge — types de litige, prescription et indemnités de préavis | V6 — **Backlog** | Le droit du travail est 100% français. Ajouter : 7 types de litige belges avec prescription (art. 15 Loi 1978), calculateur indemnités de préavis belge (table ancienneté → semaines, indemnité compensatoire, fourchette CCT 109). SF-DT-05-01 : migration données litige belge. SF-DT-05-02 : calculateur préavis belge backend+frontend. |
 
 ### Features métier — Droit de l'immigration
 
