@@ -4,6 +4,7 @@ import { CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate, P
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
 import { PrudhomeFiche } from '../models/prudhome-fiche.model';
+import { TribunalTravailFiche } from '../models/tribunal-travail-fiche.model';
 import { ImmigrationChecklist } from '../models/immigration-checklist.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 
@@ -1084,5 +1085,217 @@ export class PdfExportService {
       .slice(0, 40);
     const date = new Date().toISOString().slice(0, 10);
     return `checklist-pieces-${slug}-${date}.pdf`;
+  }
+
+  // ── Export requête tribunal du travail belge ──
+
+  exportTribunalTravailFiche(fiche: TribunalTravailFiche, caseFileTitle: string): void {
+    import('pdfmake/build/pdfmake').then(pdfMakeModule => {
+      import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
+        const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
+        const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
+        pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
+
+        const docDefinition = this.buildTribunalTravailDocument(fiche, caseFileTitle) as TDocumentDefinitions;
+        const fileName = this.buildTribunalTravailFileName(caseFileTitle);
+        pdfMake.createPdf(docDefinition).download(fileName);
+      });
+    });
+  }
+
+  buildTribunalTravailDocument(fiche: TribunalTravailFiche, caseFileTitle: string): object {
+    const exportDate = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+    const fmt = (n: number | null) =>
+      n != null
+        ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
+        : '—';
+    const langueLabel = (l: string | null) => {
+      if (l === 'NL') return 'Néerlandais';
+      if (l === 'DE') return 'Allemand';
+      return 'Français';
+    };
+
+    const content: object[] = [
+      { text: '', margin: [0, 40, 0, 0] },
+      {
+        image: LEGALCASE_LOGO_BASE64,
+        width: 180,
+        alignment: 'center',
+        margin: [0, 0, 0, 24],
+      },
+      {
+        canvas: [{ type: 'line', x1: 80, y1: 0, x2: 420, y2: 0, lineWidth: 2, lineColor: ACCENT }],
+        margin: [0, 0, 0, 20],
+      },
+      {
+        text: caseFileTitle || 'Dossier',
+        style: 'coverTitle',
+        alignment: 'center',
+        margin: [0, 0, 0, 8],
+      },
+      {
+        text: 'Requête contradictoire — Tribunal du travail',
+        fontSize: 13,
+        color: TEXT_SECONDARY,
+        alignment: 'center',
+        margin: [0, 0, 0, 4],
+      },
+      {
+        text: `Art. 702/704 Code judiciaire belge`,
+        fontSize: 10,
+        color: TEXT_SECONDARY,
+        alignment: 'center',
+        margin: [0, 0, 0, 4],
+      },
+      {
+        text: `Générée le ${exportDate}`,
+        fontSize: 10,
+        color: TEXT_SECONDARY,
+        alignment: 'center',
+        margin: [0, 0, 0, 4],
+      },
+      {
+        text: 'Document pré-rempli à environ 60-70% — À vérifier avant tout usage',
+        fontSize: 9,
+        color: ACCENT,
+        italics: true,
+        alignment: 'center',
+        margin: [0, 0, 0, 24],
+      },
+      {
+        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: DIVIDER }],
+        margin: [0, 0, 0, 16],
+      },
+
+      // Requérant
+      this.buildPrudhomeSectionHeader('Requérant'),
+      {
+        table: {
+          widths: [140, '*'],
+          body: [
+            [{ text: 'Nom', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.requerant?.nom || '—', fontSize: 10 }],
+            [{ text: 'Prénom', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.requerant?.prenom || '—', fontSize: 10 }],
+            [{ text: 'Domicile', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.requerant?.domicile || '—', fontSize: 10 }],
+            [{ text: 'Registre national', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.requerant?.registreNational || '—', fontSize: 10 }],
+          ]
+        },
+        layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+        margin: [0, 0, 0, 16],
+      },
+
+      // Défendeur
+      this.buildPrudhomeSectionHeader('Défendeur'),
+      {
+        table: {
+          widths: [140, '*'],
+          body: [
+            [{ text: 'Nom / Raison sociale', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.nom || '—', fontSize: 10 }],
+            [{ text: 'Siège social', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.siegeSocial || '—', fontSize: 10 }],
+            [{ text: 'N° BCE', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.numeroBce || '—', fontSize: 10 }],
+            [{ text: 'Représentant légal', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.defendeur?.representant || '—', fontSize: 10 }],
+          ]
+        },
+        layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+        margin: [0, 0, 0, 16],
+      },
+
+      // Procédure
+      this.buildPrudhomeSectionHeader('Procédure'),
+      {
+        table: {
+          widths: [140, '*'],
+          body: [
+            [{ text: 'Tribunal du travail', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.procedureInfo?.tribunal || '—', fontSize: 10 }],
+            [{ text: 'Division', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.procedureInfo?.division || '—', fontSize: 10 }],
+            [{ text: 'Langue', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: langueLabel(fiche.procedureInfo?.langue), fontSize: 10 }],
+            [{ text: 'Commission paritaire', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.procedureInfo?.commissionParitaire || '—', fontSize: 10 }],
+          ]
+        },
+        layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+        margin: [0, 0, 0, 16],
+      },
+
+      // Contrat
+      this.buildPrudhomeSectionHeader('Contrat de travail'),
+      {
+        table: {
+          widths: [140, '*'],
+          body: [
+            [{ text: 'Type de contrat', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.contratInfo?.typeContrat === 'OUVRIER' ? 'Ouvrier' : 'Employé', fontSize: 10 }],
+            [{ text: 'Date de début', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.contratInfo?.dateDebut || '—', fontSize: 10 }],
+            [{ text: 'Date de fin', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.contratInfo?.dateFin || '—', fontSize: 10 }],
+            [{ text: 'Motif de rupture', bold: true, fontSize: 9, color: TEXT_SECONDARY }, { text: fiche.contratInfo?.motifRupture || '—', fontSize: 10 }],
+          ]
+        },
+        layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+        margin: [0, 0, 0, 16],
+      },
+
+      // Demandes
+      this.buildPrudhomeSectionHeader('Demandes chiffrées'),
+      (fiche.demandes?.length ?? 0) > 0
+        ? {
+            table: {
+              widths: ['*', 100],
+              headerRows: 1,
+              body: [
+                [
+                  { text: 'Intitulé', bold: true, color: SURFACE, fillColor: PRIMARY, fontSize: 9, margin: [8, 5, 4, 5] },
+                  { text: 'Montant', bold: true, color: SURFACE, fillColor: PRIMARY, fontSize: 9, margin: [4, 5, 8, 5], alignment: 'right' },
+                ],
+                ...(fiche.demandes ?? []).map((d, i) => [
+                  { text: d.label, fontSize: 10, fillColor: i % 2 === 0 ? BG : SURFACE, margin: [8, 5, 4, 5] },
+                  { text: fmt(d.montant), fontSize: 10, fillColor: i % 2 === 0 ? BG : SURFACE, margin: [4, 5, 8, 5], alignment: 'right' },
+                ]),
+              ]
+            },
+            layout: { hLineWidth: () => 0.5, vLineWidth: () => 0, hLineColor: () => DIVIDER },
+            margin: [0, 0, 0, 16],
+          }
+        : { text: 'Aucune demande renseignée.', fontSize: 10, color: TEXT_SECONDARY, italics: true, margin: [0, 0, 0, 16] },
+
+      // Exposé des moyens
+      this.buildPrudhomeSectionHeader('Exposé sommaire des moyens'),
+      {
+        text: fiche.exposeDesMoyens || '—',
+        fontSize: 10,
+        margin: [0, 0, 0, 16],
+      },
+    ];
+
+    // Inventaire des pièces
+    if ((fiche.piecesList?.length ?? 0) > 0) {
+      content.push(
+        this.buildPrudhomeSectionHeader('Inventaire des pièces'),
+        ...(fiche.piecesList ?? []).map(p => ({
+          text: `${p.numero}. ${p.nom}`,
+          fontSize: 10,
+          margin: [8, 2, 0, 2],
+        }))
+      );
+    }
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [48, 64, 48, 64],
+      content,
+      footer: (currentPage: number, pageCount: number) => this.buildFooter(currentPage, pageCount),
+      defaultStyle: { font: 'Roboto', fontSize: 10, color: TEXT, lineHeight: 1.4 },
+      styles: this.buildStyles(),
+    };
+  }
+
+  buildTribunalTravailFileName(title: string): string {
+    const slug = (title || 'dossier')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const date = new Date().toISOString().slice(0, 10);
+    return `requete-tribunal-travail-${slug}-${date}.pdf`;
   }
 }

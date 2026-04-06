@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TribunalTravailFicheService } from '../../core/services/tribunal-travail-fiche.service';
+import { PdfExportService } from '../../core/services/pdf-export.service';
 import { TribunalTravailFiche, TribunalPiece } from '../../core/models/tribunal-travail-fiche.model';
 
 @Component({
@@ -33,6 +34,7 @@ export class TribunalTravailFicheSectionComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private ficheService: TribunalTravailFicheService,
+    private pdfExportService: PdfExportService,
     private snackBar: MatSnackBar
   ) {
     this.form = this.fb.group({
@@ -112,6 +114,28 @@ export class TribunalTravailFicheSectionComponent implements OnInit {
         });
       }
     });
+  }
+
+  exportPdf(): void {
+    const value = this.form.getRawValue();
+    const fiche: TribunalTravailFiche = {
+      id: null,
+      requerant: value.requerant,
+      defendeur: value.defendeur,
+      procedureInfo: value.procedureInfo,
+      contratInfo: value.contratInfo,
+      demandes: value.demandes,
+      exposeDesMoyens: value.exposeDesMoyens || null,
+      piecesList: this.pieces(),
+      updatedAt: null,
+    };
+    try {
+      this.pdfExportService.exportTribunalTravailFiche(fiche, this.caseFileTitle);
+    } catch {
+      this.snackBar.open('Erreur lors de la génération du PDF', 'Fermer', {
+        duration: 4000, panelClass: ['snack-error']
+      });
+    }
   }
 
   private patchForm(fiche: TribunalTravailFiche): void {
