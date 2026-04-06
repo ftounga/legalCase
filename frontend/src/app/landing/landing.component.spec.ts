@@ -27,7 +27,7 @@ describe('LandingComponent', () => {
   });
 
   it('définit le title SEO au chargement', () => {
-    expect(titleService.getTitle()).toBe('AI LegalCase — L\'IA au service de vos dossiers juridiques');
+    expect(titleService.getTitle()).toBe('AI LegalCase — Analyse IA pour avocats en droit du travail');
   });
 
   it('définit la meta description SEO au chargement', () => {
