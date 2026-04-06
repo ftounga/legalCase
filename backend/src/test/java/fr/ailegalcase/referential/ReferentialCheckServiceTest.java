@@ -2,6 +2,7 @@ package fr.ailegalcase.referential;
 
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.notification.InAppNotificationService;
 import fr.ailegalcase.workspace.EmailService;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -28,6 +29,7 @@ class ReferentialCheckServiceTest {
     @Mock private AnthropicService anthropicService;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private EmailService emailService;
+    @Mock private InAppNotificationService inAppNotificationService;
 
     private ReferentialCheckService service;
 
@@ -35,7 +37,8 @@ class ReferentialCheckServiceTest {
     void setUp() {
         service = new ReferentialCheckService(
                 referentialRepository, alertRepository, anthropicService,
-                workspaceMemberRepository, emailService, "http://localhost:4200");
+                workspaceMemberRepository, emailService, inAppNotificationService,
+                "http://localhost:4200");
     }
 
     private LegalReferential systemEntry(String key) {

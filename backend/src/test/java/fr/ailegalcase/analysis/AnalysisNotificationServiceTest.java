@@ -1,6 +1,7 @@
 package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.notification.InAppNotificationService;
 import fr.ailegalcase.workspace.EmailService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ class AnalysisNotificationServiceTest {
 
     @Mock private CaseFileRepository caseFileRepository;
     @Mock private EmailService emailService;
+    @Mock private InAppNotificationService inAppNotificationService;
     @InjectMocks private AnalysisNotificationService service;
 
     private final UUID caseFileId = UUID.randomUUID();
@@ -46,9 +48,9 @@ class AnalysisNotificationServiceTest {
         verify(emailService).sendAnalysisDone(eq("avocat@example.com"), eq(caseFileId), eq("Dossier Martin"), eq(JobType.ENRICHED_ANALYSIS));
     }
 
-    // U-03 : FAILED → sendAnalysisDone non appelé
+    // U-03 : FAILED → sendAnalysisDone non appelé, notification ANALYSIS_FAILED créée
     @Test
-    void onEvent_failed_doesNotSendEmail() {
+    void onEvent_failed_doesNotSendEmail_butCreatesInAppNotification() {
         service.onAnalysisStatusEvent(new AnalysisStatusEvent(caseFileId, AnalysisStatus.FAILED, JobType.CASE_ANALYSIS));
         verifyNoInteractions(emailService);
     }
