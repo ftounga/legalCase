@@ -207,7 +207,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-115 | Persistance des sessions HTTP | V5 — **Backlog** | Les sessions Spring Boot sont actuellement en mémoire : tout redémarrage du pod backend déconnecte tous les utilisateurs et invalide les flows OAuth2 en cours. Implémenter la persistance via Spring Session + JDBC (table `spring_session` en PostgreSQL) ou Redis. Bénéfices : sessions survivent aux redémarrages, rolling deployments sans disruption, scaling horizontal sans sticky sessions. Impact : ajout dépendance `spring-session-jdbc`, migration Liquibase, suppression du flag `server.servlet.session.persistent`. |
+| F-115 | Persistance des sessions HTTP | V5 — **Terminée** | Spring Session JDBC : sessions stockées en PostgreSQL/H2, survivent aux redémarrages de pods et rolling deployments. Dépendance spring-session-jdbc, config store-type=jdbc, migration 053 (tables spring_session + spring_session_attributes). Aucun code Java modifié — drop-in replacement. SF-115-01 mergée 2026-04-06. 621 tests verts. |
 | F-114 | Tests E2E fonctionnels métier | V5 — **Backlog** | Étendre la suite Playwright au-delà des smoke tests auth/navigation pour couvrir les parcours critiques : créer dossier → uploader document → lancer analyse → consulter synthèse → exporter PDF. Couverture des flows métier clés en conditions réelles (staging). |
 | F-113 | Centre de notifications in-app | V5 — **Terminée** | Icône cloche MatBadge dans le header, panneau dropdown, polling 60s. SF-113-01 : table in_app_notifications + 4 endpoints REST (GET paginé, unread-count, mark read, mark all read), 621 tests. SF-113-02 : alimentation fail-open depuis AnalysisNotificationService (DONE/FAILED), RequalificationAlertService, DeadlineAlertService, ReferentialCheckService, 621 tests. SF-113-03 : NotificationCenterComponent + NotificationService Angular, intégré dans ShellComponent, 666 tests. |
 | F-112 | Amélioration UX barres de progression | V4 — **Terminée** | SF-112-01 mergée 2026-04-04 : upload avec vrai % par fichier (`uploadWithProgress`, `reportProgress:true`), `AnalysisPipelineComponent` 5 étapes (Upload → Analyse docs → Synthèse → Questions → Synthèse enrichie) avec modes adaptatifs (buffer=PENDING, determinate=PROCESSING/DONE, rouge=FAILED), compteurs `X / Y`, temps écoulé sur job PROCESSING (ticker 1s), animations pulse-ring + spin. 641 tests verts. |
@@ -281,6 +281,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-06 | F-115 Terminée — SF-115-01 mergée : Spring Session JDBC, migration 053, sessions persistées en base, 621 tests verts | Product owner |
 | 2026-04-06 | F-113 Terminée — SF-113-03 mergée : NotificationCenterComponent (cloche MatBadge, panneau dropdown, polling 60s, markRead + navigation), NotificationService Angular, intégré ShellComponent, 666 tests verts | Product owner |
 | 2026-04-06 | F-113 En cours — SF-113-02 mergée : alimentation notifications fail-open depuis 4 services (AnalysisNotification, RequalificationAlert, DeadlineAlert, ReferentialCheck), 621 tests verts | Product owner |
 | 2026-04-06 | F-113 En cours — SF-113-01 mergée : table in_app_notifications (migration 052), 4 endpoints REST, isolation workspace, 4 TU + 7 IT, 621 tests verts | Product owner |
