@@ -1,5 +1,5 @@
-import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit, PLATFORM_ID } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Title, Meta } from '@angular/platform-browser';
 
@@ -11,17 +11,58 @@ import { Title, Meta } from '@angular/platform-browser';
   styleUrl: './landing.component.scss',
   encapsulation: ViewEncapsulation.None
 })
-export class LandingComponent implements OnInit, AfterViewInit {
+export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   private title = inject(Title);
   private meta = inject(Meta);
   private platformId = inject(PLATFORM_ID);
+  private document = inject(DOCUMENT);
+  private jsonLdElement: HTMLScriptElement | null = null;
 
   ngOnInit(): void {
-    this.title.setTitle('AI LegalCase — L\'IA au service de vos dossiers juridiques');
-    this.meta.updateTag({ name: 'description', content: 'Analysez automatiquement vos dossiers juridiques en quelques minutes. Faits clés, risques, timeline, points de droit. Essai gratuit 14 jours.' });
-    this.meta.updateTag({ property: 'og:title', content: 'AI LegalCase — L\'IA au service de vos dossiers juridiques' });
-    this.meta.updateTag({ property: 'og:description', content: 'Analysez automatiquement vos dossiers juridiques en quelques minutes. Faits clés, risques, timeline, points de droit. Essai gratuit 14 jours.' });
+    this.title.setTitle('AI LegalCase — Analyse IA pour avocats en droit du travail');
+    this.meta.updateTag({ name: 'description', content: 'Outil IA pour avocats : analysez vos dossiers contentieux en droit du travail en quelques minutes. Synthèse structurée, risques, chronologie, points de droit. Conçu pour les cabinets de 1 à 10 avocats. Essai gratuit 14 jours.' });
+    this.meta.updateTag({ property: 'og:title', content: 'AI LegalCase — Analyse IA pour avocats en droit du travail' });
+    this.meta.updateTag({ property: 'og:description', content: 'Outil IA pour avocats : analysez vos dossiers contentieux en droit du travail en quelques minutes. Synthèse structurée, risques, chronologie, points de droit. Essai gratuit 14 jours.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://legalcase.ng-itconsulting.com/' });
+    this.injectJsonLd();
+  }
+
+  ngOnDestroy(): void {
+    if (this.jsonLdElement) {
+      this.jsonLdElement.remove();
+      this.jsonLdElement = null;
+    }
+  }
+
+  private injectJsonLd(): void {
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      'name': 'AI LegalCase',
+      'description': 'Outil d\'analyse IA pour avocats. Analysez vos dossiers contentieux en droit du travail : synthèse structurée, chronologie, risques juridiques, points de droit.',
+      'applicationCategory': 'BusinessApplication',
+      'operatingSystem': 'Web',
+      'url': 'https://legalcase.ng-itconsulting.com',
+      'offers': {
+        '@type': 'Offer',
+        'price': '0',
+        'priceCurrency': 'EUR',
+        'description': 'Essai gratuit 14 jours',
+      },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'NG-Consulting',
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': 'Paris',
+          'addressCountry': 'FR',
+        },
+      },
+    };
+    this.jsonLdElement = this.document.createElement('script');
+    this.jsonLdElement.type = 'application/ld+json';
+    this.jsonLdElement.textContent = JSON.stringify(jsonLd);
+    this.document.head.appendChild(this.jsonLdElement);
   }
 
   ngAfterViewInit(): void {
