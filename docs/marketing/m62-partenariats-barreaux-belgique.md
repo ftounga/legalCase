@@ -106,4 +106,5 @@ https://calendly.com/tounga-franck-ng-itconsulting/30min
 
 | Organisation | Date contact | Statut | Relance |
 |---|---|---|---|
-| | | | |
+| OBFG | 2026-04-07 | Envoyé (info@avocats.be) | 2026-04-14 |
+| Jeune Barreau de Bruxelles | 2026-04-07 | Envoyé (info@jbb.be) | 2026-04-14 |
