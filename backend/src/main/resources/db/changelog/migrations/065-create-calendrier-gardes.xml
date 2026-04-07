@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="065-create-calendrier-gardes" author="legalcase">
+        <createTable tableName="calendrier_gardes">
+            <column name="id" type="uuid"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_calendrier_gardes_case_file"
+                             referencedTableName="case_files" referencedColumnNames="id"/>
+            </column>
+            <column name="garde_code" type="varchar(30)"><constraints nullable="false"/></column>
+            <column name="result_data" type="text"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+            <column name="updated_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint tableName="calendrier_gardes" columnNames="case_file_id" constraintName="uq_calendrier_gardes_case_file"/>
+        <createIndex tableName="calendrier_gardes" indexName="idx_calendrier_gardes_case_file"><column name="case_file_id"/></createIndex>
+    </changeSet>
+</databaseChangeLog>
