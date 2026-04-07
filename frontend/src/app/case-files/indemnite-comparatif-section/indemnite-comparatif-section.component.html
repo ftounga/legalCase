@@ -1,0 +1,131 @@
+<div class="comparatif-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">bar_chart</mat-icon>
+    <span class="section-title">Comparateur d'indemnités</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge">{{ result()!.fourchetteBasseMontant | number:'1.0-0' }} — {{ result()!.fourhetteHauteMontant | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="comparatif-body">
+
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="comp-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Pays</mat-label>
+              <mat-select [(ngModel)]="country">
+                <mat-option value="FRANCE">France</mat-option>
+                <mat-option value="BELGIQUE">Belgique</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Ancienneté (années)</mat-label>
+              <input matInput type="number" [(ngModel)]="ancienneteAnnees">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Âge</mat-label>
+              <input matInput type="number" [(ngModel)]="age">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Salaire brut mensuel (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="salaireMensuel">
+            </mat-form-field>
+          </div>
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="calculate()" [disabled]="calculating()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>bar_chart</mat-icon> Comparer
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && result()) {
+        <div class="comp-result">
+          <div class="result-card">
+            <div class="result-header">
+              <div>
+                <span class="result-title">Fourchettes d'indemnités — {{ result()!.country }}</span>
+                <span class="result-subtitle">Ancienneté {{ result()!.ancienneteAnnees }} ans, âge {{ result()!.age }} ans, salaire {{ result()!.salaireMensuel | number:'1.0-0' }} €</span>
+              </div>
+            </div>
+
+            <div class="bareme-info">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.baremeSource }}</span>
+            </div>
+
+            <div class="fourchettes">
+              <div class="fourchette-row">
+                <span class="fourchette-label">Barème plancher</span>
+                <div class="fourchette-bar-container">
+                  <div class="fourchette-bar bar-plancher" [style.width]="barWidth(result()!.baremePlancherMois)"></div>
+                </div>
+                <span class="fourchette-value">{{ result()!.baremePlancherMois }} mois</span>
+              </div>
+
+              <div class="fourchette-row">
+                <span class="fourchette-label">Fourchette basse</span>
+                <div class="fourchette-bar-container">
+                  <div class="fourchette-bar bar-basse" [style.width]="barWidth(result()!.fourchetteBasseMois)"></div>
+                </div>
+                <span class="fourchette-value">{{ result()!.fourchetteBasseMois | number:'1.1-1' }} mois — {{ result()!.fourchetteBasseMontant | number:'1.0-0' }} €</span>
+              </div>
+
+              <div class="fourchette-row fourchette-row--highlight">
+                <span class="fourchette-label">Médiane jurisprudentielle</span>
+                <div class="fourchette-bar-container">
+                  <div class="fourchette-bar bar-mediane" [style.width]="barWidth(result()!.fourchetteMedMois)"></div>
+                </div>
+                <span class="fourchette-value">{{ result()!.fourchetteMedMois | number:'1.1-1' }} mois — {{ result()!.fourchetteMedMontant | number:'1.0-0' }} €</span>
+              </div>
+
+              <div class="fourchette-row">
+                <span class="fourchette-label">Fourchette haute</span>
+                <div class="fourchette-bar-container">
+                  <div class="fourchette-bar bar-haute" [style.width]="barWidth(result()!.fourhetteHauteMois)"></div>
+                </div>
+                <span class="fourchette-value">{{ result()!.fourhetteHauteMois | number:'1.1-1' }} mois — {{ result()!.fourhetteHauteMontant | number:'1.0-0' }} €</span>
+              </div>
+
+              <div class="fourchette-row">
+                <span class="fourchette-label">Barème plafond</span>
+                <div class="fourchette-bar-container">
+                  <div class="fourchette-bar bar-plafond" [style.width]="'100%'"></div>
+                </div>
+                <span class="fourchette-value">{{ result()!.baremePlafondMois }} mois</span>
+              </div>
+            </div>
+
+            @if (result()!.commentaire) {
+              <div class="commentaire">
+                <mat-icon>lightbulb</mat-icon>
+                <span>{{ result()!.commentaire }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="result-actions">
+            <button mat-stroked-button (click)="editForm()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

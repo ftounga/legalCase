@@ -332,6 +332,10 @@
       <app-anciennete-section
         [caseFileId]="caseFile()!.id">
       </app-anciennete-section>
+
+      <app-indemnite-comparatif-section
+        [caseFileId]="caseFile()!.id">
+      </app-indemnite-comparatif-section>
     }
 
     @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'FRANCE') {
