@@ -184,6 +184,12 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | F-FA-07 | Checklist divorce par consentement mutuel | `Terminée` | Pièces et étapes procédurales pour un divorce amiable : convention + dépôt notaire (FR), requête conjointe tribunal de la famille (BE). Suivi d'avancement avec alertes de délai. France + Belgique. SF-FA-07-01 mergée 2026-04-07 (référentiel 13 étapes + 17 pièces FR/BE, migration 066, 8 tests). SF-FA-07-02 mergée 2026-04-07 (endpoint POST/GET, 8 IT). SF-FA-07-03 mergée 2026-04-07 (composant Angular checklist interactive + progression, 4 tests Jest). |
 | F-FA-04 | Synthèse liquidation de communauté | V4 — **Terminée** | Tableau structuré de partage : actif commun, biens propres de chaque époux, passif commun. Données extraites des documents + régime matrimonial détecté par prompt. SF-FA-04-01 mergée 2026-04-04 (LiquidationCommunauteResult record + BienItem, prompt DROIT_FAMILLE enrichi 4 listes, extractLiquidationCommunaute() fail-open, 582 tests). SF-FA-04-02 mergée 2026-04-04 (panel HTML 4 sous-tableaux, formatRegime(), export PDF buildLiquidationCommunauteSection(), 5 tests, 610 verts). |
 
+### Infrastructure — Référentiels
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-REF-01 | Intégration des 9 référentiels métier dans le système centralisé | `À spécifier` | Migrer les données des 9 référentiels statiques (immigration titres/recours/work-rights, travail conventions/critères/indemnités, famille garde/divorce étapes/pièces) dans `legal_referentials`. Passer les services métier par `LegalReferentialService` (DB first → fallback statique). Ajouter les formulaires d'édition dans l'admin UI. Bénéfice : transparence avocat, validation IA sémantique, cron de vérification proactive, édition sans déploiement. |
+
 ### Pipeline IA & qualité
 
 | ID | Feature | Cible | Notes |
