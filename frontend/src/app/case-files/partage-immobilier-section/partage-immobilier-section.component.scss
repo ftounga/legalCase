@@ -1,0 +1,55 @@
+.partage-section { margin-top: 32px; }
+
+.section-header {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 16px;
+  text-align: left; font-family: 'Merriweather', serif; font-weight: 600; font-size: 18px; color: #1A3A5C;
+  &:hover { opacity: 0.8; }
+  .section-icon { color: #C9973A; }
+  .section-title { flex: 1; }
+  .section-badge { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: #eafaf1; color: #27AE60; border-radius: 12px; padding: 2px 10px; }
+  .section-chevron { color: #6B7A8D; font-size: 20px; }
+}
+
+.partage-body { padding: 0 4px; }
+.loading-row { display: flex; align-items: center; gap: 8px; color: #6B7A8D; font-family: 'Inter', sans-serif; font-size: 14px; padding: 16px 0; }
+
+.partage-form {
+  background: #FFFFFF; border: 1px solid #E0E4EA; border-radius: 8px; padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.form-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; .form-field { min-width: 180px; flex: 1; } }
+.toggle-field { display: flex; align-items: center; min-height: 56px; padding: 0 4px; }
+.form-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+.result-card {
+  background: #FFFFFF; border: 1px solid #E0E4EA; border-radius: 8px; padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.result-header { margin-bottom: 16px; }
+.result-title { font-family: 'Merriweather', serif; font-weight: 600; font-size: 16px; color: #1A3A5C; }
+
+.tableau-partage { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+
+.tableau-row {
+  display: flex; justify-content: space-between; padding: 6px 16px; border-radius: 4px;
+  font-family: 'Inter', sans-serif; font-size: 14px; color: #1C2B3A;
+  &--bold { font-weight: 600; background: #f4f6f8; }
+  &--accent { background: #fef9f0; border: 1px solid #C9973A; font-weight: 600; color: #C9973A; }
+  &--total { background: #1A3A5C; color: white; font-weight: 700; border-radius: 8px; padding: 8px 16px; }
+}
+
+.tableau-separator { height: 1px; background: #E0E4EA; margin: 4px 0; }
+
+.tableau-label { flex: 1; }
+.tableau-value { text-align: right; font-weight: 500; min-width: 120px; }
+
+.base-juridique, .commentaire {
+  display: flex; align-items: flex-start; gap: 8px; padding: 8px 16px; border-radius: 8px;
+  font-family: 'Inter', sans-serif; font-size: 12px; margin-bottom: 8px;
+  mat-icon { flex-shrink: 0; font-size: 16px; width: 16px; height: 16px; margin-top: 2px; }
+}
+.base-juridique { background: #f4f6f8; color: #6B7A8D; mat-icon { color: #6B7A8D; } }
+.commentaire { background: #fef9f0; border: 1px solid #C9973A; color: #1C2B3A; mat-icon { color: #C9973A; } }
+
+.result-actions { display: flex; justify-content: flex-end; margin-top: 16px; }

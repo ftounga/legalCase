@@ -371,6 +371,12 @@
         [caseFileTitle]="caseFile()!.title">
       </app-immigration-checklist-section>
     }
+
+    @if (caseFile()!.legalDomain === 'DROIT_FAMILLE') {
+      <app-partage-immobilier-section
+        [caseFileId]="caseFile()!.id">
+      </app-partage-immobilier-section>
+    }
   </div>
 } @else {
   <p class="no-data">Dossier introuvable.</p>

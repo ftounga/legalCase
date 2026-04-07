@@ -1,0 +1,98 @@
+<div class="partage-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">home</mat-icon>
+    <span class="section-title">Partage immobilier</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge">Soulte : {{ result()!.soulte | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="partage-body">
+
+      @if (loading()) {
+        <div class="loading-row"><mat-spinner diameter="24"></mat-spinner><span>Chargement…</span></div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="partage-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Pays</mat-label>
+              <mat-select [(ngModel)]="country">
+                <mat-option value="FRANCE">France</mat-option>
+                <mat-option value="BELGIQUE">Belgique</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Valeur vénale du bien (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="valeurVenale">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Capital restant dû (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="capitalRestantDu">
+            </mat-form-field>
+          </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Quote-part attributaire (%)</mat-label>
+              <input matInput type="number" [(ngModel)]="quotePartAttributaire" min="0" max="100">
+            </mat-form-field>
+            <div class="toggle-field">
+              <mat-slide-toggle [(ngModel)]="isDivorce" color="primary">
+                Partage dans le cadre d'un divorce
+              </mat-slide-toggle>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="calculate()" [disabled]="calculating()">
+              @if (calculating()) { <mat-spinner diameter="18"></mat-spinner> }
+              @else { <mat-icon>calculate</mat-icon> Simuler }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && result()) {
+        <div class="partage-result">
+          <div class="result-card">
+            <div class="result-header">
+              <span class="result-title">Simulation de partage — {{ result()!.country }}</span>
+            </div>
+
+            <div class="tableau-partage">
+              <div class="tableau-row"><span class="tableau-label">Valeur vénale</span><span class="tableau-value">{{ result()!.valeurVenale | number:'1.0-0' }} €</span></div>
+              <div class="tableau-row"><span class="tableau-label">Capital restant dû</span><span class="tableau-value">- {{ result()!.capitalRestantDu | number:'1.0-0' }} €</span></div>
+              <div class="tableau-row tableau-row--bold"><span class="tableau-label">Valeur nette</span><span class="tableau-value">{{ result()!.valeurNette | number:'1.0-0' }} €</span></div>
+              <div class="tableau-separator"></div>
+              <div class="tableau-row"><span class="tableau-label">Part attributaire ({{ result()!.quotePartAttributaire * 100 | number:'1.0-0' }}%)</span><span class="tableau-value">{{ result()!.partAttributaire | number:'1.0-0' }} €</span></div>
+              <div class="tableau-row"><span class="tableau-label">Part cédant ({{ result()!.quotePartCedant * 100 | number:'1.0-0' }}%)</span><span class="tableau-value">{{ result()!.partCedant | number:'1.0-0' }} €</span></div>
+              <div class="tableau-separator"></div>
+              <div class="tableau-row tableau-row--accent"><span class="tableau-label">Soulte à verser</span><span class="tableau-value">{{ result()!.soulte | number:'1.0-0' }} €</span></div>
+              <div class="tableau-row"><span class="tableau-label">Droit de partage ({{ result()!.tauxDroitPartage }}%)</span><span class="tableau-value">{{ result()!.droitPartage | number:'1.0-0' }} €</span></div>
+              <div class="tableau-row"><span class="tableau-label">Frais de notaire estimés</span><span class="tableau-value">{{ result()!.fraisNotaireEstimes | number:'1.0-0' }} €</span></div>
+              <div class="tableau-separator"></div>
+              <div class="tableau-row tableau-row--total"><span class="tableau-label">Coût total estimé</span><span class="tableau-value">{{ result()!.coutTotal | number:'1.0-0' }} €</span></div>
+            </div>
+
+            <div class="base-juridique">
+              <mat-icon>info</mat-icon>
+              <span>{{ result()!.baseJuridique }}</span>
+            </div>
+
+            @if (result()!.commentaire) {
+              <div class="commentaire">
+                <mat-icon>lightbulb</mat-icon>
+                <span>{{ result()!.commentaire }}</span>
+              </div>
+            }
+          </div>
+          <div class="result-actions">
+            <button mat-stroked-button (click)="editForm()"><mat-icon>edit</mat-icon> Modifier</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
