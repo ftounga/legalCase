@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="058-create-immigration-title-decisions" author="legalcase">
+        <createTable tableName="immigration_title_decisions">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_immigration_title_decisions_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nationalite_ue" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="situation_familiale" type="varchar(30)"/>
+            <column name="recommended_titles" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="immigration_title_decisions"
+                             columnNames="case_file_id"
+                             constraintName="uq_immigration_title_decisions_case_file"/>
+
+        <createIndex tableName="immigration_title_decisions"
+                     indexName="idx_immigration_title_decisions_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
