@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
+import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -24,6 +25,7 @@ import { AncienneteResponse } from '../../core/models/anciennete.model';
 })
 export class AncienneteSectionComponent implements OnInit {
   @Input() caseFileId!: string;
+  @Input() aiData?: TravailExtractedData | null;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -81,10 +83,20 @@ export class AncienneteSectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
+        this.prefillFromAi();
         this.showForm.set(true);
         this.loading.set(false);
       },
     });
+  }
+
+  private prefillFromAi(): void {
+    if (!this.aiData) return;
+    if (this.aiData.conventionCollective) this.conventionCode.set(this.aiData.conventionCollective);
+    if (this.aiData.dateEntree) this.dateEntree.set(this.aiData.dateEntree);
+    if (this.aiData.salaireBrutMensuel) this.salaireBase.set(this.aiData.salaireBrutMensuel);
+    if (this.aiData.congesContractuels != null) this.congesContrat.set(this.aiData.congesContractuels);
+    if (this.aiData.primeAncienneteContractuelle != null) this.primeContrat.set(this.aiData.primeAncienneteContractuelle);
   }
 
   calculate(): void {

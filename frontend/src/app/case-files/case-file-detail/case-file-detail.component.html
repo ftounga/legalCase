@@ -330,11 +330,13 @@
       </app-licenciement-section>
 
       <app-anciennete-section
-        [caseFileId]="caseFile()!.id">
+        [caseFileId]="caseFile()!.id"
+        [aiData]="synthesis()?.travailExtractedData">
       </app-anciennete-section>
 
       <app-indemnite-comparatif-section
-        [caseFileId]="caseFile()!.id">
+        [caseFileId]="caseFile()!.id"
+        [aiData]="synthesis()?.travailExtractedData">
       </app-indemnite-comparatif-section>
     }
 
@@ -354,7 +356,8 @@
 
     @if (caseFile()!.legalDomain === 'DROIT_IMMIGRATION') {
       <app-immigration-title-decision-section
-        [caseFileId]="caseFile()!.id">
+        [caseFileId]="caseFile()!.id"
+        [aiData]="synthesis()?.immigrationExtractedData">
       </app-immigration-title-decision-section>
 
       <app-immigration-recours-section

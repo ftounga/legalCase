@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, signal, computed } from '@angular/core';
+import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -25,6 +26,7 @@ import { IndemniteComparatifResponse } from '../../core/models/indemnite-compara
 })
 export class IndemniteComparatifSectionComponent implements OnInit {
   @Input() caseFileId!: string;
+  @Input() aiData?: TravailExtractedData | null;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -66,6 +68,7 @@ export class IndemniteComparatifSectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
+        this.prefillFromAi();
         this.showForm.set(true);
         this.loading.set(false);
       },
@@ -109,5 +112,10 @@ export class IndemniteComparatifSectionComponent implements OnInit {
     this.ancienneteAnnees.set(resp.ancienneteAnnees);
     this.age.set(resp.age);
     this.salaireMensuel.set(resp.salaireMensuel);
+  }
+
+  private prefillFromAi(): void {
+    if (!this.aiData) return;
+    if (this.aiData.salaireBrutMensuel) this.salaireMensuel.set(this.aiData.salaireBrutMensuel);
   }
 }
