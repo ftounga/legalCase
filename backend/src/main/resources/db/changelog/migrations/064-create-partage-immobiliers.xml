@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="064-create-partage-immobiliers" author="legalcase">
+        <createTable tableName="partage_immobiliers">
+            <column name="id" type="uuid"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_partage_immobiliers_case_file"
+                             referencedTableName="case_files" referencedColumnNames="id"/>
+            </column>
+            <column name="country" type="varchar(20)"><constraints nullable="false"/></column>
+            <column name="result_data" type="text"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+            <column name="updated_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint tableName="partage_immobiliers" columnNames="case_file_id" constraintName="uq_partage_immobiliers_case_file"/>
+        <createIndex tableName="partage_immobiliers" indexName="idx_partage_immobiliers_case_file"><column name="case_file_id"/></createIndex>
+    </changeSet>
+</databaseChangeLog>
