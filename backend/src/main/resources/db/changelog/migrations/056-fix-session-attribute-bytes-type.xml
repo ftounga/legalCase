@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="056-fix-session-attribute-bytes-type" author="legalcase">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <comment>
+            Corrige le type de la colonne attribute_bytes de spring_session_attributes.
+            BLOB se traduit en OID sur PostgreSQL, mais Spring Session JDBC attend BYTEA.
+            H2 accepte les deux — cette migration est skippée sur H2.
+        </comment>
+        <sql>
+            ALTER TABLE spring_session_attributes
+            ALTER COLUMN attribute_bytes TYPE BYTEA USING attribute_bytes::bytea;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
