@@ -49,6 +49,7 @@ import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-sec
 import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
+import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
@@ -70,7 +71,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     ImmigrationRecoursSectionComponent, ImmigrationWorkRightSectionComponent,
     AncienneteSectionComponent, LicenciementSectionComponent,
     IndemniteComparatifSectionComponent, PartageImmobilierSectionComponent, CalendrierGardeSectionComponent, DivorceChecklistSectionComponent,
-    AnalysisPipelineComponent
+    CaseDashboardComponent, AnalysisPipelineComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',

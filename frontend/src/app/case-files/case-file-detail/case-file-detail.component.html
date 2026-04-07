@@ -323,6 +323,8 @@
       [currentUserEmail]="authService.currentUser()?.email ?? null">
     </app-case-notes-section>
 
+    <app-case-dashboard [caseFileId]="caseFile()!.id"></app-case-dashboard>
+
     @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL') {
       <app-licenciement-section
         [caseFileId]="caseFile()!.id"
