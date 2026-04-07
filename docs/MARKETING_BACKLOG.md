@@ -98,6 +98,15 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-54 | Démos terrain — 2 avocats du réseau personnel | Haute | `À faire` | 1 avocat droit des affaires, 1 avocat droit de l'immigration (domaine activé en V1). Objectif : conversation 20 min, pas de vente — écouter leurs douleurs, montrer l'outil, demander des introductions vers des avocats droit du travail. Message : personnel, informel, demander un avis pas une vente. |
 | M-53 | Partenariat éditorial Village de la Justice | Haute | `En cours` | Newsletter 60 000 professionnels du droit. Email de contact envoyé le 2026-04-01 via village-justice.com/articles/publiez-vous-publiez-ici-charte-publication,2846.html. En attente de réponse. Prochain message : brief de la tribune (angle "ce qui fonctionne vraiment en cabinet, ce qui ne fonctionne pas encore", 800-1 200 mots) — rédigé et prêt dans docs/marketing/m53-tribune-brief.md |
 
+### 🇧🇪 Belgique
+
+| ID | Action | Priorité | Statut | Notes |
+|----|--------|----------|--------|-------|
+| M-62 | Partenariats barreaux / associations Belgique | Moyenne | `À faire` | Cibles : OBFG (Ordre des barreaux francophones), Jeune Barreau de Bruxelles, ABDT (Association belge de droit du travail), barreaux de Liège et Charleroi. Même approche que M-44. Budget : 0€. |
+| M-63 | Google Ads — campagne Belgique | Moyenne | `À faire` | Ciblage géo Belgique. Mots-clés : "logiciel avocat Belgique", "outil IA cabinet avocat Bruxelles", "analyse dossier juridique automatique". Budget à prendre sur l'enveloppe M-56 (split FR/BE, ex: 1 000€ FR / 500€ BE). |
+| M-64 | Liste cabinets cibles Belgique + outreach | Moyenne | `À faire` | 20-30 cabinets droit du travail Bruxelles/Wallonie (francophone). Même approche que M-41. Budget : 0€. |
+| M-65 | Partenariat éditorial Belgique | Moyenne | `À faire` | Cibles : Jubel.be, Droitbelge.be, Justice-en-ligne.be. Publication sponsorisée ou tribune. Budget estimé : 200-500€ (à évaluer au contact). |
+
 ---
 
 ## 🎯 Stratégie acquisition 7 000€
@@ -112,7 +121,8 @@ Séquence à respecter : M-53 (crédibilité) + M-55 (vidéo) en parallèle → 
 | M-57 | SDR freelance — 6 semaines | 2 400€ | Haute | `À faire` | M-55 intégré sur landing | Recruter sur Malt. Profil : SDR expérience SaaS B2B ou professions libérales. Mission : 10-20 RDV qualifiés avocats droit du travail Paris/IDF. Valider ses messages avant envoi. |
 | M-58 | Événements barreaux / associations avocats | 1 000€ | Moyenne | `À faire` | Aucune | 2 événements du trimestre : barreau Paris, FNUJA, LegalTech Hub Paris. Présence physique = conversion 10x LinkedIn. |
 
-**Budget total stratégie : 800€ M-53 + 1 000€ M-11 + 1 500€ M-56 + 2 400€ M-57 + 1 000€ M-58 = ~6 700€**
+**Budget total stratégie France : 800€ M-53 + 1 000€ M-11 + 1 500€ M-56 + 2 400€ M-57 + 1 000€ M-58 = ~6 700€**
+**Budget additionnel Belgique : 0-500€ M-65 (partenariat éditorial BE, à évaluer). M-63 (Google Ads BE) pris sur l'enveloppe M-56.**
 
 ---
 
