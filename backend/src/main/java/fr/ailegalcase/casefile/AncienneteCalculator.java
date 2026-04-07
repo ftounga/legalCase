@@ -29,7 +29,18 @@ public final class AncienneteCalculator {
             int congesContrat,
             BigDecimal primeContrat
     ) {
-        ConventionBareme bareme = ConventionBaremeReferentiel.getByCode(conventionCode);
+        return calculate(conventionCode, dateEntree, salaireBase, congesContrat, primeContrat,
+                ConventionBaremeReferentiel.getByCode(conventionCode));
+    }
+
+    public static AncienneteResult calculate(
+            String conventionCode,
+            LocalDate dateEntree,
+            BigDecimal salaireBase,
+            int congesContrat,
+            BigDecimal primeContrat,
+            ConventionBareme bareme
+    ) {
         if (bareme == null) {
             throw new IllegalArgumentException("Convention inconnue : " + conventionCode);
         }

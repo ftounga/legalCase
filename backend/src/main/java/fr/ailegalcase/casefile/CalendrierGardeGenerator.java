@@ -8,7 +8,10 @@ public final class CalendrierGardeGenerator {
     private CalendrierGardeGenerator() {}
 
     public static CalendrierGardeResult generate(String gardeCode, String parentANom, String parentBNom) {
-        GardeMode mode = GardeModeReferentiel.getByCode(gardeCode);
+        return generate(GardeModeReferentiel.getByCode(gardeCode), gardeCode, parentANom, parentBNom);
+    }
+
+    public static CalendrierGardeResult generate(GardeMode mode, String gardeCode, String parentANom, String parentBNom) {
         if (mode == null) {
             throw new IllegalArgumentException("Mode de garde inconnu : " + gardeCode);
         }

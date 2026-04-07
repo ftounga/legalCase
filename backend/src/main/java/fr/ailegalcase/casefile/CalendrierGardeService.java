@@ -3,6 +3,7 @@ package fr.ailegalcase.casefile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -23,13 +24,16 @@ public class CalendrierGardeService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    private final LegalReferentialService referentialService;
 
     public CalendrierGardeService(CalendrierGardeRepository repository, CaseFileRepository caseFileRepository,
                                    WorkspaceMemberRepository workspaceMemberRepository,
-                                   CurrentUserResolver currentUserResolver, ObjectMapper objectMapper) {
+                                   CurrentUserResolver currentUserResolver, ObjectMapper objectMapper,
+                                   LegalReferentialService referentialService) {
         this.repository = repository; this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver; this.objectMapper = objectMapper;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -40,8 +44,9 @@ public class CalendrierGardeService {
         User user = resolveUser(oidcUser, principal);
         CaseFile cf = resolveCaseFile(caseFileId, user);
 
+        GardeMode mode = referentialService.getGardeMode(request.gardeCode());
         CalendrierGardeResult result = CalendrierGardeGenerator.generate(
-                request.gardeCode(), request.parentANom(), request.parentBNom());
+                mode, request.gardeCode(), request.parentANom(), request.parentBNom());
 
         CalendrierGarde entity = repository.findByCaseFileId(caseFileId)
                 .orElseGet(() -> { CalendrierGarde e = new CalendrierGarde(); e.setCaseFile(cf); return e; });
