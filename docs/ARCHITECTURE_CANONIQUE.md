@@ -1194,6 +1194,34 @@ idx_immigration_piece_checks_case_file_id
 
 ---
 
+## immigration_title_decisions
+
+Résultat de l'arbre décisionnel type de titre de séjour — 1:1 avec un dossier. Stocke les critères du questionnaire et les titres recommandés sous forme JSON TEXT.
+
+```
+immigration_title_decisions
+  id                    UUID PK
+  case_file_id          UUID FK → case_files(id)  UNIQUE
+  country               VARCHAR(20) NOT NULL       -- FRANCE ou BELGIQUE
+  nationalite_ue        BOOLEAN NOT NULL
+  motif                 VARCHAR(30) NOT NULL       -- TRAVAIL, ETUDES, FAMILLE, ASILE, AUTRE
+  duree                 VARCHAR(20) NOT NULL       -- COURT_SEJOUR, LONG_SEJOUR
+  situation_familiale   VARCHAR(30)                -- CELIBATAIRE, MARIE, PACS_COHABITATION (nullable)
+  recommended_titles    TEXT NOT NULL               -- JSON array des TitleRecommendation
+  created_at            TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at            TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_immigration_title_decisions_case_file (case_file_id) — un seul résultat par dossier
+
+Index :
+
+idx_immigration_title_decisions_case_file
+
+---
+
 ## prudhome_fiches
 
 Fiche prud'homale — document procédural 1:1 avec un dossier. Stocke les parties, faits, demandes et moyens de droit sous forme JSON TEXT (compatible H2 + PostgreSQL).
