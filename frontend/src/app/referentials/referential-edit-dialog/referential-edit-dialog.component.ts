@@ -98,6 +98,56 @@ export class ReferentialEditDialogComponent {
         });
       }
 
+      case 'IMMIGRATION_TITLES':
+        return this.fb.group({
+          ...base,
+          titleMotif:      [parsed?.motif ?? '', Validators.required],
+          titleConditions: [parsed?.conditions ?? '', Validators.required],
+          titlePieces:     [Array.isArray(parsed?.pieces) ? parsed.pieces.join('\n') : '', Validators.required],
+          titleDelai:      [parsed?.delaiMoyenJours ?? 0, [Validators.required, Validators.min(0)]],
+        });
+
+      case 'IMMIGRATION_RECOURS':
+        return this.fb.group({
+          ...base,
+          recoursDelai:     [parsed?.delaiJours ?? 0, [Validators.required, Validators.min(1)]],
+          recoursJuridiction:[parsed?.juridiction ?? '', Validators.required],
+          recoursTextes:    [Array.isArray(parsed?.textesApplicables) ? parsed.textesApplicables.join('\n') : ''],
+          recoursPieces:    [Array.isArray(parsed?.piecesStandard) ? parsed.piecesStandard.join('\n') : ''],
+        });
+
+      case 'IMMIGRATION_WORK_RIGHTS':
+        return this.fb.group({
+          ...base,
+          wrDroit:       [parsed?.droitTravail ?? 'OUI', Validators.required],
+          wrConditions:  [parsed?.conditions ?? ''],
+          wrObligations: [Array.isArray(parsed?.obligationsEmployeur) ? parsed.obligationsEmployeur.join('\n') : ''],
+        });
+
+      case 'CONVENTION_BAREMES':
+        return this.fb.group({
+          ...base,
+          convConges:  [parsed?.congesLegauxJours ?? 25, [Validators.required, Validators.min(0)]],
+          convJson:    [data.entry.valueJson, [Validators.required, this.jsonValidator]],
+        });
+
+      case 'LICENCIEMENT_CRITERES':
+        return this.fb.group({
+          ...base,
+          critPoids:     [parsed?.poids ?? 10, [Validators.required, Validators.min(1), Validators.max(50)]],
+          critBloquant:  [parsed?.bloquant ?? false],
+          critDesc:      [parsed?.description ?? '', Validators.required],
+        });
+
+      case 'INDEMNITE_BAREMES':
+      case 'GARDE_MODES':
+      case 'DIVORCE_ETAPES':
+      case 'DIVORCE_PIECES':
+        return this.fb.group({
+          ...base,
+          valueJson: [data.entry.valueJson, [Validators.required, this.jsonValidator]],
+        });
+
       default:
         return this.fb.group({
           ...base,
@@ -144,6 +194,42 @@ export class ReferentialEditDialogComponent {
           .filter((l: string) => l.length > 0);
         return JSON.stringify(pieces);
       }
+
+      case 'IMMIGRATION_TITLES': {
+        const origParsed = JSON.parse(this.data.entry.valueJson);
+        return JSON.stringify({
+          ...origParsed,
+          motif: v.titleMotif,
+          conditions: v.titleConditions,
+          pieces: (v.titlePieces as string).split('\n').map((l: string) => l.trim()).filter((l: string) => l),
+          delaiMoyenJours: Number(v.titleDelai),
+        });
+      }
+
+      case 'IMMIGRATION_RECOURS':
+        return JSON.stringify({
+          delaiJours: Number(v.recoursDelai),
+          juridiction: v.recoursJuridiction,
+          textesApplicables: (v.recoursTextes as string).split('\n').map((l: string) => l.trim()).filter((l: string) => l),
+          piecesStandard: (v.recoursPieces as string).split('\n').map((l: string) => l.trim()).filter((l: string) => l),
+        });
+
+      case 'IMMIGRATION_WORK_RIGHTS':
+        return JSON.stringify({
+          droitTravail: v.wrDroit,
+          conditions: v.wrConditions,
+          obligationsEmployeur: (v.wrObligations as string).split('\n').map((l: string) => l.trim()).filter((l: string) => l),
+        });
+
+      case 'CONVENTION_BAREMES':
+        return v.convJson;
+
+      case 'LICENCIEMENT_CRITERES':
+        return JSON.stringify({
+          poids: Number(v.critPoids),
+          bloquant: !!v.critBloquant,
+          description: v.critDesc,
+        });
 
       default:
         return v.valueJson;

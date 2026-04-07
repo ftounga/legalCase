@@ -41,12 +41,21 @@ interface SectionDisplay {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  LITIGATION_TYPE:    'Types de litiges',
-  BAREME_MACRON:      'Barème Macron',
-  IMMIGRATION_JALONS: 'Jalons procéduraux',
-  IMMIGRATION_PIECES: 'Pièces requises',
-  PENSION_TAUX:       'Barème pension alimentaire',
-  PRESTATION_COEFF:   'Prestation compensatoire',
+  LITIGATION_TYPE:        'Types de litiges',
+  BAREME_MACRON:          'Barème Macron',
+  IMMIGRATION_JALONS:     'Jalons procéduraux',
+  IMMIGRATION_PIECES:     'Pièces requises',
+  PENSION_TAUX:           'Barème pension alimentaire',
+  PRESTATION_COEFF:       'Prestation compensatoire',
+  IMMIGRATION_TITLES:     'Titres de séjour',
+  IMMIGRATION_RECOURS:    'Types de recours',
+  IMMIGRATION_WORK_RIGHTS:'Droits au travail',
+  CONVENTION_BAREMES:     'Conventions collectives',
+  LICENCIEMENT_CRITERES:  'Critères de licenciement',
+  INDEMNITE_BAREMES:      'Barèmes indemnités',
+  GARDE_MODES:            'Modes de garde',
+  DIVORCE_ETAPES:         'Étapes divorce',
+  DIVORCE_PIECES:         'Pièces divorce',
 };
 
 @Component({

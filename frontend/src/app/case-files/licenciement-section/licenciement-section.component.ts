@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, signal, computed } from '@angular/core';
+import { TitleCasePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -21,7 +22,7 @@ interface CritereForm {
   selector: 'app-licenciement-section',
   standalone: true,
   imports: [
-    FormsModule,
+    FormsModule, TitleCasePipe,
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule,
     MatProgressSpinnerModule, MatRadioModule,
