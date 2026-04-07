@@ -33,8 +33,8 @@
     }
     <span class="header-spacer"></span>
     <app-notification-center></app-notification-center>
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="Menu utilisateur" class="user-menu-btn">
-      <mat-icon>account_circle</mat-icon>
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" aria-label="Menu utilisateur" class="user-avatar-btn">
+      <span class="user-avatar">{{ userInitials }}</span>
     </button>
     <mat-menu #userMenu="matMenu">
       <div class="user-email-label">{{ auth.currentUser()?.email }}</div>
@@ -48,6 +48,7 @@
   <mat-sidenav-container class="shell-body">
     <mat-sidenav [mode]="isMobile() ? 'over' : 'side'" [opened]="sidenavOpen()" class="shell-sidenav">
       <mat-nav-list>
+        <div class="nav-section-label">DOSSIERS</div>
         <a mat-list-item routerLink="/dashboard" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>dashboard</mat-icon>
           <span matListItemTitle>Tableau de bord</span>
@@ -56,6 +57,13 @@
           <mat-icon matListItemIcon>folder_open</mat-icon>
           <span matListItemTitle>Dossiers</span>
         </a>
+        <a mat-list-item routerLink="/search" routerLinkActive="sidenav-active" (click)="onNavClick()">
+          <mat-icon matListItemIcon>search</mat-icon>
+          <span matListItemTitle>Recherche</span>
+        </a>
+
+        <mat-divider class="nav-divider"></mat-divider>
+        <div class="nav-section-label">OUTILS</div>
         <a mat-list-item routerLink="/referentials" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon
                     [matBadge]="pendingAlertsCount() > 0 ? pendingAlertsCount() : null"
@@ -63,10 +71,13 @@
                     matBadgeSize="small">menu_book</mat-icon>
           <span matListItemTitle>Guides & barèmes</span>
         </a>
-        <a mat-list-item routerLink="/search" routerLinkActive="sidenav-active" (click)="onNavClick()">
-          <mat-icon matListItemIcon>search</mat-icon>
-          <span matListItemTitle>Recherche</span>
+        <a mat-list-item routerLink="/workspace/time-report" routerLinkActive="sidenav-active" (click)="onNavClick()">
+          <mat-icon matListItemIcon>schedule</mat-icon>
+          <span matListItemTitle>Rapport de temps</span>
         </a>
+
+        <mat-divider class="nav-divider"></mat-divider>
+        <div class="nav-section-label">GESTION</div>
         <a mat-list-item routerLink="/workspace/members" routerLinkActive="sidenav-active" (click)="onNavClick()">
           <mat-icon matListItemIcon>group</mat-icon>
           <span matListItemTitle>Membres</span>
@@ -79,11 +90,8 @@
           <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
           <span matListItemTitle>Administration</span>
         </a>
-        <a mat-list-item routerLink="/workspace/time-report" routerLinkActive="sidenav-active" (click)="onNavClick()">
-          <mat-icon matListItemIcon>schedule</mat-icon>
-          <span matListItemTitle>Rapport de temps</span>
-        </a>
         @if (auth.currentUser()?.isSuperAdmin) {
+          <mat-divider class="nav-divider"></mat-divider>
           <a mat-list-item routerLink="/super-admin" routerLinkActive="sidenav-active" (click)="onNavClick()">
             <mat-icon matListItemIcon>security</mat-icon>
             <span matListItemTitle>Super-admin</span>

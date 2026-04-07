@@ -105,23 +105,31 @@
   }
 }
 
-.user-menu-btn {
-  color: var(--color-primary) !important;
-  background: #FFFFFF !important;
-  border-radius: 50% !important;
+.user-avatar-btn {
   width: 40px !important;
   height: 40px !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  padding: 0 !important;
 
-  mat-icon {
-    color: var(--color-primary);
-    font-size: 24px;
+  &:hover .user-avatar {
+    background: #2a4f75;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
+}
 
-  &:hover {
-    background: #F5F6FA !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .ws-active {
@@ -134,6 +142,19 @@
   justify-content: center;
   align-items: center;
   height: 200px;
+}
+
+.nav-section-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: #6B7A8D;
+  padding: 16px 16px 4px;
+}
+
+.nav-divider {
+  margin: 8px 16px !important;
 }
 
 .user-email-label {
