@@ -6,16 +6,18 @@
       <mat-icon>arrow_back</mat-icon>
       Retour aux dossiers
     </button>
-    <div class="title-row">
+    <div class="header-line-1">
       <h1 class="page-title">{{ caseFile()!.title }}</h1>
-      <button mat-icon-button (click)="openEditDialog()" aria-label="Modifier le dossier" title="Modifier">
+      <button mat-icon-button (click)="openEditDialog()" aria-label="Modifier le dossier" title="Modifier" class="edit-btn">
         <mat-icon>edit</mat-icon>
       </button>
       <span class="badge" [class]="statusClass(caseFile()!.status)">{{ statusLabel(caseFile()!.status) }}</span>
-      <div class="status-actions">
-        <button mat-button (click)="exportZip()" title="Exporter le dossier en ZIP">
+    </div>
+    <div class="header-line-2">
+      <div class="header-actions-main">
+        <button mat-stroked-button (click)="exportZip()" title="Exporter le dossier en ZIP">
           <mat-icon>download</mat-icon>
-          Exporter
+          Exporter ZIP
         </button>
         @if (caseFile()!.status === 'OPEN') {
           <button mat-stroked-button (click)="closeCaseFile()">
@@ -29,13 +31,13 @@
             Réouvrir
           </button>
         }
-        @if (canDelete()) {
-          <button mat-stroked-button color="warn" (click)="deleteCaseFile()" [disabled]="fullAnalysisRunning()">
-            <mat-icon>delete</mat-icon>
-            Supprimer
-          </button>
-        }
       </div>
+      @if (canDelete()) {
+        <button mat-stroked-button color="warn" (click)="deleteCaseFile()" [disabled]="fullAnalysisRunning()" class="delete-btn">
+          <mat-icon>delete</mat-icon>
+          Supprimer
+        </button>
+      }
     </div>
   </div>
 

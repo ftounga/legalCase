@@ -3,6 +3,7 @@ import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/rou
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
@@ -26,7 +27,7 @@ import { NotificationCenterComponent } from '../notification-center/notification
     RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatSidenavModule, MatListModule,
     MatIconModule, MatButtonModule, MatMenuModule,
-    MatProgressSpinnerModule, MatBadgeModule,
+    MatProgressSpinnerModule, MatBadgeModule, MatDividerModule,
     TrialBannerComponent, NotificationCenterComponent
   ],
   templateUrl: './shell.component.html',
@@ -39,6 +40,16 @@ export class ShellComponent implements OnInit, OnDestroy {
   isMobile = signal(false);
   sidenavOpen = signal(true);
   pendingAlertsCount = signal(0);
+
+  get userInitials(): string {
+    const user = this.auth.currentUser();
+    if (!user?.email) return '?';
+    const parts = user.email.split('@')[0].split(/[._-]/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return user.email.substring(0, 2).toUpperCase();
+  }
   private alertPollingTimer?: ReturnType<typeof setInterval>;
 
   constructor(
