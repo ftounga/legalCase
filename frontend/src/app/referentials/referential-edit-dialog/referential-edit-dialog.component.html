@@ -100,6 +100,92 @@
         </mat-form-field>
       }
 
+      @case ('IMMIGRATION_TITLES') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Motif</mat-label>
+          <input matInput formControlName="titleMotif" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Conditions</mat-label>
+          <textarea matInput formControlName="titleConditions" rows="3"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Pièces à fournir (une par ligne)</mat-label>
+          <textarea matInput formControlName="titlePieces" rows="6"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Délai moyen (jours)</mat-label>
+          <input matInput type="number" formControlName="titleDelai" min="0" />
+        </mat-form-field>
+      }
+
+      @case ('IMMIGRATION_RECOURS') {
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Délai recours (jours)</mat-label>
+            <input matInput type="number" formControlName="recoursDelai" min="1" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field-article">
+            <mat-label>Juridiction</mat-label>
+            <input matInput formControlName="recoursJuridiction" />
+          </mat-form-field>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Textes applicables (un par ligne)</mat-label>
+          <textarea matInput formControlName="recoursTextes" rows="4"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Pièces standard (une par ligne)</mat-label>
+          <textarea matInput formControlName="recoursPieces" rows="4"></textarea>
+        </mat-form-field>
+      }
+
+      @case ('IMMIGRATION_WORK_RIGHTS') {
+        <mat-form-field appearance="outline">
+          <mat-label>Droit au travail</mat-label>
+          <input matInput formControlName="wrDroit" />
+          <mat-hint>OUI / NON / CONDITIONNEL</mat-hint>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Conditions</mat-label>
+          <textarea matInput formControlName="wrConditions" rows="3"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Obligations employeur (une par ligne)</mat-label>
+          <textarea matInput formControlName="wrObligations" rows="4"></textarea>
+        </mat-form-field>
+      }
+
+      @case ('LICENCIEMENT_CRITERES') {
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Poids (1-50)</mat-label>
+            <input matInput type="number" formControlName="critPoids" min="1" max="50" />
+          </mat-form-field>
+          <div class="toggle-row">
+            <mat-slide-toggle formControlName="critBloquant" color="warn">Bloquant</mat-slide-toggle>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="critDesc" rows="3"></textarea>
+        </mat-form-field>
+      }
+
+      @case ('CONVENTION_BAREMES') {
+        <mat-form-field appearance="outline">
+          <mat-label>Congés légaux (jours)</mat-label>
+          <input matInput type="number" formControlName="convConges" min="0" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Données complètes (JSON)</mat-label>
+          <textarea matInput formControlName="convJson" rows="8" style="font-family: monospace; font-size: 13px;"></textarea>
+          @if (form.get('convJson')?.hasError('invalidJson')) {
+            <mat-error>Format JSON invalide.</mat-error>
+          }
+        </mat-form-field>
+      }
+
       @default {
         <!-- IMMIGRATION_JALONS et types inconnus : textarea JSON conservé -->
         <mat-form-field appearance="outline" class="full-width">
