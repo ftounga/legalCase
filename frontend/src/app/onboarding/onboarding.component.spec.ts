@@ -7,6 +7,7 @@ import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule } from '@angular/router';
+import { AnalyticsService } from '../core/services/analytics.service';
 
 describe('OnboardingComponent', () => {
   let fixture: ComponentFixture<OnboardingComponent>;
@@ -16,6 +17,7 @@ describe('OnboardingComponent', () => {
   let snackBar: jest.Mocked<MatSnackBar>;
   let dialog: jest.Mocked<MatDialog>;
   let dialogRefSpy: jest.Mocked<MatDialogRef<any>>;
+  let analyticsSpy: jest.Mocked<AnalyticsService>;
 
   beforeEach(async () => {
     workspaceService = jasmine.createSpyObj('WorkspaceService', ['createWorkspace']);
@@ -25,6 +27,7 @@ describe('OnboardingComponent', () => {
     dialogRefSpy.afterClosed.mockReturnValue(of({ legalDomain: 'DROIT_DU_TRAVAIL', country: 'FRANCE' }));
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
     dialog.open.mockReturnValue(dialogRefSpy);
+    analyticsSpy = jasmine.createSpyObj('AnalyticsService', ['trackConversion', 'trackEvent', 'captureUtmParams']);
 
     await TestBed.configureTestingModule({
       imports: [OnboardingComponent, NoopAnimationsModule, RouterModule.forRoot([])],
@@ -32,7 +35,8 @@ describe('OnboardingComponent', () => {
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: Router, useValue: router },
         { provide: MatSnackBar, useValue: snackBar },
-        { provide: MatDialog, useValue: dialog }
+        { provide: MatDialog, useValue: dialog },
+        { provide: AnalyticsService, useValue: analyticsSpy }
       ]
     }).compileComponents();
 
@@ -52,6 +56,17 @@ describe('OnboardingComponent', () => {
     expect(dialog.open).toHaveBeenCalled();
     expect(workspaceService.createWorkspace).toHaveBeenCalledWith('CABINET MARTIN', 'DROIT_DU_TRAVAIL', 'FRANCE');
     expect(router.navigate).toHaveBeenCalledWith(['/case-files']);
+  }));
+
+  // T-SF119 : onboarding réussi → trackConversion appelé
+  it('onboarding réussi → appelle trackConversion()', fakeAsync(() => {
+    workspaceService.createWorkspace.mockReturnValue(of({} as any));
+
+    component.form.setValue({ name: 'Cabinet Martin' });
+    component.submit();
+    tick();
+
+    expect(analyticsSpy.trackConversion).toHaveBeenCalledTimes(1);
   }));
 
   // T-02 : soumission avec nom vide → formulaire invalide, dialog non ouverte

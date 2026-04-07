@@ -9,6 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 import { fadeInUp } from '../../shared/animations';
 
 @Component({
@@ -41,7 +42,8 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    readonly auth: AuthService
+    readonly auth: AuthService,
+    private analytics: AnalyticsService
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -92,6 +94,7 @@ export class LoginComponent {
         this.loading.set(false);
         this.registerSuccess.set(true);
         this.registerForm.reset();
+        this.analytics.trackConversion();
       },
       error: (err: HttpErrorResponse) => {
         this.loading.set(false);

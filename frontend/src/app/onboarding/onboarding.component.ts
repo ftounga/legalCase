@@ -9,6 +9,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { WorkspaceService } from '../core/services/workspace.service';
+import { AnalyticsService } from '../core/services/analytics.service';
 import { DomainPickerDialogComponent, DomainPickerResult } from './domain-picker-dialog/domain-picker-dialog.component';
 import { fadeInUp } from '../shared/animations';
 
@@ -34,7 +35,8 @@ export class OnboardingComponent {
     private workspaceService: WorkspaceService,
     private router: Router,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private analytics: AnalyticsService
   ) {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]]
@@ -62,7 +64,10 @@ export class OnboardingComponent {
       if (!result) return;
       this.saving = true;
       this.workspaceService.createWorkspace(name, result.legalDomain, result.country).subscribe({
-        next: () => this.router.navigate(['/case-files']),
+        next: () => {
+          this.analytics.trackConversion();
+          this.router.navigate(['/case-files']);
+        },
         error: () => {
           this.saving = false;
           this.snackBar.open('Erreur lors de la création du workspace. Veuillez réessayer.', 'Fermer', {

@@ -5,6 +5,7 @@ import { TourService } from './core/services/tour.service';
 import { TourOverlayComponent } from './tour/tour-overlay.component';
 import { CookieConsentBannerComponent } from './shared/cookie-consent-banner/cookie-consent-banner.component';
 import { ConsentService } from './core/services/consent.service';
+import { AnalyticsService } from './core/services/analytics.service';
 import { LoadingService } from './core/services/loading.service';
 import { HelpChatWidgetComponent } from './help-chat-widget/help-chat-widget.component';
 
@@ -17,10 +18,12 @@ import { HelpChatWidgetComponent } from './help-chat-widget/help-chat-widget.com
 export class AppComponent implements OnInit {
   protected tourService = inject(TourService);
   private consentService = inject(ConsentService);
+  private analyticsService = inject(AnalyticsService);
   readonly loading = inject(LoadingService);
   title = 'frontend';
 
   ngOnInit(): void {
     this.consentService.initIfConsented();
+    this.analyticsService.captureUtmParams();
   }
 }

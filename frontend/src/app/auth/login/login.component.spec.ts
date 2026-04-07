@@ -5,6 +5,7 @@ import { Component } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../core/services/auth.service';
+import { AnalyticsService } from '../../core/services/analytics.service';
 
 @Component({ template: '', standalone: true })
 class StubComponent {}
@@ -13,17 +14,20 @@ describe('LoginComponent', () => {
   let fixture: ComponentFixture<LoginComponent>;
   let component: LoginComponent;
   let authSpy: jest.Mocked<AuthService>;
+  let analyticsSpy: jest.Mocked<AnalyticsService>;
   let router: Router;
 
   beforeEach(async () => {
     authSpy = jasmine.createSpyObj('AuthService', [
       'loginWithGoogle', 'loginLocal', 'register', 'forgotPassword'
     ]);
+    analyticsSpy = jasmine.createSpyObj('AnalyticsService', ['trackConversion', 'trackEvent', 'captureUtmParams']);
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent, NoopAnimationsModule],
       providers: [
         { provide: AuthService, useValue: authSpy },
+        { provide: AnalyticsService, useValue: analyticsSpy },
         provideRouter([{ path: 'case-files', component: StubComponent }])
       ]
     }).compileComponents();
@@ -100,6 +104,18 @@ describe('LoginComponent', () => {
     tick();
     expect(authSpy.register).toHaveBeenCalled();
     expect(component.registerSuccess()).toBe(true);
+  }));
+
+  // T-SF119 : inscription réussie → trackConversion appelé
+  it('inscription réussie → appelle trackConversion()', fakeAsync(() => {
+    authSpy.register.mockReturnValue(of(undefined));
+    component.registerForm.setValue({
+      firstName: 'Alice', lastName: 'Dupont',
+      email: 'alice@example.com', password: 'password123'
+    });
+    component.submitRegister();
+    tick();
+    expect(analyticsSpy.trackConversion).toHaveBeenCalledTimes(1);
   }));
 
   // T-10 : erreur 409 inscription → message email déjà utilisé
