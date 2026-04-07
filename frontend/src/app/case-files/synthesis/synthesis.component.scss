@@ -191,6 +191,13 @@
     margin-bottom: 8px;
     border-radius: 8px !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    border-left: 3px solid transparent;
+    transition: border-left-color 0.2s;
+
+    &.mat-expanded {
+      border-left-color: #C9973A;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
   }
 }
 
@@ -231,7 +238,9 @@
   font-size: 13px;
   font-weight: 600;
   color: #C9973A;
-  padding-top: 2px;
+  background: #FEF9EE;
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 
 .timeline-event {
@@ -714,11 +723,12 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 12px 16px;
-  background: rgba(201, 151, 58, 0.08);
+  padding: 14px 18px;
+  background: rgba(201, 151, 58, 0.1);
   border-left: 3px solid #C9973A;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 10px 10px 0;
   margin: 0 0 16px 0;
+  box-shadow: 0 1px 4px rgba(201, 151, 58, 0.12);
 }
 
 .insight-icon {
