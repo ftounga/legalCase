@@ -1251,6 +1251,31 @@ idx_immigration_recours_case_file
 
 ---
 
+## immigration_work_rights
+
+Analyse du droit au travail par titre de séjour — 1:1 avec un dossier. Stocke le titre analysé et le résultat structuré (droit, conditions, obligations employeur) sous forme JSON TEXT.
+
+```
+immigration_work_rights
+  id              UUID PK
+  case_file_id    UUID FK → case_files(id)  UNIQUE
+  titre_type      VARCHAR(50) NOT NULL
+  country         VARCHAR(20) NOT NULL
+  result_data     TEXT NOT NULL              -- JSON du WorkRightResult
+  created_at      TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_immigration_work_rights_case_file (case_file_id) — une seule analyse par dossier
+
+Index :
+
+idx_immigration_work_rights_case_file
+
+---
+
 ## prudhome_fiches
 
 Fiche prud'homale — document procédural 1:1 avec un dossier. Stocke les parties, faits, demandes et moyens de droit sous forme JSON TEXT (compatible H2 + PostgreSQL).
