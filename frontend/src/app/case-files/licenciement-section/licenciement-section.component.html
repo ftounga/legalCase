@@ -1,0 +1,118 @@
+<div class="licenciement-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">gavel</mat-icon>
+    <span class="section-title">Validité du licenciement</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [style.background]="scoreColor() + '20'" [style.color]="scoreColor()">
+        {{ result()!.verdict | titlecase }} — {{ result()!.scoreRisque }}%
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="lic-body">
+
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="lic-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Pays</mat-label>
+              <mat-select [(ngModel)]="country" (ngModelChange)="onCountryChange()">
+                <mat-option value="FRANCE">France</mat-option>
+                <mat-option value="BELGIQUE">Belgique</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="criteres-list">
+            @for (critere of criteresForm(); track critere.code) {
+              <div class="critere-row">
+                <div class="critere-info">
+                  <span class="critere-label">{{ critere.label }}</span>
+                  <span class="critere-desc">{{ critere.description }}</span>
+                </div>
+                <mat-radio-group [(ngModel)]="critere.reponse" class="critere-radio">
+                  <mat-radio-button value="OUI" color="primary">Oui</mat-radio-button>
+                  <mat-radio-button value="NON" color="warn">Non</mat-radio-button>
+                  <mat-radio-button value="INCONNU">?</mat-radio-button>
+                </mat-radio-group>
+              </div>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="analyze()" [disabled]="analyzing()">
+              @if (analyzing()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>assessment</mat-icon> Analyser
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && result()) {
+        <div class="lic-result">
+          <div class="result-card">
+            <div class="score-section">
+              <div class="score-gauge">
+                <svg viewBox="0 0 120 120" class="gauge-svg">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#E0E4EA" stroke-width="10"/>
+                  <circle cx="60" cy="60" r="50" fill="none"
+                    [attr.stroke]="scoreColor()"
+                    stroke-width="10"
+                    stroke-linecap="round"
+                    [attr.stroke-dasharray]="(result()!.scoreRisque * 3.14) + ' 314'"
+                    transform="rotate(-90 60 60)"/>
+                </svg>
+                <div class="score-value" [style.color]="scoreColor()">{{ result()!.scoreRisque }}%</div>
+              </div>
+              <div class="verdict-label" [style.color]="scoreColor()">
+                @switch (result()!.verdict) {
+                  @case ('VALIDE') { Licenciement valide }
+                  @case ('RISQUE_MODERE') { Risque modéré }
+                  @case ('RISQUE_ELEVE') { Risque élevé }
+                  @case ('INVALIDE') { Licenciement invalide }
+                }
+              </div>
+            </div>
+
+            <div class="criteres-detail">
+              @for (c of result()!.criteres; track c.code) {
+                <div class="critere-result" [class.critere-ok]="c.reponse === 'OUI'"
+                     [class.critere-ko]="c.reponse === 'NON'" [class.critere-unknown]="c.reponse === 'INCONNU'">
+                  <div class="critere-result-header">
+                    @if (c.reponse === 'OUI') { <mat-icon class="cr-icon-ok">check_circle</mat-icon> }
+                    @else if (c.reponse === 'NON') { <mat-icon class="cr-icon-ko">cancel</mat-icon> }
+                    @else { <mat-icon class="cr-icon-unknown">help_outline</mat-icon> }
+                    <span class="cr-label">{{ c.label }}</span>
+                    @if (c.bloquant && c.reponse === 'NON') {
+                      <span class="cr-bloquant">BLOQUANT</span>
+                    }
+                  </div>
+                  <span class="cr-comment">{{ c.commentaire }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="result-actions">
+            <button mat-stroked-button (click)="editForm()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>
