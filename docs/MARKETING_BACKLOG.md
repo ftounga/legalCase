@@ -74,7 +74,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
 | M-30 | Page entreprise LinkedIn — création | Haute | `Terminé` | Page créée le 2026-03-30 — URL : linkedin.com/company/ai-legalcase — bannière 1128×191px livrée |
-| M-31 | Post de lancement LinkedIn (texte + vidéo) | Haute | `À faire` | Après M-11 |
+| M-31 | Post de lancement LinkedIn (texte + vidéo) | Haute | `Terminé` | Publié le 2026-04-07 — post entreprise + post perso avec redirection. Vidéo démo jointe en natif. |
 | M-32 | Post "Comment ça marche" — carousel 5 slides | Haute | `Terminé` | PDF 6 slides publié le 2026-03-30 — docs/marketing/m32-carousel-comment-ca-marche.pdf |
 | M-33 | Post témoignage / démo utilisateur | Moyenne | `À faire` | Dès les premiers clients |
 | M-34 | Stratégie de contenu LinkedIn — planning 3 mois | Moyenne | `Terminé` | 28 posts planifiés avril-juin 2026 — intégré dans le workflow n8n M-38 |
@@ -93,7 +93,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-43 | Démo en ligne — Calendly ou équivalent | Haute | `Terminé` | https://calendly.com/tounga-franck-ng-itconsulting/30min — intégré dans Template E de M-42 |
 | M-60 | Hébergement souverain — argument pitch deck et outreach | Haute | `Rédigé` | Template G+H ajoutés à M-42 (cabinets sensibles, Cloud Act). Brief slide pitch deck dans docs/marketing/m60-pitch-slide-souverainete.md — à intégrer dans le PPTX. |
 | M-61 | Hébergement souverain — post LinkedIn comparatif | Haute | `Rédigé` | Post "Cloud Act vs hébergement européen" dans docs/marketing/m61-post-linkedin-cloud-act.md — prêt à publier, instructions de publication incluses. |
-| M-44 | Partenariats barreaux / associations d'avocats | Moyenne | `À faire` | Canal d'acquisition B2B — email + cibles dans docs/marketing/m44-partenariats-barreaux.md |
+| M-44 | Partenariats barreaux / associations d'avocats | Moyenne | `En cours` | 3 emails envoyés le 2026-04-07 : FNUJA, AFDT, Incubateur Barreau de Paris. Relance J+7 le 2026-04-14. |
 | M-45 | Programme de référence — un mois offert pour parrainage | Moyenne | `À faire` | Croissance organique |
 | M-54 | Démos terrain — 2 avocats du réseau personnel | Haute | `À faire` | 1 avocat droit des affaires, 1 avocat droit de l'immigration (domaine activé en V1). Objectif : conversation 20 min, pas de vente — écouter leurs douleurs, montrer l'outil, demander des introductions vers des avocats droit du travail. Message : personnel, informel, demander un avis pas une vente. |
 | M-53 | Partenariat éditorial Village de la Justice | Haute | `En cours` | Newsletter 60 000 professionnels du droit. Email de contact envoyé le 2026-04-01 via village-justice.com/articles/publiez-vous-publiez-ici-charte-publication,2846.html. En attente de réponse. Prochain message : brief de la tribune (angle "ce qui fonctionne vraiment en cabinet, ce qui ne fonctionne pas encore", 800-1 200 mots) — rédigé et prêt dans docs/marketing/m53-tribune-brief.md |
@@ -106,9 +106,9 @@ Séquence à respecter : M-53 (crédibilité) + M-55 (vidéo) en parallèle → 
 
 | ID | Action | Budget | Priorité | Statut | Dépendances | Notes |
 |----|--------|--------|----------|--------|-------------|-------|
-| M-53 | Village de la Justice — article sponsorisé | 800€ | Haute | `En cours` | Réponse VDJ attendue | Crédibilité externe instantanée — 60 000 lecteurs qualifiés. Email envoyé 2026-04-01. Brief tribune prêt dans docs/marketing/m53-tribune-brief.md. Dès accord : payer article sponsorisé plutôt que tribune gratuite pour contrôler le message. |
-| M-55 | Vidéo démo intégrée landing page | 0€ (couvert M-11) | Haute | `À faire` | M-11 livré | Extraire la V1 des 4 vidéos motion design et l'intégrer sur la landing page. Prérequis : confirmer URL finale avant livraison M-11. Screen recordings : docs/marketing/demo-dossier/ |
-| M-56 | Google Ads — campagne mots-clés intention | 1 500€ | Haute | `À faire` | M-55 intégré sur landing | Mots-clés : "logiciel avocat IA", "analyse dossier juridique automatique", "outil IA cabinet avocat". Budget ~2-3€/clic = 500-700 visiteurs. Durée : 4-6 semaines. |
+| M-53 | Village de la Justice — article sponsorisé | 600€ | Haute | `En cours` | Accord obtenu, article à rédiger | Contact : Christophe Albert (04 76 94 70 47). 600€ HT / 1 an, vidéo + liens + relais newsletter + réseaux sociaux. Compte Membre créé le 2026-04-07. Brief tribune dans docs/marketing/m53-tribune-brief.md. |
+| M-55 | Vidéo démo intégrée landing page | 0€ (couvert M-11) | Haute | `Terminé` | — | Vidéo YouTube embed intégrée entre hero et section problème/solution. Déployé en production 2026-04-07. |
+| M-56 | Google Ads — campagne mots-clés intention | 1 500€ | Haute | `À faire` | M-55 intégré sur landing | Mots-clés : "logiciel avocat IA", "analyse dossier juridique automatique", "outil IA cabinet avocat". Budget ~2-3€/clic = 500-700 visiteurs. Durée : 4-6 semaines. **Prérequis tech OK** (F-119 mergée — tracking conversion branché). **Reste à faire** : (1) créer l'action de conversion dans Google Ads (Outils → Conversions), (2) renseigner le Conversion ID (`AW-XXXXXXXXX/YYYYYY`) dans `environment.prod.ts`, (3) redéployer le frontend, (4) créer la campagne Search (structure, annonces, mots-clés, budget). |
 | M-57 | SDR freelance — 6 semaines | 2 400€ | Haute | `À faire` | M-55 intégré sur landing | Recruter sur Malt. Profil : SDR expérience SaaS B2B ou professions libérales. Mission : 10-20 RDV qualifiés avocats droit du travail Paris/IDF. Valider ses messages avant envoi. |
 | M-58 | Événements barreaux / associations avocats | 1 000€ | Moyenne | `À faire` | Aucune | 2 événements du trimestre : barreau Paris, FNUJA, LegalTech Hub Paris. Présence physique = conversion 10x LinkedIn. |
 
