@@ -1,0 +1,70 @@
+<div class="divorce-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">checklist</mat-icon>
+    <span class="section-title">Checklist divorce</span>
+    @if (result()) {
+      <span class="section-badge">{{ progress() }}%</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="divorce-body">
+      @if (loading()) { <div class="loading-row"><mat-spinner diameter="24"></mat-spinner><span>Chargement…</span></div> }
+
+      @if (!loading() && !result()) {
+        <div class="init-form">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Pays</mat-label>
+            <mat-select [(ngModel)]="country">
+              <mat-option value="FRANCE">France</mat-option>
+              <mat-option value="BELGIQUE">Belgique</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button color="primary" (click)="initChecklist()">
+            <mat-icon>checklist</mat-icon> Initialiser la checklist
+          </button>
+        </div>
+      }
+
+      @if (!loading() && result()) {
+        <div class="checklist-result">
+          <div class="progress-bar-container">
+            <div class="progress-bar" [style.width.%]="progress()"></div>
+          </div>
+          <span class="progress-label">{{ result()!.etapesCompletees }}/{{ result()!.etapesTotal }} étapes — {{ result()!.piecesPresentes }}/{{ result()!.piecesTotal }} pièces</span>
+
+          <h4 class="checklist-subtitle">Étapes procédurales</h4>
+          <div class="checklist-items">
+            @for (etape of result()!.etapes; track etape.code) {
+              <button class="checklist-item" [class.item-done]="etape.statut === 'FAIT'" (click)="toggleEtape(etape)">
+                <mat-icon class="item-icon">{{ etape.statut === 'FAIT' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <div class="item-content">
+                  <span class="item-label">{{ etape.ordre }}. {{ etape.label }}</span>
+                  <span class="item-desc">{{ etape.description }}</span>
+                  @if (etape.delai !== '—') { <span class="item-delai"><mat-icon>schedule</mat-icon> {{ etape.delai }}</span> }
+                </div>
+              </button>
+            }
+          </div>
+
+          <h4 class="checklist-subtitle">Pièces à fournir</h4>
+          <div class="checklist-items">
+            @for (piece of result()!.pieces; track piece.code) {
+              <button class="checklist-item" [class.item-done]="piece.statut === 'PRESENTE'" (click)="togglePiece(piece)">
+                <mat-icon class="item-icon">{{ piece.statut === 'PRESENTE' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <div class="item-content">
+                  <span class="item-label">{{ piece.label }}</span>
+                  <span class="item-desc">{{ piece.description }}</span>
+                  @if (!piece.obligatoire) { <span class="item-optional">Optionnel</span> }
+                </div>
+              </button>
+            }
+          </div>
+
+          <div class="base-info"><mat-icon>info</mat-icon><span>{{ result()!.baseJuridique }}</span></div>
+        </div>
+      }
+    </div>
+  }
+</div>
