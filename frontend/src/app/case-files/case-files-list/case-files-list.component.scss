@@ -15,6 +15,13 @@
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
   flex-wrap: wrap;
+
+  .filter-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--color-divider);
+    flex-shrink: 0;
+  }
 }
 
 /* ── Champ de recherche custom ── */
@@ -101,18 +108,32 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
-  .mat-mdc-row:hover {
-    background-color: var(--color-background);
+  .mat-mdc-row {
+    transition: background-color 0.15s, box-shadow 0.15s;
+
+    &:hover {
+      background-color: #F5F8FC;
+      box-shadow: inset 3px 0 0 var(--color-accent);
+    }
   }
 }
 
 .case-file-link {
   color: var(--color-primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 
   &:hover {
-    text-decoration: underline;
+    color: var(--color-accent);
+  }
+}
+
+.action-arrow {
+  color: var(--color-text-secondary);
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--color-accent);
   }
 }
 

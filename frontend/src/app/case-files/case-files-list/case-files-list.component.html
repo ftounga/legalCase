@@ -23,6 +23,8 @@
     }
   </div>
 
+  <span class="filter-separator"></span>
+
   <mat-button-toggle-group
     [value]="filterStatus"
     (change)="onFilterStatus($event.value)"
@@ -76,7 +78,7 @@
   <ng-container matColumnDef="actions">
     <mat-header-cell *matHeaderCellDef></mat-header-cell>
     <mat-cell *matCellDef="let row">
-      <button mat-icon-button [routerLink]="['/case-files', row.id]" aria-label="Voir le dossier">
+      <button mat-icon-button [routerLink]="['/case-files', row.id]" aria-label="Voir le dossier" class="action-arrow">
         <mat-icon>arrow_forward</mat-icon>
       </button>
     </mat-cell>
