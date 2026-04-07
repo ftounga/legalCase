@@ -312,36 +312,38 @@
     </div>
   </div>
 
-  <div id="section-deadlines">
-    <app-case-deadlines-section [caseFileId]="caseFile()!.id">
-    </app-case-deadlines-section>
+  <div class="bottom-sections">
+    <div id="section-deadlines">
+      <app-case-deadlines-section [caseFileId]="caseFile()!.id">
+      </app-case-deadlines-section>
+    </div>
+
+    <app-case-notes-section
+      [caseFileId]="caseFile()!.id"
+      [currentUserEmail]="authService.currentUser()?.email ?? null">
+    </app-case-notes-section>
+
+    @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'FRANCE') {
+      <app-prudhome-fiche-section
+        [caseFileId]="caseFile()!.id"
+        [caseFileTitle]="caseFile()!.title">
+      </app-prudhome-fiche-section>
+    }
+
+    @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'BELGIQUE') {
+      <app-tribunal-travail-fiche-section
+        [caseFileId]="caseFile()!.id"
+        [caseFileTitle]="caseFile()!.title">
+      </app-tribunal-travail-fiche-section>
+    }
+
+    @if (caseFile()!.legalDomain === 'DROIT_IMMIGRATION') {
+      <app-immigration-checklist-section
+        [caseFileId]="caseFile()!.id"
+        [caseFileTitle]="caseFile()!.title">
+      </app-immigration-checklist-section>
+    }
   </div>
-
-  <app-case-notes-section
-    [caseFileId]="caseFile()!.id"
-    [currentUserEmail]="authService.currentUser()?.email ?? null">
-  </app-case-notes-section>
-
-  @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'FRANCE') {
-    <app-prudhome-fiche-section
-      [caseFileId]="caseFile()!.id"
-      [caseFileTitle]="caseFile()!.title">
-    </app-prudhome-fiche-section>
-  }
-
-  @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'BELGIQUE') {
-    <app-tribunal-travail-fiche-section
-      [caseFileId]="caseFile()!.id"
-      [caseFileTitle]="caseFile()!.title">
-    </app-tribunal-travail-fiche-section>
-  }
-
-  @if (caseFile()!.legalDomain === 'DROIT_IMMIGRATION') {
-    <app-immigration-checklist-section
-      [caseFileId]="caseFile()!.id"
-      [caseFileTitle]="caseFile()!.title">
-    </app-immigration-checklist-section>
-  }
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }
