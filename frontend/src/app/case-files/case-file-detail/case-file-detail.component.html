@@ -324,6 +324,11 @@
     </app-case-notes-section>
 
     @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL') {
+      <app-licenciement-section
+        [caseFileId]="caseFile()!.id"
+        [workspaceCountry]="workspaceCountry()">
+      </app-licenciement-section>
+
       <app-anciennete-section
         [caseFileId]="caseFile()!.id">
       </app-anciennete-section>
