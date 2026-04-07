@@ -3,10 +3,8 @@ package fr.ailegalcase.referential;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.ailegalcase.casefile.ImmigrationPieceReferentiel;
-import fr.ailegalcase.casefile.ImmigrationProcedureReferentiel;
+import fr.ailegalcase.casefile.*;
 import fr.ailegalcase.casefile.ImmigrationProcedureReferentiel.ProcedureJalon;
-import fr.ailegalcase.casefile.LitigationTypeMapper;
 import fr.ailegalcase.casefile.LitigationTypeMapper.LitigationPeriod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -248,5 +246,164 @@ public class LegalReferentialService {
 
     private static String dedupeKey(LegalReferential e) {
         return e.getReferentialType() + "|" + e.getEntryKey() + "|" + (e.getCountry() != null ? e.getCountry() : "");
+    }
+
+    // ── Nouveaux référentiels métier ────────────────────────────────
+
+    /** Titres de séjour immigration FR/BE. DB first → fallback ImmigrationTitleReferentiel. */
+    public TitleRecommendation getImmigrationTitle(String titreType, String country) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntryByCountry("DROIT_IMMIGRATION", "IMMIGRATION_TITLES", titreType, country);
+            if (!entries.isEmpty()) {
+                JsonNode node = MAPPER.readTree(entries.get(0).getValueJson());
+                return new TitleRecommendation(
+                        node.path("code").asText(), entries.get(0).getLabel(), country,
+                        node.path("motif").asText(), node.path("conditions").asText(),
+                        MAPPER.readValue(node.path("pieces").toString(), new TypeReference<List<String>>() {}),
+                        node.path("delaiMoyenJours").asInt());
+            }
+        } catch (Exception e) { log.warn("Fallback statique pour IMMIGRATION_TITLES/{}/{}", titreType, country, e); }
+        return ImmigrationTitleReferentiel.getByCode(titreType);
+    }
+
+    /** Types de recours immigration FR/BE. DB first → fallback ImmigrationRecoursReferentiel. */
+    public RecoursType getRecoursType(String code) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_IMMIGRATION", "IMMIGRATION_RECOURS", code);
+            if (!entries.isEmpty()) {
+                LegalReferential e = entries.get(0);
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                return new RecoursType(code, e.getLabel(), e.getCountry(),
+                        node.path("delaiJours").asInt(), node.path("juridiction").asText(),
+                        MAPPER.readValue(node.path("textesApplicables").toString(), new TypeReference<>() {}),
+                        List.of("EN_TETE", "OBJET", "VISA_TEXTES", "EXPOSE_FAITS", "MOYENS_DROIT", "CONCLUSIONS", "PIECES"),
+                        MAPPER.readValue(node.path("piecesStandard").toString(), new TypeReference<>() {}));
+            }
+        } catch (Exception e) { log.warn("Fallback statique pour IMMIGRATION_RECOURS/{}", code, e); }
+        return ImmigrationRecoursReferentiel.getByCode(code);
+    }
+
+    /** Droit au travail par titre. DB first → fallback ImmigrationWorkRightReferentiel. */
+    public WorkRightResult getWorkRight(String titreType, String country) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntryByCountry("DROIT_IMMIGRATION", "IMMIGRATION_WORK_RIGHTS", titreType, country);
+            if (!entries.isEmpty()) {
+                LegalReferential e = entries.get(0);
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                return new WorkRightResult(titreType, e.getLabel(), country,
+                        node.path("droitTravail").asText(), node.path("conditions").asText(),
+                        MAPPER.readValue(node.path("obligationsEmployeur").toString(), new TypeReference<>() {}),
+                        e.getSourceRef());
+            }
+        } catch (Exception ex) { log.warn("Fallback statique pour IMMIGRATION_WORK_RIGHTS/{}/{}", titreType, country, ex); }
+        return ImmigrationWorkRightReferentiel.getByTitreType(titreType, country);
+    }
+
+    /** Barème convention collective. DB first → fallback ConventionBaremeReferentiel. */
+    public ConventionBareme getConventionBareme(String code) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "CONVENTION_BAREMES", code);
+            if (!entries.isEmpty()) {
+                LegalReferential e = entries.get(0);
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                int congesLegaux = node.path("congesLegauxJours").asInt();
+                List<ConventionBareme.CongesSupplementaire> congesSupp = new ArrayList<>();
+                for (JsonNode cs : node.path("congesSupp")) {
+                    congesSupp.add(new ConventionBareme.CongesSupplementaire(cs.path("min").asInt(), cs.path("jours").asInt(), ""));
+                }
+                List<ConventionBareme.PrimeAnciennete> primes = new ArrayList<>();
+                for (JsonNode p : node.path("primes")) {
+                    primes.add(new ConventionBareme.PrimeAnciennete(p.path("min").asInt(), p.path("pct").decimalValue(), ""));
+                }
+                return new ConventionBareme(code, e.getLabel(), e.getCountry(), congesLegaux, congesSupp, primes, e.getSourceRef());
+            }
+        } catch (Exception ex) { log.warn("Fallback statique pour CONVENTION_BAREMES/{}", code, ex); }
+        return ConventionBaremeReferentiel.getByCode(code);
+    }
+
+    /** Critère de validité licenciement. DB first → fallback LicenciementCritereReferentiel. */
+    public LicenciementCritere getLicenciementCritere(String code) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "LICENCIEMENT_CRITERES", code);
+            if (!entries.isEmpty()) {
+                LegalReferential e = entries.get(0);
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                return new LicenciementCritere(code, e.getLabel(), e.getCountry(),
+                        node.path("description").asText(), node.path("poids").asInt(),
+                        node.path("bloquant").asBoolean(), e.getSourceRef());
+            }
+        } catch (Exception ex) { log.warn("Fallback statique pour LICENCIEMENT_CRITERES/{}", code, ex); }
+        return LicenciementCritereReferentiel.getByCode(code);
+    }
+
+    /** Liste des critères licenciement par pays. DB first → fallback. */
+    public List<LicenciementCritere> getLicenciementCriteres(String country) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntriesByTypeAndCountry("DROIT_DU_TRAVAIL", "LICENCIEMENT_CRITERES", country);
+            if (!entries.isEmpty()) {
+                List<LicenciementCritere> result = new ArrayList<>();
+                for (LegalReferential e : entries) {
+                    JsonNode node = MAPPER.readTree(e.getValueJson());
+                    result.add(new LicenciementCritere(e.getEntryKey(), e.getLabel(), country,
+                            node.path("description").asText(), node.path("poids").asInt(),
+                            node.path("bloquant").asBoolean(), e.getSourceRef()));
+                }
+                return result;
+            }
+        } catch (Exception ex) { log.warn("Fallback statique pour LICENCIEMENT_CRITERES country={}", country, ex); }
+        return LicenciementCritereReferentiel.getByCountry(country);
+    }
+
+    /** Mode de garde famille. DB first → fallback GardeModeReferentiel. */
+    public GardeMode getGardeMode(String code) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_FAMILLE", "GARDE_MODES", code);
+            if (!entries.isEmpty()) {
+                LegalReferential e = entries.get(0);
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                return new GardeMode(code, e.getLabel(), e.getCountry(), "",
+                        node.path("repartitionType").asText(),
+                        MAPPER.readValue(node.path("periodesA").toString(), new TypeReference<>() {}),
+                        MAPPER.readValue(node.path("periodesB").toString(), new TypeReference<>() {}),
+                        node.path("vacances").asText(), e.getSourceRef());
+            }
+        } catch (Exception ex) { log.warn("Fallback statique pour GARDE_MODES/{}", code, ex); }
+        return GardeModeReferentiel.getByCode(code);
+    }
+
+    /** Étapes divorce par pays. DB first → fallback DivorceChecklistReferentiel. */
+    public List<DivorceEtape> getDivorceEtapes(String country) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_ETAPES", country);
+            if (!entries.isEmpty()) {
+                List<DivorceEtape> result = new ArrayList<>();
+                for (LegalReferential e : entries) {
+                    JsonNode node = MAPPER.readTree(e.getValueJson());
+                    result.add(new DivorceEtape(e.getEntryKey(), e.getLabel(), country,
+                            node.path("ordre").asInt(), node.path("description").asText(),
+                            node.path("delai").asText(), node.path("obligatoire").asBoolean()));
+                }
+                result.sort(Comparator.comparingInt(DivorceEtape::ordre));
+                return result;
+            }
+        } catch (Exception ex) { log.warn("Fallback statique pour DIVORCE_ETAPES country={}", country, ex); }
+        return DivorceChecklistReferentiel.getEtapes(country);
+    }
+
+    /** Pièces divorce par pays. DB first → fallback DivorceChecklistReferentiel. */
+    public List<DivorcePiece> getDivorcePieces(String country) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntriesByTypeAndCountry("DROIT_FAMILLE", "DIVORCE_PIECES", country);
+            if (!entries.isEmpty()) {
+                List<DivorcePiece> result = new ArrayList<>();
+                for (LegalReferential e : entries) {
+                    JsonNode node = MAPPER.readTree(e.getValueJson());
+                    result.add(new DivorcePiece(e.getEntryKey(), e.getLabel(), country,
+                            node.path("description").asText(), node.path("obligatoire").asBoolean()));
+                }
+                return result;
+            }
+        } catch (Exception ex) { log.warn("Fallback statique pour DIVORCE_PIECES country={}", country, ex); }
+        return DivorceChecklistReferentiel.getPieces(country);
     }
 }
