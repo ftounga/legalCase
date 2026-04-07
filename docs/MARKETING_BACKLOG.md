@@ -102,7 +102,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 | ID | Action | Priorité | Statut | Notes |
 |----|--------|----------|--------|-------|
-| M-62 | Partenariats barreaux / associations Belgique | Moyenne | `En cours` | 2 emails envoyés le 2026-04-07 : OBFG (info@avocats.be), Jeune Barreau de Bruxelles (info@jbb.be). Relance J+7 le 2026-04-14. Reste : ABDT, barreaux Liège et Charleroi. |
+| M-62 | Partenariats barreaux / associations Belgique | Moyenne | `En cours` | 4 emails envoyés le 2026-04-07 : OBFG (info@avocats.be), Jeune Barreau de Bruxelles (info@jbb.be), Barreau de Liège-Huy (batonnat@barreaudeliege-huy.be), Barreau de Charleroi (barreau@barreaudecharleroi.be). Relance J+7 le 2026-04-14. ABDT retirée (n'existe pas, orga réelle = ABETRASS académique). |
 | M-63 | Google Ads — campagne Belgique | Moyenne | `À faire` | Ciblage géo Belgique. Mots-clés : "logiciel avocat Belgique", "outil IA cabinet avocat Bruxelles", "analyse dossier juridique automatique". Budget à prendre sur l'enveloppe M-56 (split FR/BE, ex: 1 000€ FR / 500€ BE). |
 | M-64 | Liste cabinets cibles Belgique + outreach | Moyenne | `À faire` | 20-30 cabinets droit du travail Bruxelles/Wallonie (francophone). Même approche que M-41. Budget : 0€. |
 | M-65 | Partenariat éditorial Belgique | Moyenne | `À faire` | Cibles : Jubel.be, Droitbelge.be, Justice-en-ligne.be. Publication sponsorisée ou tribune. Budget estimé : 200-500€ (à évaluer au contact). |

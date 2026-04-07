@@ -77,18 +77,14 @@ https://calendly.com/tounga-franck-ng-itconsulting/30min
 | **OBFG** (Ordre des barreaux francophones et germanophone) | Chapeaute tous les barreaux francophones, validation = credibilite nationale | info@avocats.be — site : avocats.be — chercher Commission Nouvelles Technologies |
 | **Jeune Barreau de Bruxelles** | Jeunes avocats = early adopters, evenements reguliers | info@jbb.be — site : jbb.be |
 
-### Tier 2 — Associations thematiques
+### Tier 2 — Barreaux locaux
 
 | Organisation | Pourquoi | Contact |
 |---|---|---|
-| **ABDT** (Association belge de droit du travail) | Coeur de cible exact — droit du travail uniquement | Site : abdt-bvar.be — contact via secretariat ou LinkedIn du president |
+| **Barreau de Liege-Huy** | Grand barreau wallon, droit social bien represente | batonnat@barreaudeliege-huy.be — Batonnier Sebastien Olivier — site : barreaudeliege-huy.be |
+| **Barreau de Charleroi** | Barreau actif, bassin industriel = droit du travail | barreau@barreaudecharleroi.be — Batonnier Thierry L'Hoir — site : barreaudecharleroi.be |
 
-### Tier 3 — Barreaux locaux
-
-| Organisation | Pourquoi | Contact |
-|---|---|---|
-| **Barreau de Liege** | Grand barreau wallon, droit social bien represente | info@barreaudeliege.be — site : barreaudeliege.be |
-| **Barreau de Charleroi** | Barreau actif, bassin industriel = droit du travail | info@barreaudecharleroi.be — site : barreaudecharleroi.be |
+~~**ABDT** (Association belge de droit du travail)~~ — Retirée : n'existe pas sous ce nom. La vraie orga (ABETRASS) est académique, pas de praticiens — hors cible.
 
 ---
 
@@ -96,9 +92,8 @@ https://calendly.com/tounga-franck-ng-itconsulting/30min
 
 1. **OBFG** — point d'entree strategique, credibilite nationale si ca aboutit
 2. **Jeune Barreau de Bruxelles** — jeunes avocats tech-friendly, reponse rapide probable
-3. **ABDT** — coeur de cible, taille humaine
-4. **Barreau de Liege** — grand barreau wallon
-5. **Barreau de Charleroi** — complementaire
+3. **Barreau de Liege-Huy** — grand barreau wallon
+4. **Barreau de Charleroi** — complementaire
 
 ---
 
@@ -108,3 +103,5 @@ https://calendly.com/tounga-franck-ng-itconsulting/30min
 |---|---|---|---|
 | OBFG | 2026-04-07 | Envoyé (info@avocats.be) | 2026-04-14 |
 | Jeune Barreau de Bruxelles | 2026-04-07 | Envoyé (info@jbb.be) | 2026-04-14 |
+| Barreau de Liège-Huy | 2026-04-07 | Envoyé (batonnat@barreaudeliege-huy.be) | 2026-04-14 |
+| Barreau de Charleroi | 2026-04-07 | Envoyé (barreau@barreaudecharleroi.be) | 2026-04-14 |
