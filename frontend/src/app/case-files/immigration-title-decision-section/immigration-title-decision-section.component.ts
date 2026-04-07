@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, signal } from '@angular/core';
+import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -24,6 +25,7 @@ import { TitleDecisionResponse, TitleRecommendation } from '../../core/models/im
 })
 export class ImmigrationTitleDecisionSectionComponent implements OnInit {
   @Input() caseFileId!: string;
+  @Input() aiData?: ImmigrationExtractedData | null;
 
   collapsed = signal(true);
   loading = signal(false);
