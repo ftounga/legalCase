@@ -190,6 +190,13 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 |----|---------|-------|-------|
 | F-REF-01 | Intégration des 9 référentiels métier dans le système centralisé | `Terminée` | Migrer les données des 9 référentiels statiques (immigration titres/recours/work-rights, travail conventions/critères/indemnités, famille garde/divorce étapes/pièces) dans `legal_referentials`. Passer les services métier par `LegalReferentialService` (DB first → fallback statique). Ajouter les formulaires d'édition dans l'admin UI. Bénéfice : transparence avocat, validation IA sémantique, cron de vérification proactive, édition sans déploiement. |
 
+### Intelligence — Connexion IA ↔ Outils métier
+
+| ID | Feature | Cible | Notes |
+|----|---------|-------|-------|
+| F-IA-01 | Pré-remplissage automatique des outils métier depuis l'analyse IA | `À spécifier` | L'IA extrait les données structurées des documents (dates, montants, parties, convention, type de titre, etc.) et pré-remplit automatiquement les outils métier du domaine correspondant. L'avocat n'a plus qu'à valider/corriger au lieu de ressaisir. Couvre les 9 outils (ancienneté, licenciement, indemnités, recours, titre, droit travail, partage, garde, divorce). |
+| F-IA-02 | Tableau de bord décisionnel transversal du dossier | `À spécifier` | Vue agrégée dans le dossier : score de risque licenciement, fourchette indemnités, congés manquants, deadline recours, avancement checklist, soulte estimée. Résumé décisionnel en une page pour aider l'avocat à prendre position rapidement. |
+
 ### Pipeline IA & qualité
 
 | ID | Feature | Cible | Notes |
