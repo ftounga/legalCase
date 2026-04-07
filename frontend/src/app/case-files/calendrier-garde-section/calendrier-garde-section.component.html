@@ -1,0 +1,83 @@
+<div class="garde-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">calendar_month</mat-icon>
+    <span class="section-title">Calendrier de garde</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge">{{ result()!.gardeLabel }}</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="garde-body">
+      @if (loading()) { <div class="loading-row"><mat-spinner diameter="24"></mat-spinner><span>Chargement…</span></div> }
+
+      @if (!loading() && showForm()) {
+        <div class="garde-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field form-field--wide">
+              <mat-label>Mode de garde</mat-label>
+              <mat-select [(ngModel)]="gardeCode">
+                @for (g of modes; track g.group) {
+                  <mat-optgroup [label]="g.group">
+                    @for (m of g.items; track m.value) { <mat-option [value]="m.value">{{ m.label }}</mat-option> }
+                  </mat-optgroup>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Parent A (résidence principale)</mat-label>
+              <input matInput [(ngModel)]="parentANom">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Parent B</mat-label>
+              <input matInput [(ngModel)]="parentBNom">
+            </mat-form-field>
+          </div>
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="generate()" [disabled]="generating()">
+              @if (generating()) { <mat-spinner diameter="18"></mat-spinner> } @else { <mat-icon>calendar_month</mat-icon> Générer }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && result()) {
+        <div class="garde-result">
+          <div class="result-card">
+            <div class="result-header">
+              <span class="result-title">{{ result()!.gardeLabel }} — {{ result()!.country }}</span>
+            </div>
+
+            <div class="parents-grid">
+              <div class="parent-card parent-a">
+                <span class="parent-label">{{ result()!.parentANom }}</span>
+                <span class="parent-jours">{{ result()!.joursParAnParentA }} jours/an</span>
+                <ul>@for (p of result()!.semaineTypeParentA; track p) { <li>{{ p }}</li> }</ul>
+              </div>
+              <div class="parent-card parent-b">
+                <span class="parent-label">{{ result()!.parentBNom }}</span>
+                <span class="parent-jours">{{ result()!.joursParAnParentB }} jours/an</span>
+                <ul>@for (p of result()!.semaineTypeParentB; track p) { <li>{{ p }}</li> }</ul>
+              </div>
+            </div>
+
+            <div class="vacances-info">
+              <mat-icon>beach_access</mat-icon>
+              <span><strong>Vacances :</strong> {{ result()!.vacancesRegle }}</span>
+            </div>
+
+            <div class="base-info"><mat-icon>info</mat-icon><span>{{ result()!.baseJuridique }}</span></div>
+
+            @if (result()!.commentaire) {
+              <div class="commentaire"><mat-icon>lightbulb</mat-icon><span>{{ result()!.commentaire }}</span></div>
+            }
+          </div>
+          <div class="result-actions"><button mat-stroked-button (click)="editForm()"><mat-icon>edit</mat-icon> Modifier</button></div>
+        </div>
+      }
+    </div>
+  }
+</div>
