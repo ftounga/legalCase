@@ -1,0 +1,109 @@
+<div class="work-right-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">work</mat-icon>
+    <span class="section-title">Droit au travail</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge" [class.badge-oui]="result()!.droitTravail === 'OUI'"
+            [class.badge-non]="result()!.droitTravail === 'NON'"
+            [class.badge-conditionnel]="result()!.droitTravail === 'CONDITIONNEL'">
+        {{ result()!.droitTravail }}
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="work-right-body">
+
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="wr-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Pays</mat-label>
+              <mat-select [(ngModel)]="country" (ngModelChange)="onCountryChange()">
+                @for (c of countries; track c.value) {
+                  <mat-option [value]="c.value">{{ c.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field form-field--wide">
+              <mat-label>Titre de séjour</mat-label>
+              <mat-select [(ngModel)]="titreType">
+                @for (t of titresForCountry; track t.value) {
+                  <mat-option [value]="t.value">{{ t.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="resolve()" [disabled]="resolving()">
+              @if (resolving()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>search</mat-icon> Analyser
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && result()) {
+        <div class="wr-result">
+          <div class="result-card">
+            <div class="result-header">
+              <div class="result-titre">
+                <span class="result-label">{{ result()!.titreLabel }}</span>
+                <span class="result-country">{{ result()!.country }}</span>
+              </div>
+              <div class="droit-badge"
+                   [class.droit-oui]="result()!.droitTravail === 'OUI'"
+                   [class.droit-non]="result()!.droitTravail === 'NON'"
+                   [class.droit-conditionnel]="result()!.droitTravail === 'CONDITIONNEL'">
+                @switch (result()!.droitTravail) {
+                  @case ('OUI') { <mat-icon>check_circle</mat-icon> Autorisé }
+                  @case ('NON') { <mat-icon>cancel</mat-icon> Non autorisé }
+                  @case ('CONDITIONNEL') { <mat-icon>warning</mat-icon> Conditionnel }
+                }
+              </div>
+            </div>
+
+            <div class="result-section">
+              <span class="result-section-label">Conditions</span>
+              <p>{{ result()!.conditions }}</p>
+            </div>
+
+            <div class="result-section">
+              <span class="result-section-label">Obligations employeur</span>
+              <ul>
+                @for (o of result()!.obligationsEmployeur; track o) {
+                  <li>{{ o }}</li>
+                }
+              </ul>
+            </div>
+
+            <div class="result-section">
+              <span class="result-section-label">Base juridique</span>
+              <p class="base-juridique">{{ result()!.baseJuridique }}</p>
+            </div>
+          </div>
+
+          <div class="result-actions">
+            <button mat-stroked-button (click)="editForm()">
+              <mat-icon>edit</mat-icon> Modifier l'analyse
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>
