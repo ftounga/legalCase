@@ -195,7 +195,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
 | F-IA-01 | Pré-remplissage automatique des outils métier depuis l'analyse IA | `Terminée` | L'IA extrait les données structurées des documents (dates, montants, parties, convention, type de titre, etc.) et pré-remplit automatiquement les outils métier du domaine correspondant. L'avocat n'a plus qu'à valider/corriger au lieu de ressaisir. Couvre les 9 outils (ancienneté, licenciement, indemnités, recours, titre, droit travail, partage, garde, divorce). |
-| F-IA-02 | Tableau de bord décisionnel transversal du dossier | `À spécifier` | Vue agrégée dans le dossier : score de risque licenciement, fourchette indemnités, congés manquants, deadline recours, avancement checklist, soulte estimée. Résumé décisionnel en une page pour aider l'avocat à prendre position rapidement. |
+| F-IA-02 | Tableau de bord décisionnel transversal du dossier | `Terminée` | Vue agrégée dans le dossier : score de risque licenciement, fourchette indemnités, congés manquants, deadline recours, avancement checklist, soulte estimée. Résumé décisionnel en une page pour aider l'avocat à prendre position rapidement. |
 
 ### Pipeline IA & qualité
 
