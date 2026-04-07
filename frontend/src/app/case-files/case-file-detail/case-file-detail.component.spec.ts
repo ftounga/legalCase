@@ -1,4 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { CaseFileDetailComponent } from './case-file-detail.component';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseFileStatusService } from '../../core/services/case-file-status.service';
@@ -154,7 +156,9 @@ describe('CaseFileDetailComponent', () => {
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
-        provideAnimationsAsync()
+        provideAnimationsAsync(),
+        provideHttpClient(),
+        provideHttpClientTesting()
       ]
     }).compileComponents();
 
