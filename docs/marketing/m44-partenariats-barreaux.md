@@ -69,21 +69,22 @@ https://calendly.com/tounga-franck-ng-itconsulting/30min
 
 ### Tier 1 — Impact maximal (barreaux à forte audience)
 
-| Organisation | Pourquoi | Point d'entrée recommandé |
+| Organisation | Pourquoi | Contact vérifié |
 |---|---|---|
-| **Barreau de Paris** | 30 000 avocats inscrits, commission numérique active, événements réguliers | Commission Innovation & Numérique — contact via barreau@avocatparis.org |
-| **Barreau des Hauts-de-Seine** | Fort en droit des affaires et social, proche Paris, taille humaine | Président ou vice-président — via hauts-de-seine.avocats.fr |
-| **Barreau du Val-de-Marne** | Actif sur la modernisation, droit du travail bien représenté | Site officiel : valdemarne.avocats.fr |
-| **Barreau de Seine-Saint-Denis** | Grand barreau de banlieue, profil social fort | Contact via le site du barreau |
+| **Barreau de Paris** | 30 000 avocats inscrits, commission numérique active | contact@avocatparis.org — Bâtonnier Louis Degos — site : avocatparis.org |
+| **Barreau 92 (Nanterre)** | Fort en droit des affaires et social, proche Paris | Formulaire : barreau92.com/fr/contact — Bâtonnière Marie-Pascale Piot |
+| **Barreau 94 (Créteil)** | Actif sur la modernisation, droit du travail bien représenté | Formulaire : avocats-valdemarne.com/contact — Bâtonnier François-Xavier Lucas |
+| **Barreau 93 (Bobigny)** | Grand barreau de banlieue, profil social fort | avocats@avocats-bobigny.com — Bâtonnière Sandrine Beressi |
 
 ### Tier 2 — Associations thématiques droit social
 
-| Organisation | Pourquoi | Point d'entrée recommandé |
+| Organisation | Pourquoi | Contact vérifié |
 |---|---|---|
-| **ADAO** (Association des avocats en droit du travail) | Cœur de cible exact — droit du travail uniquement | LinkedIn + site adao-avocats.fr |
-| **SAF** (Syndicat des Avocats de France) | Sensible aux outils qui renforcent l'avocat, profil social fort | contact@lesaf.org |
-| **ACE** (Avocats Conseils d'Entreprises) | Avocats d'affaires et droit social côté employeur | ace-avocats.org |
-| **FNUJA** (Fédération Nationale des Unions des Jeunes Avocats) | Jeunes avocats = early adopters tech, réseaux locaux dans chaque barreau | fnuja.com / LinkedIn |
+| **SAF** (Syndicat des Avocats de France) | Sensible aux outils qui renforcent l'avocat, profil social fort | contact@lesaf.org — Président Stéphane Maugendre — site : lesaf.org |
+| **ACE** (Avocats Conseils d'Entreprises) | Avocats d'affaires et droit social côté employeur | ace@avocats-ace.fr — Présidente Yasmine Develle — site : avocats-ace.fr |
+| **FNUJA** (Fédération Nationale des Unions des Jeunes Avocats) | Jeunes avocats = early adopters tech, réseaux locaux dans chaque barreau | president@fnuja.com — site : fnuja.com |
+
+~~**ADAO** (Association des avocats en droit du travail)~~ — Retirée : n'existe pas sous ce nom.
 
 ### Tier 3 — Incubateurs et communautés tech-legal
 
@@ -97,11 +98,10 @@ https://calendly.com/tounga-franck-ng-itconsulting/30min
 
 ## Ordre d'approche recommandé
 
-1. **ADAO** — cœur de cible, taille humaine, réponse probable rapide
-2. **FNUJA** — jeunes avocats tech-friendly, chaque barreau local a une UNIJA
-3. **Village de la Justice** — partenariat éditorial, pas de décision collective, interlocuteur unique
-4. **Barreau de Paris** — processus plus long mais impact énorme si ça aboutit
-5. **SAF** — profil engagé, sensible aux outils qui aident les avocats indépendants
+1. **FNUJA** — jeunes avocats tech-friendly, chaque barreau local a une UNIJA
+2. **Village de la Justice** — partenariat éditorial (→ M-53)
+3. **Barreau de Paris** — processus plus long mais impact énorme si ça aboutit
+4. **SAF** — profil engagé, sensible aux outils qui aident les avocats indépendants
 
 ---
 
@@ -109,4 +109,12 @@ https://calendly.com/tounga-franck-ng-itconsulting/30min
 
 | Organisation | Date contact | Statut | Relance |
 |---|---|---|---|
-| — | — | À contacter | — |
+| FNUJA | 2026-04-07 | Envoyé (president@fnuja.com) | 2026-04-14 |
+| AFDT | 2026-04-07 | Envoyé (contact@afdt-asso.fr) | 2026-04-14 |
+| Incubateur Barreau de Paris | 2026-04-07 | Envoyé (incubateur@avocatparis.org) | 2026-04-14 |
+| SAF | 2026-04-07 | Envoyé (contact@lesaf.org — Président Stéphane Maugendre) | 2026-04-14 |
+| ACE | 2026-04-07 | Envoyé (ace@avocats-ace.fr — Présidente Yasmine Develle) | 2026-04-14 |
+| Barreau de Paris | 2026-04-07 | Envoyé (contact@avocatparis.org — Bâtonnier Louis Degos / Commission Numérique) | 2026-04-14 |
+| Barreau 93 (Bobigny) | 2026-04-07 | Envoyé (avocats@avocats-bobigny.com — Bâtonnière Sandrine Beressi) | 2026-04-14 |
+| Barreau 92 (Nanterre) | 2026-04-07 | Envoyé (formulaire barreau92.com — Bâtonnière Marie-Pascale Piot) | 2026-04-14 |
+| Barreau 94 (Créteil) | — | Bloqué (formulaire avocats-valdemarne.com buggé — Bâtonnier François-Xavier Lucas) | — |
