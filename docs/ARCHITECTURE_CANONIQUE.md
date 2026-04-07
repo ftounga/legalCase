@@ -1222,6 +1222,35 @@ idx_immigration_title_decisions_case_file
 
 ---
 
+## immigration_recours
+
+Document de recours immigration généré — 1:1 avec un dossier. Stocke les données du requérant, la décision contestée, l'exposé des faits et le document structuré généré sous forme JSON TEXT.
+
+```
+immigration_recours
+  id                       UUID PK
+  case_file_id             UUID FK → case_files(id)  UNIQUE
+  recours_type             VARCHAR(50) NOT NULL       -- code du type de recours
+  date_notification        DATE NOT NULL              -- date de notification du refus
+  date_limite              DATE NOT NULL              -- date notification + délai légal
+  requerant_data           TEXT NOT NULL              -- JSON (nom, prénom, nationalité, adresse)
+  decision_contestee_data  TEXT NOT NULL              -- JSON (autorité, date, référence)
+  expose_faits             TEXT                       -- texte libre (nullable)
+  generated_document       TEXT NOT NULL              -- JSON du document structuré complet
+  created_at               TIMESTAMP WITH TIME ZONE NOT NULL
+  updated_at               TIMESTAMP WITH TIME ZONE NOT NULL
+```
+
+Contraintes :
+
+uq_immigration_recours_case_file (case_file_id) — un seul recours par dossier
+
+Index :
+
+idx_immigration_recours_case_file
+
+---
+
 ## prudhome_fiches
 
 Fiche prud'homale — document procédural 1:1 avec un dossier. Stocke les parties, faits, demandes et moyens de droit sous forme JSON TEXT (compatible H2 + PostgreSQL).
