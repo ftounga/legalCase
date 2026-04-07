@@ -164,7 +164,7 @@ $shadow-hover:  0 4px 12px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
 }
 
 .section-badge {
-  font-size: .68rem;
+  font-size: .75rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 12px;
@@ -191,7 +191,7 @@ $shadow-hover:  0 4px 12px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
   color: $muted;
   font-size: .85rem;
 
-  .empty-icon { font-size: 30px; width: 30px; height: 30px; opacity: .35; }
+  .empty-icon { font-size: 40px; width: 40px; height: 40px; opacity: .45; }
 }
 
 // ── Délais urgents ────────────────────────────────────────────
@@ -319,7 +319,7 @@ $shadow-hover:  0 4px 12px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
 }
 
 .case-domain-bar {
-  width: 4px;
+  width: 5px;
   flex-shrink: 0;
   background: var(--domain-color, #{$navy});
 }
@@ -345,7 +345,7 @@ $shadow-hover:  0 4px 12px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
 }
 
 .case-domain-badge {
-  font-size: .68rem;
+  font-size: .75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .07em;
@@ -368,7 +368,7 @@ $shadow-hover:  0 4px 12px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
   &:hover { background: $bg; }
 }
 
-.activity-icon { color: $navy; font-size: 20px; width: 20px; height: 20px; flex-shrink: 0; opacity: .55; }
+.activity-icon { color: $navy; font-size: 20px; width: 20px; height: 20px; flex-shrink: 0; opacity: .7; }
 
 .activity-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
