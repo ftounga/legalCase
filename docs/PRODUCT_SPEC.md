@@ -188,7 +188,7 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-REF-01 | Intégration des 9 référentiels métier dans le système centralisé | `À spécifier` | Migrer les données des 9 référentiels statiques (immigration titres/recours/work-rights, travail conventions/critères/indemnités, famille garde/divorce étapes/pièces) dans `legal_referentials`. Passer les services métier par `LegalReferentialService` (DB first → fallback statique). Ajouter les formulaires d'édition dans l'admin UI. Bénéfice : transparence avocat, validation IA sémantique, cron de vérification proactive, édition sans déploiement. |
+| F-REF-01 | Intégration des 9 référentiels métier dans le système centralisé | `Terminée` | Migrer les données des 9 référentiels statiques (immigration titres/recours/work-rights, travail conventions/critères/indemnités, famille garde/divorce étapes/pièces) dans `legal_referentials`. Passer les services métier par `LegalReferentialService` (DB first → fallback statique). Ajouter les formulaires d'édition dans l'admin UI. Bénéfice : transparence avocat, validation IA sémantique, cron de vérification proactive, édition sans déploiement. |
 
 ### Pipeline IA & qualité
 
