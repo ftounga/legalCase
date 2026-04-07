@@ -40,6 +40,7 @@ import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-de
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
+import { ImmigrationTitleDecisionSectionComponent } from '../immigration-title-decision-section/immigration-title-decision-section.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
@@ -57,7 +58,8 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
     TimerWidgetComponent, PrudhomeFicheSectionComponent, TribunalTravailFicheSectionComponent,
-    ImmigrationChecklistSectionComponent, AnalysisPipelineComponent
+    ImmigrationChecklistSectionComponent, ImmigrationTitleDecisionSectionComponent,
+    AnalysisPipelineComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',

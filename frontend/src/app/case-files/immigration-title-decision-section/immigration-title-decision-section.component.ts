@@ -1,0 +1,133 @@
+import { Component, Input, OnInit, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { FormsModule } from '@angular/forms';
+import { ImmigrationTitleDecisionService } from '../../core/services/immigration-title-decision.service';
+import { TitleDecisionResponse, TitleRecommendation } from '../../core/models/immigration-title-decision.model';
+
+@Component({
+  selector: 'app-immigration-title-decision-section',
+  standalone: true,
+  imports: [
+    FormsModule,
+    MatButtonModule, MatIconModule,
+    MatSelectModule, MatFormFieldModule,
+    MatProgressSpinnerModule, MatSlideToggleModule,
+  ],
+  templateUrl: './immigration-title-decision-section.component.html',
+  styleUrl: './immigration-title-decision-section.component.scss'
+})
+export class ImmigrationTitleDecisionSectionComponent implements OnInit {
+  @Input() caseFileId!: string;
+
+  collapsed = signal(true);
+  loading = signal(false);
+  resolving = signal(false);
+  showForm = signal(true);
+  decision = signal<TitleDecisionResponse | null>(null);
+
+  country = signal('FRANCE');
+  nationaliteUe = signal(false);
+  motif = signal('TRAVAIL');
+  duree = signal('LONG_SEJOUR');
+  situationFamiliale = signal<string | null>(null);
+
+  readonly countries = [
+    { value: 'FRANCE', label: 'France' },
+    { value: 'BELGIQUE', label: 'Belgique' },
+  ];
+
+  readonly motifs = [
+    { value: 'TRAVAIL', label: 'Travail' },
+    { value: 'ETUDES', label: 'Études' },
+    { value: 'FAMILLE', label: 'Famille' },
+    { value: 'ASILE', label: 'Asile' },
+    { value: 'AUTRE', label: 'Autre' },
+  ];
+
+  readonly durees = [
+    { value: 'COURT_SEJOUR', label: 'Court séjour (< 1 an)' },
+    { value: 'LONG_SEJOUR', label: 'Long séjour (≥ 1 an)' },
+  ];
+
+  readonly situations = [
+    { value: 'CELIBATAIRE', label: 'Célibataire' },
+    { value: 'MARIE', label: 'Marié(e)' },
+    { value: 'PACS_COHABITATION', label: 'PACS / Cohabitation légale' },
+  ];
+
+  constructor(
+    private decisionService: ImmigrationTitleDecisionService,
+    private snackBar: MatSnackBar,
+  ) {}
+
+  ngOnInit(): void {
+    this.loadExisting();
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed.update(v => !v);
+  }
+
+  onMotifChange(): void {
+    if (this.motif() !== 'FAMILLE') {
+      this.situationFamiliale.set(null);
+    }
+  }
+
+  loadExisting(): void {
+    this.loading.set(true);
+    this.decisionService.get(this.caseFileId).subscribe({
+      next: resp => {
+        this.decision.set(resp);
+        this.prefillForm(resp);
+        this.showForm.set(false);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.showForm.set(true);
+        this.loading.set(false);
+      },
+    });
+  }
+
+  resolve(): void {
+    this.resolving.set(true);
+    this.decisionService.resolve(this.caseFileId, {
+      country: this.country(),
+      nationaliteUe: this.nationaliteUe(),
+      motif: this.motif(),
+      duree: this.duree(),
+      situationFamiliale: this.motif() === 'FAMILLE' ? this.situationFamiliale() : null,
+    }).subscribe({
+      next: resp => {
+        this.decision.set(resp);
+        this.showForm.set(false);
+        this.resolving.set(false);
+      },
+      error: () => {
+        this.resolving.set(false);
+        this.snackBar.open('Erreur lors de l\'analyse', 'Fermer', { duration: 4000 });
+      },
+    });
+  }
+
+  editCriteria(): void {
+    const d = this.decision();
+    if (d) this.prefillForm(d);
+    this.showForm.set(true);
+  }
+
+  private prefillForm(resp: TitleDecisionResponse): void {
+    this.country.set(resp.country);
+    this.nationaliteUe.set(resp.nationaliteUe);
+    this.motif.set(resp.motif);
+    this.duree.set(resp.duree);
+    this.situationFamiliale.set(resp.situationFamiliale);
+  }
+}

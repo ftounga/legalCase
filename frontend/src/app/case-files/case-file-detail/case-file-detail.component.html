@@ -338,6 +338,10 @@
     }
 
     @if (caseFile()!.legalDomain === 'DROIT_IMMIGRATION') {
+      <app-immigration-title-decision-section
+        [caseFileId]="caseFile()!.id">
+      </app-immigration-title-decision-section>
+
       <app-immigration-checklist-section
         [caseFileId]="caseFile()!.id"
         [caseFileTitle]="caseFile()!.title">
