@@ -6,6 +6,7 @@ import { ProcedureCheck } from '../models/procedure-check.model';
 import { PrudhomeFiche } from '../models/prudhome-fiche.model';
 import { TribunalTravailFiche } from '../models/tribunal-travail-fiche.model';
 import { ImmigrationChecklist } from '../models/immigration-checklist.model';
+import { RecoursResponse } from '../models/immigration-recours.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 
 const PRIMARY = '#1A3A5C';
@@ -1297,5 +1298,94 @@ export class PdfExportService {
       .slice(0, 40);
     const date = new Date().toISOString().slice(0, 10);
     return `requete-tribunal-travail-${slug}-${date}.pdf`;
+  }
+
+  // ── Recours Immigration ──────────────────────────────────────────
+
+  exportRecoursImmigration(recours: RecoursResponse, caseFileTitle: string): void {
+    import('pdfmake/build/pdfmake').then(pdfMakeModule => {
+      import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
+        const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
+        const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
+        pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
+        const docDefinition = this.buildRecoursDocument(recours, caseFileTitle) as TDocumentDefinitions;
+        const fileName = this.buildRecoursFileName(caseFileTitle);
+        pdfMake.createPdf(docDefinition).download(fileName);
+      });
+    });
+  }
+
+  buildRecoursDocument(recours: RecoursResponse, caseFileTitle: string): object {
+    const exportDate = new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+    const doc = recours.document;
+
+    const content: any[] = [
+      { image: LEGALCASE_LOGO_BASE64, width: 120, margin: [0, 0, 0, 16] },
+      { text: recours.recoursLabel, style: 'title' },
+      { text: `Dossier : ${caseFileTitle}`, style: 'subtitle' },
+      { text: `Exporté le ${exportDate}`, style: 'date' },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: ACCENT }], margin: [0, 8, 0, 16] },
+    ];
+
+    if (recours.dateLimiteDepassee && recours.avertissement) {
+      content.push({
+        text: recours.avertissement,
+        style: 'warning',
+        margin: [0, 0, 0, 12]
+      });
+    }
+
+    content.push(
+      { text: `Date limite de dépôt : ${recours.dateLimite}`, bold: true, margin: [0, 0, 0, 16], color: PRIMARY },
+    );
+
+    const sections = [
+      { title: 'EN-TÊTE', body: doc.enTete },
+      { title: 'OBJET', body: doc.objetDemande },
+      { title: 'VISA DES TEXTES', body: doc.visaTextes },
+      { title: 'EXPOSÉ DES FAITS', body: doc.exposeFaits },
+      { title: 'MOYENS DE DROIT', body: doc.moyensDroit },
+      { title: 'CONCLUSIONS', body: doc.conclusions },
+    ];
+
+    for (const section of sections) {
+      content.push(
+        { text: section.title, style: 'sectionTitle' },
+        { text: section.body, style: 'body', margin: [0, 0, 0, 12] }
+      );
+    }
+
+    content.push({ text: 'PIÈCES À JOINDRE', style: 'sectionTitle' });
+    content.push({
+      ul: doc.piecesJointes.map((p: string) => ({ text: p, style: 'body' })),
+      margin: [0, 0, 0, 12]
+    });
+
+    return {
+      content,
+      styles: {
+        title: { fontSize: 18, bold: true, color: PRIMARY, margin: [0, 0, 0, 4] },
+        subtitle: { fontSize: 12, color: TEXT, margin: [0, 0, 0, 4] },
+        date: { fontSize: 10, color: '#6B7A8D', margin: [0, 0, 0, 8] },
+        sectionTitle: { fontSize: 11, bold: true, color: ACCENT, margin: [0, 8, 0, 4] },
+        body: { fontSize: 10, color: TEXT, lineHeight: 1.5 },
+        warning: { fontSize: 10, color: ERROR, bold: true, background: ERROR_BG },
+      },
+      defaultStyle: { font: 'Roboto' },
+      pageMargins: [40, 40, 40, 40],
+    };
+  }
+
+  buildRecoursFileName(caseFileTitle: string): string {
+    const slug = caseFileTitle
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const date = new Date().toISOString().slice(0, 10);
+    return `recours-immigration-${slug}-${date}.pdf`;
   }
 }

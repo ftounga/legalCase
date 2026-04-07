@@ -1,0 +1,162 @@
+<div class="recours-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">gavel</mat-icon>
+    <span class="section-title">Recours immigration</span>
+    @if (recours() && !showForm()) {
+      <span class="section-badge">{{ recours()!.recoursLabel }}</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="recours-body">
+
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="recours-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field form-field--wide">
+              <mat-label>Type de recours</mat-label>
+              <mat-select [(ngModel)]="recoursType">
+                @for (t of recoursTypes; track t.value) {
+                  <mat-option [value]="t.value">{{ t.label }} ({{ t.country }})</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Date de notification du refus</mat-label>
+              <input matInput type="date" [(ngModel)]="dateNotification">
+            </mat-form-field>
+          </div>
+
+          <h4 class="form-section-title">Requérant</h4>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Nom</mat-label>
+              <input matInput [(ngModel)]="nom">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Prénom</mat-label>
+              <input matInput [(ngModel)]="prenom">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Nationalité</mat-label>
+              <input matInput [(ngModel)]="nationalite">
+            </mat-form-field>
+          </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field form-field--wide">
+              <mat-label>Adresse</mat-label>
+              <input matInput [(ngModel)]="adresse">
+            </mat-form-field>
+          </div>
+
+          <h4 class="form-section-title">Décision contestée</h4>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Autorité</mat-label>
+              <input matInput [(ngModel)]="autorite">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Date de la décision</mat-label>
+              <input matInput type="date" [(ngModel)]="dateDecision">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Référence (optionnel)</mat-label>
+              <input matInput [(ngModel)]="reference">
+            </mat-form-field>
+          </div>
+
+          <h4 class="form-section-title">Exposé des faits</h4>
+          <mat-form-field appearance="outline" class="form-field--full">
+            <mat-label>Exposé des faits (optionnel)</mat-label>
+            <textarea matInput [(ngModel)]="exposeFaits" rows="4"></textarea>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="generate()" [disabled]="generating()">
+              @if (generating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>gavel</mat-icon> Générer le recours
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && recours()) {
+        <div class="recours-preview">
+
+          @if (recours()!.dateLimiteDepassee) {
+            <div class="warning-banner">
+              <mat-icon>warning</mat-icon>
+              <span>{{ recours()!.avertissement }}</span>
+            </div>
+          }
+
+          <div class="deadline-info">
+            <mat-icon>schedule</mat-icon>
+            <span>Date limite de dépôt : <strong>{{ recours()!.dateLimite }}</strong></span>
+          </div>
+
+          <div class="document-section">
+            <h4 class="doc-section-title">En-tête</h4>
+            <pre class="doc-content">{{ recours()!.document.enTete }}</pre>
+          </div>
+
+          <div class="document-section">
+            <h4 class="doc-section-title">Objet</h4>
+            <p class="doc-content">{{ recours()!.document.objetDemande }}</p>
+          </div>
+
+          <div class="document-section">
+            <h4 class="doc-section-title">Visa des textes</h4>
+            <pre class="doc-content">{{ recours()!.document.visaTextes }}</pre>
+          </div>
+
+          <div class="document-section">
+            <h4 class="doc-section-title">Exposé des faits</h4>
+            <p class="doc-content">{{ recours()!.document.exposeFaits }}</p>
+          </div>
+
+          <div class="document-section">
+            <h4 class="doc-section-title">Moyens de droit</h4>
+            <pre class="doc-content">{{ recours()!.document.moyensDroit }}</pre>
+          </div>
+
+          <div class="document-section">
+            <h4 class="doc-section-title">Conclusions</h4>
+            <pre class="doc-content">{{ recours()!.document.conclusions }}</pre>
+          </div>
+
+          <div class="document-section">
+            <h4 class="doc-section-title">Pièces à joindre</h4>
+            <ul class="pieces-list">
+              @for (piece of recours()!.document.piecesJointes; track piece) {
+                <li>{{ piece }}</li>
+              }
+            </ul>
+          </div>
+
+          <div class="preview-actions">
+            <button mat-stroked-button (click)="editForm()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+            <button mat-flat-button color="primary" (click)="exportPdf()">
+              <mat-icon>picture_as_pdf</mat-icon> Exporter PDF
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>
