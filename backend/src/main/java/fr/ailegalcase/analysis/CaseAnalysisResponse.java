@@ -29,8 +29,19 @@ public record CaseAnalysisResponse(
         BelgianCompensationCalculator.BelgianCompensationEstimate belgianCompensationEstimate,
         PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate,
         PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate,
-        LiquidationCommunauteResult liquidationCommunaute
+        LiquidationCommunauteResult liquidationCommunaute,
+        TravailExtractedData travailExtractedData,
+        ImmigrationExtractedData immigrationExtractedData
 ) {
+
+    public record TravailExtractedData(
+            String conventionCollective, String dateEntree, Double salaireBrutMensuel,
+            String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
+            Integer congesContractuels, Double primeAncienneteContractuelle) {}
+
+    public record ImmigrationExtractedData(
+            String dateExpirationTitre, String typeTitreSejour,
+            String typeProcedureDetectee, String dateDepotProcedure) {}
 
     public record TimelineEntry(String date, String evenement) {}
 
@@ -111,6 +122,8 @@ public record CaseAnalysisResponse(
         PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate = null;
         PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate = null;
         LiquidationCommunauteResult liquidationCommunaute = null;
+        TravailExtractedData travailExtractedData = null;
+        ImmigrationExtractedData immigrationExtractedData = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -127,6 +140,8 @@ public record CaseAnalysisResponse(
                 pensionAlimentaireEstimate = extractPensionAlimentaireEstimate(root);
                 prestationCompensatoireEstimate = extractPrestationCompensatoireEstimate(root);
                 liquidationCommunaute = extractLiquidationCommunaute(root);
+                travailExtractedData = extractTravailData(root);
+                immigrationExtractedData = extractImmigrationData(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -155,7 +170,9 @@ public record CaseAnalysisResponse(
                 belgianCompensationEstimate,
                 pensionAlimentaireEstimate,
                 prestationCompensatoireEstimate,
-                liquidationCommunaute
+                liquidationCommunaute,
+                travailExtractedData,
+                immigrationExtractedData
         );
     }
 
@@ -173,7 +190,8 @@ public record CaseAnalysisResponse(
                     base.analysisDocuments(),
                     null, belgian,
                     base.pensionAlimentaireEstimate(), base.prestationCompensatoireEstimate(),
-                    base.liquidationCommunaute());
+                    base.liquidationCommunaute(),
+                    base.travailExtractedData(), base.immigrationExtractedData());
         }
         return base;
     }
@@ -329,5 +347,44 @@ public record CaseAnalysisResponse(
             }
         }
         return List.copyOf(result);
+    }
+
+    static TravailExtractedData extractTravailData(JsonNode root) {
+        JsonNode node = root.get("travail_extracted_data");
+        if (node == null || !node.isObject()) return null;
+        try {
+            return new TravailExtractedData(
+                    textOrNull(node, "convention_collective"),
+                    textOrNull(node, "date_entree"),
+                    doubleOrNull(node, "salaire_brut_mensuel"),
+                    textOrNull(node, "type_contrat"),
+                    textOrNull(node, "poste"),
+                    textOrNull(node, "motif_licenciement"),
+                    textOrNull(node, "date_licenciement"),
+                    intOrNull(node, "conges_contractuels"),
+                    doubleOrNull(node, "prime_anciennete_contractuelle")
+            );
+        } catch (Exception ignored) { return null; }
+    }
+
+    static ImmigrationExtractedData extractImmigrationData(JsonNode root) {
+        String dateExpiration = textOrNull(root, "date_expiration_titre");
+        String typeTitre = textOrNull(root, "type_titre_sejour");
+        String typeProcedure = textOrNull(root, "type_procedure_detectee");
+        String dateDepot = textOrNull(root, "date_depot_procedure");
+        if (dateExpiration == null && typeTitre == null && typeProcedure == null && dateDepot == null) return null;
+        return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot);
+    }
+
+    private static String textOrNull(JsonNode node, String field) {
+        return node.has(field) && !node.get(field).isNull() ? node.get(field).asText() : null;
+    }
+
+    private static Double doubleOrNull(JsonNode node, String field) {
+        return node.has(field) && !node.get(field).isNull() ? node.get(field).doubleValue() : null;
+    }
+
+    private static Integer intOrNull(JsonNode node, String field) {
+        return node.has(field) && !node.get(field).isNull() ? node.get(field).intValue() : null;
     }
 }

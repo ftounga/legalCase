@@ -25,6 +25,21 @@ public final class LegalDomainPromptBuilder {
               "passif_commun" : tableau d'objets {libelle: string, montant: number|null} listant les dettes communes détectées.
             """;
 
+    private static final String TRAVAIL_INSTRUCTION = """
+
+            Pour ce dossier de droit du travail, inclure également dans le JSON les champs suivants :
+            "travail_extracted_data" : objet avec les champs :
+              "convention_collective" : identifiant de la convention collective détectée (ex: "METALLURGIE", "SYNTEC", "BTP", "HCR", "COMMERCE", "CP200", "CP124", "CP302"), null si non détectable.
+              "date_entree" : date d'entrée dans l'entreprise au format YYYY-MM-DD, null si non détectable.
+              "salaire_brut_mensuel" : salaire brut mensuel en euros (nombre), null si non détectable.
+              "type_contrat" : type de contrat détecté ("CDI", "CDD", "INTERIM"), null si non détectable.
+              "poste" : intitulé du poste occupé, null si non détectable.
+              "motif_licenciement" : motif du licenciement si détecté (texte libre), null si non détectable.
+              "date_licenciement" : date du licenciement ou de la rupture au format YYYY-MM-DD, null si non détectable.
+              "conges_contractuels" : nombre de jours de congés prévus au contrat (entier), null si non détectable.
+              "prime_anciennete_contractuelle" : pourcentage de prime d'ancienneté au contrat (nombre), null si non détectable.
+            """;
+
     private static final String IMMIGRATION_INSTRUCTION = """
 
             Pour ce dossier de droit de l'immigration, inclure également dans le JSON les champs suivants :
@@ -57,6 +72,7 @@ public final class LegalDomainPromptBuilder {
     }
 
     public static String domainSpecificInstruction(String legalDomain) {
+        if ("DROIT_DU_TRAVAIL".equals(legalDomain)) return TRAVAIL_INSTRUCTION;
         if ("DROIT_IMMIGRATION".equals(legalDomain)) return IMMIGRATION_INSTRUCTION;
         if ("DROIT_FAMILLE".equals(legalDomain))     return FAMILLE_INSTRUCTION;
         return "";

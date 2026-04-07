@@ -87,6 +87,27 @@ export interface CaseAnalysisResult {
   pensionAlimentaireEstimate?: PensionAlimentaireEstimate | null;
   prestationCompensatoireEstimate?: PrestationCompensatoireEstimate | null;
   liquidationCommunaute?: LiquidationCommunaute | null;
+  travailExtractedData?: TravailExtractedData | null;
+  immigrationExtractedData?: ImmigrationExtractedData | null;
+}
+
+export interface TravailExtractedData {
+  conventionCollective?: string | null;
+  dateEntree?: string | null;
+  salaireBrutMensuel?: number | null;
+  typeContrat?: string | null;
+  poste?: string | null;
+  motifLicenciement?: string | null;
+  dateLicenciement?: string | null;
+  congesContractuels?: number | null;
+  primeAncienneteContractuelle?: number | null;
+}
+
+export interface ImmigrationExtractedData {
+  dateExpirationTitre?: string | null;
+  typeTitreSejour?: string | null;
+  typeProcedureDetectee?: string | null;
+  dateDepotProcedure?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
