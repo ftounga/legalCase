@@ -1,0 +1,134 @@
+<div class="title-decision-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">account_tree</mat-icon>
+    <span class="section-title">Titre de séjour recommandé</span>
+    @if (decision() && !showForm()) {
+      <span class="section-badge">{{ decision()!.recommendations.length }} titre(s)</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="decision-body">
+
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="questionnaire">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Pays</mat-label>
+              <mat-select [(ngModel)]="country">
+                @for (c of countries; track c.value) {
+                  <mat-option [value]="c.value">{{ c.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Motif du séjour</mat-label>
+              <mat-select [(ngModel)]="motif" (ngModelChange)="onMotifChange()">
+                @for (m of motifs; track m.value) {
+                  <mat-option [value]="m.value">{{ m.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Durée</mat-label>
+              <mat-select [(ngModel)]="duree">
+                @for (d of durees; track d.value) {
+                  <mat-option [value]="d.value">{{ d.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <div class="toggle-field">
+              <mat-slide-toggle [(ngModel)]="nationaliteUe" color="primary">
+                Ressortissant UE / EEE / Suisse
+              </mat-slide-toggle>
+            </div>
+
+            @if (motif() === 'FAMILLE') {
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Situation familiale</mat-label>
+                <mat-select [(ngModel)]="situationFamiliale">
+                  @for (s of situations; track s.value) {
+                    <mat-option [value]="s.value">{{ s.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="resolve()" [disabled]="resolving()">
+              @if (resolving()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>search</mat-icon> Analyser
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && decision()) {
+        <div class="results">
+          @if (decision()!.recommendations.length === 0) {
+            <div class="empty-result">
+              <mat-icon>info</mat-icon>
+              <span>Aucun titre standard identifié pour ces critères. Vérifiez les paramètres ou consultez un spécialiste.</span>
+            </div>
+          } @else {
+            <div class="recommendations-list">
+              @for (title of decision()!.recommendations; track title.code) {
+                <div class="recommendation-card">
+                  <div class="rec-header">
+                    <mat-icon class="rec-icon">check_circle</mat-icon>
+                    <div class="rec-title-block">
+                      <span class="rec-label">{{ title.label }}</span>
+                      <span class="rec-code">{{ title.code }}</span>
+                    </div>
+                    <span class="rec-delai">
+                      <mat-icon>schedule</mat-icon>
+                      ~{{ title.delaiMoyenJours }} jours
+                    </span>
+                  </div>
+
+                  <div class="rec-conditions">
+                    <span class="rec-section-label">Conditions</span>
+                    <p>{{ title.conditions }}</p>
+                  </div>
+
+                  <div class="rec-pieces">
+                    <span class="rec-section-label">Pièces à fournir</span>
+                    <ul>
+                      @for (piece of title.pieces; track piece) {
+                        <li>{{ piece }}</li>
+                      }
+                    </ul>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="results-actions">
+            <button mat-stroked-button (click)="editCriteria()">
+              <mat-icon>edit</mat-icon> Refaire l'analyse
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>
