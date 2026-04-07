@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="059-create-immigration-recours" author="legalcase">
+        <createTable tableName="immigration_recours">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_immigration_recours_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="recours_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_notification" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_limite" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="requerant_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="decision_contestee_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expose_faits" type="text"/>
+            <column name="generated_document" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="immigration_recours"
+                             columnNames="case_file_id"
+                             constraintName="uq_immigration_recours_case_file"/>
+
+        <createIndex tableName="immigration_recours"
+                     indexName="idx_immigration_recours_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
