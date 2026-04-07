@@ -1,0 +1,138 @@
+<div class="anciennete-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">calendar_month</mat-icon>
+    <span class="section-title">Ancienneté et congés</span>
+    @if (result() && !showForm()) {
+      <span class="section-badge">{{ result()!.ancienneteAnnees }} an(s) {{ result()!.ancienneteMois }} mois</span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="anciennete-body">
+
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="anc-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field form-field--wide">
+              <mat-label>Convention collective</mat-label>
+              <mat-select [(ngModel)]="conventionCode">
+                @for (group of allConventions; track group.group) {
+                  <mat-optgroup [label]="group.group">
+                    @for (c of group.items; track c.value) {
+                      <mat-option [value]="c.value">{{ c.label }}</mat-option>
+                    }
+                  </mat-optgroup>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Date d'entrée</mat-label>
+              <input matInput type="date" [(ngModel)]="dateEntree">
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Salaire brut mensuel (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="salaireBase">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Congés au contrat (jours)</mat-label>
+              <input matInput type="number" [(ngModel)]="congesContrat">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Prime ancienneté contrat (%)</mat-label>
+              <input matInput type="number" [(ngModel)]="primeContrat">
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="calculate()" [disabled]="calculating()">
+              @if (calculating()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>calculate</mat-icon> Calculer
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && result()) {
+        <div class="anc-result">
+          <div class="result-card">
+            <div class="result-header">
+              <div>
+                <span class="result-convention">{{ result()!.conventionLabel }}</span>
+                <span class="result-country">{{ result()!.country }}</span>
+              </div>
+              <div class="result-anciennete">
+                <mat-icon>badge</mat-icon>
+                <span>{{ result()!.ancienneteAnnees }} an(s) et {{ result()!.ancienneteMois }} mois</span>
+              </div>
+            </div>
+
+            <div class="result-grid">
+              <div class="stat-card">
+                <span class="stat-label">Congés légaux</span>
+                <span class="stat-value">{{ result()!.congesLegauxJours }}j</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Congés supplémentaires</span>
+                <span class="stat-value">+{{ result()!.congesSupplementairesJours }}j</span>
+              </div>
+              <div class="stat-card stat-card--accent">
+                <span class="stat-label">Total congés</span>
+                <span class="stat-value">{{ result()!.congesTotalJours }}j</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Prime ancienneté</span>
+                <span class="stat-value">{{ result()!.primeAnciennetePourcentage }}%</span>
+              </div>
+              <div class="stat-card stat-card--accent">
+                <span class="stat-label">Montant prime</span>
+                <span class="stat-value">{{ result()!.primeAncienneteMontant }} €</span>
+              </div>
+            </div>
+
+            <h4 class="ecarts-title">Comparaison contrat / minimum conventionnel</h4>
+            <div class="ecarts-list">
+              @for (ecart of result()!.ecarts; track ecart.champ) {
+                <div class="ecart-row" [class.ecart-alert]="ecart.verdict === 'ECART'">
+                  <span class="ecart-champ">{{ ecart.champ }}</span>
+                  <span class="ecart-attendu">{{ ecart.attendu }}</span>
+                  <span class="ecart-contractuel">{{ ecart.contractuel }}</span>
+                  <span class="ecart-verdict">
+                    @if (ecart.verdict === 'CONFORME') {
+                      <mat-icon class="verdict-ok">check_circle</mat-icon> Conforme
+                    } @else {
+                      <mat-icon class="verdict-alert">warning</mat-icon> Écart
+                    }
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="result-actions">
+            <button mat-stroked-button (click)="editForm()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+</div>

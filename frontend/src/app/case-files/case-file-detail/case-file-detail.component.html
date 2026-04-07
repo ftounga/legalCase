@@ -323,6 +323,12 @@
       [currentUserEmail]="authService.currentUser()?.email ?? null">
     </app-case-notes-section>
 
+    @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL') {
+      <app-anciennete-section
+        [caseFileId]="caseFile()!.id">
+      </app-anciennete-section>
+    }
+
     @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'FRANCE') {
       <app-prudhome-fiche-section
         [caseFileId]="caseFile()!.id"
