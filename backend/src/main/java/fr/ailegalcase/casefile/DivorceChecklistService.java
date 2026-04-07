@@ -3,6 +3,7 @@ package fr.ailegalcase.casefile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -25,13 +26,16 @@ public class DivorceChecklistService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    private final LegalReferentialService referentialService;
 
     public DivorceChecklistService(DivorceChecklistRepository repository, CaseFileRepository caseFileRepository,
                                     WorkspaceMemberRepository workspaceMemberRepository,
-                                    CurrentUserResolver currentUserResolver, ObjectMapper objectMapper) {
+                                    CurrentUserResolver currentUserResolver, ObjectMapper objectMapper,
+                                    LegalReferentialService referentialService) {
         this.repository = repository; this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver; this.objectMapper = objectMapper;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -66,11 +70,11 @@ public class DivorceChecklistService {
     }
 
     private DivorceChecklistResult buildResult(String country, Map<String, String> etapeStatuts, Map<String, String> pieceStatuts) {
-        List<DivorceChecklistResult.EtapeStatus> etapes = DivorceChecklistReferentiel.getEtapes(country).stream()
+        List<DivorceChecklistResult.EtapeStatus> etapes = referentialService.getDivorceEtapes(country).stream()
                 .map(e -> new DivorceChecklistResult.EtapeStatus(e.code(), e.label(), e.ordre(), e.description(),
                         e.delai(), e.obligatoire(), etapeStatuts.getOrDefault(e.code(), "A_FAIRE")))
                 .toList();
-        List<DivorceChecklistResult.PieceStatus> pieces = DivorceChecklistReferentiel.getPieces(country).stream()
+        List<DivorceChecklistResult.PieceStatus> pieces = referentialService.getDivorcePieces(country).stream()
                 .map(p -> new DivorceChecklistResult.PieceStatus(p.code(), p.label(), p.description(),
                         p.obligatoire(), pieceStatuts.getOrDefault(p.code(), "MANQUANTE")))
                 .toList();

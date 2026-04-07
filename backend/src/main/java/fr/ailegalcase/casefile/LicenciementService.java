@@ -4,9 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
+
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -25,17 +28,20 @@ public class LicenciementService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    private final LegalReferentialService referentialService;
 
     public LicenciementService(LicenciementAnalysisRepository analysisRepository,
                                 CaseFileRepository caseFileRepository,
                                 WorkspaceMemberRepository workspaceMemberRepository,
                                 CurrentUserResolver currentUserResolver,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                LegalReferentialService referentialService) {
         this.analysisRepository = analysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
         this.objectMapper = objectMapper;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -50,8 +56,9 @@ public class LicenciementService {
         User user = resolveUser(oidcUser, principal);
         CaseFile caseFile = resolveCaseFileForUser(caseFileId, user);
 
+        List<LicenciementCritere> criteres = referentialService.getLicenciementCriteres(request.country());
         LicenciementAnalysisResult result = LicenciementAnalyzer.analyze(
-                request.country(), request.reponses() != null ? request.reponses() : Map.of());
+                request.country(), request.reponses() != null ? request.reponses() : Map.of(), criteres);
 
         LicenciementAnalysis entity = analysisRepository.findByCaseFileId(caseFileId)
                 .orElseGet(() -> {

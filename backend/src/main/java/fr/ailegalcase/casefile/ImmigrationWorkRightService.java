@@ -3,6 +3,7 @@ package fr.ailegalcase.casefile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -23,17 +24,20 @@ public class ImmigrationWorkRightService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    private final LegalReferentialService referentialService;
 
     public ImmigrationWorkRightService(ImmigrationWorkRightRepository workRightRepository,
                                         CaseFileRepository caseFileRepository,
                                         WorkspaceMemberRepository workspaceMemberRepository,
                                         CurrentUserResolver currentUserResolver,
-                                        ObjectMapper objectMapper) {
+                                        ObjectMapper objectMapper,
+                                        LegalReferentialService referentialService) {
         this.workRightRepository = workRightRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
         this.objectMapper = objectMapper;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -45,7 +49,7 @@ public class ImmigrationWorkRightService {
         User user = resolveUser(oidcUser, principal);
         CaseFile caseFile = resolveCaseFileForUser(caseFileId, user);
 
-        WorkRightResult result = ImmigrationWorkRightReferentiel.getByTitreType(request.titreType(), request.country());
+        WorkRightResult result = referentialService.getWorkRight(request.titreType(), request.country());
         if (result == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Titre inconnu pour ce pays : " + request.titreType() + " / " + request.country());

@@ -37,6 +37,19 @@ public final class RecoursGenerator {
             String exposeFaits
     ) {
         RecoursType type = ImmigrationRecoursReferentiel.getByCode(recoursTypeCode);
+        return generate(type, recoursTypeCode, dateNotification, requerantNom, requerantPrenom,
+                requerantNationalite, requerantAdresse, autoriteDecision, dateDecision, referenceDecision, exposeFaits);
+    }
+
+    public static GeneratedRecours generate(
+            RecoursType type,
+            String recoursTypeCode,
+            LocalDate dateNotification,
+            String requerantNom, String requerantPrenom,
+            String requerantNationalite, String requerantAdresse,
+            String autoriteDecision, LocalDate dateDecision,
+            String referenceDecision, String exposeFaits
+    ) {
         if (type == null) {
             throw new IllegalArgumentException("Type de recours inconnu : " + recoursTypeCode);
         }

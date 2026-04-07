@@ -3,6 +3,7 @@ package fr.ailegalcase.casefile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -23,17 +24,20 @@ public class ImmigrationRecoursService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    private final LegalReferentialService referentialService;
 
     public ImmigrationRecoursService(ImmigrationRecoursRepository recoursRepository,
                                       CaseFileRepository caseFileRepository,
                                       WorkspaceMemberRepository workspaceMemberRepository,
                                       CurrentUserResolver currentUserResolver,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      LegalReferentialService referentialService) {
         this.recoursRepository = recoursRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
         this.objectMapper = objectMapper;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -157,7 +161,7 @@ public class ImmigrationRecoursService {
     private ImmigrationRecoursResponse toResponse(UUID caseFileId,
                                                     ImmigrationRecours recours,
                                                     GeneratedRecours generated) {
-        RecoursType type = ImmigrationRecoursReferentiel.getByCode(recours.getRecoursType());
+        RecoursType type = referentialService.getRecoursType(recours.getRecoursType());
         ImmigrationRecoursRequest.RequerantData req = deserialize(
                 recours.getRequerantData(), ImmigrationRecoursRequest.RequerantData.class);
         ImmigrationRecoursRequest.DecisionContesteeData dec = deserialize(

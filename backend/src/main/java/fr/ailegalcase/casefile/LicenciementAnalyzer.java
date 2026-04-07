@@ -21,8 +21,10 @@ public final class LicenciementAnalyzer {
         if (!LicenciementCritereReferentiel.isCountryValid(country)) {
             throw new IllegalArgumentException("Pays non supporté : " + country);
         }
+        return analyze(country, reponses, LicenciementCritereReferentiel.getByCountry(country));
+    }
 
-        List<LicenciementCritere> criteres = LicenciementCritereReferentiel.getByCountry(country);
+    public static LicenciementAnalysisResult analyze(String country, Map<String, String> reponses, List<LicenciementCritere> criteres) {
         List<LicenciementAnalysisResult.CritereEvaluation> evaluations = new ArrayList<>();
         int totalRisque = 0;
         boolean hasBloquant = false;
