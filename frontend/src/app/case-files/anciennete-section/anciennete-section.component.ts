@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,7 +23,7 @@ import { AncienneteResponse } from '../../core/models/anciennete.model';
   templateUrl: './anciennete-section.component.html',
   styleUrl: './anciennete-section.component.scss'
 })
-export class AncienneteSectionComponent implements OnInit {
+export class AncienneteSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiData?: TravailExtractedData | null;
 
@@ -67,6 +67,12 @@ export class AncienneteSectionComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadExisting();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData'] && this.showForm() && !this.result()) {
+      this.prefillFromAi();
+    }
   }
 
   toggleCollapsed(): void {

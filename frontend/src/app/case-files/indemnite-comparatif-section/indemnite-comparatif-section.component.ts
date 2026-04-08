@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -24,7 +24,7 @@ import { IndemniteComparatifResponse } from '../../core/models/indemnite-compara
   templateUrl: './indemnite-comparatif-section.component.html',
   styleUrl: './indemnite-comparatif-section.component.scss'
 })
-export class IndemniteComparatifSectionComponent implements OnInit {
+export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiData?: TravailExtractedData | null;
 
@@ -52,6 +52,12 @@ export class IndemniteComparatifSectionComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadExisting();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData'] && this.showForm() && !this.result()) {
+      this.prefillFromAi();
+    }
   }
 
   toggleCollapsed(): void {

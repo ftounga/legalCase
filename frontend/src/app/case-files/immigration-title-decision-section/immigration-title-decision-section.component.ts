@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,7 +23,7 @@ import { TitleDecisionResponse, TitleRecommendation } from '../../core/models/im
   templateUrl: './immigration-title-decision-section.component.html',
   styleUrl: './immigration-title-decision-section.component.scss'
 })
-export class ImmigrationTitleDecisionSectionComponent implements OnInit {
+export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
 
@@ -72,6 +72,12 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit {
     this.loadExisting();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData'] && this.showForm() && !this.decision()) {
+      this.prefillFromAi();
+    }
+  }
+
   toggleCollapsed(): void {
     this.collapsed.update(v => !v);
   }
@@ -92,10 +98,23 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
+        this.prefillFromAi();
         this.showForm.set(true);
         this.loading.set(false);
       },
     });
+  }
+
+  private prefillFromAi(): void {
+    if (!this.aiData) return;
+    if (this.aiData.typeTitreSejour) {
+      // Map AI title type to motif
+      const type = this.aiData.typeTitreSejour.toUpperCase();
+      if (type.includes('ETUDIANT') || type.includes('STUDENT')) this.motif.set('ETUDES');
+      else if (type.includes('SALARIE') || type.includes('TRAVAIL')) this.motif.set('TRAVAIL');
+      else if (type.includes('FAMILLE') || type.includes('VPF')) this.motif.set('FAMILLE');
+      else if (type.includes('ASILE') || type.includes('REFUGIE')) this.motif.set('ASILE');
+    }
   }
 
   resolve(): void {
