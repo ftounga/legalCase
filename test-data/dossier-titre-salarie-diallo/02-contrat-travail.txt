@@ -1,0 +1,86 @@
+CONTRAT DE TRAVAIL À DURÉE INDÉTERMINÉE
+
+Entre les soussignés :
+
+EMPLOYEUR
+Raison sociale : NEXATECH SOLUTIONS SAS
+SIRET : 832 456 789 00024
+Siège social : 42, avenue de la Grande Armée, 75017 Paris
+Représentée par : M. Philippe GARNIER, Directeur Général
+Convention collective applicable : SYNTEC — IDCC 1486
+
+ET
+
+SALARIÉ
+Nom : DIALLO
+Prénom : Mamadou
+Né le : 12 août 1990 à Conakry (Guinée)
+Nationalité : Guinéenne
+Adresse : 15, rue du Faubourg Saint-Antoine, 75011 Paris
+N° de sécurité sociale : 1 90 08 99 352 078 45
+Titre de séjour autorisant le travail : VLS-TS Salarié n° FRADIAL9008120923
+Autorisation de travail DREETS : AT-IDF-2020-28473
+
+IL A ÉTÉ CONVENU CE QUI SUIT :
+
+Article 1 — Engagement
+M. Mamadou DIALLO est engagé par la société NEXATECH SOLUTIONS SAS à compter
+du 15 septembre 2020 en qualité d'Ingénieur en Informatique, position 2.1,
+coefficient 115, conformément à la convention collective SYNTEC.
+
+Article 2 — Fonctions
+Le salarié exercera les fonctions d'Ingénieur Développement Full Stack.
+Ses missions principales comprennent :
+- Conception et développement d'applications web et mobiles
+- Participation à l'architecture technique des projets
+- Revue de code et mentoring des développeurs juniors
+- Veille technologique
+
+Le salarié sera rattaché hiérarchiquement à M. Thomas LEFÈVRE, Directeur Technique.
+
+Article 3 — Lieu de travail
+Le lieu principal d'exécution du contrat est fixé au siège social de la société,
+42 avenue de la Grande Armée, 75017 Paris.
+Le salarié bénéficie de 2 jours de télétravail par semaine conformément à
+l'accord d'entreprise du 12 janvier 2022.
+
+Article 4 — Durée du travail
+Le salarié est soumis à la durée légale du travail, soit 35 heures hebdomadaires,
+réparties du lundi au vendredi.
+
+Article 5 — Rémunération
+En contrepartie de ses fonctions, le salarié percevra une rémunération mensuelle
+brute de 3 500,00 € (trois mille cinq cents euros), versée le dernier jour
+ouvrable de chaque mois par virement bancaire.
+
+Cette rémunération inclut :
+- Salaire de base : 3 200,00 €
+- Prime d'ancienneté : 300,00 € (à compter du 15/09/2023)
+
+Le salarié bénéficie en outre :
+- Tickets restaurant : 9,50 € par jour travaillé (part employeur 60 %)
+- Mutuelle d'entreprise : prise en charge à 50 % par l'employeur
+- Remboursement transport : 50 % du Pass Navigo
+
+Article 6 — Période d'essai
+Le contrat est conclu avec une période d'essai de 4 mois, renouvelable une fois
+pour une durée de 4 mois, conformément à la convention collective SYNTEC.
+La période d'essai a été validée le 14 janvier 2021.
+
+Article 7 — Congés payés
+Le salarié bénéficie de 25 jours ouvrés de congés payés par an, auxquels
+s'ajoutent les jours de RTT prévus par l'accord d'entreprise (10 jours/an).
+
+Article 8 — Clause de non-concurrence
+[Clause standard SYNTEC — non reproduite]
+
+Article 9 — Clause de confidentialité
+Le salarié s'engage à ne divulguer aucune information confidentielle relative
+aux projets, clients et méthodes de la société, pendant et après l'exécution
+du contrat.
+
+Fait en deux exemplaires originaux, à Paris, le 10 septembre 2020.
+
+L'employeur                          Le salarié
+Philippe GARNIER                     Mamadou DIALLO
+[Signature]                          [Signature]

@@ -1,0 +1,54 @@
+RZECZPOSPOLITA POLSKA
+REPUBLIC OF POLAND
+
+PASZPORT / PASSPORT
+Type / Typ : P
+Country code / Kod kraju : POL
+
+Surname / Nazwisko : KOWALSKI
+Given names / Imiona : Jan Michał
+Date of birth / Data urodzenia : 17/03/1988
+Place of birth / Miejsce urodzenia : Kraków, Polska
+Sex / Płeć : M
+Nationality / Obywatelstwo : Polish / Polskie
+
+Passport No. / Nr paszportu : FH7234891
+Date of issue / Data wydania : 12/06/2023
+Date of expiry / Data ważności : 11/06/2033
+Issuing authority / Organ wydający :
+   Wojewoda Małopolski / Voivode of Lesser Poland
+
+MACHINE READABLE ZONE
+P<POLKOWALSKI<<JAN<MICHAL<<<<<<<<<<<<<<<<<<<<<<
+FH72348912POL8803175M3306112<<<<<<<<<<<<<<<<<08
+
+---
+
+REMARQUES / OBSERVATIONS
+
+Citoyen de l'Union européenne.
+Titulaire de la libre circulation au sein de l'Espace économique européen
+conformément à la Directive 2004/38/CE du Parlement européen et du Conseil.
+
+Adresse déclarée en Belgique :
+Avenue Louise 247, boîte 12
+1050 Ixelles
+Belgique
+
+Date d'arrivée en Belgique : 15/08/2025
+Inscription au registre des étrangers de la commune d'Ixelles : 02/09/2025
+
+---
+
+QUALIFICATIONS PROFESSIONNELLES
+
+Formation : Technicien supérieur en électromécanique
+Diplôme : Dyplom Technika Elektromechanika
+   Zespół Szkół Mechanicznych nr 1, Kraków (2007)
+Formation complémentaire : Certificat de qualification en maintenance
+   industrielle — CERN, Genève (stage 2019)
+
+Expérience professionnelle antérieure :
+- 2007-2015 : Technicien de maintenance, ArcelorMittal Kraków
+- 2015-2020 : Technicien senior, Comarch SA, Kraków
+- 2020-2025 : Technicien d'exploitation, Volkswagen Poznań

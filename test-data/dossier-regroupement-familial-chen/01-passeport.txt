@@ -1,0 +1,67 @@
+PEOPLE'S REPUBLIC OF CHINA
+中华人民共和国
+
+PASSPORT / 护照
+Type / 类型 : P
+Country code / 国家代码 : CHN
+
+Surname / 姓 : CHEN
+Given names / 名 : Wei
+Date of birth / 出生日期 : 22/04/1995
+Place of birth / 出生地 : Shanghai, China
+Sex / 性别 : M
+Nationality / 国籍 : Chinese / 中国
+
+Passport No. / 护照号码 : E85723491
+Date of issue / 签发日期 : 08/01/2021
+Date of expiry / 有效期至 : 07/01/2031
+Issuing authority / 签发机关 : Exit-Entry Administration, Shanghai PSB
+                                上海市公安局出入境管理局
+
+MACHINE READABLE ZONE
+P<CHNCHEN<<WEI<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+E857234918CHN9504225M3101071<<<<<<<<<<<<<<<<<06
+
+---
+
+VISAS ET CACHETS / ENTRY STAMPS
+
+[Visa] RÉPUBLIQUE FRANÇAISE — CONSULAT GÉNÉRAL DE FRANCE À SHANGHAI
+Type : VLS-TS Étudiant
+Date de délivrance : 20/08/2021
+Validité : 01/09/2021 — 31/08/2022
+Motif : Études supérieures — Master Informatique
+Établissement : Université Paris-Saclay
+Référence : SHANG-2021-VLS-08234
+
+[Cachet] POLICE AUX FRONTIÈRES
+Aéroport Paris-CDG — Terminal 1
+Date d'entrée : 28/08/2021
+Tampon n° : CDG-2021-63419
+
+[Cachet] PRÉFECTURE DE L'ESSONNE
+Renouvellement titre étudiant
+Date : 12/07/2022
+Réf. : PREF91-2022-ET-04517
+
+[Cachet] PRÉFECTURE DE L'ESSONNE
+Renouvellement titre étudiant
+Date : 05/08/2024
+Réf. : PREF91-2024-ET-02983
+
+---
+
+INFORMATIONS COMPLÉMENTAIRES
+
+Adresse en France : 8, allée des Cerisiers, 91400 Orsay
+Situation académique :
+- 2021-2022 : Master 1 Informatique, Université Paris-Saclay
+- 2022-2023 : Master 2 Intelligence Artificielle, Paris-Saclay
+  (diplômé avec mention Très Bien)
+- 2023-présent : Doctorat en Informatique, Laboratoire LISN,
+  Université Paris-Saclay
+  Directeur de thèse : Pr. Marie-Claire DUPONT
+  Sujet : « Apprentissage par renforcement multi-agent pour
+  l'optimisation de systèmes distribués »
+
+Financement : Contrat doctoral — 2 083 € brut/mois

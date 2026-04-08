@@ -1,0 +1,45 @@
+RÉPUBLIQUE DE GUINÉE
+MINISTÈRE DE LA SÉCURITÉ ET DE LA PROTECTION CIVILE
+DIRECTION CENTRALE DE LA POLICE DES FRONTIÈRES
+
+PASSEPORT / PASSPORT
+Type : P
+Code pays / Country code : GIN
+
+Nom / Surname : DIALLO
+Prénoms / Given names : Mamadou
+Date de naissance / Date of birth : 12/08/1990
+Lieu de naissance / Place of birth : Conakry, Guinée
+Sexe / Sex : M
+Nationalité / Nationality : Guinéenne / Guinean
+Taille / Height : 1,78 m
+
+Numéro de passeport / Passport No. : GN-2023-0487562
+Date de délivrance / Date of issue : 15/03/2023
+Date d'expiration / Expiry date : 14/03/2028
+Autorité de délivrance / Issuing authority : Préfecture de Conakry
+
+ZONE LISIBLE PAR MACHINE / MACHINE READABLE ZONE
+P<GINDIALLO<<MAMADOU<<<<<<<<<<<<<<<<<<<<<<<<<<
+GN20230487562GIN9008125M2803145<<<<<<<<<<<<<<04
+
+---
+
+VISAS ET CACHETS D'ENTRÉE / ENTRY STAMPS
+
+[Cachet] RÉPUBLIQUE FRANÇAISE — POLICE AUX FRONTIÈRES
+Aéroport Paris-Charles de Gaulle — Terminal 2E
+Date d'entrée : 02/09/2020
+Motif : VLS-TS Salarié
+Validité : 12 mois
+Tampon n° : CDG-2020-47832
+
+[Cachet] Renouvellement titre de séjour
+Préfecture de Paris — Bureau des étrangers
+Date : 18/08/2021
+Référence : PREF75-2021-TS-08732
+
+[Cachet] Renouvellement titre de séjour
+Préfecture de Paris — Bureau des étrangers
+Date : 22/07/2023
+Référence : PREF75-2023-TS-14291

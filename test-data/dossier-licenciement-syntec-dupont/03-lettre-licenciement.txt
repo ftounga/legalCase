@@ -1,0 +1,80 @@
+DataVision SAS
+45 rue de la République
+69002 Lyon
+
+                                                Monsieur Thomas Dupont
+                                                18 rue Victor Hugo
+                                                69003 Lyon
+
+Lyon, le 15 janvier 2026
+
+Objet : Notification de licenciement pour insuffisance professionnelle
+Envoi par lettre recommandée avec accusé de réception n° 1A 234 567 890 2
+
+
+Monsieur,
+
+Nous faisons suite à l'entretien préalable qui s'est tenu le 8 janvier 2026 dans les locaux de l'entreprise, au cours duquel vous étiez assisté de Monsieur Julien Garnier, membre titulaire du Comité Social et Économique, et au cours duquel nous vous avons exposé les motifs nous conduisant à envisager votre licenciement.
+
+Après examen attentif de votre situation et mûre réflexion, nous avons décidé de procéder à votre licenciement pour insuffisance professionnelle. Les motifs de cette décision, qui vous ont été exposés lors de l'entretien préalable, sont les suivants :
+
+
+1. Retards répétés et significatifs sur les projets confiés
+
+Au cours de l'année 2025, vous avez accumulé des retards importants sur les projets qui vous ont été confiés, et ce malgré les alertes répétées de votre responsable hiérarchique, Monsieur Alexandre Morel, Directeur technique.
+
+Le projet « Refonte API Clients » (projet P-2025-014), dont vous aviez la charge technique, devait être livré le 30 juin 2025. La livraison effective n'est intervenue que le 15 septembre 2025, soit un retard de 11 semaines, sans qu'aucune justification technique valable n'ait été apportée. Ce retard a entraîné le report du déploiement de la version 3.2 de notre plateforme et a impacté directement trois clients majeurs.
+
+De même, le module « Tableau de bord analytique » (projet P-2025-028) qui vous avait été confié le 1er septembre 2025 avec une date de livraison fixée au 30 novembre 2025 n'était achevé qu'à environ 40 % à la date prévue. Les tâches de développement restantes ont dû être redistribuées en urgence à d'autres membres de l'équipe.
+
+Nous vous avions alerté formellement par courriel les 12 mai 2025, 8 juillet 2025 et 10 octobre 2025, en vous rappelant les échéances et en vous proposant un accompagnement renforcé que vous avez décliné.
+
+
+2. Qualité de code insuffisante et non-respect des standards
+
+Les revues de code effectuées sur vos contributions entre mars et novembre 2025 ont relevé de manière récurrente des manquements aux standards de qualité en vigueur dans l'entreprise :
+
+- Absence systématique de tests unitaires sur vos développements, en contradiction avec la politique « test-first » adoptée par l'équipe depuis janvier 2024 et rappelée lors de la réunion d'équipe du 15 janvier 2024 ;
+- Duplication de code significative identifiée lors des audits qualité de juillet et octobre 2025, avec un taux de duplication mesuré à 34 % sur vos contributions, contre une moyenne d'équipe de 8 % ;
+- Non-respect des conventions de nommage et de la documentation technique, relevé à 17 reprises dans les « pull requests » soumises entre avril et novembre 2025.
+
+Votre responsable vous a signalé ces difficultés à plusieurs reprises, notamment lors des entretiens individuels des 20 mars 2025, 15 juin 2025 et 5 septembre 2025, dont les comptes rendus ont été portés à votre connaissance.
+
+
+3. Refus de suivre les formations proposées
+
+Face aux difficultés constatées, l'entreprise vous a proposé à deux reprises de suivre des formations destinées à renforcer vos compétences :
+
+- Une formation « Architecture logicielle et bonnes pratiques » dispensée par l'organisme TechAdvance, proposée le 10 avril 2025, que vous avez refusée par courriel du 14 avril 2025 en indiquant ne pas en voir l'utilité ;
+- Une formation « Tests automatisés et intégration continue » proposée le 2 septembre 2025, que vous avez également déclinée le 8 septembre 2025 sans motif particulier.
+
+Ces refus successifs ont empêché l'entreprise de mettre en œuvre les mesures d'accompagnement nécessaires à l'amélioration de vos performances.
+
+
+Nous tenons à préciser que votre licenciement repose exclusivement sur une insuffisance professionnelle et ne revêt aucun caractère disciplinaire. Il ne vous est reproché ni faute ni manquement à vos obligations contractuelles de loyauté, mais une inadéquation persistante entre les compétences attendues pour le poste que vous occupez et les résultats effectivement constatés.
+
+Conformément aux dispositions de l'article L. 1234-1 du Code du travail et de l'article 15 de la Convention Collective Syntec, vous bénéficierez d'un préavis de trois mois, qui débutera à la date de première présentation de la présente lettre recommandée. Votre préavis prendra donc effet à compter du 17 janvier 2026 et s'achèvera le 16 avril 2026, date à laquelle votre contrat de travail prendra fin.
+
+Pendant la durée de votre préavis, vous bénéficierez, conformément à la Convention Collective Syntec, de deux heures par jour ou d'une journée entière par semaine pour rechercher un emploi, sans réduction de rémunération.
+
+À la date de fin de votre contrat, vous percevrez :
+- Votre solde de tout compte ;
+- L'indemnité de licenciement prévue par les dispositions de l'article R. 1234-2 du Code du travail et de la Convention Collective Syntec, calculée sur la base de votre ancienneté de 7 ans et 4 mois ;
+- L'indemnité compensatrice de congés payés au titre des congés acquis et non pris ;
+- Le cas échéant, l'indemnité compensatrice au titre de la clause de non-concurrence prévue à l'article 12 de votre contrat de travail, sauf si nous décidons de vous en libérer.
+
+Nous vous remettrons à la fin de votre préavis les documents suivants :
+- Votre certificat de travail ;
+- L'attestation Pôle emploi (France Travail) ;
+- Le reçu pour solde de tout compte.
+
+Nous vous informons que vous disposez d'un délai de 12 mois à compter de la notification du présent licenciement pour contester celui-ci, conformément aux dispositions de l'article L. 1235-7 du Code du travail.
+
+Nous vous prions d'agréer, Monsieur, l'expression de nos salutations distinguées.
+
+
+                                                Claire Lefèvre
+                                                Directrice Générale
+                                                DataVision SAS
+
+                                                (Signature)

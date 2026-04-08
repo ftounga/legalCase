@@ -1,0 +1,241 @@
+========================================================================
+                         BULLETIN DE PAIE
+========================================================================
+                         OCTOBRE 2025
+========================================================================
+
+EMPLOYEUR                                  SALARIÉ
+DataVision SAS                             DUPONT Thomas
+45 rue de la République                    18 rue Victor Hugo
+69002 Lyon                                 69003 Lyon
+SIRET : 812 345 678 00012                  N° SS : 1 85 03 69 100 234 56
+Code APE : 6201Z                           Date de naissance : 15/03/1985
+Convention : Syntec (IDCC 1486)            Emploi : Ingénieur dév. senior
+                                           Classification : Position 3.1
+                                           Coefficient : 170
+                                           Statut : Cadre
+                                           Ancienneté : 01/09/2018
+
+Période du 01/10/2025 au 31/10/2025
+Heures travaillées : 151,67 h
+
+------------------------------------------------------------------------
+DÉSIGNATION                      BASE    TAUX     PART SAL.  PART PATR.
+------------------------------------------------------------------------
+SALAIRE DE BASE                 151,67h  27,70    4 200,00
+Prime d'ancienneté (5%)                            210,00
+
+SALAIRE BRUT                                     4 410,00
+------------------------------------------------------------------------
+
+COTISATIONS SALARIALES :
+Sécurité sociale maladie                            0,00
+Sécurité sociale vieillesse      4 410,00  6,90%    304,29
+Sécurité sociale vieillesse pl.  4 410,00  0,40%     17,64
+CSG déductible                   4 321,80  6,80%    293,88
+CSG/CRDS non déductible          4 321,80  2,90%    125,33
+Chômage                          4 410,00  0,00%      0,00
+Retraite complémentaire T1       3 666,00  3,15%    115,48
+Retraite complémentaire T2         744,00  8,64%     64,28
+Prévoyance cadre                 4 410,00  0,50%     22,05
+Mutuelle obligatoire                                 38,00
+
+TOTAL COTISATIONS SALARIALES                       980,95
+
+COTISATIONS PATRONALES :
+Sécurité sociale maladie         4 410,00  7,00%    308,70
+Sécurité sociale maladie compl.  4 410,00  6,00%    264,60
+Sécurité sociale vieillesse      4 410,00  8,55%    377,06
+Sécurité sociale vieillesse pl.  4 410,00  1,90%     83,79
+Allocations familiales           4 410,00  3,45%    152,15
+Accident du travail              4 410,00  1,10%     48,51
+Chômage                          4 410,00  4,05%    178,61
+Retraite complémentaire T1       3 666,00  4,72%    173,08
+Retraite complémentaire T2         744,00 12,95%     96,35
+Prévoyance cadre                 4 410,00  1,50%     66,15
+Mutuelle obligatoire                                 57,00
+
+TOTAL COTISATIONS PATRONALES                     1 806,00
+------------------------------------------------------------------------
+
+Titres restaurant : 22 jours x 9,50 € = 209,00 €
+  Part salariale : 83,60 €
+  Part patronale : 125,40 €
+
+------------------------------------------------------------------------
+NET IMPOSABLE                                    3 429,05
+Impôt sur le revenu (PAS 7,5%)                    257,18
+
+NET À PAYER AVANT IMPÔT                          3 429,05
+Impôt sur le revenu prélevé à la source           257,18
+Titres restaurant (part salariale)                  83,60
+
+NET À PAYER                                      3 088,27
+
+Versé par virement le 30/10/2025
+------------------------------------------------------------------------
+Cumul annuel brut (janv.-oct.) : 44 100,00 €
+Cumul annuel net imposable :     34 290,50 €
+========================================================================
+
+
+========================================================================
+                         BULLETIN DE PAIE
+========================================================================
+                         NOVEMBRE 2025
+========================================================================
+
+EMPLOYEUR                                  SALARIÉ
+DataVision SAS                             DUPONT Thomas
+45 rue de la République                    18 rue Victor Hugo
+69002 Lyon                                 69003 Lyon
+SIRET : 812 345 678 00012                  N° SS : 1 85 03 69 100 234 56
+Code APE : 6201Z                           Date de naissance : 15/03/1985
+Convention : Syntec (IDCC 1486)            Emploi : Ingénieur dév. senior
+                                           Classification : Position 3.1
+                                           Coefficient : 170
+                                           Statut : Cadre
+                                           Ancienneté : 01/09/2018
+
+Période du 01/11/2025 au 30/11/2025
+Heures travaillées : 151,67 h
+
+------------------------------------------------------------------------
+DÉSIGNATION                      BASE    TAUX     PART SAL.  PART PATR.
+------------------------------------------------------------------------
+SALAIRE DE BASE                 151,67h  27,70    4 200,00
+Prime d'ancienneté (5%)                            210,00
+
+SALAIRE BRUT                                     4 410,00
+------------------------------------------------------------------------
+
+COTISATIONS SALARIALES :
+Sécurité sociale maladie                            0,00
+Sécurité sociale vieillesse      4 410,00  6,90%    304,29
+Sécurité sociale vieillesse pl.  4 410,00  0,40%     17,64
+CSG déductible                   4 321,80  6,80%    293,88
+CSG/CRDS non déductible          4 321,80  2,90%    125,33
+Chômage                          4 410,00  0,00%      0,00
+Retraite complémentaire T1       3 666,00  3,15%    115,48
+Retraite complémentaire T2         744,00  8,64%     64,28
+Prévoyance cadre                 4 410,00  0,50%     22,05
+Mutuelle obligatoire                                 38,00
+
+TOTAL COTISATIONS SALARIALES                       980,95
+
+COTISATIONS PATRONALES :
+Sécurité sociale maladie         4 410,00  7,00%    308,70
+Sécurité sociale maladie compl.  4 410,00  6,00%    264,60
+Sécurité sociale vieillesse      4 410,00  8,55%    377,06
+Sécurité sociale vieillesse pl.  4 410,00  1,90%     83,79
+Allocations familiales           4 410,00  3,45%    152,15
+Accident du travail              4 410,00  1,10%     48,51
+Chômage                          4 410,00  4,05%    178,61
+Retraite complémentaire T1       3 666,00  4,72%    173,08
+Retraite complémentaire T2         744,00 12,95%     96,35
+Prévoyance cadre                 4 410,00  1,50%     66,15
+Mutuelle obligatoire                                 57,00
+
+TOTAL COTISATIONS PATRONALES                     1 806,00
+------------------------------------------------------------------------
+
+Titres restaurant : 20 jours x 9,50 € = 190,00 €
+  Part salariale : 76,00 €
+  Part patronale : 114,00 €
+
+------------------------------------------------------------------------
+NET IMPOSABLE                                    3 429,05
+Impôt sur le revenu (PAS 7,5%)                    257,18
+
+NET À PAYER AVANT IMPÔT                          3 429,05
+Impôt sur le revenu prélevé à la source           257,18
+Titres restaurant (part salariale)                  76,00
+
+NET À PAYER                                      3 095,87
+
+Versé par virement le 28/11/2025
+------------------------------------------------------------------------
+Cumul annuel brut (janv.-nov.) : 48 510,00 €
+Cumul annuel net imposable :     37 719,55 €
+========================================================================
+
+
+========================================================================
+                         BULLETIN DE PAIE
+========================================================================
+                         DÉCEMBRE 2025
+========================================================================
+
+EMPLOYEUR                                  SALARIÉ
+DataVision SAS                             DUPONT Thomas
+45 rue de la République                    18 rue Victor Hugo
+69002 Lyon                                 69003 Lyon
+SIRET : 812 345 678 00012                  N° SS : 1 85 03 69 100 234 56
+Code APE : 6201Z                           Date de naissance : 15/03/1985
+Convention : Syntec (IDCC 1486)            Emploi : Ingénieur dév. senior
+                                           Classification : Position 3.1
+                                           Coefficient : 170
+                                           Statut : Cadre
+                                           Ancienneté : 01/09/2018
+
+Période du 01/12/2025 au 31/12/2025
+Heures travaillées : 151,67 h
+
+------------------------------------------------------------------------
+DÉSIGNATION                      BASE    TAUX     PART SAL.  PART PATR.
+------------------------------------------------------------------------
+SALAIRE DE BASE                 151,67h  27,70    4 200,00
+Prime d'ancienneté (5%)                            210,00
+
+SALAIRE BRUT                                     4 410,00
+------------------------------------------------------------------------
+
+COTISATIONS SALARIALES :
+Sécurité sociale maladie                            0,00
+Sécurité sociale vieillesse      4 410,00  6,90%    304,29
+Sécurité sociale vieillesse pl.  4 410,00  0,40%     17,64
+CSG déductible                   4 321,80  6,80%    293,88
+CSG/CRDS non déductible          4 321,80  2,90%    125,33
+Chômage                          4 410,00  0,00%      0,00
+Retraite complémentaire T1       3 666,00  3,15%    115,48
+Retraite complémentaire T2         744,00  8,64%     64,28
+Prévoyance cadre                 4 410,00  0,50%     22,05
+Mutuelle obligatoire                                 38,00
+
+TOTAL COTISATIONS SALARIALES                       980,95
+
+COTISATIONS PATRONALES :
+Sécurité sociale maladie         4 410,00  7,00%    308,70
+Sécurité sociale maladie compl.  4 410,00  6,00%    264,60
+Sécurité sociale vieillesse      4 410,00  8,55%    377,06
+Sécurité sociale vieillesse pl.  4 410,00  1,90%     83,79
+Allocations familiales           4 410,00  3,45%    152,15
+Accident du travail              4 410,00  1,10%     48,51
+Chômage                          4 410,00  4,05%    178,61
+Retraite complémentaire T1       3 666,00  4,72%    173,08
+Retraite complémentaire T2         744,00 12,95%     96,35
+Prévoyance cadre                 4 410,00  1,50%     66,15
+Mutuelle obligatoire                                 57,00
+
+TOTAL COTISATIONS PATRONALES                     1 806,00
+------------------------------------------------------------------------
+
+Titres restaurant : 21 jours x 9,50 € = 199,50 €
+  Part salariale : 79,80 €
+  Part patronale : 119,70 €
+
+------------------------------------------------------------------------
+NET IMPOSABLE                                    3 429,05
+Impôt sur le revenu (PAS 7,5%)                    257,18
+
+NET À PAYER AVANT IMPÔT                          3 429,05
+Impôt sur le revenu prélevé à la source           257,18
+Titres restaurant (part salariale)                  79,80
+
+NET À PAYER                                      3 092,07
+
+Versé par virement le 30/12/2025
+------------------------------------------------------------------------
+Cumul annuel brut (janv.-déc.) : 52 920,00 €
+Cumul annuel net imposable :     41 148,60 €
+========================================================================

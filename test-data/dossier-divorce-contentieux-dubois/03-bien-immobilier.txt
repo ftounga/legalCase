@@ -1,0 +1,200 @@
+FICHE DESCRIPTIVE DU BIEN IMMOBILIER COMMUN
+Dossier LAMBERT / DUBOIS
+
+---
+
+I. IDENTIFICATION DU BIEN
+
+Adresse : 12, rue des Lilas, 75020 Paris
+Bâtiment : B - Escalier 2
+Etage : 2e étage avec ascenseur
+Lot de copropriété : n° 24
+Tantièmes : 58/1000
+
+Type : Appartement T3
+Surface habitable : 65 m² (loi Carrez : 63,20 m²)
+Nombre de pièces : 3 (séjour + 2 chambres)
+
+Composition :
+- Entrée avec placard intégré : 4 m²
+- Séjour / salle à manger : 22 m²
+- Cuisine séparée semi-équipée : 9 m²
+- Chambre 1 (parentale) : 14 m²
+- Chambre 2 (enfants) : 11 m²
+- Salle de bain avec baignoire : 5 m²
+- WC séparé : 1,5 m²
+- Dégagement : 3,5 m²
+
+Annexes :
+- Cave n° 12 au sous-sol : 4 m²
+- Pas de parking (stationnement rue)
+
+Orientation : double exposition Est / Ouest
+Vis-à-vis : aucun côté Ouest (vue sur square)
+Etat général : bon (rafraîchissement peintures réalisé en 2022)
+
+---
+
+II. HISTORIQUE D'ACQUISITION
+
+Date d'achat : 12 mars 2017
+Vendeur : M. et Mme FOURNIER
+Notaire acquéreur : Maître DUPUIS, Paris 20e
+Notaire vendeur : Maître GARCIA, Paris 11e
+
+Prix d'acquisition : 280 000,00 €
+Frais de notaire : 21 000,00 €
+Frais d'agence : 14 000,00 € (charge acquéreur)
+Coût total d'acquisition : 315 000,00 €
+
+Financement :
+- Apport Monsieur LAMBERT : 35 000,00 € (épargne personnelle antérieure
+  au mariage - bien propre)
+- Apport Madame DUBOIS : 10 000,00 € (donation de ses parents -
+  bien propre)
+- Prêt immobilier : 252 000,00 €
+- Frais de dossier bancaire : 500,00 €
+- Frais de garantie (Crédit Logement) : 2 420,00 €
+
+Récompenses dues à la communauté :
+- Apport propre M. LAMBERT : 35 000 € → créance sur la communauté
+- Apport propre Mme DUBOIS : 10 000 € → créance sur la communauté
+
+---
+
+III. PRET IMMOBILIER EN COURS
+
+Etablissement : Crédit Agricole Ile-de-France
+Agence : Paris Gambetta - 38, avenue Gambetta, 75020 Paris
+Référence prêt : 07XXXXXXXX
+
+Caractéristiques :
+- Type : Prêt amortissable à taux fixe
+- Montant emprunté : 252 000,00 €
+- Taux nominal fixe : 1,85 %
+- TAEG : 2,12 %
+- Durée : 300 mois (25 ans)
+- Date de première échéance : 5 avril 2017
+- Date de dernière échéance : 5 mars 2042
+- Mensualité (hors assurance) : 892,00 €
+- Assurance décès-invalidité : 48,00 €/mois (24 €/tête, quotité 100/100)
+- Mensualité totale : 940,00 €
+
+Tableau d'amortissement (extrait) :
+
+| Date        | Capital restant dû | Intérêts | Capital | Mensualité |
+|-------------|--------------------|----------|---------|------------|
+| 01/01/2026  | 189 500,00 €       | 292,00 € | 600,00 €| 892,00 €   |
+| 01/06/2026  | 186 480,00 €       | 287,00 € | 605,00 €| 892,00 €   |
+| 01/01/2027  | 183 400,00 €       | 282,00 € | 610,00 €| 892,00 €   |
+| 01/01/2028  | 177 100,00 €       | 273,00 € | 619,00 €| 892,00 €   |
+
+Coût total du crédit sur la durée restante (16 ans) : ~52 000 €
+en intérêts.
+
+Situation au 1er janvier 2026 :
+- Echéances réglées : 105 sur 300
+- Capital amorti : 62 500,00 €
+- Capital restant dû : 189 500,00 €
+- Intérêts payés depuis l'origine : 31 160,00 €
+
+Aucun incident de paiement signalé.
+
+---
+
+IV. ESTIMATION DE VALEUR
+
+A) Estimation agence Century 21 Paris 20e (20 novembre 2025)
+
+Méthode : Comparaison avec transactions récentes dans le quartier
+
+Références utilisées :
+- 8, rue des Lilas (T3 - 60 m²) : vendu 268 000 € en sept. 2025
+  (4 467 €/m²)
+- 22, rue de la Mare (T3 - 68 m²) : vendu 295 000 € en oct. 2025
+  (4 338 €/m²)
+- 5, rue Sorbier (T3 - 62 m²) : vendu 274 000 € en juil. 2025
+  (4 419 €/m²)
+
+Prix moyen au m² dans le secteur : 4 400 €/m²
+
+Estimation :
+- Valeur basse : 270 000 €
+- Valeur médiane : 280 000 €
+- Valeur haute : 290 000 €
+
+Valeur retenue : 280 000 €
+
+B) Valeur nette du bien
+
+Valeur vénale estimée : 280 000,00 €
+Capital restant dû prêt : -189 500,00 €
+Valeur nette : 90 500,00 €
+
+Part de chaque époux (50/50 avant récompenses) : 45 250,00 €
+
+Après récompenses :
+- Créance propre M. LAMBERT : 35 000,00 €
+- Créance propre Mme DUBOIS : 10 000,00 €
+- Valeur communautaire nette : 90 500 - 35 000 - 10 000 = 45 500,00 €
+- Part communautaire par époux : 22 750,00 €
+- Total M. LAMBERT : 22 750 + 35 000 = 57 750,00 €
+- Total Mme DUBOIS : 22 750 + 10 000 = 32 750,00 €
+
+---
+
+V. CHARGES ANNUELLES
+
+| Poste                           | Montant annuel  |
+|---------------------------------|-----------------|
+| Charges de copropriété          | 2 220,00 €      |
+| Taxe foncière                   | 1 176,00 €      |
+| Assurance habitation (MAIF)     | 420,00 €        |
+| TOTAL                           | 3 816,00 €      |
+
+---
+
+VI. ETAT DE LA COPROPRIETE
+
+Syndic : Cabinet Foncia - Paris Est
+Assemblée générale 2025 : aucuns travaux votés
+Fonds de travaux (loi ALUR) : 1 200 € versés par le lot n° 24
+Procédures en cours : néant
+Impayés de charges : néant
+
+Diagnostic technique global (DTG) : réalisé en 2023
+- Ravalement prévu : 2028 (estimation provisoire : 180 000 €
+  pour l'ensemble de la copropriété, soit ~10 440 € pour le lot 24)
+- DPE : classe D (consommation estimée : 210 kWh/m²/an)
+
+---
+
+VII. POSITION DE MADAME DUBOIS
+
+Madame Marie DUBOIS souhaite se voir attribuer le bien immobilier à
+titre préférentiel, conformément à l'article 831-2 du Code civil,
+en sa qualité de parent chez qui la résidence habituelle des enfants
+serait fixée.
+
+Motifs invoqués :
+1. Stabilité pour les enfants (école à 300 m, amis dans le quartier)
+2. Impossibilité de reloger deux enfants dans le 20e arrondissement
+   aux prix actuels du marché locatif (loyer T3 estimé : 1 400 €/mois)
+3. Ancrage social et familial dans le quartier (pédiatre, activités)
+
+Financement de la soulte envisagé :
+- Aide familiale (parents de Mme DUBOIS) : 20 000 €
+- Rachat de crédit avec intégration de la soulte : en cours d'étude
+  auprès du Crédit Agricole
+- Reste de la soulte à financer : ~25 000 €
+
+Note : la capacité d'emprunt de Madame DUBOIS seule, avec un revenu de
+1 800 €/mois, est limitée. L'attribution préférentielle ne sera viable
+que si la pension alimentaire et/ou la prestation compensatoire permettent
+d'augmenter sa capacité de remboursement.
+
+---
+
+Document établi par Maître Catherine RENARD
+Avocat de Madame Marie DUBOIS
+Paris, le 5 janvier 2026

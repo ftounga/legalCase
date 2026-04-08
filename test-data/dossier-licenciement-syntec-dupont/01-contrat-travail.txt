@@ -1,0 +1,145 @@
+CONTRAT DE TRAVAIL À DURÉE INDÉTERMINÉE
+
+Entre les soussignés :
+
+La société DataVision SAS, au capital de 500 000 euros, immatriculée au Registre du Commerce et des Sociétés de Lyon sous le numéro 812 345 678, dont le siège social est situé au 45 rue de la République, 69002 Lyon, représentée par Madame Claire Lefèvre, en sa qualité de Directrice Générale, ci-après dénommée « l'Employeur »,
+
+d'une part,
+
+Et Monsieur Thomas Dupont, né le 15 mars 1985 à Villeurbanne (69), de nationalité française, demeurant au 18 rue Victor Hugo, 69003 Lyon, numéro de sécurité sociale 1 85 03 69 100 234 56, ci-après dénommé « le Salarié »,
+
+d'autre part,
+
+Il a été convenu et arrêté ce qui suit :
+
+
+ARTICLE 1 — ENGAGEMENT ET OBJET DU CONTRAT
+
+Le Salarié est engagé par l'Employeur en qualité d'Ingénieur développement senior, statut Cadre, à compter du 1er septembre 2018. Le présent contrat est conclu pour une durée indéterminée et est régi par les dispositions du Code du travail, de la Convention Collective Nationale des Bureaux d'Études Techniques, Cabinets d'Ingénieurs-Conseils et Sociétés de Conseils (dite « Syntec »), IDCC 1486, ainsi que par les accords d'entreprise en vigueur au sein de la société DataVision SAS.
+
+Le Salarié déclare être libre de tout engagement et n'être lié par aucune clause de non-concurrence susceptible de faire obstacle à la conclusion du présent contrat.
+
+
+ARTICLE 2 — CLASSIFICATION CONVENTIONNELLE
+
+Conformément à la grille de classification de la Convention Collective Syntec, le Salarié est positionné comme suit :
+- Position : 3.1
+- Coefficient hiérarchique : 170
+- Qualification : Ingénieur développement senior
+
+Cette classification pourra être révisée à l'initiative de l'Employeur, en fonction de l'évolution des responsabilités confiées au Salarié et conformément aux dispositions conventionnelles applicables.
+
+
+ARTICLE 3 — FONCTIONS ET ATTRIBUTIONS
+
+Le Salarié exercera les fonctions d'Ingénieur développement senior au sein du département Technologie de l'entreprise. À ce titre, ses missions principales comprendront notamment :
+- La conception, le développement et la maintenance d'applications logicielles ;
+- La rédaction de spécifications techniques et la participation aux revues de code ;
+- L'encadrement technique de développeurs juniors et la transmission de bonnes pratiques ;
+- La veille technologique et la proposition d'améliorations architecturales ;
+- La participation aux réunions de cadrage avec les équipes produit et les clients internes.
+
+Le Salarié s'engage à exécuter loyalement et avec diligence les tâches qui lui seront confiées. Ses attributions pourront évoluer en fonction des besoins de l'entreprise, sans que cela ne constitue une modification du présent contrat, dès lors que ces évolutions restent compatibles avec sa qualification et sa classification.
+
+
+ARTICLE 4 — LIEU DE TRAVAIL
+
+Le lieu de travail principal du Salarié est fixé au siège social de l'entreprise, situé au 45 rue de la République, 69002 Lyon. Toutefois, en raison de la nature de ses fonctions, le Salarié pourra être amené à effectuer des déplacements professionnels ponctuels en France, notamment pour des réunions avec des clients ou des partenaires.
+
+Il est convenu que le Salarié bénéficiera de deux jours de télétravail par semaine, selon les modalités définies par la charte de télétravail en vigueur dans l'entreprise.
+
+
+ARTICLE 5 — DURÉE DU TRAVAIL
+
+Le Salarié est soumis à la durée légale du travail, soit 35 heures hebdomadaires. Il bénéficie d'un forfait annuel en heures avec attribution de jours de réduction du temps de travail (RTT), conformément à l'accord d'entreprise sur l'aménagement du temps de travail en date du 15 janvier 2016.
+
+Le nombre de jours de RTT est calculé chaque année en fonction du calendrier et sera communiqué au Salarié en début d'exercice. À titre indicatif, le nombre moyen de RTT est d'environ 10 jours par an.
+
+Les heures supplémentaires ne pourront être effectuées qu'à la demande expresse de l'Employeur et seront compensées conformément aux dispositions légales et conventionnelles en vigueur.
+
+
+ARTICLE 6 — RÉMUNÉRATION
+
+En contrepartie de ses fonctions, le Salarié percevra une rémunération mensuelle brute de 4 200,00 euros (quatre mille deux cents euros), versée sur 12 mois, à terme échu, par virement bancaire.
+
+Cette rémunération correspond au minimum conventionnel applicable à la position 3.1, coefficient 170, majoré d'un complément individuel de rémunération.
+
+Le Salarié bénéficiera en outre d'une prime d'ancienneté égale à 5 % de son salaire brut de base, acquise après 5 années révolues d'ancienneté au sein de l'entreprise, conformément aux dispositions de l'accord d'entreprise du 10 mars 2015. Cette prime est versée mensuellement et figure de manière distincte sur le bulletin de paie.
+
+
+ARTICLE 7 — CONGÉS PAYÉS
+
+Le Salarié bénéficiera d'un droit à congés payés de 25 jours ouvrés par an, acquis à raison de 2,08 jours par mois de travail effectif, conformément aux dispositions légales. La période de prise des congés et les modalités de pose seront fixées selon les règles en vigueur dans l'entreprise.
+
+Les jours de RTT mentionnés à l'article 5 s'ajoutent aux congés payés.
+
+
+ARTICLE 8 — PÉRIODE D'ESSAI
+
+Le présent contrat est assorti d'une période d'essai de quatre mois, conformément aux dispositions de l'article L. 1221-19 du Code du travail et à la Convention Collective Syntec. Cette période d'essai pourra être renouvelée une fois pour une durée de quatre mois, avec l'accord exprès du Salarié.
+
+Pendant la période d'essai, chacune des parties pourra mettre fin au contrat sans indemnité, sous réserve du respect du délai de prévenance prévu par les dispositions légales.
+
+
+ARTICLE 9 — PRÉAVIS
+
+En cas de rupture du contrat de travail, après l'expiration de la période d'essai, le délai de préavis sera celui prévu par la Convention Collective Syntec, soit :
+- En cas de démission : 3 mois ;
+- En cas de licenciement : 3 mois.
+
+Ce délai de préavis pourra être modifié d'un commun accord entre les parties.
+
+
+ARTICLE 10 — CLAUSE DE CONFIDENTIALITÉ
+
+Le Salarié s'engage, tant pendant la durée de son contrat qu'après sa rupture, quelle qu'en soit la cause, à ne divulguer à quiconque aucune information confidentielle relative à l'activité de l'entreprise, à ses clients, à ses méthodes, à ses procédés techniques, à sa stratégie commerciale ou à toute autre donnée dont il aurait eu connaissance dans le cadre de ses fonctions.
+
+Toute violation de cette obligation pourra donner lieu à des poursuites disciplinaires et/ou judiciaires.
+
+
+ARTICLE 11 — PROPRIÉTÉ INTELLECTUELLE
+
+Conformément aux dispositions des articles L. 113-9 et suivants du Code de la propriété intellectuelle, les logiciels, programmes et développements réalisés par le Salarié dans le cadre de l'exécution de ses fonctions sont la propriété exclusive de l'Employeur. Le Salarié cède à l'Employeur l'intégralité des droits patrimoniaux sur les créations réalisées dans ce cadre.
+
+
+ARTICLE 12 — CLAUSE DE NON-CONCURRENCE
+
+À la cessation du contrat de travail, quelle qu'en soit la cause, le Salarié s'interdit d'exercer, directement ou indirectement, une activité concurrente à celle de l'Employeur, pendant une durée de 12 mois à compter de la date effective de cessation du contrat, sur le territoire de la région Auvergne-Rhône-Alpes.
+
+En contrepartie de cette obligation, l'Employeur versera au Salarié, pendant toute la durée de l'interdiction, une indemnité mensuelle égale à 30 % de la moyenne mensuelle de sa rémunération brute perçue au cours des 12 derniers mois précédant la rupture.
+
+L'Employeur se réserve la possibilité de libérer le Salarié de cette clause de non-concurrence, en le notifiant par lettre recommandée avec accusé de réception dans un délai de 15 jours suivant la notification de la rupture du contrat.
+
+
+ARTICLE 13 — PROTECTION SOCIALE ET AVANTAGES
+
+Le Salarié bénéficiera des régimes de prévoyance et de complémentaire santé en vigueur au sein de l'entreprise, dans les conditions prévues par les accords collectifs et les contrats de groupe souscrits par l'Employeur. La part patronale de la cotisation mutuelle obligatoire est prise en charge à hauteur de 60 % par l'Employeur.
+
+Le Salarié bénéficiera également de titres restaurant d'une valeur faciale de 9,50 euros, dont 60 % sont pris en charge par l'Employeur.
+
+
+ARTICLE 14 — DISPOSITIONS DIVERSES
+
+Le Salarié s'engage à informer l'Employeur de tout changement intervenant dans sa situation personnelle (adresse, situation familiale, coordonnées bancaires) dans les meilleurs délais.
+
+Le présent contrat est soumis au droit français. Tout litige relatif à son exécution ou à sa rupture sera porté devant le Conseil de Prud'hommes de Lyon.
+
+
+ARTICLE 15 — DOCUMENTS ANNEXÉS
+
+Les documents suivants sont annexés au présent contrat et en font partie intégrante :
+- La fiche de poste détaillée ;
+- Le règlement intérieur de l'entreprise ;
+- La charte informatique ;
+- La charte de télétravail ;
+- La notice d'information relative aux régimes de prévoyance et de complémentaire santé.
+
+
+Fait en deux exemplaires originaux, à Lyon, le 20 août 2018.
+
+L'Employeur                                    Le Salarié
+Madame Claire Lefèvre                          Monsieur Thomas Dupont
+Directrice Générale                            Lu et approuvé
+DataVision SAS
+
+(Signature)                                    (Signature)
