@@ -13,9 +13,11 @@
   padding: 0;
   margin-bottom: 16px;
   text-align: left;
-  font-family: 'Merriweather', serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: #1A3A5C;
 
   &:hover { opacity: 0.8; }
@@ -97,7 +99,7 @@
 }
 
 .result-label {
-  font-family: 'Merriweather', serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 16px;
   color: #1A3A5C;
@@ -120,7 +122,9 @@
   font-weight: 600;
   white-space: nowrap;
 
-  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  mat-icon { font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; width: 18px; height: 18px; }
 
   &.droit-oui { background: #eafaf1; color: #27AE60; }
   &.droit-non { background: #fdecea; color: #C0392B; }

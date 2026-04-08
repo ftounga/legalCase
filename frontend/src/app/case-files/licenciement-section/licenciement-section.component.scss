@@ -3,7 +3,9 @@
 .section-header {
   width: 100%; display: flex; align-items: center; gap: 8px;
   background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 16px;
-  text-align: left; font-family: 'Merriweather', serif; font-weight: 600; font-size: 18px; color: #1A3A5C;
+  text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; color: #1A3A5C;
   &:hover { opacity: 0.8; }
   .section-icon { color: #C9973A; }
   .section-title { flex: 1; }
@@ -53,7 +55,7 @@
   font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700;
 }
 
-.verdict-label { font-family: 'Merriweather', serif; font-size: 20px; font-weight: 700; }
+.verdict-label { font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 700; }
 
 .criteres-detail { display: flex; flex-direction: column; gap: 8px; }
 
@@ -66,9 +68,15 @@
 
 .critere-result-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 
-.cr-icon-ok { color: #27AE60; font-size: 18px; width: 18px; height: 18px; }
-.cr-icon-ko { color: #C0392B; font-size: 18px; width: 18px; height: 18px; }
-.cr-icon-unknown { color: #6B7A8D; font-size: 18px; width: 18px; height: 18px; }
+.cr-icon-ok { color: #27AE60; font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; width: 18px; height: 18px; }
+.cr-icon-ko { color: #C0392B; font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; width: 18px; height: 18px; }
+.cr-icon-unknown { color: #6B7A8D; font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; width: 18px; height: 18px; }
 
 .cr-label { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; color: #1C2B3A; flex: 1; }
 

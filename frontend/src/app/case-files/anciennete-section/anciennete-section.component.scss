@@ -13,9 +13,11 @@
   padding: 0;
   margin-bottom: 16px;
   text-align: left;
-  font-family: 'Merriweather', serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: #1A3A5C;
 
   &:hover { opacity: 0.8; }
@@ -88,7 +90,7 @@
 }
 
 .result-convention {
-  font-family: 'Merriweather', serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 16px;
   color: #1A3A5C;
@@ -200,8 +202,12 @@
   white-space: nowrap;
 }
 
-.verdict-ok { color: #27AE60; font-size: 18px; width: 18px; height: 18px; }
-.verdict-alert { color: #C0392B; font-size: 18px; width: 18px; height: 18px; }
+.verdict-ok { color: #27AE60; font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; width: 18px; height: 18px; }
+.verdict-alert { color: #C0392B; font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; width: 18px; height: 18px; }
 
 .result-actions {
   display: flex;
