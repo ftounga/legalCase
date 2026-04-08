@@ -5,7 +5,7 @@
   letter-spacing: 0.5px;
   text-transform: uppercase; color: #1A3A5C;
   &:hover { opacity: 0.8; }
-  .section-icon { color: #C9973A; } .section-title { flex: 1; }
+  .section-icon { color: #C9973A; } .section-title { flex: 1; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
   .section-badge { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; background: #eafaf1; color: #27AE60; border-radius: 12px; padding: 2px 10px; }
   .section-chevron { color: #6B7A8D; font-size: 20px; }
 }
