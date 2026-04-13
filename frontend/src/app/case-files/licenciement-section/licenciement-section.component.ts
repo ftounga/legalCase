@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 import { LicenciementService } from '../../core/services/licenciement.service';
 import { LicenciementResponse } from '../../core/models/licenciement.model';
@@ -16,7 +17,16 @@ interface CritereForm {
   code: string;
   label: string;
   description: string;
+  bloquant: boolean;
   reponse: string;
+}
+
+type AlertLevel = 'blocker' | 'warning';
+
+export interface CoherenceAlert {
+  level: AlertLevel;
+  aiReponse: 'OUI' | 'NON';
+  justification: string;
 }
 
 @Component({
@@ -27,6 +37,7 @@ interface CritereForm {
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule,
     MatProgressSpinnerModule, MatRadioModule,
+    MatTooltipModule,
   ],
   templateUrl: './licenciement-section.component.html',
   styleUrl: './licenciement-section.component.scss'
@@ -37,6 +48,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   @Input() aiData?: LicenciementValidityDetection | null;
 
   private hasSavedResult = false;
+  private aiDataSignal = signal<LicenciementValidityDetection | null | undefined>(undefined);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -49,22 +61,22 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
 
   readonly criteresReferentiel: Record<string, CritereForm[]> = {
     FRANCE: [
-      { code: 'FR_CONVOCATION', label: 'Convocation entretien préalable', description: 'LRAR ou remise en main propre, 5 jours ouvrables', reponse: 'INCONNU' },
-      { code: 'FR_ENTRETIEN', label: 'Tenue entretien préalable', description: 'Entretien effectué, possibilité d\'assistance', reponse: 'INCONNU' },
-      { code: 'FR_DELAI_NOTIFICATION', label: 'Délai de notification', description: '2 jours ouvrables après entretien (7j cadre)', reponse: 'INCONNU' },
-      { code: 'FR_MOTIVATION', label: 'Motivation de la lettre', description: 'Motifs précis et matériellement vérifiables', reponse: 'INCONNU' },
-      { code: 'FR_MOTIF_REEL', label: 'Motif réel et sérieux', description: 'Objectif, exact et suffisamment grave', reponse: 'INCONNU' },
-      { code: 'FR_PROCEDURE_DISCIPLINAIRE', label: 'Procédure disciplinaire', description: 'Faits < 2 mois, pas de double sanction', reponse: 'INCONNU' },
-      { code: 'FR_ORDRE_LICENCIEMENT', label: 'Ordre des licenciements', description: 'Critères ancienneté, charges, qualités (éco)', reponse: 'INCONNU' },
+      { code: 'FR_CONVOCATION', label: 'Convocation entretien préalable', description: 'LRAR ou remise en main propre, 5 jours ouvrables', bloquant: true, reponse: 'INCONNU' },
+      { code: 'FR_ENTRETIEN', label: 'Tenue entretien préalable', description: 'Entretien effectué, possibilité d\'assistance', bloquant: true, reponse: 'INCONNU' },
+      { code: 'FR_DELAI_NOTIFICATION', label: 'Délai de notification', description: '2 jours ouvrables après entretien (7j cadre)', bloquant: false, reponse: 'INCONNU' },
+      { code: 'FR_MOTIVATION', label: 'Motivation de la lettre', description: 'Motifs précis et matériellement vérifiables', bloquant: true, reponse: 'INCONNU' },
+      { code: 'FR_MOTIF_REEL', label: 'Motif réel et sérieux', description: 'Objectif, exact et suffisamment grave', bloquant: true, reponse: 'INCONNU' },
+      { code: 'FR_PROCEDURE_DISCIPLINAIRE', label: 'Procédure disciplinaire', description: 'Faits < 2 mois, pas de double sanction', bloquant: false, reponse: 'INCONNU' },
+      { code: 'FR_ORDRE_LICENCIEMENT', label: 'Ordre des licenciements', description: 'Critères ancienneté, charges, qualités (éco)', bloquant: false, reponse: 'INCONNU' },
     ],
     BELGIQUE: [
-      { code: 'BE_NOTIFICATION', label: 'Notification du licenciement', description: 'LRAR ou exploit d\'huissier', reponse: 'INCONNU' },
-      { code: 'BE_PREAVIS', label: 'Délai de préavis', description: 'Selon ancienneté (loi 26/12/2013)', reponse: 'INCONNU' },
-      { code: 'BE_MOTIVATION', label: 'Motivation (CCT 109)', description: 'Comportement, aptitude ou nécessité entreprise', reponse: 'INCONNU' },
-      { code: 'BE_AUDITION', label: 'Audition préalable', description: 'Recommandée (non obligatoire sauf CCE)', reponse: 'INCONNU' },
-      { code: 'BE_NON_DISCRIMINATION', label: 'Absence discrimination', description: 'Pas de critère protégé', reponse: 'INCONNU' },
-      { code: 'BE_PROTECTION_SPECIALE', label: 'Absence protection spéciale', description: 'Délégué syndical, grossesse, crédit-temps', reponse: 'INCONNU' },
-      { code: 'BE_INDEMNITE_MANIFESTE', label: 'Risque licenciement déraisonnable', description: 'Indemnité 3-17 semaines (CCT 109)', reponse: 'INCONNU' },
+      { code: 'BE_NOTIFICATION', label: 'Notification du licenciement', description: 'LRAR ou exploit d\'huissier', bloquant: true, reponse: 'INCONNU' },
+      { code: 'BE_PREAVIS', label: 'Délai de préavis', description: 'Selon ancienneté (loi 26/12/2013)', bloquant: true, reponse: 'INCONNU' },
+      { code: 'BE_MOTIVATION', label: 'Motivation (CCT 109)', description: 'Comportement, aptitude ou nécessité entreprise', bloquant: true, reponse: 'INCONNU' },
+      { code: 'BE_AUDITION', label: 'Audition préalable', description: 'Recommandée (non obligatoire sauf CCE)', bloquant: false, reponse: 'INCONNU' },
+      { code: 'BE_NON_DISCRIMINATION', label: 'Absence discrimination', description: 'Pas de critère protégé', bloquant: true, reponse: 'INCONNU' },
+      { code: 'BE_PROTECTION_SPECIALE', label: 'Absence protection spéciale', description: 'Délégué syndical, grossesse, crédit-temps', bloquant: true, reponse: 'INCONNU' },
+      { code: 'BE_INDEMNITE_MANIFESTE', label: 'Risque licenciement déraisonnable', description: 'Indemnité 3-17 semaines (CCT 109)', bloquant: false, reponse: 'INCONNU' },
     ]
   };
 
@@ -77,6 +89,34 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     return '#C0392B';
   });
 
+  coherenceAlerts = computed<Record<string, CoherenceAlert>>(() => {
+    const detections = this.aiDataSignal()?.detections;
+    if (!detections) return {};
+    const alerts: Record<string, CoherenceAlert> = {};
+    for (const c of this.criteresForm()) {
+      const detected = detections[c.code];
+      if (!detected) continue;
+      const aiReponse = detected.reponse;
+      if (aiReponse !== 'OUI' && aiReponse !== 'NON') continue;
+      if (c.reponse === 'INCONNU') continue;
+      if (c.reponse === aiReponse) continue;
+      alerts[c.code] = {
+        level: c.bloquant ? 'blocker' : 'warning',
+        aiReponse,
+        justification: detected.justification?.trim() || 'Aucune justification fournie',
+      };
+    }
+    return alerts;
+  });
+
+  alertsSummary = computed(() => {
+    const alerts = Object.values(this.coherenceAlerts());
+    return {
+      total: alerts.length,
+      blockers: alerts.filter(a => a.level === 'blocker').length,
+    };
+  });
+
   constructor(
     private licenciementService: LicenciementService,
     private snackBar: MatSnackBar,
@@ -85,12 +125,16 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.country.set(this.workspaceCountry);
     this.criteresForm.set(this.buildInitialForm(this.country()));
+    this.aiDataSignal.set(this.aiData);
     this.loadExisting();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['aiData'] && !changes['aiData'].firstChange) {
-      this.applyAiPrefillIfPossible();
+    if (changes['aiData']) {
+      this.aiDataSignal.set(this.aiData);
+      if (!changes['aiData'].firstChange) {
+        this.applyAiPrefillIfPossible();
+      }
     }
   }
 
@@ -101,6 +145,16 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   onCountryChange(): void {
     this.criteresForm.set(this.buildInitialForm(this.country()));
     this.applyAiPrefillIfPossible();
+  }
+
+  alertTooltip(alert: CoherenceAlert): string {
+    return `L'IA a détecté : ${alert.aiReponse}. ${alert.justification}`;
+  }
+
+  onReponseChange(code: string, value: string): void {
+    this.criteresForm.update(list =>
+      list.map(c => c.code === code ? { ...c, reponse: value } : c)
+    );
   }
 
   loadExisting(): void {

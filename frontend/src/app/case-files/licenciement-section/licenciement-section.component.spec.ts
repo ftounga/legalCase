@@ -130,9 +130,119 @@ describe('LicenciementSectionComponent', () => {
       detections: { FR_CONVOCATION: { reponse: 'OUI', justification: 'LRAR' } },
     };
     initNoExisting();
-    const form = component.criteresForm();
-    const target = form.find(c => c.code === 'FR_CONVOCATION')!;
-    target.reponse = 'NON';
-    expect(form.find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('NON');
+    component.onReponseChange('FR_CONVOCATION', 'NON');
+    expect(component.criteresForm().find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('NON');
+  });
+
+  // ---- Coherence alerts (SF-IA-03-01) ----
+
+  it('should emit no alert when avocat answer matches AI detection', () => {
+    component.aiData = {
+      detections: { FR_CONVOCATION: { reponse: 'OUI', justification: 'LRAR' } },
+    };
+    initNoExisting();
+    expect(component.coherenceAlerts()['FR_CONVOCATION']).toBeUndefined();
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('should emit blocker alert on divergence for a blocking criterion (FR)', () => {
+    component.aiData = {
+      detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'Motif précis dans la lettre' } },
+    };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert).toBeDefined();
+    expect(alert.level).toBe('blocker');
+    expect(alert.aiReponse).toBe('OUI');
+    expect(alert.justification).toBe('Motif précis dans la lettre');
+    expect(component.alertsSummary()).toEqual({ total: 1, blockers: 1 });
+  });
+
+  it('should emit warning alert on divergence for a non-blocking criterion (FR)', () => {
+    component.aiData = {
+      detections: { FR_DELAI_NOTIFICATION: { reponse: 'OUI', justification: 'Notif J+3' } },
+    };
+    initNoExisting();
+    component.onReponseChange('FR_DELAI_NOTIFICATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_DELAI_NOTIFICATION'];
+    expect(alert.level).toBe('warning');
+    expect(component.alertsSummary()).toEqual({ total: 1, blockers: 0 });
+  });
+
+  it('should NOT emit alert when AI detection is INCONNU', () => {
+    component.aiData = {
+      detections: { FR_CONVOCATION: { reponse: 'INCONNU', justification: '' } },
+    };
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'OUI');
+    expect(component.coherenceAlerts()['FR_CONVOCATION']).toBeUndefined();
+  });
+
+  it('should NOT emit alert when avocat answer is INCONNU', () => {
+    component.aiData = {
+      detections: { FR_CONVOCATION: { reponse: 'NON', justification: 'Pas de LRAR' } },
+    };
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    component.onReponseChange('FR_CONVOCATION', 'INCONNU');
+    expect(component.coherenceAlerts()['FR_CONVOCATION']).toBeUndefined();
+  });
+
+  it('should produce no alert when aiData is absent', () => {
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'NON');
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('should count blockers and warnings correctly', () => {
+    component.aiData = {
+      detections: {
+        FR_MOTIVATION: { reponse: 'OUI', justification: 'OK' },
+        FR_DELAI_NOTIFICATION: { reponse: 'OUI', justification: 'OK' },
+      },
+    };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    component.onReponseChange('FR_DELAI_NOTIFICATION', 'NON');
+    expect(component.alertsSummary()).toEqual({ total: 2, blockers: 1 });
+  });
+
+  it('should react when avocat changes answer (computed reactivity)', () => {
+    component.aiData = {
+      detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'OK' } },
+    };
+    initNoExisting();
+    expect(component.coherenceAlerts()['FR_MOTIVATION']).toBeUndefined();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    expect(component.coherenceAlerts()['FR_MOTIVATION']).toBeDefined();
+    component.onReponseChange('FR_MOTIVATION', 'OUI');
+    expect(component.coherenceAlerts()['FR_MOTIVATION']).toBeUndefined();
+  });
+
+  it('should handle BE criteria (blocker on BE_MOTIVATION, warning on BE_AUDITION)', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    component.aiData = {
+      detections: {
+        BE_MOTIVATION: { reponse: 'OUI', justification: 'CCT 109' },
+        BE_AUDITION: { reponse: 'OUI', justification: 'Audition tenue' },
+      },
+    };
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    component.onReponseChange('BE_MOTIVATION', 'NON');
+    component.onReponseChange('BE_AUDITION', 'NON');
+    expect(component.coherenceAlerts()['BE_MOTIVATION'].level).toBe('blocker');
+    expect(component.coherenceAlerts()['BE_AUDITION'].level).toBe('warning');
+    expect(component.alertsSummary()).toEqual({ total: 2, blockers: 1 });
+  });
+
+  it('should default justification to fallback text when empty', () => {
+    component.aiData = {
+      detections: { FR_MOTIVATION: { reponse: 'OUI', justification: '' } },
+    };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    expect(component.coherenceAlerts()['FR_MOTIVATION'].justification).toBe('Aucune justification fournie');
   });
 });
