@@ -32,14 +32,41 @@
             </mat-form-field>
           </div>
 
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary"
+                 [class.has-blocker]="alertsSummary().blockers > 0">
+              <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+              <span>
+                {{ alertsSummary().total }} incohérence(s) avec l'analyse IA
+                @if (alertsSummary().blockers > 0) {
+                  — {{ alertsSummary().blockers }} bloquante(s)
+                }
+              </span>
+            </div>
+          }
+
           <div class="criteres-list">
             @for (critere of criteresForm(); track critere.code) {
               <div class="critere-row">
                 <div class="critere-info">
-                  <span class="critere-label">{{ critere.label }}</span>
+                  <span class="critere-label">
+                    {{ critere.label }}
+                    @if (coherenceAlerts()[critere.code]; as alert) {
+                      <span class="coherence-badge"
+                            [class.coherence-blocker]="alert.level === 'blocker'"
+                            [class.coherence-warning]="alert.level === 'warning'"
+                            [matTooltip]="alertTooltip(alert)"
+                            matTooltipPosition="above">
+                        <mat-icon>{{ alert.level === 'blocker' ? 'error' : 'warning' }}</mat-icon>
+                        Incohérence IA ({{ alert.aiReponse }})
+                      </span>
+                    }
+                  </span>
                   <span class="critere-desc">{{ critere.description }}</span>
                 </div>
-                <mat-radio-group [(ngModel)]="critere.reponse" class="critere-radio">
+                <mat-radio-group [ngModel]="critere.reponse"
+                                 (ngModelChange)="onReponseChange(critere.code, $event)"
+                                 class="critere-radio">
                   <mat-radio-button value="OUI" color="primary">Oui</mat-radio-button>
                   <mat-radio-button value="NON" color="warn">Non</mat-radio-button>
                   <mat-radio-button value="INCONNU">?</mat-radio-button>
