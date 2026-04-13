@@ -38,6 +38,9 @@ public class AiQuestion {
     @Column(name = "critere_code", length = 50)
     private String critereCode;
 
+    @Column(name = "expected_value", length = 50)
+    private String expectedValue;
+
     @Column(name = "answered_at")
     private Instant answeredAt;
 

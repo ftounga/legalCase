@@ -42,6 +42,9 @@ public class ProcedureCheck {
     @Column(name = "critere_code", length = 50)
     private String critereCode;
 
+    @Column(name = "expected_value", length = 50)
+    private String expectedValue;
+
     @Column(nullable = false)
     private Instant createdAt;
 

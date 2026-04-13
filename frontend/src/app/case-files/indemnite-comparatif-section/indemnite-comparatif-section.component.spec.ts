@@ -121,4 +121,157 @@ describe('IndemniteComparatifSectionComponent', () => {
     initWith(resp);
     expect(component.typeRupture()).toBe('LICENCIEMENT_ECONOMIQUE');
   });
+
+  // ---- Coherence alerts (SF-IA-03-05) ----
+
+  function f96(overrides: Partial<{ id: string; statut: string; critereCode: string; expectedValue: string; raison: string }>) {
+    return {
+      id: overrides.id ?? 'c-' + Math.random(),
+      ordre: 0,
+      description: 'point',
+      statut: overrides.statut ?? 'TO_CHECK',
+      raison: overrides.raison ?? null,
+      critereCode: overrides.critereCode ?? null,
+      expectedValue: overrides.expectedValue ?? null,
+    } as any;
+  }
+
+  function question(overrides: Partial<{ questionText: string; answerText: string; critereCode: string; expectedValue: string }>) {
+    return {
+      id: 'q-' + Math.random(),
+      orderIndex: 0,
+      questionText: overrides.questionText ?? 'Q?',
+      answerText: overrides.answerText ?? null,
+      critereCode: overrides.critereCode ?? null,
+      expectedValue: overrides.expectedValue ?? null,
+    } as any;
+  }
+
+  // TYPE_RUPTURE
+  it('should alert blocker F96 on TYPE_RUPTURE mismatch', () => {
+    component.procedureChecks = [f96({ statut: 'VERIFIED', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE', raison: 'Convention jointe' })];
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    const alert = component.coherenceAlerts().TYPE_RUPTURE;
+    expect(alert?.source).toBe('F96');
+    expect(alert?.level).toBe('blocker');
+    expect(alert?.expectedDisplay).toBe('RUPTURE_CONVENTIONNELLE');
+  });
+
+  it('should ignore F-96 NON_COMPLIANT on enum critere', () => {
+    component.procedureChecks = [f96({ statut: 'NON_COMPLIANT', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE' })];
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    expect(component.coherenceAlerts().TYPE_RUPTURE).toBeUndefined();
+  });
+
+  it('should alert blocker QUESTION_IA on "oui" + expected', () => {
+    component.aiQuestions = [question({ answerText: 'oui', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'LICENCIEMENT_ECONOMIQUE' })];
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    const alert = component.coherenceAlerts().TYPE_RUPTURE;
+    expect(alert?.source).toBe('QUESTION_IA');
+    expect(alert?.expectedDisplay).toBe('LICENCIEMENT_ECONOMIQUE');
+  });
+
+  it('should ignore QUESTION_IA "non" on enum critere', () => {
+    component.aiQuestions = [question({ answerText: 'non', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE' })];
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    expect(component.coherenceAlerts().TYPE_RUPTURE).toBeUndefined();
+  });
+
+  it('should prefer F96 over QUESTION_IA on TYPE_RUPTURE', () => {
+    component.procedureChecks = [f96({ statut: 'VERIFIED', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE' })];
+    component.aiQuestions = [question({ answerText: 'oui', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'LICENCIEMENT_ECONOMIQUE' })];
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    const alert = component.coherenceAlerts().TYPE_RUPTURE;
+    expect(alert?.expectedDisplay).toBe('RUPTURE_CONVENTIONNELLE');
+  });
+
+  it('should combine sources into MULTI when they align', () => {
+    component.procedureChecks = [f96({ statut: 'VERIFIED', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE' })];
+    component.aiQuestions = [question({ answerText: 'oui', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE' })];
+    component.synthesis = { compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' } } as any;
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    const alert = component.coherenceAlerts().TYPE_RUPTURE;
+    expect(alert?.source).toBe('MULTI');
+    expect(alert?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
+  });
+
+  it('should alert blocker IA alone when no F96/question', () => {
+    component.synthesis = { compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' } } as any;
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    const alert = component.coherenceAlerts().TYPE_RUPTURE;
+    expect(alert?.source).toBe('IA');
+    expect(alert?.level).toBe('blocker');
+  });
+
+  it('should not alert when IA type is unknown enum value', () => {
+    component.synthesis = { compensationEstimate: { typeRupture: 'DEMISSION' } } as any;
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    expect(component.coherenceAlerts().TYPE_RUPTURE).toBeUndefined();
+  });
+
+  // ANCIENNETE
+  it('should NOT alert anciennete when within 0.5 year', () => {
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 10, ancienneteMois: 3 } } as any;
+    initNo();
+    component.ancienneteAnnees.set(10);
+    expect(component.coherenceAlerts().ANCIENNETE).toBeUndefined();
+  });
+
+  it('should alert anciennete when gap ≥ 0.5 year', () => {
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 10, ancienneteMois: 0 } } as any;
+    initNo();
+    component.ancienneteAnnees.set(11);
+    const alert = component.coherenceAlerts().ANCIENNETE;
+    expect(alert?.level).toBe('warning');
+    expect(alert?.source).toBe('IA');
+  });
+
+  it('should NOT alert anciennete when user = 0', () => {
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 10 } } as any;
+    initNo();
+    component.ancienneteAnnees.set(0);
+    expect(component.coherenceAlerts().ANCIENNETE).toBeUndefined();
+  });
+
+  // SALAIRE
+  it('should NOT alert salaire when diff < 5%', () => {
+    component.synthesis = { compensationEstimate: { salaireReference: 4000 } } as any;
+    initNo();
+    component.salaireMensuel.set(4100);
+    expect(component.coherenceAlerts().SALAIRE).toBeUndefined();
+  });
+
+  it('should alert salaire when diff ≥ 5%', () => {
+    component.synthesis = { compensationEstimate: { salaireReference: 4000 } } as any;
+    initNo();
+    component.salaireMensuel.set(4300);
+    const alert = component.coherenceAlerts().SALAIRE;
+    expect(alert?.level).toBe('warning');
+  });
+
+  // Summary
+  it('should count blockers and warnings in summary', () => {
+    component.synthesis = {
+      compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE', ancienneteAnnees: 10, ancienneteMois: 0, salaireReference: 4000 }
+    } as any;
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    component.ancienneteAnnees.set(12);
+    component.salaireMensuel.set(5000);
+    expect(component.alertsSummary()).toEqual({ total: 3, blockers: 1 });
+  });
+
+  it('should produce no alert once result is loaded', () => {
+    component.synthesis = { compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' } } as any;
+    initWith();
+    expect(component.coherenceAlerts().TYPE_RUPTURE).toBeUndefined();
+  });
 });

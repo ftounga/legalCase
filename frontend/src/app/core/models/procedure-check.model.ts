@@ -7,4 +7,5 @@ export interface ProcedureCheck {
   statut: ProcedureCheckStatus;
   raison?: string | null;
   critereCode?: string | null;
+  expectedValue?: string | null;
 }
