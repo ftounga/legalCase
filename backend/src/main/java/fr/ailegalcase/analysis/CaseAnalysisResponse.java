@@ -35,8 +35,11 @@ public record CaseAnalysisResponse(
         LiquidationCommunauteResult liquidationCommunaute,
         TravailExtractedData travailExtractedData,
         ImmigrationExtractedData immigrationExtractedData,
-        LicenciementValidityDetection licenciementValidityDetection
+        LicenciementValidityDetection licenciementValidityDetection,
+        List<PieceManquanteEntry> piecesManquantesDetails
 ) {
+
+    public record PieceManquanteEntry(String texte, String critereCode) {}
 
     public record TravailExtractedData(
             String conventionCollective, String dateEntree, Double salaireBrutMensuel,
@@ -146,6 +149,7 @@ public record CaseAnalysisResponse(
         TravailExtractedData travailExtractedData = null;
         ImmigrationExtractedData immigrationExtractedData = null;
         LicenciementValidityDetection licenciementValidityDetection = null;
+        List<PieceManquanteEntry> piecesManquantesDetails = List.of();
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -156,7 +160,8 @@ public record CaseAnalysisResponse(
                 pointsJuridiques = extractItemList(root, "points_juridiques");
                 risques = extractItemList(root, "risques");
                 questionsOuvertes = extractStringList(root, "questions_ouvertes");
-                piecesManquantes = extractStringList(root, "pieces_manquantes");
+                piecesManquantesDetails = extractPiecesManquantesDetails(root);
+                piecesManquantes = piecesManquantesDetails.stream().map(PieceManquanteEntry::texte).toList();
                 pointsProcedure = extractPointsProcedureTexts(root);
                 compensationEstimate = extractCompensationEstimate(root);
                 pensionAlimentaireEstimate = extractPensionAlimentaireEstimate(root);
@@ -196,7 +201,8 @@ public record CaseAnalysisResponse(
                 liquidationCommunaute,
                 travailExtractedData,
                 immigrationExtractedData,
-                licenciementValidityDetection
+                licenciementValidityDetection,
+                piecesManquantesDetails
         );
     }
 
@@ -216,7 +222,8 @@ public record CaseAnalysisResponse(
                     base.pensionAlimentaireEstimate(), base.prestationCompensatoireEstimate(),
                     base.liquidationCommunaute(),
                     base.travailExtractedData(), base.immigrationExtractedData(),
-                    base.licenciementValidityDetection());
+                    base.licenciementValidityDetection(),
+                    base.piecesManquantesDetails());
         }
         return base;
     }
@@ -345,6 +352,36 @@ public record CaseAnalysisResponse(
         List<String> result = new ArrayList<>();
         for (JsonNode item : node) {
             if (item.isTextual()) result.add(item.asText());
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * Extrait pieces_manquantes en tolérant les deux formats :
+     * - legacy : array de strings
+     * - nouveau : array d'objets {texte, critere_code?}
+     */
+    static List<PieceManquanteEntry> extractPiecesManquantesDetails(JsonNode root) {
+        JsonNode node = root.get("pieces_manquantes");
+        if (node == null || !node.isArray()) return List.of();
+        List<PieceManquanteEntry> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (item.isTextual()) {
+                String txt = item.asText();
+                if (txt != null && !txt.isBlank()) result.add(new PieceManquanteEntry(txt, null));
+            } else if (item.isObject()) {
+                JsonNode texteNode = item.get("texte");
+                if (texteNode == null || !texteNode.isTextual()) continue;
+                String texte = texteNode.asText();
+                if (texte.isBlank()) continue;
+                String code = null;
+                JsonNode codeNode = item.get("critere_code");
+                if (codeNode != null && codeNode.isTextual()) {
+                    String raw = codeNode.asText().trim();
+                    if (!raw.isEmpty()) code = raw.toUpperCase();
+                }
+                result.add(new PieceManquanteEntry(texte, code));
+            }
         }
         return List.copyOf(result);
     }

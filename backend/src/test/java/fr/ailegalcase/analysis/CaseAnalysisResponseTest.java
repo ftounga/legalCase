@@ -439,6 +439,58 @@ class CaseAnalysisResponseTest {
         assertThat(response.licenciementValidityDetection()).isNull();
     }
 
+    // U-38 : piecesManquantesDetails legacy string format
+    @Test
+    void from_piecesManquantesLegacyStringFormat_returnsEntriesWithoutCode() {
+        CaseAnalysis analysis = analysis("""
+                {"pieces_manquantes": ["Contrat", "Bulletins"]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.piecesManquantesDetails()).hasSize(2);
+        assertThat(response.piecesManquantesDetails().get(0).texte()).isEqualTo("Contrat");
+        assertThat(response.piecesManquantesDetails().get(0).critereCode()).isNull();
+        assertThat(response.piecesManquantes()).containsExactly("Contrat", "Bulletins");
+    }
+
+    // U-39 : piecesManquantesDetails format objet
+    @Test
+    void from_piecesManquantesObjectFormat_returnsEntriesWithCodeUpperCase() {
+        CaseAnalysis analysis = analysis("""
+                {"pieces_manquantes": [
+                  {"texte": "LRAR de convocation", "critere_code": "fr_convocation"},
+                  {"texte": "Lettre motivée", "critere_code": "FR_MOTIVATION"},
+                  {"texte": "Autre document"}
+                ]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.piecesManquantesDetails()).hasSize(3);
+        assertThat(response.piecesManquantesDetails().get(0).critereCode()).isEqualTo("FR_CONVOCATION");
+        assertThat(response.piecesManquantesDetails().get(1).critereCode()).isEqualTo("FR_MOTIVATION");
+        assertThat(response.piecesManquantesDetails().get(2).critereCode()).isNull();
+        assertThat(response.piecesManquantes()).containsExactly("LRAR de convocation", "Lettre motivée", "Autre document");
+    }
+
+    // U-40 : pieces item malformé ignoré
+    @Test
+    void from_piecesManquantesBlankOrMissingText_isIgnored() {
+        CaseAnalysis analysis = analysis("""
+                {"pieces_manquantes": [
+                  {"texte": "", "critere_code": "FR_CONVOCATION"},
+                  {"critere_code": "FR_ENTRETIEN"},
+                  {"texte": "Valide", "critere_code": "FR_MOTIVATION"}
+                ]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.piecesManquantesDetails()).hasSize(1);
+        assertThat(response.piecesManquantesDetails().get(0).texte()).isEqualTo("Valide");
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);

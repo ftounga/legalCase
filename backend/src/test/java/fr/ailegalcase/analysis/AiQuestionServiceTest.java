@@ -114,12 +114,15 @@ class AiQuestionServiceTest {
         verifyNoInteractions(caseFileRepository, aiQuestionRepository, analysisJobRepository, anthropicService);
     }
 
-    // U-04 : parseQuestions — parsing nominal
+    // U-04 : parseQuestions — parsing nominal (format legacy string)
     @Test
-    void parseQuestions_nominal_returnsQuestions() {
-        List<String> result = AiQuestionService.parseQuestions(
+    void parseQuestions_legacyStringFormat_returnsQuestionsWithoutCode() {
+        var result = AiQuestionService.parseQuestions(
                 "{\"questions\":[\"Q1 ?\",\"Q2 ?\"]}");
-        assertThat(result).containsExactly("Q1 ?", "Q2 ?");
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).text()).isEqualTo("Q1 ?");
+        assertThat(result.get(0).critereCode()).isNull();
+        assertThat(result.get(1).text()).isEqualTo("Q2 ?");
     }
 
     // U-05 : parseQuestions — JSON malformé → liste vide
@@ -127,5 +130,35 @@ class AiQuestionServiceTest {
     void parseQuestions_malformed_returnsEmptyList() {
         assertThat(AiQuestionService.parseQuestions("not json")).isEmpty();
         assertThat(AiQuestionService.parseQuestions("{\"other\":[]}")).isEmpty();
+    }
+
+    // U-06 : parseQuestions — format objet avec critere_code
+    @Test
+    void parseQuestions_objectFormatWithCritereCode_returnsCodeUpperCase() {
+        var result = AiQuestionService.parseQuestions(
+                "{\"questions\":[{\"texte\":\"LRAR envoyée ?\",\"critere_code\":\"fr_convocation\"},{\"texte\":\"Motivation précise ?\",\"critere_code\":null}]}");
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).text()).isEqualTo("LRAR envoyée ?");
+        assertThat(result.get(0).critereCode()).isEqualTo("FR_CONVOCATION");
+        assertThat(result.get(1).text()).isEqualTo("Motivation précise ?");
+        assertThat(result.get(1).critereCode()).isNull();
+    }
+
+    // U-07 : parseQuestions — mix string + objet
+    @Test
+    void parseQuestions_mixedFormats_parsesBoth() {
+        var result = AiQuestionService.parseQuestions(
+                "{\"questions\":[\"Legacy\",{\"texte\":\"Objet\",\"critere_code\":\"FR_ENTRETIEN\"}]}");
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).critereCode()).isNull();
+        assertThat(result.get(1).critereCode()).isEqualTo("FR_ENTRETIEN");
+    }
+
+    // U-08 : parseQuestions — texte blank ignoré
+    @Test
+    void parseQuestions_blankOrMissingTexte_isIgnored() {
+        var result = AiQuestionService.parseQuestions(
+                "{\"questions\":[{\"texte\":\"\",\"critere_code\":\"FR_CONVOCATION\"},{\"critere_code\":\"FR_ENTRETIEN\"}]}");
+        assertThat(result).isEmpty();
     }
 }

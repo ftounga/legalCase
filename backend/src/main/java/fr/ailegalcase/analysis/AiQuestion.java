@@ -35,6 +35,9 @@ public class AiQuestion {
     @Column(name = "status", nullable = false, length = 20)
     private String status = "PENDING";
 
+    @Column(name = "critere_code", length = 50)
+    private String critereCode;
+
     @Column(name = "answered_at")
     private Instant answeredAt;
 

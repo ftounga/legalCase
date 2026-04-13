@@ -330,7 +330,9 @@
         [caseFileId]="caseFile()!.id"
         [workspaceCountry]="workspaceCountry()"
         [aiData]="synthesis()?.licenciementValidityDetection"
-        [procedureChecks]="procedureChecks()">
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()"
+        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
       </app-licenciement-section>
 
       <app-anciennete-section

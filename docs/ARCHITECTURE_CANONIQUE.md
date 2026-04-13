@@ -623,10 +623,12 @@ Questions générées par l’IA.
 Champs :
 
 case_file_id  
+case_analysis_id (FK — migration 026)  
 question_text  
-question_category  
+order_index  
 status  
-answered_at
+answered_at  
+critere_code (VARCHAR 50, nullable — code F-DT-08 si la question porte sur un critère de validité licenciement, migration 069 SF-IA-03-03)
 
 ## ai_question_answers
 

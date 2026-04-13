@@ -30,7 +30,11 @@ public class AiQuestionService {
             Génère une liste de questions complémentaires pour l'avocat afin d'approfondir l'analyse.
             Ces questions doivent porter sur des éléments manquants, des ambiguïtés ou des points à clarifier.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"questions": ["Question 1 ?", "Question 2 ?"]}
+            Format attendu : {"questions": [{"texte": "Question 1 ?", "critere_code": "<code ou null>"}, {"texte": "Question 2 ?", "critere_code": null}]}
+            Chaque question est un objet. "critere_code" est rempli UNIQUEMENT si la question porte clairement sur l'un des critères de validité du licenciement ci-dessous. Sinon null.
+            Codes autorisés : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION, FR_MOTIVATION, FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT, BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION, BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE, BE_INDEMNITE_MANIFESTE.
+            CONVENTION IMPÉRATIVE : lorsqu'une question a un critere_code, elle doit être formulée pour qu'une réponse "oui" signifie que le critère est respecté. Exemple : "La lettre de convocation a-t-elle été envoyée par LRAR avec 5 jours ouvrables de délai ?" (OUI = conforme), PAS "Y a-t-il un défaut de convocation ?" (OUI serait ambigu).
+            Rétrocompat acceptée : une question peut aussi être un simple string (format legacy) — dans ce cas, critere_code = null.
             Génère entre 3 et 8 questions.
             """;
 
@@ -151,15 +155,17 @@ public class AiQuestionService {
         }
 
         try {
-            List<String> questions = parseQuestions(result.content());
+            List<ParsedQuestion> questions = parseQuestions(result.content());
             CaseFile caseFile = caseFileRepository.findById(caseFileId).orElseThrow();
             CaseAnalysis caseAnalysis = caseAnalysisRepository.findById(caseAnalysisId).orElseThrow();
 
             for (int i = 0; i < questions.size(); i++) {
+                ParsedQuestion pq = questions.get(i);
                 AiQuestion question = new AiQuestion();
                 question.setCaseFile(caseFile);
                 question.setCaseAnalysis(caseAnalysis);
-                question.setQuestionText(questions.get(i));
+                question.setQuestionText(pq.text());
+                question.setCritereCode(pq.critereCode());
                 question.setOrderIndex(i);
                 aiQuestionRepository.save(question);
             }
@@ -183,14 +189,31 @@ public class AiQuestionService {
         }
     }
 
-    static List<String> parseQuestions(String json) {
+    record ParsedQuestion(String text, String critereCode) {}
+
+    static List<ParsedQuestion> parseQuestions(String json) {
         try {
             JsonNode root = MAPPER.readTree(CaseAnalysisResponse.stripMarkdownCodeBlock(json));
             JsonNode questionsNode = root.get("questions");
             if (questionsNode == null || !questionsNode.isArray()) return List.of();
-            List<String> result = new ArrayList<>();
+            List<ParsedQuestion> result = new ArrayList<>();
             for (JsonNode item : questionsNode) {
-                if (item.isTextual()) result.add(item.asText());
+                if (item.isTextual()) {
+                    String txt = item.asText();
+                    if (txt != null && !txt.isBlank()) result.add(new ParsedQuestion(txt, null));
+                } else if (item.isObject()) {
+                    JsonNode texteNode = item.get("texte");
+                    if (texteNode == null || !texteNode.isTextual()) continue;
+                    String texte = texteNode.asText();
+                    if (texte.isBlank()) continue;
+                    String code = null;
+                    JsonNode codeNode = item.get("critere_code");
+                    if (codeNode != null && codeNode.isTextual()) {
+                        String raw = codeNode.asText().trim();
+                        if (!raw.isEmpty()) code = raw.toUpperCase();
+                    }
+                    result.add(new ParsedQuestion(texte, code));
+                }
             }
             return List.copyOf(result);
         } catch (Exception e) {
