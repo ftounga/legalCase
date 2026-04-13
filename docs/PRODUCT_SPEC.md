@@ -194,8 +194,9 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | ID | Feature | Cible | Notes |
 |----|---------|-------|-------|
-| F-IA-01 | Pré-remplissage automatique des outils métier depuis l'analyse IA | `Terminée` | L'IA extrait les données structurées des documents (dates, montants, parties, convention, type de titre, etc.) et pré-remplit automatiquement les outils métier du domaine correspondant. L'avocat n'a plus qu'à valider/corriger au lieu de ressaisir. Couvre les 9 outils (ancienneté, licenciement, indemnités, recours, titre, droit travail, partage, garde, divorce). |
+| F-IA-01 | Pré-remplissage automatique des outils métier depuis l'analyse IA | `En cours` | L'IA extrait les données structurées des documents (dates, montants, parties, convention, type de titre, etc.) et pré-remplit automatiquement les outils métier du domaine correspondant. L'avocat n'a plus qu'à valider/corriger au lieu de ressaisir. Couverture initiale : ancienneté, indemnités, recours, titre, droit travail, partage, garde, divorce. Gap identifié 2026-04-13 : grille Validité licenciement (F-DT-08) non pré-remplie → extension prévue (SF-IA-01-03, FR + BE). |
 | F-IA-02 | Tableau de bord décisionnel transversal du dossier | `Terminée` | Vue agrégée dans le dossier : score de risque licenciement, fourchette indemnités, congés manquants, deadline recours, avancement checklist, soulte estimée. Résumé décisionnel en une page pour aider l'avocat à prendre position rapidement. |
+| F-IA-03 | Contrôle de cohérence IA sur les outils décisionnels | `À faire` | Lorsque l'avocat saisit une réponse dans un outil décisionnel (en priorité grille F-DT-08 Validité licenciement), le moteur compare sa réponse aux preuves disponibles et alerte en cas de contradiction. Sources agrégées (FR + BE) : synthèse IA (faits, timeline, citations), réponses aux questions IA interactives, checklist procédurale F-96 (statuts VERIFIED/NON_COMPLIANT), checklists pièces (F-IM-01, F-FA-07), documents cités. Niveaux d'alerte : `info` (signal faible), `warning` (contradiction probable), `blocker` (contradiction forte + confiance haute, justification obligatoire). Pondération par source : point F-96 VERIFIED contredit → blocker ; synthèse IA seule → warning. Cas d'usage initial : F-DT-08 ; extensible ensuite aux autres outils (F-DT-07, F-DT-09, F-FA-*, F-IM-*). |
 
 ### Pipeline IA & qualité
 
@@ -307,6 +308,8 @@ F-01 → F-02 → F-03 → F-04 → F-05 → F-06 → F-07
 
 | Date | Modification | Validé par |
 |------|-------------|------------|
+| 2026-04-13 | F-IA-03 ajoutée au backlog — Contrôle de cohérence IA sur outils décisionnels (1er cas : F-DT-08 FR+BE). Sources : synthèse IA, questions IA, checklist procédurale F-96, checklists pièces, documents cités. 3 niveaux d'alerte (info/warning/blocker). | Product owner |
+| 2026-04-13 | F-IA-01 repassée En cours — gap identifié sur grille Validité licenciement (F-DT-08), extension prévue SF-IA-01-03 (FR + BE). | Product owner |
 | 2026-04-06 | F-DT-05 Terminée — SF-DT-05-02 mergée : BelgianCompensationCalculator (table préavis, indemnité compensatoire, CCT 109), dispatch France/Belgique, panneau synthèse belge, 635+666 tests verts | Product owner |
 | 2026-04-07 | F-119 Terminée — SF-119-01 mergée : tracking conversion Google Ads (capture UTM/gclid, événement conversion register + onboarding, consent-gated, fail-open), 680 tests verts | Product owner |
 | 2026-04-07 | F-DT-06 Terminée — SF-DT-06-03 mergée : export PDF requête tribunal travail belge (art. 702/704 Code judiciaire), bouton Exporter PDF, 672 tests verts | Product owner |

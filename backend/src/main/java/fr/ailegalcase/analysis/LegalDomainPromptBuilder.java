@@ -38,6 +38,22 @@ public final class LegalDomainPromptBuilder {
               "date_licenciement" : date du licenciement ou de la rupture au format YYYY-MM-DD, null si non détectable.
               "conges_contractuels" : nombre de jours de congés prévus au contrat (entier), null si non détectable.
               "prime_anciennete_contractuelle" : pourcentage de prime d'ancienneté au contrat (nombre), null si non détectable.
+            "licenciement_validity_detection" : objet qui, à partir des documents, évalue chaque critère de validité du licenciement. Chaque valeur est un objet {reponse, justification} où reponse est l'une de "OUI", "NON", "INCONNU" (utiliser "INCONNU" si les documents ne permettent pas de trancher) et justification est une courte phrase (≤ 500 caractères) citant le document ou l'extrait qui soutient la réponse (chaîne vide acceptée). Champs attendus :
+              "FR_CONVOCATION" : lettre de convocation à entretien préalable remise/envoyée avec délai minimal de 5 jours ouvrables.
+              "FR_ENTRETIEN" : entretien préalable effectivement tenu, avec information sur le droit d'être assisté.
+              "FR_DELAI_NOTIFICATION" : notification du licenciement dans le délai légal après l'entretien (2 jours ouvrables minimum, 7 pour licenciement économique ou cadres).
+              "FR_MOTIVATION" : lettre de licenciement écrite énonçant des motifs précis (pas de motif vague).
+              "FR_MOTIF_REEL" : motif réel et sérieux (objectif, exact, suffisamment grave) identifiable dans les documents.
+              "FR_PROCEDURE_DISCIPLINAIRE" : délai de prescription de 2 mois entre connaissance des faits et sanction respecté, pas de double sanction.
+              "FR_ORDRE_LICENCIEMENT" : pour un licenciement économique, ordre des licenciements fondé sur ancienneté, situation familiale, qualités professionnelles.
+              "BE_NOTIFICATION" : notification par lettre recommandée ou exploit d'huissier.
+              "BE_PREAVIS" : préavis respecté selon la loi 2013 (ou indemnité compensatoire si rupture immédiate).
+              "BE_MOTIVATION" : motivation conforme CCT 109 (comportement, aptitude, ou nécessité de l'entreprise).
+              "BE_AUDITION" : audition préalable tenue (recommandée mais non obligatoire — "OUI" même si audition non nécessaire).
+              "BE_NON_DISCRIMINATION" : absence de motif discriminatoire (genre, âge, origine, convictions, état de santé, etc.).
+              "BE_PROTECTION_SPECIALE" : aucune protection spéciale violée (délégué syndical, femme enceinte, congé parental, etc.).
+              "BE_INDEMNITE_MANIFESTE" : licenciement non manifestement déraisonnable au sens CCT 109 (risque d'indemnité 3 à 17 semaines).
+            Pour un dossier français, remplir prioritairement les clés FR_* ; pour un dossier belge, les clés BE_*. Les clés de l'autre pays peuvent être omises ou à "INCONNU". Si aucune évaluation n'est possible, laisser l'objet vide ({}) ou omettre entièrement.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """

@@ -308,6 +308,137 @@ class CaseAnalysisResponseTest {
         assertThat(response.analysisDocuments()).isEmpty();
     }
 
+    // U-30 : détection validité licenciement — nominal FR
+    @Test
+    void from_licenciementValidityDetection_parsesFrenchCriteria() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "licenciement_validity_detection": {
+                    "FR_CONVOCATION": {"reponse": "OUI", "justification": "LRAR du 2026-01-10, 5 jours ouvrables respectés"},
+                    "FR_MOTIVATION": {"reponse": "NON", "justification": "Lettre motivée par motif vague"}
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection()).isNotNull();
+        assertThat(response.licenciementValidityDetection().detections()).hasSize(2);
+        assertThat(response.licenciementValidityDetection().detections().get("FR_CONVOCATION").reponse()).isEqualTo("OUI");
+        assertThat(response.licenciementValidityDetection().detections().get("FR_MOTIVATION").reponse()).isEqualTo("NON");
+    }
+
+    // U-31 : détection BE nominale
+    @Test
+    void from_licenciementValidityDetection_parsesBelgianCriteria() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "licenciement_validity_detection": {
+                    "BE_NOTIFICATION": {"reponse": "OUI", "justification": "LRAR"},
+                    "BE_PREAVIS": {"reponse": "INCONNU", "justification": ""}
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection()).isNotNull();
+        assertThat(response.licenciementValidityDetection().detections().get("BE_NOTIFICATION").reponse()).isEqualTo("OUI");
+        assertThat(response.licenciementValidityDetection().detections().get("BE_PREAVIS").reponse()).isEqualTo("INCONNU");
+    }
+
+    // U-32 : clé inconnue ignorée (fail-open)
+    @Test
+    void from_licenciementValidityDetection_unknownKeyIgnored() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "licenciement_validity_detection": {
+                    "FR_CONVOCATION": {"reponse": "OUI", "justification": ""},
+                    "UNKNOWN_KEY": {"reponse": "OUI", "justification": ""}
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection().detections()).containsOnlyKeys("FR_CONVOCATION");
+    }
+
+    // U-33 : réponse non normalisée → normalisée
+    @Test
+    void from_licenciementValidityDetection_normalizesReponse() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "licenciement_validity_detection": {
+                    "FR_CONVOCATION": {"reponse": "oui", "justification": ""},
+                    "FR_ENTRETIEN": {"reponse": "peut-etre", "justification": ""}
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection().detections().get("FR_CONVOCATION").reponse()).isEqualTo("OUI");
+        assertThat(response.licenciementValidityDetection().detections().get("FR_ENTRETIEN").reponse()).isEqualTo("INCONNU");
+    }
+
+    // U-34 : reponse absente → INCONNU
+    @Test
+    void from_licenciementValidityDetection_missingReponseIsUnknown() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "licenciement_validity_detection": {
+                    "FR_CONVOCATION": {"justification": "sans réponse"}
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection().detections().get("FR_CONVOCATION").reponse()).isEqualTo("INCONNU");
+    }
+
+    // U-35 : justification tronquée au-delà de 500 caractères
+    @Test
+    void from_licenciementValidityDetection_truncatesLongJustification() {
+        String longText = "a".repeat(800);
+        CaseAnalysis analysis = analysis("""
+                {
+                  "licenciement_validity_detection": {
+                    "FR_CONVOCATION": {"reponse": "OUI", "justification": "%s"}
+                  }
+                }
+                """.formatted(longText));
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection().detections().get("FR_CONVOCATION").justification()).hasSize(500);
+    }
+
+    // U-36 : objet vide → détection null
+    @Test
+    void from_licenciementValidityDetection_emptyObjectReturnsNull() {
+        CaseAnalysis analysis = analysis("""
+                {"licenciement_validity_detection": {}}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection()).isNull();
+    }
+
+    // U-37 : champ absent → détection null
+    @Test
+    void from_licenciementValidityDetection_missingFieldReturnsNull() {
+        CaseAnalysis analysis = analysis("""
+                {"faits": ["fait1"]}
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        assertThat(response.licenciementValidityDetection()).isNull();
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
