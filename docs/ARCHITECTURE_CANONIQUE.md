@@ -628,7 +628,8 @@ question_text
 order_index  
 status  
 answered_at  
-critere_code (VARCHAR 50, nullable — code F-DT-08 si la question porte sur un critère de validité licenciement, migration 069 SF-IA-03-03)
+critere_code (VARCHAR 50, nullable — code F-DT-08 ou F-DT-09 si la question s'y rattache, migration 069 SF-IA-03-03 / 071 SF-IA-03-05)
+expected_value (VARCHAR 50, nullable — valeur confirmée par une réponse "oui" pour critère énuméré, migration 071 SF-IA-03-05)
 
 ## ai_question_answers
 
@@ -1136,7 +1137,8 @@ ordre (INT, non nullable — index dans le tableau points_procedure du JSON LLM)
 description (TEXT, non nullable — libellé du point procédural)
 statut (VARCHAR 20, non nullable, DEFAULT 'TO_CHECK' — TO_CHECK | VERIFIED | NON_COMPLIANT)
 raison (TEXT, nullable — justification Claude lors d'une requalification, migration 044)
-critere_code (VARCHAR 50, nullable — code du critère F-DT-08 associé si le point porte sur la validité licenciement, migration 068 SF-IA-03-02)
+critere_code (VARCHAR 50, nullable — code du critère F-DT-08 ou F-DT-09 si le point s'y rattache, migration 068 SF-IA-03-02 / 071 SF-IA-03-05)
+expected_value (VARCHAR 50, nullable — valeur attendue pour critère énuméré type DT09_TYPE_RUPTURE, migration 071 SF-IA-03-05)
 created_at (timestamptz, non nullable)
 updated_at (timestamptz, non nullable)
 

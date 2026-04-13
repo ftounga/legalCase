@@ -30,12 +30,12 @@ public class AiQuestionService {
             Génère une liste de questions complémentaires pour l'avocat afin d'approfondir l'analyse.
             Ces questions doivent porter sur des éléments manquants, des ambiguïtés ou des points à clarifier.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"questions": [{"texte": "Question 1 ?", "critere_code": "<code ou null>"}, {"texte": "Question 2 ?", "critere_code": null}]}
-            Chaque question est un objet. "critere_code" est rempli UNIQUEMENT si la question porte clairement sur l'un des critères de validité du licenciement ci-dessous. Sinon null.
-            Codes autorisés : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION, FR_MOTIVATION, FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT, BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION, BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE, BE_INDEMNITE_MANIFESTE.
-            CONVENTION IMPÉRATIVE : lorsqu'une question a un critere_code, elle doit être formulée pour qu'une réponse "oui" signifie que le critère est respecté. Exemple : "La lettre de convocation a-t-elle été envoyée par LRAR avec 5 jours ouvrables de délai ?" (OUI = conforme), PAS "Y a-t-il un défaut de convocation ?" (OUI serait ambigu).
-            Rétrocompat acceptée : une question peut aussi être un simple string (format legacy) — dans ce cas, critere_code = null.
-            Génère entre 3 et 8 questions.
+            Format attendu : {"questions": [{"texte": "Question 1 ?", "critere_code": "<code ou null>", "expected_value": "<valeur ou null>"}, ...]}
+            Chaque question est un objet. "critere_code" est rempli UNIQUEMENT si la question porte sur un critère surveillé :
+            - Critères F-DT-08 Validité licenciement (binaires) : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION, FR_MOTIVATION, FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT, BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION, BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE, BE_INDEMNITE_MANIFESTE. Pour ces critères, "expected_value" doit rester null. Une réponse "oui" = critère respecté.
+            - Critère F-DT-09 Type de rupture (énuméré) : DT09_TYPE_RUPTURE. Renseigne obligatoirement "expected_value" avec la valeur confirmée par une réponse "oui", parmi : LICENCIEMENT, LICENCIEMENT_ECONOMIQUE, RUPTURE_CONVENTIONNELLE (France), LICENCIEMENT_ORDINAIRE, RUPTURE_AMIABLE (Belgique). Exemple : {"texte": "Une convention de rupture conventionnelle a-t-elle été homologuée ?", "critere_code": "DT09_TYPE_RUPTURE", "expected_value": "RUPTURE_CONVENTIONNELLE"} → une réponse "oui" confirme ce type.
+            CONVENTION IMPÉRATIVE : toute question avec "critere_code" doit être formulée pour qu'une réponse "oui" porte un signal positif (critère respecté ou type confirmé).
+            Rétrocompat acceptée : format string legacy. Génère entre 3 et 8 questions.
             """;
 
     static String buildSystemPrompt(String legalDomain, String country) {
@@ -166,6 +166,7 @@ public class AiQuestionService {
                 question.setCaseAnalysis(caseAnalysis);
                 question.setQuestionText(pq.text());
                 question.setCritereCode(pq.critereCode());
+                question.setExpectedValue(pq.expectedValue());
                 question.setOrderIndex(i);
                 aiQuestionRepository.save(question);
             }
@@ -189,7 +190,7 @@ public class AiQuestionService {
         }
     }
 
-    record ParsedQuestion(String text, String critereCode) {}
+    record ParsedQuestion(String text, String critereCode, String expectedValue) {}
 
     static List<ParsedQuestion> parseQuestions(String json) {
         try {
@@ -200,7 +201,7 @@ public class AiQuestionService {
             for (JsonNode item : questionsNode) {
                 if (item.isTextual()) {
                     String txt = item.asText();
-                    if (txt != null && !txt.isBlank()) result.add(new ParsedQuestion(txt, null));
+                    if (txt != null && !txt.isBlank()) result.add(new ParsedQuestion(txt, null, null));
                 } else if (item.isObject()) {
                     JsonNode texteNode = item.get("texte");
                     if (texteNode == null || !texteNode.isTextual()) continue;
@@ -212,7 +213,13 @@ public class AiQuestionService {
                         String raw = codeNode.asText().trim();
                         if (!raw.isEmpty()) code = raw.toUpperCase();
                     }
-                    result.add(new ParsedQuestion(texte, code));
+                    String expectedValue = null;
+                    JsonNode evNode = item.get("expected_value");
+                    if (evNode != null && evNode.isTextual()) {
+                        String raw = evNode.asText().trim();
+                        if (!raw.isEmpty()) expectedValue = raw.toUpperCase();
+                    }
+                    result.add(new ParsedQuestion(texte, code, expectedValue));
                 }
             }
             return List.copyOf(result);

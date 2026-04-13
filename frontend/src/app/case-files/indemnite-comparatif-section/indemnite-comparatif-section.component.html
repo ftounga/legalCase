@@ -20,6 +20,18 @@
 
       @if (!loading() && showForm()) {
         <div class="comp-form">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary"
+                 [class.has-blocker]="alertsSummary().blockers > 0">
+              <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+              <span>
+                {{ alertsSummary().total }} incohérence(s) avec l'analyse IA
+                @if (alertsSummary().blockers > 0) {
+                  — {{ alertsSummary().blockers }} bloquante(s)
+                }
+              </span>
+            </div>
+          }
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Pays</mat-label>
@@ -28,26 +40,50 @@
                 <mat-option value="BELGIQUE">Belgique</mat-option>
               </mat-select>
             </mat-form-field>
-            <mat-form-field appearance="outline" class="form-field form-field--wide">
-              <mat-label>Type de rupture</mat-label>
-              <mat-select [(ngModel)]="typeRupture">
-                @for (opt of typeRuptureOptions(); track opt.value) {
-                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Ancienneté (années)</mat-label>
-              <input matInput type="number" [(ngModel)]="ancienneteAnnees">
-            </mat-form-field>
+            <div class="field-with-alert field-with-alert--wide">
+              <mat-form-field appearance="outline" class="form-field form-field--wide">
+                <mat-label>Type de rupture</mat-label>
+                <mat-select [(ngModel)]="typeRupture">
+                  @for (opt of typeRuptureOptions(); track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (coherenceAlerts().TYPE_RUPTURE; as alert) {
+                <span class="coherence-badge coherence-blocker"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>error</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté (années)</mat-label>
+                <input matInput type="number" [(ngModel)]="ancienneteAnnees">
+              </mat-form-field>
+              @if (coherenceAlerts().ANCIENNETE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Âge</mat-label>
               <input matInput type="number" [(ngModel)]="age">
             </mat-form-field>
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Salaire brut mensuel (€)</mat-label>
-              <input matInput type="number" [(ngModel)]="salaireMensuel">
-            </mat-form-field>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaire brut mensuel (€)</mat-label>
+                <input matInput type="number" [(ngModel)]="salaireMensuel">
+              </mat-form-field>
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
           </div>
 
           @if (typeRuptureNote(); as note) {

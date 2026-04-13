@@ -8,7 +8,8 @@ public record ProcedureCheckResponse(
         String description,
         String statut,
         String raison,
-        String critereCode
+        String critereCode,
+        String expectedValue
 ) {
     static ProcedureCheckResponse from(ProcedureCheck check) {
         return new ProcedureCheckResponse(
@@ -17,7 +18,8 @@ public record ProcedureCheckResponse(
                 check.getDescription(),
                 check.getStatut().name(),
                 check.getRaison(),
-                check.getCritereCode()
+                check.getCritereCode(),
+                check.getExpectedValue()
         );
     }
 }

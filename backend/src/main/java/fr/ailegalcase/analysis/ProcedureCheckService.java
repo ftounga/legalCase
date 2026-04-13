@@ -53,10 +53,10 @@ public class ProcedureCheckService {
     }
 
     /**
-     * Représente un point de procédure extrait du JSON IA : texte (obligatoire) + critereCode (optionnel).
-     * Accepte deux formats en entrée : string legacy ou objet {texte, critere_code?}.
+     * Représente un point de procédure extrait du JSON IA.
+     * Accepte deux formats : string legacy ou objet {texte, critere_code?, expected_value?}.
      */
-    record ParsedPoint(String description, String critereCode) {}
+    record ParsedPoint(String description, String critereCode, String expectedValue) {}
 
     static List<ParsedPoint> parsePointsProcedure(JsonNode node) {
         List<ParsedPoint> result = new ArrayList<>();
@@ -64,7 +64,7 @@ public class ProcedureCheckService {
         for (JsonNode item : node) {
             if (item.isTextual()) {
                 String txt = item.asText();
-                if (txt != null && !txt.isBlank()) result.add(new ParsedPoint(txt, null));
+                if (txt != null && !txt.isBlank()) result.add(new ParsedPoint(txt, null, null));
             } else if (item.isObject()) {
                 JsonNode texteNode = item.get("texte");
                 if (texteNode == null || !texteNode.isTextual()) continue;
@@ -76,7 +76,13 @@ public class ProcedureCheckService {
                     String raw = codeNode.asText().trim();
                     if (!raw.isEmpty()) critereCode = raw.toUpperCase();
                 }
-                result.add(new ParsedPoint(texte, critereCode));
+                String expectedValue = null;
+                JsonNode evNode = item.get("expected_value");
+                if (evNode != null && evNode.isTextual()) {
+                    String raw = evNode.asText().trim();
+                    if (!raw.isEmpty()) expectedValue = raw.toUpperCase();
+                }
+                result.add(new ParsedPoint(texte, critereCode, expectedValue));
             }
         }
         return result;
@@ -114,6 +120,7 @@ public class ProcedureCheckService {
             check.setOrdre(i);
             check.setDescription(pt.description());
             check.setCritereCode(pt.critereCode());
+            check.setExpectedValue(pt.expectedValue());
             check.setStatut(ProcedureCheckStatus.TO_CHECK);
             procedureCheckRepository.save(check);
         }
@@ -204,6 +211,7 @@ public class ProcedureCheckService {
                 copy.setStatut(ProcedureCheckStatus.NON_COMPLIANT);
                 copy.setRaison(src.getRaison());
                 copy.setCritereCode(src.getCritereCode());
+                copy.setExpectedValue(src.getExpectedValue());
                 procedureCheckRepository.save(copy);
                 existingNormalized.add(norm);
             }

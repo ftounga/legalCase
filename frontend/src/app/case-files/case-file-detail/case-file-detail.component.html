@@ -343,7 +343,9 @@
       <app-indemnite-comparatif-section
         [caseFileId]="caseFile()!.id"
         [aiData]="synthesis()?.travailExtractedData"
-        [synthesis]="synthesis()">
+        [synthesis]="synthesis()"
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()">
       </app-indemnite-comparatif-section>
     }
 

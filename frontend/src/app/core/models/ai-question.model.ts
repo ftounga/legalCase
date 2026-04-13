@@ -4,4 +4,5 @@ export interface AiQuestion {
   questionText: string;
   answerText: string | null;
   critereCode?: string | null;
+  expectedValue?: string | null;
 }
