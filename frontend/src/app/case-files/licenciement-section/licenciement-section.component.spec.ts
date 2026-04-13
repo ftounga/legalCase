@@ -245,4 +245,127 @@ describe('LicenciementSectionComponent', () => {
     component.onReponseChange('FR_MOTIVATION', 'NON');
     expect(component.coherenceAlerts()['FR_MOTIVATION'].justification).toBe('Aucune justification fournie');
   });
+
+  // ---- F-96 procedure checks as source (SF-IA-03-02) ----
+
+  function f96(overrides: Partial<{ id: string; ordre: number; description: string; statut: 'TO_CHECK' | 'VERIFIED' | 'NON_COMPLIANT'; raison: string | null; critereCode: string | null }>) {
+    return {
+      id: overrides.id ?? 'c-' + Math.random(),
+      ordre: overrides.ordre ?? 0,
+      description: overrides.description ?? '',
+      statut: overrides.statut ?? 'TO_CHECK',
+      raison: overrides.raison ?? null,
+      critereCode: overrides.critereCode ?? null,
+    } as any;
+  }
+
+  it('should emit F-96 blocker when VERIFIED point contradicts avocat NON', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED', description: 'Lettre motivée' })];
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.source).toBe('F96');
+    expect(alert.level).toBe('blocker');
+    expect(alert.expectedReponse).toBe('OUI');
+    expect(alert.f96Statut).toBe('VERIFIED');
+  });
+
+  it('should emit F-96 blocker when NON_COMPLIANT point contradicts avocat OUI', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_CONVOCATION', statut: 'NON_COMPLIANT', raison: 'Pas de LRAR' })];
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'OUI');
+    const alert = component.coherenceAlerts()['FR_CONVOCATION'];
+    expect(alert.source).toBe('F96');
+    expect(alert.level).toBe('blocker');
+    expect(alert.expectedReponse).toBe('NON');
+    expect(alert.f96Raison).toBe('Pas de LRAR');
+  });
+
+  it('should emit blocker (not warning) for F-96 even on non-blocking criterion', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_DELAI_NOTIFICATION', statut: 'VERIFIED' })];
+    initNoExisting();
+    component.onReponseChange('FR_DELAI_NOTIFICATION', 'NON');
+    expect(component.coherenceAlerts()['FR_DELAI_NOTIFICATION'].level).toBe('blocker');
+  });
+
+  it('should NOT emit alert when F-96 VERIFIED matches avocat OUI', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED' })];
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'OUI');
+    expect(component.coherenceAlerts()['FR_MOTIVATION']).toBeUndefined();
+  });
+
+  it('should ignore F-96 TO_CHECK and fall back to AI', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'TO_CHECK' })];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.source).toBe('IA');
+    expect(alert.level).toBe('blocker');
+  });
+
+  it('should combine F96 and IA into source F96_IA when both contradict avocat', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED', raison: 'Conforme' })];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA détecte motif précis' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.source).toBe('F96_IA');
+    expect(alert.level).toBe('blocker');
+    expect(alert.aiReponse).toBe('OUI');
+    expect(alert.f96Statut).toBe('VERIFIED');
+  });
+
+  it('should override IA with F-96 when they disagree', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'NON_COMPLIANT' })];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA dit OUI' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'OUI');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.source).toBe('F96');
+    expect(alert.expectedReponse).toBe('NON');
+  });
+
+  it('should pick NON_COMPLIANT when multiple F-96 points collide on same critere', () => {
+    component.procedureChecks = [
+      f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED', ordre: 0 }),
+      f96({ critereCode: 'FR_MOTIVATION', statut: 'NON_COMPLIANT', ordre: 1 }),
+    ];
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    // NON_COMPLIANT expects NON, avocat says NON → no alert
+    expect(component.coherenceAlerts()['FR_MOTIVATION']).toBeUndefined();
+    component.onReponseChange('FR_MOTIVATION', 'OUI');
+    // NON_COMPLIANT expects NON, avocat says OUI → blocker
+    expect(component.coherenceAlerts()['FR_MOTIVATION']?.expectedReponse).toBe('NON');
+  });
+
+  it('should ignore F-96 with unknown critereCode', () => {
+    component.procedureChecks = [f96({ critereCode: 'UNKNOWN_CODE', statut: 'VERIFIED' })];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    // Falls through to IA
+    expect(component.coherenceAlerts()['FR_MOTIVATION']?.source).toBe('IA');
+  });
+
+  it('should fall back to SF-IA-03-01 behaviour when procedureChecks is empty', () => {
+    component.procedureChecks = [];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    expect(component.coherenceAlerts()['FR_MOTIVATION']?.source).toBe('IA');
+  });
+
+  it('should count F-96 blockers in alertsSummary', () => {
+    component.procedureChecks = [
+      f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED' }),
+      f96({ critereCode: 'FR_DELAI_NOTIFICATION', statut: 'VERIFIED' }),
+    ];
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    component.onReponseChange('FR_DELAI_NOTIFICATION', 'NON');
+    expect(component.alertsSummary()).toEqual({ total: 2, blockers: 2 });
+  });
 });

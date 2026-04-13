@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { LicenciementService } from '../../core/services/licenciement.service';
 import { LicenciementResponse } from '../../core/models/licenciement.model';
 import { LicenciementValidityDetection } from '../../core/models/case-analysis.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
 
 interface CritereForm {
   code: string;
@@ -22,12 +23,24 @@ interface CritereForm {
 }
 
 type AlertLevel = 'blocker' | 'warning';
+type AlertSource = 'F96' | 'IA' | 'F96_IA';
 
 export interface CoherenceAlert {
   level: AlertLevel;
-  aiReponse: 'OUI' | 'NON';
-  justification: string;
+  source: AlertSource;
+  expectedReponse: 'OUI' | 'NON';
+  aiReponse?: 'OUI' | 'NON' | null;
+  f96Statut?: 'VERIFIED' | 'NON_COMPLIANT' | null;
+  f96Raison?: string | null;
+  justification?: string | null;
 }
+
+const CRITERE_CODES = new Set([
+  'FR_CONVOCATION', 'FR_ENTRETIEN', 'FR_DELAI_NOTIFICATION', 'FR_MOTIVATION',
+  'FR_MOTIF_REEL', 'FR_PROCEDURE_DISCIPLINAIRE', 'FR_ORDRE_LICENCIEMENT',
+  'BE_NOTIFICATION', 'BE_PREAVIS', 'BE_MOTIVATION', 'BE_AUDITION',
+  'BE_NON_DISCRIMINATION', 'BE_PROTECTION_SPECIALE', 'BE_INDEMNITE_MANIFESTE',
+]);
 
 @Component({
   selector: 'app-licenciement-section',
@@ -46,9 +59,11 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   @Input() aiData?: LicenciementValidityDetection | null;
+  @Input() procedureChecks?: ProcedureCheck[] | null;
 
   private hasSavedResult = false;
   private aiDataSignal = signal<LicenciementValidityDetection | null | undefined>(undefined);
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -91,23 +106,60 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
 
   coherenceAlerts = computed<Record<string, CoherenceAlert>>(() => {
     const detections = this.aiDataSignal()?.detections;
-    if (!detections) return {};
+    const f96Index = this.buildF96Index(this.procedureChecksSignal());
     const alerts: Record<string, CoherenceAlert> = {};
     for (const c of this.criteresForm()) {
-      const detected = detections[c.code];
+      if (c.reponse === 'INCONNU') continue;
+
+      const f96 = f96Index[c.code];
+      if (f96) {
+        const expected: 'OUI' | 'NON' = f96.statut === 'VERIFIED' ? 'OUI' : 'NON';
+        if (c.reponse === expected) continue;
+        const iaReponse = detections?.[c.code]?.reponse;
+        const bothAgainst = (iaReponse === 'OUI' || iaReponse === 'NON') && iaReponse === expected;
+        alerts[c.code] = {
+          level: 'blocker',
+          source: bothAgainst ? 'F96_IA' : 'F96',
+          expectedReponse: expected,
+          aiReponse: bothAgainst ? iaReponse : null,
+          f96Statut: f96.statut,
+          f96Raison: f96.raison ?? null,
+          justification: bothAgainst ? (detections?.[c.code]?.justification ?? null) : null,
+        };
+        continue;
+      }
+
+      const detected = detections?.[c.code];
       if (!detected) continue;
       const aiReponse = detected.reponse;
       if (aiReponse !== 'OUI' && aiReponse !== 'NON') continue;
-      if (c.reponse === 'INCONNU') continue;
       if (c.reponse === aiReponse) continue;
       alerts[c.code] = {
         level: c.bloquant ? 'blocker' : 'warning',
+        source: 'IA',
+        expectedReponse: aiReponse,
         aiReponse,
         justification: detected.justification?.trim() || 'Aucune justification fournie',
       };
     }
     return alerts;
   });
+
+  private buildF96Index(checks: ProcedureCheck[]): Record<string, { statut: 'VERIFIED' | 'NON_COMPLIANT', raison?: string | null }> {
+    const index: Record<string, { statut: 'VERIFIED' | 'NON_COMPLIANT', raison?: string | null }> = {};
+    if (!checks || checks.length === 0) return index;
+    for (const chk of checks) {
+      const code = chk.critereCode?.toUpperCase();
+      if (!code || !CRITERE_CODES.has(code)) continue;
+      if (chk.statut !== 'VERIFIED' && chk.statut !== 'NON_COMPLIANT') continue;
+      const existing = index[code];
+      // NON_COMPLIANT prime sur VERIFIED (règle de la mini-spec)
+      if (!existing || (existing.statut === 'VERIFIED' && chk.statut === 'NON_COMPLIANT')) {
+        index[code] = { statut: chk.statut, raison: chk.raison };
+      }
+    }
+    return index;
+  }
 
   alertsSummary = computed(() => {
     const alerts = Object.values(this.coherenceAlerts());
@@ -126,6 +178,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     this.country.set(this.workspaceCountry);
     this.criteresForm.set(this.buildInitialForm(this.country()));
     this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.loadExisting();
   }
 
@@ -135,6 +188,9 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
       if (!changes['aiData'].firstChange) {
         this.applyAiPrefillIfPossible();
       }
+    }
+    if (changes['procedureChecks']) {
+      this.procedureChecksSignal.set(this.procedureChecks ?? []);
     }
   }
 
@@ -148,7 +204,21 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   }
 
   alertTooltip(alert: CoherenceAlert): string {
-    return `L'IA a détecté : ${alert.aiReponse}. ${alert.justification}`;
+    if (alert.source === 'F96') {
+      const base = `Checklist procédurale : ${alert.f96Statut === 'VERIFIED' ? 'vérifié' : 'non respecté'}`;
+      return alert.f96Raison ? `${base}. ${alert.f96Raison}` : `${base}. Statut confirmé par l'avocat`;
+    }
+    if (alert.source === 'F96_IA') {
+      const f96Part = `Checklist procédurale : ${alert.f96Statut === 'VERIFIED' ? 'vérifié' : 'non respecté'}${alert.f96Raison ? ' (' + alert.f96Raison + ')' : ''}`;
+      const iaPart = `Analyse IA : ${alert.aiReponse}${alert.justification ? ' — ' + alert.justification : ''}`;
+      return `Contredit ${f96Part} ET ${iaPart}`;
+    }
+    return `L'IA a détecté : ${alert.aiReponse}. ${alert.justification ?? ''}`.trim();
+  }
+
+  alertBadgeLabel(alert: CoherenceAlert): string {
+    const prefix = alert.source === 'IA' ? 'Incohérence IA' : 'Incohérence F-96';
+    return `${prefix} (${alert.expectedReponse})`;
   }
 
   onReponseChange(code: string, value: string): void {

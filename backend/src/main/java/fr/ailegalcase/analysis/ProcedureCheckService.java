@@ -53,6 +53,36 @@ public class ProcedureCheckService {
     }
 
     /**
+     * Représente un point de procédure extrait du JSON IA : texte (obligatoire) + critereCode (optionnel).
+     * Accepte deux formats en entrée : string legacy ou objet {texte, critere_code?}.
+     */
+    record ParsedPoint(String description, String critereCode) {}
+
+    static List<ParsedPoint> parsePointsProcedure(JsonNode node) {
+        List<ParsedPoint> result = new ArrayList<>();
+        if (node == null || !node.isArray()) return result;
+        for (JsonNode item : node) {
+            if (item.isTextual()) {
+                String txt = item.asText();
+                if (txt != null && !txt.isBlank()) result.add(new ParsedPoint(txt, null));
+            } else if (item.isObject()) {
+                JsonNode texteNode = item.get("texte");
+                if (texteNode == null || !texteNode.isTextual()) continue;
+                String texte = texteNode.asText();
+                if (texte.isBlank()) continue;
+                String critereCode = null;
+                JsonNode codeNode = item.get("critere_code");
+                if (codeNode != null && codeNode.isTextual()) {
+                    String raw = codeNode.asText().trim();
+                    if (!raw.isEmpty()) critereCode = raw.toUpperCase();
+                }
+                result.add(new ParsedPoint(texte, critereCode));
+            }
+        }
+        return result;
+    }
+
+    /**
      * Crée les procedure_checks à partir du JSON brut de l'analyse.
      * Fail-open : si points_procedure absent ou JSON invalide, aucun check créé.
      * Remplace les checks existants pour cette analyse.
@@ -62,15 +92,10 @@ public class ProcedureCheckService {
         if (rawJson == null || rawJson.isBlank()) return;
 
         String stripped = CaseAnalysisResponse.stripMarkdownCodeBlock(rawJson);
-        List<String> points;
+        List<ParsedPoint> points;
         try {
             JsonNode root = MAPPER.readTree(stripped);
-            JsonNode node = root.get("points_procedure");
-            if (node == null || !node.isArray()) return;
-            points = new java.util.ArrayList<>();
-            for (JsonNode item : node) {
-                if (item.isTextual()) points.add(item.asText());
-            }
+            points = parsePointsProcedure(root.get("points_procedure"));
         } catch (Exception e) {
             log.debug("points_procedure extraction failed for analysis {} — skipping", analysis.getId());
             return;
@@ -82,11 +107,13 @@ public class ProcedureCheckService {
 
         Workspace workspace = analysis.getCaseFile().getWorkspace();
         for (int i = 0; i < points.size(); i++) {
+            ParsedPoint pt = points.get(i);
             ProcedureCheck check = new ProcedureCheck();
             check.setCaseAnalysis(analysis);
             check.setWorkspace(workspace);
             check.setOrdre(i);
-            check.setDescription(points.get(i));
+            check.setDescription(pt.description());
+            check.setCritereCode(pt.critereCode());
             check.setStatut(ProcedureCheckStatus.TO_CHECK);
             procedureCheckRepository.save(check);
         }
@@ -176,6 +203,7 @@ public class ProcedureCheckService {
                 copy.setDescription(src.getDescription());
                 copy.setStatut(ProcedureCheckStatus.NON_COMPLIANT);
                 copy.setRaison(src.getRaison());
+                copy.setCritereCode(src.getCritereCode());
                 procedureCheckRepository.save(copy);
                 existingNormalized.add(norm);
             }
@@ -193,6 +221,7 @@ public class ProcedureCheckService {
             copy.setDescription(src.getDescription());
             copy.setStatut(ProcedureCheckStatus.VERIFIED);
             copy.setRaison(src.getRaison());
+            copy.setCritereCode(src.getCritereCode());
             procedureCheckRepository.save(copy);
             existingNormalized.add(norm);
         }

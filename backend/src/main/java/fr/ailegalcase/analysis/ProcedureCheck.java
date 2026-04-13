@@ -39,6 +39,9 @@ public class ProcedureCheck {
     @Column(columnDefinition = "TEXT")
     private String raison;
 
+    @Column(name = "critere_code", length = 50)
+    private String critereCode;
+
     @Column(nullable = false)
     private Instant createdAt;
 

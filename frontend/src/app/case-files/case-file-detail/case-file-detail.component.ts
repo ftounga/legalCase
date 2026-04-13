@@ -24,6 +24,8 @@ import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
+import { ProcedureCheckService } from '../../core/services/procedure-check.service';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
@@ -85,6 +87,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   documents = signal<Document[]>([]);
   analysisJobs = signal<AnalysisJob[]>([]);
   synthesis = signal<CaseAnalysisResult | null>(null);
+  procedureChecks = signal<ProcedureCheck[]>([]);
   stats = signal<CaseFileStats | null>(null);
   questions = signal<AiQuestion[]>([]);
   loading = signal(true);
@@ -228,7 +231,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private analyticsService: AnalyticsService,
-    private caseDeadlineService: CaseDeadlineService
+    private caseDeadlineService: CaseDeadlineService,
+    private procedureCheckService: ProcedureCheckService
   ) {}
 
   ngOnInit(): void {
@@ -501,9 +505,21 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (questionsDone && result?.id) {
           this.loadQuestions(caseFileId, result.id);
         }
+        if (result?.id) {
+          this.loadProcedureChecks(caseFileId, result.id);
+        } else {
+          this.procedureChecks.set([]);
+        }
         this.loadVersionsCount(caseFileId);
       },
       error: () => { /* silencieux */ }
+    });
+  }
+
+  private loadProcedureChecks(caseFileId: string, analysisId: string): void {
+    this.procedureCheckService.list(caseFileId, analysisId).subscribe({
+      next: checks => this.procedureChecks.set(checks),
+      error: () => this.procedureChecks.set([]),
     });
   }
 

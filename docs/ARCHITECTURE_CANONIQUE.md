@@ -1133,6 +1133,8 @@ workspace_id (UUID FK → workspaces, cascade delete — dénormalisé pour isol
 ordre (INT, non nullable — index dans le tableau points_procedure du JSON LLM)
 description (TEXT, non nullable — libellé du point procédural)
 statut (VARCHAR 20, non nullable, DEFAULT 'TO_CHECK' — TO_CHECK | VERIFIED | NON_COMPLIANT)
+raison (TEXT, nullable — justification Claude lors d'une requalification, migration 044)
+critere_code (VARCHAR 50, nullable — code du critère F-DT-08 associé si le point porte sur la validité licenciement, migration 068 SF-IA-03-02)
 created_at (timestamptz, non nullable)
 updated_at (timestamptz, non nullable)
 
