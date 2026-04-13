@@ -23,9 +23,17 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Pays</mat-label>
-              <mat-select [(ngModel)]="country">
+              <mat-select [(ngModel)]="country" (ngModelChange)="onCountryChange()">
                 <mat-option value="FRANCE">France</mat-option>
                 <mat-option value="BELGIQUE">Belgique</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field form-field--wide">
+              <mat-label>Type de rupture</mat-label>
+              <mat-select [(ngModel)]="typeRupture">
+                @for (opt of typeRuptureOptions(); track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
@@ -41,6 +49,13 @@
               <input matInput type="number" [(ngModel)]="salaireMensuel">
             </mat-form-field>
           </div>
+
+          @if (typeRuptureNote(); as note) {
+            <div class="type-rupture-note">
+              <mat-icon>info</mat-icon>
+              <span>{{ note }}</span>
+            </div>
+          }
           <div class="form-actions">
             <button mat-flat-button color="primary" (click)="calculate()" [disabled]="calculating()">
               @if (calculating()) {
@@ -68,47 +83,83 @@
               <span>{{ result()!.baremeSource }}</span>
             </div>
 
-            <div class="fourchettes">
-              <div class="fourchette-row">
-                <span class="fourchette-label">Barème plancher</span>
-                <div class="fourchette-bar-container">
-                  <div class="fourchette-bar bar-plancher" [style.width]="barWidth(result()!.baremePlancherMois)"></div>
+            @if (result()!.displayMode === 'MACRON' || result()!.displayMode === 'CCT_109' || !result()!.displayMode) {
+              <div class="fourchettes">
+                <div class="fourchette-row">
+                  <span class="fourchette-label">Barème plancher</span>
+                  <div class="fourchette-bar-container">
+                    <div class="fourchette-bar bar-plancher" [style.width]="barWidth(result()!.baremePlancherMois)"></div>
+                  </div>
+                  <span class="fourchette-value">{{ result()!.baremePlancherMois }} mois</span>
                 </div>
-                <span class="fourchette-value">{{ result()!.baremePlancherMois }} mois</span>
-              </div>
 
-              <div class="fourchette-row">
-                <span class="fourchette-label">Fourchette basse</span>
-                <div class="fourchette-bar-container">
-                  <div class="fourchette-bar bar-basse" [style.width]="barWidth(result()!.fourchetteBasseMois)"></div>
+                <div class="fourchette-row">
+                  <span class="fourchette-label">Fourchette basse</span>
+                  <div class="fourchette-bar-container">
+                    <div class="fourchette-bar bar-basse" [style.width]="barWidth(result()!.fourchetteBasseMois)"></div>
+                  </div>
+                  <span class="fourchette-value">{{ result()!.fourchetteBasseMois | number:'1.1-1' }} mois — {{ result()!.fourchetteBasseMontant | number:'1.0-0' }} €</span>
                 </div>
-                <span class="fourchette-value">{{ result()!.fourchetteBasseMois | number:'1.1-1' }} mois — {{ result()!.fourchetteBasseMontant | number:'1.0-0' }} €</span>
-              </div>
 
-              <div class="fourchette-row fourchette-row--highlight">
-                <span class="fourchette-label">Médiane jurisprudentielle</span>
-                <div class="fourchette-bar-container">
-                  <div class="fourchette-bar bar-mediane" [style.width]="barWidth(result()!.fourchetteMedMois)"></div>
+                <div class="fourchette-row fourchette-row--highlight">
+                  <span class="fourchette-label">Médiane jurisprudentielle</span>
+                  <div class="fourchette-bar-container">
+                    <div class="fourchette-bar bar-mediane" [style.width]="barWidth(result()!.fourchetteMedMois)"></div>
+                  </div>
+                  <span class="fourchette-value">{{ result()!.fourchetteMedMois | number:'1.1-1' }} mois — {{ result()!.fourchetteMedMontant | number:'1.0-0' }} €</span>
                 </div>
-                <span class="fourchette-value">{{ result()!.fourchetteMedMois | number:'1.1-1' }} mois — {{ result()!.fourchetteMedMontant | number:'1.0-0' }} €</span>
-              </div>
 
-              <div class="fourchette-row">
-                <span class="fourchette-label">Fourchette haute</span>
-                <div class="fourchette-bar-container">
-                  <div class="fourchette-bar bar-haute" [style.width]="barWidth(result()!.fourhetteHauteMois)"></div>
+                <div class="fourchette-row">
+                  <span class="fourchette-label">Fourchette haute</span>
+                  <div class="fourchette-bar-container">
+                    <div class="fourchette-bar bar-haute" [style.width]="barWidth(result()!.fourhetteHauteMois)"></div>
+                  </div>
+                  <span class="fourchette-value">{{ result()!.fourhetteHauteMois | number:'1.1-1' }} mois — {{ result()!.fourhetteHauteMontant | number:'1.0-0' }} €</span>
                 </div>
-                <span class="fourchette-value">{{ result()!.fourhetteHauteMois | number:'1.1-1' }} mois — {{ result()!.fourhetteHauteMontant | number:'1.0-0' }} €</span>
-              </div>
 
-              <div class="fourchette-row">
-                <span class="fourchette-label">Barème plafond</span>
-                <div class="fourchette-bar-container">
-                  <div class="fourchette-bar bar-plafond" [style.width]="'100%'"></div>
+                <div class="fourchette-row">
+                  <span class="fourchette-label">Barème plafond</span>
+                  <div class="fourchette-bar-container">
+                    <div class="fourchette-bar bar-plafond" [style.width]="'100%'"></div>
+                  </div>
+                  <span class="fourchette-value">{{ result()!.baremePlafondMois }} mois</span>
                 </div>
-                <span class="fourchette-value">{{ result()!.baremePlafondMois }} mois</span>
               </div>
-            </div>
+            }
+
+            @if (result()!.displayMode === 'INDEMNITE_SPECIFIQUE') {
+              <div class="indemnite-specifique">
+                <div class="indemnite-label">Indemnité légale de licenciement (minimum applicable)</div>
+                <div class="indemnite-value">{{ result()!.indemniteLegaleMontant | number:'1.0-0' }} €</div>
+                <div class="indemnite-formula">¼ mois × {{ result()!.ancienneteAnnees > 10 ? 10 : result()!.ancienneteAnnees }} ans
+                  @if (result()!.ancienneteAnnees > 10) {
+                    + ⅓ mois × {{ result()!.ancienneteAnnees - 10 }} ans
+                  }
+                  × {{ result()!.salaireMensuel | number:'1.0-0' }} €
+                </div>
+              </div>
+            }
+
+            @if (result()!.displayMode === 'NEGOCIATION_LIBRE') {
+              <div class="negociation-libre">
+                <mat-icon>handshake</mat-icon>
+                <div>
+                  <div class="nego-title">Négociation libre</div>
+                  <div class="nego-subtitle">Aucun barème ne s'impose. Le montant résulte de l'accord entre les parties.</div>
+                </div>
+              </div>
+            }
+
+            @if (result()!.contextualMessages && result()!.contextualMessages.length > 0) {
+              <div class="contextual-messages">
+                @for (msg of result()!.contextualMessages; track $index) {
+                  <div class="contextual-message">
+                    <mat-icon>info</mat-icon>
+                    <span>{{ msg }}</span>
+                  </div>
+                }
+              </div>
+            }
 
             @if (result()!.commentaire) {
               <div class="commentaire">

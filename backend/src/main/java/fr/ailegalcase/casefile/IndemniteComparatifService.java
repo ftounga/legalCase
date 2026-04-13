@@ -43,12 +43,19 @@ public class IndemniteComparatifService {
         User user = resolveUser(oidcUser, principal);
         CaseFile caseFile = resolveCaseFile(caseFileId, user);
 
-        IndemniteComparatifResult result = IndemniteComparatifCalculator.calculate(
-                request.country(), request.ancienneteAnnees(), request.age(), request.salaireMensuel());
+        IndemniteComparatifResult result;
+        try {
+            result = IndemniteComparatifCalculator.calculate(
+                    request.country(), request.typeRupture(), request.ancienneteAnnees(),
+                    request.age(), request.salaireMensuel());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
 
         IndemniteComparatif entity = repository.findByCaseFileId(caseFileId)
                 .orElseGet(() -> { IndemniteComparatif e = new IndemniteComparatif(); e.setCaseFile(caseFile); return e; });
         entity.setCountry(request.country());
+        entity.setTypeRupture(request.typeRupture());
         entity.setAncienneteAnnees(request.ancienneteAnnees());
         entity.setAge(request.age());
         entity.setResultData(serialize(result));
@@ -100,10 +107,13 @@ public class IndemniteComparatifService {
     }
 
     private IndemniteComparatifResponse toResponse(UUID caseFileId, IndemniteComparatifResult r) {
-        return new IndemniteComparatifResponse(caseFileId, r.country(), r.ancienneteAnnees(), r.age(),
-                r.salaireMensuel(), r.baremePlancherMois(), r.baremePlafondMois(),
+        return new IndemniteComparatifResponse(caseFileId, r.country(), r.typeRupture(),
+                r.ancienneteAnnees(), r.age(), r.salaireMensuel(), r.displayMode(),
+                r.baremePlancherMois(), r.baremePlafondMois(),
                 r.fourchetteBasseMois(), r.fourchetteMedMois(), r.fourhetteHauteMois(),
                 r.fourchetteBasseMontant(), r.fourchetteMedMontant(), r.fourhetteHauteMontant(),
-                r.baremeSource(), r.commentaire());
+                r.indemniteLegaleMontant(),
+                r.baremeSource(), r.commentaire(),
+                r.contextualMessages() != null ? r.contextualMessages() : java.util.List.of());
     }
 }
