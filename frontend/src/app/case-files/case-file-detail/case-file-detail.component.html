@@ -394,7 +394,10 @@
       </app-calendrier-garde-section>
 
       <app-divorce-checklist-section
-        [caseFileId]="caseFile()!.id">
+        [caseFileId]="caseFile()!.id"
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()"
+        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
       </app-divorce-checklist-section>
     }
   </div>
