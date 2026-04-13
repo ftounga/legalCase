@@ -90,6 +90,12 @@ export interface CaseAnalysisResult {
   travailExtractedData?: TravailExtractedData | null;
   immigrationExtractedData?: ImmigrationExtractedData | null;
   licenciementValidityDetection?: LicenciementValidityDetection | null;
+  piecesManquantesDetails?: PieceManquanteEntry[] | null;
+}
+
+export interface PieceManquanteEntry {
+  texte: string;
+  critereCode?: string | null;
 }
 
 export interface DetectedAnswer {

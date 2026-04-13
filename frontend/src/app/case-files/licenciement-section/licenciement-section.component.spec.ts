@@ -305,13 +305,15 @@ describe('LicenciementSectionComponent', () => {
     expect(alert.level).toBe('blocker');
   });
 
-  it('should combine F96 and IA into source F96_IA when both contradict avocat', () => {
+  it('should combine F96 and IA into source MULTI when both contradict avocat', () => {
     component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED', raison: 'Conforme' })];
     component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA détecte motif précis' } } };
     initNoExisting();
     component.onReponseChange('FR_MOTIVATION', 'NON');
     const alert = component.coherenceAlerts()['FR_MOTIVATION'];
-    expect(alert.source).toBe('F96_IA');
+    expect(alert.source).toBe('MULTI');
+    expect(alert.contributors).toContain('F96');
+    expect(alert.contributors).toContain('IA');
     expect(alert.level).toBe('blocker');
     expect(alert.aiReponse).toBe('OUI');
     expect(alert.f96Statut).toBe('VERIFIED');
@@ -367,5 +369,141 @@ describe('LicenciementSectionComponent', () => {
     component.onReponseChange('FR_MOTIVATION', 'NON');
     component.onReponseChange('FR_DELAI_NOTIFICATION', 'NON');
     expect(component.alertsSummary()).toEqual({ total: 2, blockers: 2 });
+  });
+
+  // ---- AI questions as source (SF-IA-03-03) ----
+
+  function question(overrides: Partial<{ id: string; orderIndex: number; questionText: string; answerText: string | null; critereCode: string | null }>) {
+    return {
+      id: overrides.id ?? 'q-' + Math.random(),
+      orderIndex: overrides.orderIndex ?? 0,
+      questionText: overrides.questionText ?? '',
+      answerText: overrides.answerText ?? null,
+      critereCode: overrides.critereCode ?? null,
+    } as any;
+  }
+
+  it('should emit QUESTION_IA blocker when answer "oui" contradicts avocat NON', () => {
+    component.aiQuestions = [question({ critereCode: 'FR_MOTIVATION', questionText: 'Motif précis ?', answerText: 'oui' })];
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.source).toBe('QUESTION_IA');
+    expect(alert.level).toBe('blocker');
+    expect(alert.expectedReponse).toBe('OUI');
+    expect(alert.questionText).toBe('Motif précis ?');
+  });
+
+  it('should emit QUESTION_IA blocker when answer "non" contradicts avocat OUI', () => {
+    component.aiQuestions = [question({ critereCode: 'FR_CONVOCATION', questionText: 'LRAR ?', answerText: 'Non, pas de preuve' })];
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'OUI');
+    const alert = component.coherenceAlerts()['FR_CONVOCATION'];
+    expect(alert.source).toBe('QUESTION_IA');
+    expect(alert.expectedReponse).toBe('NON');
+  });
+
+  it('should ignore ambiguous answer and fall back to IA', () => {
+    component.aiQuestions = [question({ critereCode: 'FR_MOTIVATION', answerText: 'peut-être, pas sûr' })];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    expect(component.coherenceAlerts()['FR_MOTIVATION'].source).toBe('IA');
+  });
+
+  it('should ignore conflicting answers on same critere', () => {
+    component.aiQuestions = [
+      question({ critereCode: 'FR_MOTIVATION', answerText: 'oui' }),
+      question({ critereCode: 'FR_MOTIVATION', answerText: 'non', orderIndex: 1 }),
+    ];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    // Conflicting questions ignored → fall back to IA
+    expect(component.coherenceAlerts()['FR_MOTIVATION'].source).toBe('IA');
+  });
+
+  it('should respect F-96 priority over QUESTION_IA', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'NON_COMPLIANT' })];
+    component.aiQuestions = [question({ critereCode: 'FR_MOTIVATION', answerText: 'oui' })];
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'OUI');
+    // F-96 NON_COMPLIANT expects NON; question IA expects OUI (concorde avocat)
+    // F-96 wins priority → blocker F96, expected NON
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.source).toBe('F96');
+    expect(alert.expectedReponse).toBe('NON');
+  });
+
+  it('should combine F-96 + QUESTION_IA into MULTI when they align against avocat', () => {
+    component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED' })];
+    component.aiQuestions = [question({ critereCode: 'FR_MOTIVATION', answerText: 'oui' })];
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.source).toBe('MULTI');
+    expect(alert.contributors).toContain('F96');
+    expect(alert.contributors).toContain('QUESTION_IA');
+    expect(alert.expectedReponse).toBe('OUI');
+  });
+
+  // ---- Missing pieces as source (SF-IA-03-03) ----
+
+  it('should emit PIECE_MANQUANTE warning when piece missing and avocat coche OUI', () => {
+    component.piecesManquantes = [{ texte: 'LRAR de convocation', critereCode: 'FR_CONVOCATION' }];
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'OUI');
+    const alert = component.coherenceAlerts()['FR_CONVOCATION'];
+    expect(alert.source).toBe('PIECE_MANQUANTE');
+    expect(alert.level).toBe('warning');
+    expect(alert.expectedReponse).toBe('NON');
+    expect(alert.pieceTexte).toBe('LRAR de convocation');
+  });
+
+  it('should NOT emit alert when piece missing and avocat coche NON', () => {
+    component.piecesManquantes = [{ texte: 'LRAR', critereCode: 'FR_CONVOCATION' }];
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'NON');
+    expect(component.coherenceAlerts()['FR_CONVOCATION']).toBeUndefined();
+  });
+
+  it('should upgrade IA alert with PIECE_MANQUANTE contributor when piece expects NON too', () => {
+    component.piecesManquantes = [{ texte: 'LRAR', critereCode: 'FR_CONVOCATION' }];
+    component.aiData = { detections: { FR_CONVOCATION: { reponse: 'NON', justification: 'pas détecté' } } };
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'OUI');
+    const alert = component.coherenceAlerts()['FR_CONVOCATION'];
+    // IA primary (expected NON), PIECE supports (expects NON too) → MULTI
+    expect(alert.source).toBe('MULTI');
+    expect(alert.contributors).toContain('IA');
+    expect(alert.contributors).toContain('PIECE_MANQUANTE');
+  });
+
+  it('should ignore piece with unknown critereCode', () => {
+    component.piecesManquantes = [{ texte: 'Doc X', critereCode: 'UNKNOWN' }];
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'OUI');
+    expect(component.coherenceAlerts()['FR_CONVOCATION']).toBeUndefined();
+  });
+
+  it('should count PIECE_MANQUANTE in alertsSummary but not as blocker', () => {
+    component.piecesManquantes = [
+      { texte: 'Doc1', critereCode: 'FR_CONVOCATION' },
+      { texte: 'Doc2', critereCode: 'FR_ENTRETIEN' },
+    ];
+    initNoExisting();
+    component.onReponseChange('FR_CONVOCATION', 'OUI');
+    component.onReponseChange('FR_ENTRETIEN', 'OUI');
+    expect(component.alertsSummary()).toEqual({ total: 2, blockers: 0 });
+  });
+
+  it('should preserve full hierarchy fallback when no new source is present', () => {
+    component.aiQuestions = [];
+    component.piecesManquantes = [];
+    component.procedureChecks = [];
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'IA' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    expect(component.coherenceAlerts()['FR_MOTIVATION'].source).toBe('IA');
   });
 });

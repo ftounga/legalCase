@@ -3,4 +3,5 @@ export interface AiQuestion {
   orderIndex: number;
   questionText: string;
   answerText: string | null;
+  critereCode?: string | null;
 }
