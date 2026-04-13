@@ -72,4 +72,67 @@ describe('LicenciementSectionComponent', () => {
     expect(component.result()).toBeTruthy();
     expect(component.showForm()).toBe(false);
   });
+
+  it('should pre-fill form from aiData when no saved result (FRANCE)', () => {
+    component.aiData = {
+      detections: {
+        FR_CONVOCATION: { reponse: 'OUI', justification: 'LRAR trouvée' },
+        FR_MOTIVATION: { reponse: 'NON', justification: 'Motif vague' },
+        FR_ENTRETIEN: { reponse: 'INCONNU', justification: '' },
+      },
+    };
+    initNoExisting();
+    const form = component.criteresForm();
+    expect(form.find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('OUI');
+    expect(form.find(c => c.code === 'FR_MOTIVATION')?.reponse).toBe('NON');
+    expect(form.find(c => c.code === 'FR_ENTRETIEN')?.reponse).toBe('INCONNU');
+  });
+
+  it('should pre-fill from aiData for Belgique workspace', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    component.aiData = {
+      detections: {
+        BE_NOTIFICATION: { reponse: 'OUI', justification: 'LRAR' },
+        BE_PREAVIS: { reponse: 'NON', justification: 'Préavis non respecté' },
+      },
+    };
+    initNoExisting();
+    const form = component.criteresForm();
+    expect(form.find(c => c.code === 'BE_NOTIFICATION')?.reponse).toBe('OUI');
+    expect(form.find(c => c.code === 'BE_PREAVIS')?.reponse).toBe('NON');
+  });
+
+  it('should NOT override saved responses with aiData', () => {
+    component.aiData = {
+      detections: {
+        FR_CONVOCATION: { reponse: 'NON', justification: 'Absent' },
+      },
+    };
+    initWithExisting();
+    const form = component.criteresForm();
+    expect(form.find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('OUI');
+  });
+
+  it('should leave INCONNU when detection is INCONNU or absent', () => {
+    component.aiData = {
+      detections: {
+        FR_CONVOCATION: { reponse: 'INCONNU', justification: '' },
+      },
+    };
+    initNoExisting();
+    const form = component.criteresForm();
+    expect(form.find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('INCONNU');
+    expect(form.find(c => c.code === 'FR_MOTIVATION')?.reponse).toBe('INCONNU');
+  });
+
+  it('should allow user to override a pre-filled answer', () => {
+    component.aiData = {
+      detections: { FR_CONVOCATION: { reponse: 'OUI', justification: 'LRAR' } },
+    };
+    initNoExisting();
+    const form = component.criteresForm();
+    const target = form.find(c => c.code === 'FR_CONVOCATION')!;
+    target.reponse = 'NON';
+    expect(form.find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('NON');
+  });
 });

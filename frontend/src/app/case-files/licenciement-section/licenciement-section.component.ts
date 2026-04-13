@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal, computed } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, signal, computed } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { LicenciementService } from '../../core/services/licenciement.service';
 import { LicenciementResponse } from '../../core/models/licenciement.model';
+import { LicenciementValidityDetection } from '../../core/models/case-analysis.model';
 
 interface CritereForm {
   code: string;
@@ -30,9 +31,12 @@ interface CritereForm {
   templateUrl: './licenciement-section.component.html',
   styleUrl: './licenciement-section.component.scss'
 })
-export class LicenciementSectionComponent implements OnInit {
+export class LicenciementSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
+  @Input() aiData?: LicenciementValidityDetection | null;
+
+  private hasSavedResult = false;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -80,8 +84,14 @@ export class LicenciementSectionComponent implements OnInit {
 
   ngOnInit(): void {
     this.country.set(this.workspaceCountry);
-    this.criteresForm.set(this.criteresReferentiel[this.country()] || this.criteresReferentiel['FRANCE']);
+    this.criteresForm.set(this.buildInitialForm(this.country()));
     this.loadExisting();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData'] && !changes['aiData'].firstChange) {
+      this.applyAiPrefillIfPossible();
+    }
   }
 
   toggleCollapsed(): void {
@@ -89,15 +99,15 @@ export class LicenciementSectionComponent implements OnInit {
   }
 
   onCountryChange(): void {
-    this.criteresForm.set(
-      (this.criteresReferentiel[this.country()] || []).map(c => ({ ...c, reponse: 'INCONNU' }))
-    );
+    this.criteresForm.set(this.buildInitialForm(this.country()));
+    this.applyAiPrefillIfPossible();
   }
 
   loadExisting(): void {
     this.loading.set(true);
     this.licenciementService.get(this.caseFileId).subscribe({
       next: resp => {
+        this.hasSavedResult = true;
         this.result.set(resp);
         this.country.set(resp.country);
         this.prefillForm(resp);
@@ -105,8 +115,10 @@ export class LicenciementSectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
+        this.hasSavedResult = false;
         this.showForm.set(true);
         this.loading.set(false);
+        this.applyAiPrefillIfPossible();
       },
     });
   }
@@ -145,5 +157,26 @@ export class LicenciementSectionComponent implements OnInit {
       return { ...c, reponse: found ? found.reponse : 'INCONNU' };
     });
     this.criteresForm.set(form);
+  }
+
+  private buildInitialForm(country: string): CritereForm[] {
+    return (this.criteresReferentiel[country] || this.criteresReferentiel['FRANCE'])
+      .map(c => ({ ...c, reponse: 'INCONNU' }));
+  }
+
+  private applyAiPrefillIfPossible(): void {
+    if (this.hasSavedResult) return;
+    const detections = this.aiData?.detections;
+    if (!detections) return;
+    const current = this.criteresForm();
+    if (current.length === 0) return;
+    const next = current.map(c => {
+      const detected = detections[c.code];
+      if (detected && (detected.reponse === 'OUI' || detected.reponse === 'NON')) {
+        return { ...c, reponse: detected.reponse };
+      }
+      return c;
+    });
+    this.criteresForm.set(next);
   }
 }

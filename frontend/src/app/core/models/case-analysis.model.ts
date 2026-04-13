@@ -89,6 +89,16 @@ export interface CaseAnalysisResult {
   liquidationCommunaute?: LiquidationCommunaute | null;
   travailExtractedData?: TravailExtractedData | null;
   immigrationExtractedData?: ImmigrationExtractedData | null;
+  licenciementValidityDetection?: LicenciementValidityDetection | null;
+}
+
+export interface DetectedAnswer {
+  reponse: 'OUI' | 'NON' | 'INCONNU';
+  justification?: string | null;
+}
+
+export interface LicenciementValidityDetection {
+  detections: { [critereCode: string]: DetectedAnswer };
 }
 
 export interface TravailExtractedData {

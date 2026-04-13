@@ -328,7 +328,8 @@
     @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL') {
       <app-licenciement-section
         [caseFileId]="caseFile()!.id"
-        [workspaceCountry]="workspaceCountry()">
+        [workspaceCountry]="workspaceCountry()"
+        [aiData]="synthesis()?.licenciementValidityDetection">
       </app-licenciement-section>
 
       <app-anciennete-section

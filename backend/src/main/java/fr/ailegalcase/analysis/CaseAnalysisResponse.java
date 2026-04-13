@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public record CaseAnalysisResponse(
@@ -31,13 +34,31 @@ public record CaseAnalysisResponse(
         PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate,
         LiquidationCommunauteResult liquidationCommunaute,
         TravailExtractedData travailExtractedData,
-        ImmigrationExtractedData immigrationExtractedData
+        ImmigrationExtractedData immigrationExtractedData,
+        LicenciementValidityDetection licenciementValidityDetection
 ) {
 
     public record TravailExtractedData(
             String conventionCollective, String dateEntree, Double salaireBrutMensuel,
             String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
             Integer congesContractuels, Double primeAncienneteContractuelle) {}
+
+    public record DetectedAnswer(String reponse, String justification) {}
+
+    public record LicenciementValidityDetection(Map<String, DetectedAnswer> detections) {
+        public LicenciementValidityDetection {
+            detections = detections == null ? Map.of() : Map.copyOf(detections);
+        }
+    }
+
+    static final Set<String> LICENCIEMENT_CRITERE_CODES = Set.of(
+            "FR_CONVOCATION", "FR_ENTRETIEN", "FR_DELAI_NOTIFICATION", "FR_MOTIVATION",
+            "FR_MOTIF_REEL", "FR_PROCEDURE_DISCIPLINAIRE", "FR_ORDRE_LICENCIEMENT",
+            "BE_NOTIFICATION", "BE_PREAVIS", "BE_MOTIVATION", "BE_AUDITION",
+            "BE_NON_DISCRIMINATION", "BE_PROTECTION_SPECIALE", "BE_INDEMNITE_MANIFESTE"
+    );
+
+    static final int MAX_JUSTIFICATION_LENGTH = 500;
 
     public record ImmigrationExtractedData(
             String dateExpirationTitre, String typeTitreSejour,
@@ -124,6 +145,7 @@ public record CaseAnalysisResponse(
         LiquidationCommunauteResult liquidationCommunaute = null;
         TravailExtractedData travailExtractedData = null;
         ImmigrationExtractedData immigrationExtractedData = null;
+        LicenciementValidityDetection licenciementValidityDetection = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -142,6 +164,7 @@ public record CaseAnalysisResponse(
                 liquidationCommunaute = extractLiquidationCommunaute(root);
                 travailExtractedData = extractTravailData(root);
                 immigrationExtractedData = extractImmigrationData(root);
+                licenciementValidityDetection = extractLicenciementValidityDetection(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -172,7 +195,8 @@ public record CaseAnalysisResponse(
                 prestationCompensatoireEstimate,
                 liquidationCommunaute,
                 travailExtractedData,
-                immigrationExtractedData
+                immigrationExtractedData,
+                licenciementValidityDetection
         );
     }
 
@@ -191,7 +215,8 @@ public record CaseAnalysisResponse(
                     null, belgian,
                     base.pensionAlimentaireEstimate(), base.prestationCompensatoireEstimate(),
                     base.liquidationCommunaute(),
-                    base.travailExtractedData(), base.immigrationExtractedData());
+                    base.travailExtractedData(), base.immigrationExtractedData(),
+                    base.licenciementValidityDetection());
         }
         return base;
     }
@@ -365,6 +390,31 @@ public record CaseAnalysisResponse(
                     doubleOrNull(node, "prime_anciennete_contractuelle")
             );
         } catch (Exception ignored) { return null; }
+    }
+
+    static LicenciementValidityDetection extractLicenciementValidityDetection(JsonNode root) {
+        JsonNode node = root.get("licenciement_validity_detection");
+        if (node == null || !node.isObject() || node.size() == 0) return null;
+        Map<String, DetectedAnswer> detections = new LinkedHashMap<>();
+        node.fields().forEachRemaining(entry -> {
+            String code = entry.getKey();
+            if (!LICENCIEMENT_CRITERE_CODES.contains(code)) return;
+            JsonNode value = entry.getValue();
+            if (value == null || !value.isObject()) return;
+            String reponse = normalizeReponse(textOrNull(value, "reponse"));
+            String justification = textOrNull(value, "justification");
+            if (justification != null && justification.length() > MAX_JUSTIFICATION_LENGTH) {
+                justification = justification.substring(0, MAX_JUSTIFICATION_LENGTH);
+            }
+            detections.put(code, new DetectedAnswer(reponse, justification));
+        });
+        return detections.isEmpty() ? null : new LicenciementValidityDetection(detections);
+    }
+
+    private static String normalizeReponse(String raw) {
+        if (raw == null) return "INCONNU";
+        String up = raw.trim().toUpperCase();
+        return (up.equals("OUI") || up.equals("NON")) ? up : "INCONNU";
     }
 
     static ImmigrationExtractedData extractImmigrationData(JsonNode root) {
