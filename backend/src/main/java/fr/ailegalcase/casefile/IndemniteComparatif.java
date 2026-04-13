@@ -30,6 +30,9 @@ public class IndemniteComparatif {
     @Column(nullable = false)
     private int age;
 
+    @Column(name = "type_rupture", length = 50)
+    private String typeRupture;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String resultData = "{}";
 

@@ -74,3 +74,51 @@
 }
 
 .result-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+.type-rupture-note {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; margin-bottom: 16px;
+  background: #FEF7E6; border: 1px solid #F59E0B; border-radius: 8px;
+  font-family: 'Inter', sans-serif; font-size: 12px; color: #92400E;
+  mat-icon { color: #F59E0B; font-size: 18px; width: 18px; height: 18px; }
+}
+
+.indemnite-specifique {
+  padding: 20px; background: #F7FAFC; border-left: 4px solid #1A3A5C; border-radius: 8px;
+  .indemnite-label {
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px; color: #6B7A8D; margin-bottom: 8px;
+  }
+  .indemnite-value {
+    font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 700; color: #1A3A5C;
+  }
+  .indemnite-formula {
+    margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #6B7A8D;
+  }
+}
+
+.negociation-libre {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 16px; background: #F7FAFC; border-left: 4px solid #6B7A8D; border-radius: 8px;
+  mat-icon { color: #6B7A8D; font-size: 32px; width: 32px; height: 32px; }
+  .nego-title {
+    font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; color: #1C2B3A;
+  }
+  .nego-subtitle {
+    font-family: 'Inter', sans-serif; font-size: 13px; color: #6B7A8D; margin-top: 4px;
+  }
+}
+
+.contextual-messages {
+  margin-top: 16px; display: flex; flex-direction: column; gap: 8px;
+}
+
+.contextual-message {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 14px;
+  background: #F7FAFC; border-radius: 6px;
+  font-family: 'Inter', sans-serif; font-size: 12px; color: #1C2B3A;
+  mat-icon { color: #1A3A5C; font-size: 16px; width: 16px; height: 16px; flex-shrink: 0; }
+}
+
+.form-field--wide { min-width: 260px; flex: 1.5; }

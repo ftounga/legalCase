@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
-import { TravailExtractedData } from '../../core/models/case-analysis.model';
+import { CaseAnalysisResult, TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -11,6 +11,21 @@ import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { IndemniteComparatifService } from '../../core/services/indemnite-comparatif.service';
 import { IndemniteComparatifResponse } from '../../core/models/indemnite-comparatif.model';
+
+interface TypeRuptureOption {
+  value: string;
+  label: string;
+}
+
+const TYPES_FR: TypeRuptureOption[] = [
+  { value: 'LICENCIEMENT', label: 'Licenciement (cause réelle et sérieuse)' },
+  { value: 'LICENCIEMENT_ECONOMIQUE', label: 'Licenciement économique' },
+  { value: 'RUPTURE_CONVENTIONNELLE', label: 'Rupture conventionnelle homologuée' },
+];
+const TYPES_BE: TypeRuptureOption[] = [
+  { value: 'LICENCIEMENT_ORDINAIRE', label: 'Licenciement ordinaire' },
+  { value: 'RUPTURE_AMIABLE', label: 'Rupture amiable' },
+];
 
 @Component({
   selector: 'app-indemnite-comparatif-section',
@@ -27,6 +42,7 @@ import { IndemniteComparatifResponse } from '../../core/models/indemnite-compara
 export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiData?: TravailExtractedData | null;
+  @Input() synthesis?: CaseAnalysisResult | null;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -35,9 +51,15 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   result = signal<IndemniteComparatifResponse | null>(null);
 
   country = signal('FRANCE');
+  typeRupture = signal<string>('LICENCIEMENT');
+  typeRuptureNote = signal<string | null>(null);
   ancienneteAnnees = signal(5);
   age = signal(35);
   salaireMensuel = signal(3000);
+
+  typeRuptureOptions = computed<TypeRuptureOption[]>(() =>
+    this.country() === 'BELGIQUE' ? TYPES_BE : TYPES_FR
+  );
 
   barMaxWidth = computed(() => {
     const r = this.result();
@@ -55,13 +77,21 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['aiData'] && this.showForm() && !this.result()) {
+    if ((changes['aiData'] || changes['synthesis']) && this.showForm() && !this.result()) {
       this.prefillFromAi();
     }
   }
 
   toggleCollapsed(): void {
     this.collapsed.update(v => !v);
+  }
+
+  onCountryChange(): void {
+    // Reset type if incompatible with new country
+    const allowed = this.typeRuptureOptions().map(o => o.value);
+    if (!allowed.includes(this.typeRupture())) {
+      this.typeRupture.set(allowed[0]);
+    }
   }
 
   loadExisting(): void {
@@ -85,6 +115,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     this.calculating.set(true);
     this.comparatifService.calculate(this.caseFileId, {
       country: this.country(),
+      typeRupture: this.typeRupture(),
       ancienneteAnnees: this.ancienneteAnnees(),
       age: this.age(),
       salaireMensuel: this.salaireMensuel(),
@@ -118,10 +149,37 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     this.ancienneteAnnees.set(resp.ancienneteAnnees);
     this.age.set(resp.age);
     this.salaireMensuel.set(resp.salaireMensuel);
+    if (resp.typeRupture) {
+      this.typeRupture.set(resp.typeRupture);
+    } else {
+      // Legacy result sans type — fallback par défaut selon pays
+      this.typeRupture.set(resp.country === 'BELGIQUE' ? 'LICENCIEMENT_ORDINAIRE' : 'LICENCIEMENT');
+    }
   }
 
   private prefillFromAi(): void {
-    if (!this.aiData) return;
-    if (this.aiData.salaireBrutMensuel) this.salaireMensuel.set(this.aiData.salaireBrutMensuel);
+    if (this.aiData?.salaireBrutMensuel) {
+      this.salaireMensuel.set(this.aiData.salaireBrutMensuel);
+    }
+    this.applyTypeRupturePrefill();
+  }
+
+  private applyTypeRupturePrefill(): void {
+    const iaType = this.synthesis?.compensationEstimate?.typeRupture;
+    if (!iaType) {
+      this.typeRuptureNote.set(null);
+      return;
+    }
+    const allowed = this.typeRuptureOptions().map(o => o.value);
+    if (allowed.includes(iaType)) {
+      this.typeRupture.set(iaType);
+      this.typeRuptureNote.set(null);
+    } else {
+      // IA détecte autre chose (démission, prise d'acte, ou type de l'autre pays)
+      this.typeRupture.set(allowed[0]);
+      this.typeRuptureNote.set(
+        `L'IA a détecté un type "${iaType}" non couvert par cet outil. Vérifier que le comparateur est adapté.`
+      );
+    }
   }
 }

@@ -55,4 +55,70 @@ describe('IndemniteComparatifSectionComponent', () => {
     expect(component.result()).toBeTruthy();
     expect(component.showForm()).toBe(false);
   });
+
+  // ---- Type de rupture (SF-DT-09-04) ----
+
+  it('should list 3 FR options when country is FRANCE', () => {
+    initNo();
+    component.country.set('FRANCE');
+    expect(component.typeRuptureOptions().map(o => o.value)).toEqual([
+      'LICENCIEMENT', 'LICENCIEMENT_ECONOMIQUE', 'RUPTURE_CONVENTIONNELLE'
+    ]);
+  });
+
+  it('should list 2 BE options when country is BELGIQUE', () => {
+    initNo();
+    component.country.set('BELGIQUE');
+    expect(component.typeRuptureOptions().map(o => o.value)).toEqual([
+      'LICENCIEMENT_ORDINAIRE', 'RUPTURE_AMIABLE'
+    ]);
+  });
+
+  it('should reset typeRupture when country changes and current value is incompatible', () => {
+    initNo();
+    component.country.set('FRANCE');
+    component.typeRupture.set('RUPTURE_CONVENTIONNELLE');
+    component.country.set('BELGIQUE');
+    component.onCountryChange();
+    expect(component.typeRupture()).toBe('LICENCIEMENT_ORDINAIRE');
+  });
+
+  it('should send typeRupture in POST payload', () => {
+    initNo();
+    component.typeRupture.set('RUPTURE_CONVENTIONNELLE');
+    component.calculate();
+    const r = httpMock.expectOne(API_URL);
+    expect(r.request.body.typeRupture).toBe('RUPTURE_CONVENTIONNELLE');
+    r.flush({ ...MOCK, typeRupture: 'RUPTURE_CONVENTIONNELLE', displayMode: 'INDEMNITE_SPECIFIQUE', indemniteLegaleMontant: 12500, contextualMessages: [] });
+  });
+
+  it('should prefill typeRupture from compensationEstimate', () => {
+    component.synthesis = {
+      compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' }
+    } as any;
+    initNo();
+    expect(component.typeRupture()).toBe('RUPTURE_CONVENTIONNELLE');
+    expect(component.typeRuptureNote()).toBeNull();
+  });
+
+  it('should set note when AI type is unsupported', () => {
+    component.synthesis = {
+      compensationEstimate: { typeRupture: 'DEMISSION' }
+    } as any;
+    initNo();
+    expect(component.typeRupture()).toBe('LICENCIEMENT');
+    expect(component.typeRuptureNote()).toContain('DEMISSION');
+  });
+
+  it('should fallback typeRupture for legacy result without type', () => {
+    const legacyResp = { ...MOCK, typeRupture: null, displayMode: 'MACRON', indemniteLegaleMontant: null, contextualMessages: [] };
+    initWith(legacyResp);
+    expect(component.typeRupture()).toBe('LICENCIEMENT');
+  });
+
+  it('should restore typeRupture from existing result', () => {
+    const resp = { ...MOCK, typeRupture: 'LICENCIEMENT_ECONOMIQUE', displayMode: 'MACRON', indemniteLegaleMontant: null, contextualMessages: [] };
+    initWith(resp);
+    expect(component.typeRupture()).toBe('LICENCIEMENT_ECONOMIQUE');
+  });
 });

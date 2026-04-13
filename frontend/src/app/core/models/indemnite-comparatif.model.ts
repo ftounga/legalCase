@@ -1,5 +1,8 @@
+export type IndemniteDisplayMode = 'MACRON' | 'CCT_109' | 'INDEMNITE_SPECIFIQUE' | 'NEGOCIATION_LIBRE';
+
 export interface IndemniteComparatifRequest {
   country: string;
+  typeRupture: string;
   ancienneteAnnees: number;
   age: number;
   salaireMensuel: number;
@@ -8,9 +11,11 @@ export interface IndemniteComparatifRequest {
 export interface IndemniteComparatifResponse {
   caseFileId: string;
   country: string;
+  typeRupture: string | null;
   ancienneteAnnees: number;
   age: number;
   salaireMensuel: number;
+  displayMode: IndemniteDisplayMode;
   baremePlancherMois: number;
   baremePlafondMois: number;
   fourchetteBasseMois: number;
@@ -19,6 +24,8 @@ export interface IndemniteComparatifResponse {
   fourchetteBasseMontant: number;
   fourchetteMedMontant: number;
   fourhetteHauteMontant: number;
+  indemniteLegaleMontant: number | null;
   baremeSource: string;
   commentaire: string;
+  contextualMessages: string[];
 }
