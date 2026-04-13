@@ -58,7 +58,7 @@
                             [matTooltip]="alertTooltip(alert)"
                             matTooltipPosition="above">
                         <mat-icon>{{ alert.level === 'blocker' ? 'error' : 'warning' }}</mat-icon>
-                        Incohérence IA ({{ alert.aiReponse }})
+                        {{ alertBadgeLabel(alert) }}
                       </span>
                     }
                   </span>

@@ -36,6 +36,82 @@ class ProcedureCheckServiceTest {
     // ---- createChecks ----
 
     @Test
+    void createChecks_objectFormatWithCritereCode_persistsCodeUpperCase() {
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+
+        String json = """
+                {"points_procedure": [
+                  {"texte": "Convocation par LRAR", "critere_code": "FR_CONVOCATION"},
+                  {"texte": "Motivation précise", "critere_code": "fr_motivation"},
+                  {"texte": "Point sans code"}
+                ]}
+                """;
+
+        service.createChecks(analysis, json);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        verify(procedureCheckRepository, times(3)).save(captor.capture());
+        List<ProcedureCheck> saved = captor.getAllValues();
+
+        assertThat(saved.get(0).getCritereCode()).isEqualTo("FR_CONVOCATION");
+        assertThat(saved.get(0).getDescription()).isEqualTo("Convocation par LRAR");
+        assertThat(saved.get(1).getCritereCode()).isEqualTo("FR_MOTIVATION");
+        assertThat(saved.get(2).getCritereCode()).isNull();
+    }
+
+    @Test
+    void createChecks_mixedLegacyAndObjectFormats_parsesBoth() {
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+
+        String json = """
+                {"points_procedure": [
+                  "Point legacy string",
+                  {"texte": "Point objet avec code", "critere_code": "FR_ENTRETIEN"}
+                ]}
+                """;
+
+        service.createChecks(analysis, json);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        verify(procedureCheckRepository, times(2)).save(captor.capture());
+        List<ProcedureCheck> saved = captor.getAllValues();
+        assertThat(saved.get(0).getDescription()).isEqualTo("Point legacy string");
+        assertThat(saved.get(0).getCritereCode()).isNull();
+        assertThat(saved.get(1).getDescription()).isEqualTo("Point objet avec code");
+        assertThat(saved.get(1).getCritereCode()).isEqualTo("FR_ENTRETIEN");
+    }
+
+    @Test
+    void createChecks_critereCodeBlankOrMissingTexte_isIgnoredOrNull() {
+        CaseFile caseFile = new CaseFile();
+        caseFile.setWorkspace(new Workspace());
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+
+        String json = """
+                {"points_procedure": [
+                  {"texte": "Point valide", "critere_code": "   "},
+                  {"texte": "", "critere_code": "FR_MOTIVATION"},
+                  {"critere_code": "FR_CONVOCATION"}
+                ]}
+                """;
+
+        service.createChecks(analysis, json);
+
+        ArgumentCaptor<ProcedureCheck> captor = ArgumentCaptor.forClass(ProcedureCheck.class);
+        verify(procedureCheckRepository, times(1)).save(captor.capture());
+        // Seul le premier point est gardé (texte non vide), code blank → null
+        assertThat(captor.getValue().getDescription()).isEqualTo("Point valide");
+        assertThat(captor.getValue().getCritereCode()).isNull();
+    }
+
+    @Test
     void createChecks_nominalList_createsChecksWithCorrectOrdreAndDescription() {
         CaseFile caseFile = new CaseFile();
         Workspace workspace = new Workspace();

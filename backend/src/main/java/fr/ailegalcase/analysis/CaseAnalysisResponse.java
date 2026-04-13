@@ -157,7 +157,7 @@ public record CaseAnalysisResponse(
                 risques = extractItemList(root, "risques");
                 questionsOuvertes = extractStringList(root, "questions_ouvertes");
                 piecesManquantes = extractStringList(root, "pieces_manquantes");
-                pointsProcedure = extractStringList(root, "points_procedure");
+                pointsProcedure = extractPointsProcedureTexts(root);
                 compensationEstimate = extractCompensationEstimate(root);
                 pensionAlimentaireEstimate = extractPensionAlimentaireEstimate(root);
                 prestationCompensatoireEstimate = extractPrestationCompensatoireEstimate(root);
@@ -345,6 +345,30 @@ public record CaseAnalysisResponse(
         List<String> result = new ArrayList<>();
         for (JsonNode item : node) {
             if (item.isTextual()) result.add(item.asText());
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * Extrait les descriptions de points_procedure en tolérant les deux formats :
+     * - legacy : array de strings
+     * - nouveau : array d'objets {texte, critere_code?}
+     */
+    static List<String> extractPointsProcedureTexts(JsonNode root) {
+        JsonNode node = root.get("points_procedure");
+        if (node == null || !node.isArray()) return List.of();
+        List<String> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (item.isTextual()) {
+                String txt = item.asText();
+                if (txt != null && !txt.isBlank()) result.add(txt);
+            } else if (item.isObject()) {
+                JsonNode texte = item.get("texte");
+                if (texte != null && texte.isTextual()) {
+                    String t = texte.asText();
+                    if (!t.isBlank()) result.add(t);
+                }
+            }
         }
         return List.copyOf(result);
     }
