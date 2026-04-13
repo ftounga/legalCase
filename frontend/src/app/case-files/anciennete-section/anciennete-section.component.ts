@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,10 +6,18 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { AncienneteService } from '../../core/services/anciennete.service';
 import { AncienneteResponse } from '../../core/models/anciennete.model';
+
+export type AncienneteAlertField = 'CONVENTION' | 'DATE_ENTREE' | 'SALAIRE' | 'CONGES' | 'PRIME';
+
+export interface AncienneteCoherenceAlert {
+  field: AncienneteAlertField;
+  iaValue: string;
+}
 
 @Component({
   selector: 'app-anciennete-section',
@@ -19,6 +27,7 @@ import { AncienneteResponse } from '../../core/models/anciennete.model';
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule,
     MatInputModule, MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
   templateUrl: './anciennete-section.component.html',
   styleUrl: './anciennete-section.component.scss'
@@ -26,6 +35,8 @@ import { AncienneteResponse } from '../../core/models/anciennete.model';
 export class AncienneteSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiData?: TravailExtractedData | null;
+
+  private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -38,6 +49,57 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   salaireBase = signal(0);
   congesContrat = signal(25);
   primeContrat = signal(0);
+
+  coherenceAlerts = computed<Partial<Record<AncienneteAlertField, AncienneteCoherenceAlert>>>(() => {
+    const ai = this.aiDataSignal();
+    if (!ai || !this.showForm() || this.result()) return {};
+    const alerts: Partial<Record<AncienneteAlertField, AncienneteCoherenceAlert>> = {};
+
+    // Convention — exact match upper-case
+    if (ai.conventionCollective && this.conventionCode()) {
+      if (ai.conventionCollective.toUpperCase() !== this.conventionCode().toUpperCase()) {
+        alerts.CONVENTION = { field: 'CONVENTION', iaValue: ai.conventionCollective };
+      }
+    }
+
+    // Date entrée — écart ≥ 15 jours
+    if (ai.dateEntree && this.dateEntree()) {
+      const diff = dateDaysDiff(ai.dateEntree, this.dateEntree());
+      if (diff !== null && diff >= 15) {
+        alerts.DATE_ENTREE = { field: 'DATE_ENTREE', iaValue: ai.dateEntree };
+      }
+    }
+
+    // Salaire — écart relatif ≥ 5 %
+    if (ai.salaireBrutMensuel != null && this.salaireBase() > 0) {
+      const rel = percentDiff(ai.salaireBrutMensuel, this.salaireBase());
+      if (rel >= 0.05) {
+        alerts.SALAIRE = { field: 'SALAIRE', iaValue: `${ai.salaireBrutMensuel} €` };
+      }
+    }
+
+    // Congés — écart ≥ 1 jour
+    if (ai.congesContractuels != null && this.congesContrat() > 0) {
+      if (Math.abs(ai.congesContractuels - this.congesContrat()) >= 1) {
+        alerts.CONGES = { field: 'CONGES', iaValue: `${ai.congesContractuels} j` };
+      }
+    }
+
+    // Prime — écart ≥ 0,5 pt
+    if (ai.primeAncienneteContractuelle != null && this.primeContrat() > 0) {
+      if (Math.abs(ai.primeAncienneteContractuelle - this.primeContrat()) >= 0.5) {
+        alerts.PRIME = { field: 'PRIME', iaValue: `${ai.primeAncienneteContractuelle} %` };
+      }
+    }
+
+    return alerts;
+  });
+
+  alertsSummary = computed(() => ({ total: Object.keys(this.coherenceAlerts()).length }));
+
+  alertTooltip(alert: AncienneteCoherenceAlert): string {
+    return `L'IA a détecté : ${alert.iaValue}`;
+  }
 
   readonly conventionsFrance = [
     { value: 'METALLURGIE', label: 'Métallurgie (IDCC 3248)' },
@@ -66,12 +128,16 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    this.aiDataSignal.set(this.aiData);
     this.loadExisting();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['aiData'] && this.showForm() && !this.result()) {
-      this.prefillFromAi();
+    if (changes['aiData']) {
+      this.aiDataSignal.set(this.aiData);
+      if (this.showForm() && !this.result()) {
+        this.prefillFromAi();
+      }
     }
   }
 
@@ -135,4 +201,16 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   private prefillForm(resp: AncienneteResponse): void {
     this.conventionCode.set(resp.conventionCode);
   }
+}
+
+function dateDaysDiff(a: string, b: string): number | null {
+  const ta = Date.parse(a);
+  const tb = Date.parse(b);
+  if (Number.isNaN(ta) || Number.isNaN(tb)) return null;
+  return Math.abs(ta - tb) / 86400000;
+}
+
+function percentDiff(iaValue: number, userValue: number): number {
+  const base = Math.max(Math.abs(iaValue), 1);
+  return Math.abs(userValue - iaValue) / base;
 }

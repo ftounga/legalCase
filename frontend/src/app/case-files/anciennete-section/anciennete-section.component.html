@@ -20,41 +20,88 @@
 
       @if (!loading() && showForm()) {
         <div class="anc-form">
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field form-field--wide">
-              <mat-label>Convention collective</mat-label>
-              <mat-select [(ngModel)]="conventionCode">
-                @for (group of allConventions; track group.group) {
-                  <mat-optgroup [label]="group.group">
-                    @for (c of group.items; track c.value) {
-                      <mat-option [value]="c.value">{{ c.label }}</mat-option>
-                    }
-                  </mat-optgroup>
-                }
-              </mat-select>
-            </mat-form-field>
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse IA</span>
+            </div>
+          }
 
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Date d'entrée</mat-label>
-              <input matInput type="date" [(ngModel)]="dateEntree">
-            </mat-form-field>
+          <div class="form-row">
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field form-field--wide">
+                <mat-label>Convention collective</mat-label>
+                <mat-select [(ngModel)]="conventionCode">
+                  @for (group of allConventions; track group.group) {
+                    <mat-optgroup [label]="group.group">
+                      @for (c of group.items; track c.value) {
+                        <mat-option [value]="c.value">{{ c.label }}</mat-option>
+                      }
+                    </mat-optgroup>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (coherenceAlerts().CONVENTION; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> Incohérence IA
+                </span>
+              }
+            </div>
+
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date d'entrée</mat-label>
+                <input matInput type="date" [(ngModel)]="dateEntree">
+              </mat-form-field>
+              @if (coherenceAlerts().DATE_ENTREE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> Incohérence IA
+                </span>
+              }
+            </div>
           </div>
 
           <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Salaire brut mensuel (€)</mat-label>
-              <input matInput type="number" [(ngModel)]="salaireBase">
-            </mat-form-field>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Salaire brut mensuel (€)</mat-label>
+                <input matInput type="number" [(ngModel)]="salaireBase">
+              </mat-form-field>
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> Incohérence IA
+                </span>
+              }
+            </div>
 
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Congés au contrat (jours)</mat-label>
-              <input matInput type="number" [(ngModel)]="congesContrat">
-            </mat-form-field>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Congés au contrat (jours)</mat-label>
+                <input matInput type="number" [(ngModel)]="congesContrat">
+              </mat-form-field>
+              @if (coherenceAlerts().CONGES; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> Incohérence IA
+                </span>
+              }
+            </div>
 
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Prime ancienneté contrat (%)</mat-label>
-              <input matInput type="number" [(ngModel)]="primeContrat">
-            </mat-form-field>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Prime ancienneté contrat (%)</mat-label>
+                <input matInput type="number" [(ngModel)]="primeContrat">
+              </mat-form-field>
+              @if (coherenceAlerts().PRIME; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> Incohérence IA
+                </span>
+              }
+            </div>
           </div>
 
           <div class="form-actions">

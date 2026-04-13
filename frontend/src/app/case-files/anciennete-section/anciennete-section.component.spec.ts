@@ -94,4 +94,167 @@ describe('AncienneteSectionComponent', () => {
     expect(component.showForm()).toBe(false);
     expect(component.conventionCode()).toBe('METALLURGIE');
   });
+
+  // ---- Coherence alerts (SF-IA-03-04) ----
+
+  function setAi(overrides: Partial<{
+    conventionCollective: string | null; dateEntree: string | null;
+    salaireBrutMensuel: number | null; congesContractuels: number | null;
+    primeAncienneteContractuelle: number | null;
+  }>) {
+    component.aiData = {
+      conventionCollective: null, dateEntree: null, salaireBrutMensuel: null,
+      typeContrat: null, poste: null, motifLicenciement: null, dateLicenciement: null,
+      congesContractuels: null, primeAncienneteContractuelle: null,
+      ...overrides,
+    } as any;
+  }
+
+  // CONVENTION
+  it('should NOT alert when convention matches AI', () => {
+    setAi({ conventionCollective: 'SYNTEC' });
+    initNoExisting();
+    component.conventionCode.set('SYNTEC');
+    expect(component.coherenceAlerts().CONVENTION).toBeUndefined();
+  });
+
+  it('should alert CONVENTION mismatch', () => {
+    setAi({ conventionCollective: 'SYNTEC' });
+    initNoExisting();
+    component.conventionCode.set('METALLURGIE');
+    expect(component.coherenceAlerts().CONVENTION?.iaValue).toBe('SYNTEC');
+  });
+
+  it('should NOT alert convention when case differs (normalized)', () => {
+    setAi({ conventionCollective: 'syntec' });
+    initNoExisting();
+    component.conventionCode.set('SYNTEC');
+    expect(component.coherenceAlerts().CONVENTION).toBeUndefined();
+  });
+
+  it('should NOT alert convention when AI is null', () => {
+    setAi({ conventionCollective: null });
+    initNoExisting();
+    component.conventionCode.set('METALLURGIE');
+    expect(component.coherenceAlerts().CONVENTION).toBeUndefined();
+  });
+
+  // DATE_ENTREE
+  it('should NOT alert date when gap < 15 days', () => {
+    setAi({ dateEntree: '2018-01-01' });
+    initNoExisting();
+    component.dateEntree.set('2018-01-10');
+    expect(component.coherenceAlerts().DATE_ENTREE).toBeUndefined();
+  });
+
+  it('should alert date when gap ≥ 15 days', () => {
+    setAi({ dateEntree: '2018-01-01' });
+    initNoExisting();
+    component.dateEntree.set('2018-01-20');
+    expect(component.coherenceAlerts().DATE_ENTREE?.iaValue).toBe('2018-01-01');
+  });
+
+  it('should NOT alert date when avocat empty', () => {
+    setAi({ dateEntree: '2018-01-01' });
+    initNoExisting();
+    component.dateEntree.set('');
+    expect(component.coherenceAlerts().DATE_ENTREE).toBeUndefined();
+  });
+
+  it('should NOT alert when AI date malformed', () => {
+    setAi({ dateEntree: 'not-a-date' });
+    initNoExisting();
+    component.dateEntree.set('2018-01-20');
+    expect(component.coherenceAlerts().DATE_ENTREE).toBeUndefined();
+  });
+
+  // SALAIRE
+  it('should NOT alert salaire when diff < 5%', () => {
+    setAi({ salaireBrutMensuel: 4000 });
+    initNoExisting();
+    component.salaireBase.set(4100);
+    expect(component.coherenceAlerts().SALAIRE).toBeUndefined();
+  });
+
+  it('should alert salaire when diff ≥ 5%', () => {
+    setAi({ salaireBrutMensuel: 4000 });
+    initNoExisting();
+    component.salaireBase.set(4300);
+    expect(component.coherenceAlerts().SALAIRE?.iaValue).toBe('4000 €');
+  });
+
+  it('should NOT alert salaire when avocat = 0', () => {
+    setAi({ salaireBrutMensuel: 4000 });
+    initNoExisting();
+    component.salaireBase.set(0);
+    expect(component.coherenceAlerts().SALAIRE).toBeUndefined();
+  });
+
+  // CONGES
+  it('should NOT alert conges when match', () => {
+    setAi({ congesContractuels: 25 });
+    initNoExisting();
+    component.congesContrat.set(25);
+    expect(component.coherenceAlerts().CONGES).toBeUndefined();
+  });
+
+  it('should alert conges when diff ≥ 1 day', () => {
+    setAi({ congesContractuels: 25 });
+    initNoExisting();
+    component.congesContrat.set(27);
+    expect(component.coherenceAlerts().CONGES?.iaValue).toBe('25 j');
+  });
+
+  it('should NOT alert conges when avocat = 0', () => {
+    setAi({ congesContractuels: 25 });
+    initNoExisting();
+    component.congesContrat.set(0);
+    expect(component.coherenceAlerts().CONGES).toBeUndefined();
+  });
+
+  // PRIME
+  it('should NOT alert prime when diff < 0.5pt', () => {
+    setAi({ primeAncienneteContractuelle: 5 });
+    initNoExisting();
+    component.primeContrat.set(5.3);
+    expect(component.coherenceAlerts().PRIME).toBeUndefined();
+  });
+
+  it('should alert prime when diff ≥ 0.5pt', () => {
+    setAi({ primeAncienneteContractuelle: 5 });
+    initNoExisting();
+    component.primeContrat.set(6);
+    expect(component.coherenceAlerts().PRIME?.iaValue).toBe('5 %');
+  });
+
+  it('should NOT alert prime when AI null', () => {
+    setAi({ primeAncienneteContractuelle: null });
+    initNoExisting();
+    component.primeContrat.set(5);
+    expect(component.coherenceAlerts().PRIME).toBeUndefined();
+  });
+
+  // Transverses
+  it('should produce no alerts when aiData is absent', () => {
+    initNoExisting();
+    component.conventionCode.set('METALLURGIE');
+    component.salaireBase.set(9999);
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('should count multiple alerts correctly', () => {
+    setAi({ conventionCollective: 'SYNTEC', salaireBrutMensuel: 4000, congesContractuels: 25 });
+    initNoExisting();
+    component.conventionCode.set('METALLURGIE');
+    component.salaireBase.set(4500);
+    component.congesContrat.set(27);
+    expect(component.alertsSummary().total).toBe(3);
+  });
+
+  it('should suppress alerts once a result is loaded (result fige les alertes)', () => {
+    setAi({ conventionCollective: 'SYNTEC' });
+    initWithExisting();
+    component.conventionCode.set('METALLURGIE');
+    expect(component.coherenceAlerts().CONVENTION).toBeUndefined();
+  });
 });
