@@ -1,23 +1,58 @@
-import { Component, Input, OnInit, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { DivorceChecklistService } from '../../core/services/divorce-checklist.service';
 import { DivorceChecklistResponse, DivorceEtapeStatus, DivorcePieceStatus } from '../../core/models/divorce-checklist.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
+import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
+
+export type DivorceAlertSource = 'F96' | 'QUESTION_IA' | 'PIECE_IA' | 'MULTI';
+export type DivorceAlertLevel = 'blocker' | 'warning';
+
+export interface DivorceCoherenceAlert {
+  level: DivorceAlertLevel;
+  source: DivorceAlertSource;
+  contributors: DivorceAlertSource[];
+  reason: string;
+}
+
+const STEP_CODES = new Set([
+  'FR_CHOIX_AVOCATS', 'FR_REDACTION_CONVENTION', 'FR_ENVOI_LRAR', 'FR_DELAI_REFLEXION',
+  'FR_SIGNATURE_CONVENTION', 'FR_DEPOT_NOTAIRE', 'FR_ENREGISTREMENT',
+  'BE_CHOIX_AVOCAT', 'BE_REDACTION_CONVENTION', 'BE_REQUETE_CONJOINTE',
+  'BE_COMPARUTION', 'BE_JUGEMENT', 'BE_TRANSCRIPTION',
+]);
+
+const PIECE_CODES = new Set([
+  'FR_ACTE_MARIAGE', 'FR_ACTE_NAISSANCE_EPOUX', 'FR_ACTE_NAISSANCE_ENFANTS', 'FR_LIVRET_FAMILLE',
+  'FR_JUSTIF_DOMICILE', 'FR_CONTRAT_MARIAGE', 'FR_ETAT_PATRIMOINE', 'FR_JUSTIF_REVENUS', 'FR_PIECE_IDENTITE',
+  'BE_ACTE_MARIAGE', 'BE_ACTE_NAISSANCE_EPOUX', 'BE_ACTE_NAISSANCE_ENFANTS', 'BE_COMPOSITION_MENAGE',
+  'BE_CONTRAT_MARIAGE', 'BE_CONVENTION_PREALABLE', 'BE_JUSTIF_REVENUS', 'BE_PIECE_IDENTITE',
+]);
 
 @Component({
   selector: 'app-divorce-checklist-section',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule],
   templateUrl: './divorce-checklist-section.component.html',
   styleUrl: './divorce-checklist-section.component.scss'
 })
-export class DivorceChecklistSectionComponent implements OnInit {
+export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
+  @Input() procedureChecks?: ProcedureCheck[] | null;
+  @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
+  private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -33,9 +68,44 @@ export class DivorceChecklistSectionComponent implements OnInit {
     return total > 0 ? Math.round((done / total) * 100) : 0;
   });
 
+  coherenceAlerts = computed<Record<string, DivorceCoherenceAlert>>(() => {
+    const r = this.result();
+    if (!r) return {};
+    const alerts: Record<string, DivorceCoherenceAlert> = {};
+    for (const etape of r.etapes) {
+      const a = this.buildStepAlert(etape);
+      if (a) alerts[etape.code] = a;
+    }
+    for (const piece of r.pieces) {
+      const a = this.buildPieceAlert(piece);
+      if (a) alerts[piece.code] = a;
+    }
+    return alerts;
+  });
+
+  alertsSummary = computed(() => {
+    const values = Object.values(this.coherenceAlerts());
+    return {
+      total: values.length,
+      blockers: values.filter(a => a.level === 'blocker').length,
+    };
+  });
+
   constructor(private checklistService: DivorceChecklistService, private snackBar: MatSnackBar) {}
 
-  ngOnInit(): void { this.loadExisting(); }
+  ngOnInit(): void {
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    this.loadExisting();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+  }
+
   toggleCollapsed(): void { this.collapsed.update(v => !v); }
 
   loadExisting(): void {
@@ -58,6 +128,100 @@ export class DivorceChecklistSectionComponent implements OnInit {
 
   initChecklist(): void {
     this.saveChecklist();
+  }
+
+  alertIcon(alert: DivorceCoherenceAlert): string {
+    return alert.level === 'blocker' ? 'error' : 'warning';
+  }
+
+  private buildStepAlert(etape: DivorceEtapeStatus): DivorceCoherenceAlert | null {
+    if (!STEP_CODES.has(etape.code)) return null;
+    const contributors: DivorceAlertSource[] = [];
+    const reasons: string[] = [];
+    let level: DivorceAlertLevel | null = null;
+
+    // F-96 check
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== etape.code) continue;
+      if (etape.statut === 'FAIT' && chk.statut === 'NON_COMPLIANT') {
+        contributors.push('F96');
+        reasons.push(`Checklist procédurale : étape non respectée${chk.raison ? ' (' + chk.raison + ')' : ''}`);
+        level = 'blocker';
+      } else if (etape.statut === 'A_FAIRE' && chk.statut === 'VERIFIED') {
+        contributors.push('F96');
+        reasons.push(`Checklist procédurale : étape validée${chk.raison ? ' (' + chk.raison + ')' : ''}`);
+        level = level ?? 'warning';
+      }
+      break;
+    }
+
+    // Question IA
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== etape.code) continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ') || answer.startsWith('oui,') || answer.startsWith('oui.');
+      const isNon = answer === 'non' || answer.startsWith('non ') || answer.startsWith('non,') || answer.startsWith('non.');
+      if (etape.statut === 'FAIT' && isNon) {
+        contributors.push('QUESTION_IA');
+        reasons.push(`Question IA : "${q.questionText}" → réponse "${q.answerText}"`);
+        level = 'blocker';
+      } else if (etape.statut === 'A_FAIRE' && isOui) {
+        contributors.push('QUESTION_IA');
+        reasons.push(`Question IA : "${q.questionText}" → réponse "${q.answerText}"`);
+        level = level ?? 'warning';
+      }
+      break;
+    }
+
+    if (contributors.length === 0 || !level) return null;
+    return {
+      level,
+      source: contributors.length > 1 ? 'MULTI' : contributors[0],
+      contributors,
+      reason: reasons.join(' ET '),
+    };
+  }
+
+  private buildPieceAlert(piece: DivorcePieceStatus): DivorceCoherenceAlert | null {
+    if (!PIECE_CODES.has(piece.code)) return null;
+    const contributors: DivorceAlertSource[] = [];
+    const reasons: string[] = [];
+    let level: DivorceAlertLevel | null = null;
+
+    // Pièce IA (pieces_manquantes)
+    for (const p of this.piecesManquantesSignal()) {
+      if (p.critereCode?.toUpperCase() !== piece.code) continue;
+      if (piece.statut === 'PRESENTE') {
+        contributors.push('PIECE_IA');
+        reasons.push(`Pièce manquante signalée par l'IA : ${p.texte}`);
+        level = 'warning';
+      }
+      break;
+    }
+
+    // F-96 sur code pièce
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== piece.code) continue;
+      if (piece.statut === 'PRESENTE' && chk.statut === 'NON_COMPLIANT') {
+        contributors.push('F96');
+        reasons.push(`Checklist procédurale : pièce absente${chk.raison ? ' (' + chk.raison + ')' : ''}`);
+        level = 'blocker';
+      } else if (piece.statut === 'MANQUANTE' && chk.statut === 'VERIFIED') {
+        contributors.push('F96');
+        reasons.push(`Checklist procédurale : pièce validée${chk.raison ? ' (' + chk.raison + ')' : ''}`);
+        level = level ?? 'warning';
+      }
+      break;
+    }
+
+    if (contributors.length === 0 || !level) return null;
+    return {
+      level,
+      source: contributors.length > 1 ? 'MULTI' : contributors[0],
+      contributors,
+      reason: reasons.join(' ET '),
+    };
   }
 
   private saveChecklist(): void {
