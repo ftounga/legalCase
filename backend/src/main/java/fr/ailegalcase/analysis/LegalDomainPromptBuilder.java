@@ -61,7 +61,9 @@ public final class LegalDomainPromptBuilder {
 
             Pour ce dossier de droit de l'immigration, inclure également dans le JSON les champs suivants :
             "date_expiration_titre" : date d'expiration du titre de séjour au format YYYY-MM-DD, null si non détectable.
-            "type_titre_sejour" : type du titre de séjour (ex: "CARTE_RESIDENT", "TITRE_SEJOUR_TEMPORAIRE"), null si non détectable.
+            "type_titre_sejour" : type du titre de séjour en texte libre (ex: "Carte de résident", "Titre de séjour temporaire"), null si non détectable.
+            "type_titre_sejour_code" : code normalisé du titre de séjour détecté, l'un des 16 codes exacts (null si non déterminable avec certitude) : "VLS_TS_ETUDIANT", "VLS_TS_SALARIE", "CST_SALARIE", "CARTE_PLURIANNUELLE", "CARTE_RESIDENT", "APS", "CST_VPF", "RECEPISSE_ASILE" (France), "CARTE_A_TRAVAIL", "CARTE_A_ETUDES", "CARTE_A_FAMILLE", "CARTE_B", "CARTE_C", "PERMIS_UNIQUE", "ANNEXE_15", "ATTESTATION_IMMATRICULATION" (Belgique). Si le pays ou le type ne correspond pas à cette liste, laisser null — le champ "type_titre_sejour" libre suffit pour l'affichage.
+            "nationalite_ue" : booléen — true si le ressortissant est citoyen de l'Union européenne, EEE (Norvège/Islande/Liechtenstein) ou Suisse ; false s'il est ressortissant d'un pays tiers ; null si non déterminable.
             "type_procedure_detectee" : type de procédure administrative en cours, l'une de ces valeurs exactes : "RENOUVELLEMENT_TITRE_SEJOUR", "DEMANDE_ASILE_OFPRA", "RECOURS_CNDA", null si non détectable.
             "date_depot_procedure" : date de dépôt de la demande ou du recours au format YYYY-MM-DD, null si non détectable.
             """;

@@ -65,7 +65,20 @@ public record CaseAnalysisResponse(
 
     public record ImmigrationExtractedData(
             String dateExpirationTitre, String typeTitreSejour,
-            String typeProcedureDetectee, String dateDepotProcedure) {}
+            String typeProcedureDetectee, String dateDepotProcedure,
+            String typeTitreSejourCode, Boolean nationaliteUe) {
+        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
+                                         String typeProcedureDetectee, String dateDepotProcedure) {
+            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure, null, null);
+        }
+    }
+
+    static final Set<String> IMMIGRATION_TITLE_CODES = Set.of(
+            "VLS_TS_ETUDIANT", "VLS_TS_SALARIE", "CST_SALARIE", "CARTE_PLURIANNUELLE",
+            "CARTE_RESIDENT", "APS", "CST_VPF", "RECEPISSE_ASILE",
+            "CARTE_A_TRAVAIL", "CARTE_A_ETUDES", "CARTE_A_FAMILLE",
+            "CARTE_B", "CARTE_C", "PERMIS_UNIQUE", "ANNEXE_15", "ATTESTATION_IMMATRICULATION"
+    );
 
     public record TimelineEntry(String date, String evenement) {}
 
@@ -504,8 +517,28 @@ public record CaseAnalysisResponse(
         String typeTitre = textOrNull(root, "type_titre_sejour");
         String typeProcedure = textOrNull(root, "type_procedure_detectee");
         String dateDepot = textOrNull(root, "date_depot_procedure");
-        if (dateExpiration == null && typeTitre == null && typeProcedure == null && dateDepot == null) return null;
-        return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot);
+        String typeCode = normalizeTitleCode(textOrNull(root, "type_titre_sejour_code"));
+        Boolean nationaliteUe = normalizeNationaliteUe(root.get("nationalite_ue"));
+        if (dateExpiration == null && typeTitre == null && typeProcedure == null
+                && dateDepot == null && typeCode == null && nationaliteUe == null) return null;
+        return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot, typeCode, nationaliteUe);
+    }
+
+    private static String normalizeTitleCode(String raw) {
+        if (raw == null) return null;
+        String up = raw.trim().toUpperCase();
+        return IMMIGRATION_TITLE_CODES.contains(up) ? up : null;
+    }
+
+    private static Boolean normalizeNationaliteUe(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        if (node.isBoolean()) return node.booleanValue();
+        if (node.isTextual()) {
+            String s = node.asText().trim().toLowerCase();
+            if ("true".equals(s)) return Boolean.TRUE;
+            if ("false".equals(s)) return Boolean.FALSE;
+        }
+        return null;
     }
 
     private static String textOrNull(JsonNode node, String field) {

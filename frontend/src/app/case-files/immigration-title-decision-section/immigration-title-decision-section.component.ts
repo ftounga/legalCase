@@ -11,6 +11,23 @@ import { FormsModule } from '@angular/forms';
 import { ImmigrationTitleDecisionService } from '../../core/services/immigration-title-decision.service';
 import { TitleDecisionResponse, TitleRecommendation } from '../../core/models/immigration-title-decision.model';
 
+const CODE_TO_MOTIF: Record<string, string> = {
+  VLS_TS_ETUDIANT: 'ETUDES',
+  CARTE_A_ETUDES: 'ETUDES',
+  VLS_TS_SALARIE: 'TRAVAIL',
+  CST_SALARIE: 'TRAVAIL',
+  CARTE_PLURIANNUELLE: 'TRAVAIL',
+  APS: 'TRAVAIL',
+  CARTE_A_TRAVAIL: 'TRAVAIL',
+  PERMIS_UNIQUE: 'TRAVAIL',
+  CST_VPF: 'FAMILLE',
+  CARTE_A_FAMILLE: 'FAMILLE',
+  RECEPISSE_ASILE: 'ASILE',
+  ATTESTATION_IMMATRICULATION: 'ASILE',
+  ANNEXE_15: 'ASILE',
+  // CARTE_RESIDENT, CARTE_B, CARTE_C : titres génériques stables, pas de mapping motif
+};
+
 @Component({
   selector: 'app-immigration-title-decision-section',
   standalone: true,
@@ -107,9 +124,22 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
 
   private prefillFromAi(): void {
     if (!this.aiData) return;
+
+    // 1. Nationalité UE depuis l'IA
+    if (typeof this.aiData.nationaliteUe === 'boolean') {
+      this.nationaliteUe.set(this.aiData.nationaliteUe);
+    }
+
+    // 2. Motif : priorité au code normalisé, fallback heuristique texte libre
+    const code = this.aiData.typeTitreSejourCode?.toUpperCase();
+    if (code && CODE_TO_MOTIF[code]) {
+      this.motif.set(CODE_TO_MOTIF[code]);
+      return;
+    }
     if (this.aiData.typeTitreSejour) {
-      // Map AI title type to motif
-      const type = this.aiData.typeTitreSejour.toUpperCase();
+      const type = this.aiData.typeTitreSejour
+        .toUpperCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // strip accents
       if (type.includes('ETUDIANT') || type.includes('STUDENT')) this.motif.set('ETUDES');
       else if (type.includes('SALARIE') || type.includes('TRAVAIL')) this.motif.set('TRAVAIL');
       else if (type.includes('FAMILLE') || type.includes('VPF')) this.motif.set('FAMILLE');
