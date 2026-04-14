@@ -20,6 +20,12 @@
 
       @if (!loading() && showForm()) {
         <div class="recours-form">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse IA</span>
+            </div>
+          }
           <div class="form-row">
             <div class="field-with-provenance form-field--wide">
               <mat-form-field appearance="outline" class="form-field form-field--wide">
@@ -33,6 +39,12 @@
               @if (provenanceRecoursType() === 'IA') {
                 <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse IA</span>
               }
+              @if (coherenceAlerts().RECOURS_TYPE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
             </div>
 
             <div class="field-with-provenance">
@@ -42,6 +54,12 @@
               </mat-form-field>
               @if (provenanceDateNotification() === 'IA') {
                 <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-remplie depuis l'analyse IA</span>
+              }
+              @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
               }
             </div>
           </div>

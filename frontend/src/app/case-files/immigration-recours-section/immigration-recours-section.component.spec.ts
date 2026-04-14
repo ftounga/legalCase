@@ -186,4 +186,123 @@ describe('ImmigrationRecoursSectionComponent', () => {
     expect(component.dateNotification()).toBe('');
     expect(component.provenanceRecoursType()).toBeNull();
   });
+
+  // ---- Coherence alerts (SF-IA-03-10) ----
+
+  function f96(statut: string, expectedValue: string, raison: string | null = null) {
+    return { id: 'c', ordre: 0, description: 'point', statut, raison,
+      critereCode: 'IM06_RECOURS_TYPE', expectedValue } as any;
+  }
+  function question(answerText: string, expectedValue: string) {
+    return { id: 'q', orderIndex: 0, questionText: 'Q?', answerText,
+      critereCode: 'IM06_RECOURS_TYPE', expectedValue } as any;
+  }
+
+  it('should alert warning F96 on recoursType mismatch', () => {
+    component.procedureChecks = [f96('VERIFIED', 'RECOURS_CCE', 'Refus asile BE')];
+    initNoExisting();
+    component.recoursType.set('RECOURS_CGRA');
+    const alert = component.coherenceAlerts().RECOURS_TYPE;
+    expect(alert?.source).toBe('F96');
+    expect(alert?.expectedDisplay).toBe('RECOURS_CCE');
+  });
+
+  it('should alert warning Question IA "oui"', () => {
+    component.aiQuestions = [question('oui', 'RECOURS_CNDA')];
+    initNoExisting();
+    component.recoursType.set('RECOURS_GRACIEUX_PREFET');
+    expect(component.coherenceAlerts().RECOURS_TYPE?.source).toBe('QUESTION_IA');
+  });
+
+  it('should alert warning IA when typeRecoursCode diverges', () => {
+    component.aiData = { typeRecoursCode: 'RECOURS_CONTENTIEUX_TA' } as any;
+    initNoExisting();
+    component.recoursType.set('RECOURS_GRACIEUX_PREFET');
+    const alert = component.coherenceAlerts().RECOURS_TYPE;
+    expect(alert?.source).toBe('IA');
+    expect(alert?.expectedDisplay).toBe('RECOURS_CONTENTIEUX_TA');
+  });
+
+  it('should combine sources to MULTI when aligned', () => {
+    component.procedureChecks = [f96('VERIFIED', 'RECOURS_CNDA')];
+    component.aiQuestions = [question('oui', 'RECOURS_CNDA')];
+    component.aiData = { typeRecoursCode: 'RECOURS_CNDA' } as any;
+    initNoExisting();
+    component.recoursType.set('RECOURS_GRACIEUX_PREFET');
+    const alert = component.coherenceAlerts().RECOURS_TYPE;
+    expect(alert?.source).toBe('MULTI');
+    expect(alert?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
+  });
+
+  it('should NOT alert when recoursType matches user', () => {
+    component.aiData = { typeRecoursCode: 'RECOURS_CNDA' } as any;
+    initNoExisting();
+    component.recoursType.set('RECOURS_CNDA');
+    expect(component.coherenceAlerts().RECOURS_TYPE).toBeUndefined();
+  });
+
+  it('should ignore expected_value outside enum', () => {
+    component.procedureChecks = [f96('VERIFIED', 'UNKNOWN')];
+    initNoExisting();
+    component.recoursType.set('RECOURS_GRACIEUX_PREFET');
+    expect(component.coherenceAlerts().RECOURS_TYPE).toBeUndefined();
+  });
+
+  // DATE_NOTIFICATION
+  it('should NOT alert date when gap ≤ 7 days', () => {
+    component.aiData = { dateNotificationDecisionContestee: '2026-03-10' } as any;
+    initNoExisting();
+    component.dateNotification.set('2026-03-15'); // 5 jours
+    expect(component.coherenceAlerts().DATE_NOTIFICATION).toBeUndefined();
+  });
+
+  it('should NOT alert date at exactly 7 days', () => {
+    component.aiData = { dateNotificationDecisionContestee: '2026-03-10' } as any;
+    initNoExisting();
+    component.dateNotification.set('2026-03-17'); // 7 jours pile
+    expect(component.coherenceAlerts().DATE_NOTIFICATION).toBeUndefined();
+  });
+
+  it('should alert date warning when gap > 7 days', () => {
+    component.aiData = { dateNotificationDecisionContestee: '2026-03-10' } as any;
+    initNoExisting();
+    component.dateNotification.set('2026-03-20'); // 10 jours
+    const alert = component.coherenceAlerts().DATE_NOTIFICATION;
+    expect(alert?.source).toBe('IA');
+    expect(alert?.expectedDisplay).toBe('2026-03-10');
+  });
+
+  it('should NOT alert when user date empty', () => {
+    component.aiData = { dateNotificationDecisionContestee: '2026-03-10' } as any;
+    initNoExisting();
+    component.dateNotification.set('');
+    expect(component.coherenceAlerts().DATE_NOTIFICATION).toBeUndefined();
+  });
+
+  it('should NOT alert when IA date malformed', () => {
+    component.aiData = { dateNotificationDecisionContestee: 'invalid' } as any;
+    initNoExisting();
+    component.dateNotification.set('2026-03-20');
+    expect(component.coherenceAlerts().DATE_NOTIFICATION).toBeUndefined();
+  });
+
+  it('should count multiple alerts in summary', () => {
+    component.aiData = {
+      typeRecoursCode: 'RECOURS_CNDA',
+      dateNotificationDecisionContestee: '2026-03-10'
+    } as any;
+    initNoExisting();
+    component.recoursType.set('RECOURS_GRACIEUX_PREFET');
+    component.dateNotification.set('2026-03-25'); // 15 jours
+    expect(component.alertsSummary()).toEqual({ total: 2, blockers: 0 });
+  });
+
+  it('should freeze alerts when recours loaded', () => {
+    component.aiData = {
+      typeRecoursCode: 'RECOURS_CNDA',
+      dateNotificationDecisionContestee: '2026-03-10'
+    } as any;
+    initWithExisting();
+    expect(component.alertsSummary().total).toBe(0);
+  });
 });

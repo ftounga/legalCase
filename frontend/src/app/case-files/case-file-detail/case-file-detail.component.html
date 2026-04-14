@@ -374,7 +374,9 @@
       <app-immigration-recours-section
         [caseFileId]="caseFile()!.id"
         [caseFileTitle]="caseFile()!.title"
-        [aiData]="synthesis()?.immigrationExtractedData">
+        [aiData]="synthesis()?.immigrationExtractedData"
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()">
       </app-immigration-recours-section>
 
       <app-immigration-work-right-section
