@@ -55,6 +55,16 @@ public final class LegalDomainPromptBuilder {
               "BE_PROTECTION_SPECIALE" : aucune protection spéciale violée (délégué syndical, femme enceinte, congé parental, etc.).
               "BE_INDEMNITE_MANIFESTE" : licenciement non manifestement déraisonnable au sens CCT 109 (risque d'indemnité 3 à 17 semaines).
             Pour un dossier français, remplir prioritairement les clés FR_* ; pour un dossier belge, les clés BE_*. Les clés de l'autre pays peuvent être omises ou à "INCONNU". Si aucune évaluation n'est possible, laisser l'objet vide ({}) ou omettre entièrement.
+            "compensation_data" : objet décrivant la rupture du contrat pour alimenter le comparateur d'indemnités F-DT-09. Obligatoire dès qu'une rupture du contrat est identifiée dans les documents (même si ancienneté/salaire inconnus). Mettre à null UNIQUEMENT si aucune rupture n'est évoquée. Champs :
+              "type_rupture" : type de rupture, l'une de ces valeurs exactes (choisir celle qui reflète la réalité des pièces — lettre de licenciement > convention de rupture > décision judiciaire > allégation) :
+                France : "LICENCIEMENT" (cause réelle et sérieuse, sans faute grave), "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE", "DEMISSION", "PRISE_ACTE", "RESILIATION_JUDICIAIRE".
+                Belgique : "LICENCIEMENT_ORDINAIRE", "LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE", "RUPTURE_AMIABLE", "DEMISSION".
+                Ce champ est obligatoire si compensation_data est émis. Ne jamais renvoyer null ici ; si le type est incertain, choisir la valeur la plus probable au vu des pièces, jamais omettre.
+              "anciennete_annees" : ancienneté (entier), null si non détectable.
+              "anciennete_mois" : ancienneté mois complémentaire (entier), null si non détectable.
+              "salaire_reference_mensuel" : salaire brut mensuel moyen de référence (décimal), null si non détectable.
+              En cas de ruptures multiples, retenir la plus récente (celle qui fonde la saisine actuelle).
+              Exemple positif : une lettre de licenciement pour faute simple → {"type_rupture": "LICENCIEMENT", ...}. Exemple négatif : dossier harcèlement sans rupture évoquée → "compensation_data": null.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """

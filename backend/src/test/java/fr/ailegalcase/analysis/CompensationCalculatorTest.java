@@ -49,11 +49,12 @@ class CompensationCalculatorTest {
     }
 
     @Test
-    void ruptureConventionnelle_memesRegles() {
+    void licenciementEconomique_memesReglesMacron() {
+        // Le calcul Macron s'applique à LICENCIEMENT et LICENCIEMENT_ECONOMIQUE.
         Optional<CompensationCalculator.CompensationEstimate> r1 =
                 CompensationCalculator.calculate("LICENCIEMENT", 5, 0, 2400.0);
         Optional<CompensationCalculator.CompensationEstimate> r2 =
-                CompensationCalculator.calculate("RUPTURE_CONVENTIONNELLE", 5, 0, 2400.0);
+                CompensationCalculator.calculate("LICENCIEMENT_ECONOMIQUE", 5, 0, 2400.0);
         assertThat(r1).isPresent();
         assertThat(r2).isPresent();
         assertThat(r1.get().indemnite()).isEqualTo(r2.get().indemnite());
@@ -61,7 +62,43 @@ class CompensationCalculatorTest {
 
     @Test
     void typeNonReconnu_retourneEmpty() {
-        assertThat(CompensationCalculator.calculate("DEMISSION", 5, 0, 2000.0)).isEmpty();
+        assertThat(CompensationCalculator.calculate("RANDOM_TYPE", 5, 0, 2000.0)).isEmpty();
+    }
+
+    @Test
+    void typeEnumEtendu_nonMacron_retourneEstimatePartiel() {
+        // DEMISSION n'est pas calculable Macron mais doit remonter un estimate partiel
+        // pour alimenter F-DT-09 et F-IA-03.
+        Optional<CompensationCalculator.CompensationEstimate> result =
+                CompensationCalculator.calculate("DEMISSION", 5, 0, 2400.0);
+        assertThat(result).isPresent();
+        assertThat(result.get().typeRupture()).isEqualTo("DEMISSION");
+        assertThat(result.get().indemnite()).isEqualTo(0.0);
+        assertThat(result.get().plafondMinMois()).isEqualTo(0);
+        assertThat(result.get().plafondMaxMois()).isEqualTo(0.0);
+        assertThat(result.get().donneesPartielles()).isTrue();
+        assertThat(result.get().salaireReference()).isEqualTo(2400.0);
+        assertThat(result.get().ancienneteAnnees()).isEqualTo(5);
+    }
+
+    @Test
+    void ruptureConventionnelle_nonMacron_retourneEstimatePartiel() {
+        // SF-DT-09-05 : le type n'est plus Macron-compatible, on remonte un partiel.
+        Optional<CompensationCalculator.CompensationEstimate> result =
+                CompensationCalculator.calculate("RUPTURE_CONVENTIONNELLE", 5, 0, 2400.0);
+        assertThat(result).isPresent();
+        assertThat(result.get().typeRupture()).isEqualTo("RUPTURE_CONVENTIONNELLE");
+        assertThat(result.get().indemnite()).isEqualTo(0.0);
+        assertThat(result.get().plafondMaxMois()).isEqualTo(0.0);
+        assertThat(result.get().donneesPartielles()).isTrue();
+    }
+
+    @Test
+    void licenciementOrdinaireBelge_estMacronCompatible() {
+        Optional<CompensationCalculator.CompensationEstimate> result =
+                CompensationCalculator.calculate("LICENCIEMENT_ORDINAIRE", 5, 0, 2400.0);
+        assertThat(result).isPresent();
+        assertThat(result.get().indemnite()).isCloseTo(3000.0, within(0.01));
     }
 
     @Test
@@ -136,5 +173,53 @@ class CompensationCalculatorTest {
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         com.fasterxml.jackson.databind.JsonNode root = mapper.readTree("{\"compensation_data\": null}");
         assertThat(CaseAnalysisResponse.extractCompensationEstimate(root)).isNull();
+    }
+
+    @Test
+    void extractCompensationEstimate_fallbackFromDetection() throws Exception {
+        // SF-DT-09-05 : IA n'a pas peuplé compensation_data mais licenciement
+        // détecté via licenciement_validity_detection → on remonte un estimate partiel.
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        String json = """
+                {"licenciement_validity_detection": {
+                   "FR_CONVOCATION": {"reponse": "OUI", "justification": "ok"}
+                }}""";
+        com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
+        CompensationCalculator.CompensationEstimate result =
+                CaseAnalysisResponse.extractCompensationEstimate(root);
+        assertThat(result).isNotNull();
+        assertThat(result.typeRupture()).isEqualTo("LICENCIEMENT");
+    }
+
+    @Test
+    void extractCompensationEstimate_typeRuptureHorsEnum_appliqueFallback() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        String json = """
+                {"compensation_data": {"type_rupture": "FANTAISIE",
+                                       "anciennete_annees": 5, "salaire_reference_mensuel": 2400.0},
+                 "licenciement_validity_detection": {
+                   "BE_NOTIFICATION": {"reponse": "OUI", "justification": ""}
+                }}""";
+        com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
+        CompensationCalculator.CompensationEstimate result =
+                CaseAnalysisResponse.extractCompensationEstimate(root);
+        assertThat(result).isNotNull();
+        assertThat(result.typeRupture()).isEqualTo("LICENCIEMENT_ORDINAIRE");
+    }
+
+    @Test
+    void extractCompensationEstimate_validJsonDemission_returnEstimatePartiel() throws Exception {
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        String json = """
+                {"compensation_data": {"type_rupture": "DEMISSION",
+                                       "anciennete_annees": 3,
+                                       "salaire_reference_mensuel": 2000.0}}""";
+        com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
+        CompensationCalculator.CompensationEstimate result =
+                CaseAnalysisResponse.extractCompensationEstimate(root);
+        assertThat(result).isNotNull();
+        assertThat(result.typeRupture()).isEqualTo("DEMISSION");
+        assertThat(result.indemnite()).isEqualTo(0.0);
+        assertThat(result.donneesPartielles()).isTrue();
     }
 }
