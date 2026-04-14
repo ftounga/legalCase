@@ -1,15 +1,31 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FormsModule } from '@angular/forms';
 import { ImmigrationTitleDecisionService } from '../../core/services/immigration-title-decision.service';
 import { TitleDecisionResponse, TitleRecommendation } from '../../core/models/immigration-title-decision.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
+
+const MOTIFS_ENUM = new Set(['TRAVAIL', 'ETUDES', 'FAMILLE', 'ASILE', 'AUTRE']);
+
+export type IM05AlertField = 'MOTIF' | 'NATIONALITE_UE';
+export type IM05AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'MULTI';
+
+export interface IM05CoherenceAlert {
+  field: IM05AlertField;
+  source: IM05AlertSource;
+  contributors: IM05AlertSource[];
+  expectedDisplay: string;
+  reason: string;
+}
 
 const CODE_TO_MOTIF: Record<string, string> = {
   VLS_TS_ETUDIANT: 'ETUDES',
@@ -36,6 +52,7 @@ const CODE_TO_MOTIF: Record<string, string> = {
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule,
     MatProgressSpinnerModule, MatSlideToggleModule,
+    MatTooltipModule,
   ],
   templateUrl: './immigration-title-decision-section.component.html',
   styleUrl: './immigration-title-decision-section.component.scss'
@@ -43,6 +60,12 @@ const CODE_TO_MOTIF: Record<string, string> = {
 export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
+  @Input() procedureChecks?: ProcedureCheck[] | null;
+  @Input() aiQuestions?: AiQuestion[] | null;
+
+  private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
+  private aiQuestionsSignal = signal<AiQuestion[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -85,14 +108,133 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     private snackBar: MatSnackBar,
   ) {}
 
+  coherenceAlerts = computed<Partial<Record<IM05AlertField, IM05CoherenceAlert>>>(() => {
+    if (!this.showForm() || this.decision()) return {};
+    const alerts: Partial<Record<IM05AlertField, IM05CoherenceAlert>> = {};
+    const motifAlert = this.buildMotifAlert();
+    if (motifAlert) alerts.MOTIF = motifAlert;
+    const natAlert = this.buildNationaliteAlert();
+    if (natAlert) alerts.NATIONALITE_UE = natAlert;
+    return alerts;
+  });
+
+  alertsSummary = computed(() => {
+    const values = Object.values(this.coherenceAlerts());
+    return { total: values.length, blockers: 0 };
+  });
+
   ngOnInit(): void {
+    this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.loadExisting();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
+    if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     if (changes['aiData'] && this.showForm() && !this.decision()) {
       this.prefillFromAi();
     }
+  }
+
+  alertTooltip(alert: IM05CoherenceAlert): string {
+    return alert.contributors.length > 1 ? `Contredit ${alert.reason}` : alert.reason;
+  }
+
+  alertBadgeLabel(alert: IM05CoherenceAlert): string {
+    const prefix = (() => {
+      switch (alert.source) {
+        case 'F96': return 'Incohérence F-96';
+        case 'QUESTION_IA': return 'Incohérence Question IA';
+        case 'IA': return 'Incohérence IA';
+        case 'MULTI': return 'Incohérence multiple';
+      }
+    })();
+    return `${prefix} (${alert.expectedDisplay})`;
+  }
+
+  private buildMotifAlert(): IM05CoherenceAlert | null {
+    const user = this.motif();
+    if (!user) return null;
+
+    const contributors: IM05AlertSource[] = [];
+    const reasons: string[] = [];
+    let expected: string | null = null;
+
+    // F-96 VERIFIED
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'IM05_MOTIF') continue;
+      if (chk.statut !== 'VERIFIED') continue;
+      const ev = chk.expectedValue?.toUpperCase();
+      if (!ev || !MOTIFS_ENUM.has(ev)) continue;
+      if (ev !== user && !expected) {
+        expected = ev;
+        contributors.push('F96');
+        reasons.push(`Checklist procédurale : motif ${ev}${chk.raison ? ' (' + chk.raison + ')' : ''}`);
+      }
+      break;
+    }
+
+    // Question IA "oui"
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'IM05_MOTIF') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ') || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      const ev = q.expectedValue?.toUpperCase();
+      if (!ev || !MOTIFS_ENUM.has(ev)) continue;
+      if (ev === user) continue;
+      if (!expected) {
+        expected = ev;
+        contributors.push('QUESTION_IA');
+        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+      } else if (ev === expected) {
+        contributors.push('QUESTION_IA');
+        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+      }
+      break;
+    }
+
+    // IA typeTitreSejourCode via CODE_TO_MOTIF
+    const iaCode = this.aiDataSignal()?.typeTitreSejourCode?.toUpperCase();
+    if (iaCode && CODE_TO_MOTIF[iaCode]) {
+      const iaMotif = CODE_TO_MOTIF[iaCode];
+      if (iaMotif !== user) {
+        if (!expected) {
+          expected = iaMotif;
+          contributors.push('IA');
+          reasons.push(`Analyse IA : code ${iaCode} → motif ${iaMotif}`);
+        } else if (iaMotif === expected) {
+          contributors.push('IA');
+          reasons.push(`Analyse IA : ${iaMotif}`);
+        }
+      }
+    }
+
+    if (!expected) return null;
+    return {
+      field: 'MOTIF',
+      source: contributors.length > 1 ? 'MULTI' : contributors[0],
+      contributors,
+      expectedDisplay: expected,
+      reason: reasons.join(' ET '),
+    };
+  }
+
+  private buildNationaliteAlert(): IM05CoherenceAlert | null {
+    const iaNat = this.aiDataSignal()?.nationaliteUe;
+    if (typeof iaNat !== 'boolean') return null;
+    if (iaNat === this.nationaliteUe()) return null;
+    return {
+      field: 'NATIONALITE_UE',
+      source: 'IA',
+      contributors: ['IA'],
+      expectedDisplay: iaNat ? 'Ressortissant UE' : 'Pays tiers',
+      reason: `Analyse IA : ${iaNat ? 'nationalité UE/EEE/Suisse' : 'pays tiers'}`,
+    };
   }
 
   toggleCollapsed(): void {

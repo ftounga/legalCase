@@ -164,4 +164,105 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     expect(component.motif()).toBe('TRAVAIL'); // default unchanged
     expect(component.nationaliteUe()).toBe(false);
   });
+
+  // ---- Coherence alerts (SF-IA-03-09) ----
+
+  function f96(statut: string, expectedValue: string, raison: string | null = null) {
+    return { id: 'c', ordre: 0, description: 'point', statut, raison,
+      critereCode: 'IM05_MOTIF', expectedValue } as any;
+  }
+  function question(answerText: string, expectedValue: string) {
+    return { id: 'q', orderIndex: 0, questionText: 'Q?', answerText,
+      critereCode: 'IM05_MOTIF', expectedValue } as any;
+  }
+
+  it('should alert MOTIF warning F96 when diverges', () => {
+    component.procedureChecks = [f96('VERIFIED', 'ETUDES', 'Inscription université')];
+    initWithNoExistingDecision();
+    component.motif.set('TRAVAIL');
+    const alert = component.coherenceAlerts().MOTIF;
+    expect(alert?.source).toBe('F96');
+    expect(alert?.expectedDisplay).toBe('ETUDES');
+  });
+
+  it('should alert MOTIF warning Question IA "oui"', () => {
+    component.aiQuestions = [question('oui', 'FAMILLE')];
+    initWithNoExistingDecision();
+    component.motif.set('TRAVAIL');
+    expect(component.coherenceAlerts().MOTIF?.source).toBe('QUESTION_IA');
+  });
+
+  it('should alert MOTIF warning IA via CODE_TO_MOTIF', () => {
+    component.aiData = { typeTitreSejourCode: 'VLS_TS_ETUDIANT' } as any;
+    // Override the prefill by setting motif manually different
+    initWithNoExistingDecision();
+    component.motif.set('TRAVAIL');
+    expect(component.coherenceAlerts().MOTIF?.source).toBe('IA');
+    expect(component.coherenceAlerts().MOTIF?.expectedDisplay).toBe('ETUDES');
+  });
+
+  it('should NOT alert when IA code is CARTE_RESIDENT (no mapping)', () => {
+    component.aiData = { typeTitreSejourCode: 'CARTE_RESIDENT' } as any;
+    initWithNoExistingDecision();
+    component.motif.set('TRAVAIL');
+    expect(component.coherenceAlerts().MOTIF).toBeUndefined();
+  });
+
+  it('should combine sources into MULTI when aligned', () => {
+    component.procedureChecks = [f96('VERIFIED', 'ETUDES')];
+    component.aiQuestions = [question('oui', 'ETUDES')];
+    component.aiData = { typeTitreSejourCode: 'CARTE_A_ETUDES' } as any;
+    initWithNoExistingDecision();
+    component.motif.set('TRAVAIL');
+    const alert = component.coherenceAlerts().MOTIF;
+    expect(alert?.source).toBe('MULTI');
+    expect(alert?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
+  });
+
+  // Nationalité
+  it('should alert NATIONALITE_UE when IA diverges', () => {
+    component.aiData = { nationaliteUe: true } as any;
+    initWithNoExistingDecision();
+    // After prefill, nationaliteUe = true ; now user flips to false
+    component.nationaliteUe.set(false);
+    const alert = component.coherenceAlerts().NATIONALITE_UE;
+    expect(alert?.source).toBe('IA');
+    expect(alert?.expectedDisplay).toBe('Ressortissant UE');
+  });
+
+  it('should NOT alert NATIONALITE_UE when matches', () => {
+    component.aiData = { nationaliteUe: false } as any;
+    initWithNoExistingDecision();
+    component.nationaliteUe.set(false);
+    expect(component.coherenceAlerts().NATIONALITE_UE).toBeUndefined();
+  });
+
+  it('should NOT alert NATIONALITE_UE when IA null', () => {
+    component.aiData = { nationaliteUe: null } as any;
+    initWithNoExistingDecision();
+    component.nationaliteUe.set(true);
+    expect(component.coherenceAlerts().NATIONALITE_UE).toBeUndefined();
+  });
+
+  it('should count alerts summary', () => {
+    component.procedureChecks = [f96('VERIFIED', 'ETUDES')];
+    component.aiData = { nationaliteUe: true } as any;
+    initWithNoExistingDecision();
+    component.motif.set('TRAVAIL');
+    component.nationaliteUe.set(false);
+    expect(component.alertsSummary()).toEqual({ total: 2, blockers: 0 });
+  });
+
+  it('should freeze alerts when decision is loaded', () => {
+    component.aiData = { typeTitreSejourCode: 'VLS_TS_ETUDIANT', nationaliteUe: true } as any;
+    initWithExistingDecision(); // decision loaded, showForm=false
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('should ignore expected_value outside enum', () => {
+    component.procedureChecks = [f96('VERIFIED', 'UNKNOWN_MOTIF')];
+    initWithNoExistingDecision();
+    component.motif.set('TRAVAIL');
+    expect(component.coherenceAlerts().MOTIF).toBeUndefined();
+  });
 });
