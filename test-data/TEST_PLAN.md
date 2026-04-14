@@ -50,16 +50,30 @@
 
 | Étape | Action | Vérification |
 |-------|--------|-------------|
-| 2.1 | Créer dossier, uploader 2 fichiers, analyser | Synthèse avec rupture conventionnelle détectée |
-| 2.2 | Ancienneté (F-DT-07) | Convention=BTP, 15 ans, congés 25+4=29j, prime 12% |
-| 2.3 | **SF-DT-09-04** : ouvrir Comparateur indemnités | Type `RUPTURE_CONVENTIONNELLE` pré-sélectionné depuis IA |
-| 2.4 | Calculer → vérifier mode INDEMNITE_SPECIFIQUE | Indemnité légale calculée (1/4 × min(10, anc) + 1/3 × max(0, anc-10)) × salaire, message "doit être ≥ indemnité légale" |
-| 2.5 | Modifier type vers LICENCIEMENT → recalculer | Bascule vers fourchette Macron, messages contextuels mis à jour |
-| 2.6 | Revenir RUPTURE_CONVENTIONNELLE | **SF-IA-03-05** : pas d'alerte car match IA |
-| 2.7 | Modifier ancienneté vers 8 ans (vs 15 IA) | **SF-IA-03-05** : warning numérique (écart > 0,5 an) |
-| 2.8 | Dashboard | Cards ancienneté + indemnités |
+| 2.1 | Créer dossier "Martin", uploader 2 fichiers, lancer analyse IA | Synthèse avec rupture conventionnelle détectée dans les faits |
+| 2.2 | Ouvrir **Barème d'ancienneté et congés conventionnels (F-DT-07)** → Calculer | Convention=BTP, 15 ans, congés 25+4=29j, prime 12% |
+| 2.3 | Ouvrir **Comparateur jurisprudentiel d'indemnités (F-DT-09)** | Type `RUPTURE_CONVENTIONNELLE` pré-sélectionné depuis l'IA |
+| 2.4 | Cliquer Comparer | Mode **INDEMNITE_SPECIFIQUE** : indemnité légale calculée = (¼ × min(10, anc) + ⅓ × max(0, anc-10)) × salaire, message "doit être ≥ indemnité légale" |
+| 2.5 | Modifier type → LICENCIEMENT → Comparer | Bascule vers fourchette Macron, messages contextuels mis à jour. **SF-DT-10-04** : le bloc _Validité de la rupture conventionnelle_ disparaît et _Validité du licenciement_ apparaît |
+| 2.6 | Revenir à RUPTURE_CONVENTIONNELLE | **Cohérence IA sur le comparateur (SF-IA-03-05)** : aucune alerte (match IA). **SF-DT-10-04** : le bloc _Validité du licenciement_ disparaît à nouveau, _Validité de la rupture conventionnelle_ réapparaît |
+| 2.7 | Modifier ancienneté → 8 ans (vs 15 IA) | **Cohérence IA sur le comparateur (SF-IA-03-05)** : badge warning numérique (écart > 0,5 an) sur ancienneté |
+| 2.8 | Ouvrir **Analyse de validité de la rupture conventionnelle (F-DT-10)** | Bloc affiché (SF-DT-10-04). Ne doit **pas** voir le bloc _Validité du licenciement_ (F-DT-08) |
+| 2.9 | Cocher : `RC_CONSENTEMENT=OUI`, `RC_DELAI_RETRACTATION=OUI`, `RC_HOMOLOGATION=OUI`, `RC_ASSISTANCE=OUI`, `RC_INDEMNITE=NON`, `RC_ENTRETIENS=OUI` → Analyser | Verdict **INVALIDE** (bloquant sur RC_INDEMNITE), score ≥ 15, jauge rouge, message base juridique "art. L1237-13" sur RC_INDEMNITE |
+| 2.10 | Cliquer Modifier → corriger `RC_INDEMNITE=OUI` → Analyser | Verdict **VALIDE**, score 0, jauge verte |
+| 2.11 | Remonter au **Tableau de bord décisionnel (F-IA-02)** en haut de page | Cards _Ancienneté_ et _Indemnités_ reflètent les dernières valeurs. **Refresh auto (SF-IA-02-03)** : après chaque Comparer / Analyser ci-dessus, les cards se sont mises à jour **sans reload** |
 
-**Features testées :** F-DT-07, F-DT-09, F-IA-01, F-IA-02, **SF-DT-09-04, SF-IA-03-05**
+**Features testées :**
+- **Barème d'ancienneté et congés conventionnels (F-DT-07)**
+- **Comparateur jurisprudentiel d'indemnités (F-DT-09)** + **SF-DT-09-04 type de rupture pré-rempli** + **SF-DT-09-05 fiabilisation extraction type**
+- **Analyse de validité de la rupture conventionnelle (F-DT-10)** + **SF-DT-10-01/02/03/04**
+- **Tableau de bord décisionnel (F-IA-02)** + **SF-IA-02-03 refresh auto**
+- **Cohérence IA sur le comparateur d'indemnités (SF-IA-03-05)** — volet numérique ancienneté
+- **Orchestration UX F-DT-08 / F-DT-10 (SF-DT-10-04)** — le bloc validité du licenciement ne s'affiche pas pour une rupture conventionnelle
+
+**Différences vs Test 1 :**
+- Rupture conventionnelle détectée (test 1 = licenciement) → déclenche `INDEMNITE_SPECIFIQUE` et **F-DT-10** à la place de **F-DT-08**
+- Cohérence IA testée sur ancienneté numérique (test 1 = salaire + type_rupture)
+- Convention BTP (test 1 = SYNTEC)
 
 ---
 

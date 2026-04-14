@@ -326,14 +326,20 @@
     <app-case-dashboard [caseFileId]="caseFile()!.id"></app-case-dashboard>
 
     @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL') {
-      <app-licenciement-section
-        [caseFileId]="caseFile()!.id"
-        [workspaceCountry]="workspaceCountry()"
-        [aiData]="synthesis()?.licenciementValidityDetection"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-      </app-licenciement-section>
+      @if (showValiditeLicenciement()) {
+        <app-licenciement-section
+          [caseFileId]="caseFile()!.id"
+          [workspaceCountry]="workspaceCountry()"
+          [aiData]="synthesis()?.licenciementValidityDetection"
+          [procedureChecks]="procedureChecks()"
+          [aiQuestions]="questions()"
+          [piecesManquantes]="synthesis()?.piecesManquantesDetails">
+        </app-licenciement-section>
+      }
+
+      @if (showValiditeRuptureConv()) {
+        <app-rupture-conv-section [caseFileId]="caseFile()!.id"></app-rupture-conv-section>
+      }
 
       <app-anciennete-section
         [caseFileId]="caseFile()!.id"

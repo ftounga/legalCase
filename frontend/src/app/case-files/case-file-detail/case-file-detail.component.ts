@@ -53,6 +53,7 @@ import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/cal
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
@@ -74,6 +75,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     ImmigrationRecoursSectionComponent, ImmigrationWorkRightSectionComponent,
     AncienneteSectionComponent, LicenciementSectionComponent,
     IndemniteComparatifSectionComponent, PartageImmobilierSectionComponent, CalendrierGardeSectionComponent, DivorceChecklistSectionComponent,
+    RuptureConvSectionComponent,
     CaseDashboardComponent, AnalysisPipelineComponent
   ],
   templateUrl: './case-file-detail.component.html',
@@ -113,6 +115,25 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   });
 
   readonly canDelete = computed(() => this.currentMemberRole() === 'OWNER');
+
+  // F-DT-10 / SF-DT-10-04 — orchestration UX bloc validité selon type_rupture IA
+  private static readonly LICENCIEMENT_TYPES = new Set([
+    'LICENCIEMENT', 'LICENCIEMENT_ECONOMIQUE',
+    'LICENCIEMENT_ORDINAIRE', 'LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE',
+  ]);
+
+  readonly showValiditeLicenciement = computed(() => {
+    const type = this.synthesis()?.compensationEstimate?.typeRupture;
+    // Defaut permissif : si l'IA n'a pas identifié le type (dossier legacy
+    // ou analyse non encore lancee), on garde F-DT-08 visible par retrocompat.
+    if (!type) return true;
+    return CaseFileDetailComponent.LICENCIEMENT_TYPES.has(type);
+  });
+
+  readonly showValiditeRuptureConv = computed(() => {
+    const type = this.synthesis()?.compensationEstimate?.typeRupture;
+    return type === 'RUPTURE_CONVENTIONNELLE' && this.workspaceCountry() === 'FRANCE';
+  });
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));

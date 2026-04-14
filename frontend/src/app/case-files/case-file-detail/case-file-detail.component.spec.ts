@@ -744,4 +744,71 @@ describe('CaseFileDetailComponent', () => {
     expect(section).not.toBeNull();
   });
 
+  // ── SF-DT-10-04 — orchestration UX F-DT-08 vs F-DT-10 ─────────────────
+  describe('SF-DT-10-04 showValiditeLicenciement / showValiditeRuptureConv', () => {
+    const synthesisWith = (typeRupture: string | null) => ({
+      id: 'a', version: 1, analysisType: 'CASE', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [],
+      questionsOuvertes: [], piecesManquantes: [],
+      riskLevel: null, riskScore: null, modelUsed: null, updatedAt: null,
+      compensationEstimate: typeRupture ? {
+        indemnite: 0, salaireReference: 0, ancienneteAnnees: 0, ancienneteMois: 0,
+        typeRupture, plafondMinMois: 0, plafondMaxMois: 0, donneesPartielles: true,
+      } : null,
+    } as any);
+
+    it('showValiditeLicenciement=true si synthesis null (legacy permissif)', () => {
+      component.synthesis.set(null);
+      expect(component.showValiditeLicenciement()).toBe(true);
+      expect(component.showValiditeRuptureConv()).toBe(false);
+    });
+
+    it('showValiditeLicenciement=true pour LICENCIEMENT FR', () => {
+      component.workspaceCountry.set('FRANCE');
+      component.synthesis.set(synthesisWith('LICENCIEMENT'));
+      expect(component.showValiditeLicenciement()).toBe(true);
+      expect(component.showValiditeRuptureConv()).toBe(false);
+    });
+
+    it('showValiditeLicenciement=true pour LICENCIEMENT_ORDINAIRE BE', () => {
+      component.workspaceCountry.set('BELGIQUE');
+      component.synthesis.set(synthesisWith('LICENCIEMENT_ORDINAIRE'));
+      expect(component.showValiditeLicenciement()).toBe(true);
+      expect(component.showValiditeRuptureConv()).toBe(false);
+    });
+
+    it('masque F-DT-08 et affiche F-DT-10 pour RUPTURE_CONVENTIONNELLE FR', () => {
+      component.workspaceCountry.set('FRANCE');
+      component.synthesis.set(synthesisWith('RUPTURE_CONVENTIONNELLE'));
+      expect(component.showValiditeLicenciement()).toBe(false);
+      expect(component.showValiditeRuptureConv()).toBe(true);
+    });
+
+    it('masque les deux pour DEMISSION', () => {
+      component.workspaceCountry.set('FRANCE');
+      component.synthesis.set(synthesisWith('DEMISSION'));
+      expect(component.showValiditeLicenciement()).toBe(false);
+      expect(component.showValiditeRuptureConv()).toBe(false);
+    });
+
+    it('masque les deux pour RUPTURE_AMIABLE BE', () => {
+      component.workspaceCountry.set('BELGIQUE');
+      component.synthesis.set(synthesisWith('RUPTURE_AMIABLE'));
+      expect(component.showValiditeLicenciement()).toBe(false);
+      expect(component.showValiditeRuptureConv()).toBe(false);
+    });
+
+    it('F-DT-10 masqué en BELGIQUE même si type=RUPTURE_CONVENTIONNELLE (théorique)', () => {
+      component.workspaceCountry.set('BELGIQUE');
+      component.synthesis.set(synthesisWith('RUPTURE_CONVENTIONNELLE'));
+      expect(component.showValiditeRuptureConv()).toBe(false);
+    });
+
+    it('compensationEstimate null → F-DT-08 visible par défaut', () => {
+      component.synthesis.set(synthesisWith(null));
+      expect(component.showValiditeLicenciement()).toBe(true);
+      expect(component.showValiditeRuptureConv()).toBe(false);
+    });
+  });
+
 });
