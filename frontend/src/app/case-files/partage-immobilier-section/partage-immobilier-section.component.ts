@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -6,11 +6,22 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { PartageImmobilierService } from '../../core/services/partage-immobilier.service';
 import { PartageImmobilierResponse } from '../../core/models/partage-immobilier.model';
+import { BienItem, LiquidationCommunaute } from '../../core/models/case-analysis.model';
+
+const IMMO_KEYWORDS = ['immobilier', 'maison', 'appartement', 'résidence', 'residence', 'villa', 'studio', 'terrain', 'logement'];
+const PRET_KEYWORDS = ['prêt', 'pret', 'emprunt', 'crédit', 'credit', 'hypothèque', 'hypotheque', 'hypothécaire', 'hypothecaire'];
+
+function matchesKeyword(libelle: string | null, keywords: string[]): boolean {
+  if (!libelle) return false;
+  const lower = libelle.toLowerCase();
+  return keywords.some(k => lower.includes(k));
+}
 
 @Component({
   selector: 'app-partage-immobilier-section',
@@ -19,13 +30,16 @@ import { PartageImmobilierResponse } from '../../core/models/partage-immobilier.
     FormsModule, DecimalPipe,
     MatButtonModule, MatIconModule, MatSelectModule,
     MatFormFieldModule, MatInputModule, MatProgressSpinnerModule,
-    MatSlideToggleModule,
+    MatSlideToggleModule, MatTooltipModule,
   ],
   templateUrl: './partage-immobilier-section.component.html',
   styleUrl: './partage-immobilier-section.component.scss'
 })
-export class PartageImmobilierSectionComponent implements OnInit {
+export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
+  @Input() liquidationCommunaute?: LiquidationCommunaute | null;
+
+  private liquidationSignal = signal<LiquidationCommunaute | null | undefined>(undefined);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -39,12 +53,40 @@ export class PartageImmobilierSectionComponent implements OnInit {
   quotePartAttributaire = signal(50);
   isDivorce = signal(true);
 
+  // Import panel state
+  showImportPanel = signal(false);
+  selectedBienLibelle = signal<string | null>(null);
+  selectedPretLibelle = signal<string | null>(null); // null = "Aucun prêt"
+  provenanceValeur = signal<'IA' | null>(null);
+  provenancePret = signal<'IA' | null>(null);
+
+  biensImmobiliersFiltres = computed<BienItem[]>(() => {
+    const actifs = this.liquidationSignal()?.actifCommun ?? [];
+    return actifs.filter(b => matchesKeyword(b.libelle, IMMO_KEYWORDS));
+  });
+
+  pretsFiltres = computed<BienItem[]>(() => {
+    const passifs = this.liquidationSignal()?.passifCommun ?? [];
+    return passifs.filter(p => matchesKeyword(p.libelle, PRET_KEYWORDS));
+  });
+
+  canImport = computed(() => this.biensImmobiliersFiltres().some(b => b.valeur != null && b.valeur > 0));
+
   constructor(
     private partageService: PartageImmobilierService,
     private snackBar: MatSnackBar,
   ) {}
 
-  ngOnInit(): void { this.loadExisting(); }
+  ngOnInit(): void {
+    this.liquidationSignal.set(this.liquidationCommunaute);
+    this.loadExisting();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['liquidationCommunaute']) {
+      this.liquidationSignal.set(this.liquidationCommunaute);
+    }
+  }
 
   toggleCollapsed(): void { this.collapsed.update(v => !v); }
 
@@ -71,4 +113,29 @@ export class PartageImmobilierSectionComponent implements OnInit {
   }
 
   editForm(): void { this.showForm.set(true); }
+
+  toggleImportPanel(): void {
+    if (!this.canImport()) return;
+    this.showImportPanel.update(v => !v);
+  }
+
+  applyImport(): void {
+    const bien = this.biensImmobiliersFiltres().find(b => b.libelle === this.selectedBienLibelle());
+    if (!bien || bien.valeur == null || bien.valeur <= 0) return;
+    this.valeurVenale.set(bien.valeur);
+    this.provenanceValeur.set('IA');
+
+    const pretLib = this.selectedPretLibelle();
+    if (pretLib) {
+      const pret = this.pretsFiltres().find(p => p.libelle === pretLib);
+      if (pret && pret.valeur != null && pret.valeur > 0) {
+        this.capitalRestantDu.set(pret.valeur);
+        this.provenancePret.set('IA');
+      }
+    }
+    this.showImportPanel.set(false);
+  }
+
+  onValeurVenaleChange(): void { this.provenanceValeur.set(null); }
+  onCapitalChange(): void { this.provenancePret.set(null); }
 }

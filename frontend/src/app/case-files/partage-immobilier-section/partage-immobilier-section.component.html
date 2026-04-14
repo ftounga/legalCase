@@ -17,6 +17,47 @@
 
       @if (!loading() && showForm()) {
         <div class="partage-form">
+          @if (biensImmobiliersFiltres().length > 0) {
+            <div class="import-header">
+              <button mat-stroked-button color="primary" (click)="toggleImportPanel()" [disabled]="!canImport()"
+                      [matTooltip]="!canImport() ? 'Aucun bien immobilier avec valeur détectée' : ''">
+                <mat-icon>auto_awesome</mat-icon>
+                {{ showImportPanel() ? 'Fermer' : 'Importer depuis l\\'analyse IA' }}
+              </button>
+            </div>
+
+            @if (showImportPanel()) {
+              <div class="import-panel">
+                <mat-form-field appearance="outline" class="form-field form-field--wide">
+                  <mat-label>Bien immobilier détecté</mat-label>
+                  <mat-select [(ngModel)]="selectedBienLibelle">
+                    @for (b of biensImmobiliersFiltres(); track b.libelle) {
+                      <mat-option [value]="b.libelle" [disabled]="b.valeur == null || b.valeur <= 0">
+                        {{ b.libelle }} @if (b.valeur != null && b.valeur > 0) { — {{ b.valeur | number:'1.0-0' }} € }
+                        @else { (valeur indéterminée) }
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="form-field form-field--wide">
+                  <mat-label>Prêt associé</mat-label>
+                  <mat-select [(ngModel)]="selectedPretLibelle">
+                    <mat-option [value]="null">Aucun prêt</mat-option>
+                    @for (p of pretsFiltres(); track p.libelle) {
+                      <mat-option [value]="p.libelle" [disabled]="p.valeur == null || p.valeur <= 0">
+                        {{ p.libelle }} @if (p.valeur != null && p.valeur > 0) { — {{ p.valeur | number:'1.0-0' }} € }
+                        @else { (montant indéterminé) }
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <button mat-flat-button color="primary" (click)="applyImport()" [disabled]="!selectedBienLibelle()">
+                  Appliquer
+                </button>
+              </div>
+            }
+          }
+
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Pays</mat-label>
@@ -25,14 +66,24 @@
                 <mat-option value="BELGIQUE">Belgique</mat-option>
               </mat-select>
             </mat-form-field>
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Valeur vénale du bien (€)</mat-label>
-              <input matInput type="number" [(ngModel)]="valeurVenale">
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Capital restant dû (€)</mat-label>
-              <input matInput type="number" [(ngModel)]="capitalRestantDu">
-            </mat-form-field>
+            <div class="field-with-provenance">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Valeur vénale du bien (€)</mat-label>
+                <input matInput type="number" [(ngModel)]="valeurVenale" (ngModelChange)="onValeurVenaleChange()">
+              </mat-form-field>
+              @if (provenanceValeur() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse IA</span>
+              }
+            </div>
+            <div class="field-with-provenance">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Capital restant dû (€)</mat-label>
+                <input matInput type="number" [(ngModel)]="capitalRestantDu" (ngModelChange)="onCapitalChange()">
+              </mat-form-field>
+              @if (provenancePret() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse IA</span>
+              }
+            </div>
           </div>
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
