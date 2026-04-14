@@ -137,8 +137,8 @@
 
 .field-with-alert {
   display: flex; flex-direction: column; gap: 4px;
-  flex: 1; min-width: 0;
-  &--wide { flex: 1.5; }
+  flex: 1; min-width: 150px;
+  &--wide { flex: 1.5; min-width: 220px; }
 }
 
 .coherence-badge {
