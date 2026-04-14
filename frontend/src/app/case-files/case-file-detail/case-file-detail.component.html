@@ -392,7 +392,10 @@
       <app-calendrier-garde-section
         [caseFileId]="caseFile()!.id"
         [workspaceCountry]="workspaceCountry()"
-        [aiModeGardeDetaille]="synthesis()?.pensionAlimentaireEstimate?.modeGardeDetaille">
+        [aiModeGardeDetaille]="synthesis()?.pensionAlimentaireEstimate?.modeGardeDetaille"
+        [synthesis]="synthesis()"
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()">
       </app-calendrier-garde-section>
 
       <app-divorce-checklist-section

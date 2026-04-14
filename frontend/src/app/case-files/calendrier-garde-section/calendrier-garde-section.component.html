@@ -14,6 +14,16 @@
 
       @if (!loading() && showForm()) {
         <div class="garde-form">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary"
+                 [class.has-blocker]="alertsSummary().blockers > 0">
+              <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+              <span>
+                1 incohérence avec l'analyse IA
+                @if (alertsSummary().blockers > 0) { — bloquante }
+              </span>
+            </div>
+          }
           @if (modeDetailleNote(); as note) {
             <div class="mode-note">
               <mat-icon>info</mat-icon>
@@ -21,16 +31,27 @@
             </div>
           }
           <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field form-field--wide">
-              <mat-label>Mode de garde</mat-label>
-              <mat-select [(ngModel)]="gardeCode" (ngModelChange)="onGardeCodeChange()">
-                @for (g of modes; track g.group) {
-                  <mat-optgroup [label]="g.group">
-                    @for (m of g.items; track m.value) { <mat-option [value]="m.value">{{ m.label }}</mat-option> }
-                  </mat-optgroup>
-                }
-              </mat-select>
-            </mat-form-field>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field form-field--wide">
+                <mat-label>Mode de garde</mat-label>
+                <mat-select [(ngModel)]="gardeCode" (ngModelChange)="onGardeCodeChange()">
+                  @for (g of modes; track g.group) {
+                    <mat-optgroup [label]="g.group">
+                      @for (m of g.items; track m.value) { <mat-option [value]="m.value">{{ m.label }}</mat-option> }
+                    </mat-optgroup>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (coherenceAlert(); as alert) {
+                <span class="coherence-badge"
+                      [class.coherence-blocker]="alert.level === 'blocker'"
+                      [class.coherence-warning]="alert.level === 'warning'"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>{{ alert.level === 'blocker' ? 'error' : 'warning' }}</mat-icon>
+                  {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
           </div>
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
