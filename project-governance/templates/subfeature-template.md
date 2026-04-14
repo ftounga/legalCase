@@ -69,6 +69,18 @@ YYYY-MM-DD
 - [ ] **Autres UI patterns** : formulaires réactifs, dialogues de confirmation, exports PDF, alertes de cohérence F-IA-03, refresh dashboard F-IA-02, pré-remplissage IA, masquage conditionnel
 - [ ] **Autres flows transversaux** : auth / workspace context / plans / navigation
 
+### Niveaux de vérification à couvrir
+
+Pour chaque cible applicable, ne pas se limiter à la surface visible. Descendre la chaîne autant que nécessaire selon le mécanisme :
+
+- [ ] **Modèle TypeScript / API exposée** (surface frontend)
+- [ ] **Record / DTO backend** (structure de réponse)
+- [ ] **Service / logique métier** (quelles données passent réellement)
+- [ ] **Entité JPA + schéma DB** (ce qui est persisté effectivement, via colonnes dédiées ou JSON)
+- [ ] **Tests existants** (quelle partie est déjà couverte et comment)
+
+> Exemple concret : un fix "pré-remplissage après reload" qui ne vérifie que la présence des champs dans la Response est incomplet — il faut aussi contrôler que les champs sont bien persistés (colonne dédiée ou JSON dans `result_data`). Un outil peut exposer un champ dans la Response tout en ne le stockant pas, et le bug réapparaît au reload.
+
 ### Résultat du scan
 
 | Cible | Applicable ? | Traitement |
