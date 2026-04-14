@@ -14,10 +14,16 @@
 
       @if (!loading() && showForm()) {
         <div class="garde-form">
+          @if (modeDetailleNote(); as note) {
+            <div class="mode-note">
+              <mat-icon>info</mat-icon>
+              <span>{{ note }}</span>
+            </div>
+          }
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field form-field--wide">
               <mat-label>Mode de garde</mat-label>
-              <mat-select [(ngModel)]="gardeCode">
+              <mat-select [(ngModel)]="gardeCode" (ngModelChange)="onGardeCodeChange()">
                 @for (g of modes; track g.group) {
                   <mat-optgroup [label]="g.group">
                     @for (m of g.items; track m.value) { <mat-option [value]="m.value">{{ m.label }}</mat-option> }

@@ -20,6 +20,10 @@ export interface CompensationEstimate {
   donneesPartielles: boolean;
 }
 
+export type ModeGardeDetaille =
+  | 'ALTERNEE_FR' | 'DVH_CLASSIQUE_FR' | 'DVH_ELARGI_FR'
+  | 'ALTERNEE_BE' | 'SECONDAIRE_BE' | 'SECONDAIRE_ELARGI_BE';
+
 export interface PensionAlimentaireEstimate {
   montantMin: number;
   montantMax: number;
@@ -28,6 +32,7 @@ export interface PensionAlimentaireEstimate {
   modeGarde: 'EXCLUSIVE' | 'ALTERNEE';
   pays: 'FRANCE' | 'BELGIQUE';
   donneesPartielles: boolean;
+  modeGardeDetaille?: ModeGardeDetaille | null;
 }
 
 export interface PrestationCompensatoireEstimate {

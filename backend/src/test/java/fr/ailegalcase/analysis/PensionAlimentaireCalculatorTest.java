@@ -136,6 +136,65 @@ class PensionAlimentaireCalculatorTest {
         assertThat(CaseAnalysisResponse.extractPensionAlimentaireEstimate(root)).isNull();
     }
 
+    // ── SF-FA-06-04 : mode_garde_detaille ────────────────────────────────────
+
+    @Test
+    void extractPensionAlimentaire_modeDetailleValide_upperCase() throws Exception {
+        String json = """
+                {"pension_alimentaire_data": {
+                  "revenus_net_mensuel_debiteur": 2500.0,
+                  "nb_enfants": 2,
+                  "mode_garde": "ALTERNEE",
+                  "mode_garde_detaille": "alternee_fr",
+                  "pays_applicable": "FRANCE"
+                }}""";
+        JsonNode root = MAPPER.readTree(json);
+        var result = CaseAnalysisResponse.extractPensionAlimentaireEstimate(root);
+        assertThat(result).isNotNull();
+        assertThat(result.modeGardeDetaille()).isEqualTo("ALTERNEE_FR");
+        assertThat(result.modeGarde()).isEqualTo("ALTERNEE");
+    }
+
+    @Test
+    void extractPensionAlimentaire_modeDetailleInvalide_retourneNullSurLeChamp() throws Exception {
+        String json = """
+                {"pension_alimentaire_data": {
+                  "revenus_net_mensuel_debiteur": 2500.0,
+                  "nb_enfants": 2,
+                  "mode_garde": "EXCLUSIVE",
+                  "mode_garde_detaille": "UNKNOWN_MODE",
+                  "pays_applicable": "FRANCE"
+                }}""";
+        JsonNode root = MAPPER.readTree(json);
+        var result = CaseAnalysisResponse.extractPensionAlimentaireEstimate(root);
+        assertThat(result).isNotNull();
+        assertThat(result.modeGardeDetaille()).isNull();
+    }
+
+    @Test
+    void extractPensionAlimentaire_modeDetailleAbsent_retourneNullSurLeChamp() throws Exception {
+        String json = """
+                {"pension_alimentaire_data": {
+                  "revenus_net_mensuel_debiteur": 2500.0,
+                  "nb_enfants": 2,
+                  "mode_garde": "ALTERNEE",
+                  "pays_applicable": "FRANCE"
+                }}""";
+        JsonNode root = MAPPER.readTree(json);
+        var result = CaseAnalysisResponse.extractPensionAlimentaireEstimate(root);
+        assertThat(result).isNotNull();
+        assertThat(result.modeGardeDetaille()).isNull();
+    }
+
+    @Test
+    void promptFamille_mentionneModeGardeDetailleAvecLes6Valeurs() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("mode_garde_detaille");
+        assertThat(instruction)
+                .contains("ALTERNEE_FR").contains("DVH_CLASSIQUE_FR").contains("DVH_ELARGI_FR")
+                .contains("ALTERNEE_BE").contains("SECONDAIRE_BE").contains("SECONDAIRE_ELARGI_BE");
+    }
+
     // ── Utilitaire interne ───────────────────────────────────────────────────
 
     private double getTaux(String pays, String garde, int nbEnfants) {

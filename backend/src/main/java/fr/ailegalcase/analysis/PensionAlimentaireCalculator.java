@@ -32,8 +32,16 @@ public final class PensionAlimentaireCalculator {
             int nbEnfants,
             String modeGarde,
             String pays,
-            boolean donneesPartielles
-    ) {}
+            boolean donneesPartielles,
+            String modeGardeDetaille
+    ) {
+        /** Rétrocompat pour les appels historiques sans mode détaillé (tests, calculator). */
+        public PensionAlimentaireEstimate(double montantMin, double montantMax, double revenus,
+                                           int nbEnfants, String modeGarde, String pays,
+                                           boolean donneesPartielles) {
+            this(montantMin, montantMax, revenus, nbEnfants, modeGarde, pays, donneesPartielles, null);
+        }
+    }
 
     private static final double[][] TAUX_FRANCE = {
             // {garde exclusive, garde alternée}
