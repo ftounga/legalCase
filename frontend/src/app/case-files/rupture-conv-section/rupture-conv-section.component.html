@@ -1,0 +1,121 @@
+<div class="rc-section">
+  <button class="section-header" (click)="toggleCollapsed()">
+    <mat-icon class="section-icon">gavel</mat-icon>
+    <span class="section-title">Validité de la rupture conventionnelle</span>
+    @if (result()) {
+      <span class="section-badge"
+            [style.background]="verdictColor(result()!.verdict) + '20'"
+            [style.color]="verdictColor(result()!.verdict)">
+        {{ verdictLabel(result()!.verdict) }} — {{ result()!.scoreRisque }}/100
+      </span>
+    }
+    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </button>
+
+  @if (!collapsed()) {
+    <div class="rc-body">
+      <div class="legal-ref">
+        <mat-icon>info</mat-icon>
+        <span>Rupture conventionnelle individuelle — articles L1237-11 à L1237-16 du Code du travail.</span>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-row">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      }
+
+      @if (!loading() && showForm()) {
+        <div class="rc-form">
+          @for (critere of criteres; track critere.code) {
+            <div class="critere-row">
+              <div class="critere-header">
+                <span class="critere-label">{{ critere.label }}</span>
+                @if (critere.bloquant) {
+                  <span class="critere-bloquant" matTooltip="Critère bloquant — un NON entraîne un verdict INVALIDE">
+                    Bloquant
+                  </span>
+                }
+              </div>
+              <p class="critere-description">{{ critere.description }}</p>
+              <mat-radio-group class="critere-radios"
+                               [value]="reponses()[critere.code]"
+                               (change)="setReponse(critere.code, $event.value)">
+                <mat-radio-button value="OUI">Oui</mat-radio-button>
+                <mat-radio-button value="NON">Non</mat-radio-button>
+                <mat-radio-button value="INCONNU">Inconnu</mat-radio-button>
+              </mat-radio-group>
+            </div>
+          }
+
+          <div class="form-actions">
+            <button mat-flat-button color="primary"
+                    (click)="analyze()"
+                    [disabled]="analyzing()">
+              @if (analyzing()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <ng-container><mat-icon>analytics</mat-icon> Analyser</ng-container>
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && !showForm() && result()) {
+        <div class="rc-result">
+          <div class="result-header">
+            <span class="result-title">Verdict</span>
+            <span class="result-verdict"
+                  [style.background]="verdictColor(result()!.verdict) + '20'"
+                  [style.color]="verdictColor(result()!.verdict)">
+              {{ verdictLabel(result()!.verdict) }}
+            </span>
+          </div>
+
+          <div class="score-gauge">
+            <div class="score-track">
+              <div class="score-fill"
+                   [style.width]="scoreBarWidth(result()!.scoreRisque)"
+                   [style.background]="verdictColor(result()!.verdict)"></div>
+            </div>
+            <div class="score-labels">
+              <span>0</span>
+              <span>Score de risque : {{ result()!.scoreRisque }}/100</span>
+              <span>100</span>
+            </div>
+          </div>
+
+          <div class="criteres-results">
+            @for (c of result()!.criteres; track c.code) {
+              <div class="critere-result"
+                   [class.is-non]="c.reponse === 'NON'"
+                   [class.is-inconnu]="c.reponse === 'INCONNU'"
+                   [class.is-oui]="c.reponse === 'OUI'">
+                <mat-icon>
+                  {{ c.reponse === 'OUI' ? 'check_circle'
+                     : c.reponse === 'NON' ? 'cancel'
+                     : 'help' }}
+                </mat-icon>
+                <div>
+                  <div class="critere-result-label">
+                    {{ c.label }}
+                    @if (c.bloquant) { <span class="tag">Bloquant</span> }
+                  </div>
+                  <div class="critere-result-comment">{{ c.commentaire }}</div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="result-actions">
+            <button mat-stroked-button (click)="editForm()">
+              <mat-icon>edit</mat-icon> Modifier
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

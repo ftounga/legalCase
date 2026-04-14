@@ -1,0 +1,134 @@
+.rc-section { margin-top: 32px; }
+
+.section-header {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 16px;
+  text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px;
+  letter-spacing: 0.5px; text-transform: uppercase; color: #1A3A5C;
+  &:hover { opacity: 0.8; }
+  .section-icon { color: #C9973A; }
+  .section-title { flex: 1; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .section-badge {
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    padding: 4px 12px; border-radius: 12px; letter-spacing: 0;
+    text-transform: none;
+  }
+  .section-chevron { color: #6B7A8D; font-size: 20px; }
+}
+
+.rc-body { padding: 0 4px; }
+
+.legal-ref {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; margin-bottom: 16px;
+  background: #F4F6F8; border-radius: 8px;
+  font-family: 'Inter', sans-serif; font-size: 12px; color: #6B7A8D;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; color: #C9973A; }
+}
+
+.loading-row {
+  display: flex; align-items: center; gap: 8px; color: #6B7A8D;
+  font-family: 'Inter', sans-serif; font-size: 14px; padding: 16px 0;
+}
+
+.rc-form {
+  background: #FFFFFF; border: 1px solid #E0E4EA; border-radius: 8px; padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+.critere-row {
+  padding-bottom: 16px; border-bottom: 1px solid #F4F6F8;
+  &:last-of-type { border-bottom: none; padding-bottom: 0; }
+}
+
+.critere-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+}
+
+.critere-label {
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #1C2B3A;
+}
+
+.critere-bloquant {
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 4px;
+  background: #FEECEB; color: #7F1D1D;
+  cursor: help;
+}
+
+.critere-description {
+  margin: 0 0 12px; font-family: 'Inter', sans-serif; font-size: 13px;
+  color: #6B7A8D; line-height: 1.4;
+}
+
+.critere-radios {
+  display: flex; gap: 16px;
+}
+
+.form-actions {
+  display: flex; justify-content: flex-end; margin-top: 8px;
+}
+
+.rc-result {
+  background: #FFFFFF; border: 1px solid #E0E4EA; border-radius: 8px; padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex; flex-direction: column; gap: 20px;
+}
+
+.result-header {
+  display: flex; align-items: center; gap: 12px;
+}
+
+.result-title {
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #6B7A8D;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.result-verdict {
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+  padding: 4px 12px; border-radius: 12px;
+}
+
+.score-gauge { display: flex; flex-direction: column; gap: 8px; }
+
+.score-track {
+  width: 100%; height: 12px; background: #F4F6F8; border-radius: 6px; overflow: hidden;
+}
+
+.score-fill {
+  height: 100%; border-radius: 6px; transition: width 0.3s ease;
+}
+
+.score-labels {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: 'Inter', sans-serif; font-size: 12px; color: #6B7A8D;
+}
+
+.criteres-results { display: flex; flex-direction: column; gap: 12px; }
+
+.critere-result {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 16px; border-radius: 8px;
+  background: #F7FAFC;
+  &.is-oui mat-icon { color: #27AE60; }
+  &.is-non { background: #FEECEB; }
+  &.is-non mat-icon { color: #C0392B; }
+  &.is-inconnu mat-icon { color: #F59E0B; }
+}
+
+.critere-result-label {
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #1C2B3A;
+  .tag {
+    display: inline-block; margin-left: 8px;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+    background: #FEECEB; color: #7F1D1D;
+  }
+}
+
+.critere-result-comment {
+  margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 12px; color: #6B7A8D;
+  line-height: 1.4;
+}
+
+.result-actions { display: flex; justify-content: flex-end; }
