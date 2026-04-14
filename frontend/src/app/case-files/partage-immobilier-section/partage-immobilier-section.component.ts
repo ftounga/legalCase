@@ -100,7 +100,7 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   private importedCapital = signal<number | null>(null);
 
   coherenceAlerts = computed<Partial<Record<PartageAlertField, PartageCoherenceAlert>>>(() => {
-    if (!this.showForm() || this.result()) return {};
+    if (!this.showForm()) return {};
     const alerts: Partial<Record<PartageAlertField, PartageCoherenceAlert>> = {};
 
     const userValeur = this.valeurVenale();

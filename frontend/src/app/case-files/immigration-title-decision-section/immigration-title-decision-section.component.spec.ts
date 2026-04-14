@@ -265,4 +265,21 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     component.motif.set('TRAVAIL');
     expect(component.coherenceAlerts().MOTIF).toBeUndefined();
   });
+
+  it('SF-IA-03-12: alertes actives après Résoudre → editForm → modification', () => {
+    // Décision déjà chargée via GET, l'avocat clique Modifier pour corriger le motif,
+    // un badge de cohérence doit réapparaître.
+    component.procedureChecks = [f96('VERIFIED', 'TRAVAIL')];
+    initWithExistingDecision();
+    component.editCriteria();
+    component.motif.set('ETUDES');
+    expect(component.coherenceAlerts().MOTIF?.expectedDisplay).toBe('TRAVAIL');
+  });
+
+  it('SF-IA-03-12: pas d\'alertes quand decision affichée (showForm=false)', () => {
+    component.procedureChecks = [f96('VERIFIED', 'TRAVAIL')];
+    initWithExistingDecision();
+    expect(component.showForm()).toBe(false);
+    expect(component.coherenceAlerts().MOTIF).toBeUndefined();
+  });
 });

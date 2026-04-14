@@ -98,7 +98,7 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   }
 
   coherenceAlert = computed<IM07CoherenceAlert | null>(() => {
-    if (!this.showForm() || this.result()) return null;
+    if (!this.showForm()) return null;
     const user = this.titreType();
     if (!user) return null;
 

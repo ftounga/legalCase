@@ -269,9 +269,22 @@ describe('IndemniteComparatifSectionComponent', () => {
     expect(component.alertsSummary()).toEqual({ total: 3, blockers: 1 });
   });
 
-  it('should produce no alert once result is loaded', () => {
+  it('SF-IA-03-12: alertes actives après Comparer → editForm → modification', () => {
+    // Résultat chargé via GET, l'avocat clique Modifier pour corriger le type,
+    // le badge de cohérence doit réapparaître en temps réel.
     component.synthesis = { compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' } } as any;
     initWith();
+    component.editForm();
+    component.typeRupture.set('LICENCIEMENT');
+    const alert = component.coherenceAlerts().TYPE_RUPTURE;
+    expect(alert).toBeTruthy();
+    expect(alert?.expectedDisplay).toBe('RUPTURE_CONVENTIONNELLE');
+  });
+
+  it('SF-IA-03-12: pas d\'alertes quand le bloc résultat est affiché (showForm=false)', () => {
+    component.synthesis = { compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' } } as any;
+    initWith();
+    expect(component.showForm()).toBe(false);
     expect(component.coherenceAlerts().TYPE_RUPTURE).toBeUndefined();
   });
 });

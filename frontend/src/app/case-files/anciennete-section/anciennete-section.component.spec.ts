@@ -251,10 +251,22 @@ describe('AncienneteSectionComponent', () => {
     expect(component.alertsSummary().total).toBe(3);
   });
 
-  it('should suppress alerts once a result is loaded (result fige les alertes)', () => {
+  it('SF-IA-03-12: alertes actives après Calculer → editForm → modification', () => {
+    // Scénario : resultat déjà chargé via GET, l'avocat clique Modifier pour éditer
+    // puis change la convention → badge doit s'afficher immédiatement.
     setAi({ conventionCollective: 'SYNTEC' });
     initWithExisting();
+    component.editForm();
     component.conventionCode.set('METALLURGIE');
+    expect(component.coherenceAlerts().CONVENTION?.iaValue).toBe('SYNTEC');
+  });
+
+  it('SF-IA-03-12: pas d\'alertes quand le bloc résultat est affiché (showForm=false)', () => {
+    // L'avocat ne voit pas le formulaire — inutile d'afficher des badges.
+    setAi({ conventionCollective: 'SYNTEC' });
+    initWithExisting();
+    // showForm=false après initWithExisting, on ne clique pas editForm
+    expect(component.showForm()).toBe(false);
     expect(component.coherenceAlerts().CONVENTION).toBeUndefined();
   });
 });
