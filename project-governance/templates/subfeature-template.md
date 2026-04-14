@@ -81,6 +81,19 @@ Pour chaque cible applicable, ne pas se limiter à la surface visible. Descendre
 
 > Exemple concret : un fix "pré-remplissage après reload" qui ne vérifie que la présence des champs dans la Response est incomplet — il faut aussi contrôler que les champs sont bien persistés (colonne dédiée ou JSON dans `result_data`). Un outil peut exposer un champ dans la Response tout en ne le stockant pas, et le bug réapparaît au reload.
 
+### Cas spécifique : nouvelle feature d'outil décisionnel
+
+Si la subfeature crée ou modifie un outil décisionnel (avec UI, formulaire, résultat persisté par dossier), répondre explicitement aux questions suivantes :
+
+- [ ] **Cohérence IA (F-IA-03)** : l'outil présente-t-il des champs ou des critères susceptibles d'être croisés avec l'analyse IA, les réponses aux questions IA ou la checklist procédurale F-96 ? Si oui, intégrer la couverture F-IA-03 dans cette subfeature ou créer une subfeature jumelle SF-IA-03-XX.
+- [ ] **Refresh dashboard (F-IA-02)** : l'outil déclenche-t-il une action validée qui impacte les cards du tableau de bord ? Si oui, injecter `CaseDashboardRefreshService` et appeler `triggerRefresh()` dans `next:` (pattern SF-IA-02-03).
+- [ ] **Pré-remplissage IA** : le formulaire peut-il être pré-rempli depuis la synthèse IA ? Si oui, `prefillFromAi()` + provenance notes (pattern F-DT-09 / F-IM-05).
+- [ ] **Persistance des inputs** : tous les champs saisis sont-ils persistés en base (colonnes dédiées ou JSON `result_data`) pour survivre au reload ? (pattern SF-DT-07-04).
+- [ ] **Masquage conditionnel selon type** : l'outil ne s'applique qu'à certains types de dossier (rupture, domaine, pays) ? Si oui, orchestration dans `case-file-detail` avec `@if` sur un `computed` signal.
+- [ ] **Alertes actives après calcul** : le gate du `coherenceAlerts` computed n'inclut-il pas `|| this.result()` (bug SF-IA-03-12) ? Seul `!this.showForm()` doit gater.
+
+> Ces questions reflètent les écueils récurrents observés. Cocher chaque case explicitement force la vérification. Si l'équipe découvre un nouveau pattern récurrent, l'ajouter ici.
+
 ### Résultat du scan
 
 | Cible | Applicable ? | Traitement |
