@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -167,6 +168,7 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   constructor(
     private workRightService: ImmigrationWorkRightService,
     private snackBar: MatSnackBar,
+    @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
 
   ngOnInit(): void {
@@ -254,6 +256,7 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
         this.result.set(resp);
         this.showForm.set(false);
         this.resolving.set(false);
+        this.refreshService?.triggerRefresh();
       },
       error: () => {
         this.resolving.set(false);

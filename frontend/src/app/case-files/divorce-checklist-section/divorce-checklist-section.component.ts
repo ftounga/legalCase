@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -91,7 +92,7 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
     };
   });
 
-  constructor(private checklistService: DivorceChecklistService, private snackBar: MatSnackBar) {}
+  constructor(private checklistService: DivorceChecklistService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
 
   ngOnInit(): void {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -236,7 +237,7 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
     this.checklistService.save(this.caseFileId, {
       country: this.country(), etapeStatuts, pieceStatuts,
     }).subscribe({
-      next: resp => { this.result.set(resp); this.saving.set(false); },
+      next: resp => { this.result.set(resp); this.saving.set(false); this.refreshService?.triggerRefresh(); },
       error: () => { this.saving.set(false); this.snackBar.open('Erreur', 'Fermer', { duration: 4000 }); },
     });
   }

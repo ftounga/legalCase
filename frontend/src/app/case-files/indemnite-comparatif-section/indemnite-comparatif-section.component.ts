@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { CaseAnalysisResult, TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -255,6 +256,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   constructor(
     private comparatifService: IndemniteComparatifService,
     private snackBar: MatSnackBar,
+    @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
 
   ngOnInit(): void {
@@ -315,6 +317,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
         this.result.set(resp);
         this.showForm.set(false);
         this.calculating.set(false);
+        this.refreshService?.triggerRefresh();
       },
       error: () => {
         this.calculating.set(false);

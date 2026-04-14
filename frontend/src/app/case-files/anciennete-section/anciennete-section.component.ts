@@ -1,5 +1,6 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -125,6 +126,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   constructor(
     private ancienneteService: AncienneteService,
     private snackBar: MatSnackBar,
+    @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
 
   ngOnInit(): void {
@@ -184,6 +186,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
         this.result.set(resp);
         this.showForm.set(false);
         this.calculating.set(false);
+        this.refreshService?.triggerRefresh();
       },
       error: () => {
         this.calculating.set(false);

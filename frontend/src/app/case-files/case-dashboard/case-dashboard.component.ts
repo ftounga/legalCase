@@ -1,9 +1,12 @@
-import { Component, Input, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, Input, OnInit, Optional, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DecimalPipe } from '@angular/common';
+import { debounceTime } from 'rxjs';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
 import { DashboardResponse } from '../../core/models/case-dashboard.model';
+import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
 
 @Component({
   selector: 'app-case-dashboard',
@@ -33,10 +36,24 @@ export class CaseDashboardComponent implements OnInit {
     return '#C0392B';
   });
 
-  constructor(private dashboardService: CaseDashboardService) {}
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor(
+    private dashboardService: CaseDashboardService,
+    @Optional() private refreshService: CaseDashboardRefreshService | null,
+  ) {}
 
   ngOnInit(): void {
-    this.loading.set(true);
+    this.reload(true);
+    if (this.refreshService) {
+      this.refreshService.refresh$
+        .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.reload(false));
+    }
+  }
+
+  private reload(showSpinner: boolean): void {
+    if (showSpinner) this.loading.set(true);
     this.dashboardService.get(this.caseFileId).subscribe({
       next: d => { this.dashboard.set(d); this.loading.set(false); },
       error: () => { this.loading.set(false); },

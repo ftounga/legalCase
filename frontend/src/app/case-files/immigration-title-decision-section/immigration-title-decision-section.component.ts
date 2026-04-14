@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -106,6 +107,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   constructor(
     private decisionService: ImmigrationTitleDecisionService,
     private snackBar: MatSnackBar,
+    @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
 
   coherenceAlerts = computed<Partial<Record<IM05AlertField, IM05CoherenceAlert>>>(() => {
@@ -302,6 +304,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
         this.decision.set(resp);
         this.showForm.set(false);
         this.resolving.set(false);
+        this.refreshService?.triggerRefresh();
       },
       error: () => {
         this.resolving.set(false);
