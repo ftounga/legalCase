@@ -129,6 +129,8 @@ export interface ImmigrationExtractedData {
   typeTitreSejour?: string | null;
   typeProcedureDetectee?: string | null;
   dateDepotProcedure?: string | null;
+  typeTitreSejourCode?: string | null;
+  nationaliteUe?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {

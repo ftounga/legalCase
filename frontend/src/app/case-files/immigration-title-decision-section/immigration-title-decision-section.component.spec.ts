@@ -110,4 +110,58 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     expect(component.showForm()).toBe(false);
     expect(component.country()).toBe('BELGIQUE');
   });
+
+  // ---- SF-IM-05-04 : normalized code + nationaliteUe prefill ----
+
+  it('should prefill motif from typeTitreSejourCode VLS_TS_ETUDIANT', () => {
+    component.aiData = { typeTitreSejourCode: 'VLS_TS_ETUDIANT' } as any;
+    initWithNoExistingDecision();
+    expect(component.motif()).toBe('ETUDES');
+  });
+
+  it('should prefill motif TRAVAIL from PERMIS_UNIQUE', () => {
+    component.aiData = { typeTitreSejourCode: 'PERMIS_UNIQUE' } as any;
+    initWithNoExistingDecision();
+    expect(component.motif()).toBe('TRAVAIL');
+  });
+
+  it('should prefill motif FAMILLE from CST_VPF', () => {
+    component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
+    initWithNoExistingDecision();
+    expect(component.motif()).toBe('FAMILLE');
+  });
+
+  it('should NOT prefill motif for CARTE_RESIDENT (generic title)', () => {
+    component.aiData = { typeTitreSejourCode: 'CARTE_RESIDENT' } as any;
+    initWithNoExistingDecision();
+    // Default motif kept
+    expect(component.motif()).toBe('TRAVAIL');
+  });
+
+  it('should prefill nationaliteUe from IA boolean', () => {
+    component.aiData = { nationaliteUe: true } as any;
+    initWithNoExistingDecision();
+    expect(component.nationaliteUe()).toBe(true);
+  });
+
+  it('should fallback to typeTitreSejour heuristic when code absent', () => {
+    component.aiData = { typeTitreSejour: 'Titre étudiant' } as any;
+    initWithNoExistingDecision();
+    expect(component.motif()).toBe('ETUDES');
+  });
+
+  it('should prefer code over heuristic text', () => {
+    component.aiData = {
+      typeTitreSejourCode: 'VLS_TS_SALARIE',
+      typeTitreSejour: 'Titre étudiant', // conflicting text
+    } as any;
+    initWithNoExistingDecision();
+    expect(component.motif()).toBe('TRAVAIL');
+  });
+
+  it('should do nothing when both aiData fields absent', () => {
+    initWithNoExistingDecision();
+    expect(component.motif()).toBe('TRAVAIL'); // default unchanged
+    expect(component.nationaliteUe()).toBe(false);
+  });
 });

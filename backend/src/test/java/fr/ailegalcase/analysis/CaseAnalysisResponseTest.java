@@ -491,6 +491,69 @@ class CaseAnalysisResponseTest {
         assertThat(response.piecesManquantesDetails().get(0).texte()).isEqualTo("Valide");
     }
 
+    // U-41 : immigration typeTitreSejourCode normalisé upper-case
+    @Test
+    void from_immigrationTypeTitreCode_upperCase() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Titre de séjour temporaire",
+                  "type_titre_sejour_code": "vls_ts_etudiant",
+                  "nationalite_ue": false
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.immigrationExtractedData()).isNotNull();
+        assertThat(response.immigrationExtractedData().typeTitreSejourCode()).isEqualTo("VLS_TS_ETUDIANT");
+        assertThat(response.immigrationExtractedData().nationaliteUe()).isFalse();
+        assertThat(response.immigrationExtractedData().typeTitreSejour()).isEqualTo("Titre de séjour temporaire");
+    }
+
+    // U-42 : code hors enum → null (autre champ présent pour que l'objet existe)
+    @Test
+    void from_immigrationCodeUnknown_returnsNullCode() {
+        CaseAnalysis analysis = analysis("""
+                {"type_titre_sejour": "Autre", "type_titre_sejour_code": "UNKNOWN_CODE"}
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.immigrationExtractedData()).isNotNull();
+        assertThat(response.immigrationExtractedData().typeTitreSejourCode()).isNull();
+        assertThat(response.immigrationExtractedData().typeTitreSejour()).isEqualTo("Autre");
+    }
+
+    // U-43 : nationalité ue as string "true"
+    @Test
+    void from_immigrationNationaliteUeAsString_parsed() {
+        CaseAnalysis analysis = analysis("""
+                {"nationalite_ue": "true"}
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.immigrationExtractedData().nationaliteUe()).isTrue();
+    }
+
+    // U-44 : nationalité ue invalide → null
+    @Test
+    void from_immigrationNationaliteUeInvalid_null() {
+        CaseAnalysis analysis = analysis("""
+                {"nationalite_ue": 42}
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        // nationalite is null since 42 is neither bool nor "true"/"false"
+        assertThat(response.immigrationExtractedData()).isNull();
+    }
+
+    // U-45 : prompt IMMIGRATION contient les 16 codes + nationalite_ue
+    @Test
+    void immigrationPrompt_mentionsCodesAndNationaliteUe() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        assertThat(instruction).contains("type_titre_sejour_code").contains("nationalite_ue");
+        assertThat(instruction)
+                .contains("VLS_TS_ETUDIANT").contains("VLS_TS_SALARIE").contains("CST_SALARIE")
+                .contains("CARTE_RESIDENT").contains("APS").contains("CST_VPF")
+                .contains("CARTE_A_TRAVAIL").contains("CARTE_B").contains("PERMIS_UNIQUE")
+                .contains("ANNEXE_15").contains("ATTESTATION_IMMATRICULATION");
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
