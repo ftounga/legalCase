@@ -110,4 +110,80 @@ describe('ImmigrationRecoursSectionComponent', () => {
     expect(component.showForm()).toBe(false);
     expect(component.nom()).toBe('Dupont');
   });
+
+  // ---- AI prefill (SF-IM-06-04) ----
+
+  it('should prefill recoursType from IA code', () => {
+    component.aiData = { typeRecoursCode: 'RECOURS_CNDA' } as any;
+    initNoExisting();
+    expect(component.recoursType()).toBe('RECOURS_CNDA');
+    expect(component.provenanceRecoursType()).toBe('IA');
+  });
+
+  it('should prefill dateNotification from IA', () => {
+    component.aiData = { dateNotificationDecisionContestee: '2026-03-10' } as any;
+    initNoExisting();
+    expect(component.dateNotification()).toBe('2026-03-10');
+    expect(component.provenanceDateNotification()).toBe('IA');
+  });
+
+  it('should prefill both fields when IA provides both', () => {
+    component.aiData = {
+      typeRecoursCode: 'RECOURS_CCE',
+      dateNotificationDecisionContestee: '2026-02-15'
+    } as any;
+    initNoExisting();
+    expect(component.recoursType()).toBe('RECOURS_CCE');
+    expect(component.dateNotification()).toBe('2026-02-15');
+  });
+
+  it('should ignore unknown recours code', () => {
+    component.aiData = { typeRecoursCode: 'UNKNOWN' } as any;
+    initNoExisting();
+    expect(component.recoursType()).toBe('RECOURS_GRACIEUX_PREFET'); // default unchanged
+    expect(component.provenanceRecoursType()).toBeNull();
+  });
+
+  it('should ignore malformed date', () => {
+    component.aiData = { dateNotificationDecisionContestee: 'invalid-date' } as any;
+    initNoExisting();
+    expect(component.dateNotification()).toBe(''); // default unchanged
+    expect(component.provenanceDateNotification()).toBeNull();
+  });
+
+  it('should NOT prefill when recours exists (GET succeeds)', () => {
+    component.aiData = {
+      typeRecoursCode: 'RECOURS_CNDA',
+      dateNotificationDecisionContestee: '2026-03-10'
+    } as any;
+    initWithExisting();
+    // Existing GET flushed MOCK_RESPONSE → prefilled from resp, not from aiData
+    expect(component.recoursType()).toBe('RECOURS_GRACIEUX_PREFET');
+    expect(component.provenanceRecoursType()).toBeNull();
+  });
+
+  it('should clear provenance when user changes recoursType', () => {
+    component.aiData = { typeRecoursCode: 'RECOURS_CNDA' } as any;
+    initNoExisting();
+    expect(component.provenanceRecoursType()).toBe('IA');
+    component.recoursType.set('RECOURS_CGRA');
+    component.onRecoursTypeChange();
+    expect(component.provenanceRecoursType()).toBeNull();
+  });
+
+  it('should clear provenance when user changes dateNotification', () => {
+    component.aiData = { dateNotificationDecisionContestee: '2026-03-10' } as any;
+    initNoExisting();
+    expect(component.provenanceDateNotification()).toBe('IA');
+    component.dateNotification.set('2026-04-01');
+    component.onDateNotificationChange();
+    expect(component.provenanceDateNotification()).toBeNull();
+  });
+
+  it('should do nothing when aiData absent', () => {
+    initNoExisting();
+    expect(component.recoursType()).toBe('RECOURS_GRACIEUX_PREFET');
+    expect(component.dateNotification()).toBe('');
+    expect(component.provenanceRecoursType()).toBeNull();
+  });
 });

@@ -66,6 +66,8 @@ public final class LegalDomainPromptBuilder {
             "nationalite_ue" : booléen — true si le ressortissant est citoyen de l'Union européenne, EEE (Norvège/Islande/Liechtenstein) ou Suisse ; false s'il est ressortissant d'un pays tiers ; null si non déterminable.
             "type_procedure_detectee" : type de procédure administrative en cours, l'une de ces valeurs exactes : "RENOUVELLEMENT_TITRE_SEJOUR", "DEMANDE_ASILE_OFPRA", "RECOURS_CNDA", null si non détectable.
             "date_depot_procedure" : date de dépôt de la demande ou du recours au format YYYY-MM-DD, null si non détectable.
+            "type_recours_code" : code normalisé du recours à former ou déjà formé, l'un des 6 codes exacts (null si non déterminable avec certitude) : "RECOURS_GRACIEUX_PREFET", "RECOURS_CONTENTIEUX_TA", "RECOURS_CNDA" (France), "RECOURS_CGRA", "RECOURS_CCE", "RECOURS_CE_BELGIQUE" (Belgique). Ce champ complète "type_procedure_detectee" avec la granularité nécessaire à F-IM-06 (générateur de recours). Si la procédure est un renouvellement ou une demande d'asile OFPRA (pas un recours), laisser null.
+            "date_notification_decision_contestee" : date de la décision administrative que l'on attaque par recours (refus de titre, rejet OFPRA, etc.), format YYYY-MM-DD, null si non détectable. À ne pas confondre avec "date_depot_procedure" (date de dépôt effectif du recours) ni "date_expiration_titre".
             """;
 
     private LegalDomainPromptBuilder() {}

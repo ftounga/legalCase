@@ -554,6 +554,60 @@ class CaseAnalysisResponseTest {
                 .contains("ANNEXE_15").contains("ATTESTATION_IMMATRICULATION");
     }
 
+    // U-46 : immigration recours code normalisé upper-case
+    @Test
+    void from_immigrationRecoursCode_upperCase() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_recours_code": "recours_cnda",
+                  "date_notification_decision_contestee": "2026-03-10"
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.immigrationExtractedData()).isNotNull();
+        assertThat(response.immigrationExtractedData().typeRecoursCode()).isEqualTo("RECOURS_CNDA");
+        assertThat(response.immigrationExtractedData().dateNotificationDecisionContestee()).isEqualTo("2026-03-10");
+    }
+
+    // U-47 : recours code hors enum → null
+    @Test
+    void from_immigrationRecoursCodeUnknown_returnsNull() {
+        CaseAnalysis analysis = analysis("""
+                {"type_titre_sejour": "Titre", "type_recours_code": "UNKNOWN"}
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.immigrationExtractedData()).isNotNull();
+        assertThat(response.immigrationExtractedData().typeRecoursCode()).isNull();
+    }
+
+    // U-48 : prompt contient les 6 codes recours
+    @Test
+    void immigrationPrompt_mentions6RecoursCodes() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        assertThat(instruction).contains("type_recours_code").contains("date_notification_decision_contestee");
+        assertThat(instruction)
+                .contains("RECOURS_GRACIEUX_PREFET").contains("RECOURS_CONTENTIEUX_TA").contains("RECOURS_CNDA")
+                .contains("RECOURS_CGRA").contains("RECOURS_CCE").contains("RECOURS_CE_BELGIQUE");
+    }
+
+    // U-49 : rétrocompat — les anciens champs existent toujours
+    @Test
+    void from_immigrationLegacyFields_stillWorking() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_procedure_detectee": "RECOURS_CNDA",
+                  "date_depot_procedure": "2026-03-15",
+                  "type_recours_code": "RECOURS_CNDA"
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        var im = response.immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.typeProcedureDetectee()).isEqualTo("RECOURS_CNDA");
+        assertThat(im.dateDepotProcedure()).isEqualTo("2026-03-15");
+        assertThat(im.typeRecoursCode()).isEqualTo("RECOURS_CNDA");
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
