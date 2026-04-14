@@ -56,6 +56,37 @@ YYYY-MM-DD
 
 ---
 
+## Analyse de cohérence transversale
+
+> Avant d'écrire les critères d'acceptation, scanner les cibles où le même mécanisme pourrait s'appliquer.
+> Objectif : éviter d'implémenter un mécanisme sur un seul outil / pays / domaine et devoir le redupliquer plus tard.
+
+### Périmètres à scanner
+
+- [ ] **Autres outils métier** : F-DT-07 Ancienneté, F-DT-08 Validité licenciement, F-DT-09 Comparateur indemnités, F-DT-10 Validité rupture conventionnelle, F-FA-05 Partage immobilier, F-FA-06 Calendrier garde, F-FA-07 Checklist divorce, F-IM-05 Titre séjour, F-IM-06 Recours, F-IM-07 Droit au travail
+- [ ] **Autres pays** : France / Belgique (si le mécanisme dépend d'un pays)
+- [ ] **Autres domaines** : DROIT_DU_TRAVAIL / DROIT_FAMILLE / DROIT_IMMIGRATION
+- [ ] **Autres UI patterns** : formulaires réactifs, dialogues de confirmation, exports PDF, alertes de cohérence F-IA-03, refresh dashboard F-IA-02, pré-remplissage IA, masquage conditionnel
+- [ ] **Autres flows transversaux** : auth / workspace context / plans / navigation
+
+### Résultat du scan
+
+| Cible | Applicable ? | Traitement |
+|-------|-------------|------------|
+| [Cible 1] | [Oui / Non] | [Intégré dans cette SF / SF parallèle SF-XX-YY / backlog / Non applicable — raison] |
+| [...] | | |
+
+### Décision
+
+- [ ] Étendu à toutes les cibles applicables dans cette subfeature
+- [ ] Subfeature(s) parallèle(s) créée(s) pour les cibles restantes : [liste]
+- [ ] Backlog VN (référence ligne PRODUCT_SPEC.md) pour les cibles non prioritaires : [liste + raison]
+- [ ] Non applicable aux autres cibles (justification explicite)
+
+> Si aucune case n'est cochée → la subfeature n'est pas `ready` (cf. readiness-checklist.md).
+
+---
+
 ## Critères d'acceptation
 
 > Chaque critère est vérifiable. Pas d'ambiguïté.

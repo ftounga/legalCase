@@ -25,6 +25,17 @@ Si un item est rouge → résoudre avant de commencer.
 
 ---
 
+## Cohérence transversale — BLOQUANT
+
+- [ ] La section "Analyse de cohérence transversale" du `subfeature-template.md` est remplie
+- [ ] Chaque périmètre à scanner (autres outils / autres pays / autres domaines / autres UI patterns / autres flows transversaux) est coché comme scanné
+- [ ] Chaque cible applicable est explicitement classée (intégrée dans la SF / SF parallèle / backlog VN / non applicable avec justification)
+- [ ] Au moins une case de "Décision" est cochée
+
+> Si la section est vide, incomplète, ou si une cible applicable n'a pas de classement → la subfeature n'est pas `ready`. C'est l'occasion d'éviter la duplication de mécanismes outil par outil / pays par pays / domaine par domaine.
+
+---
+
 ## Analyse d'impact — préoccupations transversales
 
 - [ ] La section "Analyse d'impact" du `subfeature-template.md` est remplie
