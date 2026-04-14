@@ -16,6 +16,10 @@ export interface AncienneteEcart {
 export interface AncienneteResponse {
   caseFileId: string;
   conventionCode: string;
+  dateEntree?: string | null;
+  salaireBase?: number | null;
+  congesContrat?: number | null;
+  primeContrat?: number | null;
   conventionLabel: string;
   country: string;
   ancienneteAnnees: number;

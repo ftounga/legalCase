@@ -203,9 +203,10 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
 
   private prefillForm(resp: AncienneteResponse): void {
     this.conventionCode.set(resp.conventionCode);
-    // TODO SF follow-up : backend AncienneteResponse doit exposer dateEntree / salaireBase /
-    // congesContrat / primeContrat pour pouvoir les restaurer après reload.
-    // Seul conventionCode est actuellement restaurable (cf. SF-118-04).
+    if (resp.dateEntree) this.dateEntree.set(resp.dateEntree);
+    if (resp.salaireBase != null) this.salaireBase.set(resp.salaireBase);
+    if (resp.congesContrat != null) this.congesContrat.set(resp.congesContrat);
+    if (resp.primeContrat != null) this.primeContrat.set(resp.primeContrat);
   }
 }
 

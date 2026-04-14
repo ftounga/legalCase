@@ -7,6 +7,10 @@ import java.util.UUID;
 public record AncienneteResponse(
         UUID caseFileId,
         String conventionCode,
+        java.time.LocalDate dateEntree,
+        BigDecimal salaireBase,
+        Integer congesContrat,
+        BigDecimal primeContrat,
         String conventionLabel,
         String country,
         int ancienneteAnnees,
