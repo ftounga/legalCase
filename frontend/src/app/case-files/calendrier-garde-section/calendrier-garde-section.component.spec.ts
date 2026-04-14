@@ -94,4 +94,115 @@ describe('CalendrierGardeSectionComponent', () => {
     expect(component.gardeCode()).toBe('ALTERNEE_FR');
     expect(component.modeDetailleNote()).toBeNull();
   });
+
+  // ---- Coherence alerts (SF-IA-03-07) ----
+
+  function f96(statut: string, expectedValue: string, raison: string | null = null) {
+    return { id: 'c', ordre: 0, description: 'point', statut, raison,
+      critereCode: 'FA06_MODE_GARDE', expectedValue } as any;
+  }
+  function question(answerText: string, expectedValue: string) {
+    return { id: 'q', orderIndex: 0, questionText: 'Q?', answerText,
+      critereCode: 'FA06_MODE_GARDE', expectedValue } as any;
+  }
+  function synthesisWith(modeGarde: string | null, modeGardeDetaille: string | null = null) {
+    return { pensionAlimentaireEstimate: { modeGarde, modeGardeDetaille } } as any;
+  }
+
+  it('should alert blocker F96 on mode mismatch', () => {
+    component.procedureChecks = [f96('VERIFIED', 'DVH_ELARGI_FR', 'Convention')];
+    initNo();
+    component.gardeCode.set('ALTERNEE_FR');
+    const alert = component.coherenceAlert();
+    expect(alert?.source).toBe('F96');
+    expect(alert?.level).toBe('blocker');
+    expect(alert?.expectedDisplay).toBe('DVH_ELARGI_FR');
+  });
+
+  it('should alert blocker Question IA on mode mismatch', () => {
+    component.aiQuestions = [question('oui', 'SECONDAIRE_BE')];
+    initNo();
+    component.gardeCode.set('ALTERNEE_BE');
+    const alert = component.coherenceAlert();
+    expect(alert?.source).toBe('QUESTION_IA');
+    expect(alert?.expectedDisplay).toBe('SECONDAIRE_BE');
+  });
+
+  it('should alert blocker IA modeGardeDetaille on mismatch', () => {
+    component.synthesis = synthesisWith('ALTERNEE', 'ALTERNEE_FR');
+    initNo();
+    component.gardeCode.set('DVH_CLASSIQUE_FR');
+    const alert = component.coherenceAlert();
+    expect(alert?.source).toBe('IA');
+    expect(alert?.level).toBe('blocker');
+    expect(alert?.expectedDisplay).toBe('ALTERNEE_FR');
+  });
+
+  it('should NOT alert when IA detailed mode matches user', () => {
+    component.synthesis = synthesisWith('ALTERNEE', 'ALTERNEE_FR');
+    initNo();
+    component.gardeCode.set('ALTERNEE_FR');
+    expect(component.coherenceAlert()).toBeNull();
+  });
+
+  it('should alert warning when IA coarse category mismatches', () => {
+    component.synthesis = synthesisWith('ALTERNEE', null);
+    initNo();
+    component.gardeCode.set('DVH_CLASSIQUE_FR');
+    const alert = component.coherenceAlert();
+    expect(alert?.source).toBe('IA_COARSE');
+    expect(alert?.level).toBe('warning');
+  });
+
+  it('should NOT alert when IA coarse category matches', () => {
+    component.synthesis = synthesisWith('ALTERNEE', null);
+    initNo();
+    component.gardeCode.set('ALTERNEE_FR');
+    expect(component.coherenceAlert()).toBeNull();
+  });
+
+  it('should NOT alert when IA coarse EXCLUSIVE matches non-alternée user', () => {
+    component.synthesis = synthesisWith('EXCLUSIVE', null);
+    initNo();
+    component.gardeCode.set('DVH_ELARGI_FR');
+    expect(component.coherenceAlert()).toBeNull();
+  });
+
+  it('should combine sources to MULTI when they align against user', () => {
+    component.procedureChecks = [f96('VERIFIED', 'DVH_CLASSIQUE_FR')];
+    component.aiQuestions = [question('oui', 'DVH_CLASSIQUE_FR')];
+    component.synthesis = synthesisWith('EXCLUSIVE', 'DVH_CLASSIQUE_FR');
+    initNo();
+    component.gardeCode.set('ALTERNEE_FR');
+    const alert = component.coherenceAlert();
+    expect(alert?.source).toBe('MULTI');
+    expect(alert?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
+  });
+
+  it('should NOT alert when no source available', () => {
+    initNo();
+    expect(component.coherenceAlert()).toBeNull();
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('should ignore unknown expected_value', () => {
+    component.procedureChecks = [f96('VERIFIED', 'UNKNOWN_MODE')];
+    initNo();
+    component.gardeCode.set('ALTERNEE_FR');
+    expect(component.coherenceAlert()).toBeNull();
+  });
+
+  it('should freeze alert once result loaded', () => {
+    component.synthesis = synthesisWith('EXCLUSIVE', 'DVH_CLASSIQUE_FR');
+    initWith();
+    // Result loaded, form hidden, no alert even if mismatch
+    expect(component.coherenceAlert()).toBeNull();
+  });
+
+  it('should ignore Question IA "non" on enum critere', () => {
+    component.aiQuestions = [question('non', 'ALTERNEE_FR')];
+    initNo();
+    component.gardeCode.set('DVH_CLASSIQUE_FR');
+    expect(component.coherenceAlert()).toBeNull();
+  });
 });
