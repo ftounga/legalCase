@@ -255,16 +255,41 @@ public record CaseAnalysisResponse(
 
     static CompensationCalculator.CompensationEstimate extractCompensationEstimate(JsonNode root) {
         JsonNode compNode = root.get("compensation_data");
-        if (compNode == null || !compNode.isObject()) return null;
         try {
-            String typeRupture = compNode.has("type_rupture") && !compNode.get("type_rupture").isNull()
-                    ? compNode.get("type_rupture").asText() : null;
-            Integer annees  = compNode.has("anciennete_annees")  && !compNode.get("anciennete_annees").isNull()
-                    ? compNode.get("anciennete_annees").intValue() : null;
-            Integer mois    = compNode.has("anciennete_mois")    && !compNode.get("anciennete_mois").isNull()
-                    ? compNode.get("anciennete_mois").intValue() : null;
-            Double salaire  = compNode.has("salaire_reference_mensuel") && !compNode.get("salaire_reference_mensuel").isNull()
-                    ? compNode.get("salaire_reference_mensuel").doubleValue() : null;
+            String typeRupture = null;
+            Integer annees = null;
+            Integer mois = null;
+            Double salaire = null;
+
+            if (compNode != null && compNode.isObject()) {
+                String rawType = compNode.has("type_rupture") && !compNode.get("type_rupture").isNull()
+                        ? compNode.get("type_rupture").asText() : null;
+                typeRupture = TypeRuptureFallback.normalize(rawType);
+                annees  = compNode.has("anciennete_annees")  && !compNode.get("anciennete_annees").isNull()
+                        ? compNode.get("anciennete_annees").intValue() : null;
+                mois    = compNode.has("anciennete_mois")    && !compNode.get("anciennete_mois").isNull()
+                        ? compNode.get("anciennete_mois").intValue() : null;
+                salaire = compNode.has("salaire_reference_mensuel") && !compNode.get("salaire_reference_mensuel").isNull()
+                        ? compNode.get("salaire_reference_mensuel").doubleValue() : null;
+            }
+
+            // Fallback : si l'IA n'a pas peuplé type_rupture (ou pas compensation_data du tout)
+            // mais qu'elle a détecté un licenciement ailleurs, on dérive un type par défaut
+            // et on remonte au minimum un estimate partiel porteur de ce type_rupture
+            // (pour le pré-remplissage F-DT-09 et les alertes de cohérence F-IA-03).
+            if (typeRupture == null) {
+                typeRupture = TypeRuptureFallback.derive(root);
+                if (typeRupture == null) return null;
+                var calculated = CompensationCalculator.calculate(typeRupture, annees, mois, salaire);
+                if (calculated.isPresent()) return calculated.get();
+                int safeAnnees = annees != null ? annees : 0;
+                int safeMois   = mois != null ? mois : 0;
+                double safeSalaire = (salaire != null && salaire > 0) ? salaire : 0;
+                return new CompensationCalculator.CompensationEstimate(
+                        0.0, safeSalaire, safeAnnees, safeMois,
+                        typeRupture, 0, 0.0, true);
+            }
+
             return CompensationCalculator.calculate(typeRupture, annees, mois, salaire).orElse(null);
         } catch (Exception ignored) {
             return null;

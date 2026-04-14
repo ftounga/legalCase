@@ -26,8 +26,18 @@ public final class CompensationCalculator {
             boolean donneesPartielles
     ) {}
 
-    private static final Set<String> SUPPORTED_TYPES = Set.of(
-            "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE"
+    // Types Macron-compatibles (licenciement abusif / économique) — calcul complet possible
+    private static final Set<String> MACRON_TYPES = Set.of(
+            "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE", "LICENCIEMENT_ORDINAIRE"
+    );
+
+    // Enum étendu F-DT-09 : types pour lesquels on remonte un estimate partiel
+    // (pré-remplissage + cohérence F-IA-03) sans calculer de plafond Macron.
+    private static final Set<String> EXTENDED_TYPES = Set.of(
+            "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE",
+            "DEMISSION", "PRISE_ACTE", "RESILIATION_JUDICIAIRE",
+            "LICENCIEMENT_ORDINAIRE", "LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE",
+            "RUPTURE_AMIABLE"
     );
 
     private CompensationCalculator() {}
@@ -35,18 +45,29 @@ public final class CompensationCalculator {
     public static Optional<CompensationEstimate> calculate(
             String typeRupture, Integer annees, Integer mois, Double salaire) {
 
-        if (typeRupture == null || !SUPPORTED_TYPES.contains(typeRupture.toUpperCase())) {
-            return Optional.empty();
+        if (typeRupture == null) return Optional.empty();
+        String normalized = typeRupture.toUpperCase();
+        if (!EXTENDED_TYPES.contains(normalized)) return Optional.empty();
+
+        boolean isMacron = MACRON_TYPES.contains(normalized);
+
+        int safeAnnees = annees != null ? annees : 0;
+        int safeMois   = mois != null ? mois : 0;
+        double safeSalaire = (salaire != null && salaire > 0) ? salaire : 0;
+
+        if (!isMacron) {
+            // Type hors Macron (rupture conventionnelle, démission, etc.) :
+            // on remonte un estimate partiel pour le pré-remplissage F-DT-09
+            // et la cohérence F-IA-03. Aucun chiffre d'indemnité Macron.
+            return Optional.of(new CompensationEstimate(
+                    0.0, safeSalaire, safeAnnees, safeMois,
+                    normalized, 0, 0.0, true));
         }
 
         boolean donneesPartielles = (annees == null || mois == null
                 || salaire == null || salaire <= 0);
 
         if (annees == null && salaire == null) return Optional.empty();
-
-        int safeAnnees = annees != null ? annees : 0;
-        int safeMois   = mois != null ? mois : 0;
-        double safeSalaire = (salaire != null && salaire > 0) ? salaire : 0;
 
         double totalYears = safeAnnees + safeMois / 12.0;
         double indemnite  = 0;
@@ -62,7 +83,7 @@ public final class CompensationCalculator {
         double rounded = Math.round(indemnite * 100.0) / 100.0;
         return Optional.of(new CompensationEstimate(
                 rounded, safeSalaire, safeAnnees, safeMois,
-                typeRupture.toUpperCase(), plafondMin, plafondMax, donneesPartielles));
+                normalized, plafondMin, plafondMax, donneesPartielles));
     }
 
     static int macronMin(int annees) {
