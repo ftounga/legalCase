@@ -99,7 +99,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   });
 
   coherenceAlerts = computed<Partial<Record<IndemniteAlertField, IndemniteCoherenceAlert>>>(() => {
-    if (!this.showForm() || this.result()) return {};
+    if (!this.showForm()) return {};
     const alerts: Partial<Record<IndemniteAlertField, IndemniteCoherenceAlert>> = {};
     const typeAlert = this.buildTypeRuptureAlert();
     if (typeAlert) alerts.TYPE_RUPTURE = typeAlert;

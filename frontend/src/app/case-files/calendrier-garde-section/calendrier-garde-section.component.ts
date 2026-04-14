@@ -77,7 +77,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   constructor(private gardeService: CalendrierGardeService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
 
   coherenceAlert = computed<GardeCoherenceAlert | null>(() => {
-    if (!this.showForm() || this.result()) return null;
+    if (!this.showForm()) return null;
     const user = this.gardeCode();
     if (!user || !ALL_MODES.has(user)) return null;
 

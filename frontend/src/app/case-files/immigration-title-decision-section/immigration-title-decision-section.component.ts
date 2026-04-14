@@ -111,7 +111,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   ) {}
 
   coherenceAlerts = computed<Partial<Record<IM05AlertField, IM05CoherenceAlert>>>(() => {
-    if (!this.showForm() || this.decision()) return {};
+    if (!this.showForm()) return {};
     const alerts: Partial<Record<IM05AlertField, IM05CoherenceAlert>> = {};
     const motifAlert = this.buildMotifAlert();
     if (motifAlert) alerts.MOTIF = motifAlert;

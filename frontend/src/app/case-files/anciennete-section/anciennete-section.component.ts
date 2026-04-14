@@ -53,7 +53,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
 
   coherenceAlerts = computed<Partial<Record<AncienneteAlertField, AncienneteCoherenceAlert>>>(() => {
     const ai = this.aiDataSignal();
-    if (!ai || !this.showForm() || this.result()) return {};
+    if (!ai || !this.showForm()) return {};
     const alerts: Partial<Record<AncienneteAlertField, AncienneteCoherenceAlert>> = {};
 
     // Convention — exact match upper-case

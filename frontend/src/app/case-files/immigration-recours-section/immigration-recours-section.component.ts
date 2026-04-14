@@ -95,7 +95,7 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   ) {}
 
   coherenceAlerts = computed<Partial<Record<IM06AlertField, IM06CoherenceAlert>>>(() => {
-    if (!this.showForm() || this.recours()) return {};
+    if (!this.showForm()) return {};
     const alerts: Partial<Record<IM06AlertField, IM06CoherenceAlert>> = {};
     const typeAlert = this.buildRecoursTypeAlert();
     if (typeAlert) alerts.RECOURS_TYPE = typeAlert;
