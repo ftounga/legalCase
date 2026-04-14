@@ -20,6 +20,12 @@
 
       @if (!loading() && showForm()) {
         <div class="questionnaire">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse IA</span>
+            </div>
+          }
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Pays</mat-label>
@@ -30,14 +36,22 @@
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Motif du séjour</mat-label>
-              <mat-select [(ngModel)]="motif" (ngModelChange)="onMotifChange()">
-                @for (m of motifs; track m.value) {
-                  <mat-option [value]="m.value">{{ m.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Motif du séjour</mat-label>
+                <mat-select [(ngModel)]="motif" (ngModelChange)="onMotifChange()">
+                  @for (m of motifs; track m.value) {
+                    <mat-option [value]="m.value">{{ m.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (coherenceAlerts().MOTIF; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
 
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Durée</mat-label>
@@ -50,10 +64,16 @@
           </div>
 
           <div class="form-row">
-            <div class="toggle-field">
+            <div class="field-with-alert toggle-field">
               <mat-slide-toggle [(ngModel)]="nationaliteUe" color="primary">
                 Ressortissant UE / EEE / Suisse
               </mat-slide-toggle>
+              @if (coherenceAlerts().NATIONALITE_UE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
             </div>
 
             @if (motif() === 'FAMILLE') {

@@ -366,7 +366,9 @@
     @if (caseFile()!.legalDomain === 'DROIT_IMMIGRATION') {
       <app-immigration-title-decision-section
         [caseFileId]="caseFile()!.id"
-        [aiData]="synthesis()?.immigrationExtractedData">
+        [aiData]="synthesis()?.immigrationExtractedData"
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()">
       </app-immigration-title-decision-section>
 
       <app-immigration-recours-section
