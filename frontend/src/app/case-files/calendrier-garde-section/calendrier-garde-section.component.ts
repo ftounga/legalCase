@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -73,7 +74,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     ]},
   ];
 
-  constructor(private gardeService: CalendrierGardeService, private snackBar: MatSnackBar) {}
+  constructor(private gardeService: CalendrierGardeService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
 
   coherenceAlert = computed<GardeCoherenceAlert | null>(() => {
     if (!this.showForm() || this.result()) return null;
@@ -206,7 +207,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     this.gardeService.generate(this.caseFileId, {
       gardeCode: this.gardeCode(), parentANom: this.parentANom(), parentBNom: this.parentBNom(),
     }).subscribe({
-      next: r => { this.result.set(r); this.showForm.set(false); this.generating.set(false); },
+      next: r => { this.result.set(r); this.showForm.set(false); this.generating.set(false); this.refreshService?.triggerRefresh(); },
       error: () => { this.generating.set(false); this.snackBar.open('Erreur', 'Fermer', { duration: 4000 }); },
     });
   }

@@ -52,6 +52,7 @@ import { PartageImmobilierSectionComponent } from '../partage-immobilier-section
 import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
 import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
@@ -79,6 +80,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
   styleUrl: './case-file-detail.component.scss',
   animations: [fadeInUp, listStagger],
   host: { '[@fadeInUp]': '' },
+  providers: [CaseDashboardRefreshService],
 })
 export class CaseFileDetailComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;

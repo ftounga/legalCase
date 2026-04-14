@@ -1,4 +1,5 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, Optional, signal, computed } from '@angular/core';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { TitleCasePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -341,6 +342,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   constructor(
     private licenciementService: LicenciementService,
     private snackBar: MatSnackBar,
+    @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
 
   ngOnInit(): void {
@@ -452,6 +454,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
         this.result.set(resp);
         this.showForm.set(false);
         this.analyzing.set(false);
+        this.refreshService?.triggerRefresh();
       },
       error: () => {
         this.analyzing.set(false);
