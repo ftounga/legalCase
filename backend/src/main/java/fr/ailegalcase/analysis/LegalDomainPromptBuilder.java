@@ -9,7 +9,8 @@ public final class LegalDomainPromptBuilder {
               "revenus_net_mensuel_debiteur" : revenu net mensuel du parent débiteur en euros, null si non détectable.
               "revenus_net_mensuel_creancier" : revenu net mensuel du parent créancier en euros, null si non détectable.
               "nb_enfants" : nombre d'enfants concernés par la pension, null si non détectable.
-              "mode_garde" : mode de garde, l'une de ces valeurs exactes : "EXCLUSIVE", "ALTERNEE", null si non détectable.
+              "mode_garde" : mode de garde binaire (pour le calcul de pension), l'une de ces valeurs exactes : "EXCLUSIVE", "ALTERNEE", null si non détectable.
+              "mode_garde_detaille" : mode de garde précis pour le calendrier F-FA-06, l'une de ces valeurs exactes (null si non déterminable avec certitude) : "ALTERNEE_FR" (résidence alternée 1 semaine sur 2 en France), "DVH_CLASSIQUE_FR" (droit de visite et hébergement classique 1 week-end sur 2 en France), "DVH_ELARGI_FR" (DVH élargi avec mercredi après-midi en France), "ALTERNEE_BE" (hébergement égalitaire en Belgique), "SECONDAIRE_BE" (hébergement secondaire classique en Belgique), "SECONDAIRE_ELARGI_BE" (hébergement secondaire élargi en Belgique). Si l'information ne permet pas de choisir parmi ces 6 valeurs, laisser null — le champ "mode_garde" binaire suffit pour la pension.
               "pays_applicable" : pays du barème applicable, l'une de ces valeurs exactes : "FRANCE", "BELGIQUE", null si non détectable.
             "prestation_compensatoire_data" : objet avec les champs :
               "revenus_net_mensuel_epoux_a" : revenu net mensuel de l'époux A en euros, null si non détectable.

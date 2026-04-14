@@ -390,7 +390,9 @@
       </app-partage-immobilier-section>
 
       <app-calendrier-garde-section
-        [caseFileId]="caseFile()!.id">
+        [caseFileId]="caseFile()!.id"
+        [workspaceCountry]="workspaceCountry()"
+        [aiModeGardeDetaille]="synthesis()?.pensionAlimentaireEstimate?.modeGardeDetaille">
       </app-calendrier-garde-section>
 
       <app-divorce-checklist-section

@@ -246,6 +246,11 @@ public record CaseAnalysisResponse(
         }
     }
 
+    static final Set<String> MODE_GARDE_DETAILLE_VALUES = Set.of(
+            "ALTERNEE_FR", "DVH_CLASSIQUE_FR", "DVH_ELARGI_FR",
+            "ALTERNEE_BE", "SECONDAIRE_BE", "SECONDAIRE_ELARGI_BE"
+    );
+
     static PensionAlimentaireCalculator.PensionAlimentaireEstimate extractPensionAlimentaireEstimate(JsonNode root) {
         JsonNode node = root.get("pension_alimentaire_data");
         if (node == null || !node.isObject()) return null;
@@ -258,7 +263,23 @@ public record CaseAnalysisResponse(
                     ? node.get("mode_garde").asText() : null;
             String pays = node.has("pays_applicable") && !node.get("pays_applicable").isNull()
                     ? node.get("pays_applicable").asText() : null;
-            return PensionAlimentaireCalculator.calculate(revenus, nbEnfants, modeGarde, pays).orElse(null);
+            String modeGardeDetaille = null;
+            if (node.has("mode_garde_detaille") && !node.get("mode_garde_detaille").isNull()) {
+                String raw = node.get("mode_garde_detaille").asText();
+                if (raw != null && !raw.isBlank()) {
+                    String normalized = raw.trim().toUpperCase();
+                    if (MODE_GARDE_DETAILLE_VALUES.contains(normalized)) {
+                        modeGardeDetaille = normalized;
+                    }
+                }
+            }
+            var estimate = PensionAlimentaireCalculator.calculate(revenus, nbEnfants, modeGarde, pays).orElse(null);
+            if (estimate == null) return null;
+            if (modeGardeDetaille == null) return estimate;
+            return new PensionAlimentaireCalculator.PensionAlimentaireEstimate(
+                    estimate.montantMin(), estimate.montantMax(), estimate.revenus(),
+                    estimate.nbEnfants(), estimate.modeGarde(), estimate.pays(),
+                    estimate.donneesPartielles(), modeGardeDetaille);
         } catch (Exception ignored) {
             return null;
         }

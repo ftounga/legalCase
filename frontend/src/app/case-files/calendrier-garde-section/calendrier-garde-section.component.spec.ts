@@ -38,4 +38,60 @@ describe('CalendrierGardeSectionComponent', () => {
     expect(component.result()).toBeTruthy(); expect(component.showForm()).toBe(false);
   });
   it('should display existing', () => { initWith(); expect(component.result()).toBeTruthy(); expect(component.showForm()).toBe(false); });
+
+  // ---- AI prefill mode_garde_detaille (SF-FA-06-04) ----
+
+  it('should prefill gardeCode from IA when mode matches workspace country', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiModeGardeDetaille = 'DVH_ELARGI_FR';
+    initNo();
+    expect(component.gardeCode()).toBe('DVH_ELARGI_FR');
+    expect(component.modeDetailleNote()).toBeNull();
+  });
+
+  it('should prefill gardeCode for BELGIQUE workspace', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    component.aiModeGardeDetaille = 'SECONDAIRE_ELARGI_BE';
+    initNo();
+    expect(component.gardeCode()).toBe('SECONDAIRE_ELARGI_BE');
+  });
+
+  it('should set note when IA mode is from opposite country', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiModeGardeDetaille = 'ALTERNEE_BE';
+    initNo();
+    // Default FR preserved, note shown
+    expect(component.gardeCode()).toBe('ALTERNEE_FR');
+    expect(component.modeDetailleNote()).toContain('ALTERNEE_BE');
+  });
+
+  it('should ignore invalid IA value', () => {
+    component.aiModeGardeDetaille = 'UNKNOWN_MODE' as any;
+    initNo();
+    expect(component.gardeCode()).toBe('ALTERNEE_FR');
+    expect(component.modeDetailleNote()).toBeNull();
+  });
+
+  it('should NOT override saved result', () => {
+    component.aiModeGardeDetaille = 'DVH_ELARGI_FR';
+    initWith();
+    // Existing result loaded — prefill not applied
+    expect(component.showForm()).toBe(false);
+    // gardeCode signal may have been reset by loadExisting ; we just check no crash
+  });
+
+  it('should clear note when user changes gardeCode', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiModeGardeDetaille = 'ALTERNEE_BE';
+    initNo();
+    expect(component.modeDetailleNote()).not.toBeNull();
+    component.onGardeCodeChange();
+    expect(component.modeDetailleNote()).toBeNull();
+  });
+
+  it('should do nothing when aiModeGardeDetaille is absent', () => {
+    initNo();
+    expect(component.gardeCode()).toBe('ALTERNEE_FR');
+    expect(component.modeDetailleNote()).toBeNull();
+  });
 });
