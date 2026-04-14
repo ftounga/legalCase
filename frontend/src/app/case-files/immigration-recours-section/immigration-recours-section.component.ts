@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -10,6 +10,12 @@ import { FormsModule } from '@angular/forms';
 import { ImmigrationRecoursService } from '../../core/services/immigration-recours.service';
 import { RecoursResponse } from '../../core/models/immigration-recours.model';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
+
+const VALID_RECOURS_CODES = new Set([
+  'RECOURS_GRACIEUX_PREFET', 'RECOURS_CONTENTIEUX_TA', 'RECOURS_CNDA',
+  'RECOURS_CGRA', 'RECOURS_CCE', 'RECOURS_CE_BELGIQUE',
+]);
 
 @Component({
   selector: 'app-immigration-recours-section',
@@ -23,9 +29,10 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
   templateUrl: './immigration-recours-section.component.html',
   styleUrl: './immigration-recours-section.component.scss'
 })
-export class ImmigrationRecoursSectionComponent implements OnInit {
+export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
+  @Input() aiData?: ImmigrationExtractedData | null;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -36,6 +43,10 @@ export class ImmigrationRecoursSectionComponent implements OnInit {
   // Form fields
   recoursType = signal('RECOURS_GRACIEUX_PREFET');
   dateNotification = signal('');
+
+  // Provenance notes (SF-IM-06-04)
+  provenanceRecoursType = signal<'IA' | null>(null);
+  provenanceDateNotification = signal<'IA' | null>(null);
   nom = signal('');
   prenom = signal('');
   nationalite = signal('');
@@ -64,6 +75,12 @@ export class ImmigrationRecoursSectionComponent implements OnInit {
     this.loadExisting();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData'] && this.showForm() && !this.recours()) {
+      this.prefillFromAi();
+    }
+  }
+
   toggleCollapsed(): void {
     this.collapsed.update(v => !v);
   }
@@ -80,9 +97,27 @@ export class ImmigrationRecoursSectionComponent implements OnInit {
       error: () => {
         this.showForm.set(true);
         this.loading.set(false);
+        this.prefillFromAi();
       },
     });
   }
+
+  private prefillFromAi(): void {
+    if (!this.aiData) return;
+    const code = this.aiData.typeRecoursCode?.toUpperCase();
+    if (code && VALID_RECOURS_CODES.has(code)) {
+      this.recoursType.set(code);
+      this.provenanceRecoursType.set('IA');
+    }
+    const date = this.aiData.dateNotificationDecisionContestee;
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      this.dateNotification.set(date);
+      this.provenanceDateNotification.set('IA');
+    }
+  }
+
+  onRecoursTypeChange(): void { this.provenanceRecoursType.set(null); }
+  onDateNotificationChange(): void { this.provenanceDateNotification.set(null); }
 
   generate(): void {
     this.generating.set(true);

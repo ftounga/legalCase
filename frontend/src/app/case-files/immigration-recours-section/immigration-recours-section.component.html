@@ -21,19 +21,29 @@
       @if (!loading() && showForm()) {
         <div class="recours-form">
           <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field form-field--wide">
-              <mat-label>Type de recours</mat-label>
-              <mat-select [(ngModel)]="recoursType">
-                @for (t of recoursTypes; track t.value) {
-                  <mat-option [value]="t.value">{{ t.label }} ({{ t.country }})</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+            <div class="field-with-provenance form-field--wide">
+              <mat-form-field appearance="outline" class="form-field form-field--wide">
+                <mat-label>Type de recours</mat-label>
+                <mat-select [(ngModel)]="recoursType" (ngModelChange)="onRecoursTypeChange()">
+                  @for (t of recoursTypes; track t.value) {
+                    <mat-option [value]="t.value">{{ t.label }} ({{ t.country }})</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceRecoursType() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse IA</span>
+              }
+            </div>
 
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Date de notification du refus</mat-label>
-              <input matInput type="date" [(ngModel)]="dateNotification">
-            </mat-form-field>
+            <div class="field-with-provenance">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Date de notification du refus</mat-label>
+                <input matInput type="date" [(ngModel)]="dateNotification" (ngModelChange)="onDateNotificationChange()">
+              </mat-form-field>
+              @if (provenanceDateNotification() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-remplie depuis l'analyse IA</span>
+              }
+            </div>
           </div>
 
           <h4 class="form-section-title">Requérant</h4>

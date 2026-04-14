@@ -195,3 +195,15 @@
     margin-right: 4px;
   }
 }
+
+.field-with-provenance {
+  display: flex; flex-direction: column; gap: 4px;
+  flex: 1; min-width: 0;
+  &.form-field--wide { flex: 2; }
+}
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; color: #1A3A5C;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #C9973A; }
+}

@@ -66,10 +66,17 @@ public record CaseAnalysisResponse(
     public record ImmigrationExtractedData(
             String dateExpirationTitre, String typeTitreSejour,
             String typeProcedureDetectee, String dateDepotProcedure,
-            String typeTitreSejourCode, Boolean nationaliteUe) {
+            String typeTitreSejourCode, Boolean nationaliteUe,
+            String typeRecoursCode, String dateNotificationDecisionContestee) {
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure, null, null);
+            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure, null, null, null, null);
+        }
+        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
+                                         String typeProcedureDetectee, String dateDepotProcedure,
+                                         String typeTitreSejourCode, Boolean nationaliteUe) {
+            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
+                    typeTitreSejourCode, nationaliteUe, null, null);
         }
     }
 
@@ -78,6 +85,11 @@ public record CaseAnalysisResponse(
             "CARTE_RESIDENT", "APS", "CST_VPF", "RECEPISSE_ASILE",
             "CARTE_A_TRAVAIL", "CARTE_A_ETUDES", "CARTE_A_FAMILLE",
             "CARTE_B", "CARTE_C", "PERMIS_UNIQUE", "ANNEXE_15", "ATTESTATION_IMMATRICULATION"
+    );
+
+    static final Set<String> IMMIGRATION_RECOURS_CODES = Set.of(
+            "RECOURS_GRACIEUX_PREFET", "RECOURS_CONTENTIEUX_TA", "RECOURS_CNDA",
+            "RECOURS_CGRA", "RECOURS_CCE", "RECOURS_CE_BELGIQUE"
     );
 
     public record TimelineEntry(String date, String evenement) {}
@@ -519,9 +531,19 @@ public record CaseAnalysisResponse(
         String dateDepot = textOrNull(root, "date_depot_procedure");
         String typeCode = normalizeTitleCode(textOrNull(root, "type_titre_sejour_code"));
         Boolean nationaliteUe = normalizeNationaliteUe(root.get("nationalite_ue"));
+        String recoursCode = normalizeRecoursCode(textOrNull(root, "type_recours_code"));
+        String dateNotif = textOrNull(root, "date_notification_decision_contestee");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
-                && dateDepot == null && typeCode == null && nationaliteUe == null) return null;
-        return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot, typeCode, nationaliteUe);
+                && dateDepot == null && typeCode == null && nationaliteUe == null
+                && recoursCode == null && dateNotif == null) return null;
+        return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot,
+                typeCode, nationaliteUe, recoursCode, dateNotif);
+    }
+
+    private static String normalizeRecoursCode(String raw) {
+        if (raw == null) return null;
+        String up = raw.trim().toUpperCase();
+        return IMMIGRATION_RECOURS_CODES.contains(up) ? up : null;
     }
 
     private static String normalizeTitleCode(String raw) {

@@ -131,6 +131,8 @@ export interface ImmigrationExtractedData {
   dateDepotProcedure?: string | null;
   typeTitreSejourCode?: string | null;
   nationaliteUe?: boolean | null;
+  typeRecoursCode?: string | null;
+  dateNotificationDecisionContestee?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
