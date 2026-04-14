@@ -380,7 +380,10 @@
       </app-immigration-recours-section>
 
       <app-immigration-work-right-section
-        [caseFileId]="caseFile()!.id">
+        [caseFileId]="caseFile()!.id"
+        [aiData]="synthesis()?.immigrationExtractedData"
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()">
       </app-immigration-work-right-section>
 
       <app-immigration-checklist-section
