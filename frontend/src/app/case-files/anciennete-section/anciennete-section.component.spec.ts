@@ -15,6 +15,10 @@ describe('AncienneteSectionComponent', () => {
   const MOCK_RESPONSE = {
     caseFileId: CASE_FILE_ID,
     conventionCode: 'METALLURGIE',
+    dateEntree: '2015-06-01',
+    salaireBase: 3500,
+    congesContrat: 27,
+    primeContrat: 3.5,
     conventionLabel: 'Métallurgie',
     country: 'FRANCE',
     ancienneteAnnees: 10,
@@ -268,5 +272,43 @@ describe('AncienneteSectionComponent', () => {
     // showForm=false après initWithExisting, on ne clique pas editForm
     expect(component.showForm()).toBe(false);
     expect(component.coherenceAlerts().CONVENTION).toBeUndefined();
+  });
+
+  it('SF-DT-07-04: GET 200 pré-remplit les 5 signals depuis la réponse sauvegardée', () => {
+    initWithExisting();
+    expect(component.conventionCode()).toBe('METALLURGIE');
+    expect(component.dateEntree()).toBe('2015-06-01');
+    expect(component.salaireBase()).toBe(3500);
+    expect(component.congesContrat()).toBe(27);
+    expect(component.primeContrat()).toBe(3.5);
+  });
+
+  it('SF-DT-07-04: legacy response avec inputs null garde les valeurs par défaut', () => {
+    // Dossier analysé avant la migration 073 — réponse sans les 3 inputs.
+    const legacyResp = { ...MOCK_RESPONSE,
+      dateEntree: null, salaireBase: null, congesContrat: null, primeContrat: null };
+    initWithExisting(legacyResp as any);
+    expect(component.conventionCode()).toBe('METALLURGIE');
+    // Défauts signals
+    expect(component.dateEntree()).toBe('');
+    expect(component.salaireBase()).toBe(0);
+    expect(component.congesContrat()).toBe(25);
+    expect(component.primeContrat()).toBe(0);
+  });
+
+  it('SF-DT-07-04: editForm restaure les 5 champs depuis le résultat', () => {
+    initWithExisting();
+    expect(component.showForm()).toBe(false);
+    // Simuler reset de signals (comme après un reload)
+    component.dateEntree.set('');
+    component.salaireBase.set(0);
+    component.congesContrat.set(25);
+    component.primeContrat.set(0);
+    component.editForm();
+    expect(component.showForm()).toBe(true);
+    expect(component.dateEntree()).toBe('2015-06-01');
+    expect(component.salaireBase()).toBe(3500);
+    expect(component.congesContrat()).toBe(27);
+    expect(component.primeContrat()).toBe(3.5);
   });
 });

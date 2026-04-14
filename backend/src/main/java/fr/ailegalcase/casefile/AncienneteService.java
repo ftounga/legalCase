@@ -56,10 +56,13 @@ public class AncienneteService {
                 .orElseGet(() -> { AncienneteAnalysis a = new AncienneteAnalysis(); a.setCaseFile(caseFile); return a; });
         entity.setConventionCode(request.conventionCode());
         entity.setDateEntree(request.dateEntree());
+        entity.setSalaireBase(request.salaireBase());
+        entity.setCongesContrat(request.congesContrat());
+        entity.setPrimeContrat(request.primeContrat());
         entity.setResultData(serialize(result));
         analysisRepository.save(entity);
 
-        return toResponse(caseFileId, result);
+        return toResponse(caseFileId, result, entity);
     }
 
     @Transactional(readOnly = true)
@@ -70,7 +73,7 @@ public class AncienneteService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucune analyse d'ancienneté trouvée pour ce dossier"));
         AncienneteResult result = deserialize(entity.getResultData(), AncienneteResult.class);
-        return toResponse(caseFileId, result);
+        return toResponse(caseFileId, result, entity);
     }
 
     private void validateRequest(AncienneteRequest request) {
@@ -106,8 +109,11 @@ public class AncienneteService {
         catch (JsonProcessingException e) { throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur de désérialisation"); }
     }
 
-    private AncienneteResponse toResponse(UUID caseFileId, AncienneteResult r) {
-        return new AncienneteResponse(caseFileId, r.conventionCode(), r.conventionLabel(), r.country(),
+    private AncienneteResponse toResponse(UUID caseFileId, AncienneteResult r, AncienneteAnalysis entity) {
+        return new AncienneteResponse(caseFileId, r.conventionCode(),
+                entity.getDateEntree(), entity.getSalaireBase(),
+                entity.getCongesContrat(), entity.getPrimeContrat(),
+                r.conventionLabel(), r.country(),
                 r.ancienneteAnnees(), r.ancienneteMois(), r.congesLegauxJours(), r.congesSupplementairesJours(),
                 r.congesTotalJours(), r.primeAnciennetePourcentage(), r.primeAncienneteMontant(),
                 r.ecarts().stream().map(e -> new AncienneteResponse.EcartData(

@@ -86,6 +86,21 @@ class AncienneteControllerIT {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.conventionCode").value("CP124"));
     }
 
+    @Test void SF_DT_07_04_POST_GET_roundtripsInputs() throws Exception {
+        // Vérifie que salaireBase / congesContrat / primeContrat sont persistés et remontés par GET
+        mockMvc.perform(post("/api/v1/case-files/"+travailCf.getId()+"/anciennete").with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                        "conventionCode","SYNTEC","dateEntree","2015-06-01",
+                        "salaireBase",4250.50,"congesContrat",27,"primeContrat",3.5))))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/case-files/"+travailCf.getId()+"/anciennete").with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dateEntree").value("2015-06-01"))
+                .andExpect(jsonPath("$.salaireBase").value(4250.50))
+                .andExpect(jsonPath("$.congesContrat").value(27))
+                .andExpect(jsonPath("$.primeContrat").value(3.5));
+    }
+
     private OAuth2AuthenticationToken bAuth(String sub, String email) {
         Map<String,Object> c = Map.of("sub",sub,"email",email,"iss","https://accounts.google.com");
         OidcIdToken t = new OidcIdToken("token",Instant.now(),Instant.now().plusSeconds(3600),c);
