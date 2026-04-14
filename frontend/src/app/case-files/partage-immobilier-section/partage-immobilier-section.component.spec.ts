@@ -142,4 +142,122 @@ describe('PartageImmobilierSectionComponent', () => {
     component.applyImport();
     expect(component.valeurVenale()).toBe(100000);
   });
+
+  // ---- Coherence alerts (SF-IA-03-08) ----
+
+  it('should NOT alert valeur when within 10% of IA best match', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
+    initNo();
+    component.valeurVenale.set(420000); // +5%
+    expect(component.coherenceAlerts().VALEUR_VENALE).toBeUndefined();
+  });
+
+  it('should alert warning valeur when 10% diverges', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
+    initNo();
+    component.valeurVenale.set(450000); // +12.5%
+    const alert = component.coherenceAlerts().VALEUR_VENALE;
+    expect(alert).toBeDefined();
+    expect(alert!.iaValue).toBe(400000);
+    expect(alert!.iaLibelle).toBe('Maison');
+  });
+
+  it('should pick best-match among multiple biens', () => {
+    setLiquidation([
+      { libelle: 'Maison', valeur: 400000 },
+      { libelle: 'Appartement Paris', valeur: 300000 },
+    ]);
+    initNo();
+    component.valeurVenale.set(310000); // +3.3% vs appt, -22.5% vs maison
+    // Best match = appartement
+    expect(component.coherenceAlerts().VALEUR_VENALE).toBeUndefined();
+  });
+
+  it('should alert when user diverges even from best match', () => {
+    setLiquidation([
+      { libelle: 'Maison', valeur: 400000 },
+      { libelle: 'Appartement', valeur: 300000 },
+    ]);
+    initNo();
+    component.valeurVenale.set(360000); // best match = maison (-10%)
+    // écart relatif = 40/400 = 0.10 exactement
+    const alert = component.coherenceAlerts().VALEUR_VENALE;
+    expect(alert).toBeDefined();
+    expect(alert!.iaValue).toBe(400000);
+  });
+
+  it('should use imported reference over best-match if import active', () => {
+    setLiquidation([
+      { libelle: 'Maison', valeur: 400000 },
+      { libelle: 'Appartement', valeur: 300000 },
+    ]);
+    initNo();
+    // User imports Maison
+    component.selectedBienLibelle.set('Maison');
+    component.applyImport();
+    // User modifies to 350000 (−12.5% vs Maison, but −16.7% vs Appartement)
+    component.valeurVenale.set(350000);
+    component.onValeurVenaleChange();
+    const alert = component.coherenceAlerts().VALEUR_VENALE;
+    expect(alert?.iaValue).toBe(400000); // reference = imported Maison, not best match
+  });
+
+  it('should NOT alert when valeur user = 0', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
+    initNo();
+    component.valeurVenale.set(0);
+    expect(component.coherenceAlerts().VALEUR_VENALE).toBeUndefined();
+  });
+
+  it('should NOT alert when liquidationCommunaute null', () => {
+    initNo();
+    component.valeurVenale.set(999999);
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('should NOT alert when no immobilier item', () => {
+    setLiquidation([{ libelle: 'Véhicule', valeur: 50000 }]);
+    initNo();
+    component.valeurVenale.set(500000);
+    expect(component.coherenceAlerts().VALEUR_VENALE).toBeUndefined();
+  });
+
+  // Capital
+  it('should alert warning capital on 10%+ divergence', () => {
+    setLiquidation(
+      [{ libelle: 'Maison', valeur: 400000 }],
+      [{ libelle: 'Prêt BNP', valeur: 150000 }]
+    );
+    initNo();
+    component.capitalRestantDu.set(170000); // +13%
+    expect(component.coherenceAlerts().CAPITAL_RESTANT).toBeDefined();
+  });
+
+  it('should NOT alert capital when 0', () => {
+    setLiquidation(
+      [{ libelle: 'Maison', valeur: 400000 }],
+      [{ libelle: 'Prêt', valeur: 150000 }]
+    );
+    initNo();
+    component.capitalRestantDu.set(0);
+    expect(component.coherenceAlerts().CAPITAL_RESTANT).toBeUndefined();
+  });
+
+  it('should count multiple alerts', () => {
+    setLiquidation(
+      [{ libelle: 'Maison', valeur: 400000 }],
+      [{ libelle: 'Prêt', valeur: 150000 }]
+    );
+    initNo();
+    component.valeurVenale.set(500000);
+    component.capitalRestantDu.set(200000);
+    expect(component.alertsSummary()).toEqual({ total: 2, blockers: 0 });
+  });
+
+  it('should freeze alerts when result is loaded', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
+    initWith(); // loads existing result, hides form
+    component.valeurVenale.set(999999);
+    expect(component.coherenceAlerts().VALEUR_VENALE).toBeUndefined();
+  });
 });
