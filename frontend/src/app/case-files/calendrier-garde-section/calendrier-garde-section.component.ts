@@ -197,9 +197,15 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   loadExisting(): void {
     this.loading.set(true);
     this.gardeService.get(this.caseFileId).subscribe({
-      next: r => { this.result.set(r); this.showForm.set(false); this.loading.set(false); },
+      next: r => { this.result.set(r); this.prefillForm(r); this.showForm.set(false); this.loading.set(false); },
       error: () => { this.showForm.set(true); this.loading.set(false); this.applyAiPrefill(); },
     });
+  }
+
+  private prefillForm(resp: CalendrierGardeResponse): void {
+    if (resp.gardeCode) this.gardeCode.set(resp.gardeCode);
+    if (resp.parentANom != null) this.parentANom.set(resp.parentANom);
+    if (resp.parentBNom != null) this.parentBNom.set(resp.parentBNom);
   }
 
   generate(): void {
@@ -212,7 +218,11 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     });
   }
 
-  editForm(): void { this.showForm.set(true); }
+  editForm(): void {
+    const r = this.result();
+    if (r) this.prefillForm(r);
+    this.showForm.set(true);
+  }
 
   onGardeCodeChange(): void {
     // L'avocat a modifié le mode — on efface la note de pré-remplissage.
