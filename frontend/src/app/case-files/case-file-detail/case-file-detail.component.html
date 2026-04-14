@@ -386,7 +386,8 @@
 
     @if (caseFile()!.legalDomain === 'DROIT_FAMILLE') {
       <app-partage-immobilier-section
-        [caseFileId]="caseFile()!.id">
+        [caseFileId]="caseFile()!.id"
+        [liquidationCommunaute]="synthesis()?.liquidationCommunaute">
       </app-partage-immobilier-section>
 
       <app-calendrier-garde-section

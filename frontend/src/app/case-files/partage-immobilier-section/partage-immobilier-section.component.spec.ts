@@ -44,4 +44,102 @@ describe('PartageImmobilierSectionComponent', () => {
     expect(component.result()).toBeTruthy(); expect(component.showForm()).toBe(false);
   });
   it('should display existing from GET', () => { initWith(); expect(component.result()).toBeTruthy(); expect(component.showForm()).toBe(false); });
+
+  // ---- Import IA (SF-FA-05-04) ----
+
+  function setLiquidation(actif: { libelle: string; valeur: number | null }[], passif: { libelle: string; valeur: number | null }[] = []) {
+    component.liquidationCommunaute = {
+      regimeMatrimonial: 'COMMUNAUTE_LEGALE',
+      actifCommun: actif as any,
+      biensPropresEpouxA: [],
+      biensPropresEpouxB: [],
+      passifCommun: passif as any,
+    };
+  }
+
+  it('should filter actifCommun to only immobilier items', () => {
+    setLiquidation([
+      { libelle: 'Maison principale', valeur: 400000 },
+      { libelle: 'Compte épargne', valeur: 30000 },
+      { libelle: 'Véhicule Tesla', valeur: 50000 },
+    ]);
+    initNo();
+    expect(component.biensImmobiliersFiltres().map(b => b.libelle)).toEqual(['Maison principale']);
+  });
+
+  it('should accept multiple immobilier items case-insensitive', () => {
+    setLiquidation([
+      { libelle: 'appartement Paris', valeur: 500000 },
+      { libelle: 'APPARTEMENT Lyon', valeur: 300000 },
+    ]);
+    initNo();
+    expect(component.biensImmobiliersFiltres().length).toBe(2);
+  });
+
+  it('should filter passifCommun to only prêt items', () => {
+    setLiquidation(
+      [{ libelle: 'Maison', valeur: 400000 }],
+      [
+        { libelle: 'Prêt BNP', valeur: 150000 },
+        { libelle: 'Carte bleue', valeur: 2000 },
+      ]
+    );
+    initNo();
+    expect(component.pretsFiltres().map(p => p.libelle)).toEqual(['Prêt BNP']);
+  });
+
+  it('should consider canImport false when no valid item', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: null }]);
+    initNo();
+    expect(component.canImport()).toBe(false);
+  });
+
+  it('should apply import : set valeurVenale from selected bien', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }], [{ libelle: 'Prêt BNP', valeur: 150000 }]);
+    initNo();
+    component.selectedBienLibelle.set('Maison');
+    component.selectedPretLibelle.set('Prêt BNP');
+    component.applyImport();
+    expect(component.valeurVenale()).toBe(400000);
+    expect(component.capitalRestantDu()).toBe(150000);
+    expect(component.provenanceValeur()).toBe('IA');
+    expect(component.provenancePret()).toBe('IA');
+  });
+
+  it('should apply import without prêt if user selects "Aucun prêt"', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
+    initNo();
+    component.capitalRestantDu.set(50000);
+    component.selectedBienLibelle.set('Maison');
+    component.selectedPretLibelle.set(null);
+    component.applyImport();
+    expect(component.valeurVenale()).toBe(400000);
+    expect(component.capitalRestantDu()).toBe(50000); // unchanged
+    expect(component.provenancePret()).toBeNull();
+  });
+
+  it('should clear provenance note when user edits valeurVenale manually', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
+    initNo();
+    component.selectedBienLibelle.set('Maison');
+    component.applyImport();
+    expect(component.provenanceValeur()).toBe('IA');
+    component.valeurVenale.set(420000);
+    component.onValeurVenaleChange();
+    expect(component.provenanceValeur()).toBeNull();
+  });
+
+  it('should NOT show import when liquidationCommunaute is null', () => {
+    initNo();
+    expect(component.biensImmobiliersFiltres()).toEqual([]);
+    expect(component.canImport()).toBe(false);
+  });
+
+  it('should not apply import when no bien selected', () => {
+    setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
+    initNo();
+    component.valeurVenale.set(100000);
+    component.applyImport();
+    expect(component.valeurVenale()).toBe(100000);
+  });
 });
