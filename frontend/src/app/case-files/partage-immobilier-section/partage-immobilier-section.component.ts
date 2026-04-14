@@ -23,6 +23,28 @@ function matchesKeyword(libelle: string | null, keywords: string[]): boolean {
   return keywords.some(k => lower.includes(k));
 }
 
+function findBestMatch(value: number, items: BienItem[]): BienItem | null {
+  let best: BienItem | null = null;
+  let bestDiff = Infinity;
+  for (const it of items) {
+    if (it.valeur == null || it.valeur <= 0) continue;
+    const diff = Math.abs(value - it.valeur);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = it;
+    }
+  }
+  return best;
+}
+
+export type PartageAlertField = 'VALEUR_VENALE' | 'CAPITAL_RESTANT';
+
+export interface PartageCoherenceAlert {
+  field: PartageAlertField;
+  iaValue: number;
+  iaLibelle: string;
+}
+
 @Component({
   selector: 'app-partage-immobilier-section',
   standalone: true,
@@ -71,6 +93,56 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   });
 
   canImport = computed(() => this.biensImmobiliersFiltres().some(b => b.valeur != null && b.valeur > 0));
+
+  // Import reference values (for SF-IA-03-08 "best match" override)
+  private importedValeurVenale = signal<number | null>(null);
+  private importedCapital = signal<number | null>(null);
+
+  coherenceAlerts = computed<Partial<Record<PartageAlertField, PartageCoherenceAlert>>>(() => {
+    if (!this.showForm() || this.result()) return {};
+    const alerts: Partial<Record<PartageAlertField, PartageCoherenceAlert>> = {};
+
+    const userValeur = this.valeurVenale();
+    if (userValeur > 0) {
+      const iaRef = this.importedValeurVenale() != null
+        ? this.findBienByValeur(this.importedValeurVenale()!, this.biensImmobiliersFiltres())
+        : findBestMatch(userValeur, this.biensImmobiliersFiltres());
+      if (iaRef && iaRef.valeur != null && iaRef.valeur > 0) {
+        const rel = Math.abs(userValeur - iaRef.valeur) / Math.max(Math.abs(iaRef.valeur), 1);
+        if (rel >= 0.10) {
+          alerts.VALEUR_VENALE = { field: 'VALEUR_VENALE', iaValue: iaRef.valeur, iaLibelle: iaRef.libelle };
+        }
+      }
+    }
+
+    const userCapital = this.capitalRestantDu();
+    if (userCapital > 0) {
+      const iaRef = this.importedCapital() != null
+        ? this.findBienByValeur(this.importedCapital()!, this.pretsFiltres())
+        : findBestMatch(userCapital, this.pretsFiltres());
+      if (iaRef && iaRef.valeur != null && iaRef.valeur > 0) {
+        const rel = Math.abs(userCapital - iaRef.valeur) / Math.max(Math.abs(iaRef.valeur), 1);
+        if (rel >= 0.10) {
+          alerts.CAPITAL_RESTANT = { field: 'CAPITAL_RESTANT', iaValue: iaRef.valeur, iaLibelle: iaRef.libelle };
+        }
+      }
+    }
+
+    return alerts;
+  });
+
+  alertsSummary = computed(() => {
+    const values = Object.values(this.coherenceAlerts());
+    return { total: values.length, blockers: 0 };
+  });
+
+  private findBienByValeur(valeur: number, list: BienItem[]): BienItem | null {
+    return list.find(b => b.valeur === valeur) ?? null;
+  }
+
+  alertTooltip(alert: PartageCoherenceAlert): string {
+    return `L'IA a détecté : ${alert.iaLibelle} — ${alert.iaValue.toLocaleString('fr-FR')} €`;
+  }
 
   constructor(
     private partageService: PartageImmobilierService,
@@ -124,6 +196,7 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     if (!bien || bien.valeur == null || bien.valeur <= 0) return;
     this.valeurVenale.set(bien.valeur);
     this.provenanceValeur.set('IA');
+    this.importedValeurVenale.set(bien.valeur);
 
     const pretLib = this.selectedPretLibelle();
     if (pretLib) {
@@ -131,6 +204,7 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
       if (pret && pret.valeur != null && pret.valeur > 0) {
         this.capitalRestantDu.set(pret.valeur);
         this.provenancePret.set('IA');
+        this.importedCapital.set(pret.valeur);
       }
     }
     this.showImportPanel.set(false);

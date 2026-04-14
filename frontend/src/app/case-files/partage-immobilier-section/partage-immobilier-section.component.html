@@ -17,6 +17,12 @@
 
       @if (!loading() && showForm()) {
         <div class="partage-form">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse IA</span>
+            </div>
+          }
           @if (biensImmobiliersFiltres().length > 0) {
             <div class="import-header">
               <button mat-stroked-button color="primary" (click)="toggleImportPanel()" [disabled]="!canImport()"
@@ -74,6 +80,12 @@
               @if (provenanceValeur() === 'IA') {
                 <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse IA</span>
               }
+              @if (coherenceAlerts().VALEUR_VENALE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> Incohérence IA
+                </span>
+              }
             </div>
             <div class="field-with-provenance">
               <mat-form-field appearance="outline" class="form-field">
@@ -82,6 +94,12 @@
               </mat-form-field>
               @if (provenancePret() === 'IA') {
                 <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse IA</span>
+              }
+              @if (coherenceAlerts().CAPITAL_RESTANT; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> Incohérence IA
+                </span>
               }
             </div>
           </div>
