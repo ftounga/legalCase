@@ -93,4 +93,106 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     expect(component.showForm()).toBe(false);
     expect(component.titreType()).toBe('VLS_TS_SALARIE');
   });
+
+  // ---- Prefill + Coherence (SF-IA-03-11) ----
+
+  function f96(statut: string, expectedValue: string, raison: string | null = null) {
+    return { id: 'c', ordre: 0, description: 'point', statut, raison,
+      critereCode: 'IM07_TITRE_TYPE', expectedValue } as any;
+  }
+  function question(answerText: string, expectedValue: string) {
+    return { id: 'q', orderIndex: 0, questionText: 'Q?', answerText,
+      critereCode: 'IM07_TITRE_TYPE', expectedValue } as any;
+  }
+
+  // Prefill
+  it('should prefill titreType from IA when FR code + FR workspace', () => {
+    component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
+    initNoExisting();
+    expect(component.titreType()).toBe('CST_VPF');
+    expect(component.provenanceTitreType()).toBe('IA');
+  });
+
+  it('should NOT prefill when IA code is from other country', () => {
+    // country default FR, IA code is BE
+    component.aiData = { typeTitreSejourCode: 'CARTE_B' } as any;
+    initNoExisting();
+    expect(component.titreType()).toBe('VLS_TS_SALARIE'); // default
+    expect(component.provenanceTitreType()).toBeNull();
+  });
+
+  it('should ignore unknown IA code', () => {
+    component.aiData = { typeTitreSejourCode: 'UNKNOWN' } as any;
+    initNoExisting();
+    expect(component.titreType()).toBe('VLS_TS_SALARIE');
+  });
+
+  it('should NOT prefill when result already exists', () => {
+    component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
+    initWithExisting();
+    expect(component.titreType()).toBe('VLS_TS_SALARIE'); // from existing result
+  });
+
+  it('should clear provenance when user changes titreType', () => {
+    component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
+    initNoExisting();
+    expect(component.provenanceTitreType()).toBe('IA');
+    component.titreType.set('CARTE_RESIDENT');
+    component.onTitreTypeChange();
+    expect(component.provenanceTitreType()).toBeNull();
+  });
+
+  // Cohérence
+  it('should alert warning F96 on titre mismatch', () => {
+    component.procedureChecks = [f96('VERIFIED', 'CARTE_RESIDENT', 'Motif regroupement')];
+    initNoExisting();
+    component.titreType.set('VLS_TS_SALARIE');
+    const alert = component.coherenceAlert();
+    expect(alert?.source).toBe('F96');
+    expect(alert?.expectedDisplay).toBe('CARTE_RESIDENT');
+  });
+
+  it('should alert warning Question IA "oui"', () => {
+    component.aiQuestions = [question('oui', 'CST_VPF')];
+    initNoExisting();
+    component.titreType.set('VLS_TS_SALARIE');
+    expect(component.coherenceAlert()?.source).toBe('QUESTION_IA');
+  });
+
+  it('should alert warning IA when typeTitreSejourCode diverges', () => {
+    component.aiData = { typeTitreSejourCode: 'CARTE_RESIDENT' } as any;
+    initNoExisting();
+    component.titreType.set('VLS_TS_SALARIE');
+    expect(component.coherenceAlert()?.source).toBe('IA');
+  });
+
+  it('should combine sources into MULTI', () => {
+    component.procedureChecks = [f96('VERIFIED', 'CST_VPF')];
+    component.aiQuestions = [question('oui', 'CST_VPF')];
+    component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
+    initNoExisting();
+    component.titreType.set('VLS_TS_SALARIE');
+    expect(component.coherenceAlert()?.source).toBe('MULTI');
+    expect(component.coherenceAlert()?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
+  });
+
+  it('should NOT alert when titre matches user', () => {
+    component.aiData = { typeTitreSejourCode: 'VLS_TS_SALARIE' } as any;
+    initNoExisting();
+    component.titreType.set('VLS_TS_SALARIE');
+    expect(component.coherenceAlert()).toBeNull();
+  });
+
+  it('should freeze alert when result loaded', () => {
+    component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
+    initWithExisting();
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('should ignore expected_value outside enum', () => {
+    component.procedureChecks = [f96('VERIFIED', 'UNKNOWN')];
+    initNoExisting();
+    component.titreType.set('VLS_TS_SALARIE');
+    expect(component.coherenceAlert()).toBeNull();
+  });
 });

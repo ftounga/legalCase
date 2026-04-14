@@ -24,6 +24,12 @@
 
       @if (!loading() && showForm()) {
         <div class="wr-form">
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>1 incohérence avec l'analyse IA</span>
+            </div>
+          }
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Pays</mat-label>
@@ -34,14 +40,25 @@
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="form-field form-field--wide">
-              <mat-label>Titre de séjour</mat-label>
-              <mat-select [(ngModel)]="titreType">
-                @for (t of titresForCountry; track t.value) {
-                  <mat-option [value]="t.value">{{ t.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+            <div class="field-with-provenance field-with-alert form-field--wide">
+              <mat-form-field appearance="outline" class="form-field form-field--wide">
+                <mat-label>Titre de séjour</mat-label>
+                <mat-select [(ngModel)]="titreType" (ngModelChange)="onTitreTypeChange()">
+                  @for (t of titresForCountry; track t.value) {
+                    <mat-option [value]="t.value">{{ t.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceTitreType() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse IA</span>
+              }
+              @if (coherenceAlert(); as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
           </div>
 
           <div class="form-actions">
