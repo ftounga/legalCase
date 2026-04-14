@@ -167,9 +167,19 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   loadExisting(): void {
     this.loading.set(true);
     this.partageService.get(this.caseFileId).subscribe({
-      next: r => { this.result.set(r); this.showForm.set(false); this.loading.set(false); },
+      next: r => { this.result.set(r); this.prefillForm(r); this.showForm.set(false); this.loading.set(false); },
       error: () => { this.showForm.set(true); this.loading.set(false); },
     });
+  }
+
+  private prefillForm(resp: PartageImmobilierResponse): void {
+    this.country.set(resp.country);
+    if (resp.valeurVenale != null) this.valeurVenale.set(resp.valeurVenale);
+    if (resp.capitalRestantDu != null) this.capitalRestantDu.set(resp.capitalRestantDu);
+    if (resp.quotePartAttributaire != null) {
+      // Backend stocke la décimale (0.5) — le signal est en pourcentage (50)
+      this.quotePartAttributaire.set(resp.quotePartAttributaire * 100);
+    }
   }
 
   calculate(): void {
@@ -186,7 +196,11 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     });
   }
 
-  editForm(): void { this.showForm.set(true); }
+  editForm(): void {
+    const r = this.result();
+    if (r) this.prefillForm(r);
+    this.showForm.set(true);
+  }
 
   toggleImportPanel(): void {
     if (!this.canImport()) return;

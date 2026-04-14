@@ -205,4 +205,24 @@ describe('CalendrierGardeSectionComponent', () => {
     component.gardeCode.set('DVH_CLASSIQUE_FR');
     expect(component.coherenceAlert()).toBeNull();
   });
+
+  it('SF-118-04: GET 200 pré-remplit les signals du formulaire depuis la réponse sauvegardée', () => {
+    initWith();
+    expect(component.gardeCode()).toBe('ALTERNEE_FR');
+    expect(component.parentANom()).toBe('Marie');
+    expect(component.parentBNom()).toBe('Pierre');
+  });
+
+  it('SF-118-04: editForm restaure les signals depuis le résultat', () => {
+    initWith();
+    expect(component.showForm()).toBe(false);
+    component.gardeCode.set('DVH_CLASSIQUE_FR');
+    component.parentANom.set('');
+    component.parentBNom.set('');
+    component.editForm();
+    expect(component.showForm()).toBe(true);
+    expect(component.gardeCode()).toBe('ALTERNEE_FR');
+    expect(component.parentANom()).toBe('Marie');
+    expect(component.parentBNom()).toBe('Pierre');
+  });
 });

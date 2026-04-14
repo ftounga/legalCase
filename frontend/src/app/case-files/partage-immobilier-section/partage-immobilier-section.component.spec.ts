@@ -260,4 +260,26 @@ describe('PartageImmobilierSectionComponent', () => {
     component.valeurVenale.set(999999);
     expect(component.coherenceAlerts().VALEUR_VENALE).toBeUndefined();
   });
+
+  it('SF-118-04: GET 200 pré-remplit les signals du formulaire depuis la réponse sauvegardée', () => {
+    initWith();
+    expect(component.country()).toBe('FRANCE');
+    expect(component.valeurVenale()).toBe(300000);
+    expect(component.capitalRestantDu()).toBe(100000);
+    // Backend stocke la décimale 0.5 → signal en pourcentage 50
+    expect(component.quotePartAttributaire()).toBe(50);
+  });
+
+  it('SF-118-04: editForm restaure les signals depuis le résultat', () => {
+    initWith();
+    expect(component.showForm()).toBe(false);
+    // Simuler une modification locale perdue puis un Modifier (reload-like)
+    component.valeurVenale.set(0);
+    component.capitalRestantDu.set(0);
+    component.editForm();
+    expect(component.showForm()).toBe(true);
+    expect(component.valeurVenale()).toBe(300000);
+    expect(component.capitalRestantDu()).toBe(100000);
+    expect(component.quotePartAttributaire()).toBe(50);
+  });
 });
