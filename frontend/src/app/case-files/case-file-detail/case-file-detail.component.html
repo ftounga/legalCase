@@ -380,7 +380,8 @@
         [caseFileId]="caseFile()!.id"
         [aiData]="synthesis()?.immigrationExtractedData"
         [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()">
+        [aiQuestions]="questions()"
+        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
       </app-immigration-title-decision-section>
 
       <app-immigration-recours-section
@@ -388,14 +389,16 @@
         [caseFileTitle]="caseFile()!.title"
         [aiData]="synthesis()?.immigrationExtractedData"
         [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()">
+        [aiQuestions]="questions()"
+        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
       </app-immigration-recours-section>
 
       <app-immigration-work-right-section
         [caseFileId]="caseFile()!.id"
         [aiData]="synthesis()?.immigrationExtractedData"
         [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()">
+        [aiQuestions]="questions()"
+        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
       </app-immigration-work-right-section>
 
       <app-immigration-checklist-section
@@ -416,7 +419,8 @@
         [aiModeGardeDetaille]="synthesis()?.pensionAlimentaireEstimate?.modeGardeDetaille"
         [synthesis]="synthesis()"
         [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()">
+        [aiQuestions]="questions()"
+        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
       </app-calendrier-garde-section>
 
       <app-divorce-checklist-section

@@ -10,7 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { ImmigrationWorkRightService } from '../../core/services/immigration-work-right.service';
 import { WorkRightResponse } from '../../core/models/immigration-work-right.model';
-import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
+import { ImmigrationExtractedData, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 
@@ -24,13 +24,14 @@ const BE_TITRE_CODES = new Set([
 ]);
 const ALL_TITRE_CODES = new Set([...FR_TITRE_CODES, ...BE_TITRE_CODES]);
 
-export type IM07AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'MULTI';
+export type IM07AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'PIECE_MANQUANTE' | 'MULTI';
 
 export interface IM07CoherenceAlert {
   source: IM07AlertSource;
   contributors: IM07AlertSource[];
   expectedDisplay: string;
   reason: string;
+  pieceTexte?: string | null;
 }
 
 @Component({
@@ -51,10 +52,12 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   @Input() aiData?: ImmigrationExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -102,6 +105,8 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     const user = this.titreType();
     if (!user) return null;
 
+    const piecesIndex = this.buildPiecesIndex(this.piecesManquantesSignal());
+    const pieceTexte = piecesIndex['IM07_TITRE_TYPE'] ?? null;
     const contributors: IM07AlertSource[] = [];
     const reasons: string[] = [];
     let expected: string | null = null;
@@ -155,11 +160,16 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     }
 
     if (!expected) return null;
+    if (pieceTexte) {
+      contributors.push('PIECE_MANQUANTE');
+      reasons.push(`Pièce manquante : ${pieceTexte}`);
+    }
     return {
       source: contributors.length > 1 ? 'MULTI' : contributors[0],
       contributors,
       expectedDisplay: expected,
       reason: reasons.join(' ET '),
+      pieceTexte,
     };
   });
 
@@ -175,6 +185,7 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
   }
 
@@ -182,9 +193,22 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (changes['aiData'] && this.showForm() && !this.result()) {
       this.prefillFromAi();
     }
+  }
+
+  private buildPiecesIndex(pieces: PieceManquanteEntry[]): Record<string, string> {
+    const index: Record<string, string> = {};
+    if (!pieces) return index;
+    for (const p of pieces) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (code !== 'IM07_TITRE_TYPE') continue;
+      if (!index[code]) index[code] = p.texte;
+    }
+    return index;
   }
 
   toggleCollapsed(): void {
@@ -222,6 +246,7 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
         case 'F96': return 'Incohérence F-96';
         case 'QUESTION_IA': return 'Incohérence Question IA';
         case 'IA': return 'Incohérence IA';
+        case 'PIECE_MANQUANTE': return 'Pièce manquante';
         case 'MULTI': return 'Incohérence multiple';
       }
     })();

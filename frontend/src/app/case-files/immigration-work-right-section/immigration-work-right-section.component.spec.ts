@@ -195,4 +195,14 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     component.titreType.set('VLS_TS_SALARIE');
     expect(component.coherenceAlert()).toBeNull();
   });
+
+  it('SF-IA-03-14: pièce manquante IM07_TITRE_TYPE devient contributor PIECE_MANQUANTE', () => {
+    component.aiData = { typeTitreSejourCode: 'VLS_TS_SALARIE' } as any;
+    component.piecesManquantes = [{ texte: 'Titre de séjour', critereCode: 'IM07_TITRE_TYPE' }];
+    initNoExisting();
+    component.titreType.set('CARTE_RESIDENT');
+    const alert = component.coherenceAlert();
+    expect(alert?.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert?.source).toBe('MULTI');
+  });
 });

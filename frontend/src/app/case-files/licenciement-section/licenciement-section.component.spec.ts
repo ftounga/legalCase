@@ -506,4 +506,13 @@ describe('LicenciementSectionComponent', () => {
     component.onReponseChange('FR_MOTIVATION', 'NON');
     expect(component.coherenceAlerts()['FR_MOTIVATION'].source).toBe('IA');
   });
+
+  it('SF-IA-03-14: coherenceAlerts retourne {} quand showForm=false', () => {
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'Motif précis' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    expect(Object.keys(component.coherenceAlerts()).length).toBeGreaterThan(0);
+    component.showForm.set(false);
+    expect(component.coherenceAlerts()).toEqual({});
+  });
 });
