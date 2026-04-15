@@ -95,6 +95,7 @@ export interface CaseAnalysisResult {
   travailExtractedData?: TravailExtractedData | null;
   immigrationExtractedData?: ImmigrationExtractedData | null;
   licenciementValidityDetection?: LicenciementValidityDetection | null;
+  ruptureConvValidityDetection?: RuptureConvValidityDetection | null;
   piecesManquantesDetails?: PieceManquanteEntry[] | null;
 }
 
@@ -109,6 +110,10 @@ export interface DetectedAnswer {
 }
 
 export interface LicenciementValidityDetection {
+  detections: { [critereCode: string]: DetectedAnswer };
+}
+
+export interface RuptureConvValidityDetection {
   detections: { [critereCode: string]: DetectedAnswer };
 }
 

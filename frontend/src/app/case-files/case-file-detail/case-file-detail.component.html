@@ -338,7 +338,13 @@
       }
 
       @if (showValiditeRuptureConv()) {
-        <app-rupture-conv-section [caseFileId]="caseFile()!.id"></app-rupture-conv-section>
+        <app-rupture-conv-section
+          [caseFileId]="caseFile()!.id"
+          [aiData]="synthesis()?.ruptureConvValidityDetection"
+          [procedureChecks]="procedureChecks()"
+          [aiQuestions]="questions()"
+          [piecesManquantes]="synthesis()?.piecesManquantesDetails">
+        </app-rupture-conv-section>
       }
 
       <app-anciennete-section

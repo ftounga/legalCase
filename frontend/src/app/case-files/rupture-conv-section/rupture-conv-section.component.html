@@ -46,6 +46,15 @@
                 <mat-radio-button value="NON">Non</mat-radio-button>
                 <mat-radio-button value="INCONNU">Inconnu</mat-radio-button>
               </mat-radio-group>
+              @if (coherenceAlerts()[critere.code]; as alert) {
+                <span class="coherence-badge"
+                      [class.coherence-blocker]="alert.level === 'blocker'"
+                      [class.coherence-warning]="alert.level === 'warning'"
+                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                  <mat-icon>{{ alert.level === 'blocker' ? 'error' : 'warning' }}</mat-icon>
+                  {{ alertBadgeLabel(alert) }}
+                </span>
+              }
             </div>
           }
 

@@ -70,6 +70,16 @@
   display: flex; justify-content: flex-end; margin-top: 8px;
 }
 
+.coherence-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 8px; margin-top: 8px; padding: 2px 8px; border-radius: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  cursor: help;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  &.coherence-warning { background: #FEF7E6; color: #92400E; mat-icon { color: #F59E0B; } }
+  &.coherence-blocker { background: #FEECEB; color: #7F1D1D; mat-icon { color: #C0392B; } }
+}
+
 .rc-result {
   background: #FFFFFF; border: 1px solid #E0E4EA; border-radius: 8px; padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
