@@ -282,4 +282,16 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     expect(component.showForm()).toBe(false);
     expect(component.coherenceAlerts().MOTIF).toBeUndefined();
   });
+
+  it('SF-IA-03-14: pièce manquante IM05_MOTIF devient contributor PIECE_MANQUANTE', () => {
+    // IA détecte VLS_TS_SALARIE → motif TRAVAIL ; pièce manquante IM05_MOTIF ; user saisit ETUDES
+    component.aiData = { typeTitreSejourCode: 'VLS_TS_SALARIE' } as any;
+    component.piecesManquantes = [{ texte: 'Contrat de travail', critereCode: 'IM05_MOTIF' }];
+    initWithNoExistingDecision();
+    component.motif.set('ETUDES');
+    const alert = component.coherenceAlerts().MOTIF;
+    expect(alert).toBeTruthy();
+    expect(alert?.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert?.source).toBe('MULTI');
+  });
 });

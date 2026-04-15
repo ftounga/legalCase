@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
-import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
+import { ImmigrationExtractedData, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -18,7 +18,7 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 const MOTIFS_ENUM = new Set(['TRAVAIL', 'ETUDES', 'FAMILLE', 'ASILE', 'AUTRE']);
 
 export type IM05AlertField = 'MOTIF' | 'NATIONALITE_UE';
-export type IM05AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'MULTI';
+export type IM05AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'PIECE_MANQUANTE' | 'MULTI';
 
 export interface IM05CoherenceAlert {
   field: IM05AlertField;
@@ -26,6 +26,7 @@ export interface IM05CoherenceAlert {
   contributors: IM05AlertSource[];
   expectedDisplay: string;
   reason: string;
+  pieceTexte?: string | null;
 }
 
 const CODE_TO_MOTIF: Record<string, string> = {
@@ -63,10 +64,12 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   @Input() aiData?: ImmigrationExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -129,6 +132,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
   }
 
@@ -136,9 +140,22 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (changes['aiData'] && this.showForm() && !this.decision()) {
       this.prefillFromAi();
     }
+  }
+
+  private buildPiecesIndex(pieces: PieceManquanteEntry[]): Record<string, string> {
+    const index: Record<string, string> = {};
+    if (!pieces) return index;
+    for (const p of pieces) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (code !== 'IM05_MOTIF') continue;
+      if (!index[code]) index[code] = p.texte;
+    }
+    return index;
   }
 
   alertTooltip(alert: IM05CoherenceAlert): string {
@@ -151,6 +168,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
         case 'F96': return 'Incohérence F-96';
         case 'QUESTION_IA': return 'Incohérence Question IA';
         case 'IA': return 'Incohérence IA';
+        case 'PIECE_MANQUANTE': return 'Pièce manquante';
         case 'MULTI': return 'Incohérence multiple';
       }
     })();
@@ -161,6 +179,8 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     const user = this.motif();
     if (!user) return null;
 
+    const piecesIndex = this.buildPiecesIndex(this.piecesManquantesSignal());
+    const pieceTexte = piecesIndex['IM05_MOTIF'] ?? null;
     const contributors: IM05AlertSource[] = [];
     const reasons: string[] = [];
     let expected: string | null = null;
@@ -217,12 +237,17 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     }
 
     if (!expected) return null;
+    if (pieceTexte) {
+      contributors.push('PIECE_MANQUANTE');
+      reasons.push(`Pièce manquante : ${pieceTexte}`);
+    }
     return {
       field: 'MOTIF',
       source: contributors.length > 1 ? 'MULTI' : contributors[0],
       contributors,
       expectedDisplay: expected,
       reason: reasons.join(' ET '),
+      pieceTexte,
     };
   }
 

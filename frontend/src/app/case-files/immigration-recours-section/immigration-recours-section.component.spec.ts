@@ -305,4 +305,14 @@ describe('ImmigrationRecoursSectionComponent', () => {
     initWithExisting();
     expect(component.alertsSummary().total).toBe(0);
   });
+
+  it('SF-IA-03-14: pièce manquante IM06_RECOURS_TYPE devient contributor PIECE_MANQUANTE', () => {
+    component.aiData = { typeRecoursCode: 'RECOURS_CNDA' } as any;
+    component.piecesManquantes = [{ texte: 'Requête type', critereCode: 'IM06_RECOURS_TYPE' }];
+    initNoExisting();
+    component.recoursType.set('RECOURS_GRACIEUX_PREFET');
+    const alert = component.coherenceAlerts().RECOURS_TYPE;
+    expect(alert?.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert?.source).toBe('MULTI');
+  });
 });

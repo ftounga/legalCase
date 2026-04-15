@@ -225,4 +225,15 @@ describe('CalendrierGardeSectionComponent', () => {
     expect(component.parentANom()).toBe('Marie');
     expect(component.parentBNom()).toBe('Pierre');
   });
+
+  it('SF-IA-03-14: pièce manquante FA06_MODE_GARDE devient contributor PIECE_MANQUANTE', () => {
+    // IA modeGardeDetaille ALTERNEE_FR + pièce manquante ; user saisit DVH_CLASSIQUE_FR
+    component.synthesis = synthesisWith('ALTERNEE', 'ALTERNEE_FR');
+    component.piecesManquantes = [{ texte: 'Jugement de garde', critereCode: 'FA06_MODE_GARDE' }];
+    initNo();
+    component.gardeCode.set('DVH_CLASSIQUE_FR');
+    const alert = component.coherenceAlert();
+    expect(alert?.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert?.source).toBe('MULTI');
+  });
 });

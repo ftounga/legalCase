@@ -11,7 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { CalendrierGardeService } from '../../core/services/calendrier-garde.service';
 import { CalendrierGardeResponse } from '../../core/models/calendrier-garde.model';
-import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
+import { CaseAnalysisResult, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 
@@ -20,7 +20,7 @@ const MODES_BE = new Set(['ALTERNEE_BE', 'SECONDAIRE_BE', 'SECONDAIRE_ELARGI_BE'
 const ALL_MODES = new Set([...MODES_FR, ...MODES_BE]);
 const ALTERNEE_MODES = new Set(['ALTERNEE_FR', 'ALTERNEE_BE']);
 
-export type GardeAlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'IA_COARSE' | 'MULTI';
+export type GardeAlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'IA_COARSE' | 'PIECE_MANQUANTE' | 'MULTI';
 export type GardeAlertLevel = 'blocker' | 'warning';
 
 export interface GardeCoherenceAlert {
@@ -29,6 +29,7 @@ export interface GardeCoherenceAlert {
   contributors: GardeAlertSource[];
   expectedDisplay: string;
   reason: string;
+  pieceTexte?: string | null;
 }
 
 @Component({
@@ -45,10 +46,12 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   @Input() synthesis?: CaseAnalysisResult | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
   private synthesisSignal = signal<CaseAnalysisResult | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -81,6 +84,8 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     const user = this.gardeCode();
     if (!user || !ALL_MODES.has(user)) return null;
 
+    const piecesIndex = this.buildPiecesIndex(this.piecesManquantesSignal());
+    const pieceTexte = piecesIndex['FA06_MODE_GARDE'] ?? null;
     const contributors: GardeAlertSource[] = [];
     const reasons: string[] = [];
     let expected: string | null = null;
@@ -153,8 +158,12 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     }
 
     if (!level || !expected) return null;
+    if (pieceTexte) {
+      contributors.push('PIECE_MANQUANTE');
+      reasons.push(`Pièce manquante : ${pieceTexte}`);
+    }
     const source: GardeAlertSource = contributors.length > 1 ? 'MULTI' : contributors[0];
-    return { level, source, contributors, expectedDisplay: expected, reason: reasons.join(' ET ') };
+    return { level, source, contributors, expectedDisplay: expected, reason: reasons.join(' ET '), pieceTexte };
   });
 
   alertsSummary = computed(() => {
@@ -166,6 +175,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     this.synthesisSignal.set(this.synthesis);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
   }
 
@@ -173,9 +183,22 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     if (changes['synthesis']) this.synthesisSignal.set(this.synthesis);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (changes['aiModeGardeDetaille'] && this.showForm() && !this.result()) {
       this.applyAiPrefill();
     }
+  }
+
+  private buildPiecesIndex(pieces: PieceManquanteEntry[]): Record<string, string> {
+    const index: Record<string, string> = {};
+    if (!pieces) return index;
+    for (const p of pieces) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (code !== 'FA06_MODE_GARDE') continue;
+      if (!index[code]) index[code] = p.texte;
+    }
+    return index;
   }
 
   alertTooltip(alert: GardeCoherenceAlert): string {
@@ -188,6 +211,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
       case 'QUESTION_IA': return `Incohérence Question IA (${alert.expectedDisplay})`;
       case 'IA': return `Incohérence IA (${alert.expectedDisplay})`;
       case 'IA_COARSE': return `Incohérence catégorie IA`;
+      case 'PIECE_MANQUANTE': return `Pièce manquante (${alert.expectedDisplay})`;
       case 'MULTI': return `Incohérence multiple (${alert.expectedDisplay})`;
     }
   }

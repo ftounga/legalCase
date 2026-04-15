@@ -115,6 +115,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   });
 
   coherenceAlerts = computed<Record<string, CoherenceAlert>>(() => {
+    if (!this.showForm()) return {};
     const detections = this.aiDataSignal()?.detections;
     const f96Index = this.buildF96Index(this.procedureChecksSignal());
     const questionsIndex = this.buildQuestionsIndex(this.aiQuestionsSignal());
