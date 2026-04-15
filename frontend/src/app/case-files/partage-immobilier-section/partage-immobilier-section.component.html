@@ -83,7 +83,7 @@
               @if (coherenceAlerts().VALEUR_VENALE; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
-                  <mat-icon>warning</mat-icon> Incohérence IA
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                 </span>
               }
             </div>
@@ -98,7 +98,7 @@
               @if (coherenceAlerts().CAPITAL_RESTANT; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
-                  <mat-icon>warning</mat-icon> Incohérence IA
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                 </span>
               }
             </div>
