@@ -282,4 +282,70 @@ describe('PartageImmobilierSectionComponent', () => {
     expect(component.capitalRestantDu()).toBe(100000);
     expect(component.quotePartAttributaire()).toBe(50);
   });
+
+  // ---- Pattern F-IA-03 complet (F96 + Question IA + Pièce manquante) ----
+
+  it('should alert F96 when procedureCheck VERIFIED contredit la valeur saisie', () => {
+    component.procedureChecks = [{
+      id: 'pc1', ordre: 1, description: 'Valeur vénale',
+      statut: 'VERIFIED', critereCode: 'FA05_VALEUR_VENALE', expectedValue: '400000',
+      raison: 'Rapport expert joint',
+    }];
+    initNo();
+    component.valeurVenale.set(300000); // écart > 10%
+    const alert = component.coherenceAlerts().VALEUR_VENALE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('F96');
+    expect(alert!.iaValue).toBe(400000);
+    expect(alert!.contributors).toEqual(['F96']);
+  });
+
+  it('should alert QUESTION_IA when avocat répond oui avec expectedValue divergent', () => {
+    component.aiQuestions = [{
+      id: 'q1', orderIndex: 1,
+      questionText: 'Le capital restant dû est-il de 120000 € ?',
+      answerText: 'oui',
+      critereCode: 'FA05_CAPITAL_RESTANT', expectedValue: '120000',
+    }];
+    initNo();
+    component.capitalRestantDu.set(150000); // écart 25%
+    const alert = component.coherenceAlerts().CAPITAL_RESTANT;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('QUESTION_IA');
+    expect(alert!.iaValue).toBe(120000);
+  });
+
+  it('should add PIECE_MANQUANTE contributor when F96 actif + pièce manquante même code', () => {
+    component.procedureChecks = [{
+      id: 'pc1', ordre: 1, description: 'Valeur vénale',
+      statut: 'VERIFIED', critereCode: 'FA05_VALEUR_VENALE', expectedValue: '400000',
+    }];
+    component.piecesManquantes = [{
+      texte: 'Rapport d\'expertise immobilière',
+      critereCode: 'FA05_VALEUR_VENALE',
+    }];
+    initNo();
+    component.valeurVenale.set(300000);
+    const alert = component.coherenceAlerts().VALEUR_VENALE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('MULTI');
+    expect(alert!.contributors).toContain('F96');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Rapport d\'expertise immobilière');
+  });
+
+  it('should produce MULTI source when F96 + IA best-match convergent', () => {
+    component.procedureChecks = [{
+      id: 'pc1', ordre: 1, description: 'Valeur vénale',
+      statut: 'VERIFIED', critereCode: 'FA05_VALEUR_VENALE', expectedValue: '400000',
+    }];
+    setLiquidation([{ libelle: 'Maison', valeur: 395000 }]); // within 10% of 400000
+    initNo();
+    component.valeurVenale.set(300000); // écart > 10% vs les deux
+    const alert = component.coherenceAlerts().VALEUR_VENALE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('MULTI');
+    expect(alert!.contributors).toEqual(['F96', 'IA']);
+    expect(alert!.iaValue).toBe(400000);
+  });
 });
