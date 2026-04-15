@@ -36,6 +36,7 @@ public record CaseAnalysisResponse(
         TravailExtractedData travailExtractedData,
         ImmigrationExtractedData immigrationExtractedData,
         LicenciementValidityDetection licenciementValidityDetection,
+        RuptureConvValidityDetection ruptureConvValidityDetection,
         List<PieceManquanteEntry> piecesManquantesDetails
 ) {
 
@@ -53,6 +54,17 @@ public record CaseAnalysisResponse(
             detections = detections == null ? Map.of() : Map.copyOf(detections);
         }
     }
+
+    public record RuptureConvValidityDetection(Map<String, DetectedAnswer> detections) {
+        public RuptureConvValidityDetection {
+            detections = detections == null ? Map.of() : Map.copyOf(detections);
+        }
+    }
+
+    static final Set<String> RUPTURE_CONV_CRITERE_CODES = Set.of(
+            "RC_CONSENTEMENT", "RC_DELAI_RETRACTATION", "RC_HOMOLOGATION",
+            "RC_ASSISTANCE", "RC_INDEMNITE", "RC_ENTRETIENS"
+    );
 
     static final Set<String> LICENCIEMENT_CRITERE_CODES = Set.of(
             "FR_CONVOCATION", "FR_ENTRETIEN", "FR_DELAI_NOTIFICATION", "FR_MOTIVATION",
@@ -174,6 +186,7 @@ public record CaseAnalysisResponse(
         TravailExtractedData travailExtractedData = null;
         ImmigrationExtractedData immigrationExtractedData = null;
         LicenciementValidityDetection licenciementValidityDetection = null;
+        RuptureConvValidityDetection ruptureConvValidityDetection = null;
         List<PieceManquanteEntry> piecesManquantesDetails = List.of();
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
@@ -195,6 +208,7 @@ public record CaseAnalysisResponse(
                 travailExtractedData = extractTravailData(root);
                 immigrationExtractedData = extractImmigrationData(root);
                 licenciementValidityDetection = extractLicenciementValidityDetection(root);
+                ruptureConvValidityDetection = extractRuptureConvValidityDetection(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -227,6 +241,7 @@ public record CaseAnalysisResponse(
                 travailExtractedData,
                 immigrationExtractedData,
                 licenciementValidityDetection,
+                ruptureConvValidityDetection,
                 piecesManquantesDetails
         );
     }
@@ -248,6 +263,7 @@ public record CaseAnalysisResponse(
                     base.liquidationCommunaute(),
                     base.travailExtractedData(), base.immigrationExtractedData(),
                     base.licenciementValidityDetection(),
+                    base.ruptureConvValidityDetection(),
                     base.piecesManquantesDetails());
         }
         return base;
@@ -541,6 +557,25 @@ public record CaseAnalysisResponse(
             detections.put(code, new DetectedAnswer(reponse, justification));
         });
         return detections.isEmpty() ? null : new LicenciementValidityDetection(detections);
+    }
+
+    static RuptureConvValidityDetection extractRuptureConvValidityDetection(JsonNode root) {
+        JsonNode node = root.get("rupture_conv_validity_detection");
+        if (node == null || !node.isObject() || node.size() == 0) return null;
+        Map<String, DetectedAnswer> detections = new LinkedHashMap<>();
+        node.fields().forEachRemaining(entry -> {
+            String code = entry.getKey() == null ? null : entry.getKey().toUpperCase();
+            if (code == null || !RUPTURE_CONV_CRITERE_CODES.contains(code)) return;
+            JsonNode value = entry.getValue();
+            if (value == null || !value.isObject()) return;
+            String reponse = normalizeReponse(textOrNull(value, "reponse"));
+            String justification = textOrNull(value, "justification");
+            if (justification != null && justification.length() > MAX_JUSTIFICATION_LENGTH) {
+                justification = justification.substring(0, MAX_JUSTIFICATION_LENGTH);
+            }
+            detections.put(code, new DetectedAnswer(reponse, justification));
+        });
+        return detections.isEmpty() ? null : new RuptureConvValidityDetection(detections);
     }
 
     private static String normalizeReponse(String raw) {

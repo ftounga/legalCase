@@ -608,6 +608,66 @@ class CaseAnalysisResponseTest {
         assertThat(im.typeRecoursCode()).isEqualTo("RECOURS_CNDA");
     }
 
+    // SF-IA-03-13 : détection validité rupture conventionnelle
+    @Test
+    void from_ruptureConvValidityDetection_parses6Criteria() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "rupture_conv_validity_detection": {
+                    "RC_CONSENTEMENT": {"reponse": "OUI", "justification": "Aucune pression évoquée"},
+                    "RC_DELAI_RETRACTATION": {"reponse": "OUI", "justification": "Signature 01/02, homologation 20/02"},
+                    "RC_HOMOLOGATION": {"reponse": "OUI", "justification": "Attestation DREETS présente"},
+                    "RC_ASSISTANCE": {"reponse": "INCONNU", "justification": ""},
+                    "RC_INDEMNITE": {"reponse": "NON", "justification": "Indemnité spécifique < légale"},
+                    "RC_ENTRETIENS": {"reponse": "OUI", "justification": "Compte-rendu entretien 15/01"}
+                  }
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.ruptureConvValidityDetection()).isNotNull();
+        assertThat(response.ruptureConvValidityDetection().detections()).hasSize(6);
+        assertThat(response.ruptureConvValidityDetection().detections().get("RC_CONSENTEMENT").reponse()).isEqualTo("OUI");
+        assertThat(response.ruptureConvValidityDetection().detections().get("RC_INDEMNITE").reponse()).isEqualTo("NON");
+        assertThat(response.ruptureConvValidityDetection().detections().get("RC_ASSISTANCE").reponse()).isEqualTo("INCONNU");
+    }
+
+    @Test
+    void from_ruptureConvValidityDetection_invalidResponseNormalizedToInconnu() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "rupture_conv_validity_detection": {
+                    "RC_CONSENTEMENT": {"reponse": "peut-être", "justification": ""}
+                  }
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.ruptureConvValidityDetection()).isNotNull();
+        assertThat(response.ruptureConvValidityDetection().detections().get("RC_CONSENTEMENT").reponse()).isEqualTo("INCONNU");
+    }
+
+    @Test
+    void from_ruptureConvValidityDetection_unknownCodeIgnored() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "rupture_conv_validity_detection": {
+                    "RC_FANTAISIE": {"reponse": "OUI", "justification": ""},
+                    "RC_HOMOLOGATION": {"reponse": "NON", "justification": "refus DREETS"}
+                  }
+                }
+                """);
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.ruptureConvValidityDetection()).isNotNull();
+        assertThat(response.ruptureConvValidityDetection().detections()).hasSize(1);
+        assertThat(response.ruptureConvValidityDetection().detections()).containsOnlyKeys("RC_HOMOLOGATION");
+    }
+
+    @Test
+    void from_ruptureConvValidityDetection_absent_returnsNull() {
+        CaseAnalysis analysis = analysis("{}");
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        assertThat(response.ruptureConvValidityDetection()).isNull();
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);

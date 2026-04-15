@@ -65,6 +65,13 @@ public final class LegalDomainPromptBuilder {
               "salaire_reference_mensuel" : salaire brut mensuel moyen de référence (décimal), null si non détectable.
               En cas de ruptures multiples, retenir la plus récente (celle qui fonde la saisine actuelle).
               Exemple positif : une lettre de licenciement pour faute simple → {"type_rupture": "LICENCIEMENT", ...}. Exemple négatif : dossier harcèlement sans rupture évoquée → "compensation_data": null.
+            "rupture_conv_validity_detection" : objet à ÉMETTRE UNIQUEMENT si compensation_data.type_rupture vaut "RUPTURE_CONVENTIONNELLE". Évalue les 6 critères de validité de la rupture conventionnelle (art. L1237-11 s.). Chaque valeur est un objet {reponse, justification} où reponse vaut "OUI" / "NON" / "INCONNU" et justification (≤ 500 caractères) cite brièvement le document ou l'indice qui soutient la réponse. Champs attendus :
+              "RC_CONSENTEMENT" : consentement libre et éclairé. "OUI" si aucun élément n'évoque pression, dol, menace, erreur. "NON" si vice du consentement évoqué dans les pièces. "INCONNU" sinon.
+              "RC_DELAI_RETRACTATION" : délai de 15 jours calendaires respecté entre signature de la convention et demande d'homologation. "OUI" si ≥ 15 jours, "NON" si < 15 jours, "INCONNU" si dates manquantes.
+              "RC_HOMOLOGATION" : homologation par la DREETS (ex-DIRECCTE) obtenue ou réputée acquise. "OUI" si pièce d'homologation présente, "NON" si refus documenté, "INCONNU" à défaut.
+              "RC_ASSISTANCE" : assistance possible documentée (avocat, conseiller du salarié, représentant du personnel). "OUI" si documentée, "NON" si l'employeur l'a refusée, "INCONNU" sinon.
+              "RC_INDEMNITE" : indemnité spécifique supérieure ou égale à l'indemnité légale de licenciement. "OUI" si les deux montants sont connus et indemnité spécifique ≥ légale. "NON" si strictement inférieure. "INCONNU" si un montant manque.
+              "RC_ENTRETIENS" : au moins un entretien préalable tenu et documenté (compte-rendu ou correspondance). "OUI" si trace écrite, "NON" si aucune, "INCONNU" sinon.
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """

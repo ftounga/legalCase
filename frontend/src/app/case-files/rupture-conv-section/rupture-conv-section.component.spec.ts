@@ -124,4 +124,75 @@ describe('RuptureConvSectionComponent', () => {
     expect(component.verdictColor('INVALIDE')).toBe('#C0392B');
     expect(component.verdictColor(undefined)).toBe('#6B7A8D');
   });
+
+  it('pre-fills reponses from aiData.detections when GET 404', () => {
+    rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.aiData = {
+      detections: {
+        RC_CONSENTEMENT: { reponse: 'OUI' },
+        RC_INDEMNITE: { reponse: 'NON', justification: 'Indemnité trop faible' },
+      },
+    };
+    fixture.detectChanges();
+    expect(component.reponses()['RC_CONSENTEMENT']).toBe('OUI');
+    expect(component.reponses()['RC_INDEMNITE']).toBe('NON');
+    expect(component.reponses()['RC_DELAI_RETRACTATION']).toBe('INCONNU');
+  });
+
+  it('F-96 VERIFIED on RC_HOMOLOGATION + user set NON → blocker alert', () => {
+    rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.procedureChecks = [
+      { id: 'p1', ordre: 1, description: 'Homologation', statut: 'VERIFIED',
+        raison: 'Homologation obtenue', critereCode: 'RC_HOMOLOGATION' },
+    ];
+    fixture.detectChanges();
+    component.setReponse('RC_HOMOLOGATION', 'NON');
+    const alert = component.coherenceAlerts()['RC_HOMOLOGATION'];
+    expect(alert).toBeTruthy();
+    expect(alert.level).toBe('blocker');
+    expect(alert.source).toBe('F96');
+    expect(alert.expectedReponse).toBe('OUI');
+  });
+
+  it('IA question answered "oui" on RC_ASSISTANCE + user set NON → warning alert (non-blocker)', () => {
+    rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.aiQuestions = [
+      { id: 'q1', orderIndex: 1, questionText: 'Assistance documentée ?',
+        answerText: 'oui', critereCode: 'RC_ASSISTANCE' },
+    ];
+    fixture.detectChanges();
+    component.setReponse('RC_ASSISTANCE', 'NON');
+    const alert = component.coherenceAlerts()['RC_ASSISTANCE'];
+    expect(alert).toBeTruthy();
+    expect(alert.level).toBe('warning');
+    expect(alert.source).toBe('QUESTION_IA');
+    expect(alert.expectedReponse).toBe('OUI');
+  });
+
+  it('aiData detection OUI on RC_INDEMNITE + user set NON → blocker IA alert', () => {
+    rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.aiData = {
+      detections: {
+        RC_INDEMNITE: { reponse: 'OUI', justification: 'Indemnité conforme' },
+      },
+    };
+    fixture.detectChanges();
+    // aiData pre-fills to OUI; override user choice manually
+    component.setReponse('RC_INDEMNITE', 'NON');
+    const alert = component.coherenceAlerts()['RC_INDEMNITE'];
+    expect(alert).toBeTruthy();
+    expect(alert.level).toBe('blocker');
+    expect(alert.source).toBe('IA');
+    expect(alert.aiReponse).toBe('OUI');
+  });
+
+  it('no alerts when showForm is false', () => {
+    rcService.get.mockReturnValue(of(fakeResponse));
+    component.aiData = {
+      detections: { RC_CONSENTEMENT: { reponse: 'OUI' } },
+    };
+    fixture.detectChanges();
+    expect(component.showForm()).toBe(false);
+    expect(Object.keys(component.coherenceAlerts()).length).toBe(0);
+  });
 });
