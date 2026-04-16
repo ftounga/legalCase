@@ -27,6 +27,9 @@ public class IndemniteComparatif {
     @Column(nullable = false)
     private int ancienneteAnnees;
 
+    @Column(name = "anciennete_mois")
+    private Integer ancienneteMois;
+
     @Column(nullable = false)
     private int age;
 

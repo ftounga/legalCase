@@ -72,6 +72,10 @@
               }
             </div>
             <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Ancienneté (mois)</mat-label>
+              <input matInput type="number" min="0" max="11" [(ngModel)]="ancienneteMois">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
               <mat-label>Âge</mat-label>
               <input matInput type="number" [(ngModel)]="age">
             </mat-form-field>
@@ -113,7 +117,7 @@
             <div class="result-header">
               <div>
                 <span class="result-title">Fourchettes d'indemnités — {{ result()!.country }}</span>
-                <span class="result-subtitle">Ancienneté {{ result()!.ancienneteAnnees }} ans, âge {{ result()!.age }} ans, salaire {{ result()!.salaireMensuel | number:'1.0-0' }} €</span>
+                <span class="result-subtitle">Ancienneté {{ result()!.ancienneteAnnees }} ans@if (result()!.ancienneteMois) {&nbsp;{{ result()!.ancienneteMois }} mois}, âge {{ result()!.age }} ans, salaire {{ result()!.salaireMensuel | number:'1.0-0' }} €</span>
               </div>
             </div>
 

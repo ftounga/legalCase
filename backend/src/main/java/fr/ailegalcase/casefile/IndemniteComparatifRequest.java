@@ -6,6 +6,7 @@ public record IndemniteComparatifRequest(
         String country,
         String typeRupture,
         int ancienneteAnnees,
+        int ancienneteMois,
         int age,
         BigDecimal salaireMensuel
 ) {}

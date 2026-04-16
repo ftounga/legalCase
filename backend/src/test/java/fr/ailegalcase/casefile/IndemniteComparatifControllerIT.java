@@ -82,7 +82,7 @@ class IndemniteComparatifControllerIT {
     void POST_france_returns200() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "ancienneteAnnees", 10, "age", 40, "salaireMensuel", 3000))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "typeRupture", "LICENCIEMENT", "ancienneteMois", 0, "ancienneteAnnees", 10, "age", 40, "salaireMensuel", 3000))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.country").value("FRANCE"))
                 .andExpect(jsonPath("$.fourchetteBasseMontant").isNumber())
@@ -93,7 +93,7 @@ class IndemniteComparatifControllerIT {
     void POST_belgique_returns200() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "BELGIQUE", "ancienneteAnnees", 5, "age", 35, "salaireMensuel", 2500))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "BELGIQUE", "typeRupture", "LICENCIEMENT_ORDINAIRE", "ancienneteMois", 0, "ancienneteAnnees", 5, "age", 35, "salaireMensuel", 2500))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.country").value("BELGIQUE"));
     }
@@ -102,7 +102,7 @@ class IndemniteComparatifControllerIT {
     void POST_invalidCountry_returns400() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "ALLEMAGNE", "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 3000))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "ALLEMAGNE", "typeRupture", "LICENCIEMENT", "ancienneteMois", 0, "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 3000))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -110,7 +110,7 @@ class IndemniteComparatifControllerIT {
     void POST_wrongDomain_returns400() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + immCf.getId() + "/indemnite-comparatif")
                         .with(authentication(authOther)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 3000))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "typeRupture", "LICENCIEMENT", "ancienneteMois", 0, "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 3000))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -118,7 +118,7 @@ class IndemniteComparatifControllerIT {
     void POST_otherWorkspace_returns404() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(authOther)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 3000))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "typeRupture", "LICENCIEMENT", "ancienneteMois", 0, "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 3000))))
                 .andExpect(status().isNotFound());
     }
 
@@ -126,7 +126,7 @@ class IndemniteComparatifControllerIT {
     void GET_afterPost_returns200() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "ancienneteAnnees", 15, "age", 50, "salaireMensuel", 4000))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "typeRupture", "LICENCIEMENT", "ancienneteMois", 0, "ancienneteAnnees", 15, "age", 50, "salaireMensuel", 4000))))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(auth)))
@@ -145,13 +145,48 @@ class IndemniteComparatifControllerIT {
     void POST_upsert_replaces() throws Exception {
         mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 2000))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "FRANCE", "typeRupture", "LICENCIEMENT", "ancienneteMois", 0, "ancienneteAnnees", 5, "age", 30, "salaireMensuel", 2000))))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
                         .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("country", "BELGIQUE", "ancienneteAnnees", 12, "age", 45, "salaireMensuel", 3500))))
+                        .content(objectMapper.writeValueAsString(Map.of("country", "BELGIQUE", "typeRupture", "LICENCIEMENT_ORDINAIRE", "ancienneteMois", 0, "ancienneteAnnees", 12, "age", 45, "salaireMensuel", 3500))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.country").value("BELGIQUE"));
+    }
+
+    @Test
+    void SF_DT_09_06_POST_avecMois_persistEtRetourne() throws Exception {
+        mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
+                        .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "country", "FRANCE", "typeRupture", "LICENCIEMENT",
+                                "ancienneteAnnees", 16, "ancienneteMois", 3,
+                                "age", 45, "salaireMensuel", 3200))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ancienneteAnnees").value(16))
+                .andExpect(jsonPath("$.ancienneteMois").value(3));
+        mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ancienneteMois").value(3));
+    }
+
+    @Test
+    void SF_DT_09_06_POST_moisInvalide_retourne400() throws Exception {
+        mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
+                        .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "country", "FRANCE", "typeRupture", "LICENCIEMENT",
+                                "ancienneteAnnees", 10, "ancienneteMois", 12,
+                                "age", 40, "salaireMensuel", 3000))))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/v1/case-files/" + travailCf.getId() + "/indemnite-comparatif")
+                        .with(authentication(auth)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "country", "FRANCE", "typeRupture", "LICENCIEMENT",
+                                "ancienneteAnnees", 10, "ancienneteMois", -1,
+                                "age", 40, "salaireMensuel", 3000))))
+                .andExpect(status().isBadRequest());
     }
 
     private OAuth2AuthenticationToken buildAuth(String sub, String email) {
