@@ -746,3 +746,13 @@
   color: #1C2B3A;
   line-height: 1.5;
 }
+
+// SF-IA-03-19 : pulse de mise en évidence de la source après clic sur popover d'incohérence.
+.source-highlight {
+  animation: source-highlight-pulse 2s ease-out;
+  border-radius: 6px;
+}
+@keyframes source-highlight-pulse {
+  0%   { background-color: rgba(201, 166, 70, 0.25); box-shadow: 0 0 0 4px rgba(201, 166, 70, 0.25); }
+  100% { background-color: transparent; box-shadow: 0 0 0 0 transparent; }
+}

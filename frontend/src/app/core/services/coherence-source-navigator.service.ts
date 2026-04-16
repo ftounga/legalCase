@@ -14,9 +14,10 @@ export class CoherenceSourceNavigator {
   navigate(caseFileId: string, actionType: ActionType, actionTarget: string | null): void {
     switch (actionType) {
       case 'OPEN_DOCUMENT':
-        if (actionTarget) {
-          this.router.navigate(['/case-files', caseFileId, 'documents', actionTarget]);
-        }
+        // SF-IA-03-19 : pas de route dédiée documents/{id}, fallback vers détail dossier + scroll section documents.
+        this.router.navigate(['/case-files', caseFileId], {
+          queryParams: actionTarget ? { section: 'documents', doc: actionTarget } : { section: 'documents' },
+        });
         break;
       case 'OPEN_DOCUMENTS_LIST':
         this.router.navigate(['/case-files', caseFileId], { queryParams: { section: 'documents' } });

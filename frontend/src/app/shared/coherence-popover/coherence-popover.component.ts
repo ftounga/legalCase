@@ -51,12 +51,14 @@ import { SourceExplanation, SourceType, ActionType } from '../../core/models/sou
       display: block;
     }
     .popover-card {
-      width: 300px;
+      max-width: 320px;
+      min-width: 200px;
+      width: max-content;
       background: #FFFFFF;
       border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0, 30, 60, 0.12);
       border-left: 3px solid #F59E0B;
-      padding: 12px;
+      padding: 10px 12px;
       font-family: 'Inter', sans-serif;
       color: #0B2340;
     }
