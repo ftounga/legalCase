@@ -260,6 +260,24 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
+
+    // SF-IA-03-19 : scroll vers la section cible quand on arrive via un popover d'incohérence.
+    this.route.queryParamMap?.subscribe(params => {
+      const section = params.get('section');
+      const doc = params.get('doc');
+      // Priorité au document précis si présent (highlight ligne), sinon la section.
+      if (doc) {
+        this.scrollAndHighlight('doc-' + doc);
+        return;
+      }
+      if (!section) return;
+      const anchorId = section === 'documents' ? 'section-documents'
+                     : section === 'analyse' ? 'section-analyse'
+                     : section === 'deadlines' ? 'section-deadlines'
+                     : null;
+      if (anchorId) this.scrollAndHighlight(anchorId);
+    });
+
     this.eventsSub = this.globalNotificationService.events$
       .subscribe(event => {
         if (event.caseFileId !== id) return;
@@ -300,6 +318,18 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.eventsSub?.unsubscribe();
+  }
+
+  /** SF-IA-03-19 : scroll + highlight pulse 2s sur une section. Retry 3× car le rendu est async. */
+  private scrollAndHighlight(anchorId: string, attempt = 0): void {
+    const el = document.getElementById(anchorId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('source-highlight');
+      setTimeout(() => el.classList.remove('source-highlight'), 2100);
+    } else if (attempt < 10) {
+      setTimeout(() => this.scrollAndHighlight(anchorId, attempt + 1), 300);
+    }
   }
 
   loadDeadlines(caseFileId: string): void {

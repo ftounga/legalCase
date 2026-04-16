@@ -202,7 +202,7 @@
       }
 
       @if ((synthesis()!.piecesManquantes?.length ?? 0) > 0) {
-        <mat-expansion-panel expanded>
+        <mat-expansion-panel expanded id="section-pieces">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="panel-icon panel-icon--manquantes">report_problem</mat-icon>
@@ -212,7 +212,7 @@
           </mat-expansion-panel-header>
           <ul class="synthesis-list" [@listStagger]="synthesis()!.piecesManquantes.length">
             @for (item of synthesis()!.piecesManquantes; track $index) {
-              <li @fadeInUp>{{ item }}</li>
+              <li @fadeInUp [attr.id]="'piece-' + $index">{{ item }}</li>
             }
           </ul>
         </mat-expansion-panel>
@@ -419,7 +419,7 @@
       }
 
       @if (procedureChecks().length > 0) {
-        <mat-expansion-panel expanded>
+        <mat-expansion-panel expanded id="section-checklist">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="panel-icon panel-icon--checklist">checklist</mat-icon>
@@ -435,7 +435,7 @@
           </div>
           <div class="checklist-list">
             @for (check of procedureChecks(); track check.id) {
-              <div class="checklist-item">
+              <div class="checklist-item" [attr.id]="check.critereCode ? 'check-' + check.critereCode : null">
                 <div class="checklist-description-block">
                   <span class="checklist-description">{{ check.ordre }}. {{ check.description }}</span>
                   @if (check.raison) {
@@ -476,7 +476,7 @@
 
   @if (questions().length > 0) {
     <mat-accordion class="synthesis-accordion">
-      <mat-expansion-panel expanded>
+      <mat-expansion-panel expanded id="section-questions">
         <mat-expansion-panel-header>
           <mat-panel-title>
             <mat-icon class="panel-icon panel-icon--questions">quiz</mat-icon>
@@ -486,7 +486,7 @@
         </mat-expansion-panel-header>
         <div class="questions-list">
           @for (q of questions(); track q.id) {
-            <div class="question-item">
+            <div class="question-item" [attr.id]="'qa-' + q.id">
               <p class="question-text">{{ q.orderIndex + 1 }}. {{ q.questionText }}</p>
               @if (q.answerText) {
                 @if (editingQuestionId() === q.id) {
@@ -545,7 +545,7 @@
     </mat-accordion>
   }
 
-  <div class="chat-section">
+  <div class="chat-section" id="section-chat">
     <h2 class="chat-title">
       <mat-icon>chat</mat-icon>
       Chat avec le dossier

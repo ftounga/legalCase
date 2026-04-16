@@ -194,7 +194,7 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="docColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: docColumns;"></tr>
+            <tr mat-row *matRowDef="let row; columns: docColumns;" [attr.id]="'doc-' + row.id"></tr>
           </table>
         </mat-card>
       }

@@ -27,7 +27,7 @@ import java.util.UUID;
 public class SourceExplanationGenerator {
 
     private static final Logger log = LoggerFactory.getLogger(SourceExplanationGenerator.class);
-    private static final int MAX_TOKENS = 1024;
+    private static final int MAX_TOKENS = 1600;
     private static final int MAX_SYNTHESIS_CHARS = 8000;
 
     private final AnthropicService anthropicService;
@@ -109,23 +109,43 @@ public class SourceExplanationGenerator {
                 SÉPARATION STRICTE des 3 champs affichés dans le popover :
 
                 - sentence (zone MOTIF) : phrase JURIDIQUE pure (≤ 220 car) qui décrit la règle ou le fait
-                  détecté. NE DOIT PAS mentionner le nom du document, de la question, du point F-96, ou
-                  de la pièce. Uniquement le QUOI.
-                  Exemple CORRECT : "La convention BTP prévoit une prime d'ancienneté de 12 % après 15 ans."
-                  Exemple INCORRECT : "Selon contrat_dupont.pdf, la prime est de 12 %."
+                  détecté, SANS mention du nom du document/question/F96/pièce. Uniquement le QUOI juridique.
+                  ✓ CORRECT : "La convention BTP prévoit une prime d'ancienneté de 12 % après 15 ans."
+                  ✗ INCORRECT : "Selon contrat_dupont.pdf, la prime est de 12 %."
 
-                - label (zone SOURCE ligne 1) : nom affichable COURT et PROPRE de la source.
-                  Exemple CORRECT DOCUMENT : "contrat_dupont.pdf"
-                  Exemple CORRECT QUESTION_AI : "Quelle ancienneté ?"
-                  Exemple CORRECT CHECKLIST_F96 : "FR_CONVOCATION"
-                  Exemple CORRECT MISSING_PIECE : "Contrat de travail signé"
+                - label (zone SOURCE ligne 1) : nom CANONIQUE et COURT de la source.
+                  • DOCUMENT : nom exact du fichier (ex. "contrat_dupont.pdf")
+                  • QUESTION_AI : question complète telle qu'elle a été posée (ex. "Quelle est l'ancienneté ?")
+                  • CHECKLIST_F96 : description courte du point procédural (ex. "Convocation à entretien préalable")
+                  • MISSING_PIECE : intitulé court de la pièce (ex. "Contrat de travail signé")
 
-                - secondaryText (zone SOURCE ligne 2, ≤ 200 car) : extrait court ou détail spécifique
-                  de la source — clause citée, extrait de réponse de l'avocat, raison F-96 tronquée,
-                  intitulé précis de la pièce.
-                  Exemple CORRECT : "Clause 6.2 — prime à partir de 15 ans d'ancienneté continue"
-                  Exemple CORRECT : "Réponse avocat : 15 ans et 2 mois"
-                  Exemple CORRECT : "F-96 marqué non conforme : pas de LRAR envoyée"
+                - secondaryText (zone SOURCE ligne 2, ≤ 200 car) : **détail CONCRET et CONTEXTUEL** de la source,
+                  à rédiger comme une citation ou un renvoi précis. TOUJOURS renseigné si possible.
+                  Structure recommandée par sourceType :
+                  • DOCUMENT : « position dans le document » + extrait textuel si visible
+                    Ex : "Clause 6.2 — 'Prime d'ancienneté : 12% après 15 ans d'activité'"
+                    Ex : "§ Motifs, page 2 — 'Absence de cause réelle et sérieuse'"
+                  • QUESTION_AI : « réponse de l'avocat » verbatim courte
+                    Ex : "Réponse de l'avocat : '15 ans et 2 mois depuis le 01/06/2009'"
+                    Ex : "Réponse de l'avocat : 'Convention BTP applicable'"
+                  • CHECKLIST_F96 : statut + raison IA verbatim courte
+                    Ex : "Marqué non conforme — 'Aucune LRAR envoyée dans les 5 jours ouvrables'"
+                    Ex : "Marqué vérifié — 'Entretien préalable tenu le 12/03'"
+                  • MISSING_PIECE : nature précise + usage
+                    Ex : "Non fournie — nécessaire pour prouver la date d'entrée et la convention"
+                    Ex : "Non fournie — justifie la prime d'ancienneté et les congés"
+                  • ANALYSIS_DETECTION : laisser null (pas de source unique)
+
+                Règle : mieux vaut un secondaryText MANQUANT que GÉNÉRIQUE. Ne jamais écrire "cf. le document",
+                "voir la question" — produire du contenu spécifique ou omettre.
+
+                IMPORTANT — Source d'information à réutiliser :
+                La synthèse JSON ci-dessous contient déjà pour chaque fait / point juridique / risque, des
+                champs "source" (nom du document) et "extrait" (phrase verbatim). Tu DOIS réutiliser
+                ces extraits tels quels dans secondaryText quand la donnée vient d'un fait/point/risque —
+                ne pas inventer une clause ou une page qui n'est pas dans l'input.
+                Si aucun extrait n'est disponible dans la synthèse, mieux vaut laisser secondaryText null
+                que d'inventer.
 
                 - sourceType + anchor* : voir règles ci-dessous.
 

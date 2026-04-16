@@ -136,6 +136,37 @@ export class SynthesisComponent implements OnInit {
         this.snackBar.open('Dossier introuvable', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
       }
     });
+
+    // SF-IA-03-19 : lecture des query params pour scroll + highlight vers la source cliquée depuis un popover.
+    this.route.queryParamMap?.subscribe(params => {
+      const qa = params.get('qa');
+      const check = params.get('check');
+      const piece = params.get('piece');
+      const chat = params.get('chat');
+      const section = params.get('section');
+      let anchorId: string | null = null;
+      if (qa) anchorId = 'qa-' + qa;
+      else if (check) anchorId = 'check-' + check;
+      else if (piece !== null) anchorId = 'piece-' + piece;
+      else if (chat || section === 'chat') anchorId = 'section-chat';
+      else if (section === 'questions') anchorId = 'section-questions';
+      else if (section === 'checklist') anchorId = 'section-checklist';
+      else if (section === 'pieces') anchorId = 'section-pieces';
+      if (anchorId) this.scrollAndHighlight(anchorId);
+    });
+  }
+
+  /** SF-IA-03-19 : scroll vers l'ancre + highlight pulse 2s. Retry 3× car les données chargent async. */
+  private scrollAndHighlight(anchorId: string, attempt = 0): void {
+    const el = document.getElementById(anchorId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('source-highlight');
+      setTimeout(() => el.classList.remove('source-highlight'), 2100);
+    } else if (attempt < 10) {
+      // Les données sont async (loadVersions), retry avec backoff
+      setTimeout(() => this.scrollAndHighlight(anchorId, attempt + 1), 300);
+    }
   }
 
   private loadVersions(caseFileId: string): void {
