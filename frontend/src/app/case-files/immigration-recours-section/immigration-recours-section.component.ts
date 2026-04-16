@@ -149,9 +149,9 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   alertBadgeLabel(alert: IM06CoherenceAlert): string {
     const prefix = (() => {
       switch (alert.source) {
-        case 'F96': return 'Incohérence F-96';
-        case 'QUESTION_IA': return 'Incohérence Question IA';
-        case 'IA': return 'Incohérence IA';
+        case 'F96': return 'Incohérence Checklist procédurale';
+        case 'QUESTION_IA': return 'Incohérence Question complémentaire';
+        case 'IA': return 'Incohérence détectée';
         case 'PIECE_MANQUANTE': return 'Pièce manquante';
         case 'MULTI': return 'Incohérence multiple';
       }
@@ -195,10 +195,10 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
       if (!expected) {
         expected = ev;
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
       } else if (ev === expected) {
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
       }
       break;
     }
@@ -209,10 +209,10 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
       if (!expected) {
         expected = iaCode;
         contributors.push('IA');
-        reasons.push(`Analyse IA : ${iaCode}`);
+        reasons.push(`Analyse du dossier : ${iaCode}`);
       } else if (iaCode === expected) {
         contributors.push('IA');
-        reasons.push(`Analyse IA : ${iaCode}`);
+        reasons.push(`Analyse du dossier : ${iaCode}`);
       }
     }
 
@@ -245,7 +245,7 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
       source: 'IA',
       contributors: ['IA'],
       expectedDisplay: iaDate,
-      reason: `Analyse IA : date de notification détectée le ${iaDate} (écart de ${Math.round(diffDays)} jours)`,
+      reason: `Analyse du dossier : date de notification détectée le ${iaDate} (écart de ${Math.round(diffDays)} jours)`,
     };
   }
 

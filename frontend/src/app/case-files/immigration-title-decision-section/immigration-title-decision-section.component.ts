@@ -165,9 +165,9 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   alertBadgeLabel(alert: IM05CoherenceAlert): string {
     const prefix = (() => {
       switch (alert.source) {
-        case 'F96': return 'Incohérence F-96';
-        case 'QUESTION_IA': return 'Incohérence Question IA';
-        case 'IA': return 'Incohérence IA';
+        case 'F96': return 'Incohérence Checklist procédurale';
+        case 'QUESTION_IA': return 'Incohérence Question complémentaire';
+        case 'IA': return 'Incohérence détectée';
         case 'PIECE_MANQUANTE': return 'Pièce manquante';
         case 'MULTI': return 'Incohérence multiple';
       }
@@ -212,10 +212,10 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
       if (!expected) {
         expected = ev;
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
       } else if (ev === expected) {
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
       }
       break;
     }
@@ -228,10 +228,10 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
         if (!expected) {
           expected = iaMotif;
           contributors.push('IA');
-          reasons.push(`Analyse IA : code ${iaCode} → motif ${iaMotif}`);
+          reasons.push(`Analyse du dossier : code ${iaCode} → motif ${iaMotif}`);
         } else if (iaMotif === expected) {
           contributors.push('IA');
-          reasons.push(`Analyse IA : ${iaMotif}`);
+          reasons.push(`Analyse du dossier : ${iaMotif}`);
         }
       }
     }
@@ -260,7 +260,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
       source: 'IA',
       contributors: ['IA'],
       expectedDisplay: iaNat ? 'Ressortissant UE' : 'Pays tiers',
-      reason: `Analyse IA : ${iaNat ? 'nationalité UE/EEE/Suisse' : 'pays tiers'}`,
+      reason: `Analyse du dossier : ${iaNat ? 'nationalité UE/EEE/Suisse' : 'pays tiers'}`,
     };
   }
 

@@ -305,10 +305,10 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
         const detail = alert.f96Raison ? ` (${alert.f96Raison})` : '';
         parts.push(`Checklist procédurale : ${statut}${detail}`);
       } else if (src === 'QUESTION_IA') {
-        parts.push(`Question IA : "${alert.questionText}" → réponse "${alert.questionAnswer}"`);
+        parts.push(`Question complémentaire : "${alert.questionText}" → réponse "${alert.questionAnswer}"`);
       } else if (src === 'IA') {
         const just = alert.justification ? ` — ${alert.justification}` : '';
-        parts.push(`Analyse IA : ${alert.aiReponse}${just}`);
+        parts.push(`Analyse du dossier : ${alert.aiReponse}${just}`);
       } else if (src === 'PIECE_MANQUANTE') {
         parts.push(`Pièce manquante : ${alert.pieceTexte}`);
       }
@@ -319,9 +319,9 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   alertBadgeLabel(alert: RCCoherenceAlert): string {
     const prefix = (() => {
       switch (alert.source) {
-        case 'F96': return 'Incohérence F-96';
-        case 'QUESTION_IA': return 'Incohérence Question IA';
-        case 'IA': return 'Incohérence IA';
+        case 'F96': return 'Incohérence Checklist procédurale';
+        case 'QUESTION_IA': return 'Incohérence Question complémentaire';
+        case 'IA': return 'Incohérence détectée';
         case 'PIECE_MANQUANTE': return 'Pièce manquante';
         case 'MULTI': return 'Incohérence multiple';
       }

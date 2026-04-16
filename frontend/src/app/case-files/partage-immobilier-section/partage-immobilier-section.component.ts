@@ -285,9 +285,9 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
       if (src === 'F96') {
         parts.push(`Checklist procédurale : ${alert.iaValue} €${alert.f96Raison ? ' (' + alert.f96Raison + ')' : ''}`);
       } else if (src === 'QUESTION_IA') {
-        parts.push(`Question IA : "${alert.questionText}" → "${alert.questionAnswer}"`);
+        parts.push(`Question complémentaire : "${alert.questionText}" → "${alert.questionAnswer}"`);
       } else if (src === 'IA') {
-        parts.push(`Analyse IA : ${alert.iaValue} €${alert.iaLibelle ? ' (' + alert.iaLibelle + ')' : ''}`);
+        parts.push(`Analyse du dossier : ${alert.iaValue} €${alert.iaLibelle ? ' (' + alert.iaLibelle + ')' : ''}`);
       } else if (src === 'PIECE_MANQUANTE') {
         parts.push(`Pièce manquante : ${alert.pieceTexte}`);
       }
@@ -296,9 +296,9 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   }
 
   alertBadgeLabel(alert: PartageCoherenceAlert): string {
-    const prefix = alert.source === 'F96' ? 'Incohérence F-96'
-      : alert.source === 'QUESTION_IA' ? 'Incohérence Question IA'
-      : alert.source === 'IA' ? 'Incohérence IA'
+    const prefix = alert.source === 'F96' ? 'Incohérence Checklist procédurale'
+      : alert.source === 'QUESTION_IA' ? 'Incohérence Question complémentaire'
+      : alert.source === 'IA' ? 'Incohérence détectée'
       : alert.source === 'PIECE_MANQUANTE' ? 'Pièce manquante'
       : 'Incohérence multiple';
     return `${prefix} (${alert.iaValue} €)`;

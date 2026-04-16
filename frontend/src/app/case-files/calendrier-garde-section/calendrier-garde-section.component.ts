@@ -119,11 +119,11 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
       if (!expected) {
         expected = ev;
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
         level = 'blocker';
       } else if (ev === expected) {
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
       }
       break;
     }
@@ -134,11 +134,11 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
       if (!expected) {
         expected = iaDetaille;
         contributors.push('IA');
-        reasons.push(`Analyse IA : ${iaDetaille}`);
+        reasons.push(`Analyse du dossier : ${iaDetaille}`);
         level = 'blocker';
       } else if (iaDetaille === expected) {
         contributors.push('IA');
-        reasons.push(`Analyse IA : ${iaDetaille}`);
+        reasons.push(`Analyse du dossier : ${iaDetaille}`);
       }
     }
 
@@ -151,7 +151,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
         if (userIsAlternee !== iaIsAlternee) {
           expected = iaCoarse === 'ALTERNEE' ? 'mode alterné' : 'mode non alterné';
           contributors.push('IA_COARSE');
-          reasons.push(`Analyse IA (catégorie) : ${iaCoarse}`);
+          reasons.push(`Analyse du dossier (catégorie) : ${iaCoarse}`);
           level = 'warning';
         }
       }
@@ -207,9 +207,9 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
 
   alertBadgeLabel(alert: GardeCoherenceAlert): string {
     switch (alert.source) {
-      case 'F96': return `Incohérence F-96 (${alert.expectedDisplay})`;
-      case 'QUESTION_IA': return `Incohérence Question IA (${alert.expectedDisplay})`;
-      case 'IA': return `Incohérence IA (${alert.expectedDisplay})`;
+      case 'F96': return `Incohérence Checklist procédurale (${alert.expectedDisplay})`;
+      case 'QUESTION_IA': return `Incohérence Question complémentaire (${alert.expectedDisplay})`;
+      case 'IA': return `Incohérence détectée (${alert.expectedDisplay})`;
       case 'IA_COARSE': return `Incohérence catégorie IA`;
       case 'PIECE_MANQUANTE': return `Pièce manquante (${alert.expectedDisplay})`;
       case 'MULTI': return `Incohérence multiple (${alert.expectedDisplay})`;

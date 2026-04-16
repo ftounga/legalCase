@@ -176,14 +176,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       },
       {
         id: 'analyse',
-        label: 'Analyse IA',
+        label: 'Analyse du dossier',
         status: this.fullAnalysisRunning() ? 'in_progress' : syn !== null ? 'done' : 'pending',
         detail: this.fullAnalysisRunning() ? 'En cours…' : syn !== null ? 'Terminée' : null,
         anchorId: 'section-analyse',
       },
       {
         id: 'questions',
-        label: 'Questions IA',
+        label: 'Questions complémentaires',
         status: syn === null ? 'pending' : (qs.length > 0 && pendingQuestions === 0) ? 'done' : 'pending',
         detail: syn !== null && pendingQuestions > 0 ? `${pendingQuestions} en attente` : null,
         anchorId: null,
