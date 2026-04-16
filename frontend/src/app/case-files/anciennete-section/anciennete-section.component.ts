@@ -210,6 +210,10 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
       if (this.showForm() && !this.result()) {
         this.prefillFromAi();
       }
+      // SF-IA-03-18 : l'arrivée d'un nouveau aiData signale une analyse fraîche → re-fetch.
+      if (!changes['aiData'].firstChange) {
+        this.loadSourceExplanations();
+      }
     }
   }
 

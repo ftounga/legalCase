@@ -96,6 +96,8 @@ public class EnrichedAnalysisService {
     private final ProcedureCheckService procedureCheckService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
+    private final SourceExplanationGenerator sourceExplanationGenerator;
+    private final SourceExplanationService sourceExplanationService;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -114,7 +116,9 @@ public class EnrichedAnalysisService {
                                    ChatMessageRepository chatMessageRepository,
                                    ProcedureCheckService procedureCheckService,
                                    StatutoryDeadlineService statutoryDeadlineService,
-                                   fr.ailegalcase.referential.LegalReferentialService legalReferentialService) {
+                                   fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
+                                   SourceExplanationGenerator sourceExplanationGenerator,
+                                   SourceExplanationService sourceExplanationService) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -130,6 +134,8 @@ public class EnrichedAnalysisService {
         this.procedureCheckService = procedureCheckService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
+        this.sourceExplanationGenerator = sourceExplanationGenerator;
+        this.sourceExplanationService = sourceExplanationService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -269,6 +275,17 @@ public class EnrichedAnalysisService {
                     enrichedAnalysis.getAnalysisResult(), previousAnalysisId);
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,
                     enrichedAnalysis.getAnalysisResult());
+            // SF-IA-03-18 : la synthèse enrichie régénère aussi les explications de source via Haiku (fail-open).
+            try {
+                CaseAnalysis finalAnalysis = enrichedAnalysis;
+                caseFileRepository.findById(caseFileId).ifPresent(cf -> {
+                    List<SourceExplanationData> explanations = sourceExplanationGenerator.generate(cf, finalAnalysis);
+                    sourceExplanationService.persist(finalAnalysis, explanations);
+                });
+            } catch (Exception e) {
+                log.warn("Fail-open: enriched source explanation generation failed for analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
         }
 
         AnalysisJob job = analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS)
