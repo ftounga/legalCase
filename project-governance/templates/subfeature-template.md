@@ -94,6 +94,17 @@ Si la subfeature crée ou modifie un outil décisionnel (avec UI, formulaire, r�
 
 > Ces questions reflètent les écueils récurrents observés. Cocher chaque case explicitement force la vérification. Si l'équipe découvre un nouveau pattern récurrent, l'ajouter ici.
 
+### Cas spécifique : nouveau pattern UI ou service partagé
+
+Si la subfeature introduit un composant partagé (`shared/`), un service applicatif (`core/services/`), un endpoint transversal, une directive, ou un record/DTO réutilisable, répondre explicitement aux questions suivantes :
+
+- [ ] **Où le nouveau pattern UI pourrait-il être réutilisé ?** Scanner au-delà de la cible directe : badges inline, tooltips, popovers, panneaux, indicateurs de statut, barres de progression, cartes info, etc. existants dans l'app.
+- [ ] **Y a-t-il des patterns concurrents (tooltips maison, badges maison, popovers ad hoc) que ce nouveau pattern remplace ?** Si oui, lister et classer (harmonisation immédiate / backlog).
+- [ ] **Le nouveau service / endpoint peut-il servir à d'autres features ?** Scanner F-69, F-92, F-93, F-94, F-96 et les autres zones porteuses d'info IA/métadonnées.
+- [ ] **Le nouveau composant a-t-il un équivalent design que ce design remplace ?** Si oui, planifier la migration progressive et éviter la coexistence durable.
+
+> Un pattern introduit sans ce scan crée une *dette de convergence* : deux mécanismes similaires qui divergent dans le temps. Ce scan oblige à classer chaque cible concurrente dès la naissance du pattern, même si le traitement est différé en backlog.
+
 ### Résultat du scan
 
 | Cible | Applicable ? | Traitement |

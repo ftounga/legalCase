@@ -143,6 +143,7 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Demande de code sans critères d'acceptation dans la mini-spec | REFUS — compléter la mini-spec |
 | Demande de code sans plan de test dans la mini-spec | REFUS — compléter la mini-spec |
 | Mini-spec sans section "Analyse de cohérence transversale" remplie | REFUS — scanner les autres outils / pays / domaines / UI patterns d'abord, classer chaque cible applicable (intégrée / SF parallèle / backlog / non applicable avec justification) |
+| SF introduit un composant partagé / service / endpoint transversal / directive / DTO réutilisable sans section "Nouveau pattern UI ou service partagé" remplie | REFUS — scanner toutes les zones où le pattern pourrait être réutilisé (badges, tooltips, popovers, panneaux existants), identifier les patterns concurrents à harmoniser, classer chaque cible (harmonisation immédiate / SF parallèle / backlog / non applicable). Évite la *dette de convergence* (2 mécanismes similaires qui divergent dans le temps). |
 | Feature non découpée en subfeatures | REFUS — demander le découpage (`feature-splitter`) |
 | Subfeature estimée > 2 jours | REFUS — demander un redécoupage |
 | `git push` sans review checklist passée dans la conversation | REFUS — passer la review checklist d'abord |

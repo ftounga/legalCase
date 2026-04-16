@@ -104,7 +104,27 @@ Non applicable — cette SF n'introduit pas un nouvel outil, elle enrichit un pa
 
 - [x] Étendu à F-DT-07 dans cette SF + infrastructure partagée
 - [x] Subfeatures parallèles créées : SF-IA-03-15b (DT-08/09/10 + FA-05/06/07), SF-IA-03-15c (IM-05/06/07)
-- [x] Non applicable ailleurs : aucune autre cible que les 10 outils décisionnels
+- [x] Backlog VN pour les zones hors outils décisionnels où le pattern popover s'applique (complément rétrospectif, voir ci-dessous)
+
+### Scan élargi — autres zones où le pattern popover est applicable (complément rétrospectif 2026-04-16)
+
+Identification manquante dans la mini-spec initiale. Le composant `CoherencePopoverComponent` + `CoherenceSourceNavigator` + endpoint `/source-explanations` étant des primitives transversales, leur réutilisation hors F-IA-03 est envisageable :
+
+| Zone | Pattern actuel | Applicabilité | Classement |
+|---|---|---|---|
+| **F-69 Délais légaux** — badges "proposé par IA" sur `CaseDeadlinesSectionComponent` | Tooltip simple | Le popover enrichi permettrait d'afficher "détecté dans *assignation.pdf*, §2 : délai de 2 mois art. R1452-1" | **Backlog** → nouvelle SF-IA-03-16 (après 15c) |
+| **F-92 Pièces manquantes** — liste dans `SynthesisComponent` | Juste liste, pas de popover | Popover pourrait expliquer "pourquoi cette pièce est recommandée" basé sur la synthèse IA | **Backlog** → SF-92-03 potentiel |
+| **F-96 Checklist procédurale** — points `TO_CHECK`/`NON_COMPLIANT` avec `raison` IA | Tooltip raison existant, pattern concurrent | Convergence possible : remplacer le tooltip maison par `CoherencePopoverComponent` | **Backlog** → SF-96-06 (harmonisation) |
+| **F-93 Traçabilité sources IA** — badges `source` + `extrait` inline dans `SynthesisComponent` | Badge inline avec nom doc + extrait italique | Pattern *proche* mais moins actionnable ; candidat à migration vers popover unifié | **Backlog** → SF-93-03 (harmonisation) |
+| **F-94 Score de risque** — badge couleur `SynthesisComponent` + liste dossiers | Aucun popover | Popover pourrait expliquer "score 75 car 3 risques élevés détectés" | **Backlog** → SF-94-03 (moins prioritaire) |
+
+Aucune de ces cibles n'est bloquante pour la livraison du pilote F-DT-07. Elles seront évaluées lors de la roadmap post-15c. Documentées ici pour traçabilité.
+
+---
+
+## Note de rétrospective
+
+Ce scan élargi a été ajouté **après merge** (2026-04-16) suite à une vérification de gouvernance. La mini-spec initiale avait scanné les 10 outils décisionnels F-IA-03 mais omis les 5 zones connexes ci-dessus. Correctif gouvernance appliqué dans `subfeature-template.md` et `readiness-checklist.md` : section "Nouveau pattern UI ou service partagé" ajoutée pour forcer ce scan à l'avenir.
 
 ---
 

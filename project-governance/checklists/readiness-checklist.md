@@ -31,8 +31,9 @@ Si un item est rouge → résoudre avant de commencer.
 - [ ] Chaque périmètre à scanner (autres outils / autres pays / autres domaines / autres UI patterns / autres flows transversaux) est coché comme scanné
 - [ ] Chaque cible applicable est explicitement classée (intégrée dans la SF / SF parallèle / backlog VN / non applicable avec justification)
 - [ ] Au moins une case de "Décision" est cochée
+- [ ] **Si la SF introduit un composant partagé, un service applicatif, un endpoint transversal, une directive ou un DTO réutilisable** : la section "Cas spécifique : nouveau pattern UI ou service partagé" est remplie. Les zones où le pattern pourrait être réutilisé sont listées avec classement (harmonisation immédiate / SF parallèle / backlog / non applicable). Les patterns concurrents existants sont identifiés.
 
-> Si la section est vide, incomplète, ou si une cible applicable n'a pas de classement → la subfeature n'est pas `ready`. C'est l'occasion d'éviter la duplication de mécanismes outil par outil / pays par pays / domaine par domaine.
+> Si la section est vide, incomplète, ou si une cible applicable n'a pas de classement → la subfeature n'est pas `ready`. C'est l'occasion d'éviter la duplication de mécanismes outil par outil / pays par pays / domaine par domaine — et de prévenir la *dette de convergence* quand un nouveau pattern UI/service est introduit sans scan de ses zones de réutilisation.
 
 ---
 
