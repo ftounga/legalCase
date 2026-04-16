@@ -22,7 +22,7 @@ const TOUR_STEPS: TourStep[] = [
     target: null,
     icon: 'celebration',
     title: 'Bienvenue sur AI LegalCase !',
-    description: 'Votre workspace est prêt. En quelques étapes, découvrez les fonctionnalités clés de votre assistant juridique IA.'
+    description: 'Votre workspace est prêt. En quelques étapes, découvrez les fonctionnalités clés de votre assistant juridique.'
   },
   {
     target: 'new-dossier-btn',
@@ -34,19 +34,19 @@ const TOUR_STEPS: TourStep[] = [
     target: 'upload-trigger-btn',
     icon: 'upload_file',
     title: 'Ajoutez vos documents',
-    description: 'Uploadez vos contrats, courriers et décisions. L\'IA prend en charge PDF, Word et images.'
+    description: 'Uploadez vos contrats, courriers et décisions. PDF, Word et images sont pris en charge.'
   },
   {
     target: 'analyze-btn',
     icon: 'auto_fix_high',
-    title: 'Lancez une analyse IA',
-    description: 'En un clic, l\'IA analyse l\'ensemble de vos documents et génère une synthèse juridique complète.'
+    title: 'Lancez une analyse',
+    description: 'En un clic, vos documents sont analysés et une synthèse juridique complète est générée.'
   },
   {
     target: 'synthesis-link',
     icon: 'summarize',
     title: 'Consultez la synthèse',
-    description: 'Accédez à la timeline, aux faits clés, aux risques juridiques et aux points importants identifiés par l\'IA.'
+    description: 'Accédez à la timeline, aux faits clés, aux risques juridiques et aux points importants identifiés.'
   }
 ];
 

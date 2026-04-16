@@ -34,7 +34,7 @@
                  [class.has-blocker]="alertsSummary().blockers > 0">
               <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
               <span>
-                {{ alertsSummary().total }} incohérence(s) avec l'analyse IA
+                {{ alertsSummary().total }} incohérence(s) avec l'analyse
                 @if (alertsSummary().blockers > 0) {
                   — {{ alertsSummary().blockers }} bloquante(s)
                 }

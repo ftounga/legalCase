@@ -20,7 +20,7 @@
           @if (alertsSummary().total > 0) {
             <div class="coherence-summary">
               <mat-icon>warning</mat-icon>
-              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse IA</span>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
             </div>
           }
           @if (biensImmobiliersFiltres().length > 0) {
@@ -28,7 +28,7 @@
               <button mat-stroked-button color="primary" (click)="toggleImportPanel()" [disabled]="!canImport()"
                       [matTooltip]="!canImport() ? 'Aucun bien immobilier avec valeur détectée' : ''">
                 <mat-icon>auto_awesome</mat-icon>
-                {{ showImportPanel() ? 'Fermer' : 'Importer depuis l\\'analyse IA' }}
+                {{ showImportPanel() ? 'Fermer' : 'Importer depuis l\\'analyse' }}
               </button>
             </div>
 
@@ -78,7 +78,7 @@
                 <input matInput type="number" [(ngModel)]="valeurVenale" (ngModelChange)="onValeurVenaleChange()">
               </mat-form-field>
               @if (provenanceValeur() === 'IA') {
-                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse IA</span>
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse</span>
               }
               @if (coherenceAlerts().VALEUR_VENALE; as alert) {
                 <span class="coherence-badge coherence-warning"
@@ -95,7 +95,7 @@
                 <input matInput type="number" [(ngModel)]="capitalRestantDu" (ngModelChange)="onCapitalChange()">
               </mat-form-field>
               @if (provenancePret() === 'IA') {
-                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse IA</span>
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Valeur importée depuis l'analyse</span>
               }
               @if (coherenceAlerts().CAPITAL_RESTANT; as alert) {
                 <span class="coherence-badge coherence-warning"

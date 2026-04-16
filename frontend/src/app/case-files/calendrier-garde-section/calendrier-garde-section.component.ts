@@ -284,7 +284,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
       this.modeDetailleNote.set(null);
     } else {
       this.modeDetailleNote.set(
-        `L'IA a détecté le mode "${ai}" (autre pays). Vérifier que ce dossier est adapté.`
+        `Mode détecté : "${ai}" (autre pays). Vérifier que ce dossier est adapté.`
       );
     }
   }

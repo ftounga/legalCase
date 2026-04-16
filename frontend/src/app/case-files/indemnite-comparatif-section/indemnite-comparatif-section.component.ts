@@ -246,7 +246,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
         parts.push(`Analyse du dossier : ${alert.expectedDisplay}`);
       }
     }
-    return parts.length > 1 ? `Contredit ${parts.join(' ET ')}` : (parts[0] ?? `L'IA a détecté : ${alert.expectedDisplay}`);
+    return parts.length > 1 ? `Contredit ${parts.join(' ET ')}` : (parts[0] ?? `Détecté : ${alert.expectedDisplay}`);
   }
 
   alertBadgeLabel(alert: IndemniteCoherenceAlert): string {
@@ -406,7 +406,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
       // IA détecte autre chose (démission, prise d'acte, ou type de l'autre pays)
       this.typeRupture.set(allowed[0]);
       this.typeRuptureNote.set(
-        `L'IA a détecté un type "${iaType}" non couvert par cet outil. Vérifier que le comparateur est adapté.`
+        `Type détecté : "${iaType}" non couvert par cet outil. Vérifier que le comparateur est adapté.`
       );
     }
   }
