@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="076-add-secondary-text-to-source-explanations" author="legalcase">
+        <addColumn tableName="case_analysis_source_explanations">
+            <column name="secondary_text" type="varchar(500)"/>
+            <column name="anchor_piece_index" type="integer"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

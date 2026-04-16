@@ -9,10 +9,13 @@ export type SourceType =
 
 export type ActionType =
   | 'OPEN_DOCUMENT'
+  | 'OPEN_DOCUMENTS_LIST'
   | 'SCROLL_QA'
+  | 'OPEN_QUESTIONS'
   | 'SCROLL_F96'
+  | 'OPEN_F96_LIST'
   | 'OPEN_CHAT'
-  | 'MISSING_PIECE'
+  | 'OPEN_MISSING_PIECES'
   | 'NONE';
 
 export interface SourceExplanation {
@@ -20,6 +23,7 @@ export interface SourceExplanation {
   sourceType: SourceType;
   label: string;
   sentence: string | null;
+  secondaryText: string | null;
   actionType: ActionType;
   actionTarget: string | null;
 }

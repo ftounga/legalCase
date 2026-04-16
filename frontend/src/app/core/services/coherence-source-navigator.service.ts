@@ -18,23 +18,36 @@ export class CoherenceSourceNavigator {
           this.router.navigate(['/case-files', caseFileId, 'documents', actionTarget]);
         }
         break;
+      case 'OPEN_DOCUMENTS_LIST':
+        this.router.navigate(['/case-files', caseFileId], { queryParams: { section: 'documents' } });
+        break;
       case 'SCROLL_QA':
         if (actionTarget) {
           this.router.navigate(['/case-files', caseFileId, 'synthesis'], { queryParams: { qa: actionTarget } });
         }
+        break;
+      case 'OPEN_QUESTIONS':
+        this.router.navigate(['/case-files', caseFileId, 'synthesis'], { queryParams: { section: 'questions' } });
         break;
       case 'SCROLL_F96':
         if (actionTarget) {
           this.router.navigate(['/case-files', caseFileId, 'synthesis'], { queryParams: { check: actionTarget } });
         }
         break;
-      case 'OPEN_CHAT':
-        if (actionTarget) {
-          this.router.navigate(['/case-files', caseFileId, 'synthesis'], { queryParams: { chat: actionTarget } });
-        }
+      case 'OPEN_F96_LIST':
+        this.router.navigate(['/case-files', caseFileId, 'synthesis'], { queryParams: { section: 'checklist' } });
         break;
-      case 'MISSING_PIECE':
-        this.router.navigate(['/case-files', caseFileId, 'synthesis'], { queryParams: { section: 'pieces' } });
+      case 'OPEN_CHAT':
+        this.router.navigate(['/case-files', caseFileId, 'synthesis'], {
+          queryParams: actionTarget ? { chat: actionTarget } : { section: 'chat' },
+        });
+        break;
+      case 'OPEN_MISSING_PIECES':
+        this.router.navigate(['/case-files', caseFileId, 'synthesis'], {
+          queryParams: actionTarget != null
+            ? { section: 'pieces', piece: actionTarget }
+            : { section: 'pieces' },
+        });
         break;
       case 'NONE':
       default:

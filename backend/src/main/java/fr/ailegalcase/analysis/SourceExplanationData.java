@@ -12,8 +12,10 @@ public record SourceExplanationData(
         String sourceType,
         String label,
         String sentence,
+        String secondaryText,
         UUID anchorDocId,
         UUID anchorQuestionId,
         String anchorF96Code,
-        UUID anchorChatMessageId
+        UUID anchorChatMessageId,
+        Integer anchorPieceIndex
 ) {}
