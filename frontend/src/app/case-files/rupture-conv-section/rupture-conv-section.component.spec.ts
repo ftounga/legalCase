@@ -7,6 +7,7 @@ import { RuptureConvSectionComponent } from './rupture-conv-section.component';
 import { RuptureConvService } from '../../core/services/rupture-conv.service';
 import { RuptureConvResponse } from '../../core/models/rupture-conv.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
 describe('RuptureConvSectionComponent', () => {
   let fixture: ComponentFixture<RuptureConvSectionComponent>;
@@ -40,6 +41,7 @@ describe('RuptureConvSectionComponent', () => {
     rcService = { get: jest.fn(), analyze: jest.fn() } as any;
     snackBar = { open: jest.fn() } as any;
     refreshService = new CaseDashboardRefreshService();
+    const sourceExplanationMock = { getForCaseFile: jest.fn().mockReturnValue(of(new Map())) };
 
     await TestBed.configureTestingModule({
       imports: [RuptureConvSectionComponent],
@@ -48,6 +50,7 @@ describe('RuptureConvSectionComponent', () => {
         { provide: RuptureConvService, useValue: rcService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: CaseDashboardRefreshService, useValue: refreshService },
+        { provide: SourceExplanationService, useValue: sourceExplanationMock },
       ],
     }).compileComponents();
 

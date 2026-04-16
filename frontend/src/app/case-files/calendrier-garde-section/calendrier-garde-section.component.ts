@@ -14,6 +14,9 @@ import { CalendrierGardeResponse } from '../../core/models/calendrier-garde.mode
 import { CaseAnalysisResult, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 const MODES_FR = new Set(['ALTERNEE_FR', 'DVH_CLASSIQUE_FR', 'DVH_ELARGI_FR']);
 const MODES_BE = new Set(['ALTERNEE_BE', 'SECONDAIRE_BE', 'SECONDAIRE_ELARGI_BE']);
@@ -35,7 +38,7 @@ export interface GardeCoherenceAlert {
 @Component({
   selector: 'app-calendrier-garde-section',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatTooltipModule, CoherencePopoverTriggerDirective],
   templateUrl: './calendrier-garde-section.component.html',
   styleUrl: './calendrier-garde-section.component.scss'
 })
@@ -77,7 +80,22 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     ]},
   ];
 
-  constructor(private gardeService: CalendrierGardeService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
+  // SF-IA-03-15b — map {sourceKey → explanation}
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
+  constructor(private gardeService: CalendrierGardeService, private sourceExplanationService: SourceExplanationService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  explanationFor(): SourceExplanation | null {
+    return this.sourceExplanations().get('FA06_MODE_GARDE') ?? null;
+  }
 
   coherenceAlert = computed<GardeCoherenceAlert | null>(() => {
     if (!this.showForm()) return null;
@@ -177,6 +195,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
+    this.loadSourceExplanations();
   }
 
   ngOnChanges(changes: SimpleChanges): void {

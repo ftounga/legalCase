@@ -1,5 +1,4 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
-import { OverlayModule } from '@angular/cdk/overlay';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,9 +15,8 @@ import { AncienneteResponse } from '../../core/models/anciennete.model';
 import { BaremeService } from '../../core/services/bareme.service';
 import { BaremeResponse } from '../../core/models/bareme.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
-import { CoherenceSourceNavigator } from '../../core/services/coherence-source-navigator.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
-import { CoherencePopoverComponent } from '../../shared/coherence-popover/coherence-popover.component';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 export type AncienneteAlertField = 'CONVENTION' | 'DATE_ENTREE' | 'SALAIRE' | 'CONGES' | 'PRIME';
 
@@ -32,12 +30,11 @@ export interface AncienneteCoherenceAlert {
   standalone: true,
   imports: [
     FormsModule,
-    OverlayModule,
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule,
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
-    CoherencePopoverComponent,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './anciennete-section.component.html',
   styleUrl: './anciennete-section.component.scss'
@@ -153,15 +150,10 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   // SF-IA-03-15a — map {sourceKey → explanation} pour le popover enrichi
   sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
 
-  // SF-IA-03-15a — état d'ouverture du popover hover par champ
-  openPopoverField = signal<AncienneteAlertField | null>(null);
-  private closeTimer: ReturnType<typeof setTimeout> | null = null;
-
   constructor(
     private ancienneteService: AncienneteService,
     private baremeService: BaremeService,
     private sourceExplanationService: SourceExplanationService,
-    private coherenceNavigator: CoherenceSourceNavigator,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
@@ -211,25 +203,6 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     }
   }
 
-  openPopover(field: AncienneteAlertField): void {
-    if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
-    this.openPopoverField.set(field);
-  }
-
-  scheduleClose(): void {
-    this.closeTimer = setTimeout(() => this.openPopoverField.set(null), 150);
-  }
-
-  cancelClose(): void {
-    if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
-  }
-
-  onSourceNavigate(field: AncienneteAlertField): void {
-    const exp = this.explanationFor(field);
-    if (!exp) return;
-    this.coherenceNavigator.navigate(this.caseFileId, exp.actionType, exp.actionTarget);
-    this.openPopoverField.set(null);
-  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['aiData']) {

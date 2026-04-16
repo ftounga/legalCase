@@ -82,7 +82,9 @@
               }
               @if (coherenceAlerts().VALEUR_VENALE; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                      [appCoherencePopover]="explanationFor('VALEUR_VENALE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                 </span>
               }
@@ -97,7 +99,9 @@
               }
               @if (coherenceAlerts().CAPITAL_RESTANT; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                      [appCoherencePopover]="explanationFor('CAPITAL_RESTANT')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                 </span>
               }

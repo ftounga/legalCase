@@ -50,7 +50,10 @@
                 <span class="coherence-badge"
                       [class.coherence-blocker]="alert.level === 'blocker'"
                       [class.coherence-warning]="alert.level === 'warning'"
-                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                      [appCoherencePopover]="explanationFor(critere.code)"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId"
+                      [appCoherencePopoverBlocker]="alert.level === 'blocker'">
                   <mat-icon>{{ alert.level === 'blocker' ? 'error' : 'warning' }}</mat-icon>
                   {{ alertBadgeLabel(alert) }}
                 </span>

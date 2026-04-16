@@ -13,6 +13,9 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { RuptureConvValidityDetection, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 interface CritereForm {
   code: string;
@@ -75,6 +78,7 @@ type Reponse = 'OUI' | 'NON' | 'INCONNU';
     CommonModule, FormsModule,
     MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatRadioModule, MatTooltipModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './rupture-conv-section.component.html',
   styleUrl: './rupture-conv-section.component.scss'
@@ -200,17 +204,35 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
     };
   });
 
+  // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
   constructor(
     private rcService: RuptureConvService,
+    private sourceExplanationService: SourceExplanationService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /** SF-IA-03-15b : lookup par code critère RC_* (même sourceKey côté Haiku). */
+  explanationFor(critereCode: string): SourceExplanation | null {
+    return this.sourceExplanations().get(critereCode) ?? null;
+  }
 
   ngOnInit(): void {
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    this.loadSourceExplanations();
 
     this.loading.set(true);
     this.rcService.get(this.caseFileId).subscribe({

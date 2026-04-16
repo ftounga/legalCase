@@ -13,6 +13,9 @@ import { DivorceChecklistResponse, DivorceEtapeStatus, DivorcePieceStatus } from
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 export type DivorceAlertSource = 'F96' | 'QUESTION_IA' | 'PIECE_IA' | 'MULTI';
 export type DivorceAlertLevel = 'blocker' | 'warning';
@@ -41,7 +44,7 @@ const PIECE_CODES = new Set([
 @Component({
   selector: 'app-divorce-checklist-section',
   standalone: true,
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatSelectModule, MatFormFieldModule, MatProgressSpinnerModule, MatTooltipModule, CoherencePopoverTriggerDirective],
   templateUrl: './divorce-checklist-section.component.html',
   styleUrl: './divorce-checklist-section.component.scss'
 })
@@ -92,13 +95,30 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
     };
   });
 
-  constructor(private checklistService: DivorceChecklistService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
+  // SF-IA-03-15b — map {sourceKey → explanation}
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
+  constructor(private checklistService: DivorceChecklistService, private sourceExplanationService: SourceExplanationService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /** SF-IA-03-15b : lookup par code étape/pièce (sourceKey direct). */
+  explanationFor(code: string): SourceExplanation | null {
+    return this.sourceExplanations().get(code) ?? null;
+  }
 
   ngOnInit(): void {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
+    this.loadSourceExplanations();
   }
 
   ngOnChanges(changes: SimpleChanges): void {

@@ -27,14 +27,18 @@ describe('CalendrierGardeSectionComponent', () => {
   });
   afterEach(() => { httpMock.verify(); });
 
-  function initNo(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(null, { status: 404, statusText: 'NF' }); }
-  function initWith(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(MOCK); }
+  function flushSE(): void {
+    httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));
+  }
+  function initNo(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(null, { status: 404, statusText: 'NF' }); flushSE(); }
+  function initWith(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(MOCK); flushSE(); }
 
   it('should create', () => { initNo(); expect(component).toBeTruthy(); });
   it('should show form when no existing', () => { initNo(); expect(component.showForm()).toBe(true); });
   it('should call POST', () => {
     initNo(); component.parentANom.set('A'); component.parentBNom.set('B'); component.generate();
-    const r = httpMock.expectOne(URL); expect(r.request.method).toBe('POST'); r.flush(MOCK);
+    const r = httpMock.expectOne(req => req.url === URL && req.method === 'POST');
+    r.flush(MOCK);
     expect(component.result()).toBeTruthy(); expect(component.showForm()).toBe(false);
   });
   it('should display existing', () => { initWith(); expect(component.result()).toBeTruthy(); expect(component.showForm()).toBe(false); });

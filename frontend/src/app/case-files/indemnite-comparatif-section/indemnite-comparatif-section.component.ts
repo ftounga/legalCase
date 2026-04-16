@@ -15,6 +15,9 @@ import { IndemniteComparatifService } from '../../core/services/indemnite-compar
 import { IndemniteComparatifResponse } from '../../core/models/indemnite-comparatif.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 interface TypeRuptureOption {
   value: string;
@@ -60,6 +63,7 @@ const TYPES_BE: TypeRuptureOption[] = [
     MatSelectModule, MatFormFieldModule,
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './indemnite-comparatif-section.component.html',
   styleUrl: './indemnite-comparatif-section.component.scss'
@@ -257,8 +261,12 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     return alert.field === 'TYPE_RUPTURE' ? `${prefix} (${alert.expectedDisplay})` : prefix;
   }
 
+  // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
   constructor(
     private comparatifService: IndemniteComparatifService,
+    private sourceExplanationService: SourceExplanationService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
@@ -268,6 +276,23 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.loadExisting();
+    this.loadSourceExplanations();
+  }
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /** SF-IA-03-15b : mapping champ → sourceKey F-DT-09 (F96 code pour TYPE_RUPTURE, génériques sinon). */
+  explanationFor(field: IndemniteAlertField): SourceExplanation | null {
+    const key = field === 'TYPE_RUPTURE' ? 'DT09_TYPE_RUPTURE'
+              : field === 'ANCIENNETE' ? 'date_entree'
+              : 'salaire_brut_mensuel';
+    return this.sourceExplanations().get(key) ?? null;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
