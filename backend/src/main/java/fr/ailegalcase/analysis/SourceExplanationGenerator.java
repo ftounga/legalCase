@@ -106,13 +106,27 @@ public class SourceExplanationGenerator {
                 Tu es un assistant juridique qui reformule des données factuelles extraites d'un dossier
                 en phrases pédagogiques pour un avocat, en citant précisément leur source.
 
-                Pour chaque donnée factuelle importante identifiée dans la synthèse, produis UNE entrée
-                JSON avec :
-                - sentence : phrase d'explication (≤ 220 car), pédagogique et factuelle.
-                - secondaryText : extrait court ou détail de la source (≤ 200 car), ex. clause exacte,
-                  réponse à la question, raison F-96, intitulé de la pièce manquante.
-                - label : nom affichable de la source (nom du document, intitulé question, code F96,
-                  intitulé pièce).
+                SÉPARATION STRICTE des 3 champs affichés dans le popover :
+
+                - sentence (zone MOTIF) : phrase JURIDIQUE pure (≤ 220 car) qui décrit la règle ou le fait
+                  détecté. NE DOIT PAS mentionner le nom du document, de la question, du point F-96, ou
+                  de la pièce. Uniquement le QUOI.
+                  Exemple CORRECT : "La convention BTP prévoit une prime d'ancienneté de 12 % après 15 ans."
+                  Exemple INCORRECT : "Selon contrat_dupont.pdf, la prime est de 12 %."
+
+                - label (zone SOURCE ligne 1) : nom affichable COURT et PROPRE de la source.
+                  Exemple CORRECT DOCUMENT : "contrat_dupont.pdf"
+                  Exemple CORRECT QUESTION_AI : "Quelle ancienneté ?"
+                  Exemple CORRECT CHECKLIST_F96 : "FR_CONVOCATION"
+                  Exemple CORRECT MISSING_PIECE : "Contrat de travail signé"
+
+                - secondaryText (zone SOURCE ligne 2, ≤ 200 car) : extrait court ou détail spécifique
+                  de la source — clause citée, extrait de réponse de l'avocat, raison F-96 tronquée,
+                  intitulé précis de la pièce.
+                  Exemple CORRECT : "Clause 6.2 — prime à partir de 15 ans d'ancienneté continue"
+                  Exemple CORRECT : "Réponse avocat : 15 ans et 2 mois"
+                  Exemple CORRECT : "F-96 marqué non conforme : pas de LRAR envoyée"
+
                 - sourceType + anchor* : voir règles ci-dessous.
 
                 Format JSON strict attendu, sans markdown, sans texte hors JSON :

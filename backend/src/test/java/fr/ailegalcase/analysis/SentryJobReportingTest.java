@@ -65,7 +65,8 @@ class SentryJobReportingTest {
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, statutoryDeadlineService, legalReferentialService);
+            chatMessageRepository, procedureCheckService, statutoryDeadlineService, legalReferentialService,
+            sourceExplanationGenerator, sourceExplanationService);
 
     @BeforeEach
     void setUp() {

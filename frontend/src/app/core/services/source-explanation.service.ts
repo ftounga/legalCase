@@ -1,18 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { tap, map } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { SourceExplanation } from '../models/source-explanation.model';
 
 /**
  * Service client pour l'endpoint transversal F-IA-03-15a.
- * Un cache par caseFileId évite les appels répétés (les explications
- * changent uniquement quand une nouvelle analyse IA est lancée).
+ * SF-IA-03-18 : pas de cache — re-fetch à chaque appel pour rester frais
+ * après ré-analyse. Volume léger (~10-15 rows par dossier).
  */
 @Injectable({ providedIn: 'root' })
 export class SourceExplanationService {
-  private cache = new Map<string, Map<string, SourceExplanation>>();
-
   constructor(private http: HttpClient) {}
 
   /**
@@ -20,21 +18,17 @@ export class SourceExplanationService {
    * Fail-open : 404 ou erreur → map vide.
    */
   getForCaseFile(caseFileId: string): Observable<Map<string, SourceExplanation>> {
-    const cached = this.cache.get(caseFileId);
-    if (cached) return of(cached);
-
     return this.http.get<SourceExplanation[]>(`/api/v1/case-files/${caseFileId}/source-explanations`).pipe(
       map(list => {
-        const map = new Map<string, SourceExplanation>();
-        (list ?? []).forEach(e => map.set(e.sourceKey, e));
-        return map;
+        const out = new Map<string, SourceExplanation>();
+        (list ?? []).forEach(e => out.set(e.sourceKey, e));
+        return out;
       }),
-      tap(map => this.cache.set(caseFileId, map)),
     );
   }
 
-  /** Efface le cache pour un dossier (à appeler après une nouvelle analyse). */
-  invalidate(caseFileId: string): void {
-    this.cache.delete(caseFileId);
+  /** Compat rétro : conservé comme no-op pour éviter de casser les appels existants. */
+  invalidate(_caseFileId: string): void {
+    // no-op : plus de cache.
   }
 }

@@ -41,12 +41,15 @@ class EnrichedAnalysisServiceTest {
             mock(fr.ailegalcase.casefile.StatutoryDeadlineService.class);
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService =
             mock(fr.ailegalcase.referential.LegalReferentialService.class);
+    private final SourceExplanationGenerator sourceExplanationGenerator = mock(SourceExplanationGenerator.class);
+    private final SourceExplanationService sourceExplanationService = mock(SourceExplanationService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, statutoryDeadlineService, legalReferentialService);
+            chatMessageRepository, procedureCheckService, statutoryDeadlineService, legalReferentialService,
+            sourceExplanationGenerator, sourceExplanationService);
 
     @BeforeEach
     void setUp() {

@@ -92,8 +92,13 @@ export class CoherencePopoverTriggerDirective implements OnDestroy {
   }
 
   private onSourceClicked(): void {
-    if (!this.explanation || !this.caseFileId) return;
-    this.navigator.navigate(this.caseFileId, this.explanation.actionType, this.explanation.actionTarget);
+    if (!this.caseFileId) return;
+    // SF-IA-03-18 : fallback quand pas d'explanation → navigation vers la synthèse.
+    if (!this.explanation) {
+      this.navigator.navigate(this.caseFileId, 'OPEN_QUESTIONS', null);
+    } else {
+      this.navigator.navigate(this.caseFileId, this.explanation.actionType, this.explanation.actionTarget);
+    }
     this.closePopover();
   }
 
