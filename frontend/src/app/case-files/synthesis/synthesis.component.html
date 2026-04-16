@@ -257,7 +257,7 @@
                 <span class="compensation-value">{{ formatPlafond(compensationEstimate.plafondMinMois, compensationEstimate.salaireReference) }} — {{ formatPlafond(compensationEstimate.plafondMaxMois, compensationEstimate.salaireReference) }}</span>
               </div>
             </div>
-            <p class="compensation-disclaimer">Estimation indicative — données extraites par l'IA, non certifiées</p>
+            <p class="compensation-disclaimer">Estimation indicative — données extraites, non certifiées</p>
           </div>
         </mat-expansion-panel>
       }
@@ -305,7 +305,7 @@
                 <span class="compensation-value">{{ formatEuros(belgianCompensationEstimate.cct109MinEuros) }} — {{ formatEuros(belgianCompensationEstimate.cct109MaxEuros) }}</span>
               </div>
             </div>
-            <p class="compensation-disclaimer">Estimation indicative — données extraites par l'IA, non certifiées. Ne tient pas compte des droits acquis avant le 01/01/2014.</p>
+            <p class="compensation-disclaimer">Estimation indicative — données extraites, non certifiées. Ne tient pas compte des droits acquis avant le 01/01/2014.</p>
           </div>
         </mat-expansion-panel>
       }
@@ -413,7 +413,7 @@
                 }
               </div>
             }
-            <p class="compensation-disclaimer">Inventaire extrait par l'IA — à vérifier et compléter avec les actes notariaux</p>
+            <p class="compensation-disclaimer">Inventaire extrait automatiquement — à vérifier et compléter avec les actes notariaux</p>
           </div>
         </mat-expansion-panel>
       }
@@ -439,7 +439,7 @@
                 <div class="checklist-description-block">
                   <span class="checklist-description">{{ check.ordre }}. {{ check.description }}</span>
                   @if (check.raison) {
-                    <span class="checklist-raison">IA : {{ check.raison }}</span>
+                    <span class="checklist-raison">Motif : {{ check.raison }}</span>
                   }
                 </div>
                 <div class="checklist-actions">

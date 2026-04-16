@@ -81,10 +81,10 @@
 
     @if (pendingAiDeadlines().length > 0) {
       <div class="ai-proposals-section">
-        <h4>Propositions IA</h4>
+        <h4>Propositions suggérées</h4>
         @for (deadline of pendingAiDeadlines(); track deadline.id) {
           <div class="ai-proposal-item">
-            <span class="ai-badge">IA</span>
+            <span class="ai-badge">Suggéré</span>
             <span class="ai-proposal-label">{{ deadline.label }}</span>
             <span class="ai-proposal-date">{{ deadline.dueDate | date:'dd/MM/yyyy' }}</span>
             @if (isExpired(deadline.dueDate)) {

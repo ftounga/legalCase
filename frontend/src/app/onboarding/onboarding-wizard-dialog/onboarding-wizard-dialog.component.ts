@@ -29,7 +29,7 @@ export class OnboardingWizardDialogComponent {
     {
       icon: 'celebration',
       title: 'Bienvenue sur AI LegalCase !',
-      description: 'Votre workspace est prêt. En quelques étapes, découvrez comment tirer le meilleur de votre assistant juridique IA.'
+      description: 'Votre workspace est prêt. En quelques étapes, découvrez comment tirer le meilleur de votre assistant juridique.'
     },
     {
       icon: 'folder_open',
@@ -39,12 +39,12 @@ export class OnboardingWizardDialogComponent {
     {
       icon: 'upload_file',
       title: 'Ajoutez vos documents',
-      description: 'Uploadez vos contrats, courriers, décisions de justice ou notes. L\'IA prend en charge PDF, Word et images.'
+      description: 'Uploadez vos contrats, courriers, décisions de justice ou notes. PDF, Word et images sont pris en charge.'
     },
     {
       icon: 'auto_awesome',
-      title: 'Lancez une analyse IA',
-      description: 'En un clic, l\'IA analyse l\'ensemble de vos documents et génère une synthèse juridique complète : faits, risques, timeline et points clés.'
+      title: 'Lancez une analyse',
+      description: 'En un clic, vos documents sont analysés et une synthèse juridique complète est générée : faits, risques, timeline et points clés.'
     }
   ];
 

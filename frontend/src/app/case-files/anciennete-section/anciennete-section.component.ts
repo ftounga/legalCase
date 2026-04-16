@@ -120,7 +120,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   alertsSummary = computed(() => ({ total: Object.keys(this.coherenceAlerts()).length }));
 
   alertTooltip(alert: AncienneteCoherenceAlert): string {
-    return `L'IA a détecté : ${alert.iaValue}`;
+    return `Détecté : ${alert.iaValue}`;
   }
 
   readonly conventionsFrance = [

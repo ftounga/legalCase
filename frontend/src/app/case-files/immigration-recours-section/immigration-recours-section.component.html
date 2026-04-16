@@ -23,7 +23,7 @@
           @if (alertsSummary().total > 0) {
             <div class="coherence-summary">
               <mat-icon>warning</mat-icon>
-              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse IA</span>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
             </div>
           }
           <div class="form-row">
@@ -37,7 +37,7 @@
                 </mat-select>
               </mat-form-field>
               @if (provenanceRecoursType() === 'IA') {
-                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse IA</span>
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
               }
               @if (coherenceAlerts().RECOURS_TYPE; as alert) {
                 <span class="coherence-badge coherence-warning"
@@ -55,7 +55,7 @@
                 <input matInput type="date" [(ngModel)]="dateNotification" (ngModelChange)="onDateNotificationChange()">
               </mat-form-field>
               @if (provenanceDateNotification() === 'IA') {
-                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-remplie depuis l'analyse IA</span>
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-remplie depuis l'analyse</span>
               }
               @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
                 <span class="coherence-badge coherence-warning"

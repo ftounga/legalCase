@@ -215,7 +215,7 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
       if (p.critereCode?.toUpperCase() !== piece.code) continue;
       if (piece.statut === 'PRESENTE') {
         contributors.push('PIECE_IA');
-        reasons.push(`Pièce manquante signalée par l'IA : ${p.texte}`);
+        reasons.push(`Pièce manquante signalée : ${p.texte}`);
         level = 'warning';
       }
       break;
