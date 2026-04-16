@@ -14,6 +14,9 @@ import { ImmigrationTitleDecisionService } from '../../core/services/immigration
 import { TitleDecisionResponse, TitleRecommendation } from '../../core/models/immigration-title-decision.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 const MOTIFS_ENUM = new Set(['TRAVAIL', 'ETUDES', 'FAMILLE', 'ASILE', 'AUTRE']);
 
@@ -55,6 +58,7 @@ const CODE_TO_MOTIF: Record<string, string> = {
     MatSelectModule, MatFormFieldModule,
     MatProgressSpinnerModule, MatSlideToggleModule,
     MatTooltipModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './immigration-title-decision-section.component.html',
   styleUrl: './immigration-title-decision-section.component.scss'
@@ -107,11 +111,29 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     { value: 'PACS_COHABITATION', label: 'PACS / Cohabitation légale' },
   ];
 
+  // SF-IA-03-15c — map {sourceKey → explanation}
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
   constructor(
     private decisionService: ImmigrationTitleDecisionService,
+    private sourceExplanationService: SourceExplanationService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /** SF-IA-03-15c : mapping vers sourceKey (F96 pour MOTIF, générique pour NATIONALITE_UE). */
+  explanationFor(field: IM05AlertField): SourceExplanation | null {
+    const key = field === 'MOTIF' ? 'IM05_MOTIF' : 'nationalite_ue';
+    return this.sourceExplanations().get(key) ?? null;
+  }
 
   coherenceAlerts = computed<Partial<Record<IM05AlertField, IM05CoherenceAlert>>>(() => {
     if (!this.showForm()) return {};
@@ -134,6 +156,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
+    this.loadSourceExplanations();
   }
 
   ngOnChanges(changes: SimpleChanges): void {

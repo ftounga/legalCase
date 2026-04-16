@@ -41,7 +41,9 @@
               }
               @if (coherenceAlerts().RECOURS_TYPE; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                      [appCoherencePopover]="explanationFor('RECOURS_TYPE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                 </span>
               }
@@ -57,7 +59,9 @@
               }
               @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                      [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                 </span>
               }

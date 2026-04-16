@@ -45,14 +45,19 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     httpMock.verify();
   });
 
+  function flushSE(): void {
+    httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));
+  }
   function initWithNoExistingDecision(): void {
-    fixture.detectChanges(); // triggers ngOnInit → GET
+    fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    flushSE();
   }
 
   function initWithExistingDecision(resp = MOCK_RESPONSE): void {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(resp);
+    flushSE();
   }
 
   it('should create', () => {
@@ -65,6 +70,7 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     const req = httpMock.expectOne(API_URL);
     expect(req.request.method).toBe('GET');
     req.flush(null, { status: 404, statusText: 'Not Found' });
+    flushSE();
   });
 
   it('should show form when no existing decision', () => {
