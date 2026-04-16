@@ -165,11 +165,11 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
       const isNon = answer === 'non' || answer.startsWith('non ') || answer.startsWith('non,') || answer.startsWith('non.');
       if (etape.statut === 'FAIT' && isNon) {
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → réponse "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → réponse "${q.answerText}"`);
         level = 'blocker';
       } else if (etape.statut === 'A_FAIRE' && isOui) {
         contributors.push('QUESTION_IA');
-        reasons.push(`Question IA : "${q.questionText}" → réponse "${q.answerText}"`);
+        reasons.push(`Question complémentaire : "${q.questionText}" → réponse "${q.answerText}"`);
         level = level ?? 'warning';
       }
       break;

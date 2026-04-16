@@ -237,9 +237,9 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
       if (src === 'F96') {
         parts.push(`Checklist procédurale : ${alert.expectedDisplay}${alert.f96Raison ? ' (' + alert.f96Raison + ')' : ''}`);
       } else if (src === 'QUESTION_IA') {
-        parts.push(`Question IA : "${alert.questionText}" → "${alert.questionAnswer}"`);
+        parts.push(`Question complémentaire : "${alert.questionText}" → "${alert.questionAnswer}"`);
       } else if (src === 'IA') {
-        parts.push(`Analyse IA : ${alert.expectedDisplay}`);
+        parts.push(`Analyse du dossier : ${alert.expectedDisplay}`);
       }
     }
     return parts.length > 1 ? `Contredit ${parts.join(' ET ')}` : (parts[0] ?? `L'IA a détecté : ${alert.expectedDisplay}`);
@@ -248,9 +248,9 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   alertBadgeLabel(alert: IndemniteCoherenceAlert): string {
     const prefix = (() => {
       switch (alert.source) {
-        case 'F96': return 'Incohérence F-96';
-        case 'QUESTION_IA': return 'Incohérence Question IA';
-        case 'IA': return 'Incohérence IA';
+        case 'F96': return 'Incohérence Checklist procédurale';
+        case 'QUESTION_IA': return 'Incohérence Question complémentaire';
+        case 'IA': return 'Incohérence détectée';
         case 'MULTI': return 'Incohérence multiple';
       }
     })();
