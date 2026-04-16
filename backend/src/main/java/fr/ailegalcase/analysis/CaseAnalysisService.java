@@ -81,6 +81,8 @@ public class CaseAnalysisService {
     private final AnalysisLimitsProperties analysisLimitsProperties;
     private final ProcedureCheckService procedureCheckService;
     private final CaseDeadlineService caseDeadlineService;
+    private final SourceExplanationGenerator sourceExplanationGenerator;
+    private final SourceExplanationService sourceExplanationService;
 
     @Lazy @Autowired
     private CaseAnalysisService self;
@@ -96,7 +98,9 @@ public class CaseAnalysisService {
                                AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
                                AnalysisLimitsProperties analysisLimitsProperties,
                                ProcedureCheckService procedureCheckService,
-                               CaseDeadlineService caseDeadlineService) {
+                               CaseDeadlineService caseDeadlineService,
+                               SourceExplanationGenerator sourceExplanationGenerator,
+                               SourceExplanationService sourceExplanationService) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
@@ -109,6 +113,8 @@ public class CaseAnalysisService {
         this.analysisLimitsProperties = analysisLimitsProperties;
         this.procedureCheckService = procedureCheckService;
         this.caseDeadlineService = caseDeadlineService;
+        this.sourceExplanationGenerator = sourceExplanationGenerator;
+        this.sourceExplanationService = sourceExplanationService;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
@@ -214,6 +220,17 @@ public class CaseAnalysisService {
                 caseDeadlineService.createAiDetectedDeadlines(analysis, analysis.getAnalysisResult());
             } catch (Exception e) {
                 log.warn("Fail-open: AI deadline detection failed for analysis {}: {}", analysis.getId(), e.getMessage());
+            }
+            // SF-IA-03-15a : génération des phrases d'explication par source via Haiku (synchrone, fail-open).
+            try {
+                caseFileRepository.findById(caseFileId).ifPresent(cf -> {
+                    List<SourceExplanationData> explanations = sourceExplanationGenerator
+                            .generate(cf, analysis.getAnalysisResult());
+                    sourceExplanationService.persist(analysis, explanations);
+                });
+            } catch (Exception e) {
+                log.warn("Fail-open: source explanation generation failed for analysis {}: {}",
+                        analysis.getId(), e.getMessage());
             }
         }
 

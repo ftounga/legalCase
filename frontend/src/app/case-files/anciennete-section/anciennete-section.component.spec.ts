@@ -41,6 +41,11 @@ describe('AncienneteSectionComponent', () => {
     reqs.forEach(r => r.flush(null, { status: 404, statusText: 'Not Found' }));
   }
 
+  function flushAnySourceExplanationsCalls(explanations: any[] = []): void {
+    const reqs = httpMock.match(r => r.url.endsWith('/source-explanations'));
+    reqs.forEach(r => r.flush(explanations));
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AncienneteSectionComponent],
@@ -60,6 +65,8 @@ describe('AncienneteSectionComponent', () => {
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
     // SF-DT-07-05 : loadBaremeAndPrefill déclenche un GET bareme — 404 par défaut pour ne pas perturber les signals.
     flushAnyBaremeCalls();
+    // SF-IA-03-15a : loadSourceExplanations déclenche un GET — liste vide par défaut.
+    flushAnySourceExplanationsCalls();
   }
 
   function initWithExisting(resp = MOCK_RESPONSE): void {
@@ -67,6 +74,7 @@ describe('AncienneteSectionComponent', () => {
     httpMock.expectOne(API_URL).flush(resp);
     // Pas de call bareme attendu ici (prefillFromAi non appelé), mais on rest tolerant si flow change.
     flushAnyBaremeCalls();
+    flushAnySourceExplanationsCalls();
   }
 
   it('should create', () => {
@@ -80,6 +88,7 @@ describe('AncienneteSectionComponent', () => {
     expect(req.request.method).toBe('GET');
     req.flush(null, { status: 404, statusText: 'Not Found' });
     flushAnyBaremeCalls();
+    flushAnySourceExplanationsCalls();
   });
 
   it('should show form when no existing', () => {
@@ -329,6 +338,7 @@ describe('AncienneteSectionComponent', () => {
     else anc.flush(null, { status: 404, statusText: 'Not Found' });
     const baremeReqs = httpMock.match(r => r.url.startsWith('/api/v1/anciennete/baremes/'));
     baremeReqs.forEach(r => r.flush(baremeResp));
+    flushAnySourceExplanationsCalls();
   }
 
   it('SF-DT-07-05: prefill primeContrat depuis bareme si IA ne fournit pas', () => {
@@ -365,8 +375,83 @@ describe('AncienneteSectionComponent', () => {
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
     const req = httpMock.expectOne('/api/v1/anciennete/baremes/UNKNOWN');
     req.flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnySourceExplanationsCalls();
     expect(component.primeContrat()).toBe(0);
     expect(component.congesContrat()).toBe(25);
+  });
+
+  // ---- SF-IA-03-15a : popover source enrichie ----
+
+  it('SF-IA-03-15a: loadSourceExplanations peuple le signal au démarrage', () => {
+    const explanations = [
+      { sourceKey: 'convention_collective', sourceType: 'DOCUMENT', label: 'contrat.pdf',
+        sentence: 'Convention BTP.', actionType: 'OPEN_DOCUMENT', actionTarget: 'doc-1' },
+    ];
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnyBaremeCalls();
+    flushAnySourceExplanationsCalls(explanations);
+    expect(component.sourceExplanations().get('convention_collective')?.sentence).toBe('Convention BTP.');
+  });
+
+  it('SF-IA-03-15a: explanationFor mappe CONVENTION → convention_collective', () => {
+    const explanations = [
+      { sourceKey: 'convention_collective', sourceType: 'ANALYSIS_DETECTION', label: 'Analyse',
+        sentence: 'BTP.', actionType: 'NONE', actionTarget: null },
+    ];
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnyBaremeCalls();
+    flushAnySourceExplanationsCalls(explanations);
+    expect(component.explanationFor('CONVENTION')?.sourceKey).toBe('convention_collective');
+  });
+
+  it('SF-IA-03-15a: CONGES mappe vers convention_collective si IA muette', () => {
+    setAi({ congesContractuels: null });
+    initNoExisting();
+    expect(component.sourceKeyFor('CONGES')).toBe('convention_collective');
+  });
+
+  it('SF-IA-03-15a: CONGES mappe vers conges_contractuels si IA fournit', () => {
+    setAi({ congesContractuels: 25 });
+    initNoExisting();
+    expect(component.sourceKeyFor('CONGES')).toBe('conges_contractuels');
+  });
+
+  it('SF-IA-03-15a: PRIME mappe vers prime_anciennete_contractuelle si IA fournit', () => {
+    setAi({ primeAncienneteContractuelle: 5 });
+    initNoExisting();
+    expect(component.sourceKeyFor('PRIME')).toBe('prime_anciennete_contractuelle');
+  });
+
+  it('SF-IA-03-15a: openPopover puis scheduleClose ferme après délai', async () => {
+    initNoExisting();
+    component.openPopover('CONVENTION');
+    expect(component.openPopoverField()).toBe('CONVENTION');
+    component.scheduleClose();
+    await new Promise(r => setTimeout(r, 250));
+    expect(component.openPopoverField()).toBeNull();
+  });
+
+  it('SF-IA-03-15a: cancelClose annule la fermeture', async () => {
+    initNoExisting();
+    component.openPopover('PRIME');
+    component.scheduleClose();
+    component.cancelClose();
+    await new Promise(r => setTimeout(r, 250));
+    expect(component.openPopoverField()).toBe('PRIME');
+  });
+
+  it('SF-IA-03-15a: reasonFor produit un template si aucune alerte', () => {
+    initNoExisting();
+    // Pas d'aiData, donc pas d'alerte — reasonFor retourne ''
+    expect(component.reasonFor('CONVENTION')).toBe('');
+  });
+
+  it('SF-IA-03-15a: onSourceNavigate no-op si pas d\'explanation', () => {
+    initNoExisting();
+    // sourceExplanations vide, aucune erreur levée
+    expect(() => component.onSourceNavigate('CONVENTION')).not.toThrow();
   });
 
   it('SF-DT-07-04: editForm restaure les 5 champs depuis le résultat', () => {
