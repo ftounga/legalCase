@@ -12,6 +12,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { AncienneteService } from '../../core/services/anciennete.service';
 import { AncienneteResponse } from '../../core/models/anciennete.model';
+import { BaremeService } from '../../core/services/bareme.service';
+import { BaremeResponse } from '../../core/models/bareme.model';
 
 export type AncienneteAlertField = 'CONVENTION' | 'DATE_ENTREE' | 'SALAIRE' | 'CONGES' | 'PRIME';
 
@@ -53,43 +55,58 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
 
   coherenceAlerts = computed<Partial<Record<AncienneteAlertField, AncienneteCoherenceAlert>>>(() => {
     const ai = this.aiDataSignal();
-    if (!ai || !this.showForm()) return {};
+    if (!this.showForm()) return {};
     const alerts: Partial<Record<AncienneteAlertField, AncienneteCoherenceAlert>> = {};
+    const bareme = this.currentBareme();
 
-    // Convention — exact match upper-case
-    if (ai.conventionCollective && this.conventionCode()) {
+    // Convention — exact match upper-case (IA uniquement)
+    if (ai?.conventionCollective && this.conventionCode()) {
       if (ai.conventionCollective.toUpperCase() !== this.conventionCode().toUpperCase()) {
         alerts.CONVENTION = { field: 'CONVENTION', iaValue: ai.conventionCollective };
       }
     }
 
-    // Date entrée — écart ≥ 15 jours
-    if (ai.dateEntree && this.dateEntree()) {
+    // Date entrée — écart ≥ 15 jours (IA uniquement)
+    if (ai?.dateEntree && this.dateEntree()) {
       const diff = dateDaysDiff(ai.dateEntree, this.dateEntree());
       if (diff !== null && diff >= 15) {
         alerts.DATE_ENTREE = { field: 'DATE_ENTREE', iaValue: ai.dateEntree };
       }
     }
 
-    // Salaire — écart relatif ≥ 5 %
-    if (ai.salaireBrutMensuel != null && this.salaireBase() > 0) {
+    // Salaire — écart relatif ≥ 5 % (IA uniquement)
+    if (ai?.salaireBrutMensuel != null && this.salaireBase() > 0) {
       const rel = percentDiff(ai.salaireBrutMensuel, this.salaireBase());
       if (rel >= 0.05) {
         alerts.SALAIRE = { field: 'SALAIRE', iaValue: `${ai.salaireBrutMensuel} €` };
       }
     }
 
-    // Congés — écart ≥ 1 jour
-    if (ai.congesContractuels != null && this.congesContrat() > 0) {
-      if (Math.abs(ai.congesContractuels - this.congesContrat()) >= 1) {
-        alerts.CONGES = { field: 'CONGES', iaValue: `${ai.congesContractuels} j` };
+    // Congés — écart ≥ 1 jour. Référence : IA si fournie, sinon bareme.
+    if (this.congesContrat() > 0) {
+      if (ai?.congesContractuels != null) {
+        if (Math.abs(ai.congesContractuels - this.congesContrat()) >= 1) {
+          alerts.CONGES = { field: 'CONGES', iaValue: `${ai.congesContractuels} j` };
+        }
+      } else if (bareme) {
+        const total = BaremeService.totalConges(bareme, this.computeAnneesAnciennete());
+        if (total > 0 && this.congesContrat() < total) {
+          alerts.CONGES = { field: 'CONGES', iaValue: `${total} j (convention)` };
+        }
       }
     }
 
-    // Prime — écart ≥ 0,5 pt
-    if (ai.primeAncienneteContractuelle != null && this.primeContrat() > 0) {
-      if (Math.abs(ai.primeAncienneteContractuelle - this.primeContrat()) >= 0.5) {
-        alerts.PRIME = { field: 'PRIME', iaValue: `${ai.primeAncienneteContractuelle} %` };
+    // Prime — écart ≥ 0,5 pt. Référence : IA si fournie, sinon bareme.
+    if (this.primeContrat() > 0) {
+      if (ai?.primeAncienneteContractuelle != null) {
+        if (Math.abs(ai.primeAncienneteContractuelle - this.primeContrat()) >= 0.5) {
+          alerts.PRIME = { field: 'PRIME', iaValue: `${ai.primeAncienneteContractuelle} %` };
+        }
+      } else if (bareme) {
+        const pct = BaremeService.maxPrimePourcentage(bareme, this.computeAnneesAnciennete());
+        if (pct > 0 && this.primeContrat() + 0.5 <= pct) {
+          alerts.PRIME = { field: 'PRIME', iaValue: `${pct} % (convention)` };
+        }
       }
     }
 
@@ -123,8 +140,12 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     ];
   }
 
+  // SF-DT-07-05 — bareme courant, chargé pour prefill et alerte vs convention
+  private currentBareme = signal<BaremeResponse | null>(null);
+
   constructor(
     private ancienneteService: AncienneteService,
+    private baremeService: BaremeService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
@@ -165,12 +186,51 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   }
 
   private prefillFromAi(): void {
-    if (!this.aiData) return;
+    if (!this.aiData) {
+      // Pas d'IA mais on peut quand même charger le bareme par défaut.
+      this.loadBaremeAndPrefill();
+      return;
+    }
     if (this.aiData.conventionCollective) this.conventionCode.set(this.aiData.conventionCollective);
     if (this.aiData.dateEntree) this.dateEntree.set(this.aiData.dateEntree);
     if (this.aiData.salaireBrutMensuel) this.salaireBase.set(this.aiData.salaireBrutMensuel);
     if (this.aiData.congesContractuels != null) this.congesContrat.set(this.aiData.congesContractuels);
     if (this.aiData.primeAncienneteContractuelle != null) this.primeContrat.set(this.aiData.primeAncienneteContractuelle);
+    // SF-DT-07-05 : charger le bareme et compléter prefill pour les champs qu'IA n'a pas extraits.
+    this.loadBaremeAndPrefill();
+  }
+
+  /** SF-DT-07-05 : charge le bareme courant et pré-remplit prime/congés depuis convention si IA n'a rien fourni. */
+  private loadBaremeAndPrefill(): void {
+    const code = this.conventionCode();
+    if (!code) return;
+    this.baremeService.get(code).subscribe({
+      next: bareme => {
+        this.currentBareme.set(bareme);
+        // Calcule l'ancienneté approximative à partir de la dateEntree.
+        const annees = this.computeAnneesAnciennete();
+        // Si IA n'a pas fourni primeContrat, prefill depuis bareme.
+        if (this.aiData?.primeAncienneteContractuelle == null && this.primeContrat() === 0) {
+          const baremePct = BaremeService.maxPrimePourcentage(bareme, annees);
+          if (baremePct > 0) this.primeContrat.set(baremePct);
+        }
+        // Si IA n'a pas fourni congesContrat, prefill depuis bareme.
+        if (this.aiData?.congesContractuels == null && this.congesContrat() === 25) {
+          const totalConges = BaremeService.totalConges(bareme, annees);
+          if (totalConges > 0) this.congesContrat.set(totalConges);
+        }
+      },
+      error: () => { /* convention inconnue côté bareme — on garde les défauts */ },
+    });
+  }
+
+  private computeAnneesAnciennete(): number {
+    const d = this.dateEntree();
+    if (!d) return 0;
+    const entree = new Date(d);
+    if (Number.isNaN(entree.getTime())) return 0;
+    const now = new Date();
+    return Math.floor((now.getTime() - entree.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
   }
 
   calculate(): void {

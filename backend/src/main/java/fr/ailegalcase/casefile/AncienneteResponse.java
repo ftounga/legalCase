@@ -20,6 +20,8 @@ public record AncienneteResponse(
         int congesTotalJours,
         BigDecimal primeAnciennetePourcentage,
         BigDecimal primeAncienneteMontant,
+        BigDecimal baremePrimePourcentage,
+        int baremeCongesTotal,
         List<EcartData> ecarts
 ) {
     public record EcartData(String champ, String attendu, String contractuel, String verdict) {}

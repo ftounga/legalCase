@@ -17,6 +17,8 @@ public record AncienneteResult(
         int congesTotalJours,
         BigDecimal primeAnciennetePourcentage,
         BigDecimal primeAncienneteMontant,
+        BigDecimal baremePrimePourcentage,
+        int baremeCongesTotal,
         List<Ecart> ecarts
 ) {
     public record Ecart(String champ, String attendu, String contractuel, String verdict) {

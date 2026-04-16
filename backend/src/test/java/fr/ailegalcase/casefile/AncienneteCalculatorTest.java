@@ -126,6 +126,49 @@ class AncienneteCalculatorTest {
     }
 
     @Test
+    void SF_DT_07_05_primeContratSuperieureBareme_appliqueContrat() {
+        // BTP à 15 ans : bareme = 12% (référentiel). User 22% → effectif = 22%, pas d'écart.
+        AncienneteResult result = AncienneteCalculator.calculate(
+                "BTP", LocalDate.now().minusYears(15),
+                new BigDecimal("3000"), 25, new BigDecimal("22")
+        );
+        assertThat(result.primeAnciennetePourcentage()).isEqualByComparingTo(new BigDecimal("22"));
+        assertThat(result.primeAncienneteMontant()).isEqualByComparingTo(new BigDecimal("660"));
+        AncienneteResult.Ecart primeEcart = result.ecarts().stream()
+                .filter(e -> e.champ().equals("Prime d'ancienneté")).findFirst().orElseThrow();
+        assertThat(primeEcart.verdict()).isEqualTo(AncienneteResult.Ecart.CONFORME);
+    }
+
+    @Test
+    void SF_DT_07_05_primeContratInferieureBareme_appliqueBaremeAvecEcart() {
+        // BTP 15 ans : bareme = 12%. User 5% → effectif = 12%, écart détecté.
+        AncienneteResult result = AncienneteCalculator.calculate(
+                "BTP", LocalDate.now().minusYears(15),
+                new BigDecimal("3000"), 25, new BigDecimal("5")
+        );
+        assertThat(result.primeAnciennetePourcentage()).isEqualByComparingTo(new BigDecimal("12"));
+        assertThat(result.primeAncienneteMontant()).isEqualByComparingTo(new BigDecimal("360"));
+        AncienneteResult.Ecart primeEcart = result.ecarts().stream()
+                .filter(e -> e.champ().equals("Prime d'ancienneté")).findFirst().orElseThrow();
+        assertThat(primeEcart.verdict()).isEqualTo(AncienneteResult.Ecart.ECART);
+        assertThat(primeEcart.attendu()).contains("12");
+        assertThat(primeEcart.contractuel()).contains("5");
+    }
+
+    @Test
+    void SF_DT_07_05_congesContratSuperieurBareme_appliqueContrat() {
+        // SYNTEC : bareme = 25j légaux. User 30 → effectif = 30, conforme.
+        AncienneteResult result = AncienneteCalculator.calculate(
+                "SYNTEC", LocalDate.now().minusYears(2),
+                new BigDecimal("3000"), 30, BigDecimal.ZERO
+        );
+        assertThat(result.congesTotalJours()).isEqualTo(30);
+        AncienneteResult.Ecart congesEcart = result.ecarts().stream()
+                .filter(e -> e.champ().equals("Congés annuels")).findFirst().orElseThrow();
+        assertThat(congesEcart.verdict()).isEqualTo(AncienneteResult.Ecart.CONFORME);
+    }
+
+    @Test
     void allConventions_calculateWithoutError() {
         for (ConventionBareme b : ConventionBaremeReferentiel.getAll()) {
             AncienneteResult result = AncienneteCalculator.calculate(

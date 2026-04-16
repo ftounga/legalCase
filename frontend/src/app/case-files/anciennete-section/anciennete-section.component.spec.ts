@@ -28,11 +28,18 @@ describe('AncienneteSectionComponent', () => {
     congesTotalJours: 27,
     primeAnciennetePourcentage: 9,
     primeAncienneteMontant: 270,
+    baremePrimePourcentage: 9,
+    baremeCongesTotal: 27,
     ecarts: [
       { champ: 'Congés annuels', attendu: '27 jours', contractuel: '25 jours', verdict: 'ECART' },
       { champ: 'Prime ancienneté', attendu: '9%', contractuel: '5%', verdict: 'ECART' }
     ]
   };
+
+  function flushAnyBaremeCalls(): void {
+    const reqs = httpMock.match(r => r.url.startsWith('/api/v1/anciennete/baremes/'));
+    reqs.forEach(r => r.flush(null, { status: 404, statusText: 'Not Found' }));
+  }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -51,11 +58,15 @@ describe('AncienneteSectionComponent', () => {
   function initNoExisting(): void {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    // SF-DT-07-05 : loadBaremeAndPrefill déclenche un GET bareme — 404 par défaut pour ne pas perturber les signals.
+    flushAnyBaremeCalls();
   }
 
   function initWithExisting(resp = MOCK_RESPONSE): void {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(resp);
+    // Pas de call bareme attendu ici (prefillFromAi non appelé), mais on rest tolerant si flow change.
+    flushAnyBaremeCalls();
   }
 
   it('should create', () => {
@@ -68,6 +79,7 @@ describe('AncienneteSectionComponent', () => {
     const req = httpMock.expectOne(API_URL);
     expect(req.request.method).toBe('GET');
     req.flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnyBaremeCalls();
   });
 
   it('should show form when no existing', () => {
@@ -294,6 +306,67 @@ describe('AncienneteSectionComponent', () => {
     expect(component.salaireBase()).toBe(0);
     expect(component.congesContrat()).toBe(25);
     expect(component.primeContrat()).toBe(0);
+  });
+
+  // ---- SF-DT-07-05 : prefill depuis bareme + alerte vs convention ----
+
+  const MOCK_BAREME_BTP = {
+    conventionCode: 'BTP',
+    conventionLabel: 'BTP',
+    country: 'FRANCE',
+    congesLegauxJours: 25,
+    congesSupplementaires: [],
+    primesAnciennete: [
+      { ancienneteMinAnnees: 15, pourcentage: 12 },
+      { ancienneteMinAnnees: 5, pourcentage: 6 },
+    ],
+  };
+
+  function initAndFlushBareme(ancienneteStatus: number, baremeResp: any): void {
+    fixture.detectChanges();
+    const anc = httpMock.expectOne(API_URL);
+    if (ancienneteStatus === 200) anc.flush(baremeResp);
+    else anc.flush(null, { status: 404, statusText: 'Not Found' });
+    const baremeReqs = httpMock.match(r => r.url.startsWith('/api/v1/anciennete/baremes/'));
+    baremeReqs.forEach(r => r.flush(baremeResp));
+  }
+
+  it('SF-DT-07-05: prefill primeContrat depuis bareme si IA ne fournit pas', () => {
+    setAi({ conventionCollective: 'BTP', dateEntree: '2005-01-01', primeAncienneteContractuelle: null });
+    initAndFlushBareme(404, MOCK_BAREME_BTP);
+    // 20+ ans d'ancienneté → bareme applicable = 12%
+    expect(component.primeContrat()).toBe(12);
+  });
+
+  it('SF-DT-07-05: pas de prefill primeContrat depuis bareme si IA fournit', () => {
+    setAi({ conventionCollective: 'BTP', dateEntree: '2005-01-01', primeAncienneteContractuelle: 22 });
+    initAndFlushBareme(404, MOCK_BAREME_BTP);
+    expect(component.primeContrat()).toBe(22);
+  });
+
+  it('SF-DT-07-05: alerte PRIME vs bareme quand IA muette et user < bareme', () => {
+    setAi({ conventionCollective: 'BTP', dateEntree: '2005-01-01', primeAncienneteContractuelle: null });
+    initAndFlushBareme(404, MOCK_BAREME_BTP);
+    // prefill a mis primeContrat=12. L'avocat le baisse à 5.
+    component.primeContrat.set(5);
+    expect(component.coherenceAlerts().PRIME?.iaValue).toBe('12 % (convention)');
+  });
+
+  it('SF-DT-07-05: pas d\'alerte PRIME vs bareme quand user = bareme', () => {
+    setAi({ conventionCollective: 'BTP', dateEntree: '2005-01-01', primeAncienneteContractuelle: null });
+    initAndFlushBareme(404, MOCK_BAREME_BTP);
+    expect(component.primeContrat()).toBe(12);
+    expect(component.coherenceAlerts().PRIME).toBeUndefined();
+  });
+
+  it('SF-DT-07-05: 404 bareme → pas de prefill, défauts préservés', () => {
+    setAi({ conventionCollective: 'UNKNOWN', primeAncienneteContractuelle: null });
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    const req = httpMock.expectOne('/api/v1/anciennete/baremes/UNKNOWN');
+    req.flush(null, { status: 404, statusText: 'Not Found' });
+    expect(component.primeContrat()).toBe(0);
+    expect(component.congesContrat()).toBe(25);
   });
 
   it('SF-DT-07-04: editForm restaure les 5 champs depuis le résultat', () => {
