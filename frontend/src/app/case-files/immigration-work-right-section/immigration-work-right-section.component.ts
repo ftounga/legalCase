@@ -13,6 +13,9 @@ import { WorkRightResponse } from '../../core/models/immigration-work-right.mode
 import { ImmigrationExtractedData, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 const FR_TITRE_CODES = new Set([
   'VLS_TS_ETUDIANT', 'VLS_TS_SALARIE', 'CST_SALARIE', 'CARTE_PLURIANNUELLE',
@@ -43,6 +46,7 @@ export interface IM07CoherenceAlert {
     MatSelectModule, MatFormFieldModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './immigration-work-right-section.component.html',
   styleUrl: './immigration-work-right-section.component.scss'
@@ -175,17 +179,34 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
 
   alertsSummary = computed(() => ({ total: this.coherenceAlert() ? 1 : 0, blockers: 0 }));
 
+  // SF-IA-03-15c — map {sourceKey → explanation}
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
   constructor(
     private workRightService: ImmigrationWorkRightService,
+    private sourceExplanationService: SourceExplanationService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  explanationFor(): SourceExplanation | null {
+    return this.sourceExplanations().get('IM07_TITRE_TYPE') ?? null;
+  }
 
   ngOnInit(): void {
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    this.loadSourceExplanations();
     this.loadExisting();
   }
 

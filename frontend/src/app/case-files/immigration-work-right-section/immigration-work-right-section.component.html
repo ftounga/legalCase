@@ -54,7 +54,9 @@
               }
               @if (coherenceAlert(); as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [matTooltip]="alertTooltip(alert)" matTooltipPosition="above">
+                      [appCoherencePopover]="explanationFor()"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                 </span>
               }

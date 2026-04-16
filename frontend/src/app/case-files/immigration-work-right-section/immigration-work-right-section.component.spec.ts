@@ -43,14 +43,19 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     httpMock.verify();
   });
 
+  function flushSE(): void {
+    httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));
+  }
   function initNoExisting(): void {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    flushSE();
   }
 
   function initWithExisting(resp = MOCK_RESPONSE): void {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(resp);
+    flushSE();
   }
 
   it('should create', () => {
@@ -63,6 +68,7 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     const req = httpMock.expectOne(API_URL);
     expect(req.request.method).toBe('GET');
     req.flush(null, { status: 404, statusText: 'Not Found' });
+    flushSE();
   });
 
   it('should show form when no existing result', () => {

@@ -15,6 +15,9 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
 import { ImmigrationExtractedData, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 const VALID_RECOURS_CODES = new Set([
   'RECOURS_GRACIEUX_PREFET', 'RECOURS_CONTENTIEUX_TA', 'RECOURS_CNDA',
@@ -42,6 +45,7 @@ export interface IM06CoherenceAlert {
     MatSelectModule, MatFormFieldModule,
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './immigration-recours-section.component.html',
   styleUrl: './immigration-recours-section.component.scss'
@@ -90,12 +94,30 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     { value: 'RECOURS_CE_BELGIQUE', label: 'Recours Conseil d\'État', country: 'BE' },
   ];
 
+  // SF-IA-03-15c — map {sourceKey → explanation}
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
   constructor(
     private recoursService: ImmigrationRecoursService,
+    private sourceExplanationService: SourceExplanationService,
     private snackBar: MatSnackBar,
     private pdfExportService: PdfExportService,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /** SF-IA-03-15c : mapping vers sourceKey F96 + générique. */
+  explanationFor(field: IM06AlertField): SourceExplanation | null {
+    const key = field === 'RECOURS_TYPE' ? 'IM06_RECOURS_TYPE' : 'date_notification_decision_contestee';
+    return this.sourceExplanations().get(key) ?? null;
+  }
 
   coherenceAlerts = computed<Partial<Record<IM06AlertField, IM06CoherenceAlert>>>(() => {
     if (!this.showForm()) return {};
@@ -118,6 +140,7 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
+    this.loadSourceExplanations();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
