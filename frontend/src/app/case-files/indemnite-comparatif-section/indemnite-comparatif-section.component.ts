@@ -85,6 +85,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   typeRupture = signal<string>('LICENCIEMENT');
   typeRuptureNote = signal<string | null>(null);
   ancienneteAnnees = signal(5);
+  ancienneteMois = signal(0);
   age = signal(35);
   salaireMensuel = signal(3000);
 
@@ -197,10 +198,13 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     const iaYears = ce.ancienneteAnnees;
     const iaMonths = ce.ancienneteMois ?? 0;
     if (iaYears == null) return null;
-    const iaTotal = iaYears + (iaMonths / 12);
-    const user = this.ancienneteAnnees();
-    if (user <= 0) return null;
-    if (Math.abs(user - iaTotal) < 0.5) return null;
+    const iaTotalMois = iaYears * 12 + iaMonths;
+    const userYears = this.ancienneteAnnees();
+    const userMois = this.ancienneteMois();
+    if (userYears <= 0 && userMois <= 0) return null;
+    const userTotalMois = userYears * 12 + userMois;
+    // Seuil 1 mois pour éviter les faux positifs mais rester actionnable.
+    if (Math.abs(userTotalMois - iaTotalMois) < 1) return null;
     return {
       field: 'ANCIENNETE',
       level: 'warning',
@@ -310,6 +314,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
       country: this.country(),
       typeRupture: this.typeRupture(),
       ancienneteAnnees: this.ancienneteAnnees(),
+      ancienneteMois: this.ancienneteMois(),
       age: this.age(),
       salaireMensuel: this.salaireMensuel(),
     }).subscribe({
@@ -341,6 +346,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   private prefillForm(resp: IndemniteComparatifResponse): void {
     this.country.set(resp.country);
     this.ancienneteAnnees.set(resp.ancienneteAnnees);
+    if (resp.ancienneteMois != null) this.ancienneteMois.set(resp.ancienneteMois);
     this.age.set(resp.age);
     this.salaireMensuel.set(resp.salaireMensuel);
     if (resp.typeRupture) {
@@ -355,6 +361,9 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     if (this.aiData?.salaireBrutMensuel) {
       this.salaireMensuel.set(this.aiData.salaireBrutMensuel);
     }
+    const ce = this.synthesis?.compensationEstimate;
+    if (ce?.ancienneteAnnees != null) this.ancienneteAnnees.set(ce.ancienneteAnnees);
+    if (ce?.ancienneteMois != null) this.ancienneteMois.set(ce.ancienneteMois);
     this.applyTypeRupturePrefill();
   }
 

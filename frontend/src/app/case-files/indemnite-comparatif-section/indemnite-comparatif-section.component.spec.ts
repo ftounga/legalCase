@@ -217,27 +217,39 @@ describe('IndemniteComparatifSectionComponent', () => {
     expect(component.coherenceAlerts().TYPE_RUPTURE).toBeUndefined();
   });
 
-  // ANCIENNETE
-  it('should NOT alert anciennete when within 0.5 year', () => {
+  // ANCIENNETE — SF-DT-09-06 compare en mois totaux, seuil 1 mois
+  it('SF-DT-09-06: should NOT alert anciennete when user = IA exactement (10y 3m)', () => {
     component.synthesis = { compensationEstimate: { ancienneteAnnees: 10, ancienneteMois: 3 } } as any;
     initNo();
     component.ancienneteAnnees.set(10);
+    component.ancienneteMois.set(3);
     expect(component.coherenceAlerts().ANCIENNETE).toBeUndefined();
   });
 
-  it('should alert anciennete when gap ≥ 0.5 year', () => {
+  it('SF-DT-09-06: should alert anciennete when gap ≥ 1 mois (12 mois ici)', () => {
     component.synthesis = { compensationEstimate: { ancienneteAnnees: 10, ancienneteMois: 0 } } as any;
     initNo();
     component.ancienneteAnnees.set(11);
+    component.ancienneteMois.set(0);
     const alert = component.coherenceAlerts().ANCIENNETE;
     expect(alert?.level).toBe('warning');
     expect(alert?.source).toBe('IA');
   });
 
-  it('should NOT alert anciennete when user = 0', () => {
+  it('SF-DT-09-06: should NOT alert anciennete when user = 0 ans 0 mois', () => {
     component.synthesis = { compensationEstimate: { ancienneteAnnees: 10 } } as any;
     initNo();
     component.ancienneteAnnees.set(0);
+    component.ancienneteMois.set(0);
+    expect(component.coherenceAlerts().ANCIENNETE).toBeUndefined();
+  });
+
+  it('SF-DT-09-06: should NOT alert when IA 16y 1m vs user 16y 1m (bug Test 2 Martin)', () => {
+    // Scénario exact remonté par l'utilisateur : IA 16 ans 1 mois, user avec le champ mois peut désormais saisir la valeur exacte
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 16, ancienneteMois: 1 } } as any;
+    initNo();
+    component.ancienneteAnnees.set(16);
+    component.ancienneteMois.set(1);
     expect(component.coherenceAlerts().ANCIENNETE).toBeUndefined();
   });
 

@@ -57,11 +57,12 @@ public class IndemniteComparatifService {
         entity.setCountry(request.country());
         entity.setTypeRupture(request.typeRupture());
         entity.setAncienneteAnnees(request.ancienneteAnnees());
+        entity.setAncienneteMois(request.ancienneteMois());
         entity.setAge(request.age());
         entity.setResultData(serialize(result));
         repository.save(entity);
 
-        return toResponse(caseFileId, result);
+        return toResponse(caseFileId, result, entity);
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +73,7 @@ public class IndemniteComparatifService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucun comparatif d'indemnités trouvé pour ce dossier"));
         IndemniteComparatifResult result = deserialize(entity.getResultData(), IndemniteComparatifResult.class);
-        return toResponse(caseFileId, result);
+        return toResponse(caseFileId, result, entity);
     }
 
     private void validate(IndemniteComparatifRequest r) {
@@ -80,6 +81,8 @@ public class IndemniteComparatifService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pays non supporté : " + r.country());
         if (r.salaireMensuel() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Salaire mensuel requis");
+        if (r.ancienneteMois() < 0 || r.ancienneteMois() > 11)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ancienneteMois doit être entre 0 et 11");
     }
 
     private User resolveUser(OidcUser oidcUser, Principal principal) {
@@ -106,9 +109,10 @@ public class IndemniteComparatifService {
         catch (JsonProcessingException e) { throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur de désérialisation"); }
     }
 
-    private IndemniteComparatifResponse toResponse(UUID caseFileId, IndemniteComparatifResult r) {
+    private IndemniteComparatifResponse toResponse(UUID caseFileId, IndemniteComparatifResult r, IndemniteComparatif entity) {
+        int mois = entity.getAncienneteMois() != null ? entity.getAncienneteMois() : 0;
         return new IndemniteComparatifResponse(caseFileId, r.country(), r.typeRupture(),
-                r.ancienneteAnnees(), r.age(), r.salaireMensuel(), r.displayMode(),
+                r.ancienneteAnnees(), mois, r.age(), r.salaireMensuel(), r.displayMode(),
                 r.baremePlancherMois(), r.baremePlafondMois(),
                 r.fourchetteBasseMois(), r.fourchetteMedMois(), r.fourhetteHauteMois(),
                 r.fourchetteBasseMontant(), r.fourchetteMedMontant(), r.fourhetteHauteMontant(),

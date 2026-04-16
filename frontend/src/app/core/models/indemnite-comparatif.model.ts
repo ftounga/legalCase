@@ -4,6 +4,7 @@ export interface IndemniteComparatifRequest {
   country: string;
   typeRupture: string;
   ancienneteAnnees: number;
+  ancienneteMois: number;
   age: number;
   salaireMensuel: number;
 }
@@ -13,6 +14,7 @@ export interface IndemniteComparatifResponse {
   country: string;
   typeRupture: string | null;
   ancienneteAnnees: number;
+  ancienneteMois: number;
   age: number;
   salaireMensuel: number;
   displayMode: IndemniteDisplayMode;
