@@ -36,11 +36,14 @@ class CaseAnalysisServiceTest {
     private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
     private final ProcedureCheckService procedureCheckService = mock(ProcedureCheckService.class);
     private final CaseDeadlineService caseDeadlineService = mock(CaseDeadlineService.class);
+    private final SourceExplanationGenerator sourceExplanationGenerator = mock(SourceExplanationGenerator.class);
+    private final SourceExplanationService sourceExplanationService = mock(SourceExplanationService.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, caseDeadlineService);
+            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, caseDeadlineService,
+            sourceExplanationGenerator, sourceExplanationService);
 
     @BeforeEach
     void setUp() {

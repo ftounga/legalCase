@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
+import { OverlayModule } from '@angular/cdk/overlay';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +15,10 @@ import { AncienneteService } from '../../core/services/anciennete.service';
 import { AncienneteResponse } from '../../core/models/anciennete.model';
 import { BaremeService } from '../../core/services/bareme.service';
 import { BaremeResponse } from '../../core/models/bareme.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { CoherenceSourceNavigator } from '../../core/services/coherence-source-navigator.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverComponent } from '../../shared/coherence-popover/coherence-popover.component';
 
 export type AncienneteAlertField = 'CONVENTION' | 'DATE_ENTREE' | 'SALAIRE' | 'CONGES' | 'PRIME';
 
@@ -27,10 +32,12 @@ export interface AncienneteCoherenceAlert {
   standalone: true,
   imports: [
     FormsModule,
+    OverlayModule,
     MatButtonModule, MatIconModule,
     MatSelectModule, MatFormFieldModule,
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
+    CoherencePopoverComponent,
   ],
   templateUrl: './anciennete-section.component.html',
   styleUrl: './anciennete-section.component.scss'
@@ -143,9 +150,18 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   // SF-DT-07-05 — bareme courant, chargé pour prefill et alerte vs convention
   private currentBareme = signal<BaremeResponse | null>(null);
 
+  // SF-IA-03-15a — map {sourceKey → explanation} pour le popover enrichi
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
+  // SF-IA-03-15a — état d'ouverture du popover hover par champ
+  openPopoverField = signal<AncienneteAlertField | null>(null);
+  private closeTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(
     private ancienneteService: AncienneteService,
     private baremeService: BaremeService,
+    private sourceExplanationService: SourceExplanationService,
+    private coherenceNavigator: CoherenceSourceNavigator,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
@@ -153,6 +169,66 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     this.aiDataSignal.set(this.aiData);
     this.loadExisting();
+    this.loadSourceExplanations();
+  }
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open : pas de popover enrichi, tombe en fallback */ },
+    });
+  }
+
+  /** SF-IA-03-15a : mapping champ → sourceKey. Si alerte vs IA, sourceKey direct ; si alerte vs bareme, convention_collective. */
+  sourceKeyFor(field: AncienneteAlertField): string {
+    const ai = this.aiDataSignal();
+    switch (field) {
+      case 'CONVENTION': return 'convention_collective';
+      case 'DATE_ENTREE': return 'date_entree';
+      case 'SALAIRE': return 'salaire_brut_mensuel';
+      case 'CONGES':
+        return ai?.congesContractuels != null ? 'conges_contractuels' : 'convention_collective';
+      case 'PRIME':
+        return ai?.primeAncienneteContractuelle != null ? 'prime_anciennete_contractuelle' : 'convention_collective';
+    }
+  }
+
+  explanationFor(field: AncienneteAlertField): SourceExplanation | null {
+    return this.sourceExplanations().get(this.sourceKeyFor(field)) ?? null;
+  }
+
+  /** SF-IA-03-15a : phrase de "reason" fallback si aucune explication Haiku disponible. */
+  reasonFor(field: AncienneteAlertField): string {
+    const alert = this.coherenceAlerts()[field];
+    if (!alert) return '';
+    switch (field) {
+      case 'CONVENTION': return `La convention attendue est ${alert.iaValue}.`;
+      case 'DATE_ENTREE': return `La date d'entrée détectée est ${alert.iaValue}.`;
+      case 'SALAIRE': return `Le salaire brut mensuel détecté est ${alert.iaValue}.`;
+      case 'CONGES': return `Le nombre de jours de congés attendu est ${alert.iaValue}.`;
+      case 'PRIME': return `Le pourcentage de prime attendu est ${alert.iaValue}.`;
+    }
+  }
+
+  openPopover(field: AncienneteAlertField): void {
+    if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
+    this.openPopoverField.set(field);
+  }
+
+  scheduleClose(): void {
+    this.closeTimer = setTimeout(() => this.openPopoverField.set(null), 150);
+  }
+
+  cancelClose(): void {
+    if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
+  }
+
+  onSourceNavigate(field: AncienneteAlertField): void {
+    const exp = this.explanationFor(field);
+    if (!exp) return;
+    this.coherenceNavigator.navigate(this.caseFileId, exp.actionType, exp.actionTarget);
+    this.openPopoverField.set(null);
   }
 
   ngOnChanges(changes: SimpleChanges): void {

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="075-create-case-analysis-source-explanations" author="legalcase">
+        <createTable tableName="case_analysis_source_explanations">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_analysis_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_source_expl_case_analysis"
+                             references="case_analyses(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="source_key" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_type" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="label" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sentence" type="varchar(300)"/>
+            <column name="anchor_doc_id" type="uuid"/>
+            <column name="anchor_question_id" type="uuid"/>
+            <column name="anchor_f96_code" type="varchar(64)"/>
+            <column name="anchor_chat_message_id" type="uuid"/>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="case_analysis_source_explanations"
+                             columnNames="case_analysis_id,source_key"
+                             constraintName="uq_source_expl_analysis_key"/>
+
+        <createIndex tableName="case_analysis_source_explanations"
+                     indexName="idx_source_expl_case_analysis">
+            <column name="case_analysis_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
