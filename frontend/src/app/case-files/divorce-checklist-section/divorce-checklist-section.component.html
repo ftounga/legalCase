@@ -61,7 +61,10 @@
                       <span class="coherence-badge"
                             [class.coherence-blocker]="alert.level === 'blocker'"
                             [class.coherence-warning]="alert.level === 'warning'"
-                            [matTooltip]="alert.reason" matTooltipPosition="above"
+                            [appCoherencePopover]="explanationFor(etape.code)"
+                            [appCoherencePopoverReason]="alert.reason"
+                            [appCoherencePopoverCaseFileId]="caseFileId"
+                            [appCoherencePopoverBlocker]="alert.level === 'blocker'"
                             (click)="$event.stopPropagation()">
                         <mat-icon>{{ alertIcon(alert) }}</mat-icon> Incohérence détectée
                       </span>
@@ -89,7 +92,10 @@
                       <span class="coherence-badge"
                             [class.coherence-blocker]="alert.level === 'blocker'"
                             [class.coherence-warning]="alert.level === 'warning'"
-                            [matTooltip]="alert.reason" matTooltipPosition="above"
+                            [appCoherencePopover]="explanationFor(piece.code)"
+                            [appCoherencePopoverReason]="alert.reason"
+                            [appCoherencePopoverCaseFileId]="caseFileId"
+                            [appCoherencePopoverBlocker]="alert.level === 'blocker'"
                             (click)="$event.stopPropagation()">
                         <mat-icon>{{ alertIcon(alert) }}</mat-icon> Incohérence détectée
                       </span>

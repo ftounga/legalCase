@@ -15,6 +15,9 @@ import { LicenciementResponse } from '../../core/models/licenciement.model';
 import { LicenciementValidityDetection, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 interface CritereForm {
   code: string;
@@ -57,6 +60,7 @@ const CRITERE_CODES = new Set([
     MatSelectModule, MatFormFieldModule,
     MatProgressSpinnerModule, MatRadioModule,
     MatTooltipModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './licenciement-section.component.html',
   styleUrl: './licenciement-section.component.scss'
@@ -340,8 +344,12 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     };
   });
 
+  // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
   constructor(
     private licenciementService: LicenciementService,
+    private sourceExplanationService: SourceExplanationService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
@@ -354,6 +362,20 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
+    this.loadSourceExplanations();
+  }
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open : popover tombe en fallback template */ },
+    });
+  }
+
+  /** SF-IA-03-15b : lookup explanation par code critère F96 (ex. FR_CONVOCATION). */
+  explanationFor(critereCode: string): SourceExplanation | null {
+    return this.sourceExplanations().get(critereCode) ?? null;
   }
 
   ngOnChanges(changes: SimpleChanges): void {

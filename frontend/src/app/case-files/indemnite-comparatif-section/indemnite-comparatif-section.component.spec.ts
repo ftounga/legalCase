@@ -33,18 +33,20 @@ describe('IndemniteComparatifSectionComponent', () => {
 
   afterEach(() => { httpMock.verify(); });
 
-  function initNo(): void { fixture.detectChanges(); httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'NF' }); }
-  function initWith(r = MOCK): void { fixture.detectChanges(); httpMock.expectOne(API_URL).flush(r); }
+  function flushSE(): void {
+    httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));
+  }
+  function initNo(): void { fixture.detectChanges(); httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'NF' }); flushSE(); }
+  function initWith(r = MOCK): void { fixture.detectChanges(); httpMock.expectOne(API_URL).flush(r); flushSE(); }
 
   it('should create', () => { initNo(); expect(component).toBeTruthy(); });
-  it('should call GET on init', () => { fixture.detectChanges(); const r = httpMock.expectOne(API_URL); expect(r.request.method).toBe('GET'); r.flush(null, { status: 404, statusText: 'NF' }); });
+  it('should call GET on init', () => { fixture.detectChanges(); const r = httpMock.expectOne(API_URL); expect(r.request.method).toBe('GET'); r.flush(null, { status: 404, statusText: 'NF' }); flushSE(); });
   it('should show form when no existing', () => { initNo(); expect(component.showForm()).toBe(true); });
 
   it('should call POST when calculate()', () => {
     initNo();
     component.calculate();
-    const r = httpMock.expectOne(API_URL);
-    expect(r.request.method).toBe('POST');
+    const r = httpMock.expectOne(req => req.url === API_URL && req.method === 'POST');
     r.flush(MOCK);
     expect(component.result()).toBeTruthy();
     expect(component.showForm()).toBe(false);

@@ -42,23 +42,12 @@
                 </mat-select>
               </mat-form-field>
               @if (coherenceAlerts().CONVENTION; as alert) {
-                <span #convTrigger="cdkOverlayOrigin" cdkOverlayOrigin
-                      class="coherence-badge coherence-warning"
-                      (mouseenter)="openPopover('CONVENTION')"
-                      (mouseleave)="scheduleClose()">
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('CONVENTION')"
+                      [appCoherencePopoverReason]="reasonFor('CONVENTION')"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> Incohérence détectée
                 </span>
-                <ng-template cdkConnectedOverlay
-                             [cdkConnectedOverlayOrigin]="convTrigger"
-                             [cdkConnectedOverlayOpen]="openPopoverField() === 'CONVENTION'"
-                             [cdkConnectedOverlayPositions]="[{originX:'start',originY:'top',overlayX:'start',overlayY:'bottom',offsetY:-8}]">
-                  <div (mouseenter)="cancelClose()" (mouseleave)="scheduleClose()">
-                    <app-coherence-popover
-                        [explanation]="explanationFor('CONVENTION')"
-                        [reason]="reasonFor('CONVENTION')"
-                        [onAction]="onSourceNavigate.bind(this, 'CONVENTION')"></app-coherence-popover>
-                  </div>
-                </ng-template>
               }
             </div>
 
@@ -68,23 +57,12 @@
                 <input matInput type="date" [(ngModel)]="dateEntree">
               </mat-form-field>
               @if (coherenceAlerts().DATE_ENTREE; as alert) {
-                <span #dateTrigger="cdkOverlayOrigin" cdkOverlayOrigin
-                      class="coherence-badge coherence-warning"
-                      (mouseenter)="openPopover('DATE_ENTREE')"
-                      (mouseleave)="scheduleClose()">
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('DATE_ENTREE')"
+                      [appCoherencePopoverReason]="reasonFor('DATE_ENTREE')"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> Incohérence détectée
                 </span>
-                <ng-template cdkConnectedOverlay
-                             [cdkConnectedOverlayOrigin]="dateTrigger"
-                             [cdkConnectedOverlayOpen]="openPopoverField() === 'DATE_ENTREE'"
-                             [cdkConnectedOverlayPositions]="[{originX:'start',originY:'top',overlayX:'start',overlayY:'bottom',offsetY:-8}]">
-                  <div (mouseenter)="cancelClose()" (mouseleave)="scheduleClose()">
-                    <app-coherence-popover
-                        [explanation]="explanationFor('DATE_ENTREE')"
-                        [reason]="reasonFor('DATE_ENTREE')"
-                        [onAction]="onSourceNavigate.bind(this, 'DATE_ENTREE')"></app-coherence-popover>
-                  </div>
-                </ng-template>
               }
             </div>
           </div>
@@ -96,23 +74,12 @@
                 <input matInput type="number" [(ngModel)]="salaireBase">
               </mat-form-field>
               @if (coherenceAlerts().SALAIRE; as alert) {
-                <span #salTrigger="cdkOverlayOrigin" cdkOverlayOrigin
-                      class="coherence-badge coherence-warning"
-                      (mouseenter)="openPopover('SALAIRE')"
-                      (mouseleave)="scheduleClose()">
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="reasonFor('SALAIRE')"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> Incohérence détectée
                 </span>
-                <ng-template cdkConnectedOverlay
-                             [cdkConnectedOverlayOrigin]="salTrigger"
-                             [cdkConnectedOverlayOpen]="openPopoverField() === 'SALAIRE'"
-                             [cdkConnectedOverlayPositions]="[{originX:'start',originY:'top',overlayX:'start',overlayY:'bottom',offsetY:-8}]">
-                  <div (mouseenter)="cancelClose()" (mouseleave)="scheduleClose()">
-                    <app-coherence-popover
-                        [explanation]="explanationFor('SALAIRE')"
-                        [reason]="reasonFor('SALAIRE')"
-                        [onAction]="onSourceNavigate.bind(this, 'SALAIRE')"></app-coherence-popover>
-                  </div>
-                </ng-template>
               }
             </div>
 
@@ -122,23 +89,12 @@
                 <input matInput type="number" [(ngModel)]="congesContrat">
               </mat-form-field>
               @if (coherenceAlerts().CONGES; as alert) {
-                <span #congTrigger="cdkOverlayOrigin" cdkOverlayOrigin
-                      class="coherence-badge coherence-warning"
-                      (mouseenter)="openPopover('CONGES')"
-                      (mouseleave)="scheduleClose()">
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('CONGES')"
+                      [appCoherencePopoverReason]="reasonFor('CONGES')"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> Incohérence détectée
                 </span>
-                <ng-template cdkConnectedOverlay
-                             [cdkConnectedOverlayOrigin]="congTrigger"
-                             [cdkConnectedOverlayOpen]="openPopoverField() === 'CONGES'"
-                             [cdkConnectedOverlayPositions]="[{originX:'start',originY:'top',overlayX:'start',overlayY:'bottom',offsetY:-8}]">
-                  <div (mouseenter)="cancelClose()" (mouseleave)="scheduleClose()">
-                    <app-coherence-popover
-                        [explanation]="explanationFor('CONGES')"
-                        [reason]="reasonFor('CONGES')"
-                        [onAction]="onSourceNavigate.bind(this, 'CONGES')"></app-coherence-popover>
-                  </div>
-                </ng-template>
               }
             </div>
 
@@ -148,23 +104,12 @@
                 <input matInput type="number" [(ngModel)]="primeContrat">
               </mat-form-field>
               @if (coherenceAlerts().PRIME; as alert) {
-                <span #primeTrigger="cdkOverlayOrigin" cdkOverlayOrigin
-                      class="coherence-badge coherence-warning"
-                      (mouseenter)="openPopover('PRIME')"
-                      (mouseleave)="scheduleClose()">
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('PRIME')"
+                      [appCoherencePopoverReason]="reasonFor('PRIME')"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> Incohérence détectée
                 </span>
-                <ng-template cdkConnectedOverlay
-                             [cdkConnectedOverlayOrigin]="primeTrigger"
-                             [cdkConnectedOverlayOpen]="openPopoverField() === 'PRIME'"
-                             [cdkConnectedOverlayPositions]="[{originX:'start',originY:'top',overlayX:'start',overlayY:'bottom',offsetY:-8}]">
-                  <div (mouseenter)="cancelClose()" (mouseleave)="scheduleClose()">
-                    <app-coherence-popover
-                        [explanation]="explanationFor('PRIME')"
-                        [reason]="reasonFor('PRIME')"
-                        [onAction]="onSourceNavigate.bind(this, 'PRIME')"></app-coherence-popover>
-                  </div>
-                </ng-template>
               }
             </div>
           </div>

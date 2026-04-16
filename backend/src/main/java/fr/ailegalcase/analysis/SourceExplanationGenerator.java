@@ -82,14 +82,28 @@ public class SourceExplanationGenerator {
 
                 Règles impératives :
                 - Une seule phrase par sourceKey.
-                - sourceKey en snake_case, parmi (mais non limité à) : convention_collective, date_entree,
+                - sourceKey en snake_case (génériques) OU code critère F96 en UPPER_CASE (spécifiques outil).
+                - Génériques (métier, transversaux aux outils) : convention_collective, date_entree,
                   salaire_brut_mensuel, conges_contractuels, prime_anciennete_contractuelle, type_rupture,
                   date_licenciement, type_titre_sejour, type_recours, duree_mariage, revenus_conjoints.
+                - Codes critères F96 spécifiques à produire si l'info est identifiable dans la synthèse :
+                  * F-DT-08 Validité licenciement (FR) : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION,
+                    FR_MOTIVATION, FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT.
+                  * F-DT-08 Validité licenciement (BE) : BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION,
+                    BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE, BE_INDEMNITE_MANIFESTE.
+                  * F-DT-09 Comparateur indemnités : DT09_TYPE_RUPTURE.
+                  * F-DT-10 Rupture conventionnelle (FR) : RC_CONSENTEMENT, RC_DELAI_RETRACTATION,
+                    RC_HOMOLOGATION, RC_ASSISTANCE, RC_INDEMNITE, RC_ENTRETIENS.
+                  * F-FA-05 Partage immobilier : FA05_VALEUR_VENALE, FA05_CAPITAL_RESTANT.
+                  * F-FA-06 Calendrier garde : FA06_MODE_GARDE.
+                  * F-FA-07 Checklist divorce : codes étapes/pièces FR_* et BE_* (ex. FR_REDACTION_CONVENTION).
                 - sourceType = DOCUMENT si la donnée est clairement extraite d'un document précis du dossier.
                 - sourceType = ANALYSIS_DETECTION si la donnée est déduite de l'analyse globale sans document
                   unique identifiable.
                 - anchorDocName = nom exact tel qu'il apparaît dans la liste des documents fournis.
                 - N'invente pas de donnée : si une donnée n'est pas dans la synthèse, ne la cite pas.
+                - Produis uniquement les sourcekeys pour lesquels la synthèse contient une information
+                  concrète — les autres sont omis (pas d'entrée vide).
                 - Pas de conseils juridiques, uniquement du factuel reformulé.
                 - Rédige en français.
                 """;

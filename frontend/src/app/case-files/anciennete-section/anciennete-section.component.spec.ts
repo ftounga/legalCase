@@ -424,34 +424,10 @@ describe('AncienneteSectionComponent', () => {
     expect(component.sourceKeyFor('PRIME')).toBe('prime_anciennete_contractuelle');
   });
 
-  it('SF-IA-03-15a: openPopover puis scheduleClose ferme après délai', async () => {
-    initNoExisting();
-    component.openPopover('CONVENTION');
-    expect(component.openPopoverField()).toBe('CONVENTION');
-    component.scheduleClose();
-    await new Promise(r => setTimeout(r, 250));
-    expect(component.openPopoverField()).toBeNull();
-  });
-
-  it('SF-IA-03-15a: cancelClose annule la fermeture', async () => {
-    initNoExisting();
-    component.openPopover('PRIME');
-    component.scheduleClose();
-    component.cancelClose();
-    await new Promise(r => setTimeout(r, 250));
-    expect(component.openPopoverField()).toBe('PRIME');
-  });
-
   it('SF-IA-03-15a: reasonFor produit un template si aucune alerte', () => {
     initNoExisting();
     // Pas d'aiData, donc pas d'alerte — reasonFor retourne ''
     expect(component.reasonFor('CONVENTION')).toBe('');
-  });
-
-  it('SF-IA-03-15a: onSourceNavigate no-op si pas d\'explanation', () => {
-    initNoExisting();
-    // sourceExplanations vide, aucune erreur levée
-    expect(() => component.onSourceNavigate('CONVENTION')).not.toThrow();
   });
 
   it('SF-DT-07-04: editForm restaure les 5 champs depuis le résultat', () => {

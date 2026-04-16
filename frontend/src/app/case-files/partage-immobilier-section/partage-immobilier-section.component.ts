@@ -16,6 +16,9 @@ import { PartageImmobilierResponse } from '../../core/models/partage-immobilier.
 import { BienItem, LiquidationCommunaute, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 const IMMO_KEYWORDS = ['immobilier', 'maison', 'appartement', 'résidence', 'residence', 'villa', 'studio', 'terrain', 'logement'];
 const PRET_KEYWORDS = ['prêt', 'pret', 'emprunt', 'crédit', 'credit', 'hypothèque', 'hypotheque', 'hypothécaire', 'hypothecaire'];
@@ -65,6 +68,7 @@ export interface PartageCoherenceAlert {
     MatButtonModule, MatIconModule, MatSelectModule,
     MatFormFieldModule, MatInputModule, MatProgressSpinnerModule,
     MatSlideToggleModule, MatTooltipModule,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './partage-immobilier-section.component.html',
   styleUrl: './partage-immobilier-section.component.scss'
@@ -304,11 +308,29 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     return `${prefix} (${alert.iaValue} €)`;
   }
 
+  // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
+  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+
   constructor(
     private partageService: PartageImmobilierService,
+    private sourceExplanationService: SourceExplanationService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /** SF-IA-03-15b : mapping vers sourceKey F96 FA05_*. */
+  explanationFor(field: 'VALEUR_VENALE' | 'CAPITAL_RESTANT'): SourceExplanation | null {
+    const key = field === 'VALEUR_VENALE' ? 'FA05_VALEUR_VENALE' : 'FA05_CAPITAL_RESTANT';
+    return this.sourceExplanations().get(key) ?? null;
+  }
 
   ngOnInit(): void {
     this.liquidationSignal.set(this.liquidationCommunaute);
@@ -316,6 +338,7 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
+    this.loadSourceExplanations();
   }
 
   ngOnChanges(changes: SimpleChanges): void {

@@ -33,14 +33,21 @@ describe('LicenciementSectionComponent', () => {
 
   afterEach(() => { httpMock.verify(); });
 
+  function flushAnySourceExplanationsCalls(): void {
+    const reqs = httpMock.match(r => r.url.endsWith('/source-explanations'));
+    reqs.forEach(r => r.flush([]));
+  }
+
   function initNoExisting(): void {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnySourceExplanationsCalls();
   }
 
   function initWithExisting(resp = MOCK_RESPONSE): void {
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(resp);
+    flushAnySourceExplanationsCalls();
   }
 
   it('should create', () => { initNoExisting(); expect(component).toBeTruthy(); });
@@ -50,6 +57,7 @@ describe('LicenciementSectionComponent', () => {
     const req = httpMock.expectOne(API_URL);
     expect(req.request.method).toBe('GET');
     req.flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnySourceExplanationsCalls();
   });
 
   it('should show form when no existing', () => {
@@ -60,8 +68,7 @@ describe('LicenciementSectionComponent', () => {
   it('should call POST when analyze()', () => {
     initNoExisting();
     component.analyze();
-    const req = httpMock.expectOne(API_URL);
-    expect(req.request.method).toBe('POST');
+    const req = httpMock.expectOne(r => r.url === API_URL && r.method === 'POST');
     req.flush(MOCK_RESPONSE);
     expect(component.result()).toBeTruthy();
     expect(component.showForm()).toBe(false);
@@ -185,6 +192,7 @@ describe('LicenciementSectionComponent', () => {
     };
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnySourceExplanationsCalls();
     component.onReponseChange('FR_CONVOCATION', 'INCONNU');
     expect(component.coherenceAlerts()['FR_CONVOCATION']).toBeUndefined();
   });
@@ -230,6 +238,7 @@ describe('LicenciementSectionComponent', () => {
     };
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
+    flushAnySourceExplanationsCalls();
     component.onReponseChange('BE_MOTIVATION', 'NON');
     component.onReponseChange('BE_AUDITION', 'NON');
     expect(component.coherenceAlerts()['BE_MOTIVATION'].level).toBe('blocker');

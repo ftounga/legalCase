@@ -26,8 +26,11 @@ describe('DivorceChecklistSectionComponent', () => {
   });
   afterEach(() => { httpMock.verify(); });
 
-  function initNo(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(null, { status: 404, statusText: 'NF' }); }
-  function initWith(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(MOCK); }
+  function flushSE(): void {
+    httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));
+  }
+  function initNo(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(null, { status: 404, statusText: 'NF' }); flushSE(); }
+  function initWith(): void { fixture.detectChanges(); httpMock.expectOne(URL).flush(MOCK); flushSE(); }
 
   it('should create', () => { initNo(); expect(component).toBeTruthy(); });
   it('should show init when no existing', () => { initNo(); expect(component.result()).toBeNull(); });
@@ -35,7 +38,7 @@ describe('DivorceChecklistSectionComponent', () => {
   it('should toggle etape and save', () => {
     initWith();
     component.toggleEtape(component.result()!.etapes[0]);
-    const req = httpMock.expectOne(URL); expect(req.request.method).toBe('POST');
+    const req = httpMock.expectOne(r => r.url === URL && r.method === 'POST');
     req.flush({ ...MOCK, etapesCompletees: 1, etapes: [{ ...MOCK.etapes[0], statut: 'FAIT' }] });
     expect(component.result()!.etapesCompletees).toBe(1);
   });
@@ -59,6 +62,7 @@ describe('DivorceChecklistSectionComponent', () => {
     };
     fixture.detectChanges();
     httpMock.expectOne(URL).flush(resp);
+    flushSE();
   }
 
   // ÉTAPES
