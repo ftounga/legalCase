@@ -29,5 +29,7 @@ export interface AncienneteResponse {
   congesTotalJours: number;
   primeAnciennetePourcentage: number;
   primeAncienneteMontant: number;
+  baremePrimePourcentage: number;
+  baremeCongesTotal: number;
   ecarts: AncienneteEcart[];
 }

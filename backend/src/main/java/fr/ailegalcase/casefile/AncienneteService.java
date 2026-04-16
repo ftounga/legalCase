@@ -116,6 +116,7 @@ public class AncienneteService {
                 r.conventionLabel(), r.country(),
                 r.ancienneteAnnees(), r.ancienneteMois(), r.congesLegauxJours(), r.congesSupplementairesJours(),
                 r.congesTotalJours(), r.primeAnciennetePourcentage(), r.primeAncienneteMontant(),
+                r.baremePrimePourcentage(), r.baremeCongesTotal(),
                 r.ecarts().stream().map(e -> new AncienneteResponse.EcartData(
                         e.champ(), e.attendu(), e.contractuel(), e.verdict())).toList());
     }

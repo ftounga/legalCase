@@ -101,6 +101,20 @@ class AncienneteControllerIT {
                 .andExpect(jsonPath("$.primeContrat").value(3.5));
     }
 
+    @Test void SF_DT_07_05_GET_bareme_BTP_returns200() throws Exception {
+        mockMvc.perform(get("/api/v1/anciennete/baremes/BTP").with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.conventionCode").value("BTP"))
+                .andExpect(jsonPath("$.country").value("FRANCE"))
+                .andExpect(jsonPath("$.congesLegauxJours").isNumber())
+                .andExpect(jsonPath("$.primesAnciennete").isArray());
+    }
+
+    @Test void SF_DT_07_05_GET_bareme_inconnue_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/anciennete/baremes/INCONNU").with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
     private OAuth2AuthenticationToken bAuth(String sub, String email) {
         Map<String,Object> c = Map.of("sub",sub,"email",email,"iss","https://accounts.google.com");
         OidcIdToken t = new OidcIdToken("token",Instant.now(),Instant.now().plusSeconds(3600),c);

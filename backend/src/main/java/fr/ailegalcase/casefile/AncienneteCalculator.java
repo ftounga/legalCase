@@ -55,48 +55,53 @@ public final class AncienneteCalculator {
                 .max()
                 .orElse(0);
 
-        int congesTotal = bareme.congesLegauxJours() + congesSupp;
+        int congesBareme = bareme.congesLegauxJours() + congesSupp;
+        // Le contrat individuel ne peut pas être moins favorable. Si plus, c'est lui qui s'applique.
+        int congesTotal = Math.max(congesContrat, congesBareme);
 
-        BigDecimal primePourcentage = bareme.primesAnciennete().stream()
+        BigDecimal primeBareme = bareme.primesAnciennete().stream()
                 .filter(p -> annees >= p.ancienneteMinAnnees())
                 .map(ConventionBareme.PrimeAnciennete::pourcentage)
                 .max(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
+        BigDecimal primeContratEffective = primeContrat != null ? primeContrat : BigDecimal.ZERO;
+        // Le contrat individuel ne peut pas être moins favorable que la convention.
+        // Si le contrat est plus favorable, c'est cette valeur qui s'applique.
+        BigDecimal primePourcentage = primeContratEffective.max(primeBareme);
+
         BigDecimal primeMontant = salaireBase.multiply(primePourcentage)
                 .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
 
-        BigDecimal primeContratEffective = primeContrat != null ? primeContrat : BigDecimal.ZERO;
-
         List<AncienneteResult.Ecart> ecarts = new ArrayList<>();
 
-        if (congesContrat < congesTotal) {
+        if (congesContrat < congesBareme) {
             ecarts.add(new AncienneteResult.Ecart(
                     "Congés annuels",
-                    congesTotal + " jours (légal + convention)",
+                    congesBareme + " jours (légal + convention)",
                     congesContrat + " jours (contrat)",
                     AncienneteResult.Ecart.ECART
             ));
         } else {
             ecarts.add(new AncienneteResult.Ecart(
                     "Congés annuels",
-                    congesTotal + " jours (légal + convention)",
+                    congesBareme + " jours (légal + convention)",
                     congesContrat + " jours (contrat)",
                     AncienneteResult.Ecart.CONFORME
             ));
         }
 
-        if (primeContratEffective.compareTo(primePourcentage) < 0) {
+        if (primeContratEffective.compareTo(primeBareme) < 0) {
             ecarts.add(new AncienneteResult.Ecart(
                     "Prime d'ancienneté",
-                    primePourcentage + "% (convention)",
+                    primeBareme + "% (convention)",
                     primeContratEffective + "% (contrat)",
                     AncienneteResult.Ecart.ECART
             ));
         } else {
             ecarts.add(new AncienneteResult.Ecart(
                     "Prime d'ancienneté",
-                    primePourcentage + "% (convention)",
+                    primeBareme + "% (convention)",
                     primeContratEffective + "% (contrat)",
                     AncienneteResult.Ecart.CONFORME
             ));
@@ -113,6 +118,8 @@ public final class AncienneteCalculator {
                 congesTotal,
                 primePourcentage,
                 primeMontant,
+                primeBareme,
+                congesBareme,
                 ecarts
         );
     }
