@@ -68,10 +68,12 @@ public class SourceExplanationService {
             entity.setSourceType(type);
             entity.setLabel(truncate(item.label().trim(), MAX_LABEL_LENGTH));
             entity.setSentence(item.sentence() != null ? truncate(item.sentence().trim(), MAX_SENTENCE_LENGTH) : null);
+            entity.setSecondaryText(item.secondaryText() != null ? truncate(item.secondaryText().trim(), 500) : null);
             entity.setAnchorDocId(item.anchorDocId());
             entity.setAnchorQuestionId(item.anchorQuestionId());
             entity.setAnchorF96Code(item.anchorF96Code());
             entity.setAnchorChatMessageId(item.anchorChatMessageId());
+            entity.setAnchorPieceIndex(item.anchorPieceIndex());
             repository.save(entity);
             persisted++;
         }

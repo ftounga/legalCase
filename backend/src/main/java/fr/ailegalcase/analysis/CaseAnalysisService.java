@@ -221,11 +221,10 @@ public class CaseAnalysisService {
             } catch (Exception e) {
                 log.warn("Fail-open: AI deadline detection failed for analysis {}: {}", analysis.getId(), e.getMessage());
             }
-            // SF-IA-03-15a : génération des phrases d'explication par source via Haiku (synchrone, fail-open).
+            // SF-IA-03-15a/17 : génération des phrases d'explication par source via Haiku (synchrone, fail-open).
             try {
                 caseFileRepository.findById(caseFileId).ifPresent(cf -> {
-                    List<SourceExplanationData> explanations = sourceExplanationGenerator
-                            .generate(cf, analysis.getAnalysisResult());
+                    List<SourceExplanationData> explanations = sourceExplanationGenerator.generate(cf, analysis);
                     sourceExplanationService.persist(analysis, explanations);
                 });
             } catch (Exception e) {

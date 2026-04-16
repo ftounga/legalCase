@@ -86,6 +86,7 @@ describe('CoherencePopoverTriggerDirective', () => {
       sourceType: 'DOCUMENT',
       label: 'contrat.pdf',
       sentence: 'Test',
+      secondaryText: 'Clause 6.2',
       actionType: 'OPEN_DOCUMENT',
       actionTarget: 'doc-1',
     };
@@ -100,7 +101,7 @@ describe('CoherencePopoverTriggerDirective', () => {
   it('pas de lien si actionType NONE', () => {
     component.explanation = {
       sourceKey: 'k', sourceType: 'ANALYSIS_DETECTION', label: 'l', sentence: 's',
-      actionType: 'NONE', actionTarget: null,
+      secondaryText: null, actionType: 'NONE', actionTarget: null,
     };
     fixture.detectChanges();
     triggerMouse('mouseenter');

@@ -33,23 +33,39 @@ public class SourceExplanationGenerator {
     private final AnthropicService anthropicService;
     private final ObjectMapper objectMapper;
     private final DocumentRepository documentRepository;
+    private final AiQuestionRepository aiQuestionRepository;
+    private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
+    private final ProcedureCheckRepository procedureCheckRepository;
 
     public SourceExplanationGenerator(AnthropicService anthropicService, ObjectMapper objectMapper,
-                                      DocumentRepository documentRepository) {
+                                      DocumentRepository documentRepository,
+                                      AiQuestionRepository aiQuestionRepository,
+                                      AiQuestionAnswerRepository aiQuestionAnswerRepository,
+                                      ProcedureCheckRepository procedureCheckRepository) {
         this.anthropicService = anthropicService;
         this.objectMapper = objectMapper;
         this.documentRepository = documentRepository;
+        this.aiQuestionRepository = aiQuestionRepository;
+        this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
+        this.procedureCheckRepository = procedureCheckRepository;
     }
 
-    public List<SourceExplanationData> generate(CaseFile caseFile, String analysisJson) {
-        if (analysisJson == null || analysisJson.isBlank()) return List.of();
+    public List<SourceExplanationData> generate(CaseFile caseFile, CaseAnalysis analysis) {
+        if (analysis == null || analysis.getAnalysisResult() == null || analysis.getAnalysisResult().isBlank()) {
+            return List.of();
+        }
 
         try {
             List<Document> documents = documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile);
-            String userMessage = buildUserMessage(documents, analysisJson);
+            List<AiQuestion> questions = aiQuestionRepository.findByCaseAnalysisIdOrderByOrderIndex(analysis.getId());
+            Map<UUID, String> answersByQuestionId = loadAnswers(questions);
+            List<ProcedureCheck> f96Checks = procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(analysis.getId());
+            List<String> missingPieces = extractMissingPieces(analysis.getAnalysisResult());
+
+            String userMessage = buildUserMessage(documents, questions, answersByQuestionId, f96Checks, missingPieces, analysis.getAnalysisResult());
             String systemPrompt = buildSystemPrompt();
             AnthropicResult result = anthropicService.analyzeFast(systemPrompt, userMessage, MAX_TOKENS);
-            return parse(result.content(), documents);
+            return parse(result.content(), documents, questions, f96Checks, missingPieces);
         } catch (Exception e) {
             log.warn("SourceExplanationGenerator failed for case {}: {} — fallback to empty list",
                     caseFile.getId(), e.getMessage());
@@ -57,61 +73,111 @@ public class SourceExplanationGenerator {
         }
     }
 
+    private Map<UUID, String> loadAnswers(List<AiQuestion> questions) {
+        Map<UUID, String> answers = new HashMap<>();
+        for (AiQuestion q : questions) {
+            aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId())
+                    .ifPresent(a -> answers.put(q.getId(), a.getAnswerText()));
+        }
+        return answers;
+    }
+
+    private List<String> extractMissingPieces(String analysisJson) {
+        try {
+            JsonNode root = objectMapper.readTree(analysisJson);
+            JsonNode pieces = root.get("pieces_manquantes");
+            if (pieces == null || !pieces.isArray()) return List.of();
+            List<String> out = new ArrayList<>();
+            for (JsonNode p : pieces) {
+                if (p.isTextual()) {
+                    out.add(p.asText());
+                } else if (p.isObject() && p.has("texte")) {
+                    out.add(p.get("texte").asText());
+                }
+            }
+            return out;
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     private String buildSystemPrompt() {
         return """
                 Tu es un assistant juridique qui reformule des données factuelles extraites d'un dossier
-                en phrases pédagogiques pour un avocat.
+                en phrases pédagogiques pour un avocat, en citant précisément leur source.
 
-                Pour chaque donnée factuelle importante identifiée dans la synthèse IA, produis UNE phrase
-                d'explication (≤ 220 caractères) pédagogique et factuelle, qui permet à l'avocat de
-                comprendre d'un coup d'œil d'où vient l'information et pourquoi elle fait foi.
+                Pour chaque donnée factuelle importante identifiée dans la synthèse, produis UNE entrée
+                JSON avec :
+                - sentence : phrase d'explication (≤ 220 car), pédagogique et factuelle.
+                - secondaryText : extrait court ou détail de la source (≤ 200 car), ex. clause exacte,
+                  réponse à la question, raison F-96, intitulé de la pièce manquante.
+                - label : nom affichable de la source (nom du document, intitulé question, code F96,
+                  intitulé pièce).
+                - sourceType + anchor* : voir règles ci-dessous.
 
-                Tu produis un JSON strict, sans markdown, sans texte hors JSON, au format exact suivant :
+                Format JSON strict attendu, sans markdown, sans texte hors JSON :
 
                 {
                   "explanations": [
                     {
                       "sourceKey": "convention_collective",
                       "sourceType": "DOCUMENT" | "QUESTION_AI" | "CHECKLIST_F96" | "CHAT" | "MISSING_PIECE" | "ANALYSIS_DETECTION",
-                      "label": "nom du document | intitulé court de la source",
-                      "sentence": "Phrase d'explication pédagogique ≤ 220 car.",
-                      "anchorDocName": "nom exact du document si sourceType=DOCUMENT, sinon null"
+                      "label": "contrat_dupont.pdf",
+                      "sentence": "La convention BTP prévoit une prime de 12 % à 15 ans d'ancienneté.",
+                      "secondaryText": "Clause 6.2 — prime d'ancienneté (CCN BTP IDCC 1596)",
+                      "anchorDocName": "contrat_dupont.pdf",
+                      "anchorQuestionId": null,
+                      "anchorF96Code": null,
+                      "anchorPieceIndex": null
                     }
                   ]
                 }
 
+                Règles de choix du sourceType et du anchor :
+
+                - sourceType = DOCUMENT : la donnée est extraite d'un document précis du dossier.
+                  Renseigne anchorDocName = nom EXACT d'un document de la liste "# Documents".
+                - sourceType = QUESTION_AI : la donnée vient d'une réponse à une question IA.
+                  Renseigne anchorQuestionId = id exact d'une question de la liste "# Questions".
+                  secondaryText = extrait de la réponse de l'avocat.
+                - sourceType = CHECKLIST_F96 : la donnée est alignée/contredite par un point procédural F-96.
+                  Renseigne anchorF96Code = code exact de la liste "# Checklist F-96".
+                  secondaryText = raison F-96 tronquée.
+                - sourceType = MISSING_PIECE : la donnée est marquée manquante.
+                  Renseigne anchorPieceIndex = index (0-based) de la liste "# Pièces manquantes".
+                  secondaryText = intitulé de la pièce.
+                - sourceType = ANALYSIS_DETECTION : la donnée est déduite de l'analyse globale sans
+                  source unique identifiable. Aucun anchor.
+
+                sourceKey en snake_case (génériques) OU code critère F96 en UPPER_CASE (spécifiques outil).
+                Génériques : convention_collective, date_entree, salaire_brut_mensuel, conges_contractuels,
+                prime_anciennete_contractuelle, type_rupture, date_licenciement, type_titre_sejour,
+                type_recours, duree_mariage, revenus_conjoints, nationalite_ue, date_notification_decision_contestee.
+                Codes F96 outil : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION, FR_MOTIVATION,
+                FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT, BE_NOTIFICATION,
+                BE_PREAVIS, BE_MOTIVATION, BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE,
+                BE_INDEMNITE_MANIFESTE, DT09_TYPE_RUPTURE, RC_CONSENTEMENT, RC_DELAI_RETRACTATION,
+                RC_HOMOLOGATION, RC_ASSISTANCE, RC_INDEMNITE, RC_ENTRETIENS, FA05_VALEUR_VENALE,
+                FA05_CAPITAL_RESTANT, FA06_MODE_GARDE, IM05_MOTIF, IM06_RECOURS_TYPE, IM07_TITRE_TYPE,
+                ainsi que codes étapes/pièces divorce FR_*/BE_*.
+
                 Règles impératives :
-                - Une seule phrase par sourceKey.
-                - sourceKey en snake_case (génériques) OU code critère F96 en UPPER_CASE (spécifiques outil).
-                - Génériques (métier, transversaux aux outils) : convention_collective, date_entree,
-                  salaire_brut_mensuel, conges_contractuels, prime_anciennete_contractuelle, type_rupture,
-                  date_licenciement, type_titre_sejour, type_recours, duree_mariage, revenus_conjoints.
-                - Codes critères F96 spécifiques à produire si l'info est identifiable dans la synthèse :
-                  * F-DT-08 Validité licenciement (FR) : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION,
-                    FR_MOTIVATION, FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT.
-                  * F-DT-08 Validité licenciement (BE) : BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION,
-                    BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE, BE_INDEMNITE_MANIFESTE.
-                  * F-DT-09 Comparateur indemnités : DT09_TYPE_RUPTURE.
-                  * F-DT-10 Rupture conventionnelle (FR) : RC_CONSENTEMENT, RC_DELAI_RETRACTATION,
-                    RC_HOMOLOGATION, RC_ASSISTANCE, RC_INDEMNITE, RC_ENTRETIENS.
-                  * F-FA-05 Partage immobilier : FA05_VALEUR_VENALE, FA05_CAPITAL_RESTANT.
-                  * F-FA-06 Calendrier garde : FA06_MODE_GARDE.
-                  * F-FA-07 Checklist divorce : codes étapes/pièces FR_* et BE_* (ex. FR_REDACTION_CONVENTION).
-                - sourceType = DOCUMENT si la donnée est clairement extraite d'un document précis du dossier.
-                - sourceType = ANALYSIS_DETECTION si la donnée est déduite de l'analyse globale sans document
-                  unique identifiable.
-                - anchorDocName = nom exact tel qu'il apparaît dans la liste des documents fournis.
-                - N'invente pas de donnée : si une donnée n'est pas dans la synthèse, ne la cite pas.
+                - Une seule entrée par sourceKey.
+                - N'invente ni donnée, ni anchor : n'utilise que des IDs/codes/noms PRÉSENTS dans les listes fournies.
+                - Préférer sourceType = DOCUMENT si un document explicite contient la donnée.
+                - Préférer sourceType = QUESTION_AI / CHECKLIST_F96 si la donnée vient d'une réponse/point.
                 - Produis uniquement les sourcekeys pour lesquels la synthèse contient une information
-                  concrète — les autres sont omis (pas d'entrée vide).
-                - Pas de conseils juridiques, uniquement du factuel reformulé.
-                - Rédige en français.
+                  concrète — omet les autres (pas d'entrée vide).
+                - Pas de conseils juridiques, uniquement du factuel reformulé. Rédige en français.
                 """;
     }
 
-    private String buildUserMessage(List<Document> documents, String analysisJson) {
+    private String buildUserMessage(List<Document> documents, List<AiQuestion> questions,
+                                    Map<UUID, String> answersByQuestionId, List<ProcedureCheck> f96Checks,
+                                    List<String> missingPieces, String analysisJson) {
         StringBuilder sb = new StringBuilder();
-        sb.append("# Documents du dossier\n");
+
+        sb.append("# Documents\n");
         if (documents == null || documents.isEmpty()) {
             sb.append("(aucun)\n");
         } else {
@@ -121,6 +187,46 @@ public class SourceExplanationGenerator {
                 }
             }
         }
+
+        sb.append("\n# Questions\n");
+        if (questions == null || questions.isEmpty()) {
+            sb.append("(aucune)\n");
+        } else {
+            for (AiQuestion q : questions) {
+                sb.append("- [id=").append(q.getId()).append("] ").append(q.getQuestionText());
+                String ans = answersByQuestionId.get(q.getId());
+                if (ans != null && !ans.isBlank()) {
+                    sb.append(" → réponse : ").append(ans.length() > 160 ? ans.substring(0, 160) + "…" : ans);
+                }
+                sb.append('\n');
+            }
+        }
+
+        sb.append("\n# Checklist F-96\n");
+        if (f96Checks == null || f96Checks.isEmpty()) {
+            sb.append("(aucun)\n");
+        } else {
+            for (ProcedureCheck c : f96Checks) {
+                String code = c.getCritereCode();
+                if (code == null || code.isBlank()) continue;
+                sb.append("- [code=").append(code).append(", statut=").append(c.getStatut()).append("] ")
+                        .append(c.getDescription() != null ? c.getDescription() : "");
+                if (c.getRaison() != null && !c.getRaison().isBlank()) {
+                    sb.append(" — raison : ").append(c.getRaison().length() > 160 ? c.getRaison().substring(0, 160) + "…" : c.getRaison());
+                }
+                sb.append('\n');
+            }
+        }
+
+        sb.append("\n# Pièces manquantes\n");
+        if (missingPieces == null || missingPieces.isEmpty()) {
+            sb.append("(aucune)\n");
+        } else {
+            for (int i = 0; i < missingPieces.size(); i++) {
+                sb.append("- [index=").append(i).append("] ").append(missingPieces.get(i)).append('\n');
+            }
+        }
+
         sb.append("\n# Synthèse IA (JSON)\n");
         String truncated = analysisJson.length() > MAX_SYNTHESIS_CHARS
                 ? analysisJson.substring(0, MAX_SYNTHESIS_CHARS)
@@ -129,7 +235,9 @@ public class SourceExplanationGenerator {
         return sb.toString();
     }
 
-    private List<SourceExplanationData> parse(String jsonResponse, List<Document> documents) {
+    private List<SourceExplanationData> parse(String jsonResponse, List<Document> documents,
+                                              List<AiQuestion> questions, List<ProcedureCheck> f96Checks,
+                                              List<String> missingPieces) {
         if (jsonResponse == null || jsonResponse.isBlank()) return List.of();
         String cleaned = stripMarkdownFence(jsonResponse.trim());
 
@@ -139,6 +247,13 @@ public class SourceExplanationGenerator {
             if (explanations == null || !explanations.isArray()) return List.of();
 
             Map<String, UUID> docIdByFilename = buildDocFilenameIndex(documents);
+            java.util.Set<UUID> validQuestionIds = questions == null ? java.util.Set.of()
+                    : questions.stream().map(AiQuestion::getId).collect(java.util.stream.Collectors.toSet());
+            java.util.Set<String> validF96Codes = f96Checks == null ? java.util.Set.of()
+                    : f96Checks.stream().map(ProcedureCheck::getCritereCode)
+                            .filter(c -> c != null && !c.isBlank())
+                            .collect(java.util.stream.Collectors.toSet());
+            int piecesCount = missingPieces == null ? 0 : missingPieces.size();
 
             List<SourceExplanationData> out = new ArrayList<>();
             Iterator<JsonNode> it = explanations.elements();
@@ -148,13 +263,37 @@ public class SourceExplanationGenerator {
                 String sourceType = textOrNull(node, "sourceType");
                 String label = textOrNull(node, "label");
                 String sentence = textOrNull(node, "sentence");
-                String anchorDocName = textOrNull(node, "anchorDocName");
+                String secondaryText = textOrNull(node, "secondaryText");
 
                 if (sourceKey == null || label == null) continue;
 
                 UUID anchorDocId = null;
-                if ("DOCUMENT".equalsIgnoreCase(sourceType) && anchorDocName != null) {
-                    anchorDocId = docIdByFilename.get(anchorDocName.toLowerCase(Locale.ROOT));
+                UUID anchorQuestionId = null;
+                String anchorF96Code = null;
+                Integer anchorPieceIndex = null;
+
+                if ("DOCUMENT".equalsIgnoreCase(sourceType)) {
+                    String anchorDocName = textOrNull(node, "anchorDocName");
+                    if (anchorDocName != null) {
+                        anchorDocId = docIdByFilename.get(anchorDocName.toLowerCase(Locale.ROOT));
+                    }
+                } else if ("QUESTION_AI".equalsIgnoreCase(sourceType)) {
+                    String raw = textOrNull(node, "anchorQuestionId");
+                    if (raw != null) {
+                        try {
+                            UUID qid = UUID.fromString(raw);
+                            if (validQuestionIds.contains(qid)) anchorQuestionId = qid;
+                        } catch (IllegalArgumentException ignored) { /* anchor null */ }
+                    }
+                } else if ("CHECKLIST_F96".equalsIgnoreCase(sourceType)) {
+                    String code = textOrNull(node, "anchorF96Code");
+                    if (code != null && validF96Codes.contains(code)) anchorF96Code = code;
+                } else if ("MISSING_PIECE".equalsIgnoreCase(sourceType)) {
+                    JsonNode idx = node.get("anchorPieceIndex");
+                    if (idx != null && idx.isInt()) {
+                        int v = idx.asInt();
+                        if (v >= 0 && v < piecesCount) anchorPieceIndex = v;
+                    }
                 }
 
                 out.add(new SourceExplanationData(
@@ -162,10 +301,12 @@ public class SourceExplanationGenerator {
                         sourceType,
                         label,
                         sentence,
+                        secondaryText,
                         anchorDocId,
+                        anchorQuestionId,
+                        anchorF96Code,
                         null,
-                        null,
-                        null
+                        anchorPieceIndex
                 ));
             }
             return out;

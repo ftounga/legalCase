@@ -11,6 +11,7 @@ public record SourceExplanationResponse(
         String sourceType,
         String label,
         String sentence,
+        String secondaryText,
         String actionType,
         String actionTarget
 ) {
@@ -23,25 +24,35 @@ public record SourceExplanationResponse(
                     actionType = "OPEN_DOCUMENT";
                     actionTarget = e.getAnchorDocId().toString();
                 } else {
-                    actionType = "NONE";
+                    actionType = "OPEN_DOCUMENTS_LIST";
                     actionTarget = null;
                 }
             }
             case QUESTION_AI -> {
-                actionType = e.getAnchorQuestionId() != null ? "SCROLL_QA" : "NONE";
-                actionTarget = e.getAnchorQuestionId() != null ? e.getAnchorQuestionId().toString() : null;
+                if (e.getAnchorQuestionId() != null) {
+                    actionType = "SCROLL_QA";
+                    actionTarget = e.getAnchorQuestionId().toString();
+                } else {
+                    actionType = "OPEN_QUESTIONS";
+                    actionTarget = null;
+                }
             }
             case CHECKLIST_F96 -> {
-                actionType = e.getAnchorF96Code() != null ? "SCROLL_F96" : "NONE";
-                actionTarget = e.getAnchorF96Code();
+                if (e.getAnchorF96Code() != null) {
+                    actionType = "SCROLL_F96";
+                    actionTarget = e.getAnchorF96Code();
+                } else {
+                    actionType = "OPEN_F96_LIST";
+                    actionTarget = null;
+                }
             }
             case CHAT -> {
-                actionType = e.getAnchorChatMessageId() != null ? "OPEN_CHAT" : "NONE";
+                actionType = e.getAnchorChatMessageId() != null ? "OPEN_CHAT" : "OPEN_CHAT";
                 actionTarget = e.getAnchorChatMessageId() != null ? e.getAnchorChatMessageId().toString() : null;
             }
             case MISSING_PIECE -> {
-                actionType = "MISSING_PIECE";
-                actionTarget = null;
+                actionType = "OPEN_MISSING_PIECES";
+                actionTarget = e.getAnchorPieceIndex() != null ? String.valueOf(e.getAnchorPieceIndex()) : null;
             }
             default -> {
                 actionType = "NONE";
@@ -53,6 +64,7 @@ public record SourceExplanationResponse(
                 e.getSourceType().name(),
                 e.getLabel(),
                 e.getSentence(),
+                e.getSecondaryText(),
                 actionType,
                 actionTarget
         );

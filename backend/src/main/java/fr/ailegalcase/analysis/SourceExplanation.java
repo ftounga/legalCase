@@ -46,6 +46,12 @@ public class SourceExplanation {
     @Column(name = "anchor_chat_message_id")
     private UUID anchorChatMessageId;
 
+    @Column(name = "anchor_piece_index")
+    private Integer anchorPieceIndex;
+
+    @Column(name = "secondary_text", length = 500)
+    private String secondaryText;
+
     @Column(nullable = false)
     private Instant createdAt;
 
