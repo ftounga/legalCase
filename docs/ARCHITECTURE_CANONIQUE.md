@@ -1382,6 +1382,76 @@ Règles :
 
 ---
 
+# 25f — Blog SEO (F-120 — SF-120-01)
+
+Tables de contenu public pour le blog SEO automatisé.
+Isolées du modèle multi-tenant : aucun `workspace_id` (contenu public mutualisé).
+
+## blog_topics
+
+Backlog de sujets d'articles, alimenté manuellement puis consommé par le générateur (SF-120-02).
+
+id (UUID PK)
+slug (VARCHAR(200), non nullable, unique — uq_blog_topics_slug)
+title (VARCHAR(500), non nullable)
+description (TEXT)
+category (VARCHAR(30), non nullable — DROIT_DU_TRAVAIL / DROIT_IMMIGRATION / DROIT_FAMILLE)
+country_scope (VARCHAR(10), non nullable — FRANCE / BELGIQUE)
+status (VARCHAR(20), non nullable — PENDING / IN_PROGRESS / USED / REJECTED)
+article_id (UUID — lien vers blog_articles si USED)
+used_at (TIMESTAMP WITH TIME ZONE)
+created_at (TIMESTAMP WITH TIME ZONE, non nullable)
+
+Index :
+idx_blog_topics_status (status)
+idx_blog_topics_category_country (category, country_scope)
+
+Règles :
+- Un topic USED référence son article généré via `article_id`.
+- Le quota glissant 4 semaines (60/25/15 % domaines V1) s'appuie sur category + country_scope + used_at.
+- Migration : 078-create-blog-topic.xml
+
+---
+
+## blog_articles
+
+Articles publiés ou en brouillon. URL publique `/blog/fr/<slug>` ou `/blog/be/<slug>`.
+
+id (UUID PK)
+slug (VARCHAR(200), non nullable, unique — uq_blog_articles_slug)
+title (VARCHAR(500), non nullable)
+subtitle (VARCHAR(1000))
+body_markdown (TEXT, non nullable — corps en Markdown, rendu côté frontend)
+hero_image_url (VARCHAR(500) — S3 WebP, fallback JPEG)
+hero_image_alt (VARCHAR(500))
+country (VARCHAR(10), non nullable — FRANCE / BELGIQUE)
+legal_domain (VARCHAR(30), non nullable — DROIT_DU_TRAVAIL / DROIT_IMMIGRATION / DROIT_FAMILLE)
+author_name (VARCHAR(200), non nullable — par défaut "Franck Tounga")
+author_url (VARCHAR(500))
+meta_title (VARCHAR(70), non nullable — SEO title tag)
+meta_description (VARCHAR(160), non nullable — SEO meta description)
+reading_time_minutes (INTEGER, non nullable — calculé à la génération)
+status (VARCHAR(20), non nullable — DRAFT / PUBLISHED / UNPUBLISHED)
+topic_id (UUID FK → blog_topics, non nullable — fk_blog_articles_topic)
+published_at (TIMESTAMP WITH TIME ZONE — renseigné au passage PUBLISHED)
+created_at (TIMESTAMP WITH TIME ZONE, non nullable)
+updated_at (TIMESTAMP WITH TIME ZONE, non nullable)
+
+Index :
+idx_blog_articles_status_published_at (status, published_at) — listing public trié par date de publication
+idx_blog_articles_country (country)
+idx_blog_articles_legal_domain (legal_domain)
+
+Règles :
+- `slug` unique globalement — déterminé à la génération.
+- `meta_title` ≤ 70 caractères, `meta_description` ≤ 160 caractères (contraintes SEO).
+- Status lifecycle : DRAFT → PUBLISHED → UNPUBLISHED (bouton dépublier 1-clic).
+- Seuls les articles `PUBLISHED` sont exposés par `GET /api/v1/blog/articles`.
+- Endpoints publics sans auth (whitelistés dans `SecurityConfig`).
+- Migration : 079-create-blog-article.xml
+
+---
+
 # 26 — Principe directeur
 
 AI LegalCase doit rester :
