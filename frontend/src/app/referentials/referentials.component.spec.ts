@@ -98,6 +98,128 @@ describe('ReferentialsComponent — cas nominal (OWNER)', () => {
     expect(result).toContain('30 %');
     expect(result).toContain('8 ans');
   });
+
+  // SF-110-11 tests — 9 types ajoutés par SF-REF-01-03
+  // REF-UI-12 : IMMIGRATION_TITLES
+  it('REF-UI-12: formatValue IMMIGRATION_TITLES → phrase lisible, pas de JSON brut', () => {
+    const entry = { key: 'VPF', label: 'Titre VPF', isSystem: true,
+      valueJson: '{"motif":"Vie privée et familiale","conditions":"Mariage + 3 ans","pieces":["acte","contrat","fiche"],"delaiMoyenJours":90}' };
+    const result = component.formatValue(entry, 'IMMIGRATION_TITLES');
+    expect(result).toContain('Vie privée et familiale');
+    expect(result).toContain('Mariage');
+    expect(result).toContain('90 jours');
+    expect(result).toContain('3 pièces');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-13 : IMMIGRATION_RECOURS
+  it('REF-UI-13: formatValue IMMIGRATION_RECOURS → phrase lisible', () => {
+    const entry = { key: 'OQTF', label: 'OQTF', isSystem: true,
+      valueJson: '{"delaiJours":30,"juridiction":"Tribunal administratif","textesApplicables":["L511-1"],"piecesStandard":["decision","recours","id"]}' };
+    const result = component.formatValue(entry, 'IMMIGRATION_RECOURS');
+    expect(result).toContain('Tribunal administratif');
+    expect(result).toContain('30 jours');
+    expect(result).toContain('1 texte');
+    expect(result).toContain('3 pièces');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-14 : IMMIGRATION_WORK_RIGHTS
+  it('REF-UI-14: formatValue IMMIGRATION_WORK_RIGHTS → mentionne droit au travail', () => {
+    const entry = { key: 'ETUDIANT', label: 'Étudiant', isSystem: true,
+      valueJson: '{"droitTravail":"CONDITIONNEL","conditions":"max 964h/an","obligationsEmployeur":["declaration","autorisation"]}' };
+    const result = component.formatValue(entry, 'IMMIGRATION_WORK_RIGHTS');
+    expect(result).toContain('CONDITIONNEL');
+    expect(result).toContain('964h/an');
+    expect(result).toContain('2 obligations');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-15 : CONVENTION_BAREMES
+  it('REF-UI-15: formatValue CONVENTION_BAREMES → congés légaux affichés', () => {
+    const entry = { key: 'SYNTEC', label: 'Syntec', isSystem: true,
+      valueJson: '{"congesLegauxJours":25,"primeAnciennetePourcentage":3}' };
+    const result = component.formatValue(entry, 'CONVENTION_BAREMES');
+    expect(result).toContain('Congés légaux');
+    expect(result).toContain('25');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-16 : LICENCIEMENT_CRITERES (bloquant = true)
+  it('REF-UI-16: formatValue LICENCIEMENT_CRITERES bloquant=true → contient "Bloquant"', () => {
+    const entry = { key: 'FR_MOTIF_REEL', label: 'Motif réel', isSystem: true,
+      valueJson: '{"poids":30,"bloquant":true,"description":"Cause réelle et sérieuse requise"}' };
+    const result = component.formatValue(entry, 'LICENCIEMENT_CRITERES');
+    expect(result).toContain('30');
+    expect(result).toContain('Bloquant');
+    expect(result).not.toContain('Non bloquant');
+    expect(result).toContain('réelle');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-17 : INDEMNITE_BAREMES variante MACRON
+  it('REF-UI-17: formatValue INDEMNITE_BAREMES MACRON → "Barème sur N années"', () => {
+    const entry = { key: 'MACRON', label: 'Barème Macron', isSystem: true,
+      valueJson: '{"entries":[{"an":0,"min":0,"max":1},{"an":1,"min":1,"max":2},{"an":10,"min":3,"max":10}]}' };
+    const result = component.formatValue(entry, 'INDEMNITE_BAREMES');
+    expect(result).toContain('Barème sur 3 années');
+    expect(result).toContain('0');
+    expect(result).toContain('10');
+    expect(result).toContain('mois de salaire');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-18 : INDEMNITE_BAREMES variante CCT109
+  it('REF-UI-18: formatValue INDEMNITE_BAREMES CCT109 → "semaines"', () => {
+    const entry = { key: 'CCT109', label: 'CCT 109', isSystem: true,
+      valueJson: '{"minSemaines":3,"maxSemaines":17}' };
+    const result = component.formatValue(entry, 'INDEMNITE_BAREMES');
+    expect(result).toContain('3');
+    expect(result).toContain('17');
+    expect(result).toContain('semaines');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-19 : GARDE_MODES → répartition et jours
+  it('REF-UI-19: formatValue GARDE_MODES → Parent A/B et jours', () => {
+    const entry = { key: 'ALTERNEE_FR', label: 'Alternée', isSystem: true,
+      valueJson: '{"repartitionType":"ALTERNEE_1_SUR_2","periodesA":["Semaine A"],"periodesB":["Semaine B"],"vacances":"Partagées","joursA":182,"joursB":183}' };
+    const result = component.formatValue(entry, 'GARDE_MODES');
+    expect(result).toContain('ALTERNEE_1_SUR_2');
+    expect(result).toContain('Parent A');
+    expect(result).toContain('182');
+    expect(result).toContain('183');
+    expect(result).toContain('Partagées');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-20 : DIVORCE_ETAPES obligatoire=true → préfixe ⚠
+  it('REF-UI-20: formatValue DIVORCE_ETAPES obligatoire=true → préfixe ⚠ + description', () => {
+    const entry = { key: 'FR_CHOIX_AVOCATS', label: 'Choix avocats', isSystem: true,
+      valueJson: '{"ordre":1,"description":"Chaque époux doit avoir son avocat","delai":"—","obligatoire":true}' };
+    const result = component.formatValue(entry, 'DIVORCE_ETAPES');
+    expect(result).toContain('⚠');
+    expect(result).toContain('Étape 1');
+    expect(result).toContain('Chaque époux');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-21 : DIVORCE_PIECES obligatoire=false → pas de préfixe ⚠
+  it('REF-UI-21: formatValue DIVORCE_PIECES obligatoire=false → pas de ⚠', () => {
+    const entry = { key: 'FR_ATTESTATION', label: 'Attestation', isSystem: true,
+      valueJson: '{"description":"Attestation optionnelle","obligatoire":false}' };
+    const result = component.formatValue(entry, 'DIVORCE_PIECES');
+    expect(result).toContain('Attestation optionnelle');
+    expect(result).not.toContain('⚠');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-22 : JSON malformé → fallback sur la chaîne brute (try/catch)
+  it('REF-UI-22: formatValue JSON malformé → fallback sur valueJson brut', () => {
+    const entry = { key: 'BROKEN', label: 'Broken', isSystem: true, valueJson: 'not-json' };
+    const result = component.formatValue(entry, 'IMMIGRATION_TITLES');
+    expect(result).toBe('not-json');
+  });
 });
 
 describe('ReferentialsComponent — erreur API', () => {
