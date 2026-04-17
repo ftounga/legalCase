@@ -77,23 +77,76 @@
 
 ---
 
-## Test 3 — Janssen (CP200 licenciement BE)
+## Test 3 — Janssen (licenciement économique CP 200 BE)
 
 **Dossier :** `dossier-licenciement-cp200-janssen/` (3 fichiers)
-**Workspace :** DROIT_DU_TRAVAIL / BELGIQUE
+**Workspace requis :** DROIT_DU_TRAVAIL / **BELGIQUE**
+
+### Contexte du dossier
+
+- Pieter JANSSEN, 37 ans, Comptable senior
+- Employeur : FinConsult SPRL (Bruxelles) — cabinet de comptabilité
+- Commission paritaire : **CP 200** (auxiliaire pour employés)
+- Embauche : 01/04/2018 | Notification licenciement : 05/01/2026 | Fin contrat : 08/08/2026
+- **Ancienneté effective : 7 ans 9 mois**
+- Salaire final : **3 100 € brut/mois** (37 200 €/an)
+- Type de rupture : **licenciement économique** (motif = restructuration du département comptabilité, CCT 109 art. 4)
+- Préavis : 30 semaines (statut unique loi 26/12/2013)
+
+**Enjeu** : dossier apparemment *bien géré* côté employeur (LRAR, motivation conforme CCT 109, préavis légal). C'est un cas de **licenciement valide côté procédure** — le test vérifie que l'IA le reconnaît comme tel, et que les outils métier fonctionnent en mode Belgique.
+
+### Setup (une seule fois)
+
+1. Se connecter sur **https://staging.legalcase.ng-itconsulting.com** (ou le local)
+2. Sélectionner (ou créer) un workspace avec `domaine = DROIT_DU_TRAVAIL` et `pays = BELGIQUE`
+3. Créer un nouveau dossier intitulé **"Janssen CP 200"**
+4. Uploader les 3 fichiers `01-contrat-travail.txt`, `02-lettre-licenciement.txt`, `03-attestation-anciennete.txt`
+5. Lancer l'analyse IA complète (attendre synthèse + questions + re-synthèse enrichie)
+
+### Valeurs attendues après analyse IA
+
+| Donnée | Valeur attendue | Source dans le dossier |
+|---|---|---|
+| Pays détecté | BELGIQUE | adresses BE, CP 200, CCT 109 |
+| Convention collective | CP 200 | Article 1 contrat |
+| Type de rupture | `LICENCIEMENT_ORDINAIRE` | Lettre licenciement §1 "restructuration" |
+| Date entrée | 01/04/2018 | Article 1 contrat |
+| Date rupture | 05/01/2026 | Lettre licenciement (envoi LRAR) |
+| Ancienneté | 7 ans 9 mois (ou 93 mois) | Attestation §introduction |
+| Salaire brut mensuel | 3 100 € | Article 5 contrat + historique salarial attestation |
+| Critères F-DT-08 | `BE_NOTIFICATION=OUI`, `BE_PREAVIS=OUI`, `BE_MOTIVATION=OUI` | LRAR, 30 semaines, CCT 109 art. 4 |
+
+### Étapes séquentielles
 
 | Étape | Action | Vérification |
 |-------|--------|-------------|
-| 3.1 | Créer dossier, uploader 3 fichiers, analyser | Synthèse avec références belges |
-| 3.2 | **SF-IA-01-03** : grille Validité licenciement | Critères BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION pré-cochés depuis l'IA |
-| 3.3 | Ancienneté (F-DT-07) | Convention=CP200, 8 ans, congés 20+2=22j, prime 4% |
-| 3.4 | **SF-IA-03-04** : modifier congés vers 30j | Warning "Incohérence IA (22j)" |
-| 3.5 | Comparateur indemnités (F-DT-09) | **SF-DT-09-04** : type `LICENCIEMENT_ORDINAIRE` pré-sélectionné (BE) |
-| 3.6 | Modifier vers RUPTURE_AMIABLE | Mode NEGOCIATION_LIBRE, pas de fourchette, message négociation libre |
-| 3.7 | **SF-IA-03-01/02** : modifier BE_NOTIFICATION vers NON | Badge blocker (critère bloquant) |
-| 3.8 | Dashboard | Tout agrégé, country=BELGIQUE |
+| 3.1 | Ouvrir le dossier → lire la synthèse | Références belges (CP 200, statut unique, CCT 109, Moniteur belge). Timeline ≥ 3 événements (embauche, promotion 2020, notification). Score de risque = **Faible** |
+| 3.2 | Dérouler **Validité du licenciement (F-DT-08)** | ✨ **Champ Pays = input disabled "Belgique"** (fix PR #357). Critères listés = `BE_*` uniquement. **SF-IA-01-03** : `BE_NOTIFICATION`, `BE_PREAVIS`, `BE_MOTIVATION` pré-cochés OUI depuis l'IA |
+| 3.3 | Dérouler **Barème d'ancienneté et congés conventionnels (F-DT-07)** → Calculer | Convention=CP 200, ancienneté=7 ans 9 mois (ou 8 ans arrondi), congés 20+2=22 jours, prime ~4 %, aucun écart détecté |
+| 3.4 | **SF-IA-03-04** : modifier "Congés totaux" → 30 jours | Badge orange warning "Incohérence IA (22 jours)" avec tooltip. Revenir à 22 → badge disparaît |
+| 3.5 | Dérouler **Comparateur d'indemnités (F-DT-09)** → Comparer | ✨ **Champ Pays = input disabled "Belgique"** (fix PR #357). **SF-DT-09-04** : type `LICENCIEMENT_ORDINAIRE` pré-sélectionné. Liste du type propose **2 options BE** uniquement (`LICENCIEMENT_ORDINAIRE`, `RUPTURE_AMIABLE`). Mode d'affichage = **CCT_109**, fourchette 3-17 semaines |
+| 3.6 | Modifier type vers `RUPTURE_AMIABLE` → Comparer | Mode **NEGOCIATION_LIBRE**, pas de fourchette, message "Le montant résulte de l'accord entre les parties". **SF-IA-03-05** : badge blocker "Incohérence IA (LICENCIEMENT_ORDINAIRE)" sur le sélecteur |
+| 3.7 | Revenir à `LICENCIEMENT_ORDINAIRE`. Dans F-DT-08, modifier `BE_NOTIFICATION` de OUI vers NON | **SF-IA-03-01/02** : badge rouge blocker (critère bloquant), tooltip avec justification IA citant la LRAR |
+| 3.8 | Remonter en haut de page → Tableau de bord (F-IA-02) | Cards Licenciement + Indemnités + Ancienneté agrégées. `country=BELGIQUE` partout, aucune mention FRANCE |
 
-**Features testées :** F-DT-07, F-DT-08, F-DT-09, F-IA-02, **SF-IA-01-03, SF-DT-09-04, SF-IA-03-01/02/04/05**
+### ✨ Check-list spécifique au fix pays workspace (PR #357)
+
+À cocher explicitement :
+
+- [ ] Étape 3.2 — champ Pays dans F-DT-08 : **input disabled "Belgique"**, pas de `<mat-select>`
+- [ ] Étape 3.5 — champ Pays dans F-DT-09 : **input disabled "Belgique"**, pas de `<mat-select>`
+- [ ] La liste des critères F-DT-08 contient uniquement les `BE_*` (aucun `FR_*`)
+- [ ] La liste des types de rupture F-DT-09 contient uniquement les options BE (`LICENCIEMENT_ORDINAIRE`, `RUPTURE_AMIABLE`)
+- [ ] Aucun moyen dans l'UI de passer à FRANCE (le pays vient du workspace uniquement)
+
+### Cas d'échec à signaler
+
+- Si un champ "Pays" affiche un `<mat-select>` → régression du fix #357
+- Si la liste des critères F-DT-08 contient des `FR_*` → bug de propagation workspaceCountry
+- Si la liste F-DT-09 propose `LICENCIEMENT` / `LICENCIEMENT_ECONOMIQUE` / `RUPTURE_CONVENTIONNELLE` → pays FRANCE résiduel
+- Si l'IA détecte `typeRupture = LICENCIEMENT` (FR) au lieu de `LICENCIEMENT_ORDINAIRE` (BE) → problème de fiabilisation extraction (SF-DT-09-05 à revérifier)
+
+**Features testées :** F-DT-07, F-DT-08, F-DT-09, F-IA-01, F-IA-02, **SF-IA-01-03, SF-DT-09-04, SF-IA-03-01/02/04/05**, **Fix PR #357 (pays workspace verrouillé)**
 
 ---
 
