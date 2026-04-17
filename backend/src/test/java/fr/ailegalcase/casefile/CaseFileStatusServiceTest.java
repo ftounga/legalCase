@@ -41,6 +41,7 @@ class CaseFileStatusServiceTest {
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private PlanLimitService planLimitService;
     @Mock private CurrentUserResolver currentUserResolver;
+    @Mock private fr.ailegalcase.timetracking.repository.TimeEntryRepository timeEntryRepository;
     @Mock private OidcUser oidcUser;
 
     private CaseFileStatusService service;
@@ -56,7 +57,7 @@ class CaseFileStatusServiceTest {
     void setUp() {
         service = new CaseFileStatusService(caseFileRepository, analysisJobRepository,
                 documentExtractionRepository, auditLogRepository, workspaceMemberRepository,
-                planLimitService, currentUserResolver);
+                planLimitService, currentUserResolver, timeEntryRepository);
 
         user = new User();
         user.setId(UUID.randomUUID());

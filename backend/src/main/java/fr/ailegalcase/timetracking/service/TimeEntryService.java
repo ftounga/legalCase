@@ -52,7 +52,9 @@ public class TimeEntryService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 
-        if (timeEntryRepository.existsByUser_IdAndStoppedAtIsNull(user.getId())) {
+        // SF-106-06 : ignorer les timers de dossiers supprimés (soft delete) et les auto-stop.
+        stopOrphanTimers(user.getId());
+        if (timeEntryRepository.existsActiveByUserIdAndCaseFileNotDeleted(user.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "A timer is already running. Stop it before starting a new one.");
         }
@@ -109,6 +111,42 @@ public class TimeEntryService {
                 .map(TimeEntryResponse::from)
                 .toList();
     }
+
+    /**
+     * SF-106-06 : arrête les timers orphelins dont le dossier a été soft-deleted.
+     * Appelé avant chaque startTimer pour nettoyer les orphelins silencieusement.
+     */
+    @Transactional
+    public void stopOrphanTimers(UUID userId) {
+        List<TimeEntry> all = timeEntryRepository.findActiveByUserId(userId);
+        Instant now = Instant.now();
+        for (TimeEntry entry : all) {
+            if (entry.getCaseFile().getDeletedAt() != null) {
+                entry.setStoppedAt(now);
+                long dur = now.getEpochSecond() - entry.getStartedAt().getEpochSecond();
+                entry.setDurationSeconds((int) Math.min(dur, MAX_AUTO_STOP_SECONDS));
+                timeEntryRepository.save(entry);
+            }
+        }
+    }
+
+    /**
+     * SF-106-06 : arrête tous les timers actifs d'un utilisateur.
+     * Appelé au logout.
+     */
+    @Transactional
+    public void stopAllActive(UUID userId) {
+        List<TimeEntry> active = timeEntryRepository.findActiveByUserId(userId);
+        Instant now = Instant.now();
+        for (TimeEntry entry : active) {
+            entry.setStoppedAt(now);
+            long dur = now.getEpochSecond() - entry.getStartedAt().getEpochSecond();
+            entry.setDurationSeconds((int) Math.min(dur, MAX_AUTO_STOP_SECONDS));
+            timeEntryRepository.save(entry);
+        }
+    }
+
+    private static final int MAX_AUTO_STOP_SECONDS = 8 * 3600;
 
     private User resolveUser(OidcUser oidcUser, Principal principal) {
         String provider = OAuthProviderResolver.resolve(principal);

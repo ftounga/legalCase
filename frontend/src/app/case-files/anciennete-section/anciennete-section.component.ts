@@ -187,7 +187,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   }
 
   explanationFor(field: AncienneteAlertField): SourceExplanation[] {
-    return this.sourceExplanations().get(this.sourceKeyFor(field)) ?? null;
+    return this.sourceExplanations().get(this.sourceKeyFor(field)) ?? [];
   }
 
   /** SF-IA-03-15a : phrase de "reason" fallback si aucune explication Haiku disponible. */

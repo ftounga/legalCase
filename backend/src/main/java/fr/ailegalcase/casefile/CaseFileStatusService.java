@@ -39,6 +39,7 @@ public class CaseFileStatusService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final PlanLimitService planLimitService;
     private final CurrentUserResolver currentUserResolver;
+    private final fr.ailegalcase.timetracking.repository.TimeEntryRepository timeEntryRepository;
 
     public CaseFileStatusService(CaseFileRepository caseFileRepository,
                                  AnalysisJobRepository analysisJobRepository,
@@ -46,7 +47,8 @@ public class CaseFileStatusService {
                                  AuditLogRepository auditLogRepository,
                                  WorkspaceMemberRepository workspaceMemberRepository,
                                  PlanLimitService planLimitService,
-                                 CurrentUserResolver currentUserResolver) {
+                                 CurrentUserResolver currentUserResolver,
+                                 fr.ailegalcase.timetracking.repository.TimeEntryRepository timeEntryRepository) {
         this.caseFileRepository = caseFileRepository;
         this.analysisJobRepository = analysisJobRepository;
         this.documentExtractionRepository = documentExtractionRepository;
@@ -54,6 +56,7 @@ public class CaseFileStatusService {
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.planLimitService = planLimitService;
         this.currentUserResolver = currentUserResolver;
+        this.timeEntryRepository = timeEntryRepository;
     }
 
     @Transactional
@@ -114,9 +117,24 @@ public class CaseFileStatusService {
                     "Une analyse est en cours sur ce dossier. Attendez la fin avant de le supprimer.");
         }
 
+        // SF-106-06 : auto-stop de tous les timers actifs sur ce dossier AVANT soft delete.
+        stopActiveTimersForCaseFile(caseFileId);
+
         caseFile.setDeletedAt(Instant.now());
         caseFileRepository.save(caseFile);
         saveAuditLog("CASE_FILE_DELETED", caseFile, user, member.getWorkspace().getId());
+    }
+
+    private void stopActiveTimersForCaseFile(UUID caseFileId) {
+        var active = timeEntryRepository.findActiveByCaseFileId(caseFileId);
+        if (active.isEmpty()) return;
+        Instant now = Instant.now();
+        for (var entry : active) {
+            entry.setStoppedAt(now);
+            long dur = now.getEpochSecond() - entry.getStartedAt().getEpochSecond();
+            entry.setDurationSeconds((int) Math.min(dur, 8 * 3600));
+            timeEntryRepository.save(entry);
+        }
     }
 
     private boolean isPipelineActive(UUID caseFileId) {
@@ -169,7 +187,6 @@ public class CaseFileStatusService {
 
     private CaseFileResponse toResponse(CaseFile cf) {
         return new CaseFileResponse(cf.getId(), cf.getTitle(), cf.getLegalDomain(),
-                cf.getDescription(), cf.getStatus(), cf.getCreatedAt(), cf.getLastDocumentDeletedAt(),
-                null, null);
+                null, cf.getStatus(), cf.getCreatedAt(), null, null, null);
     }
 }

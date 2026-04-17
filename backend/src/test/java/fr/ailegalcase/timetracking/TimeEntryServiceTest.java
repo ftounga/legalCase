@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,7 +81,8 @@ class TimeEntryServiceTest {
     @Test
     void startTimer_nominal_createsEntryWithNullStoppedAt() {
         when(caseFileRepository.findByIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(caseFile));
-        when(timeEntryRepository.existsByUser_IdAndStoppedAtIsNull(user.getId())).thenReturn(false);
+        when(timeEntryRepository.existsActiveByUserIdAndCaseFileNotDeleted(user.getId())).thenReturn(false);
+        when(timeEntryRepository.findActiveByUserId(user.getId())).thenReturn(List.of());
         when(timeEntryRepository.save(any(TimeEntry.class))).thenAnswer(inv -> {
             TimeEntry e = inv.getArgument(0);
             e.setCaseFile(caseFile);
@@ -98,7 +100,8 @@ class TimeEntryServiceTest {
     @Test
     void startTimer_withActiveTimer_throws409() {
         when(caseFileRepository.findByIdAndDeletedAtIsNull(any())).thenReturn(Optional.of(caseFile));
-        when(timeEntryRepository.existsByUser_IdAndStoppedAtIsNull(user.getId())).thenReturn(true);
+        when(timeEntryRepository.findActiveByUserId(user.getId())).thenReturn(List.of());
+        when(timeEntryRepository.existsActiveByUserIdAndCaseFileNotDeleted(user.getId())).thenReturn(true);
 
         assertThatThrownBy(() -> service.startTimer(UUID.randomUUID(), null, null))
                 .isInstanceOf(ResponseStatusException.class)
