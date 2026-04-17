@@ -679,6 +679,58 @@ class CaseAnalysisResponseTest {
         return a;
     }
 
+    // Fix F-DT-09-BE : from(analysis, documents, "BELGIQUE") doit conserver
+    // compensationEstimate non-null (nécessaire pour alimenter les alertes F-IA-03
+    // du comparateur d'indemnités côté BE : typeRupture, ancienneté, salaire).
+    @Test
+    void from_belgianWorkspace_keepsCompensationEstimateForIA03Alerts() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "faits": ["fait1"],
+                  "compensation_data": {
+                    "type_rupture": "LICENCIEMENT_ORDINAIRE",
+                    "anciennete_annees": 7,
+                    "anciennete_mois": 9,
+                    "salaire_reference_mensuel": 3100
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis, List.of(), "BELGIQUE");
+
+        // compensationEstimate doit être non-null et contenir les données IA
+        assertThat(response.compensationEstimate()).isNotNull();
+        assertThat(response.compensationEstimate().typeRupture()).isEqualTo("LICENCIEMENT_ORDINAIRE");
+        assertThat(response.compensationEstimate().ancienneteAnnees()).isEqualTo(7);
+        assertThat(response.compensationEstimate().ancienneteMois()).isEqualTo(9);
+        assertThat(response.compensationEstimate().salaireReference()).isEqualTo(3100.0);
+        // belgianCompensationEstimate doit aussi être renseigné pour l'affichage CCT 109
+        assertThat(response.belgianCompensationEstimate()).isNotNull();
+        assertThat(response.belgianCompensationEstimate().preavisSemaines()).isGreaterThan(0);
+    }
+
+    // Non-régression : FR ne doit pas avoir belgianCompensationEstimate
+    @Test
+    void from_frenchWorkspace_compensationEstimateOnlyNotBelgian() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "faits": ["fait1"],
+                  "compensation_data": {
+                    "type_rupture": "LICENCIEMENT",
+                    "anciennete_annees": 10,
+                    "anciennete_mois": 0,
+                    "salaire_reference_mensuel": 3000
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis, List.of(), "FRANCE");
+
+        assertThat(response.compensationEstimate()).isNotNull();
+        assertThat(response.compensationEstimate().typeRupture()).isEqualTo("LICENCIEMENT");
+        assertThat(response.belgianCompensationEstimate()).isNull();
+    }
+
     private AnalysisDocument analysisDocument(String documentName) {
         AnalysisDocument doc = new AnalysisDocument();
         doc.setAnalysisId(UUID.randomUUID());

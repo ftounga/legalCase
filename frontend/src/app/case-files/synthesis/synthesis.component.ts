@@ -328,6 +328,17 @@ export class SynthesisComponent implements OnInit {
     return this.synthesis()?.belgianCompensationEstimate ?? null;
   }
 
+  /**
+   * Affiche le panneau Macron FR uniquement si compensationEstimate existe ET
+   * que belgianCompensationEstimate est absent. Depuis le fix F-DT-09-BE,
+   * compensationEstimate est aussi renseigné pour les dossiers BE (pour
+   * alimenter les alertes F-IA-03 du comparateur d'indemnités), mais ses
+   * valeurs Macron ne doivent pas s'afficher dans la synthèse d'un workspace BE.
+   */
+  get showMacronPanel(): boolean {
+    return !!this.compensationEstimate && !this.belgianCompensationEstimate;
+  }
+
   get pensionAlimentaireEstimate(): PensionAlimentaireEstimate | null {
     return this.synthesis()?.pensionAlimentaireEstimate ?? null;
   }

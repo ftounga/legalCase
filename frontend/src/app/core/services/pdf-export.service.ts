@@ -180,7 +180,11 @@ export class PdfExportService {
       );
     }
 
-    if (synthesis.compensationEstimate) {
+    // Fix F-DT-09-BE : compensationEstimate est désormais aussi renseigné côté BE
+    // (pour alimenter les alertes F-IA-03 du comparateur), mais ses valeurs Macron
+    // ne doivent pas apparaître dans le PDF d'un dossier BE où seul le panneau BE
+    // (CCT 109) est pertinent.
+    if (synthesis.compensationEstimate && !synthesis.belgianCompensationEstimate) {
       sections.push(
         ...this.buildCompensationSection(synthesis.compensationEstimate),
         { text: '', margin: [0, 0, 0, 16] }

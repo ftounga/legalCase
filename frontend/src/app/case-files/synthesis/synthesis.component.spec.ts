@@ -653,6 +653,33 @@ describe('SynthesisComponent', () => {
     expect(fixture.nativeElement.querySelector('.compensation-block')).toBeNull();
   });
 
+  // Fix F-DT-09-BE : compensationEstimate renseigné pour BE (alertes F-IA-03)
+  // mais panneau Macron FR masqué si belgianCompensationEstimate présent
+  it('COMP-02 bis: panneau Macron FR masqué si belgianCompensationEstimate présent (workspace BE)', () => {
+    const ceFR = {
+      indemnite: 0, salaireReference: 3100, ancienneteAnnees: 7, ancienneteMois: 9,
+      typeRupture: 'LICENCIEMENT_ORDINAIRE', plafondMinMois: 0, plafondMaxMois: 0, donneesPartielles: true
+    };
+    const ceBelge = {
+      preavisSemaines: 30, indemniteCompensatoire: 22384, salaireHebdomadaire: 716,
+      salaireReference: 3100, ancienneteAnnees: 7, ancienneteMois: 9,
+      cct109MinSemaines: 3, cct109MaxSemaines: 17, cct109MinEuros: 2148, cct109MaxEuros: 12172,
+      donneesPartielles: false
+    };
+    const synthBE = {
+      ...makeSynthesis(1, 'ENRICHED'),
+      compensationEstimate: ceFR,
+      belgianCompensationEstimate: ceBelge,
+    };
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'ENRICHED')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(synthBE));
+    fixture.detectChanges();
+
+    expect(component.showMacronPanel).toBe(false);
+    expect(component.compensationEstimate).toBeTruthy();  // exposé pour alertes F-IA-03
+    expect(component.belgianCompensationEstimate).toBeTruthy();  // affiché CCT 109
+  });
+
   it('COMP-03: avertissement données partielles visible si donneesPartielles=true', () => {
     const estimate = {
       indemnite: 0, salaireReference: 0, ancienneteAnnees: 5, ancienneteMois: 0,
