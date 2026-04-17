@@ -173,21 +173,233 @@
       }
 
       @case ('CONVENTION_BAREMES') {
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" class="field-years">
           <mat-label>Congés légaux (jours)</mat-label>
-          <input matInput type="number" formControlName="convConges" min="0" />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Données complètes (JSON)</mat-label>
-          <textarea matInput formControlName="convJson" rows="8" style="font-family: monospace; font-size: 13px;"></textarea>
-          @if (form.get('convJson')?.hasError('invalidJson')) {
-            <mat-error>Format JSON invalide.</mat-error>
+          <input matInput type="number" formControlName="convConges" min="0" max="60" />
+          @if (form.get('convConges')?.invalid) {
+            <mat-error>Entre 0 et 60 jours.</mat-error>
           }
         </mat-form-field>
+
+        <div class="array-section">
+          <div class="array-section-header">
+            <h3>Paliers de congés supplémentaires</h3>
+            <button mat-stroked-button type="button" (click)="addCongesSupp()">
+              <mat-icon>add</mat-icon> Ajouter
+            </button>
+          </div>
+          <div class="array-rows" formArrayName="convCongesSupp">
+            @for (row of convCongesSupp.controls; track $index; let i = $index) {
+              <div class="array-row" [formGroupName]="i">
+                <mat-form-field appearance="outline" class="array-cell">
+                  <mat-label>Ancienneté min. (ans)</mat-label>
+                  <input matInput type="number" formControlName="min" min="1" max="50" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="array-cell">
+                  <mat-label>Jours supp.</mat-label>
+                  <input matInput type="number" formControlName="jours" min="0" max="30" />
+                </mat-form-field>
+                <button mat-icon-button type="button" (click)="removeCongesSupp(i)" aria-label="Supprimer">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="array-section">
+          <div class="array-section-header">
+            <h3>Paliers de prime d'ancienneté</h3>
+            <button mat-stroked-button type="button" (click)="addPrime()">
+              <mat-icon>add</mat-icon> Ajouter
+            </button>
+          </div>
+          <div class="array-rows" formArrayName="convPrimes">
+            @for (row of convPrimes.controls; track $index; let i = $index) {
+              <div class="array-row" [formGroupName]="i">
+                <mat-form-field appearance="outline" class="array-cell">
+                  <mat-label>Ancienneté min. (ans)</mat-label>
+                  <input matInput type="number" formControlName="min" min="1" max="50" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="array-cell">
+                  <mat-label>Prime (%)</mat-label>
+                  <input matInput type="number" formControlName="pct" min="0" max="100" step="0.1" />
+                </mat-form-field>
+                <button mat-icon-button type="button" (click)="removePrime(i)" aria-label="Supprimer">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @case ('INDEMNITE_BAREMES') {
+        @if (form.get('baremeShape')?.value === 'MACRON') {
+          <div class="array-section">
+            <div class="array-section-header">
+              <h3>Barème Macron — plancher / plafond par année</h3>
+              <button mat-stroked-button type="button" (click)="addMacronEntry()">
+                <mat-icon>add</mat-icon> Ajouter une année
+              </button>
+            </div>
+            <div class="array-rows" formArrayName="macronEntries">
+              @for (row of macronEntries.controls; track $index; let i = $index) {
+                <div class="array-row" [formGroupName]="i">
+                  <mat-form-field appearance="outline" class="array-cell">
+                    <mat-label>Ancienneté (an)</mat-label>
+                    <input matInput type="number" formControlName="an" min="0" max="49" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="array-cell">
+                    <mat-label>Min (mois)</mat-label>
+                    <input matInput type="number" formControlName="min" min="0" max="50" step="0.5" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="array-cell">
+                    <mat-label>Max (mois)</mat-label>
+                    <input matInput type="number" formControlName="max" min="0" max="50" step="0.5" />
+                  </mat-form-field>
+                  <button mat-icon-button type="button" (click)="removeMacronEntry(i)" aria-label="Supprimer">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        } @else if (form.get('baremeShape')?.value === 'CCT109') {
+          <div class="field-row">
+            <mat-form-field appearance="outline" class="field-years">
+              <mat-label>Min (semaines)</mat-label>
+              <input matInput type="number" formControlName="cct109Min" min="0" max="104" />
+              @if (form.get('cct109Min')?.invalid) {
+                <mat-error>Entre 0 et 104.</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="field-years">
+              <mat-label>Max (semaines)</mat-label>
+              <input matInput type="number" formControlName="cct109Max" min="0" max="104" />
+              @if (form.get('cct109Max')?.invalid) {
+                <mat-error>Entre 0 et 104.</mat-error>
+              }
+            </mat-form-field>
+            @if (form.hasError('minMaxInverted')) {
+              <span class="cross-field-error">Min doit être ≤ Max</span>
+            }
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Valeur (JSON) — schéma inconnu</mat-label>
+            <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
+            @if (form.get('valueJson')?.hasError('invalidJson')) {
+              <mat-error>Format JSON invalide.</mat-error>
+            }
+          </mat-form-field>
+        }
+      }
+
+      @case ('GARDE_MODES') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Type de répartition</mat-label>
+          <mat-select formControlName="gardeRepartition">
+            @for (opt of gardeOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Périodes Parent A (une par ligne)</mat-label>
+          <textarea matInput formControlName="gardePeriodesA" rows="3"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Périodes Parent B (une par ligne)</mat-label>
+          <textarea matInput formControlName="gardePeriodesB" rows="3"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Règle de vacances</mat-label>
+          <input matInput formControlName="gardeVacances" />
+        </mat-form-field>
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Jours Parent A</mat-label>
+            <input matInput type="number" formControlName="gardeJoursA" min="0" max="365" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Jours Parent B</mat-label>
+            <input matInput type="number" formControlName="gardeJoursB" min="0" max="365" />
+          </mat-form-field>
+        </div>
+      }
+
+      @case ('DIVORCE_ETAPES') {
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Ordre</mat-label>
+            <input matInput type="number" formControlName="etapeOrdre" min="1" max="20" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field-article">
+            <mat-label>Délai (texte libre)</mat-label>
+            <input matInput formControlName="etapeDelai" maxlength="50" />
+            <mat-hint>Ex : "—", "15 jours", "2-4 semaines"</mat-hint>
+          </mat-form-field>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <input matInput formControlName="etapeDescription" maxlength="500" />
+        </mat-form-field>
+        <div class="toggle-row">
+          <mat-slide-toggle formControlName="etapeObligatoire" color="warn">Étape obligatoire</mat-slide-toggle>
+        </div>
+      }
+
+      @case ('DIVORCE_PIECES') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <input matInput formControlName="pieceDescription" maxlength="500" />
+        </mat-form-field>
+        <div class="toggle-row">
+          <mat-slide-toggle formControlName="pieceObligatoire" color="warn">Pièce obligatoire</mat-slide-toggle>
+        </div>
+      }
+
+      @case ('IMMIGRATION_JALONS') {
+        @if (form.get('jalons')) {
+          <div class="array-section">
+            <div class="array-section-header">
+              <h3>Jalons procéduraux</h3>
+              <button mat-stroked-button type="button" (click)="addJalon()">
+                <mat-icon>add</mat-icon> Ajouter un jalon
+              </button>
+            </div>
+            <div class="array-rows" formArrayName="jalons">
+              @for (row of jalons.controls; track $index; let i = $index) {
+                <div class="array-row" [formGroupName]="i">
+                  <mat-form-field appearance="outline" class="array-cell-wide">
+                    <mat-label>Libellé</mat-label>
+                    <input matInput formControlName="label" maxlength="200" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="array-cell">
+                    <mat-label>Offset (jours)</mat-label>
+                    <input matInput type="number" formControlName="offsetDays" min="0" max="1825" />
+                  </mat-form-field>
+                  <button mat-icon-button type="button" (click)="removeJalon(i)" aria-label="Supprimer">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Valeur (JSON) — schéma inconnu</mat-label>
+            <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
+            @if (form.get('valueJson')?.hasError('invalidJson')) {
+              <mat-error>Format JSON invalide.</mat-error>
+            }
+          </mat-form-field>
+        }
       }
 
       @default {
-        <!-- IMMIGRATION_JALONS et types inconnus : textarea JSON conservé -->
+        <!-- Filet de sécurité pour types inconnus : textarea JSON -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Valeur (JSON)</mat-label>
           <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
