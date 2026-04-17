@@ -17,8 +17,18 @@ final class TypeRuptureFallback {
     static final Set<String> VALID_TYPES = Set.of(
             "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE",
             "DEMISSION", "PRISE_ACTE", "RESILIATION_JUDICIAIRE",
-            "LICENCIEMENT_ORDINAIRE", "LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE",
-            "RUPTURE_AMIABLE"
+            "LICENCIEMENT_ORDINAIRE", "RUPTURE_AMIABLE"
+    );
+
+    /**
+     * Valeurs obsolètes remontées par l'IA qu'on re-normalise vers le type de rupture réel.
+     * "LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE" n'est pas une nature de rupture mais une
+     * qualification juridique CCT 109 art. 8 (risque d'indemnité 3-17 sem.) — le vrai type
+     * sous-jacent est toujours un licenciement ordinaire.
+     * Le mapping assure le fail-soft sur les analyses déjà persistées avec l'ancien enum.
+     */
+    private static final java.util.Map<String, String> LEGACY_ALIASES = java.util.Map.of(
+            "LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE", "LICENCIEMENT_ORDINAIRE"
     );
 
     private static final Set<String> FR_DETECTION_KEYS = Set.of(
@@ -81,10 +91,14 @@ final class TypeRuptureFallback {
         return hasFr ? "LICENCIEMENT" : "LICENCIEMENT_ORDINAIRE";
     }
 
-    /** Filtre les valeurs IA : upper-case + enum. Retourne null si invalide. */
+    /** Filtre les valeurs IA : upper-case + enum. Retourne null si invalide.
+     *  Applique aussi un mapping de rétrocompatibilité pour les valeurs obsolètes
+     *  qui pourraient rester dans des analyses déjà persistées. */
     static String normalize(String raw) {
         if (raw == null) return null;
         String up = raw.trim().toUpperCase();
+        String aliased = LEGACY_ALIASES.get(up);
+        if (aliased != null) return aliased;
         return VALID_TYPES.contains(up) ? up : null;
     }
 }

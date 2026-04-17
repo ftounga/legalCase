@@ -58,7 +58,7 @@ public final class LegalDomainPromptBuilder {
             "compensation_data" : objet décrivant la rupture du contrat pour alimenter le comparateur d'indemnités F-DT-09. Obligatoire dès qu'une rupture du contrat est identifiée dans les documents (même si ancienneté/salaire inconnus). Mettre à null UNIQUEMENT si aucune rupture n'est évoquée. Champs :
               "type_rupture" : type de rupture, l'une de ces valeurs exactes (choisir celle qui reflète la réalité des pièces — lettre de licenciement > convention de rupture > décision judiciaire > allégation) :
                 France : "LICENCIEMENT" (cause réelle et sérieuse, sans faute grave), "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE", "DEMISSION", "PRISE_ACTE", "RESILIATION_JUDICIAIRE".
-                Belgique : "LICENCIEMENT_ORDINAIRE", "LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE", "RUPTURE_AMIABLE", "DEMISSION".
+                Belgique : "LICENCIEMENT_ORDINAIRE" (tout licenciement côté employeur quelle que soit la motivation — économique, disciplinaire, etc. ; "manifestement déraisonnable" est une qualification CCT 109 art. 8, pas une nature de rupture, donc utilise "LICENCIEMENT_ORDINAIRE" dans ce cas-là aussi), "RUPTURE_AMIABLE", "DEMISSION".
                 Ce champ est obligatoire si compensation_data est émis. Ne jamais renvoyer null ici ; si le type est incertain, choisir la valeur la plus probable au vu des pièces, jamais omettre.
               "anciennete_annees" : ancienneté (entier), null si non détectable.
               "anciennete_mois" : ancienneté mois complémentaire (entier), null si non détectable.

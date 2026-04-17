@@ -36,8 +36,7 @@ public final class CompensationCalculator {
     private static final Set<String> EXTENDED_TYPES = Set.of(
             "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE",
             "DEMISSION", "PRISE_ACTE", "RESILIATION_JUDICIAIRE",
-            "LICENCIEMENT_ORDINAIRE", "LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE",
-            "RUPTURE_AMIABLE"
+            "LICENCIEMENT_ORDINAIRE", "RUPTURE_AMIABLE"
     );
 
     private CompensationCalculator() {}
