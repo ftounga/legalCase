@@ -252,13 +252,18 @@ public record CaseAnalysisResponse(
             var ce = base.compensationEstimate();
             var belgian = BelgianCompensationCalculator.calculate(
                     ce.ancienneteAnnees(), ce.ancienneteMois(), ce.salaireReference()).orElse(null);
+            // Conserver compensationEstimate non-null pour que le frontend F-DT-09
+            // (indemnite-comparatif-section) puisse lire typeRupture / ancienneté /
+            // salaire détectés par l'IA et déclencher les alertes F-IA-03 aussi
+            // côté BE. Le panneau d'affichage Macron FR est masqué côté frontend
+            // via un guard sur belgianCompensationEstimate.
             return new CaseAnalysisResponse(
                     base.id(), base.version(), base.analysisType(), base.status(),
                     base.timeline(), base.faits(), base.pointsJuridiques(), base.risques(),
                     base.questionsOuvertes(), base.piecesManquantes(), base.pointsProcedure(),
                     base.riskLevel(), base.riskScore(), base.modelUsed(), base.updatedAt(),
                     base.analysisDocuments(),
-                    null, belgian,
+                    ce, belgian,
                     base.pensionAlimentaireEstimate(), base.prestationCompensatoireEstimate(),
                     base.liquidationCommunaute(),
                     base.travailExtractedData(), base.immigrationExtractedData(),
