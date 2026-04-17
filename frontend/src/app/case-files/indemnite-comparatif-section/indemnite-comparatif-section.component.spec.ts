@@ -76,12 +76,10 @@ describe('IndemniteComparatifSectionComponent', () => {
     ]);
   });
 
-  it('should reset typeRupture when country changes and current value is incompatible', () => {
+  it('should initialize country and typeRupture from workspaceCountry (BELGIQUE)', () => {
+    component.workspaceCountry = 'BELGIQUE';
     initNo();
-    component.country.set('FRANCE');
-    component.typeRupture.set('RUPTURE_CONVENTIONNELLE');
-    component.country.set('BELGIQUE');
-    component.onCountryChange();
+    expect(component.country()).toBe('BELGIQUE');
     expect(component.typeRupture()).toBe('LICENCIEMENT_ORDINAIRE');
   });
 

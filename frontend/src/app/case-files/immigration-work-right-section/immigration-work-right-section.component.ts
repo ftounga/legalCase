@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -43,7 +44,7 @@ export interface IM07CoherenceAlert {
   imports: [
     FormsModule,
     MatButtonModule, MatIconModule,
-    MatSelectModule, MatFormFieldModule,
+    MatSelectModule, MatFormFieldModule, MatInputModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
@@ -53,6 +54,7 @@ export interface IM07CoherenceAlert {
 })
 export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
+  @Input() workspaceCountry: string = 'FRANCE';
   @Input() aiData?: ImmigrationExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
@@ -93,11 +95,6 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     { value: 'PERMIS_UNIQUE', label: 'Permis unique' },
     { value: 'ANNEXE_15', label: 'Annexe 15' },
     { value: 'ATTESTATION_IMMATRICULATION', label: 'Attestation d\'immatriculation' },
-  ];
-
-  readonly countries = [
-    { value: 'FRANCE', label: 'France' },
-    { value: 'BELGIQUE', label: 'Belgique' },
   ];
 
   get titresForCountry() {
@@ -202,6 +199,10 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
+    this.country.set(this.workspaceCountry);
+    if (this.workspaceCountry === 'BELGIQUE') {
+      this.titreType.set(this.titresBelgique[0].value);
+    }
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
@@ -234,11 +235,6 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
 
   toggleCollapsed(): void {
     this.collapsed.update(v => !v);
-  }
-
-  onCountryChange(): void {
-    this.titreType.set(this.titresForCountry[0].value);
-    this.provenanceTitreType.set(null);
   }
 
   onTitreTypeChange(): void { this.provenanceTitreType.set(null); }

@@ -312,14 +312,6 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     this.collapsed.update(v => !v);
   }
 
-  onCountryChange(): void {
-    // Reset type if incompatible with new country
-    const allowed = this.typeRuptureOptions().map(o => o.value);
-    if (!allowed.includes(this.typeRupture())) {
-      this.typeRupture.set(allowed[0]);
-    }
-  }
-
   loadExisting(): void {
     this.loading.set(true);
     this.comparatifService.get(this.caseFileId).subscribe({
