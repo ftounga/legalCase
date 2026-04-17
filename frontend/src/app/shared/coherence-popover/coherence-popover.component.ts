@@ -50,20 +50,20 @@ import { SourceExplanation, SourceType, ActionType } from '../../core/models/sou
     :host { display: block; }
     .popover-card {
       max-width: 320px;
-      min-width: 200px;
+      min-width: 180px;
       width: max-content;
       background: #FFFFFF;
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0, 30, 60, 0.12);
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0, 30, 60, 0.12);
       border-left: 3px solid #F59E0B;
-      padding: 10px 12px;
+      padding: 6px 8px;
       font-family: 'Inter', sans-serif;
       color: #0B2340;
     }
     .popover-card.blocker { border-left-color: #DC2626; }
     .zone {
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
       border-bottom: 1px solid #F3F4F6;
     }
     .zone:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -77,55 +77,55 @@ import { SourceExplanation, SourceType, ActionType } from '../../core/models/sou
     .zone-title {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 10px;
+      gap: 3px;
+      font-size: 9px;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
       color: #6B7A8F;
       font-weight: 600;
-      margin: 0 0 4px 0;
+      margin: 0 0 2px 0;
     }
-    .zone-icon { font-size: 14px; width: 14px; height: 14px; color: #C9A646; }
+    .zone-icon { font-size: 12px; width: 12px; height: 12px; color: #C9A646; }
     .reason {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       margin: 0;
-      line-height: 1.35;
+      line-height: 1.3;
       color: #0B2340;
     }
     .explanation {
-      font-size: 12px;
+      font-size: 11px;
       font-style: italic;
       color: #4B5563;
-      margin: 4px 0 0 0;
-      line-height: 1.4;
+      margin: 2px 0 0 0;
+      line-height: 1.3;
     }
     .source-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: #0B2340;
       margin: 0;
-      line-height: 1.35;
+      line-height: 1.3;
       word-break: break-word;
     }
     .source-secondary {
-      font-size: 11px;
+      font-size: 10px;
       color: #4B5563;
       font-style: italic;
-      margin: 2px 0 0 0;
-      line-height: 1.35;
+      margin: 1px 0 0 0;
+      line-height: 1.3;
     }
     .source-link {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 3px;
+      gap: 2px;
       color: #C9A646;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      margin: 4px 0 0 0;
+      margin: 2px 0 0 0;
     }
-    .source-link .arrow { font-size: 14px; width: 14px; height: 14px; }
+    .source-link .arrow { font-size: 12px; width: 12px; height: 12px; }
   `],
 })
 export class CoherencePopoverComponent {
