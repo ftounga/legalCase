@@ -90,5 +90,26 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
           : 'none';
       });
     }
+
+    // SF-118-07 : compteurs animés dans le hero (ease-out cubic)
+    const counterObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target as HTMLElement;
+        const target = parseInt(el.getAttribute('data-target') || '0', 10);
+        if (!target) return;
+        const duration = 1500;
+        const start = performance.now();
+        const step = (now: number) => {
+          const progress = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          el.textContent = Math.floor(eased * target).toString();
+          if (progress < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+        counterObserver.unobserve(el);
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('.counter').forEach(el => counterObserver.observe(el));
   }
 }
