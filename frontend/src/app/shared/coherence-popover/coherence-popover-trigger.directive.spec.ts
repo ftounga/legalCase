@@ -22,7 +22,7 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
   `,
 })
 class HostComponent {
-  explanation: SourceExplanation | null = null;
+  explanation: SourceExplanation[] | null = null;
   reason = 'Raison test';
   caseFileId = 'case-1';
   blocker = false;
@@ -81,7 +81,7 @@ describe('CoherencePopoverTriggerDirective', () => {
   });
 
   it('clique sur le lien → navigator appelé', () => {
-    component.explanation = {
+    component.explanation = [{
       sourceKey: 'FR_CONVOCATION',
       sourceType: 'DOCUMENT',
       label: 'contrat.pdf',
@@ -89,20 +89,20 @@ describe('CoherencePopoverTriggerDirective', () => {
       secondaryText: 'Clause 6.2',
       actionType: 'OPEN_DOCUMENT',
       actionTarget: 'doc-1',
-    };
+    }];
     fixture.detectChanges();
     triggerMouse('mouseenter');
-    const link = document.querySelector('.source-link') as HTMLButtonElement;
+    const link = document.querySelector('.source-link') as HTMLElement;
     expect(link).not.toBeNull();
     link.click();
     expect(navigator.navigate).toHaveBeenCalledWith('case-1', 'OPEN_DOCUMENT', 'doc-1');
   });
 
   it('pas de lien si actionType NONE', () => {
-    component.explanation = {
+    component.explanation = [{
       sourceKey: 'k', sourceType: 'ANALYSIS_DETECTION', label: 'l', sentence: 's',
       secondaryText: null, actionType: 'NONE', actionTarget: null,
-    };
+    }];
     fixture.detectChanges();
     triggerMouse('mouseenter');
     const link = document.querySelector('.source-link');

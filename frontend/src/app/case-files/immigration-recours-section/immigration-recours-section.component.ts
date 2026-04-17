@@ -95,7 +95,7 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   ];
 
   // SF-IA-03-15c — map {sourceKey → explanation}
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private recoursService: ImmigrationRecoursService,
@@ -114,9 +114,9 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   }
 
   /** SF-IA-03-15c : mapping vers sourceKey F96 + générique. */
-  explanationFor(field: IM06AlertField): SourceExplanation | null {
+  explanationFor(field: IM06AlertField): SourceExplanation[] {
     const key = field === 'RECOURS_TYPE' ? 'IM06_RECOURS_TYPE' : 'date_notification_decision_contestee';
-    return this.sourceExplanations().get(key) ?? null;
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   coherenceAlerts = computed<Partial<Record<IM06AlertField, IM06CoherenceAlert>>>(() => {

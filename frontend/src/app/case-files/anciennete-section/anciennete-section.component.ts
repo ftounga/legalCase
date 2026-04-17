@@ -148,7 +148,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   private currentBareme = signal<BaremeResponse | null>(null);
 
   // SF-IA-03-15a — map {sourceKey → explanation} pour le popover enrichi
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private ancienneteService: AncienneteService,
@@ -186,7 +186,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     }
   }
 
-  explanationFor(field: AncienneteAlertField): SourceExplanation | null {
+  explanationFor(field: AncienneteAlertField): SourceExplanation[] {
     return this.sourceExplanations().get(this.sourceKeyFor(field)) ?? null;
   }
 

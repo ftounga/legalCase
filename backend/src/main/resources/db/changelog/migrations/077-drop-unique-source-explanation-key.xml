@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="077-drop-unique-source-explanation-key" author="legalcase">
+        <dropUniqueConstraint tableName="case_analysis_source_explanations"
+                              constraintName="uq_source_expl_analysis_key"/>
+    </changeSet>
+
+</databaseChangeLog>

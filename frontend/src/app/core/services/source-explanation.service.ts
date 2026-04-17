@@ -17,11 +17,15 @@ export class SourceExplanationService {
    * Retourne la map {sourceKey → explanation} pour un dossier.
    * Fail-open : 404 ou erreur → map vide.
    */
-  getForCaseFile(caseFileId: string): Observable<Map<string, SourceExplanation>> {
+  getForCaseFile(caseFileId: string): Observable<Map<string, SourceExplanation[]>> {
     return this.http.get<SourceExplanation[]>(`/api/v1/case-files/${caseFileId}/source-explanations`).pipe(
       map(list => {
-        const out = new Map<string, SourceExplanation>();
-        (list ?? []).forEach(e => out.set(e.sourceKey, e));
+        const out = new Map<string, SourceExplanation[]>();
+        (list ?? []).forEach(e => {
+          const arr = out.get(e.sourceKey) ?? [];
+          arr.push(e);
+          out.set(e.sourceKey, arr);
+        });
         return out;
       }),
     );

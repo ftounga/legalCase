@@ -38,10 +38,8 @@ public class SourceExplanationService {
     public void persist(CaseAnalysis analysis, List<SourceExplanationData> items) {
         if (items == null || items.isEmpty()) return;
 
-        List<SourceExplanation> existing = repository.findByCaseAnalysisId(analysis.getId());
-        java.util.Set<String> alreadyStored = existing.stream()
-                .map(SourceExplanation::getSourceKey)
-                .collect(Collectors.toSet());
+        // SF-IA-03-21 : supprimer les anciennes explications pour cette analyse avant d'insérer.
+        repository.deleteByCaseAnalysisId(analysis.getId());
 
         int persisted = 0;
         for (SourceExplanationData item : items) {
@@ -50,7 +48,6 @@ public class SourceExplanationService {
             if (item.label() == null || item.label().isBlank()) continue;
 
             String key = item.sourceKey().trim();
-            if (alreadyStored.contains(key)) continue;
 
             SourceExplanation.SourceType type;
             try {
@@ -83,9 +80,9 @@ public class SourceExplanationService {
         }
     }
 
-    public Map<String, SourceExplanation> findByCaseAnalysisIdAsMap(UUID caseAnalysisId) {
+    public Map<String, List<SourceExplanation>> findByCaseAnalysisIdGrouped(UUID caseAnalysisId) {
         return repository.findByCaseAnalysisId(caseAnalysisId).stream()
-                .collect(Collectors.toMap(SourceExplanation::getSourceKey, Function.identity(), (a, b) -> a));
+                .collect(Collectors.groupingBy(SourceExplanation::getSourceKey));
     }
 
     private static String truncate(String s, int max) {

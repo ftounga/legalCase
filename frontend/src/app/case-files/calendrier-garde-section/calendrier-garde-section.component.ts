@@ -81,7 +81,7 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
   ];
 
   // SF-IA-03-15b — map {sourceKey → explanation}
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(private gardeService: CalendrierGardeService, private sourceExplanationService: SourceExplanationService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
 
@@ -93,8 +93,8 @@ export class CalendrierGardeSectionComponent implements OnInit, OnChanges {
     });
   }
 
-  explanationFor(): SourceExplanation | null {
-    return this.sourceExplanations().get('FA06_MODE_GARDE') ?? null;
+  explanationFor(): SourceExplanation[] {
+    return this.sourceExplanations().get('FA06_MODE_GARDE') ?? [];
   }
 
   coherenceAlert = computed<GardeCoherenceAlert | null>(() => {

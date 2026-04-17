@@ -345,7 +345,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   });
 
   // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private licenciementService: LicenciementService,
@@ -374,8 +374,8 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   }
 
   /** SF-IA-03-15b : lookup explanation par code critère F96 (ex. FR_CONVOCATION). */
-  explanationFor(critereCode: string): SourceExplanation | null {
-    return this.sourceExplanations().get(critereCode) ?? null;
+  explanationFor(critereCode: string): SourceExplanation[] {
+    return this.sourceExplanations().get(critereCode) ?? [];
   }
 
   ngOnChanges(changes: SimpleChanges): void {

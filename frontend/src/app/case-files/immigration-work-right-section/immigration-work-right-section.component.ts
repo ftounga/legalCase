@@ -180,7 +180,7 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   alertsSummary = computed(() => ({ total: this.coherenceAlert() ? 1 : 0, blockers: 0 }));
 
   // SF-IA-03-15c — map {sourceKey → explanation}
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private workRightService: ImmigrationWorkRightService,
@@ -197,8 +197,8 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     });
   }
 
-  explanationFor(): SourceExplanation | null {
-    return this.sourceExplanations().get('IM07_TITRE_TYPE') ?? null;
+  explanationFor(): SourceExplanation[] {
+    return this.sourceExplanations().get('IM07_TITRE_TYPE') ?? [];
   }
 
   ngOnInit(): void {
