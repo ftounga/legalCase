@@ -288,6 +288,64 @@ export class ReferentialsComponent implements OnInit {
             `${labels[i] ?? `${i + 1} enfants`} — garde exclusive : ${(row[0] * 100).toFixed(0)} %  |  garde alternée : ${(row[1] * 100).toFixed(0)} %`
           ).join('\n');
         }
+        case 'IMMIGRATION_TITLES': {
+          const motif = val.motif ?? '—';
+          const conditions = val.conditions ?? '—';
+          const nbPieces = Array.isArray(val.pieces) ? val.pieces.length : 0;
+          const delai = val.delaiMoyenJours ?? '—';
+          return `Motif : ${motif} · Conditions : ${conditions} · Délai moyen : ${delai} jours · ${nbPieces} pièce${nbPieces > 1 ? 's' : ''}`;
+        }
+        case 'IMMIGRATION_RECOURS': {
+          const juridiction = val.juridiction ?? '—';
+          const delai = val.delaiJours ?? '—';
+          const nbTextes = Array.isArray(val.textesApplicables) ? val.textesApplicables.length : 0;
+          const nbPieces = Array.isArray(val.piecesStandard) ? val.piecesStandard.length : 0;
+          return `Juridiction : ${juridiction} · Délai : ${delai} jours · ${nbTextes} texte${nbTextes > 1 ? 's' : ''} · ${nbPieces} pièce${nbPieces > 1 ? 's' : ''}`;
+        }
+        case 'IMMIGRATION_WORK_RIGHTS': {
+          const droit = val.droitTravail ?? '—';
+          const conditions = val.conditions && val.conditions.trim() ? val.conditions : '—';
+          const nbObligations = Array.isArray(val.obligationsEmployeur) ? val.obligationsEmployeur.length : 0;
+          return `Droit au travail : ${droit} · Conditions : ${conditions} · ${nbObligations} obligation${nbObligations > 1 ? 's' : ''} employeur`;
+        }
+        case 'CONVENTION_BAREMES':
+          return `Congés légaux : ${val.congesLegauxJours ?? '—'} jours`;
+        case 'LICENCIEMENT_CRITERES': {
+          const poids = val.poids ?? '—';
+          const bloquant = val.bloquant ? 'Bloquant' : 'Non bloquant';
+          const desc = val.description ?? '—';
+          return `Poids : ${poids} · ${bloquant} — ${desc}`;
+        }
+        case 'INDEMNITE_BAREMES': {
+          if (Array.isArray(val.entries) && val.entries.length > 0) {
+            const minMois = Math.min(...val.entries.map((e: { min: number }) => e.min));
+            const maxMois = Math.max(...val.entries.map((e: { max: number }) => e.max));
+            return `Barème sur ${val.entries.length} années — ${minMois} à ${maxMois} mois de salaire`;
+          }
+          if (val.minSemaines != null && val.maxSemaines != null) {
+            return `De ${val.minSemaines} à ${val.maxSemaines} semaines de salaire`;
+          }
+          return '—';
+        }
+        case 'GARDE_MODES': {
+          const rep = val.repartitionType ?? '—';
+          const jA = val.joursA ?? '—';
+          const jB = val.joursB ?? '—';
+          const vacances = val.vacances ?? '—';
+          return `${rep} — Parent A : ${jA} j / Parent B : ${jB} j — Vacances : ${vacances}`;
+        }
+        case 'DIVORCE_ETAPES': {
+          const prefix = val.obligatoire ? '⚠ ' : '';
+          const ordre = val.ordre ?? '—';
+          const desc = val.description ?? '—';
+          const delai = val.delai ?? '—';
+          return `${prefix}Étape ${ordre} · ${desc} · Délai : ${delai}`;
+        }
+        case 'DIVORCE_PIECES': {
+          const prefix = val.obligatoire ? '⚠ ' : '';
+          const desc = val.description ?? '—';
+          return `${prefix}${desc}`;
+        }
         default:
           return JSON.stringify(val, null, 2);
       }
@@ -298,13 +356,22 @@ export class ReferentialsComponent implements OnInit {
 
   sectionIcon(type: string): string {
     switch (type) {
-      case 'LITIGATION_TYPE':    return 'gavel';
-      case 'BAREME_MACRON':      return 'calculate';
-      case 'IMMIGRATION_JALONS': return 'timeline';
-      case 'IMMIGRATION_PIECES': return 'checklist';
-      case 'PENSION_TAUX':       return 'child_care';
-      case 'PRESTATION_COEFF':   return 'balance';
-      default:                   return 'info';
+      case 'LITIGATION_TYPE':         return 'gavel';
+      case 'BAREME_MACRON':           return 'calculate';
+      case 'IMMIGRATION_JALONS':      return 'timeline';
+      case 'IMMIGRATION_PIECES':      return 'checklist';
+      case 'PENSION_TAUX':            return 'child_care';
+      case 'PRESTATION_COEFF':        return 'balance';
+      case 'IMMIGRATION_TITLES':      return 'badge';
+      case 'IMMIGRATION_RECOURS':     return 'gavel';
+      case 'IMMIGRATION_WORK_RIGHTS': return 'work';
+      case 'CONVENTION_BAREMES':      return 'groups';
+      case 'LICENCIEMENT_CRITERES':   return 'rule';
+      case 'INDEMNITE_BAREMES':       return 'payments';
+      case 'GARDE_MODES':             return 'child_care';
+      case 'DIVORCE_ETAPES':          return 'list_alt';
+      case 'DIVORCE_PIECES':          return 'description';
+      default:                        return 'info';
     }
   }
 }
