@@ -35,10 +35,7 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Pays</mat-label>
-              <mat-select [(ngModel)]="country" (ngModelChange)="onCountryChange()">
-                <mat-option value="FRANCE">France</mat-option>
-                <mat-option value="BELGIQUE">Belgique</mat-option>
-              </mat-select>
+              <input matInput [value]="country() === 'BELGIQUE' ? 'Belgique' : 'France'" disabled>
             </mat-form-field>
             <div class="field-with-alert field-with-alert--wide">
               <mat-form-field appearance="outline" class="form-field form-field--wide">

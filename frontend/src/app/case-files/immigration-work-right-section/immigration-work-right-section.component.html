@@ -33,11 +33,7 @@
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Pays</mat-label>
-              <mat-select [(ngModel)]="country" (ngModelChange)="onCountryChange()">
-                @for (c of countries; track c.value) {
-                  <mat-option [value]="c.value">{{ c.label }}</mat-option>
-                }
-              </mat-select>
+              <input matInput [value]="country() === 'BELGIQUE' ? 'Belgique' : 'France'" disabled>
             </mat-form-field>
 
             <div class="field-with-provenance field-with-alert form-field--wide">
