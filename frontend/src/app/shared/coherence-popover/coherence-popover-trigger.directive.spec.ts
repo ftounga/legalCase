@@ -92,9 +92,9 @@ describe('CoherencePopoverTriggerDirective', () => {
     }];
     fixture.detectChanges();
     triggerMouse('mouseenter');
-    const link = document.querySelector('.source-link') as HTMLElement;
-    expect(link).not.toBeNull();
-    link.click();
+    const row = document.querySelector('.src-row.clickable') as HTMLElement;
+    expect(row).not.toBeNull();
+    row.click();
     expect(navigator.navigate).toHaveBeenCalledWith('case-1', 'OPEN_DOCUMENT', 'doc-1');
   });
 
@@ -105,7 +105,7 @@ describe('CoherencePopoverTriggerDirective', () => {
     }];
     fixture.detectChanges();
     triggerMouse('mouseenter');
-    const link = document.querySelector('.source-link');
-    expect(link).toBeNull();
+    const arrow = document.querySelector('.src-go');
+    expect(arrow).toBeNull();
   });
 });

@@ -1,131 +1,82 @@
 import { Component, Input } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
-import { SourceExplanation, SourceType, ActionType } from '../../core/models/source-explanation.model';
+import { SourceExplanation, ActionType } from '../../core/models/source-explanation.model';
 
+/**
+ * Popover d'incohérence — version compacte type tooltip (SF-118-07 polish).
+ * Plus de zones séparées. 2-3 lignes serrées : raison + source inline + lien.
+ */
 @Component({
   selector: 'app-coherence-popover',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [],
   template: `
-    <div class="popover-card" [class.blocker]="blocker">
-      <section class="zone zone-motif">
-        <p class="zone-title"><mat-icon class="zone-icon">auto_awesome</mat-icon> Motif détecté</p>
-        <p class="reason">{{ reason }}</p>
-        @if (firstSentence()) {
-          <p class="explanation">{{ firstSentence() }}</p>
-        }
-      </section>
-
-      @if (explanations.length > 0) {
-        @for (exp of explanations; track $index) {
-          <section class="zone zone-source"
-                   [class.clickable]="hasActionFor(exp)"
-                   (click)="hasActionFor(exp) && onClickSource(exp)"
-                   [attr.role]="hasActionFor(exp) ? 'button' : null"
-                   [attr.tabindex]="hasActionFor(exp) ? 0 : null"
-                   (keydown.enter)="hasActionFor(exp) && onClickSource(exp)"
-                   (keydown.space)="hasActionFor(exp) && onClickSource(exp); $event.preventDefault()">
-            <p class="zone-title"><mat-icon class="zone-icon">{{ sourceIcon(exp) }}</mat-icon> {{ sourceKindLabel(exp) }}</p>
-            <p class="source-label">{{ exp.label }}</p>
-            @if (exp.secondaryText) {
-              <p class="source-secondary">« {{ exp.secondaryText }} »</p>
-            }
-            @if (hasActionFor(exp)) {
-              <p class="source-link">{{ actionLabelFor(exp) }} <mat-icon class="arrow">arrow_forward</mat-icon></p>
-            }
-          </section>
-        }
-      } @else {
-        <section class="zone zone-source zone-fallback clickable"
-                 (click)="onClickSource(null)"
-                 role="button" tabindex="0"
-                 (keydown.enter)="onClickSource(null)"
-                 (keydown.space)="onClickSource(null); $event.preventDefault()">
-          <p class="source-link">Voir la synthèse <mat-icon class="arrow">arrow_forward</mat-icon></p>
-        </section>
+    <div class="pop" [class.blocker]="blocker">
+      <p class="reason">{{ reason }}</p>
+      @for (exp of explanations; track $index) {
+        <div class="src-row"
+             [class.clickable]="exp.actionType !== 'NONE'"
+             (click)="exp.actionType !== 'NONE' && onClickSource(exp)"
+             [attr.role]="exp.actionType !== 'NONE' ? 'button' : null"
+             [attr.tabindex]="exp.actionType !== 'NONE' ? 0 : null">
+          <span class="src-icon">{{ iconFor(exp) }}</span>
+          <span class="src-label">{{ exp.label }}</span>
+          @if (exp.secondaryText) {
+            <span class="src-detail"> — {{ exp.secondaryText }}</span>
+          }
+          @if (exp.actionType !== 'NONE') {
+            <span class="src-go">→</span>
+          }
+        </div>
+      }
+      @if (explanations.length === 0) {
+        <div class="src-row clickable" (click)="onClickSource(null)" role="button" tabindex="0">
+          <span class="src-go">Voir la synthese →</span>
+        </div>
       }
     </div>
   `,
   styles: [`
     :host { display: block; }
-    .popover-card {
-      max-width: 320px;
-      min-width: 180px;
+    .pop {
+      max-width: 300px;
+      min-width: 160px;
       width: max-content;
-      background: #FFFFFF;
-      border-radius: 8px;
-      box-shadow: 0 6px 20px rgba(0, 30, 60, 0.12);
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0,30,60,0.14);
       border-left: 3px solid #F59E0B;
       padding: 6px 8px;
       font-family: 'Inter', sans-serif;
       color: #0B2340;
+      font-size: 12px;
+      line-height: 1.35;
     }
-    .popover-card.blocker { border-left-color: #DC2626; }
-    .zone {
-      padding-bottom: 4px;
-      margin-bottom: 4px;
-      border-bottom: 1px solid #F3F4F6;
-    }
-    .zone:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    .zone-source.clickable {
-      cursor: pointer;
-      border-radius: 6px;
-      transition: background 0.15s ease;
-    }
-    .zone-source.clickable:hover { background: #FAFBFC; }
-    .zone-source.clickable:focus-visible { outline: 2px solid #C9A646; outline-offset: 2px; }
-    .zone-title {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      color: #6B7A8F;
-      font-weight: 600;
-      margin: 0 0 2px 0;
-    }
-    .zone-icon { font-size: 12px; width: 12px; height: 12px; color: #C9A646; }
+    .pop.blocker { border-left-color: #DC2626; }
     .reason {
-      font-size: 12px;
       font-weight: 600;
-      margin: 0;
-      line-height: 1.3;
-      color: #0B2340;
+      margin: 0 0 3px 0;
     }
-    .explanation {
-      font-size: 11px;
-      font-style: italic;
-      color: #4B5563;
-      margin: 2px 0 0 0;
-      line-height: 1.3;
-    }
-    .source-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #0B2340;
-      margin: 0;
-      line-height: 1.3;
-      word-break: break-word;
-    }
-    .source-secondary {
-      font-size: 10px;
-      color: #4B5563;
-      font-style: italic;
-      margin: 1px 0 0 0;
-      line-height: 1.3;
-    }
-    .source-link {
+    .src-row {
       display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 2px;
-      color: #C9A646;
+      align-items: baseline;
+      gap: 3px;
+      padding: 2px 0;
       font-size: 11px;
-      font-weight: 600;
-      margin: 2px 0 0 0;
+      color: #4B5563;
+      flex-wrap: wrap;
     }
-    .source-link .arrow { font-size: 12px; width: 12px; height: 12px; }
+    .src-row.clickable {
+      cursor: pointer;
+      border-radius: 3px;
+      padding: 2px 3px;
+      margin: 0 -3px;
+    }
+    .src-row.clickable:hover { background: #F3F4F6; }
+    .src-row.clickable:focus-visible { outline: 1.5px solid #C9A646; outline-offset: 1px; }
+    .src-icon { flex-shrink: 0; }
+    .src-label { font-weight: 600; color: #0B2340; }
+    .src-detail { color: #6B7A8F; font-style: italic; }
+    .src-go { color: #C9A646; font-weight: 600; margin-left: auto; flex-shrink: 0; }
   `],
 })
 export class CoherencePopoverComponent {
@@ -135,49 +86,14 @@ export class CoherencePopoverComponent {
 
   onActionFor: (exp: SourceExplanation | null) => void = () => {};
 
-  firstSentence(): string | null {
-    return this.explanations.find(e => e.sentence)?.sentence ?? null;
-  }
-
-  sourceIcon(exp: SourceExplanation): string {
+  iconFor(exp: SourceExplanation): string {
     switch (exp.sourceType) {
-      case 'DOCUMENT': return 'description';
-      case 'QUESTION_AI': return 'help_outline';
-      case 'CHECKLIST_F96': return 'checklist';
-      case 'CHAT': return 'chat_bubble_outline';
-      case 'MISSING_PIECE': return 'report_problem';
-      case 'MULTI': return 'layers';
-      default: return 'insights';
-    }
-  }
-
-  sourceKindLabel(exp: SourceExplanation): string {
-    switch (exp.sourceType) {
-      case 'DOCUMENT': return 'Document du dossier';
-      case 'QUESTION_AI': return 'Question complémentaire';
-      case 'CHECKLIST_F96': return 'Checklist procédurale';
-      case 'CHAT': return 'Message du chat';
-      case 'MISSING_PIECE': return 'Pièce manquante';
-      case 'MULTI': return 'Sources multiples';
-      default: return 'Analyse du dossier';
-    }
-  }
-
-  hasActionFor(exp: SourceExplanation): boolean {
-    return exp.actionType !== 'NONE';
-  }
-
-  actionLabelFor(exp: SourceExplanation): string {
-    switch (exp.actionType) {
-      case 'OPEN_DOCUMENT': return `Ouvrir ${exp.label}`;
-      case 'OPEN_DOCUMENTS_LIST': return 'Voir les documents';
-      case 'SCROLL_QA': return 'Voir la question';
-      case 'OPEN_QUESTIONS': return 'Voir les questions';
-      case 'SCROLL_F96': return 'Voir le point procédural';
-      case 'OPEN_F96_LIST': return 'Voir la checklist procédurale';
-      case 'OPEN_CHAT': return 'Ouvrir le chat';
-      case 'OPEN_MISSING_PIECES': return 'Voir les pièces manquantes';
-      default: return 'Voir la synthèse';
+      case 'DOCUMENT': return '📄';
+      case 'QUESTION_AI': return '❓';
+      case 'CHECKLIST_F96': return '☑️';
+      case 'CHAT': return '💬';
+      case 'MISSING_PIECE': return '⚠️';
+      default: return '✨';
     }
   }
 
