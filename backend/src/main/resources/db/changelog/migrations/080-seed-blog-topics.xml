@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="080-seed-blog-topics" author="legalcase">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM blog_topics</sqlCheck>
+        </preConditions>
+
+        <!-- DROIT_DU_TRAVAIL — France (9) -->
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000001"/>
+            <column name="slug" value="rupture-conventionnelle-qui-prend-en-charge-l-avocat"/>
+            <column name="title" value="Rupture conventionnelle : qui prend en charge les frais d'avocat ?"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000002"/>
+            <column name="slug" value="indemnite-licenciement-bareme-macron-2026"/>
+            <column name="title" value="Indemnités de licenciement : comment utiliser le barème Macron en 2026"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000003"/>
+            <column name="slug" value="clause-non-concurrence-conditions-validite"/>
+            <column name="title" value="Clause de non-concurrence : les 5 conditions de validité à vérifier"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000004"/>
+            <column name="slug" value="licenciement-economique-procedure-2026"/>
+            <column name="title" value="Licenciement économique : la procédure étape par étape (2026)"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000005"/>
+            <column name="slug" value="harcelement-moral-preuve-prudhommes"/>
+            <column name="title" value="Harcèlement moral : comment constituer un dossier solide aux prud'hommes"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000006"/>
+            <column name="slug" value="cse-consultation-obligatoire-licenciement"/>
+            <column name="title" value="Consultation du CSE : les cas obligatoires avant un licenciement"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000007"/>
+            <column name="slug" value="preavis-licenciement-calcul-duree"/>
+            <column name="title" value="Calcul du préavis de licenciement : règles et exceptions"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000008"/>
+            <column name="slug" value="salaire-reference-indemnite-primes"/>
+            <column name="title" value="Salaire de référence pour l'indemnité : comment traiter les primes variables"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000009"/>
+            <column name="slug" value="transaction-apres-licenciement-avantages-risques"/>
+            <column name="title" value="Transaction après licenciement : avantages, risques, pièges à éviter"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- DROIT_DU_TRAVAIL — Belgique (6) -->
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000010"/>
+            <column name="slug" value="licenciement-motif-grave-belgique"/>
+            <column name="title" value="Licenciement pour motif grave en Belgique : procédure et délais"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000011"/>
+            <column name="slug" value="cct-109-motivation-licenciement"/>
+            <column name="title" value="CCT 109 : obligation de motivation du licenciement en Belgique"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000012"/>
+            <column name="slug" value="preavis-licenciement-belgique-calcul-2026"/>
+            <column name="title" value="Calcul du préavis en Belgique : barème 2026 complet"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000013"/>
+            <column name="slug" value="indemnite-licenciement-manifestement-deraisonnable"/>
+            <column name="title" value="Indemnité pour licenciement manifestement déraisonnable (3 à 17 semaines)"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000014"/>
+            <column name="slug" value="protection-delegue-syndical-belgique"/>
+            <column name="title" value="Protection spéciale des délégués syndicaux : que risque l'employeur ?"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000015"/>
+            <column name="slug" value="rupture-amiable-vs-licenciement-belgique"/>
+            <column name="title" value="Rupture amiable ou licenciement : quel choix stratégique en Belgique ?"/>
+            <column name="category" value="DROIT_DU_TRAVAIL"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- DROIT_IMMIGRATION — France (4) -->
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000016"/>
+            <column name="slug" value="titre-sejour-salarie-changement-employeur"/>
+            <column name="title" value="Titre de séjour salarié : changer d'employeur sans perdre son droit au travail"/>
+            <column name="category" value="DROIT_IMMIGRATION"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000017"/>
+            <column name="slug" value="refus-titre-sejour-recours-hierarchique-juridique"/>
+            <column name="title" value="Refus de titre de séjour : recours hiérarchique ou recours juridictionnel ?"/>
+            <column name="category" value="DROIT_IMMIGRATION"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000018"/>
+            <column name="slug" value="obligation-quitter-territoire-delai-recours"/>
+            <column name="title" value="OQTF : délais, recours et suspensif devant le TA"/>
+            <column name="category" value="DROIT_IMMIGRATION"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000019"/>
+            <column name="slug" value="regularisation-travail-salarie-circulaire-valls"/>
+            <column name="title" value="Régularisation par le travail : conditions de la circulaire Valls 2026"/>
+            <column name="category" value="DROIT_IMMIGRATION"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- DROIT_IMMIGRATION — Belgique (2) -->
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000020"/>
+            <column name="slug" value="permis-unique-belgique-procedure-2026"/>
+            <column name="title" value="Permis unique de travail en Belgique : procédure actualisée 2026"/>
+            <column name="category" value="DROIT_IMMIGRATION"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000021"/>
+            <column name="slug" value="regroupement-familial-belgique-conditions"/>
+            <column name="title" value="Regroupement familial en Belgique : les conditions qui changent en 2026"/>
+            <column name="category" value="DROIT_IMMIGRATION"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- DROIT_FAMILLE — France (3) -->
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000022"/>
+            <column name="slug" value="divorce-consentement-mutuel-avocat-separe"/>
+            <column name="title" value="Divorce par consentement mutuel : pourquoi 2 avocats sont obligatoires"/>
+            <column name="category" value="DROIT_FAMILLE"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000023"/>
+            <column name="slug" value="partage-communaute-biens-expertise-immobiliere"/>
+            <column name="title" value="Partage de communauté : gérer une expertise immobilière contestée"/>
+            <column name="category" value="DROIT_FAMILLE"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000024"/>
+            <column name="slug" value="prestation-compensatoire-calcul-criteres-2026"/>
+            <column name="title" value="Prestation compensatoire : 5 critères du juge en 2026"/>
+            <column name="category" value="DROIT_FAMILLE"/>
+            <column name="country_scope" value="FR"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+
+        <!-- DROIT_FAMILLE — Belgique (1) -->
+        <insert tableName="blog_topics">
+            <column name="id" value="01000000-0000-4000-8000-000000000025"/>
+            <column name="slug" value="divorce-separation-de-fait-belgique"/>
+            <column name="title" value="Divorce par séparation de fait en Belgique : comment prouver la rupture"/>
+            <column name="category" value="DROIT_FAMILLE"/>
+            <column name="country_scope" value="BE"/>
+            <column name="status" value="AVAILABLE"/>
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,4 +34,14 @@ public interface BlogArticleRepository extends JpaRepository<BlogArticle, UUID> 
             ORDER BY a.publishedAt DESC
             """)
     List<BlogArticle> findAllByStatusOrderByPublishedAtDesc(@Param("status") BlogArticleStatus status);
+
+    @Query("""
+            SELECT a.legalDomain AS category, a.country AS country, COUNT(a) AS count
+            FROM BlogArticle a
+            WHERE a.status = :status AND a.publishedAt >= :since
+            GROUP BY a.legalDomain, a.country
+            """)
+    List<CategoryCountryCount> countPublishedByCategoryAndCountrySince(
+            @Param("status") BlogArticleStatus status,
+            @Param("since") Instant since);
 }
