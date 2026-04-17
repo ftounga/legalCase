@@ -70,6 +70,7 @@ const TYPES_BE: TypeRuptureOption[] = [
 })
 export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
+  @Input() workspaceCountry: string = 'FRANCE';
   @Input() aiData?: TravailExtractedData | null;
   @Input() synthesis?: CaseAnalysisResult | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
@@ -272,6 +273,9 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // SF-106-06 : initialiser le pays depuis le workspace (plus de FRANCE en dur).
+    this.country.set(this.workspaceCountry);
+    this.typeRupture.set(this.workspaceCountry === 'BELGIQUE' ? 'LICENCIEMENT_ORDINAIRE' : 'LICENCIEMENT');
     this.synthesisSignal.set(this.synthesis);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
