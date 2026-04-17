@@ -36,18 +36,21 @@ public class SourceExplanationGenerator {
     private final AiQuestionRepository aiQuestionRepository;
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
     private final ProcedureCheckRepository procedureCheckRepository;
+    private final SourceExplanationFallback fallback;
 
     public SourceExplanationGenerator(AnthropicService anthropicService, ObjectMapper objectMapper,
                                       DocumentRepository documentRepository,
                                       AiQuestionRepository aiQuestionRepository,
                                       AiQuestionAnswerRepository aiQuestionAnswerRepository,
-                                      ProcedureCheckRepository procedureCheckRepository) {
+                                      ProcedureCheckRepository procedureCheckRepository,
+                                      SourceExplanationFallback fallback) {
         this.anthropicService = anthropicService;
         this.objectMapper = objectMapper;
         this.documentRepository = documentRepository;
         this.aiQuestionRepository = aiQuestionRepository;
         this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
         this.procedureCheckRepository = procedureCheckRepository;
+        this.fallback = fallback;
     }
 
     public List<SourceExplanationData> generate(CaseFile caseFile, CaseAnalysis analysis) {
@@ -58,17 +61,40 @@ public class SourceExplanationGenerator {
         try {
             List<Document> documents = documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile);
             List<AiQuestion> questions = aiQuestionRepository.findByCaseAnalysisIdOrderByOrderIndex(analysis.getId());
-            Map<UUID, String> answersByQuestionId = loadAnswers(questions);
             List<ProcedureCheck> f96Checks = procedureCheckRepository.findByCaseAnalysisIdOrderByOrdreAsc(analysis.getId());
             List<String> missingPieces = extractMissingPieces(analysis.getAnalysisResult());
 
-            String userMessage = buildUserMessage(documents, questions, answersByQuestionId, f96Checks, missingPieces, analysis.getAnalysisResult());
-            String systemPrompt = buildSystemPrompt();
-            AnthropicResult result = anthropicService.analyzeFast(systemPrompt, userMessage, MAX_TOKENS);
-            return parse(result.content(), documents, questions, f96Checks, missingPieces);
+            // SF-IA-03-20 : extraction directe depuis le JSON Sonnet (plus d'appel Haiku séparé).
+            List<SourceExplanationData> sonnetData = extractFromAnalysisJson(
+                    analysis.getAnalysisResult(), documents, questions, f96Checks, missingPieces);
+
+            // Fusion avec fallback heuristique pour les sourcekeys non couverts par Sonnet.
+            java.util.Set<String> existingKeys = sonnetData.stream()
+                    .map(SourceExplanationData::sourceKey)
+                    .collect(java.util.stream.Collectors.toSet());
+            List<SourceExplanationData> fallbackData = fallback.buildFallbacks(
+                    analysis.getAnalysisResult(), documents, f96Checks, existingKeys);
+            List<SourceExplanationData> merged = new ArrayList<>(sonnetData);
+            merged.addAll(fallbackData);
+            return merged;
         } catch (Exception e) {
-            log.warn("SourceExplanationGenerator failed for case {}: {} — fallback to empty list",
+            log.warn("SourceExplanationGenerator failed for case {}: {} — returning empty list",
                     caseFile.getId(), e.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<SourceExplanationData> extractFromAnalysisJson(String json, List<Document> documents,
+                                                                List<AiQuestion> questions,
+                                                                List<ProcedureCheck> f96Checks,
+                                                                List<String> missingPieces) {
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode explanations = root.get("source_explanations");
+            if (explanations == null || !explanations.isArray()) return List.of();
+            return parseExplanationsArray(explanations, documents, questions, f96Checks, missingPieces);
+        } catch (Exception e) {
+            log.warn("Failed to parse source_explanations from Sonnet JSON: {}", e.getMessage());
             return List.of();
         }
     }
@@ -269,17 +295,10 @@ public class SourceExplanationGenerator {
         return sb.toString();
     }
 
-    private List<SourceExplanationData> parse(String jsonResponse, List<Document> documents,
-                                              List<AiQuestion> questions, List<ProcedureCheck> f96Checks,
-                                              List<String> missingPieces) {
-        if (jsonResponse == null || jsonResponse.isBlank()) return List.of();
-        String cleaned = stripMarkdownFence(jsonResponse.trim());
-
+    private List<SourceExplanationData> parseExplanationsArray(JsonNode explanations, List<Document> documents,
+                                                                List<AiQuestion> questions, List<ProcedureCheck> f96Checks,
+                                                                List<String> missingPieces) {
         try {
-            JsonNode root = objectMapper.readTree(cleaned);
-            JsonNode explanations = root.get("explanations");
-            if (explanations == null || !explanations.isArray()) return List.of();
-
             Map<String, UUID> docIdByFilename = buildDocFilenameIndex(documents);
             java.util.Set<UUID> validQuestionIds = questions == null ? java.util.Set.of()
                     : questions.stream().map(AiQuestion::getId).collect(java.util.stream.Collectors.toSet());

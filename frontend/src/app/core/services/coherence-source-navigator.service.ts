@@ -11,6 +11,11 @@ import { ActionType } from '../models/source-explanation.model';
 export class CoherenceSourceNavigator {
   constructor(private router: Router) {}
 
+  /** SF-IA-03-20 : fallback quand pas d'explication — atterrissage neutre sur la synthèse. */
+  navigateToSynthesis(caseFileId: string): void {
+    this.router.navigate(['/case-files', caseFileId, 'synthesis']);
+  }
+
   navigate(caseFileId: string, actionType: ActionType, actionTarget: string | null): void {
     switch (actionType) {
       case 'OPEN_DOCUMENT':

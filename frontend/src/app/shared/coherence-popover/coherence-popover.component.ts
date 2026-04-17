@@ -198,7 +198,7 @@ export class CoherencePopoverComponent {
   }
 
   actionLabel(): string {
-    if (!this.explanation) return 'Voir dans la synthèse';
+    if (!this.explanation) return 'Voir la synthèse';
     const a: ActionType = this.explanation.actionType;
     const label = this.explanation.label ?? '';
     switch (a) {
