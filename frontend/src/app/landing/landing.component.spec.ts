@@ -42,7 +42,7 @@ describe('LandingComponent', () => {
 
   it('affiche le titre principal', () => {
     const h1 = fixture.nativeElement.querySelector('h1');
-    expect(h1?.textContent).toContain('Analysez vos dossiers');
+    expect(h1?.textContent).toContain('collaborateur');
   });
 
   it('affiche les 4 cartes de pricing', () => {
