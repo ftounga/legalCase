@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="079-create-blog-article" author="legalcase">
+        <createTable tableName="blog_articles">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="slug" type="varchar(200)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_blog_articles_slug"/>
+            </column>
+            <column name="title" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subtitle" type="varchar(1000)"/>
+            <column name="body_markdown" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hero_image_url" type="varchar(500)"/>
+            <column name="hero_image_alt" type="varchar(500)"/>
+            <column name="country" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="legal_domain" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="author_name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="author_url" type="varchar(500)"/>
+            <column name="meta_title" type="varchar(70)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="meta_description" type="varchar(160)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reading_time_minutes" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="topic_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_blog_articles_topic"
+                             references="blog_topics(id)"/>
+            </column>
+            <column name="published_at" type="timestamp with time zone"/>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="blog_articles" indexName="idx_blog_articles_status_published_at">
+            <column name="status"/>
+            <column name="published_at"/>
+        </createIndex>
+        <createIndex tableName="blog_articles" indexName="idx_blog_articles_country">
+            <column name="country"/>
+        </createIndex>
+        <createIndex tableName="blog_articles" indexName="idx_blog_articles_legal_domain">
+            <column name="legal_domain"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

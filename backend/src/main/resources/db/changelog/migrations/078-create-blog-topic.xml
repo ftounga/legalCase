@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="078-create-blog-topic" author="legalcase">
+        <createTable tableName="blog_topics">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="slug" type="varchar(200)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_blog_topics_slug"/>
+            </column>
+            <column name="title" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="category" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country_scope" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="article_id" type="uuid"/>
+            <column name="used_at" type="timestamp with time zone"/>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="blog_topics" indexName="idx_blog_topics_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="blog_topics" indexName="idx_blog_topics_category_country">
+            <column name="category"/>
+            <column name="country_scope"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
