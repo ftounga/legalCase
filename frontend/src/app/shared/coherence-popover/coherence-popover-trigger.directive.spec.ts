@@ -92,7 +92,7 @@ describe('CoherencePopoverTriggerDirective', () => {
     }];
     fixture.detectChanges();
     triggerMouse('mouseenter');
-    const row = document.querySelector('.src-row.clickable') as HTMLElement;
+    const row = document.querySelector('.src.clickable') as HTMLElement;
     expect(row).not.toBeNull();
     row.click();
     expect(navigator.navigate).toHaveBeenCalledWith('case-1', 'OPEN_DOCUMENT', 'doc-1');
