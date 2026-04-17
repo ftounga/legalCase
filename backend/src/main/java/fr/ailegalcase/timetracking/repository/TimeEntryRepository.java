@@ -14,6 +14,15 @@ public interface TimeEntryRepository extends JpaRepository<TimeEntry, UUID> {
 
     boolean existsByUser_IdAndStoppedAtIsNull(UUID userId);
 
+    @Query("SELECT te FROM TimeEntry te WHERE te.user.id = :userId AND te.stoppedAt IS NULL AND te.caseFile.deletedAt IS NULL")
+    List<TimeEntry> findActiveByUserIdAndCaseFileNotDeleted(@Param("userId") UUID userId);
+
+    @Query("SELECT te FROM TimeEntry te WHERE te.user.id = :userId AND te.stoppedAt IS NULL")
+    List<TimeEntry> findActiveByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT COUNT(te) > 0 FROM TimeEntry te WHERE te.user.id = :userId AND te.stoppedAt IS NULL AND te.caseFile.deletedAt IS NULL")
+    boolean existsActiveByUserIdAndCaseFileNotDeleted(@Param("userId") UUID userId);
+
     List<TimeEntry> findByCaseFile_IdAndWorkspace_IdOrderByStartedAtDesc(UUID caseFileId, UUID workspaceId);
 
     @Query("""
@@ -45,4 +54,10 @@ public interface TimeEntryRepository extends JpaRepository<TimeEntry, UUID> {
             @Param("monthEnd") Instant monthEnd);
 
     Optional<TimeEntry> findByIdAndWorkspace_Id(UUID id, UUID workspaceId);
+
+    @Query("SELECT te FROM TimeEntry te WHERE te.stoppedAt IS NULL AND te.startedAt < :cutoff")
+    List<TimeEntry> findStaleTimers(@Param("cutoff") Instant cutoff);
+
+    @Query("SELECT te FROM TimeEntry te WHERE te.caseFile.id = :caseFileId AND te.stoppedAt IS NULL")
+    List<TimeEntry> findActiveByCaseFileId(@Param("caseFileId") UUID caseFileId);
 }

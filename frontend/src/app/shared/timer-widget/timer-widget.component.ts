@@ -147,6 +147,17 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
     const startedMs = new Date(entry.startedAt).getTime();
     const nowMs = Date.now();
     const elapsed = Math.floor((nowMs - startedMs) / 1000);
+    // SF-106-06 : si le timer est stale (> 2h), notifier l'utilisateur.
+    const TWO_HOURS = 2 * 3600;
+    if (elapsed > TWO_HOURS) {
+      const hours = Math.floor(elapsed / 3600);
+      const minutes = Math.floor((elapsed % 3600) / 60);
+      this.snackBar.open(
+        `Le chrono était actif depuis ${hours}h${minutes > 0 ? minutes + 'min' : ''}. Pensez à l'arrêter si vous ne travaillez plus sur ce dossier.`,
+        'Fermer',
+        { duration: 10000, panelClass: ['snack-warning'] }
+      );
+    }
     this.elapsedSeconds.set(Math.max(0, elapsed));
     this.startInterval();
   }
