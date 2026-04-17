@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface SourceExplanationRepository extends JpaRepository<SourceExplanation, UUID> {
 
     List<SourceExplanation> findByCaseAnalysisId(UUID caseAnalysisId);
+
+    void deleteByCaseAnalysisId(UUID caseAnalysisId);
 }

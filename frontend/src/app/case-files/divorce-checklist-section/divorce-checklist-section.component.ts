@@ -96,7 +96,7 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
   });
 
   // SF-IA-03-15b — map {sourceKey → explanation}
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(private checklistService: DivorceChecklistService, private sourceExplanationService: SourceExplanationService, private snackBar: MatSnackBar, @Optional() private refreshService: CaseDashboardRefreshService | null) {}
 
@@ -109,8 +109,8 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
   }
 
   /** SF-IA-03-15b : lookup par code étape/pièce (sourceKey direct). */
-  explanationFor(code: string): SourceExplanation | null {
-    return this.sourceExplanations().get(code) ?? null;
+  explanationFor(code: string): SourceExplanation[] {
+    return this.sourceExplanations().get(code) ?? [];
   }
 
   ngOnInit(): void {

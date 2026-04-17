@@ -2,54 +2,52 @@ import { Component, Input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { SourceExplanation, SourceType, ActionType } from '../../core/models/source-explanation.model';
 
-/**
- * Popover d'incohérence enrichi (SF-IA-03-15a, refonte 17, compact 18).
- * Design compact navy/gold, 3 zones MOTIF / SOURCE / ACTION.
- * Toute la carte est cliquable quand une action est disponible.
- */
 @Component({
   selector: 'app-coherence-popover',
   standalone: true,
   imports: [MatIconModule],
   template: `
-    <div class="popover-card"
-         [class.blocker]="blocker"
-         [class.clickable]="hasAction()"
-         [attr.role]="hasAction() ? 'button' : null"
-         [attr.tabindex]="hasAction() ? 0 : null"
-         (click)="hasAction() && onSourceClicked()"
-         (keydown.enter)="hasAction() && onSourceClicked()"
-         (keydown.space)="hasAction() && onSourceClicked(); $event.preventDefault()">
+    <div class="popover-card" [class.blocker]="blocker">
       <section class="zone zone-motif">
         <p class="zone-title"><mat-icon class="zone-icon">auto_awesome</mat-icon> Motif détecté</p>
         <p class="reason">{{ reason }}</p>
-        @if (explanation?.sentence) {
-          <p class="explanation">{{ explanation?.sentence }}</p>
+        @if (firstSentence()) {
+          <p class="explanation">{{ firstSentence() }}</p>
         }
       </section>
 
-      @if (explanation) {
-        <section class="zone zone-source">
-          <p class="zone-title"><mat-icon class="zone-icon">{{ sourceIcon() }}</mat-icon> {{ sourceKindLabel() }}</p>
-          <p class="source-label">{{ explanation?.label }}</p>
-          @if (explanation?.secondaryText) {
-            <p class="source-secondary">« {{ explanation?.secondaryText }} »</p>
-          }
+      @if (explanations.length > 0) {
+        @for (exp of explanations; track $index) {
+          <section class="zone zone-source"
+                   [class.clickable]="hasActionFor(exp)"
+                   (click)="hasActionFor(exp) && onClickSource(exp)"
+                   [attr.role]="hasActionFor(exp) ? 'button' : null"
+                   [attr.tabindex]="hasActionFor(exp) ? 0 : null"
+                   (keydown.enter)="hasActionFor(exp) && onClickSource(exp)"
+                   (keydown.space)="hasActionFor(exp) && onClickSource(exp); $event.preventDefault()">
+            <p class="zone-title"><mat-icon class="zone-icon">{{ sourceIcon(exp) }}</mat-icon> {{ sourceKindLabel(exp) }}</p>
+            <p class="source-label">{{ exp.label }}</p>
+            @if (exp.secondaryText) {
+              <p class="source-secondary">« {{ exp.secondaryText }} »</p>
+            }
+            @if (hasActionFor(exp)) {
+              <p class="source-link">{{ actionLabelFor(exp) }} <mat-icon class="arrow">arrow_forward</mat-icon></p>
+            }
+          </section>
+        }
+      } @else {
+        <section class="zone zone-source zone-fallback clickable"
+                 (click)="onClickSource(null)"
+                 role="button" tabindex="0"
+                 (keydown.enter)="onClickSource(null)"
+                 (keydown.space)="onClickSource(null); $event.preventDefault()">
+          <p class="source-link">Voir la synthèse <mat-icon class="arrow">arrow_forward</mat-icon></p>
         </section>
-      }
-
-      @if (hasAction()) {
-        <p class="source-link">
-          {{ actionLabel() }}
-          <mat-icon class="arrow">arrow_forward</mat-icon>
-        </p>
       }
     </div>
   `,
   styles: [`
-    :host {
-      display: block;
-    }
+    :host { display: block; }
     .popover-card {
       max-width: 320px;
       min-width: 200px;
@@ -62,33 +60,20 @@ import { SourceExplanation, SourceType, ActionType } from '../../core/models/sou
       font-family: 'Inter', sans-serif;
       color: #0B2340;
     }
-    .popover-card.blocker {
-      border-left-color: #DC2626;
-    }
-    .popover-card.clickable {
-      cursor: pointer;
-      transition: box-shadow 0.15s ease, transform 0.15s ease;
-    }
-    .popover-card.clickable:hover {
-      box-shadow: 0 10px 28px rgba(0, 30, 60, 0.16);
-    }
-    .popover-card.clickable:focus-visible {
-      outline: 2px solid #C9A646;
-      outline-offset: 2px;
-    }
+    .popover-card.blocker { border-left-color: #DC2626; }
     .zone {
       padding-bottom: 8px;
       margin-bottom: 8px;
       border-bottom: 1px solid #F3F4F6;
     }
-    .zone:last-child,
-    .zone + .source-link {
-      border-bottom: none;
+    .zone:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .zone-source.clickable {
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.15s ease;
     }
-    .zone + .source-link {
-      margin-top: 4px;
-      padding-top: 4px;
-    }
+    .zone-source.clickable:hover { background: #FAFBFC; }
+    .zone-source.clickable:focus-visible { outline: 2px solid #C9A646; outline-offset: 2px; }
     .zone-title {
       display: flex;
       align-items: center;
@@ -100,12 +85,7 @@ import { SourceExplanation, SourceType, ActionType } from '../../core/models/sou
       font-weight: 600;
       margin: 0 0 4px 0;
     }
-    .zone-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-      color: #C9A646;
-    }
+    .zone-icon { font-size: 14px; width: 14px; height: 14px; color: #C9A646; }
     .reason {
       font-size: 13px;
       font-weight: 600;
@@ -143,28 +123,24 @@ import { SourceExplanation, SourceType, ActionType } from '../../core/models/sou
       color: #C9A646;
       font-size: 12px;
       font-weight: 600;
-      margin: 0;
+      margin: 4px 0 0 0;
     }
-    .source-link .arrow {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-    }
+    .source-link .arrow { font-size: 14px; width: 14px; height: 14px; }
   `],
 })
 export class CoherencePopoverComponent {
-  @Input() explanation: SourceExplanation | null = null;
+  @Input() explanations: SourceExplanation[] = [];
   @Input() reason = '';
   @Input() blocker = false;
 
-  sourceAction = () => {};
-  @Input() set onAction(fn: () => void) {
-    this.sourceAction = fn;
+  onActionFor: (exp: SourceExplanation | null) => void = () => {};
+
+  firstSentence(): string | null {
+    return this.explanations.find(e => e.sentence)?.sentence ?? null;
   }
 
-  sourceIcon(): string {
-    const t: SourceType | undefined = this.explanation?.sourceType;
-    switch (t) {
+  sourceIcon(exp: SourceExplanation): string {
+    switch (exp.sourceType) {
       case 'DOCUMENT': return 'description';
       case 'QUESTION_AI': return 'help_outline';
       case 'CHECKLIST_F96': return 'checklist';
@@ -175,9 +151,8 @@ export class CoherencePopoverComponent {
     }
   }
 
-  sourceKindLabel(): string {
-    const t: SourceType | undefined = this.explanation?.sourceType;
-    switch (t) {
+  sourceKindLabel(exp: SourceExplanation): string {
+    switch (exp.sourceType) {
       case 'DOCUMENT': return 'Document du dossier';
       case 'QUESTION_AI': return 'Question complémentaire';
       case 'CHECKLIST_F96': return 'Checklist procédurale';
@@ -188,21 +163,13 @@ export class CoherencePopoverComponent {
     }
   }
 
-  /**
-   * Action disponible si on a une explanation avec actionType ≠ NONE
-   * OU aucune explanation (fallback vers synthèse).
-   */
-  hasAction(): boolean {
-    if (!this.explanation) return true;
-    return this.explanation.actionType !== 'NONE';
+  hasActionFor(exp: SourceExplanation): boolean {
+    return exp.actionType !== 'NONE';
   }
 
-  actionLabel(): string {
-    if (!this.explanation) return 'Voir la synthèse';
-    const a: ActionType = this.explanation.actionType;
-    const label = this.explanation.label ?? '';
-    switch (a) {
-      case 'OPEN_DOCUMENT': return `Ouvrir ${label}`;
+  actionLabelFor(exp: SourceExplanation): string {
+    switch (exp.actionType) {
+      case 'OPEN_DOCUMENT': return `Ouvrir ${exp.label}`;
       case 'OPEN_DOCUMENTS_LIST': return 'Voir les documents';
       case 'SCROLL_QA': return 'Voir la question';
       case 'OPEN_QUESTIONS': return 'Voir les questions';
@@ -210,11 +177,11 @@ export class CoherencePopoverComponent {
       case 'OPEN_F96_LIST': return 'Voir la checklist procédurale';
       case 'OPEN_CHAT': return 'Ouvrir le chat';
       case 'OPEN_MISSING_PIECES': return 'Voir les pièces manquantes';
-      default: return 'Voir dans la synthèse';
+      default: return 'Voir la synthèse';
     }
   }
 
-  onSourceClicked(): void {
-    this.sourceAction();
+  onClickSource(exp: SourceExplanation | null): void {
+    this.onActionFor(exp);
   }
 }

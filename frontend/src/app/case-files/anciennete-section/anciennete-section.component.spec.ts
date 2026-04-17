@@ -391,7 +391,7 @@ describe('AncienneteSectionComponent', () => {
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
     flushAnyBaremeCalls();
     flushAnySourceExplanationsCalls(explanations);
-    expect(component.sourceExplanations().get('convention_collective')?.sentence).toBe('Convention BTP.');
+    expect(component.sourceExplanations().get('convention_collective')?.[0]?.sentence).toBe('Convention BTP.');
   });
 
   it('SF-IA-03-15a: explanationFor mappe CONVENTION → convention_collective', () => {
@@ -403,7 +403,7 @@ describe('AncienneteSectionComponent', () => {
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
     flushAnyBaremeCalls();
     flushAnySourceExplanationsCalls(explanations);
-    expect(component.explanationFor('CONVENTION')?.sourceKey).toBe('convention_collective');
+    expect(component.explanationFor('CONVENTION')[0]?.sourceKey).toBe('convention_collective');
   });
 
   it('SF-IA-03-15a: CONGES mappe vers convention_collective si IA muette', () => {

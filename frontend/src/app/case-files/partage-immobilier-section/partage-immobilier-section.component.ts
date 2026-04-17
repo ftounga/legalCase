@@ -309,7 +309,7 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   }
 
   // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private partageService: PartageImmobilierService,
@@ -327,9 +327,9 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   }
 
   /** SF-IA-03-15b : mapping vers sourceKey F96 FA05_*. */
-  explanationFor(field: 'VALEUR_VENALE' | 'CAPITAL_RESTANT'): SourceExplanation | null {
+  explanationFor(field: 'VALEUR_VENALE' | 'CAPITAL_RESTANT'): SourceExplanation[] {
     const key = field === 'VALEUR_VENALE' ? 'FA05_VALEUR_VENALE' : 'FA05_CAPITAL_RESTANT';
-    return this.sourceExplanations().get(key) ?? null;
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   ngOnInit(): void {

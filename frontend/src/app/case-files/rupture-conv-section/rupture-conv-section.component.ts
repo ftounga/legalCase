@@ -205,7 +205,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   });
 
   // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private rcService: RuptureConvService,
@@ -223,8 +223,8 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   }
 
   /** SF-IA-03-15b : lookup par code critère RC_* (même sourceKey côté Haiku). */
-  explanationFor(critereCode: string): SourceExplanation | null {
-    return this.sourceExplanations().get(critereCode) ?? null;
+  explanationFor(critereCode: string): SourceExplanation[] {
+    return this.sourceExplanations().get(critereCode) ?? [];
   }
 
   ngOnInit(): void {

@@ -29,7 +29,7 @@ import { CoherencePopoverComponent } from './coherence-popover.component';
   standalone: true,
 })
 export class CoherencePopoverTriggerDirective implements OnDestroy {
-  @Input('appCoherencePopover') explanation: SourceExplanation | null = null;
+  @Input('appCoherencePopover') explanations: SourceExplanation[] | null = null;
   @Input('appCoherencePopoverReason') reason = '';
   @Input('appCoherencePopoverCaseFileId') caseFileId = '';
   @Input('appCoherencePopoverBlocker') blocker = false;
@@ -81,23 +81,22 @@ export class CoherencePopoverTriggerDirective implements OnDestroy {
 
     const portal = new ComponentPortal(CoherencePopoverComponent, this.viewContainer);
     this.componentRef = this.overlayRef.attach(portal);
-    this.componentRef.instance.explanation = this.explanation;
+    this.componentRef.instance.explanations = this.explanations ?? [];
     this.componentRef.instance.reason = this.reason;
     this.componentRef.instance.blocker = this.blocker;
-    this.componentRef.instance.onAction = () => this.onSourceClicked();
+    this.componentRef.instance.onActionFor = (exp: SourceExplanation | null) => this.onSourceClickedFor(exp);
 
     const overlayEl = this.overlayRef.overlayElement;
     overlayEl.addEventListener('mouseenter', this.cancelScheduledClose);
     overlayEl.addEventListener('mouseleave', this.scheduleClose);
   }
 
-  private onSourceClicked(): void {
+  private onSourceClickedFor(exp: SourceExplanation | null): void {
     if (!this.caseFileId) return;
-    // SF-IA-03-20 : fallback sans explanation → /synthesis sans query (pas vers questions).
-    if (!this.explanation) {
+    if (!exp) {
       this.navigator.navigateToSynthesis(this.caseFileId);
     } else {
-      this.navigator.navigate(this.caseFileId, this.explanation.actionType, this.explanation.actionTarget);
+      this.navigator.navigate(this.caseFileId, exp.actionType, exp.actionTarget);
     }
     this.closePopover();
   }

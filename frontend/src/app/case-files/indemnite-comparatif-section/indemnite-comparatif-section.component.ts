@@ -262,7 +262,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   }
 
   // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private comparatifService: IndemniteComparatifService,
@@ -288,11 +288,11 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   }
 
   /** SF-IA-03-15b : mapping champ → sourceKey F-DT-09 (F96 code pour TYPE_RUPTURE, génériques sinon). */
-  explanationFor(field: IndemniteAlertField): SourceExplanation | null {
+  explanationFor(field: IndemniteAlertField): SourceExplanation[] {
     const key = field === 'TYPE_RUPTURE' ? 'DT09_TYPE_RUPTURE'
               : field === 'ANCIENNETE' ? 'date_entree'
               : 'salaire_brut_mensuel';
-    return this.sourceExplanations().get(key) ?? null;
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   ngOnChanges(changes: SimpleChanges): void {

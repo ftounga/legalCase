@@ -112,7 +112,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   ];
 
   // SF-IA-03-15c — map {sourceKey → explanation}
-  sourceExplanations = signal<Map<string, SourceExplanation>>(new Map());
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
 
   constructor(
     private decisionService: ImmigrationTitleDecisionService,
@@ -130,9 +130,9 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   }
 
   /** SF-IA-03-15c : mapping vers sourceKey (F96 pour MOTIF, générique pour NATIONALITE_UE). */
-  explanationFor(field: IM05AlertField): SourceExplanation | null {
+  explanationFor(field: IM05AlertField): SourceExplanation[] {
     const key = field === 'MOTIF' ? 'IM05_MOTIF' : 'nationalite_ue';
-    return this.sourceExplanations().get(key) ?? null;
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   coherenceAlerts = computed<Partial<Record<IM05AlertField, IM05CoherenceAlert>>>(() => {
