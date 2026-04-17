@@ -98,4 +98,29 @@ class TypeRuptureFallbackTest {
     void normalize_null_retourneNull() {
         assertThat(TypeRuptureFallback.normalize(null)).isNull();
     }
+
+    // Fix F-DT-09 — LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE retiré de l'enum
+    @Test
+    void normalize_licenciementManifestementDeraisonnable_mappeVersLicenciementOrdinaire() {
+        // C'est une qualification CCT 109 art. 8, pas une nature de rupture — le type
+        // sous-jacent est toujours un licenciement ordinaire. Mapping de rétrocompat
+        // pour les analyses déjà persistées avec l'ancien enum.
+        assertThat(TypeRuptureFallback.normalize("LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE"))
+                .isEqualTo("LICENCIEMENT_ORDINAIRE");
+    }
+
+    @Test
+    void normalize_licenciementManifestementDeraisonnable_caseInsensitive_mappeAussi() {
+        assertThat(TypeRuptureFallback.normalize("licenciement_manifestement_deraisonnable"))
+                .isEqualTo("LICENCIEMENT_ORDINAIRE");
+        assertThat(TypeRuptureFallback.normalize(" Licenciement_Manifestement_Deraisonnable "))
+                .isEqualTo("LICENCIEMENT_ORDINAIRE");
+    }
+
+    @Test
+    void validTypes_neContientPlusLicenciementManifestementDeraisonnable() {
+        assertThat(TypeRuptureFallback.VALID_TYPES)
+                .doesNotContain("LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE")
+                .contains("LICENCIEMENT_ORDINAIRE", "RUPTURE_AMIABLE");
+    }
 }
