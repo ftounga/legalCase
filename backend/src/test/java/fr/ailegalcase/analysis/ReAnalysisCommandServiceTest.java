@@ -37,6 +37,7 @@ class ReAnalysisCommandServiceTest {
     @Mock private CaseAnalysisRepository caseAnalysisRepository;
     @Mock private AiQuestionAnswerRepository aiQuestionAnswerRepository;
     @Mock private ChatMessageRepository chatMessageRepository;
+    @Mock private ProcedureCheckRepository procedureCheckRepository;
     @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private RabbitTemplate rabbitTemplate;
@@ -52,6 +53,7 @@ class ReAnalysisCommandServiceTest {
     void setUp() {
         service = new ReAnalysisCommandService(caseFileRepository, analysisJobRepository,
                 caseAnalysisRepository, aiQuestionAnswerRepository, chatMessageRepository,
+                procedureCheckRepository,
                 currentUserResolver, workspaceMemberRepository, rabbitTemplate, planLimitService);
     }
 
@@ -226,6 +228,63 @@ class ReAnalysisCommandServiceTest {
                 .satisfies(ex -> {
                     var rse = (ResponseStatusException) ex;
                     assert rse.getStatusCode() == PAYMENT_REQUIRED;
+                });
+
+        verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
+    }
+
+    // U-11 : fix SF-125-01 — enrichissement autorisé si seul un check procédural a été validé par l'avocat
+    @Test
+    void triggerReAnalysis_newProcedureCheckUpdateSinceLastEnriched_allowed() {
+        mockUserWorkspaceAndCaseFile();
+        mockPlanChecksOk();
+
+        CaseAnalysis lastEnriched = new CaseAnalysis();
+        lastEnriched.setUpdatedAt(Instant.now().minusSeconds(3600));
+        when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        CASE_FILE_ID, AnalysisType.ENRICHED, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(lastEnriched));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any()))
+                .thenReturn(false);
+        when(chatMessageRepository.existsByCaseFileIdAndCreatedAtAfter(any(), any()))
+                .thenReturn(false);
+        // Pas de Q&A ni chat, mais un check procédural VERIFIED/NON_COMPLIANT modifié récemment
+        when(procedureCheckRepository.existsValidatedCheckUpdatedAfter(eq(CASE_FILE_ID), any()))
+                .thenReturn(true);
+
+        service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null);
+
+        verify(rabbitTemplate).convertAndSend(any(), any(), any(ReAnalysisMessage.class));
+    }
+
+    // U-12 : fix SF-125-01 — si aucune source (Q&A, chat, checks) → toujours 409
+    @Test
+    void triggerReAnalysis_noNewInputAtAll_throws409WithFullMessage() {
+        mockUserWorkspaceAndCaseFile();
+        mockPlanChecksOk();
+
+        CaseAnalysis lastEnriched = new CaseAnalysis();
+        lastEnriched.setUpdatedAt(Instant.now().minusSeconds(3600));
+        when(caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
+                        CASE_FILE_ID, AnalysisType.ENRICHED, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(lastEnriched));
+        when(aiQuestionAnswerRepository
+                .existsByAiQuestion_CaseFile_IdAndCreatedAtAfter(any(), any()))
+                .thenReturn(false);
+        when(chatMessageRepository.existsByCaseFileIdAndCreatedAtAfter(any(), any()))
+                .thenReturn(false);
+        when(procedureCheckRepository.existsValidatedCheckUpdatedAfter(any(), any()))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> {
+                    var rse = (ResponseStatusException) ex;
+                    assert rse.getStatusCode() == CONFLICT;
+                    assert rse.getReason() != null && rse.getReason().contains("checklist");
                 });
 
         verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
