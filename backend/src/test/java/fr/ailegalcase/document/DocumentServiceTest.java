@@ -33,6 +33,7 @@ import static org.springframework.http.HttpStatus.PAYMENT_REQUIRED;
 class DocumentServiceTest {
 
     @Mock private DocumentRepository documentRepository;
+    @Mock private DocumentExtractionRepository extractionRepository;
     @Mock private CaseFileRepository caseFileRepository;
     @Mock private CurrentUserResolver currentUserResolver;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
@@ -48,7 +49,7 @@ class DocumentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DocumentService(documentRepository, caseFileRepository,
+        service = new DocumentService(documentRepository, extractionRepository, caseFileRepository,
                 currentUserResolver, workspaceMemberRepository,
                 storageService, eventPublisher, planLimitService);
     }

@@ -70,23 +70,76 @@ public class ExtractionService {
             String text = parseText(fileBytes, contentType);
             long duration = System.currentTimeMillis() - start;
 
-            extraction.setExtractedText(text);
-            extraction.setExtractionMetadata(
-                    "{\"extractor\":\"internal\",\"charCount\":%d,\"durationMs\":%d}".formatted(text.length(), duration));
-            extraction.setExtractionStatus(ExtractionStatus.DONE);
-            log.info("Extraction done for document {} — {} chars in {}ms", documentId, text.length(), duration);
-        } catch (Exception e) {
-            log.error("Extraction failed for document {}", documentId, e);
-            extraction.setExtractionMetadata("{\"error\":\"%s\"}".formatted(
-                    e.getMessage() != null ? e.getMessage().replace("\"", "'") : "unknown"));
+            // SF-121-01 : détection du cas "texte vide" (PDF scanné sans couche texte).
+            // Sans cette vérif, l'extraction passait en DONE et ChunkingService abandonnait
+            // silencieusement → barre d'analyse figée côté UI (bug MEA AVOCATS 2026-04-17).
+            if (text == null || text.isBlank()) {
+                log.warn("Extraction {} for document {} produced empty text — marking FAILED (EMPTY_TEXT)",
+                        extraction.getId(), documentId);
+                extraction.setExtractedText(null);
+                extraction.setExtractionMetadata(
+                        "{\"extractor\":\"internal\",\"charCount\":0,\"durationMs\":%d,\"reason\":\"EMPTY_TEXT\"}".formatted(duration));
+                extraction.setExtractionStatus(ExtractionStatus.FAILED);
+                extraction.setFailureReason(ExtractionFailureReason.EMPTY_TEXT);
+            } else {
+                extraction.setExtractedText(text);
+                extraction.setExtractionMetadata(
+                        "{\"extractor\":\"internal\",\"charCount\":%d,\"durationMs\":%d}".formatted(text.length(), duration));
+                extraction.setExtractionStatus(ExtractionStatus.DONE);
+                extraction.setFailureReason(null);
+                log.info("Extraction done for document {} — {} chars in {}ms", documentId, text.length(), duration);
+            }
+        } catch (IllegalArgumentException e) {
+            // parseText lève IllegalArgumentException pour les contentTypes non supportés.
+            log.warn("Extraction failed for document {} — unsupported format: {}", documentId, e.getMessage());
+            extraction.setExtractionMetadata("{\"error\":\"%s\",\"reason\":\"UNSUPPORTED_FORMAT\"}".formatted(
+                    escapeJson(e.getMessage())));
             extraction.setExtractionStatus(ExtractionStatus.FAILED);
+            extraction.setFailureReason(ExtractionFailureReason.UNSUPPORTED_FORMAT);
+        } catch (Exception e) {
+            // Distinction CORRUPTED (parsing PDF/DOCX) vs EXTRACTION_EXCEPTION (autres).
+            ExtractionFailureReason reason = isParsingException(e)
+                    ? ExtractionFailureReason.CORRUPTED
+                    : ExtractionFailureReason.EXTRACTION_EXCEPTION;
+            log.error("Extraction failed for document {} — reason={}, error={}",
+                    documentId, reason, e.getMessage(), e);
+            extraction.setExtractionMetadata("{\"error\":\"%s\",\"reason\":\"%s\"}".formatted(
+                    escapeJson(e.getMessage()), reason.name()));
+            extraction.setExtractionStatus(ExtractionStatus.FAILED);
+            extraction.setFailureReason(reason);
         }
 
         extractionRepository.save(extraction);
 
+        // Publie l'événement uniquement si DONE — empêche ChunkingService d'être déclenché sur FAILED.
         if (extraction.getExtractionStatus() == ExtractionStatus.DONE) {
             eventPublisher.publishEvent(new ExtractionDoneEvent(extraction.getId(), extraction.getExtractedText()));
         }
+    }
+
+    /**
+     * Distingue une erreur de parsing de fichier (CORRUPTED) d'une autre exception.
+     * Regarde la classe de l'exception ET le sommet de la stack trace car PDFBox
+     * propage fréquemment un {@code java.io.IOException} générique dont le top frame
+     * est {@code org.apache.pdfbox.pdfparser.*}.
+     */
+    private static boolean isParsingException(Exception e) {
+        if (e == null) return false;
+        String className = e.getClass().getName();
+        if (className.startsWith("org.apache.pdfbox.") || className.startsWith("org.apache.poi.")) {
+            return true;
+        }
+        StackTraceElement[] stack = e.getStackTrace();
+        if (stack != null && stack.length > 0) {
+            String topClass = stack[0].getClassName();
+            return topClass.startsWith("org.apache.pdfbox.") || topClass.startsWith("org.apache.poi.");
+        }
+        return false;
+    }
+
+    /** Echappe les doubles-quotes pour insertion dans JSON string. */
+    private static String escapeJson(String raw) {
+        return raw != null ? raw.replace("\"", "'") : "unknown";
     }
 
     private String parseText(byte[] fileBytes, String contentType) throws Exception {

@@ -25,6 +25,14 @@ public class DocumentExtraction {
     @Column(name = "extraction_status", nullable = false, length = 20)
     private ExtractionStatus extractionStatus;
 
+    /**
+     * SF-121-01 : motif qualifiant l'échec. Renseigné uniquement si
+     * {@code extractionStatus == FAILED}, null sinon.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "failure_reason", length = 50)
+    private ExtractionFailureReason failureReason;
+
     @Column(name = "extracted_text", length = Integer.MAX_VALUE)
     private String extractedText;
 
