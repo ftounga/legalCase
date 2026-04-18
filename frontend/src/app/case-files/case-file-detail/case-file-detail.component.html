@@ -219,11 +219,33 @@
             <mat-spinner diameter="20"></mat-spinner>
             <span>Analyse des documents…</span>
           </div>
+        } @else if (reAnalyzing()) {
+          <div class="analyze-running">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Enrichissement en cours…</span>
+          </div>
         } @else if (canAnalyze()) {
-          <button mat-raised-button color="accent" data-tour-target="analyze-btn" (click)="triggerAnalysis()" [disabled]="analyzing()">
-            <mat-icon>auto_fix_high</mat-icon>
-            Analyser le dossier
-          </button>
+          <div class="analyze-action-group">
+            <button mat-raised-button color="accent" data-tour-target="analyze-btn"
+                    (click)="onAnalysisButtonClick()"
+                    [disabled]="analyzing() || reAnalyzing()">
+              <mat-icon>auto_fix_high</mat-icon>
+              {{ analysisButtonLabel() }}
+            </button>
+            @if (canEnrichSynthesis()) {
+              <button mat-icon-button [matMenuTriggerFor]="analysisMenu"
+                      aria-label="Autres actions d'analyse"
+                      [disabled]="analyzing() || reAnalyzing()">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #analysisMenu="matMenu">
+                <button mat-menu-item (click)="onFullReanalysisClick()">
+                  <mat-icon>refresh</mat-icon>
+                  <span>Nouvelle analyse complète depuis zéro</span>
+                </button>
+              </mat-menu>
+            }
+          </div>
         }
       </div>
 

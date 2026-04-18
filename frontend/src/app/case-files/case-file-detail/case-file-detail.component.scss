@@ -475,6 +475,13 @@
   font-size: 14px;
 }
 
+/* SF-125-01 — bouton contextuel + menu secondaire alignés */
+.analyze-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .synthesis-outdated {
   display: flex;
   align-items: flex-start;
