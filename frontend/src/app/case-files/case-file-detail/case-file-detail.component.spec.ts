@@ -811,4 +811,127 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // ----- SF-125-01 : bouton d'analyse contextuel -----
+
+  describe('SF-125-01 bouton contextuel', () => {
+    const makeAnalysis = (): any => ({
+      id: 'a1', version: 1, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      piecesManquantes: [], pointsProcedure: [], compensationEstimate: null,
+      belgianCompensationEstimate: null, pensionAlimentaireEstimate: null,
+      prestationCompensatoireEstimate: null, liquidationCommunaute: null,
+      travailExtractedData: null, immigrationExtractedData: null,
+      licenciementValidityDetection: null, ruptureConvValidityDetection: null,
+      piecesManquantesDetails: null, analysisDocuments: [],
+    });
+    const makeQuestion = (answered: boolean): any => ({
+      id: 'q1', orderIndex: 0, questionText: 'Q?', answerText: answered ? 'réponse' : null,
+    });
+
+    // U-CFD-B01 : aucune analyse → STANDARD
+    it('U-CFD-B01 : aucune analyse → label "Analyser le dossier" + clic lance STANDARD', () => {
+      component.synthesis.set(null);
+      component.questions.set([]);
+      expect(component.hasAnyAnalysis()).toBe(false);
+      expect(component.canEnrichSynthesis()).toBe(false);
+      expect(component.analysisButtonLabel()).toBe('Analyser le dossier');
+
+      component.onAnalysisButtonClick();
+      expect(caseAnalysisCommandServiceSpy.triggerAnalysis).toHaveBeenCalled();
+      expect(reAnalysisServiceSpy.reAnalyze).not.toHaveBeenCalled();
+    });
+
+    // U-CFD-B02 : analyse DONE mais aucune réponse Q&A → STANDARD
+    it('U-CFD-B02 : analyse DONE sans réponses Q&A → label reste "Analyser le dossier" + STANDARD', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(false), makeQuestion(false)]);
+      expect(component.hasAnyAnalysis()).toBe(true);
+      expect(component.canEnrichSynthesis()).toBe(false);
+      expect(component.analysisButtonLabel()).toBe('Analyser le dossier');
+
+      component.onAnalysisButtonClick();
+      expect(caseAnalysisCommandServiceSpy.triggerAnalysis).toHaveBeenCalled();
+      expect(reAnalysisServiceSpy.reAnalyze).not.toHaveBeenCalled();
+    });
+
+    // U-CFD-B03 : analyse DONE + réponse Q&A → ENRICHED
+    it('U-CFD-B03 : analyse DONE + ≥1 réponse Q&A → label "Enrichir la synthèse" + ENRICHED', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(true), makeQuestion(false)]);
+      expect(component.canEnrichSynthesis()).toBe(true);
+      expect(component.analysisButtonLabel()).toBe('Enrichir la synthèse');
+
+      component.onAnalysisButtonClick();
+      expect(reAnalysisServiceSpy.reAnalyze).toHaveBeenCalled();
+      expect(caseAnalysisCommandServiceSpy.triggerAnalysis).not.toHaveBeenCalled();
+    });
+
+    // U-CFD-B04 : ENRICHED échoue 409 → snackbar clair
+    it('U-CFD-B04 : ENRICHED renvoie 409 → snackbar informant de la règle nouvelle réponse/chat', () => {
+      reAnalysisServiceSpy.reAnalyze.mockReturnValue(throwError(() => ({ status: 409 })));
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(true)]);
+
+      component.onAnalysisButtonClick();
+      expect(snackBarSpy.open).toHaveBeenCalledWith(
+        expect.stringContaining('nouvelle réponse ou message chat'),
+        'Fermer',
+        expect.objectContaining({ panelClass: ['snack-error'] })
+      );
+    });
+
+    // U-CFD-B05 : handleFullReanalysisResult dispatche selon le résultat
+    it('U-CFD-B05 : handleFullReanalysisResult(FULL) → STANDARD appelé, pas ENRICHED', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(true)]);
+
+      component.handleFullReanalysisResult('FULL');
+      expect(caseAnalysisCommandServiceSpy.triggerAnalysis).toHaveBeenCalled();
+      expect(reAnalysisServiceSpy.reAnalyze).not.toHaveBeenCalled();
+    });
+
+    it('U-CFD-B05 bis : handleFullReanalysisResult(ENRICH) → ENRICHED appelé', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(true)]);
+
+      component.handleFullReanalysisResult('ENRICH');
+      expect(reAnalysisServiceSpy.reAnalyze).toHaveBeenCalled();
+      expect(caseAnalysisCommandServiceSpy.triggerAnalysis).not.toHaveBeenCalled();
+    });
+
+    it('U-CFD-B05 ter : handleFullReanalysisResult(CANCEL) → aucun appel', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(true)]);
+
+      component.handleFullReanalysisResult('CANCEL');
+      expect(caseAnalysisCommandServiceSpy.triggerAnalysis).not.toHaveBeenCalled();
+      expect(reAnalysisServiceSpy.reAnalyze).not.toHaveBeenCalled();
+    });
+
+    it('U-CFD-B05 quater : handleFullReanalysisResult(undefined) → aucun appel', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(true)]);
+
+      component.handleFullReanalysisResult(undefined);
+      expect(caseAnalysisCommandServiceSpy.triggerAnalysis).not.toHaveBeenCalled();
+      expect(reAnalysisServiceSpy.reAnalyze).not.toHaveBeenCalled();
+    });
+
+    // U-CFD-B06 : reAnalyzing signal désactive les boutons
+    it('U-CFD-B06 : reAnalyzing signal est true pendant l\'appel ENRICHED, false après succès', () => {
+      let resolved = false;
+      const delayed = new Subject<void>();
+      reAnalysisServiceSpy.reAnalyze.mockReturnValue(delayed.asObservable());
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([makeQuestion(true)]);
+
+      component.onAnalysisButtonClick();
+      expect(component.reAnalyzing()).toBe(true);
+
+      delayed.next();
+      delayed.complete();
+      expect(component.reAnalyzing()).toBe(false);
+    });
+  });
+
 });

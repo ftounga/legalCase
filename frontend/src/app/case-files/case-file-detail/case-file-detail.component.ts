@@ -12,8 +12,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
 import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
 import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
+import { FullReanalysisConfirmDialogComponent, FullReanalysisConfirmResult } from './full-reanalysis-confirm-dialog.component';
 import { CaseFileEditDialogComponent, CaseFileEditDialogData } from '../case-file-edit-dialog/case-file-edit-dialog.component';
 import { ShareDialogComponent, ShareDialogData } from '../share-dialog/share-dialog.component';
 import { CaseFileService } from '../../core/services/case-file.service';
@@ -22,6 +24,7 @@ import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
+import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
@@ -68,7 +71,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
-    MatDialogModule, ShareDialogComponent, CaseNotesSectionComponent,
+    MatDialogModule, MatMenuModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
     TimerWidgetComponent, PrudhomeFicheSectionComponent, TribunalTravailFicheSectionComponent,
     ImmigrationChecklistSectionComponent, ImmigrationTitleDecisionSectionComponent,
@@ -108,6 +111,19 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   // true between triggerAnalysis() success and first backend confirmation that CASE_ANALYSIS job exists
   private caseAnalysisPending = signal(false);
+
+  // SF-125-01 : transition between enrich/full click and backend confirmation
+  reAnalyzing = signal(false);
+
+  // SF-125-01 : bouton contextuel — ENRICHED si analyse DONE + réponses Q&A existantes
+  readonly hasAnyAnalysis = computed(() => this.synthesis() !== null);
+  readonly canEnrichSynthesis = computed(() =>
+    this.synthesis() !== null && this.questions().some(q => q.answerText !== null)
+  );
+  readonly analysisButtonLabel = computed(() => {
+    if (!this.hasAnyAnalysis()) return 'Analyser le dossier';
+    return this.canEnrichSynthesis() ? 'Enrichir la synthèse' : 'Analyser le dossier';
+  });
 
   readonly canReopen = computed(() => {
     const role = this.currentMemberRole();
@@ -245,6 +261,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private analysisJobService: AnalysisJobService,
     private caseAnalysisService: CaseAnalysisService,
     private caseAnalysisCommandService: CaseAnalysisCommandService,
+    private reAnalysisService: ReAnalysisService,
     private globalNotificationService: GlobalAnalysisNotificationService,
     private caseFileStatsService: CaseFileStatsService,
     private aiQuestionService: AiQuestionService,
@@ -502,6 +519,81 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           this.snackBar.open('Aucun document analysé disponible.', 'Fermer', { duration: 4000 });
         } else {
           this.snackBar.open("Erreur lors du déclenchement de l'analyse.", 'Fermer', {
+            duration: 4000, panelClass: ['snack-error']
+          });
+        }
+      }
+    });
+  }
+
+  /**
+   * SF-125-01 — Bouton principal contextuel : dispatch STANDARD ou ENRICHED
+   * selon l'état du dossier (présence d'une analyse DONE et de réponses Q&A).
+   */
+  onAnalysisButtonClick(): void {
+    if (this.canEnrichSynthesis()) {
+      this.triggerEnrichedAnalysis();
+    } else {
+      this.triggerAnalysis();
+    }
+  }
+
+  /**
+   * SF-125-01 — Option du menu secondaire ⋮ "Nouvelle analyse complète depuis zéro".
+   * Ouvre une dialog de confirmation qui ré-oriente vers l'enrichissement par défaut.
+   */
+  onFullReanalysisClick(): void {
+    const ref = this.dialog.open(FullReanalysisConfirmDialogComponent, {
+      width: '520px',
+      autoFocus: false,
+    });
+    ref.afterClosed().subscribe((result: FullReanalysisConfirmResult | undefined) => {
+      this.handleFullReanalysisResult(result);
+    });
+  }
+
+  /**
+   * SF-125-01 — Dispatch selon le résultat de la dialog de confirmation.
+   * Méthode extraite pour testabilité (indépendante du cycle MatDialog).
+   */
+  handleFullReanalysisResult(result: FullReanalysisConfirmResult | undefined): void {
+    if (result === 'ENRICH') {
+      this.triggerEnrichedAnalysis();
+    } else if (result === 'FULL') {
+      this.triggerAnalysis();
+    }
+    // CANCEL ou undefined → no-op
+  }
+
+  /**
+   * SF-125-01 — Déclenche une analyse ENRICHED (réutilise le service partagé).
+   * Gère 402 (limite plan) et 409 (aucune nouvelle réponse depuis dernière enrichie).
+   */
+  private triggerEnrichedAnalysis(): void {
+    const id = this.caseFile()?.id;
+    if (!id) return;
+    this.reAnalyzing.set(true);
+
+    this.reAnalysisService.reAnalyze(id).subscribe({
+      next: () => {
+        this.analyticsService.trackEvent('analysis_launched', { type: 'ENRICHED' });
+        this.reAnalyzing.set(false);
+        this.loadAnalysisJobs(id, true);
+        this.globalNotificationService.track(id);
+      },
+      error: (err: any) => {
+        this.reAnalyzing.set(false);
+        if (err.status === 402) {
+          this.snackBar.open("Limite d'analyses atteinte pour ce dossier. Passez au plan supérieur.", 'Fermer', {
+            duration: 5000, panelClass: ['snack-error']
+          });
+        } else if (err.status === 409) {
+          this.snackBar.open(
+            'Aucune nouvelle réponse ou message chat depuis la dernière analyse enrichie. Répondez à une question ou écrivez dans le chat pour enrichir la synthèse.',
+            'Fermer', { duration: 6000, panelClass: ['snack-error'] }
+          );
+        } else {
+          this.snackBar.open("Erreur lors du déclenchement de l'enrichissement.", 'Fermer', {
             duration: 4000, panelClass: ['snack-error']
           });
         }
