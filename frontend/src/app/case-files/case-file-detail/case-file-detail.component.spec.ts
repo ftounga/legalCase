@@ -946,7 +946,6 @@ describe('CaseFileDetailComponent', () => {
 
     // U-CFD-B06 : reAnalyzing signal désactive les boutons
     it('U-CFD-B06 : reAnalyzing signal est true pendant l\'appel ENRICHED, false après succès', () => {
-      let resolved = false;
       const delayed = new Subject<void>();
       reAnalysisServiceSpy.reAnalyze.mockReturnValue(delayed.asObservable());
       component.synthesis.set(makeAnalysis());
@@ -959,6 +958,72 @@ describe('CaseFileDetailComponent', () => {
       delayed.complete();
       expect(component.reAnalyzing()).toBe(false);
     });
+  });
+
+  // ----- F-124 : refresh auto du dashboard après ré-analyse -----
+
+  describe('F-124 dashboard refresh après ré-analyse', () => {
+    const makeResult = (version: number): any => ({
+      id: 'a' + version, version, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      piecesManquantes: [], pointsProcedure: [],
+      compensationEstimate: null, belgianCompensationEstimate: null,
+      pensionAlimentaireEstimate: null, prestationCompensatoireEstimate: null,
+      liquidationCommunaute: null, travailExtractedData: null,
+      immigrationExtractedData: null, licenciementValidityDetection: null,
+      ruptureConvValidityDetection: null, piecesManquantesDetails: null,
+      analysisDocuments: [],
+    });
+
+    // U-CFD-124-01 : premier chargement → pas de refresh (dashboard charge seul via ngOnInit)
+    it('U-CFD-124-01 : premier chargement de synthèse → pas de triggerRefresh', () => {
+      const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValue(of(makeResult(1)));
+
+      component.loadSynthesis('cf1');
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    // U-CFD-124-02 : nouvelle version après polling → triggerRefresh
+    it('U-CFD-124-02 : version change de 1 à 2 → triggerRefresh appelé', () => {
+      const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
+
+      // Premier load : version 1, pas de refresh
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(1)));
+      component.loadSynthesis('cf1');
+      expect(spy).not.toHaveBeenCalled();
+
+      // Deuxième load (ré-analyse terminée) : version 2 → refresh
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(2)));
+      component.loadSynthesis('cf1');
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    // U-CFD-124-03 : même version rechargée (polling tick) → pas de refresh répété
+    it('U-CFD-124-03 : même version rechargée 3 fois → triggerRefresh appelé 0 fois', () => {
+      const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
+
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(5)));
+      component.loadSynthesis('cf1');
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(5)));
+      component.loadSynthesis('cf1');
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(5)));
+      component.loadSynthesis('cf1');
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    // U-CFD-124-04 : résultat null (pas d'analyse existante) → pas de refresh
+    it('U-CFD-124-04 : getAnalysis retourne null → pas de triggerRefresh', () => {
+      const spy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValue(of(null));
+
+      component.loadSynthesis('cf1');
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
   });
 
 });

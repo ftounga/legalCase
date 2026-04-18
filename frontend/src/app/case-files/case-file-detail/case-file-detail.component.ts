@@ -113,6 +113,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // true between triggerAnalysis() success and first backend confirmation that CASE_ANALYSIS job exists
   private caseAnalysisPending = signal(false);
 
+  // F-124 : dernière version d'analyse chargée, utilisée pour détecter une nouvelle version
+  // (différente de this.synthesis().version qui est reset à null pendant les re-analyses).
+  // Permet de ne déclencher refreshService.triggerRefresh() qu'une seule fois par ré-analyse,
+  // pas à chaque tick de polling qui re-fetche la même synthèse.
+  private lastCompletedSynthesisVersion = signal<number | null>(null);
+
   // SF-125-01 : transition between enrich/full click and backend confirmation
   reAnalyzing = signal(false);
 
@@ -281,7 +287,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private analyticsService: AnalyticsService,
     private caseDeadlineService: CaseDeadlineService,
-    private procedureCheckService: ProcedureCheckService
+    private procedureCheckService: ProcedureCheckService,
+    private dashboardRefreshService: CaseDashboardRefreshService
   ) {}
 
   ngOnInit(): void {
@@ -651,7 +658,18 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   loadSynthesis(caseFileId: string): void {
     this.caseAnalysisService.getAnalysis(caseFileId).subscribe({
       next: result => {
+        // F-124 : détecter une nouvelle version de synthèse pour rafraîchir le dashboard décisionnel.
+        // On compare avec lastCompletedSynthesisVersion (signal qui survit au reset synthesis=null
+        // déclenché par triggerAnalysis). Trigger uniquement si la version a réellement changé —
+        // le polling appelle loadSynthesis à chaque tick DONE, on évite le spam.
+        const previousVersion = this.lastCompletedSynthesisVersion();
         this.synthesis.set(result);
+        if (result?.version !== undefined && result?.version !== null) {
+          if (previousVersion !== null && result.version !== previousVersion) {
+            this.dashboardRefreshService.triggerRefresh();
+          }
+          this.lastCompletedSynthesisVersion.set(result.version);
+        }
         // Reload questions for this specific version once synthesis id is known
         const questionsDone = this.analysisJobs().some(
           j => j.jobType === 'QUESTION_GENERATION' && j.status === 'DONE'
