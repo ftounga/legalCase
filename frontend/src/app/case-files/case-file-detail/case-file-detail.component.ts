@@ -115,11 +115,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // SF-125-01 : transition between enrich/full click and backend confirmation
   reAnalyzing = signal(false);
 
-  // SF-125-01 : bouton contextuel — ENRICHED si analyse DONE + réponses Q&A existantes
+  // SF-125-01 : bouton contextuel — ENRICHED si analyse DONE + au moins 1 input avocat
+  // (réponse Q&A OU check procédural validé). Le chat n'est pas chargé côté case-file-detail,
+  // le backend validera via la condition complète (Q&A + chat + checks).
   readonly hasAnyAnalysis = computed(() => this.synthesis() !== null);
-  readonly canEnrichSynthesis = computed(() =>
-    this.synthesis() !== null && this.questions().some(q => q.answerText !== null)
-  );
+  readonly canEnrichSynthesis = computed(() => {
+    if (this.synthesis() === null) return false;
+    const hasAnyAnswer = this.questions().some(q => q.answerText !== null);
+    const hasAnyValidatedCheck = this.procedureChecks().some(c => c.statut === 'VERIFIED' || c.statut === 'NON_COMPLIANT');
+    return hasAnyAnswer || hasAnyValidatedCheck;
+  });
   readonly analysisButtonLabel = computed(() => {
     if (!this.hasAnyAnalysis()) return 'Analyser le dossier';
     return this.canEnrichSynthesis() ? 'Enrichir la synthèse' : 'Analyser le dossier';
@@ -589,7 +594,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           });
         } else if (err.status === 409) {
           this.snackBar.open(
-            'Aucune nouvelle réponse ou message chat depuis la dernière analyse enrichie. Répondez à une question ou écrivez dans le chat pour enrichir la synthèse.',
+            'Aucune nouvelle réponse, message chat ou action sur la checklist procédurale depuis la dernière analyse enrichie.',
             'Fermer', { duration: 6000, panelClass: ['snack-error'] }
           );
         } else {

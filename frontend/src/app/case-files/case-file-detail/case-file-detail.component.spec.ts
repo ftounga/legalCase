@@ -866,15 +866,15 @@ describe('CaseFileDetailComponent', () => {
       expect(caseAnalysisCommandServiceSpy.triggerAnalysis).not.toHaveBeenCalled();
     });
 
-    // U-CFD-B04 : ENRICHED échoue 409 → snackbar clair
-    it('U-CFD-B04 : ENRICHED renvoie 409 → snackbar informant de la règle nouvelle réponse/chat', () => {
+    // U-CFD-B04 : ENRICHED échoue 409 → snackbar clair mentionnant les 3 sources (Q&A / chat / checklist)
+    it('U-CFD-B04 : ENRICHED renvoie 409 → snackbar informant de la règle Q&A / chat / checklist', () => {
       reAnalysisServiceSpy.reAnalyze.mockReturnValue(throwError(() => ({ status: 409 })));
       component.synthesis.set(makeAnalysis());
       component.questions.set([makeQuestion(true)]);
 
       component.onAnalysisButtonClick();
       expect(snackBarSpy.open).toHaveBeenCalledWith(
-        expect.stringContaining('nouvelle réponse ou message chat'),
+        expect.stringContaining('checklist procédurale'),
         'Fermer',
         expect.objectContaining({ panelClass: ['snack-error'] })
       );
@@ -915,6 +915,33 @@ describe('CaseFileDetailComponent', () => {
       component.handleFullReanalysisResult(undefined);
       expect(caseAnalysisCommandServiceSpy.triggerAnalysis).not.toHaveBeenCalled();
       expect(reAnalysisServiceSpy.reAnalyze).not.toHaveBeenCalled();
+    });
+
+    // U-CFD-B07 : fix checklist — canEnrichSynthesis=true si au moins 1 check VERIFIED/NON_COMPLIANT
+    it('U-CFD-B07 : analyse DONE + check VERIFIED (sans réponse Q&A) → label "Enrichir la synthèse"', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([]); // pas de Q&A du tout
+      component.procedureChecks.set([
+        { id: 'c1', ordre: 0, description: 'Point 1', statut: 'VERIFIED' } as any,
+      ]);
+
+      expect(component.canEnrichSynthesis()).toBe(true);
+      expect(component.analysisButtonLabel()).toBe('Enrichir la synthèse');
+
+      component.onAnalysisButtonClick();
+      expect(reAnalysisServiceSpy.reAnalyze).toHaveBeenCalled();
+    });
+
+    it('U-CFD-B07 bis : analyse DONE + checks tous TO_CHECK → bouton reste STANDARD', () => {
+      component.synthesis.set(makeAnalysis());
+      component.questions.set([]);
+      component.procedureChecks.set([
+        { id: 'c1', ordre: 0, description: 'P1', statut: 'TO_CHECK' } as any,
+        { id: 'c2', ordre: 1, description: 'P2', statut: 'TO_CHECK' } as any,
+      ]);
+
+      expect(component.canEnrichSynthesis()).toBe(false);
+      expect(component.analysisButtonLabel()).toBe('Analyser le dossier');
     });
 
     // U-CFD-B06 : reAnalyzing signal désactive les boutons

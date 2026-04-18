@@ -26,16 +26,21 @@ public class ReAnalysisCommandService {
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final AiQuestionAnswerRepository aiQuestionAnswerRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ProcedureCheckRepository procedureCheckRepository;
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final RabbitTemplate rabbitTemplate;
     private final PlanLimitService planLimitService;
+
+    /** Marge temporelle pour exclure les propagations auto de checks juste après lastEnriched. */
+    private static final int PROPAGATION_SAFETY_SECONDS = 10;
 
     public ReAnalysisCommandService(CaseFileRepository caseFileRepository,
                                     AnalysisJobRepository analysisJobRepository,
                                     CaseAnalysisRepository caseAnalysisRepository,
                                     AiQuestionAnswerRepository aiQuestionAnswerRepository,
                                     ChatMessageRepository chatMessageRepository,
+                                    ProcedureCheckRepository procedureCheckRepository,
                                     CurrentUserResolver currentUserResolver,
                                     WorkspaceMemberRepository workspaceMemberRepository,
                                     RabbitTemplate rabbitTemplate,
@@ -45,6 +50,7 @@ public class ReAnalysisCommandService {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.aiQuestionAnswerRepository = aiQuestionAnswerRepository;
         this.chatMessageRepository = chatMessageRepository;
+        this.procedureCheckRepository = procedureCheckRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.rabbitTemplate = rabbitTemplate;
@@ -86,9 +92,15 @@ public class ReAnalysisCommandService {
                                     caseFileId, lastEnriched.getUpdatedAt());
                     boolean hasNewChatMessages = chatMessageRepository
                             .existsByCaseFileIdAndCreatedAtAfter(caseFileId, lastEnriched.getUpdatedAt());
-                    if (!hasNewAnswers && !hasNewChatMessages) {
+                    // SF-125-01 fix : la checklist procédurale est aussi une source de nouvel input avocat.
+                    // Cutoff avec marge de 10s pour exclure les propagations auto-déclenchées par
+                    // createChecksWithVerifiedPropagation qui saves des checks dans la milliseconde après lastEnriched.
+                    java.time.Instant checkCutoff = lastEnriched.getUpdatedAt().plusSeconds(PROPAGATION_SAFETY_SECONDS);
+                    boolean hasNewProcedureCheckUpdates = procedureCheckRepository
+                            .existsValidatedCheckUpdatedAfter(caseFileId, checkCutoff);
+                    if (!hasNewAnswers && !hasNewChatMessages && !hasNewProcedureCheckUpdates) {
                         throw new ResponseStatusException(HttpStatus.CONFLICT,
-                                "Aucune nouvelle réponse ou message chat depuis la dernière analyse enrichie.");
+                                "Aucune nouvelle réponse, message chat ou action sur la checklist procédurale depuis la dernière analyse enrichie.");
                     }
                 });
 
