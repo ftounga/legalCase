@@ -124,6 +124,38 @@ public class EmailService {
         }
     }
 
+    /**
+     * SF-121-02 : avertit le créateur du dossier qu'au moins un document n'a pas pu être analysé.
+     * Envoyé une fois par événement d'extraction FAILED. Fail-open.
+     */
+    public void sendExtractionFailed(String toEmail, UUID caseFileId, String caseFileTitle,
+                                      String filename, String failureReasonLabel) {
+        if (!mailEnabled) {
+            log.debug("Mail disabled — extraction-failed email skipped for {}", toEmail);
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(mailFrom);
+            message.setTo(toEmail);
+            message.setSubject("Document non analysable — " + caseFileTitle + " — AI LegalCase");
+            message.setText(
+                    "Bonjour,\n\n" +
+                    "Le document \"" + filename + "\" de votre dossier \"" + caseFileTitle + "\" " +
+                    "n'a pas pu être analysé.\n\n" +
+                    "Motif : " + failureReasonLabel + "\n\n" +
+                    "Accédez à votre dossier pour vérifier et remplacer le document si nécessaire :\n" +
+                    frontendUrl + "/case-files/" + caseFileId + "\n\n" +
+                    "L'équipe AI LegalCase"
+            );
+            mailSender.send(message);
+            log.info("Extraction-failed email sent to {} for caseFile {} document {}", toEmail, caseFileId, filename);
+        } catch (MailException e) {
+            log.warn("Failed to send extraction-failed email to {} for caseFile {} — {}",
+                    toEmail, caseFileId, e.getMessage());
+        }
+    }
+
     public void sendRequalificationAlert(String toEmail, UUID caseFileId, String caseFileTitle,
                                           List<ProcedureCheckRequalifiedEvent.RequalifiedCheck> checks) {
         if (!mailEnabled) {

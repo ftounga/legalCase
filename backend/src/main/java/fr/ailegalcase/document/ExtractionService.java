@@ -114,6 +114,11 @@ public class ExtractionService {
         // Publie l'événement uniquement si DONE — empêche ChunkingService d'être déclenché sur FAILED.
         if (extraction.getExtractionStatus() == ExtractionStatus.DONE) {
             eventPublisher.publishEvent(new ExtractionDoneEvent(extraction.getId(), extraction.getExtractedText()));
+        } else if (extraction.getExtractionStatus() == ExtractionStatus.FAILED) {
+            // SF-121-02 : déclenche notification in-app + email au créateur du dossier
+            String filename = docRef.getOriginalFilename();
+            eventPublisher.publishEvent(new ExtractionFailedEvent(
+                    extraction.getId(), documentId, filename, extraction.getFailureReason()));
         }
     }
 

@@ -13,6 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
 import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
 import { FullReanalysisConfirmDialogComponent, FullReanalysisConfirmResult } from './full-reanalysis-confirm-dialog.component';
@@ -35,7 +36,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
-import { Document } from '../../core/models/document.model';
+import { Document, extractionFailureLabel } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { CaseFileStats } from '../../core/models/case-file-stats.model';
@@ -71,7 +72,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     RouterLink, DatePipe, DecimalPipe, UpperCasePipe,
     MatCardModule, MatButtonModule, MatIconModule,
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
-    MatDialogModule, MatMenuModule, ShareDialogComponent, CaseNotesSectionComponent,
+    MatDialogModule, MatMenuModule, MatTooltipModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
     TimerWidgetComponent, PrudhomeFicheSectionComponent, TribunalTravailFicheSectionComponent,
     ImmigrationChecklistSectionComponent, ImmigrationTitleDecisionSectionComponent,
@@ -114,6 +115,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   // SF-125-01 : transition between enrich/full click and backend confirmation
   reAnalyzing = signal(false);
+
+  // SF-121-02 : exposé au template pour le tooltip du badge "Non analysable"
+  readonly extractionFailureLabel = extractionFailureLabel;
 
   // SF-125-01 : bouton contextuel — ENRICHED si analyse DONE + au moins 1 input avocat
   // (réponse Q&A OU check procédural validé). Le chat n'est pas chargé côté case-file-detail,

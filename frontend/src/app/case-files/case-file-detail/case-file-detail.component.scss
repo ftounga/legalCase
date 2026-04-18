@@ -522,6 +522,29 @@
   white-space: nowrap;
 }
 
+/* SF-121-02 : badge Non analysable (extraction FAILED) — cousin du badge-not-included en rouge */
+.badge-extraction-failed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(192, 57, 43, 0.1);
+  border: 1px solid rgba(192, 57, 43, 0.35);
+  color: #C0392B;
+  white-space: nowrap;
+  margin-left: 6px;
+}
+
+.badge-extraction-failed .badge-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+}
+
 .global-analysis-spinner {
   display: flex;
   align-items: center;
