@@ -45,7 +45,25 @@ public record CaseAnalysisResponse(
     public record TravailExtractedData(
             String conventionCollective, String dateEntree, Double salaireBrutMensuel,
             String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
-            Integer congesContractuels, Double primeAncienneteContractuelle) {}
+            Integer congesContractuels, Double primeAncienneteContractuelle,
+            // SF-DT-04-04 : identité salarié + employeur pour pré-remplissage fiches prud'homale (FR) et
+            // requête tribunal du travail (BE). siretEmployeur renseigné côté FR uniquement,
+            // bceEmployeur côté BE uniquement (champs à formats distincts).
+            String nomSalarie, String prenomSalarie, String adresseSalarie,
+            String nomEmployeur, String adresseEmployeur,
+            String siretEmployeur, String bceEmployeur,
+            String representantEmployeur) {
+
+        /** Constructeur rétrocompat 9 champs (avant SF-DT-04-04). */
+        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
+                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
+                                     Integer congesContractuels, Double primeAncienneteContractuelle) {
+            this(conventionCollective, dateEntree, salaireBrutMensuel,
+                    typeContrat, poste, motifLicenciement, dateLicenciement,
+                    congesContractuels, primeAncienneteContractuelle,
+                    null, null, null, null, null, null, null, null);
+        }
+    }
 
     public record DetectedAnswer(String reponse, String justification) {}
 
@@ -540,9 +558,31 @@ public record CaseAnalysisResponse(
                     textOrNull(node, "motif_licenciement"),
                     textOrNull(node, "date_licenciement"),
                     intOrNull(node, "conges_contractuels"),
-                    doubleOrNull(node, "prime_anciennete_contractuelle")
+                    doubleOrNull(node, "prime_anciennete_contractuelle"),
+                    textOrNull(node, "nom_salarie"),
+                    textOrNull(node, "prenom_salarie"),
+                    textOrNull(node, "adresse_salarie"),
+                    textOrNull(node, "nom_employeur"),
+                    textOrNull(node, "adresse_employeur"),
+                    normalizeFrIdentifier(textOrNull(node, "siret_employeur")),
+                    normalizeBeBceIdentifier(textOrNull(node, "bce_employeur")),
+                    textOrNull(node, "representant_employeur")
             );
         } catch (Exception ignored) { return null; }
+    }
+
+    /** Normalise un SIREN/SIRET : garde uniquement les chiffres, null si 0 chiffre, sinon renvoie la chaîne. */
+    static String normalizeFrIdentifier(String raw) {
+        if (raw == null) return null;
+        String digits = raw.replaceAll("[^0-9]", "");
+        return digits.isEmpty() ? null : digits;
+    }
+
+    /** Normalise un BCE belge : retire le préfixe `BE`, les espaces/points, garde les chiffres. */
+    static String normalizeBeBceIdentifier(String raw) {
+        if (raw == null) return null;
+        String digits = raw.replaceAll("[^0-9]", "");
+        return digits.isEmpty() ? null : digits;
     }
 
     static LicenciementValidityDetection extractLicenciementValidityDetection(JsonNode root) {
