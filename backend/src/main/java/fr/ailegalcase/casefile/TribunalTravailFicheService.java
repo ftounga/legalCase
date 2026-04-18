@@ -28,6 +28,9 @@ import java.util.UUID;
 @Service
 public class TribunalTravailFicheService {
 
+    /** CCT 109 : fourchette 3-17 semaines. Milieu = 10 semaines comme valeur indicative. */
+    private static final int CCT109_SEMAINES_INDICATIF = 10;
+
     private final TribunalTravailFicheRepository ficheRepository;
     private final CaseFileRepository caseFileRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -123,35 +126,101 @@ public class TribunalTravailFicheService {
     }
 
     private TribunalTravailFicheResponse buildPrefilledResponse(CaseFile caseFile) {
-        TribunalTravailFicheRequest.Requerant requerant = new TribunalTravailFicheRequest.Requerant(
-                "", null, null, null);
-        TribunalTravailFicheRequest.Defendeur defendeur = new TribunalTravailFicheRequest.Defendeur(
-                null, null, null, null);
-        TribunalTravailFicheRequest.ProcedureInfo procedureInfo = new TribunalTravailFicheRequest.ProcedureInfo(
-                null, null, "FR", null);
-        TribunalTravailFicheRequest.ContratInfo contratInfo = new TribunalTravailFicheRequest.ContratInfo(
-                null, null, null, null);
-        List<TribunalTravailFicheRequest.Demande> demandes = new ArrayList<>();
+        PrefillAccumulator acc = new PrefillAccumulator();
 
         caseAnalysisRepository
                 .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFile.getId(), AnalysisStatus.DONE)
-                .ifPresent(analysis -> prefillFromAnalysis(analysis, demandes));
+                .ifPresent(analysis -> prefillFromAnalysis(analysis, acc));
+
+        TribunalTravailFicheRequest.ProcedureInfo procedureInfo = new TribunalTravailFicheRequest.ProcedureInfo(
+                null, null, "FR", null);
 
         return new TribunalTravailFicheResponse(
-                null, requerant, defendeur, procedureInfo, contratInfo,
-                demandes, null, buildPiecesList(caseFile), null);
+                null,
+                acc.buildRequerant(),
+                acc.buildDefendeur(),
+                procedureInfo,
+                acc.buildContratInfo(),
+                acc.demandes,
+                null,
+                buildPiecesList(caseFile),
+                null);
     }
 
-    private void prefillFromAnalysis(CaseAnalysis analysis,
-                                      List<TribunalTravailFicheRequest.Demande> demandes) {
+    private void prefillFromAnalysis(CaseAnalysis analysis, PrefillAccumulator acc) {
         CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        var travail = response.travailExtractedData();
+        if (travail != null) {
+            acc.nomSalarie           = travail.nomSalarie();
+            acc.prenomSalarie        = travail.prenomSalarie();
+            acc.adresseSalarie       = travail.adresseSalarie();
+            acc.nomEmployeur         = travail.nomEmployeur();
+            acc.adresseEmployeur     = travail.adresseEmployeur();
+            acc.bceEmployeur         = travail.bceEmployeur();
+            acc.representantEmployeur = travail.representantEmployeur();
+            acc.dateEntree           = travail.dateEntree();
+            acc.dateLicenciement     = travail.dateLicenciement();
+        }
+
         if (response.compensationEstimate() != null) {
             var est = response.compensationEstimate();
-            var belgian = BelgianCompensationCalculator.calculate(
+            var belgianOpt = BelgianCompensationCalculator.calculate(
                     est.ancienneteAnnees(), est.ancienneteMois(), est.salaireReference());
-            belgian.ifPresent(b -> demandes.add(new TribunalTravailFicheRequest.Demande(
-                    "Indemnité compensatoire de préavis (" + b.preavisSemaines() + " semaines)",
-                    b.indemniteCompensatoire())));
+            belgianOpt.ifPresent(b -> {
+                acc.demandes.add(new TribunalTravailFicheRequest.Demande(
+                        "Indemnité compensatoire de préavis (" + b.preavisSemaines() + " semaines)",
+                        b.indemniteCompensatoire()));
+
+                // CCT 109 — licenciement manifestement déraisonnable : 3 à 17 semaines.
+                // On pré-remplit à 10 semaines (milieu de fourchette) comme valeur indicative.
+                // Condition : rupture = licenciement ET salaire réellement connu (donneesPartielles false).
+                String typeRupture = est.typeRupture();
+                boolean isLicenciement = typeRupture != null
+                        && (typeRupture.equals("LICENCIEMENT") || typeRupture.equals("LICENCIEMENT_ECONOMIQUE"));
+                if (isLicenciement && !b.donneesPartielles() && b.salaireReference() > 0) {
+                    // Calcul depuis le salaire mensuel brut (non arrondi) pour éviter la double
+                    // arrondi que provoquerait l'usage de b.salaireHebdomadaire() (déjà à 2 décimales).
+                    double cct109Indicatif = Math.round(
+                            b.salaireReference() * 12.0 / 52.0 * CCT109_SEMAINES_INDICATIF * 100.0) / 100.0;
+                    acc.demandes.add(new TribunalTravailFicheRequest.Demande(
+                            "Indemnité pour licenciement manifestement déraisonnable (CCT 109, "
+                                    + "valeur indicative " + CCT109_SEMAINES_INDICATIF
+                                    + " semaines, fourchette 3-17)",
+                            cct109Indicatif));
+                }
+            });
+        }
+    }
+
+    /** Accumulator qui collecte les champs de pré-remplissage depuis la synthèse IA. */
+    private static final class PrefillAccumulator {
+        String nomSalarie, prenomSalarie, adresseSalarie;
+        String nomEmployeur, adresseEmployeur, bceEmployeur, representantEmployeur;
+        String dateEntree, dateLicenciement;
+        final List<TribunalTravailFicheRequest.Demande> demandes = new ArrayList<>();
+
+        TribunalTravailFicheRequest.Requerant buildRequerant() {
+            return new TribunalTravailFicheRequest.Requerant(
+                    nomSalarie != null ? nomSalarie : "",
+                    prenomSalarie,
+                    adresseSalarie,
+                    null);
+        }
+
+        TribunalTravailFicheRequest.Defendeur buildDefendeur() {
+            return new TribunalTravailFicheRequest.Defendeur(
+                    nomEmployeur,
+                    adresseEmployeur,
+                    bceEmployeur,
+                    representantEmployeur);
+        }
+
+        TribunalTravailFicheRequest.ContratInfo buildContratInfo() {
+            return new TribunalTravailFicheRequest.ContratInfo(
+                    null,
+                    dateEntree,
+                    dateLicenciement,
+                    null);
         }
     }
 
