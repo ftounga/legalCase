@@ -1,6 +1,9 @@
 package fr.ailegalcase.casefile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AnalysisStatus;
+import fr.ailegalcase.analysis.AnalysisType;
+import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.document.Document;
@@ -152,6 +155,223 @@ class PrudhomeFicheServiceTest {
         service.upsert(caseFileId, request, oidcUser, null);
 
         verify(ficheRepository).save(existing);
+    }
+
+    // --- SF-DT-04-04 : enrichissement pré-remplissage ---
+
+    // U-DT04-07 : pré-remplissage complet — identité salarié + employeur + demandes additionnelles
+    @Test
+    void prefill_fullTravailData_populatesDemandeurDefendeurAndDemandes() {
+        UUID caseFileId = setupPrefillContext();
+        CaseAnalysis analysis = analysisWith("""
+                {
+                  "travail_extracted_data": {
+                    "nom_salarie": "Dupont",
+                    "prenom_salarie": "Jean",
+                    "adresse_salarie": "12 rue de la Paix, 75002 Paris",
+                    "poste": "Comptable",
+                    "nom_employeur": "Acme SAS",
+                    "adresse_employeur": "5 avenue des Champs, 75008 Paris",
+                    "siret_employeur": "12345678901234",
+                    "representant_employeur": "Martin Dupond"
+                  },
+                  "compensation_data": {
+                    "type_rupture": "LICENCIEMENT",
+                    "anciennete_annees": 5,
+                    "anciennete_mois": 0,
+                    "salaire_reference_mensuel": 3000
+                  }
+                }
+                """);
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenReturn(Optional.of(analysis));
+
+        PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
+
+        // Demandeur : 4 champs pré-remplis (nom, prénom, adresse, profession)
+        assertThat(response.demandeur().nom()).isEqualTo("Dupont");
+        assertThat(response.demandeur().prenom()).isEqualTo("Jean");
+        assertThat(response.demandeur().adresse()).isEqualTo("12 rue de la Paix, 75002 Paris");
+        assertThat(response.demandeur().profession()).isEqualTo("Comptable");
+        // Défendeur : 4 champs pré-remplis
+        assertThat(response.defendeur().nom()).isEqualTo("Acme SAS");
+        assertThat(response.defendeur().adresse()).isEqualTo("5 avenue des Champs, 75008 Paris");
+        assertThat(response.defendeur().siret()).isEqualTo("12345678901234");
+        assertThat(response.defendeur().representant()).isEqualTo("Martin Dupond");
+        // Demandes : indemnité de licenciement + préavis (2 mois ≥ 2 ans) + DI sans cause
+        assertThat(response.demandes()).hasSize(3);
+        assertThat(response.demandes().get(0).label()).contains("Indemnité de licenciement");
+        assertThat(response.demandes().get(1).label()).contains("Indemnité compensatoire de préavis (2 mois)");
+        assertThat(response.demandes().get(1).montant()).isEqualTo(6000.0);
+        assertThat(response.demandes().get(2).label()).contains("Dommages et intérêts");
+        assertThat(response.demandes().get(2).montant()).isEqualTo(3000.0);
+    }
+
+    // U-DT04-08 : identité partielle — seuls les champs extraits sont pré-remplis
+    @Test
+    void prefill_partialIdentity_populatesOnlyAvailableFields() {
+        UUID caseFileId = setupPrefillContext();
+        CaseAnalysis analysis = analysisWith("""
+                {
+                  "travail_extracted_data": {
+                    "nom_salarie": "Dupont"
+                  }
+                }
+                """);
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenReturn(Optional.of(analysis));
+
+        PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
+
+        assertThat(response.demandeur().nom()).isEqualTo("Dupont");
+        assertThat(response.demandeur().prenom()).isNull();
+        assertThat(response.demandeur().adresse()).isNull();
+        assertThat(response.defendeur().nom()).isNull();
+        assertThat(response.demandes()).isEmpty();
+    }
+
+    // U-DT04-09 : licenciement sans salaire → pas de demandes additionnelles
+    @Test
+    void prefill_licenciementWithoutSalary_noAdditionalDemandes() {
+        UUID caseFileId = setupPrefillContext();
+        CaseAnalysis analysis = analysisWith("""
+                {
+                  "compensation_data": {
+                    "type_rupture": "LICENCIEMENT",
+                    "anciennete_annees": 5,
+                    "anciennete_mois": 0,
+                    "salaire_reference_mensuel": null
+                  }
+                }
+                """);
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenReturn(Optional.of(analysis));
+
+        PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
+
+        // salaire null → compensationEstimate construit avec salaire 0 → pas de prefill préavis / DI
+        assertThat(response.demandes()).allMatch(d -> !d.label().contains("préavis"));
+        assertThat(response.demandes()).allMatch(d -> !d.label().contains("Dommages"));
+    }
+
+    // U-DT04-10 : démission → pas d'indemnité de licenciement ni demandes additionnelles
+    @Test
+    void prefill_demission_noIndemnityDemandes() {
+        UUID caseFileId = setupPrefillContext();
+        CaseAnalysis analysis = analysisWith("""
+                {
+                  "compensation_data": {
+                    "type_rupture": "DEMISSION",
+                    "anciennete_annees": 5,
+                    "anciennete_mois": 0,
+                    "salaire_reference_mensuel": 3000
+                  }
+                }
+                """);
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenReturn(Optional.of(analysis));
+
+        PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
+
+        // Démission : compensationEstimate est null ou indemnité 0 → pas de demandes licenciement/préavis/DI
+        assertThat(response.demandes()).allMatch(d -> !d.label().contains("préavis"));
+        assertThat(response.demandes()).allMatch(d -> !d.label().contains("Dommages"));
+    }
+
+    // U-DT04-11 : licenciement < 2 ans → préavis 1 mois (vs 2 pour ≥ 2 ans)
+    @Test
+    void prefill_licenciementLessThan2Years_preavis1Mois() {
+        UUID caseFileId = setupPrefillContext();
+        CaseAnalysis analysis = analysisWith("""
+                {
+                  "compensation_data": {
+                    "type_rupture": "LICENCIEMENT",
+                    "anciennete_annees": 1,
+                    "anciennete_mois": 6,
+                    "salaire_reference_mensuel": 2500
+                  }
+                }
+                """);
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenReturn(Optional.of(analysis));
+
+        PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
+
+        var preavis = response.demandes().stream().filter(d -> d.label().contains("préavis")).findFirst();
+        assertThat(preavis).isPresent();
+        assertThat(preavis.get().label()).contains("(1 mois)");
+        assertThat(preavis.get().montant()).isEqualTo(2500.0);
+    }
+
+    // U-DT04-12 : fiche déjà persistée → pas de re-prefill, renvoie l'existante
+    @Test
+    void prefill_existingFiche_keepsUserEdits() {
+        UUID caseFileId = UUID.randomUUID();
+        Workspace workspace = workspace();
+        CaseFile caseFile = caseFile(caseFileId, workspace);
+        setupAccess(workspace, caseFile, caseFileId);
+
+        PrudhomeFiche existing = fiche(caseFileId, caseFile);
+        when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.of(existing));
+        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+
+        PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
+
+        // La fiche "Dupont" de l'helper est retournée — pas de pré-remplissage écrasé
+        assertThat(response.id()).isEqualTo(existing.getId());
+        assertThat(response.demandeur().nom()).isEqualTo("Dupont");
+        // caseAnalysisRepository n'est PAS interrogé
+        verify(caseAnalysisRepository, never())
+                .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any());
+    }
+
+    // U-DT04-13 : rétrocompat — analyse sans travail_extracted_data (ancienne) → fallback correct
+    @Test
+    void prefill_legacyAnalysisWithoutTravailData_backwardCompatible() {
+        UUID caseFileId = setupPrefillContext();
+        CaseAnalysis analysis = analysisWith("""
+                {
+                  "compensation_data": {
+                    "type_rupture": "LICENCIEMENT",
+                    "anciennete_annees": 5,
+                    "anciennete_mois": 0,
+                    "salaire_reference_mensuel": 3000
+                  }
+                }
+                """);
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(any(), any()))
+                .thenReturn(Optional.of(analysis));
+
+        PrudhomeFicheResponse response = service.get(caseFileId, oidcUser, null);
+
+        // Demandeur vide (champ IA non présent), mais demandes licenciement existent
+        assertThat(response.demandeur().nom()).isEmpty();
+        assertThat(response.defendeur().nom()).isNull();
+        assertThat(response.demandes()).hasSize(3); // licenciement + préavis + DI
+    }
+
+    // --- helpers SF-DT-04-04 ---
+
+    /** Setup classique pour un dossier accessible + pieces list vide. Retourne le caseFileId. */
+    private UUID setupPrefillContext() {
+        UUID caseFileId = UUID.randomUUID();
+        Workspace workspace = workspace();
+        CaseFile caseFile = caseFile(caseFileId, workspace);
+        setupAccess(workspace, caseFile, caseFileId);
+        when(ficheRepository.findByCaseFileId(caseFileId)).thenReturn(Optional.empty());
+        when(documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)).thenReturn(List.of());
+        return caseFileId;
+    }
+
+    private CaseAnalysis analysisWith(String resultJson) {
+        CaseAnalysis a = new CaseAnalysis();
+        a.setId(UUID.randomUUID());
+        a.setVersion(1);
+        a.setAnalysisType(AnalysisType.STANDARD);
+        a.setAnalysisStatus(AnalysisStatus.DONE);
+        a.setAnalysisResult(resultJson);
+        a.setUpdatedAt(Instant.now());
+        return a;
     }
 
     // --- helpers ---

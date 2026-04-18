@@ -39,6 +39,14 @@ public final class LegalDomainPromptBuilder {
               "date_licenciement" : date du licenciement ou de la rupture au format YYYY-MM-DD, null si non détectable.
               "conges_contractuels" : nombre de jours de congés prévus au contrat (entier), null si non détectable.
               "prime_anciennete_contractuelle" : pourcentage de prime d'ancienneté au contrat (nombre), null si non détectable.
+              "nom_salarie" : nom de famille du salarié (texte), null si non détectable.
+              "prenom_salarie" : prénom du salarié (texte), null si non détectable.
+              "adresse_salarie" : adresse postale du salarié (rue + code postal + ville concaténés), null si partielle non utilisable.
+              "nom_employeur" : raison sociale de l'employeur (ex: "FinConsult SPRL", "Acme SAS"). Prioriser la raison sociale sur le nom commercial. Null si non détectable.
+              "adresse_employeur" : adresse du siège social de l'employeur (rue + code postal + ville concaténés). Ne pas prendre l'adresse d'une succursale. Null si non détectable.
+              "siret_employeur" : numéro SIREN (9 chiffres) ou SIRET (14 chiffres) pour un employeur français uniquement. Retirer espaces et points. Null pour un dossier belge ou si non détectable.
+              "bce_employeur" : numéro BCE (10 chiffres) pour un employeur belge uniquement. Retirer le préfixe "BE" et les points. Null pour un dossier français ou si non détectable.
+              "representant_employeur" : nom du représentant légal ou RH signataire (ex. administrateur délégué, DRH). Null si non détectable. NE JAMAIS INVENTER un SIRET/BCE/adresse — null en cas de doute.
             "licenciement_validity_detection" : objet qui, à partir des documents, évalue chaque critère de validité du licenciement. Chaque valeur est un objet {reponse, justification} où reponse est l'une de "OUI", "NON", "INCONNU" (utiliser "INCONNU" si les documents ne permettent pas de trancher) et justification est une courte phrase (≤ 500 caractères) citant le document ou l'extrait qui soutient la réponse (chaîne vide acceptée). Champs attendus :
               "FR_CONVOCATION" : lettre de convocation à entretien préalable remise/envoyée avec délai minimal de 5 jours ouvrables.
               "FR_ENTRETIEN" : entretien préalable effectivement tenu, avec information sur le droit d'être assisté.

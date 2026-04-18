@@ -738,4 +738,61 @@ class CaseAnalysisResponseTest {
         doc.setDocumentName(documentName);
         return doc;
     }
+
+    // SF-DT-04-04 : extraction des 8 nouveaux champs identité + normalisation SIRET/BCE
+    @Test
+    void from_travailExtractedData_parsesNewIdentityFields() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "nom_salarie": "Dupont",
+                    "prenom_salarie": "Jean",
+                    "adresse_salarie": "12 rue de la Paix, 75002 Paris",
+                    "nom_employeur": "Acme SAS",
+                    "adresse_employeur": "5 avenue des Champs, 75008 Paris",
+                    "siret_employeur": "123 456 789 01234",
+                    "bce_employeur": "BE 0456.789.123",
+                    "representant_employeur": "Martin Dupond"
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        var t = response.travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.nomSalarie()).isEqualTo("Dupont");
+        assertThat(t.prenomSalarie()).isEqualTo("Jean");
+        assertThat(t.adresseSalarie()).isEqualTo("12 rue de la Paix, 75002 Paris");
+        assertThat(t.nomEmployeur()).isEqualTo("Acme SAS");
+        assertThat(t.adresseEmployeur()).isEqualTo("5 avenue des Champs, 75008 Paris");
+        // Normalisation : espaces retirés → chiffres uniquement
+        assertThat(t.siretEmployeur()).isEqualTo("12345678901234");
+        assertThat(t.bceEmployeur()).isEqualTo("0456789123");
+        assertThat(t.representantEmployeur()).isEqualTo("Martin Dupond");
+    }
+
+    @Test
+    void from_travailExtractedData_missingNewFields_returnsNullTolerantly() {
+        // Rétrocompat : analyse ancienne sans les 8 nouveaux champs identité
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "date_entree": "2020-01-01"
+                  }
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+
+        var t = response.travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.conventionCollective()).isEqualTo("SYNTEC");
+        assertThat(t.nomSalarie()).isNull();
+        assertThat(t.nomEmployeur()).isNull();
+        assertThat(t.siretEmployeur()).isNull();
+        assertThat(t.bceEmployeur()).isNull();
+    }
 }

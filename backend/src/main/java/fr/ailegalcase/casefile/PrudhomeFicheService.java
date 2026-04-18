@@ -112,21 +112,17 @@ public class PrudhomeFicheService {
     }
 
     private PrudhomeFicheResponse buildPrefilledResponse(CaseFile caseFile) {
-        PrudhomeFicheRequest.Demandeur demandeur = new PrudhomeFicheRequest.Demandeur(
-                "", null, null, null, null, null);
-        PrudhomeFicheRequest.Defendeur defendeur = new PrudhomeFicheRequest.Defendeur(
-                null, null, null, null);
-        List<PrudhomeFicheRequest.Demande> demandes = new ArrayList<>();
+        PrefillAccumulator acc = new PrefillAccumulator();
 
         caseAnalysisRepository
                 .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFile.getId(), AnalysisStatus.DONE)
-                .ifPresent(analysis -> prefillFromAnalysis(analysis, demandes));
+                .ifPresent(analysis -> prefillFromAnalysis(analysis, acc));
 
         return new PrudhomeFicheResponse(
                 null,
-                demandeur,
-                defendeur,
-                demandes,
+                acc.buildDemandeur(),
+                acc.buildDefendeur(),
+                acc.demandes,
                 null,
                 null,
                 buildPiecesList(caseFile),
@@ -134,15 +130,62 @@ public class PrudhomeFicheService {
         );
     }
 
-    private void prefillFromAnalysis(CaseAnalysis analysis,
-                                     List<PrudhomeFicheRequest.Demande> demandes) {
+    private void prefillFromAnalysis(CaseAnalysis analysis, PrefillAccumulator acc) {
         CaseAnalysisResponse response = CaseAnalysisResponse.from(analysis);
+        var travail = response.travailExtractedData();
+        if (travail != null) {
+            acc.nomSalarie           = travail.nomSalarie();
+            acc.prenomSalarie        = travail.prenomSalarie();
+            acc.adresseSalarie       = travail.adresseSalarie();
+            acc.professionSalarie    = travail.poste();
+            acc.nomEmployeur         = travail.nomEmployeur();
+            acc.adresseEmployeur     = travail.adresseEmployeur();
+            acc.siretEmployeur       = travail.siretEmployeur();
+            acc.representantEmployeur = travail.representantEmployeur();
+        }
+
         if (response.compensationEstimate() != null) {
             var est = response.compensationEstimate();
-            demandes.add(new PrudhomeFicheRequest.Demande(
-                    "Indemnité de licenciement",
-                    est.indemnite()
+            acc.demandes.add(new PrudhomeFicheRequest.Demande(
+                    "Indemnité de licenciement", est.indemnite()
             ));
+
+            // Demandes additionnelles contextuelles — salaire et type rupture licenciement requis
+            String typeRupture = est.typeRupture();
+            double salaire = est.salaireReference();
+            int anciennete = est.ancienneteAnnees();
+            if (salaire > 0 && typeRupture != null
+                    && (typeRupture.equals("LICENCIEMENT") || typeRupture.equals("LICENCIEMENT_ECONOMIQUE"))) {
+                // Indemnité compensatoire de préavis : 1 mois si < 2 ans anc., 2 mois si ≥ 2 ans
+                double preavisMois = anciennete >= 2 ? 2.0 : 1.0;
+                acc.demandes.add(new PrudhomeFicheRequest.Demande(
+                        "Indemnité compensatoire de préavis (" + (int) preavisMois + " mois)",
+                        salaire * preavisMois
+                ));
+                // DI licenciement sans cause réelle et sérieuse — valeur indicative 1 mois de salaire
+                acc.demandes.add(new PrudhomeFicheRequest.Demande(
+                        "Dommages et intérêts pour licenciement sans cause réelle et sérieuse (valeur indicative)",
+                        salaire
+                ));
+            }
+        }
+    }
+
+    /** Accumulator qui collecte les champs de pré-remplissage depuis plusieurs sources. */
+    private static final class PrefillAccumulator {
+        String nomSalarie, prenomSalarie, adresseSalarie, professionSalarie;
+        String nomEmployeur, adresseEmployeur, siretEmployeur, representantEmployeur;
+        final List<PrudhomeFicheRequest.Demande> demandes = new ArrayList<>();
+
+        PrudhomeFicheRequest.Demandeur buildDemandeur() {
+            return new PrudhomeFicheRequest.Demandeur(
+                    nomSalarie != null ? nomSalarie : "",
+                    prenomSalarie, adresseSalarie, null, null, professionSalarie);
+        }
+
+        PrudhomeFicheRequest.Defendeur buildDefendeur() {
+            return new PrudhomeFicheRequest.Defendeur(
+                    nomEmployeur, adresseEmployeur, siretEmployeur, representantEmployeur);
         }
     }
 
