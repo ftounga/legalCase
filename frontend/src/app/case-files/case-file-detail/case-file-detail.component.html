@@ -154,6 +154,14 @@
                   @if (outdatedDocuments().includes(doc)) {
                     <span class="badge-not-included">Non inclus</span>
                   }
+                  @if (doc.extractionStatus === 'FAILED') {
+                    <span class="badge-extraction-failed"
+                          [matTooltip]="extractionFailureLabel(doc.failureReason)"
+                          matTooltipPosition="above">
+                      <mat-icon class="badge-icon">warning_amber</mat-icon>
+                      Non analysable
+                    </span>
+                  }
                 </span>
               </td>
             </ng-container>
