@@ -19,8 +19,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class DocumentService {
@@ -35,6 +37,7 @@ public class DocumentService {
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB
 
     private final DocumentRepository documentRepository;
+    private final DocumentExtractionRepository extractionRepository;
     private final CaseFileRepository caseFileRepository;
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -43,6 +46,7 @@ public class DocumentService {
     private final PlanLimitService planLimitService;
 
     public DocumentService(DocumentRepository documentRepository,
+                           DocumentExtractionRepository extractionRepository,
                            CaseFileRepository caseFileRepository,
                            CurrentUserResolver currentUserResolver,
                            WorkspaceMemberRepository workspaceMemberRepository,
@@ -50,6 +54,7 @@ public class DocumentService {
                            ApplicationEventPublisher eventPublisher,
                            PlanLimitService planLimitService) {
         this.documentRepository = documentRepository;
+        this.extractionRepository = extractionRepository;
         this.caseFileRepository = caseFileRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -81,8 +86,16 @@ public class DocumentService {
         User user = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(user);
         CaseFile caseFile = resolveCaseFile(caseFileId, workspace);
-        return documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile)
-                .stream().map(this::toResponse).toList();
+        List<Document> documents = documentRepository.findByCaseFileOrderByCreatedAtDesc(caseFile);
+        // SF-121-01 : charge les extractions en batch pour éviter N+1 lors du mapping
+        List<UUID> docIds = documents.stream().map(Document::getId).toList();
+        Map<UUID, DocumentExtraction> extractionsByDocId = extractionRepository
+                .findByDocumentIdIn(docIds)
+                .stream()
+                .collect(Collectors.toMap(e -> e.getDocument().getId(), e -> e, (a, b) -> a));
+        return documents.stream()
+                .map(doc -> toResponse(doc, extractionsByDocId.get(doc.getId())))
+                .toList();
     }
 
     @Transactional
@@ -164,13 +177,21 @@ public class DocumentService {
     }
 
     private DocumentResponse toResponse(Document document) {
+        return toResponse(document, null);
+    }
+
+    private DocumentResponse toResponse(Document document, DocumentExtraction extraction) {
         return new DocumentResponse(
                 document.getId(),
                 document.getCaseFile().getId(),
                 document.getOriginalFilename(),
                 document.getContentType(),
                 document.getFileSize(),
-                document.getCreatedAt()
+                document.getCreatedAt(),
+                extraction != null && extraction.getExtractionStatus() != null
+                        ? extraction.getExtractionStatus().name() : null,
+                extraction != null && extraction.getFailureReason() != null
+                        ? extraction.getFailureReason().name() : null
         );
     }
 }
