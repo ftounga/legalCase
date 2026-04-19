@@ -596,6 +596,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       next: docs => {
         this.documents.set(docs);
         this.applyExtractionFailedOverride();
+        // SF-122-07 fix : charger le preview retry OCR dès qu'un doc FAILED éligible
+        // apparaît pendant le polling (sinon le bandeau ne se met à jour qu'au refresh manuel).
+        if (this.hasRetryableFailedDocs()) {
+          this.loadOcrRetryPreview(caseFileId);
+        } else {
+          this.ocrRetryPreview.set(null);
+        }
       },
     });
   }
