@@ -4,6 +4,8 @@ import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.document.ExtractionFailureReason;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,7 +24,11 @@ import software.amazon.awssdk.services.textract.model.Block;
 import software.amazon.awssdk.services.textract.model.BlockType;
 import software.amazon.awssdk.services.textract.model.Document;
 import software.amazon.awssdk.services.textract.model.FeatureType;
+import software.amazon.awssdk.services.textract.model.UnsupportedDocumentException;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -107,39 +113,115 @@ public class OcrService {
         }
 
         try {
-            AnalyzeDocumentRequest.Builder requestBuilder = AnalyzeDocumentRequest.builder()
-                    .document(Document.builder()
-                            .bytes(SdkBytes.fromByteArray(fileBytes))
-                            .build());
-            if (formsMode) {
-                requestBuilder.featureTypes(FeatureType.TABLES, FeatureType.FORMS);
-            } else {
-                requestBuilder.featureTypes(FeatureType.TABLES);
-            }
-            AnalyzeDocumentResponse response = textractClient.analyzeDocument(requestBuilder.build());
-
-            String text = response.blocks().stream()
-                    .filter(b -> b.blockType() == BlockType.LINE)
-                    .map(Block::text)
-                    .filter(t -> t != null && !t.isBlank())
-                    .collect(Collectors.joining("\n"));
-
-            if (text.isBlank()) {
-                log.info("OCR completed but produced empty text — marking EMPTY_TEXT");
-                return OcrResult.failure(ExtractionFailureReason.EMPTY_TEXT);
-            }
-
-            int pageCount = response.blocks().stream()
-                    .filter(b -> b.page() != null)
-                    .mapToInt(Block::page)
-                    .max()
-                    .orElse(1);
-
-            log.info("OCR succeeded — {} chars extracted from {} page(s)", text.length(), pageCount);
-            return OcrResult.success(text, pageCount);
-
+            return callTextractDirect(fileBytes, formsMode);
+        } catch (UnsupportedDocumentException e) {
+            // SF-122-08 : Textract refuse le format PDF (CCITT Group 4, rotation metadata
+            // exotique, encryption partielle, PDF linéarisé non-standard). On retente en
+            // rasterisant chaque page localement en PNG via PDFBox, format universel
+            // toujours accepté par Textract.
+            log.info("Textract refused PDF format ({}), falling back to page-by-page rasterization",
+                    e.getMessage());
+            return callTextractRasterized(fileBytes, formsMode, pdfPages);
         } catch (Exception e) {
             log.error("OCR failed via Textract — class={}, message={}", e.getClass().getSimpleName(), e.getMessage());
+            return OcrResult.failure(ExtractionFailureReason.OCR_FAILED);
+        }
+    }
+
+    /** Call Textract direct sur le PDF entier (voie rapide, 1 call). */
+    private OcrResult callTextractDirect(byte[] fileBytes, boolean formsMode) {
+        AnalyzeDocumentRequest.Builder requestBuilder = AnalyzeDocumentRequest.builder()
+                .document(Document.builder()
+                        .bytes(SdkBytes.fromByteArray(fileBytes))
+                        .build());
+        if (formsMode) {
+            requestBuilder.featureTypes(FeatureType.TABLES, FeatureType.FORMS);
+        } else {
+            requestBuilder.featureTypes(FeatureType.TABLES);
+        }
+        AnalyzeDocumentResponse response = textractClient.analyzeDocument(requestBuilder.build());
+
+        String text = response.blocks().stream()
+                .filter(b -> b.blockType() == BlockType.LINE)
+                .map(Block::text)
+                .filter(t -> t != null && !t.isBlank())
+                .collect(Collectors.joining("\n"));
+
+        if (text.isBlank()) {
+            log.info("OCR completed but produced empty text — marking EMPTY_TEXT");
+            return OcrResult.failure(ExtractionFailureReason.EMPTY_TEXT);
+        }
+
+        int pageCount = response.blocks().stream()
+                .filter(b -> b.page() != null)
+                .mapToInt(Block::page)
+                .max()
+                .orElse(1);
+
+        log.info("OCR succeeded (direct) — {} chars extracted from {} page(s)", text.length(), pageCount);
+        return OcrResult.success(text, pageCount);
+    }
+
+    /**
+     * SF-122-08 : fallback rasterisation. Render chaque page du PDF en PNG
+     * gray 200 DPI via PDFBox, puis envoie chaque PNG à Textract séparément.
+     * Agrège le texte de toutes les pages réussies avec séparateur `\n\n`.
+     * Si une page échoue (Textract exception), skip + continue. Si toutes
+     * échouent, retourne OCR_FAILED.
+     */
+    private OcrResult callTextractRasterized(byte[] fileBytes, boolean formsMode, int totalPages) {
+        try (PDDocument pdf = Loader.loadPDF(fileBytes)) {
+            PDFRenderer renderer = new PDFRenderer(pdf);
+            StringBuilder fullText = new StringBuilder();
+            int successfulPages = 0;
+
+            for (int pageIdx = 0; pageIdx < pdf.getNumberOfPages(); pageIdx++) {
+                try {
+                    BufferedImage image = renderer.renderImageWithDPI(pageIdx, 200, ImageType.GRAY);
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(image, "PNG", baos);
+                    byte[] pngBytes = baos.toByteArray();
+
+                    AnalyzeDocumentRequest.Builder req = AnalyzeDocumentRequest.builder()
+                            .document(Document.builder()
+                                    .bytes(SdkBytes.fromByteArray(pngBytes))
+                                    .build());
+                    if (formsMode) {
+                        req.featureTypes(FeatureType.TABLES, FeatureType.FORMS);
+                    } else {
+                        req.featureTypes(FeatureType.TABLES);
+                    }
+                    AnalyzeDocumentResponse resp = textractClient.analyzeDocument(req.build());
+
+                    String pageText = resp.blocks().stream()
+                            .filter(b -> b.blockType() == BlockType.LINE)
+                            .map(Block::text)
+                            .filter(t -> t != null && !t.isBlank())
+                            .collect(Collectors.joining("\n"));
+
+                    if (!pageText.isBlank()) {
+                        if (fullText.length() > 0) fullText.append("\n\n");
+                        fullText.append(pageText);
+                        successfulPages++;
+                    }
+                    log.info("OCR rasterized page {}/{} — {} chars", pageIdx + 1, totalPages, pageText.length());
+                } catch (Exception pageErr) {
+                    log.warn("OCR rasterized page {}/{} failed — class={}, message={}",
+                            pageIdx + 1, totalPages, pageErr.getClass().getSimpleName(), pageErr.getMessage());
+                    // Continue avec la page suivante
+                }
+            }
+
+            if (fullText.length() == 0) {
+                log.error("OCR rasterization produced zero text across {} pages", totalPages);
+                return OcrResult.failure(ExtractionFailureReason.OCR_FAILED);
+            }
+
+            log.info("OCR succeeded (rasterized) — {} chars extracted from {}/{} page(s)",
+                    fullText.length(), successfulPages, totalPages);
+            return OcrResult.successRasterized(fullText.toString(), totalPages);
+        } catch (Exception e) {
+            log.error("OCR rasterization failed — class={}, message={}", e.getClass().getSimpleName(), e.getMessage());
             return OcrResult.failure(ExtractionFailureReason.OCR_FAILED);
         }
     }

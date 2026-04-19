@@ -90,9 +90,10 @@ public class ExtractionService {
                     if (ocr.success()) {
                         extraction.setExtractedText(ocr.text());
                         int quotaPages = formsMode ? ocr.pageCount() * OcrService.FORMS_QUOTA_MULTIPLIER : ocr.pageCount();
+                        String extractor = ocr.rasterized() ? "textract-rasterized" : "textract"; // SF-122-08
                         extraction.setExtractionMetadata(
-                                "{\"extractor\":\"textract\",\"formsMode\":%s,\"charCount\":%d,\"pageCount\":%d,\"quotaPages\":%d,\"durationMs\":%d}"
-                                        .formatted(formsMode, ocr.text().length(), ocr.pageCount(), quotaPages, duration));
+                                "{\"extractor\":\"%s\",\"formsMode\":%s,\"charCount\":%d,\"pageCount\":%d,\"quotaPages\":%d,\"durationMs\":%d}"
+                                        .formatted(extractor, formsMode, ocr.text().length(), ocr.pageCount(), quotaPages, duration));
                         extraction.setExtractionStatus(ExtractionStatus.DONE);
                         extraction.setFailureReason(null);
                         incrementOcrUsage(docRef, quotaPages);
