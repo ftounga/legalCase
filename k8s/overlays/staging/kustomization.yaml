@@ -15,6 +15,8 @@ configMapGenerator:
     literals:
       - APP_FRONTEND_URL=https://staging.legalcase.ng-itconsulting.com
       - SENTRY_ENV=staging
+      - AWS_TEXTRACT_ENABLED=true
+      - AWS_TEXTRACT_REGION=eu-west-3
 
 patches:
   - path: service-account-patch.yaml
