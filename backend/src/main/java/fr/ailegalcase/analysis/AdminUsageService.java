@@ -5,6 +5,8 @@ import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.workspace.Workspace;
@@ -19,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
@@ -40,6 +43,7 @@ public class AdminUsageService {
     private final UsageEventRepository usageEventRepository;
     private final UserRepository userRepository;
     private final PlanLimitService planLimitService;
+    private final SubscriptionRepository subscriptionRepository;
     private final CurrentUserResolver currentUserResolver;
 
     public AdminUsageService(AuthAccountRepository authAccountRepository,
@@ -48,6 +52,7 @@ public class AdminUsageService {
                              UsageEventRepository usageEventRepository,
                              UserRepository userRepository,
                              PlanLimitService planLimitService,
+                             SubscriptionRepository subscriptionRepository,
                              CurrentUserResolver currentUserResolver) {
         this.authAccountRepository = authAccountRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -55,6 +60,7 @@ public class AdminUsageService {
         this.usageEventRepository = usageEventRepository;
         this.userRepository = userRepository;
         this.planLimitService = planLimitService;
+        this.subscriptionRepository = subscriptionRepository;
         this.currentUserResolver = currentUserResolver;
     }
 
@@ -81,10 +87,18 @@ public class AdminUsageService {
         long monthlyTokensUsed = usageEventRepository.sumTokensByWorkspaceIdSince(workspaceId, startOfMonth);
         long monthlyTokensBudget = planLimitService.getMonthlyTokenBudgetForWorkspace(workspaceId);
 
+        // SF-122-12 : compteurs OCR pour la page admin
+        String planCode = subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(Subscription::getPlanCode).orElse("FREE");
+        long ocrPagesUsed = PlanLimitService.effectiveMonthlyUsage(workspace, LocalDate.now());
+        long ocrMonthlyBudget = planLimitService.getMonthlyOcrPages(planCode);
+        long ocrPacksRemaining = planLimitService.computeOcrPacksRemaining(workspaceId, workspace, planCode);
+
         List<CaseFile> caseFiles = caseFileRepository.findByWorkspace_Id(workspaceId);
         if (caseFiles.isEmpty()) {
             return new WorkspaceUsageSummaryResponse(0, 0, BigDecimal.ZERO, List.of(), List.of(),
-                    monthlyTokensUsed, monthlyTokensBudget);
+                    monthlyTokensUsed, monthlyTokensBudget,
+                    ocrPagesUsed, ocrMonthlyBudget, ocrPacksRemaining);
         }
 
         Set<UUID> caseFileIds = caseFiles.stream().map(CaseFile::getId).collect(Collectors.toSet());
@@ -94,7 +108,8 @@ public class AdminUsageService {
         List<UsageEvent> events = usageEventRepository.findByCaseFileIdIn(caseFileIds);
         if (events.isEmpty()) {
             return new WorkspaceUsageSummaryResponse(0, 0, BigDecimal.ZERO, List.of(), List.of(),
-                    monthlyTokensUsed, monthlyTokensBudget);
+                    monthlyTokensUsed, monthlyTokensBudget,
+                    ocrPagesUsed, ocrMonthlyBudget, ocrPacksRemaining);
         }
 
         // Totaux globaux
@@ -135,6 +150,7 @@ public class AdminUsageService {
                 .toList();
 
         return new WorkspaceUsageSummaryResponse(totalInput, totalOutput, totalCost, byUser, byCaseFile,
-                monthlyTokensUsed, monthlyTokensBudget);
+                monthlyTokensUsed, monthlyTokensBudget,
+                ocrPagesUsed, ocrMonthlyBudget, ocrPacksRemaining);
     }
 }

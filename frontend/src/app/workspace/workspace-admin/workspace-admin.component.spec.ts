@@ -16,7 +16,8 @@ import { provideRouter } from '@angular/router';
 const mockUsageSummary: WorkspaceUsageSummary = {
   totalTokensInput: 0, totalTokensOutput: 0, totalCost: 0,
   byUser: [], byCaseFile: [],
-  monthlyTokensUsed: 0, monthlyTokensBudget: 0
+  monthlyTokensUsed: 0, monthlyTokensBudget: 0,
+  ocrPagesUsed: 0, ocrMonthlyBudget: 0, ocrPacksRemaining: 0,
 };
 
 const mockWorkspace: Workspace = {
@@ -129,5 +130,30 @@ describe('WorkspaceAdminComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Voir le journal complet');
     expect(fixture.nativeElement.querySelector('table.audit-table')).toBeNull();
+  }));
+
+  // SF-122-12 : pourcentage OCR calculé en fonction des pages consommées / (budget + packs)
+  it('calcule monthlyOcrProgressPercent = used / (budget + packs)', fakeAsync(async () => {
+    setup(of(mockWorkspace), of(mockMembers));
+    component.usage.set({
+      ...mockUsageSummary,
+      ocrPagesUsed: 200, ocrMonthlyBudget: 800, ocrPacksRemaining: 0,
+    });
+    expect(component.monthlyOcrProgressPercent).toBe(25);
+
+    component.usage.set({
+      ...mockUsageSummary,
+      ocrPagesUsed: 200, ocrMonthlyBudget: 800, ocrPacksRemaining: 200,
+    });
+    expect(component.monthlyOcrProgressPercent).toBe(20);
+  }));
+
+  it('monthlyOcrProgressColor passe en warn à ≥80%', fakeAsync(async () => {
+    setup(of(mockWorkspace), of(mockMembers));
+    component.usage.set({
+      ...mockUsageSummary,
+      ocrPagesUsed: 720, ocrMonthlyBudget: 800, ocrPacksRemaining: 0,
+    });
+    expect(component.monthlyOcrProgressColor).toBe('warn');
   }));
 });

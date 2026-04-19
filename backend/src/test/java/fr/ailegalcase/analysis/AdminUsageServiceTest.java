@@ -5,6 +5,8 @@ import fr.ailegalcase.auth.AuthAccountRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.auth.UserRepository;
 import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.billing.Subscription;
+import fr.ailegalcase.billing.SubscriptionRepository;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.casefile.CaseFileRepository;
@@ -39,10 +41,12 @@ class AdminUsageServiceTest {
     private final UsageEventRepository usageEventRepo = mock(UsageEventRepository.class);
     private final UserRepository userRepo = mock(UserRepository.class);
     private final PlanLimitService planLimitService = mock(PlanLimitService.class);
+    private final SubscriptionRepository subscriptionRepo = mock(SubscriptionRepository.class);
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
 
     private final AdminUsageService service = new AdminUsageService(
-            authAccountRepo, memberRepo, caseFileRepo, usageEventRepo, userRepo, planLimitService, currentUserResolver);
+            authAccountRepo, memberRepo, caseFileRepo, usageEventRepo, userRepo, planLimitService,
+            subscriptionRepo, currentUserResolver);
 
     // U-01 : OWNER → retourne summary avec totaux corrects
     @Test
@@ -172,6 +176,44 @@ class AdminUsageServiceTest {
 
         assertThat(result.monthlyTokensUsed()).isEqualTo(123_456L);
         assertThat(result.monthlyTokensBudget()).isEqualTo(3_000_000L);
+    }
+
+    // U-09 (SF-122-12) : ocrPagesUsed, ocrMonthlyBudget, ocrPacksRemaining présents dans la réponse
+    @Test
+    void getWorkspaceSummary_returnsOcrQuotaInfo() {
+        var ctx = buildContext("OWNER");
+        // workspace sur SOLO, 200 pages consommées ce mois, 500 pages en pack restantes
+        ctx.workspace.setOcrPagesUsedCurrentMonth(200);
+        ctx.workspace.setOcrUsageLastResetDate(java.time.LocalDate.now());
+        Subscription sub = new Subscription();
+        sub.setPlanCode("SOLO");
+        when(subscriptionRepo.findByWorkspaceId(ctx.workspace.getId())).thenReturn(Optional.of(sub));
+        when(planLimitService.getMonthlyOcrPages("SOLO")).thenReturn(800);
+        when(planLimitService.computeOcrPacksRemaining(eq(ctx.workspace.getId()), any(), eq("SOLO")))
+                .thenReturn(500);
+        when(caseFileRepo.findByWorkspace_Id(ctx.workspace.getId())).thenReturn(List.of());
+
+        WorkspaceUsageSummaryResponse result = service.getWorkspaceSummary(ctx.oidcUser, ctx.auth);
+
+        assertThat(result.ocrPagesUsed()).isEqualTo(200L);
+        assertThat(result.ocrMonthlyBudget()).isEqualTo(800L);
+        assertThat(result.ocrPacksRemaining()).isEqualTo(500L);
+    }
+
+    // U-10 : workspace sans subscription → fallback FREE
+    @Test
+    void getWorkspaceSummary_noSubscription_defaultsFreePlanOcr() {
+        var ctx = buildContext("OWNER");
+        when(subscriptionRepo.findByWorkspaceId(ctx.workspace.getId())).thenReturn(Optional.empty());
+        when(planLimitService.getMonthlyOcrPages("FREE")).thenReturn(100);
+        when(planLimitService.computeOcrPacksRemaining(eq(ctx.workspace.getId()), any(), eq("FREE")))
+                .thenReturn(0);
+        when(caseFileRepo.findByWorkspace_Id(ctx.workspace.getId())).thenReturn(List.of());
+
+        WorkspaceUsageSummaryResponse result = service.getWorkspaceSummary(ctx.oidcUser, ctx.auth);
+
+        assertThat(result.ocrMonthlyBudget()).isEqualTo(100L);
+        assertThat(result.ocrPacksRemaining()).isZero();
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────

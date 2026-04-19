@@ -208,6 +208,22 @@ export class WorkspaceAdminComponent implements OnInit {
     return 'primary';
   }
 
+  /** SF-122-12 : pourcentage OCR = used / (monthlyBudget + packsRemaining) */
+  get monthlyOcrProgressPercent(): number {
+    const u = this.usage();
+    if (!u) return 0;
+    const total = u.ocrMonthlyBudget + u.ocrPacksRemaining;
+    if (total === 0) return 0;
+    return Math.min(100, Math.round((u.ocrPagesUsed / total) * 100));
+  }
+
+  get monthlyOcrProgressColor(): 'primary' | 'accent' | 'warn' {
+    const p = this.monthlyOcrProgressPercent;
+    if (p >= 80) return 'warn';
+    if (p >= 60) return 'accent';
+    return 'primary';
+  }
+
   formatTokens(n: number): string {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
     if (n >= 1_000) return (n / 1_000).toFixed(0) + 'K';

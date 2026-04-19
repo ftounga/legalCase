@@ -10,5 +10,8 @@ public record WorkspaceUsageSummaryResponse(
         List<UserUsageSummary> byUser,
         List<CaseFileUsageSummary> byCaseFile,
         long monthlyTokensUsed,
-        long monthlyTokensBudget
+        long monthlyTokensBudget,
+        long ocrPagesUsed,
+        long ocrMonthlyBudget,
+        long ocrPacksRemaining
 ) {}
