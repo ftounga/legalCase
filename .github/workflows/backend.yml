@@ -98,6 +98,9 @@ jobs:
           STRIPE_PRICE_ID_TOKENS_1M: ${{ secrets.STRIPE_PRICE_ID_TOKENS_1M_TEST }}
           STRIPE_PRICE_ID_TOKENS_5M: ${{ secrets.STRIPE_PRICE_ID_TOKENS_5M_TEST }}
           STRIPE_PRICE_ID_TOKENS_20M: ${{ secrets.STRIPE_PRICE_ID_TOKENS_20M_TEST }}
+          STRIPE_PRICE_ID_OCR_500: ${{ secrets.STRIPE_PRICE_ID_OCR_500_TEST }}
+          STRIPE_PRICE_ID_OCR_2000: ${{ secrets.STRIPE_PRICE_ID_OCR_2000_TEST }}
+          STRIPE_PRICE_ID_OCR_8000: ${{ secrets.STRIPE_PRICE_ID_OCR_8000_TEST }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
@@ -123,6 +126,9 @@ jobs:
             --from-literal=STRIPE_PRICE_ID_TOKENS_1M="$STRIPE_PRICE_ID_TOKENS_1M" \
             --from-literal=STRIPE_PRICE_ID_TOKENS_5M="$STRIPE_PRICE_ID_TOKENS_5M" \
             --from-literal=STRIPE_PRICE_ID_TOKENS_20M="$STRIPE_PRICE_ID_TOKENS_20M" \
+            --from-literal=STRIPE_PRICE_ID_OCR_500="$STRIPE_PRICE_ID_OCR_500" \
+            --from-literal=STRIPE_PRICE_ID_OCR_2000="$STRIPE_PRICE_ID_OCR_2000" \
+            --from-literal=STRIPE_PRICE_ID_OCR_8000="$STRIPE_PRICE_ID_OCR_8000" \
             --from-literal=MAIL_HOST="$MAIL_HOST" \
             --from-literal=MAIL_USERNAME="$MAIL_USERNAME" \
             --from-literal=MAIL_PASSWORD="$MAIL_PASSWORD" \

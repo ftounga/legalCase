@@ -13,6 +13,8 @@ configMapGenerator:
     literals:
       - APP_FRONTEND_URL=https://legalcase.ng-itconsulting.com
       - SENTRY_ENV=production
+      - AWS_TEXTRACT_ENABLED=true
+      - AWS_TEXTRACT_REGION=eu-west-3
 
 patches:
   - path: ingress-patch.yaml
