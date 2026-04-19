@@ -130,10 +130,13 @@ public class TopupCheckoutService {
 
         try {
             Stripe.apiKey = secretKey;
+            // SF-122-10 : topup_kind=ocr transporte l'info jusqu'au snackbar pour
+            // différencier le message "Pages OCR ajoutées" vs "Tokens ajoutés".
+            String kindSuffix = OcrPack.isOcrPack(packCode) ? "&topup_kind=ocr" : "";
             SessionCreateParams.Builder params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
-                    .setSuccessUrl(frontendUrl + "/workspace/billing?topup=success")
-                    .setCancelUrl(frontendUrl + "/workspace/billing?topup=canceled")
+                    .setSuccessUrl(frontendUrl + "/workspace/billing?topup=success" + kindSuffix)
+                    .setCancelUrl(frontendUrl + "/workspace/billing?topup=canceled" + kindSuffix)
                     .addLineItem(SessionCreateParams.LineItem.builder()
                             .setPrice(priceId)
                             .setQuantity(1L)

@@ -28,10 +28,16 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   buying = signal<string | null>(null);
   private pollSub?: Subscription;
 
-  readonly packs = [
+  readonly tokenPacks = [
     { code: 'TOKENS_1M',  label: '1M tokens',  tokens: '1 000 000',  price: '9,90 €'  },
     { code: 'TOKENS_5M',  label: '5M tokens',  tokens: '5 000 000',  price: '39,90 €' },
     { code: 'TOKENS_20M', label: '20M tokens', tokens: '20 000 000', price: '129,90 €' },
+  ];
+
+  readonly ocrPacks = [
+    { code: 'OCR_500',  label: 'Pack OCR 500',   pages: '500',    price: '19,00 €'  },
+    { code: 'OCR_2000', label: 'Pack OCR 2 000', pages: '2 000',  price: '59,00 €'  },
+    { code: 'OCR_8000', label: 'Pack OCR 8 000', pages: '8 000',  price: '199,00 €' },
   ];
 
   readonly plans = [
@@ -123,13 +129,19 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
           duration: 4000
         });
       } else if (params['topup'] === 'success') {
-        this.snackBar.open('Tokens ajoutés à votre compte !', 'Fermer', {
-          duration: 6000, panelClass: ['snack-success']
-        });
+        const isOcr = params['topup_kind'] === 'ocr';
+        this.snackBar.open(
+          isOcr ? 'Pages OCR ajoutées à votre quota !' : 'Tokens ajoutés à votre compte !',
+          'Fermer',
+          { duration: 6000, panelClass: ['snack-success'] }
+        );
       } else if (params['topup'] === 'canceled') {
-        this.snackBar.open('Achat de tokens annulé.', 'Fermer', {
-          duration: 4000
-        });
+        const isOcr = params['topup_kind'] === 'ocr';
+        this.snackBar.open(
+          isOcr ? 'Achat de pages OCR annulé.' : 'Achat de tokens annulé.',
+          'Fermer',
+          { duration: 4000 }
+        );
       }
     });
   }

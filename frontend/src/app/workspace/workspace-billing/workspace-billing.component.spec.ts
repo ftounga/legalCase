@@ -114,9 +114,14 @@ describe('WorkspaceBillingComponent', () => {
     expect(analyticsService.trackEvent).toHaveBeenCalledWith('upgrade_clicked', { plan: 'SOLO' });
   });
 
-  it('affiche 3 packs topup', () => {
-    expect(component.packs.length).toBe(3);
-    expect(component.packs.map(p => p.code)).toEqual(['TOKENS_1M', 'TOKENS_5M', 'TOKENS_20M']);
+  it('affiche 3 packs tokens', () => {
+    expect(component.tokenPacks.length).toBe(3);
+    expect(component.tokenPacks.map(p => p.code)).toEqual(['TOKENS_1M', 'TOKENS_5M', 'TOKENS_20M']);
+  });
+
+  it('affiche 3 packs OCR', () => {
+    expect(component.ocrPacks.length).toBe(3);
+    expect(component.ocrPacks.map(p => p.code)).toEqual(['OCR_500', 'OCR_2000', 'OCR_8000']);
   });
 
   it('buyTopup — appelle BillingService.createTopupSession', () => {
@@ -166,6 +171,20 @@ describe('WorkspaceBillingComponent — topup query params', () => {
     await setupWith({ topup: 'canceled' });
     expect(snackBarSpy.open).toHaveBeenCalledWith(
       'Achat de tokens annulé.', 'Fermer', expect.objectContaining({ duration: 4000 })
+    );
+  });
+
+  it('?topup=success&topup_kind=ocr — affiche le snackbar OCR', async () => {
+    await setupWith({ topup: 'success', topup_kind: 'ocr' });
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Pages OCR ajoutées à votre quota !', 'Fermer', expect.objectContaining({ duration: 6000 })
+    );
+  });
+
+  it('?topup=canceled&topup_kind=ocr — affiche le snackbar d\'annulation OCR', async () => {
+    await setupWith({ topup: 'canceled', topup_kind: 'ocr' });
+    expect(snackBarSpy.open).toHaveBeenCalledWith(
+      'Achat de pages OCR annulé.', 'Fermer', expect.objectContaining({ duration: 4000 })
     );
   });
 });
