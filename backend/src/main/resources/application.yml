@@ -131,6 +131,7 @@ aws:
     region: ${AWS_TEXTRACT_REGION:eu-west-3}
     max-size-mb: ${AWS_TEXTRACT_MAX_SIZE_MB:5}
     max-pages: ${AWS_TEXTRACT_MAX_PAGES:11}
+    max-concurrent-calls: ${AWS_TEXTRACT_MAX_CONCURRENT_CALLS:3}
 
 server:
   port: 8080

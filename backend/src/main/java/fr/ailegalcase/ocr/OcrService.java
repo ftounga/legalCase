@@ -31,6 +31,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 /**
@@ -55,6 +56,13 @@ public class OcrService {
     private final TextractClient textractClient;
     private final OcrProperties properties;
     private final PlanLimitService planLimitService;
+    /**
+     * SF-122-09 : limite les calls Textract simultanés (acquire/release autour
+     * de chaque analyzeDocument). Empêche les bursts parallèles (9 extractions
+     * qui démarrent en même temps) de saturer AWS et de déclencher des
+     * ProvisionedThroughputExceededException non rattrapables.
+     */
+    private final Semaphore textractSemaphore;
 
     public OcrService(Optional<TextractClient> textractClient,
                       OcrProperties properties,
@@ -62,6 +70,7 @@ public class OcrService {
         this.textractClient = textractClient.orElse(null);
         this.properties = properties;
         this.planLimitService = planLimitService;
+        this.textractSemaphore = new Semaphore(properties.maxConcurrentCalls());
     }
 
     /** SF-122-03 : coefficient de consommation quota du mode FORMS (Textract 4,3× plus cher, marge 30 %). */
@@ -139,7 +148,7 @@ public class OcrService {
         } else {
             requestBuilder.featureTypes(FeatureType.TABLES);
         }
-        AnalyzeDocumentResponse response = textractClient.analyzeDocument(requestBuilder.build());
+        AnalyzeDocumentResponse response = callTextractThrottled(requestBuilder.build());
 
         String text = response.blocks().stream()
                 .filter(b -> b.blockType() == BlockType.LINE)
@@ -191,7 +200,7 @@ public class OcrService {
                     } else {
                         req.featureTypes(FeatureType.TABLES);
                     }
-                    AnalyzeDocumentResponse resp = textractClient.analyzeDocument(req.build());
+                    AnalyzeDocumentResponse resp = callTextractThrottled(req.build());
 
                     String pageText = resp.blocks().stream()
                             .filter(b -> b.blockType() == BlockType.LINE)
@@ -223,6 +232,28 @@ public class OcrService {
         } catch (Exception e) {
             log.error("OCR rasterization failed — class={}, message={}", e.getClass().getSimpleName(), e.getMessage());
             return OcrResult.failure(ExtractionFailureReason.OCR_FAILED);
+        }
+    }
+
+    /**
+     * SF-122-09 : wrap autour de {@code textractClient.analyzeDocument} avec
+     * semaphore. Bloque en attente d'un permit si trop de calls concurrents
+     * sont en vol. Libère dans un finally pour garantir l'équilibre.
+     *
+     * Interruption pendant l'acquire → InterruptedException propagée en
+     * RuntimeException (catchée par le catch global de tryOcr → OCR_FAILED).
+     */
+    private AnalyzeDocumentResponse callTextractThrottled(AnalyzeDocumentRequest request) {
+        try {
+            textractSemaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for Textract semaphore", e);
+        }
+        try {
+            return textractClient.analyzeDocument(request);
+        } finally {
+            textractSemaphore.release();
         }
     }
 
