@@ -446,6 +446,23 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     if (!confirm(message)) return;
 
     this.ocrRetryInProgress.set(true);
+    // SF-122-07 fix : remplace le virtuel FAILED par un virtuel PROCESSING le
+    // temps du retry, pour que la step 2 "Analyse des documents" passe en bleu
+    // progression (au lieu de rester en rouge figé). Le polling mettra à jour
+    // quand les extractions aboutiront.
+    this.analysisJobs.update(jobs => [
+      ...jobs.filter(j => j.jobType !== 'DOCUMENT_ANALYSIS' && j.jobType !== 'CHUNK_ANALYSIS'),
+      {
+        jobType: 'DOCUMENT_ANALYSIS',
+        status: 'PROCESSING',
+        totalItems: preview.failedDocsCount,
+        processedItems: 0,
+        progressPercentage: 0,
+      },
+    ]);
+    this.docAnalysisPending.set(true);
+    this.ocrRetryPreview.set(null); // masque le bandeau pendant le retry
+
     this.ocrRetryService.retry(id).subscribe({
       next: res => {
         this.ocrRetryInProgress.set(false);
@@ -458,6 +475,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.ocrRetryInProgress.set(false);
+        // Restaure l'affichage original en cas d'erreur (le polling re-sync sur état réel)
+        this.docAnalysisPending.set(false);
+        this.applyExtractionFailedOverride();
+        this.loadOcrRetryPreview(id);
         const msg = err?.status === 429
             ? 'Un retry OCR a déjà été lancé récemment. Réessayez dans quelques minutes.'
             : 'Erreur lors du lancement du retry OCR.';
@@ -594,10 +615,14 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   private refreshDocumentsAndApplyOverride(caseFileId: string): void {
     this.documentService.list(caseFileId).subscribe({
       next: docs => {
-        this.documents.set(docs);
+        // SF-122-07 fix anti-flicker : n'update le signal que si le contenu a
+        // vraiment changé (id + extractionStatus + failureReason). Sinon toutes
+        // les 3s la liste clignotait à cause du re-diff Angular sur la nouvelle
+        // référence tableau.
+        if (!this.documentsContentEqual(this.documents(), docs)) {
+          this.documents.set(docs);
+        }
         this.applyExtractionFailedOverride();
-        // SF-122-07 fix : charger le preview retry OCR dès qu'un doc FAILED éligible
-        // apparaît pendant le polling (sinon le bandeau ne se met à jour qu'au refresh manuel).
         if (this.hasRetryableFailedDocs()) {
           this.loadOcrRetryPreview(caseFileId);
         } else {
@@ -605,6 +630,20 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         }
       },
     });
+  }
+
+  /** Compare 2 listes de Documents sur les champs qui comptent pour le rendu. */
+  private documentsContentEqual(a: Document[], b: Document[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      const x = a[i], y = b[i];
+      if (x.id !== y.id
+          || x.extractionStatus !== y.extractionStatus
+          || x.failureReason !== y.failureReason) {
+        return false;
+      }
+    }
+    return true;
   }
 
   canAnalyze(): boolean {
