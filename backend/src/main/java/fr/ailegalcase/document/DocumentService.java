@@ -101,11 +101,19 @@ public class DocumentService {
     /** Surcharge rétrocompat — garde les callers existants (tests, autres services) qui ne passent pas le flag. */
     @Transactional
     public DocumentResponse upload(UUID caseFileId, MultipartFile file, OidcUser oidcUser, String provider, Principal principal) {
-        return upload(caseFileId, file, false, oidcUser, provider, principal);
+        return upload(caseFileId, file, false, true, oidcUser, provider, principal);
+    }
+
+    /** Surcharge rétrocompat SF-122-03 : ocrEnabled défaut true. */
+    @Transactional
+    public DocumentResponse upload(UUID caseFileId, MultipartFile file, boolean ocrFormsMode,
+                                    OidcUser oidcUser, String provider, Principal principal) {
+        return upload(caseFileId, file, ocrFormsMode, true, oidcUser, provider, principal);
     }
 
     @Transactional
     public DocumentResponse upload(UUID caseFileId, MultipartFile file, boolean ocrFormsMode,
+                                    boolean ocrEnabled,
                                     OidcUser oidcUser, String provider, Principal principal) {
         validateFile(file);
 
@@ -137,6 +145,7 @@ public class DocumentService {
         document.setFileSize(file.getSize());
         document.setStorageKey(storageKey);
         document.setOcrFormsMode(ocrFormsMode); // SF-122-03
+        document.setOcrEnabled(ocrEnabled);     // SF-122-07
         documentRepository.save(document);
         eventPublisher.publishEvent(new DocumentUploadedEvent(document.getId(), storageKey, file.getContentType()));
 

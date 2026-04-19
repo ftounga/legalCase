@@ -50,6 +50,16 @@ public class Document {
     @Column(name = "ocr_forms_mode", nullable = false)
     private boolean ocrFormsMode = false;
 
+    /**
+     * SF-122-07 : si true (défaut), un PDF scanné déclenche l'OCR Textract en
+     * fallback de PDFBox vide. Si false, le scan reste FAILED EMPTY_TEXT sans
+     * consommer de quota OCR — utile pour les docs d'archivage / partage
+     * client qui n'ont pas besoin d'être dans l'analyse IA.
+     * L'avocat peut toujours activer l'OCR a posteriori via le bouton retry.
+     */
+    @Column(name = "ocr_enabled", nullable = false)
+    private boolean ocrEnabled = true;
+
     @PrePersist
     void onPrePersist() {
         this.createdAt = Instant.now();
