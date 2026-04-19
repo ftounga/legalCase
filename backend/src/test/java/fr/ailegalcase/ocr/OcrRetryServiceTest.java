@@ -55,4 +55,17 @@ class OcrRetryServiceTest {
 
         assertThat(OcrRetryService.isRetryWorthAttempt(e)).isTrue();
     }
+
+    // SF-122-07 bug fix : doc avec ocrEnabled=false toujours éligible (l'avocat
+    // clique retry précisément pour activer l'OCR a posteriori)
+    @Test
+    void isRetryWorth_emptyTextOcrDisabledInitially_returnsTrue() {
+        DocumentExtraction e = new DocumentExtraction();
+        e.setExtractionStatus(ExtractionStatus.FAILED);
+        e.setFailureReason(ExtractionFailureReason.EMPTY_TEXT);
+        // Metadata "internal" seul (OCR skipé à cause de ocrEnabled=false à l'upload)
+        e.setExtractionMetadata("{\"extractor\":\"internal\",\"charCount\":0,\"reason\":\"EMPTY_TEXT\"}");
+
+        assertThat(OcrRetryService.isRetryWorthAttempt(e)).isTrue();
+    }
 }
