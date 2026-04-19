@@ -239,6 +239,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   canCompare = signal(false);
   deletingDocId = signal<string | null>(null);
   pendingFiles = signal<File[]>([]);
+  /** SF-122-03 : si coché, les PDF uploadés bénéficient de l'OCR Textract approfondi
+   * (FORMS + TABLES). Compte ×3 dans le quota OCR. Batch-level (tous les fichiers
+   * du batch partagent le flag). Reset après chaque upload. */
+  ocrFormsMode = signal(false);
   fileUploadProgresses = signal<Map<string, number>>(new Map());
 
   readonly overallUploadProgress = computed(() => {
@@ -844,8 +848,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const initialProgresses = new Map<string, number>(files.map(f => [f.name, 0]));
     this.fileUploadProgresses.set(initialProgresses);
 
+    const formsMode = this.ocrFormsMode();
     const uploads = files.map(f =>
-      this.documentService.uploadWithProgress(caseFileId, f).pipe(
+      this.documentService.uploadWithProgress(caseFileId, f, formsMode).pipe(
         tap(event => {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             const pct = Math.round((event.loaded / event.total) * 100);
@@ -865,6 +870,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       this.uploading.set(false);
       this.fileUploadProgresses.set(new Map());
       this.pendingFiles.set([]);
+      this.ocrFormsMode.set(false); // SF-122-03 : reset après chaque batch
 
       if (succeeded.length > 0) {
         this.documents.update(docs => [...succeeded, ...docs]);

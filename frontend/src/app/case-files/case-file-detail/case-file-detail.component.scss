@@ -301,6 +301,35 @@
   border-radius: 0;
 }
 
+/* SF-122-03 : checkbox OCR approfondi (formulaires) */
+.ocr-forms-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] {
+    cursor: pointer;
+    margin: 0;
+    accent-color: var(--color-accent);
+  }
+
+  input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+  }
+
+  .ocr-forms-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    font-style: italic;
+  }
+}
+
 /* Placeholder analyse IA */
 .analysis-placeholder {
   display: flex;

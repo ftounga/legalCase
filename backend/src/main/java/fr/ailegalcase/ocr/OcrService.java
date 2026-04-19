@@ -55,6 +55,9 @@ public class OcrService {
         this.planLimitService = planLimitService;
     }
 
+    /** SF-122-03 : coefficient de consommation quota du mode FORMS (Textract 4,3× plus cher, marge 30 %). */
+    public static final int FORMS_QUOTA_MULTIPLIER = 3;
+
     /**
      * Tente une extraction OCR du document. Idempotent (aucun état interne).
      * Ne met pas à jour le compteur {@code ocr_pages_used} du workspace —
@@ -65,13 +68,16 @@ public class OcrService {
      * 2. taille fichier ≤ 5 Mo (AWS sync)
      * 3. nombre de pages PDF ≤ 11 (AWS sync)
      * 4. SF-122-02 : quota mensuel + hard cap journalier du workspace
-     * 5. appel Textract
+     *    (pages effectives = pdfPages × 3 si formsMode=true)
+     * 5. appel Textract (FeatureType.TABLES + FORMS si formsMode, TABLES seul sinon)
      *
      * @param fileBytes   contenu binaire du fichier
      * @param workspaceId workspace du document (pour le gate quota)
+     * @param formsMode   SF-122-03 — true pour analyse approfondie (CERFA / formulaires admin),
+     *                    active FeatureType.FORMS (× 3 quota)
      * @return {@link OcrResult} success avec texte + pageCount, ou failure avec motif
      */
-    public OcrResult tryOcr(byte[] fileBytes, UUID workspaceId) {
+    public OcrResult tryOcr(byte[] fileBytes, UUID workspaceId, boolean formsMode) {
         if (!properties.enabled() || textractClient == null) {
             log.debug("OCR skipped — textract.enabled=false");
             return OcrResult.failure(ExtractionFailureReason.EMPTY_TEXT);
@@ -89,21 +95,25 @@ public class OcrService {
             return OcrResult.failure(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
         }
 
-        // SF-122-02 : gate quota avant tout appel AWS (zéro coût si quota atteint).
-        if (workspaceId != null && planLimitService.isOcrQuotaExceeded(workspaceId, pdfPages)) {
-            log.info("OCR blocked — quota exceeded for workspace {} (requested {} pages)",
-                    workspaceId, pdfPages);
+        // SF-122-02 + SF-122-03 : gate quota avec multiplier FORMS si actif.
+        int quotaPages = formsMode ? pdfPages * FORMS_QUOTA_MULTIPLIER : pdfPages;
+        if (workspaceId != null && planLimitService.isOcrQuotaExceeded(workspaceId, quotaPages)) {
+            log.info("OCR blocked — quota exceeded for workspace {} (formsMode={}, {} pages effective)",
+                    workspaceId, formsMode, quotaPages);
             return OcrResult.failure(ExtractionFailureReason.OCR_QUOTA_EXCEEDED);
         }
 
         try {
-            AnalyzeDocumentResponse response = textractClient.analyzeDocument(
-                    AnalyzeDocumentRequest.builder()
-                            .document(Document.builder()
-                                    .bytes(SdkBytes.fromByteArray(fileBytes))
-                                    .build())
-                            .featureTypes(FeatureType.TABLES)
+            AnalyzeDocumentRequest.Builder requestBuilder = AnalyzeDocumentRequest.builder()
+                    .document(Document.builder()
+                            .bytes(SdkBytes.fromByteArray(fileBytes))
                             .build());
+            if (formsMode) {
+                requestBuilder.featureTypes(FeatureType.TABLES, FeatureType.FORMS);
+            } else {
+                requestBuilder.featureTypes(FeatureType.TABLES);
+            }
+            AnalyzeDocumentResponse response = textractClient.analyzeDocument(requestBuilder.build());
 
             String text = response.blocks().stream()
                     .filter(b -> b.blockType() == BlockType.LINE)

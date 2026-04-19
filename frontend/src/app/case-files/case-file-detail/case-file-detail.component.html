@@ -127,6 +127,17 @@
               </div>
             }
           </div>
+          <!-- SF-122-03 : checkbox mode OCR approfondi (formulaires CERFA / préfecture) -->
+          <label class="ocr-forms-toggle"
+                 matTooltip="Active l'OCR approfondi (détection des champs de formulaire) pour CERFA, déclarations préfecture, URSSAF. Ce document compte ×3 dans votre quota OCR."
+                 matTooltipPosition="above">
+            <input type="checkbox"
+                   [checked]="ocrFormsMode()"
+                   (change)="ocrFormsMode.set(!ocrFormsMode())"
+                   [disabled]="uploading()">
+            <span>Analyse approfondie formulaire administratif</span>
+            <span class="ocr-forms-hint">(×3 quota OCR)</span>
+          </label>
           <button mat-raised-button color="accent" (click)="uploadPendingFiles()" [disabled]="!canSubmitUpload()" class="upload-submit-btn">
             @if (uploading()) {
               <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
