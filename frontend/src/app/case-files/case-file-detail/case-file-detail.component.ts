@@ -18,6 +18,7 @@ import { DocumentDeleteDialogComponent } from './document-delete-dialog.componen
 import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
 import { FullReanalysisConfirmDialogComponent, FullReanalysisConfirmResult } from './full-reanalysis-confirm-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { DocumentPreviewDialogComponent, DocumentPreviewDialogData } from '../document-preview-dialog/document-preview-dialog.component';
 import { CaseFileEditDialogComponent, CaseFileEditDialogData } from '../case-file-edit-dialog/case-file-edit-dialog.component';
 import { ShareDialogComponent, ShareDialogData } from '../share-dialog/share-dialog.component';
 import { CaseFileService } from '../../core/services/case-file.service';
@@ -168,7 +169,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     return type === 'RUPTURE_CONVENTIONNELLE' && this.workspaceCountry() === 'FRANCE';
   });
 
-  readonly docColumns = ['name', 'type', 'size', 'date', 'actions'];
+  readonly docColumns = ['name', 'type', 'size', 'date', 'preview', 'actions'];
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));
 
   // documents uploaded after the last synthesis — not covered by the current synthesis
@@ -1052,6 +1053,25 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   canDeleteDocument(): boolean {
     return !this.fullAnalysisRunning() && !this.enrichedAnalysisRunning() && !this.docAnalysisRunning();
+  }
+
+  /** SF-127-01 : ouvre le dialog d'aperçu du document (texte extrait + 1re page PDF). */
+  canPreviewDocument(doc: Document): boolean {
+    const status = doc.extractionStatus;
+    return status === 'DONE' || status === 'FAILED';
+  }
+
+  openPreview(doc: Document): void {
+    if (!this.canPreviewDocument(doc)) return;
+    const data: DocumentPreviewDialogData = {
+      caseFileId: this.caseFile()!.id,
+      documentId: doc.id,
+    };
+    this.dialog.open(DocumentPreviewDialogComponent, {
+      data,
+      width: '720px',
+      maxWidth: '90vw',
+    });
   }
 
   deleteDocument(doc: Document): void {
