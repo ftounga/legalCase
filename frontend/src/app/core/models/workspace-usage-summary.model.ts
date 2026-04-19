@@ -22,4 +22,7 @@ export interface WorkspaceUsageSummary {
   byCaseFile: CaseFileUsageSummary[];
   monthlyTokensUsed: number;
   monthlyTokensBudget: number;
+  ocrPagesUsed: number;
+  ocrMonthlyBudget: number;
+  ocrPacksRemaining: number;
 }
