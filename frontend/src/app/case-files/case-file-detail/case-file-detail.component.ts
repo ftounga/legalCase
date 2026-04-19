@@ -413,6 +413,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
     if ((hasPendingOrProcessing || forceStart || this.docAnalysisPending() || this.caseAnalysisPending()) && !this.pollingInterval) {
       this.pollingInterval = setInterval(() => {
+        // SF-121-03 : si toutes les extractions ont échoué, le backend n'émet
+        // jamais de `ExtractionDoneEvent` (SF-121-01) donc aucun job DOCUMENT_ANALYSIS
+        // ne sera créé. Sans cette garde, le placeholder PENDING posé à l'upload
+        // reste en sablier indéfiniment + polling infini à vide.
+        if (this.docAnalysisPending()) {
+          this.detectAllExtractionsFailed(caseFileId);
+        }
         this.analysisJobService.getJobs(caseFileId).subscribe({
           next: updated => {
             if (updated.length === 0) return; // pipeline not started yet — keep placeholders
@@ -452,6 +459,36 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     } else if (!hasPendingOrProcessing && !forceStart && !this.docAnalysisPending() && !this.caseAnalysisPending()) {
       this.stopPolling();
     }
+  }
+
+  /**
+   * SF-121-03 : si tous les documents du dossier ont extractionStatus === 'FAILED',
+   * pose un job virtuel DOCUMENT_ANALYSIS en FAILED pour débloquer la pipeline UI
+   * (step 2 passe en rouge + polling stoppé). Rien n'est persisté côté backend —
+   * c'est une construction locale consommée par AnalysisPipelineComponent.
+   */
+  private detectAllExtractionsFailed(caseFileId: string): void {
+    this.documentService.list(caseFileId).subscribe({
+      next: docs => {
+        this.documents.set(docs);
+        if (docs.length === 0) return;
+        if (!docs.every(d => d.extractionStatus === 'FAILED')) return;
+
+        const virtualFailed: AnalysisJob = {
+          jobType: 'DOCUMENT_ANALYSIS',
+          status: 'FAILED',
+          totalItems: docs.length,
+          processedItems: docs.length,
+          progressPercentage: 100,
+        };
+        this.analysisJobs.update(jobs => [
+          ...jobs.filter(j => j.jobType !== 'DOCUMENT_ANALYSIS' && j.jobType !== 'CHUNK_ANALYSIS'),
+          virtualFailed,
+        ]);
+        this.docAnalysisPending.set(false);
+        this.stopPolling();
+      },
+    });
   }
 
   canAnalyze(): boolean {
