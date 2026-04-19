@@ -78,7 +78,7 @@ public class OcrRetryService {
     @Transactional(readOnly = true)
     public OcrRetryPreviewResponse preview(UUID caseFileId, OidcUser oidcUser, String provider, Principal principal) {
         CaseFile caseFile = resolveCaseFile(caseFileId, oidcUser, provider, principal);
-        List<DocumentExtraction> eligible = extractionRepository.findRetryableByCaseFile(caseFileId, ELIGIBLE_REASONS);
+        List<DocumentExtraction> eligible = findRetryableFiltered(caseFileId);
 
         int estimatedPages = eligible.stream()
                 .mapToInt(e -> countPdfPagesSafe(e.getDocument()))
@@ -101,7 +101,7 @@ public class OcrRetryService {
         CaseFile caseFile = resolveCaseFile(caseFileId, oidcUser, provider, principal);
         checkRateLimit(caseFileId);
 
-        List<DocumentExtraction> eligible = extractionRepository.findRetryableByCaseFile(caseFileId, ELIGIBLE_REASONS);
+        List<DocumentExtraction> eligible = findRetryableFiltered(caseFileId);
         if (eligible.isEmpty()) return 0;
 
         // Supprime les vieilles extractions FAILED éligibles
@@ -117,6 +117,34 @@ public class OcrRetryService {
         lastRetryByCaseFile.put(caseFileId, Instant.now());
         log.info("OCR retry triggered for case {} ({} documents re-enqueued)", caseFileId, eligible.size());
         return eligible.size();
+    }
+
+    /**
+     * SF-122-06 : filtre les extractions éligibles au retry en excluant les
+     * cas futiles où l'OCR a déjà été tenté sans succès (EMPTY_TEXT après
+     * un appel Textract qui a renvoyé 0 blocks — ré-appeler donnerait le
+     * même résultat). OCR_FAILED reste toujours éligible car peut être
+     * un throttle transient AWS.
+     *
+     * Détection via la metadata écrite par ExtractionService :
+     * - "extractor":"internal"          → OCR jamais tenté (legacy avant F-122)
+     * - "extractor":"internal+textract" → OCR tenté et failed
+     * - "extractor":"textract"          → OCR succès (pas dans FAILED)
+     */
+    List<DocumentExtraction> findRetryableFiltered(UUID caseFileId) {
+        return extractionRepository.findRetryableByCaseFile(caseFileId, ELIGIBLE_REASONS).stream()
+                .filter(OcrRetryService::isRetryWorthAttempt)
+                .toList();
+    }
+
+    static boolean isRetryWorthAttempt(DocumentExtraction e) {
+        if (e.getFailureReason() == ExtractionFailureReason.OCR_FAILED) {
+            return true; // transient AWS — retry peut marcher
+        }
+        // EMPTY_TEXT : éligible uniquement si OCR jamais tenté
+        String metadata = e.getExtractionMetadata();
+        boolean ocrAlreadyAttempted = metadata != null && metadata.contains("textract");
+        return !ocrAlreadyAttempted;
     }
 
     private void checkRateLimit(UUID caseFileId) {
