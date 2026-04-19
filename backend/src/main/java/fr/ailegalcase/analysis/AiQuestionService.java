@@ -87,7 +87,12 @@ public class AiQuestionService {
         try {
             log.info("Question generation START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 1024);
+            // 4096 tokens : permet de générer 5-8 questions complètes avec justifications
+            // même sur des dossiers riches (19k+ chars d'input). 1024 était trop serré
+            // et tronquait le JSON → 0 questions parsables (bug observé staging E21
+            // 2026-04-19, 19342 chars d'input OCR-extraits de 9 docs → output cappé
+            // à 1024 tokens au milieu du JSON).
+            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 4096);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Question generation DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
