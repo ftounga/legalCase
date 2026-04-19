@@ -97,6 +97,7 @@ public class ExtractionNotificationService {
             case EXTRACTION_EXCEPTION -> "Erreur technique lors de l'analyse du document";
             case OCR_FAILED -> "Reconnaissance OCR impossible — réessayer ou envoyer un autre document";
             case OCR_UNSUPPORTED_SIZE -> "Document trop volumineux pour l'OCR (max 5 Mo / 11 pages)";
+            case OCR_QUOTA_EXCEEDED -> "Quota OCR atteint — voir votre espace Abonnement pour acheter des pages supplémentaires";
         };
     }
 }

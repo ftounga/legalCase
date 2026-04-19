@@ -1,5 +1,6 @@
 package fr.ailegalcase.ocr;
 
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.document.ExtractionFailureReason;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.textract.TextractClient;
@@ -12,9 +13,12 @@ import software.amazon.awssdk.services.textract.model.UnsupportedDocumentExcepti
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -42,8 +46,8 @@ class OcrServiceTest {
                 .build();
         when(client.analyzeDocument(any(AnalyzeDocumentRequest.class))).thenReturn(response);
 
-        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED);
-        OcrResult result = svc.tryOcr(validPdfBytes());
+        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED, noQuotaBlock());
+        OcrResult result = svc.tryOcr(validPdfBytes(), UUID.randomUUID());
 
         assertThat(result.success()).isTrue();
         assertThat(result.text()).isEqualTo("Bonjour\nle monde");
@@ -56,8 +60,8 @@ class OcrServiceTest {
         TextractClient client = mock(TextractClient.class);
         byte[] big = new byte[6 * 1024 * 1024]; // 6 Mo
 
-        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED);
-        OcrResult result = svc.tryOcr(big);
+        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED, noQuotaBlock());
+        OcrResult result = svc.tryOcr(big, UUID.randomUUID());
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
@@ -68,9 +72,9 @@ class OcrServiceTest {
     @Test
     void tryOcr_tooManyPages_skipsTextract() {
         TextractClient client = mock(TextractClient.class);
-        OcrService svc = new OcrService(Optional.of(client), new OcrProperties(true, "eu-west-3", 5, 11));
+        OcrService svc = new OcrService(Optional.of(client), new OcrProperties(true, "eu-west-3", 5, 11), noQuotaBlock());
 
-        OcrResult result = svc.tryOcr(multiPagePdfBytes(12));
+        OcrResult result = svc.tryOcr(multiPagePdfBytes(12), UUID.randomUUID());
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
@@ -84,8 +88,8 @@ class OcrServiceTest {
         when(client.analyzeDocument(any(AnalyzeDocumentRequest.class)))
                 .thenThrow(UnsupportedDocumentException.builder().message("bad format").build());
 
-        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED);
-        OcrResult result = svc.tryOcr(validPdfBytes());
+        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED, noQuotaBlock());
+        OcrResult result = svc.tryOcr(validPdfBytes(), UUID.randomUUID());
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_FAILED);
@@ -98,8 +102,8 @@ class OcrServiceTest {
         AnalyzeDocumentResponse response = AnalyzeDocumentResponse.builder().blocks(List.of()).build();
         when(client.analyzeDocument(any(AnalyzeDocumentRequest.class))).thenReturn(response);
 
-        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED);
-        OcrResult result = svc.tryOcr(validPdfBytes());
+        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED, noQuotaBlock());
+        OcrResult result = svc.tryOcr(validPdfBytes(), UUID.randomUUID());
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
@@ -109,9 +113,9 @@ class OcrServiceTest {
     @Test
     void tryOcr_disabled_shortCircuits() {
         TextractClient client = mock(TextractClient.class);
-        OcrService svc = new OcrService(Optional.of(client), PROPS_DISABLED);
+        OcrService svc = new OcrService(Optional.of(client), PROPS_DISABLED, noQuotaBlock());
 
-        OcrResult result = svc.tryOcr(validPdfBytes());
+        OcrResult result = svc.tryOcr(validPdfBytes(), UUID.randomUUID());
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
@@ -121,15 +125,56 @@ class OcrServiceTest {
     // U-OCR-01-07 : client bean absent (textract.enabled=true mais pas de bean TextractClient) → skip
     @Test
     void tryOcr_noClientBean_shortCircuits() {
-        OcrService svc = new OcrService(Optional.empty(), PROPS_ENABLED);
+        OcrService svc = new OcrService(Optional.empty(), PROPS_ENABLED, noQuotaBlock());
 
-        OcrResult result = svc.tryOcr(validPdfBytes());
+        OcrResult result = svc.tryOcr(validPdfBytes(), UUID.randomUUID());
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
     }
 
+    // SF-122-02 : gate quota dépassé → OCR_QUOTA_EXCEEDED, pas d'appel Textract
+    @Test
+    void tryOcr_quotaExceeded_skipsTextract() {
+        TextractClient client = mock(TextractClient.class);
+        PlanLimitService pls = mock(PlanLimitService.class);
+        UUID workspaceId = UUID.randomUUID();
+        when(pls.isOcrQuotaExceeded(eq(workspaceId), anyInt())).thenReturn(true);
+
+        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED, pls);
+        OcrResult result = svc.tryOcr(validPdfBytes(), workspaceId);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.failureMotif()).isEqualTo(ExtractionFailureReason.OCR_QUOTA_EXCEEDED);
+        verify(client, never()).analyzeDocument(any(AnalyzeDocumentRequest.class));
+    }
+
+    // SF-122-02 : gate quota OK → appel Textract normal
+    @Test
+    void tryOcr_quotaOk_callsTextract() {
+        TextractClient client = mock(TextractClient.class);
+        PlanLimitService pls = mock(PlanLimitService.class);
+        when(pls.isOcrQuotaExceeded(any(), anyInt())).thenReturn(false);
+        AnalyzeDocumentResponse response = AnalyzeDocumentResponse.builder()
+                .blocks(Block.builder().blockType(BlockType.LINE).text("OK").page(1).build())
+                .build();
+        when(client.analyzeDocument(any(AnalyzeDocumentRequest.class))).thenReturn(response);
+
+        OcrService svc = new OcrService(Optional.of(client), PROPS_ENABLED, pls);
+        OcrResult result = svc.tryOcr(validPdfBytes(), UUID.randomUUID());
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.text()).isEqualTo("OK");
+    }
+
     // --- helpers ---
+
+    /** PlanLimitService stub qui n'empêche jamais l'OCR — isOcrQuotaExceeded toujours false. */
+    private PlanLimitService noQuotaBlock() {
+        PlanLimitService pls = mock(PlanLimitService.class);
+        lenient().when(pls.isOcrQuotaExceeded(any(), anyInt())).thenReturn(false);
+        return pls;
+    }
 
     /** Génère un mini-PDF valide à 1 page (PDFBox). */
     private byte[] validPdfBytes() {

@@ -3,9 +3,12 @@ package fr.ailegalcase.billing;
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.chat.ChatMessageRepository;
+import fr.ailegalcase.workspace.Workspace;
+import fr.ailegalcase.workspace.WorkspaceRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
@@ -47,19 +50,30 @@ public class PlanLimitService {
     static final long TEAM_MONTHLY_CHAT_LIMIT  =  300L;
     static final long PRO_MONTHLY_CHAT_LIMIT   = 1000L;
 
+    // ── Quotas OCR (SF-122-02) ───────────────────────────────────────────
+    static final int FREE_MONTHLY_OCR_PAGES =    100;
+    static final int SOLO_MONTHLY_OCR_PAGES =    800;
+    static final int TEAM_MONTHLY_OCR_PAGES =  3_000;
+    static final int PRO_MONTHLY_OCR_PAGES  = 10_000;
+    /** Hard cap journalier anti-abus, tous plans confondus. */
+    static final int DAILY_OCR_PAGES_HARD_CAP = 500;
+
     private final SubscriptionRepository subscriptionRepository;
     private final UsageEventRepository usageEventRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final CreditPurchaseService creditPurchaseService;
+    private final WorkspaceRepository workspaceRepository;
 
     public PlanLimitService(SubscriptionRepository subscriptionRepository,
                             UsageEventRepository usageEventRepository,
                             ChatMessageRepository chatMessageRepository,
-                            CreditPurchaseService creditPurchaseService) {
+                            CreditPurchaseService creditPurchaseService,
+                            WorkspaceRepository workspaceRepository) {
         this.subscriptionRepository = subscriptionRepository;
         this.usageEventRepository = usageEventRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.creditPurchaseService = creditPurchaseService;
+        this.workspaceRepository = workspaceRepository;
     }
 
     public boolean isExpiredFree(Subscription sub) {
@@ -227,5 +241,62 @@ public class PlanLimitService {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
                 .map(sub -> !isExpiredFree(sub) && !"FREE".equals(sub.getPlanCode()))
                 .orElse(true);
+    }
+
+    // ── Quotas OCR (SF-122-02) ───────────────────────────────────────────
+
+    public int getMonthlyOcrPages(String planCode) {
+        return switch (planCode) {
+            case "PRO"  -> PRO_MONTHLY_OCR_PAGES;
+            case "TEAM" -> TEAM_MONTHLY_OCR_PAGES;
+            case "SOLO" -> SOLO_MONTHLY_OCR_PAGES;
+            default     -> FREE_MONTHLY_OCR_PAGES;
+        };
+    }
+
+    /**
+     * SF-122-02 : vérifie si consommer {@code additionalPages} de plus dépasserait
+     * le quota mensuel OU le hard cap journalier.
+     *
+     * Compteurs "stale" : si {@code ocr_usage_last_reset_date} est dans un mois
+     * passé, le current_month est traité comme 0 (l'UPDATE suivant le réinitialisera).
+     * Même logique pour le compteur journalier (date différente d'aujourd'hui → 0).
+     *
+     * Appelé par {@link fr.ailegalcase.ocr.OcrService} avant tout appel Textract.
+     * Aucun appel AWS → aucun coût si le quota est dépassé.
+     *
+     * @param workspaceId    workspace du document en cours d'extraction
+     * @param additionalPages nb de pages estimées du document (via PDFBox.getNumberOfPages)
+     * @return true si l'ajout dépasserait l'un des deux gates
+     */
+    public boolean isOcrQuotaExceeded(UUID workspaceId, int additionalPages) {
+        if (additionalPages <= 0) return false;
+        return workspaceRepository.findById(workspaceId)
+                .map(ws -> {
+                    String planCode = subscriptionRepository.findByWorkspaceId(workspaceId)
+                            .map(Subscription::getPlanCode)
+                            .orElse("FREE");
+                    int monthlyLimit = getMonthlyOcrPages(planCode);
+                    LocalDate today = LocalDate.now();
+                    int effectiveMonth = effectiveMonthlyUsage(ws, today);
+                    int effectiveDay = effectiveDailyUsage(ws, today);
+                    return (effectiveDay + additionalPages > DAILY_OCR_PAGES_HARD_CAP)
+                            || (effectiveMonth + additionalPages > monthlyLimit);
+                })
+                .orElse(true); // workspace introuvable → block par défaut
+    }
+
+    static int effectiveMonthlyUsage(Workspace ws, LocalDate today) {
+        LocalDate lastReset = ws.getOcrUsageLastResetDate();
+        if (lastReset == null) return 0;
+        boolean sameMonth = lastReset.getYear() == today.getYear()
+                && lastReset.getMonth() == today.getMonth();
+        return sameMonth ? ws.getOcrPagesUsedCurrentMonth() : 0;
+    }
+
+    static int effectiveDailyUsage(Workspace ws, LocalDate today) {
+        LocalDate lastReset = ws.getOcrUsageLastResetDate();
+        if (lastReset == null) return 0;
+        return lastReset.equals(today) ? ws.getOcrPagesUsedCurrentDay() : 0;
     }
 }

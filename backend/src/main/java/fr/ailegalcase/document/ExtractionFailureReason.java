@@ -20,5 +20,7 @@ public enum ExtractionFailureReason {
     /** SF-122-01 : OCR Textract a levé une exception ou renvoyé une erreur. */
     OCR_FAILED,
     /** SF-122-01 : document trop volumineux pour l'API Textract sync (>5 Mo ou >11 pages). */
-    OCR_UNSUPPORTED_SIZE
+    OCR_UNSUPPORTED_SIZE,
+    /** SF-122-02 : quota OCR mensuel ou hard cap journalier dépassé. */
+    OCR_QUOTA_EXCEEDED
 }
