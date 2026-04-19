@@ -291,7 +291,7 @@ public class PlanLimitService {
      * Formule : totalBought - max(0, allTimeUsed - monthsActive × planMonthly).
      * Pattern identique à {@code computeCreditsRemaining} pour les tokens.
      */
-    int computeOcrPacksRemaining(UUID workspaceId, Workspace ws, String planCode) {
+    public int computeOcrPacksRemaining(UUID workspaceId, Workspace ws, String planCode) {
         long totalBought = creditPurchaseService.getTotalOcrPagesBought(workspaceId);
         if (totalBought == 0) return 0;
         long allTimeUsed = ws.getOcrPagesUsedAllTime();
@@ -307,7 +307,7 @@ public class PlanLimitService {
         return creditPurchaseService.getTotalOcrPagesBought(workspaceId);
     }
 
-    static int effectiveMonthlyUsage(Workspace ws, LocalDate today) {
+    public static int effectiveMonthlyUsage(Workspace ws, LocalDate today) {
         LocalDate lastReset = ws.getOcrUsageLastResetDate();
         if (lastReset == null) return 0;
         boolean sameMonth = lastReset.getYear() == today.getYear()
@@ -315,7 +315,7 @@ public class PlanLimitService {
         return sameMonth ? ws.getOcrPagesUsedCurrentMonth() : 0;
     }
 
-    static int effectiveDailyUsage(Workspace ws, LocalDate today) {
+    public static int effectiveDailyUsage(Workspace ws, LocalDate today) {
         LocalDate lastReset = ws.getOcrUsageLastResetDate();
         if (lastReset == null) return 0;
         return lastReset.equals(today) ? ws.getOcrPagesUsedCurrentDay() : 0;

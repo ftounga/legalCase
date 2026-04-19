@@ -100,6 +100,31 @@
         </button>
       </div>
 
+      <!-- SF-122-05 : bandeau retry OCR si ≥ 1 doc FAILED éligible -->
+      @if (ocrRetryPreview(); as preview) {
+        @if (preview.failedDocsCount > 0) {
+          <div class="ocr-retry-banner">
+            <mat-icon class="ocr-retry-icon">autorenew</mat-icon>
+            <div class="ocr-retry-message">
+              <strong>{{ preview.failedDocsCount }} document(s) non analysable(s)</strong> — extractions échouées sur scans ou OCR.
+              <span class="ocr-retry-meta">~{{ preview.estimatedPages }} page(s) · quota restant : {{ preview.monthlyRemaining + preview.packsRemaining }}</span>
+            </div>
+            <button mat-raised-button color="accent"
+                    [disabled]="!preview.canRetry || ocrRetryInProgress()"
+                    (click)="triggerOcrRetry()"
+                    [matTooltip]="preview.canRetry ? '' : 'Quota OCR insuffisant — achetez un pack OCR dans Abonnement'"
+                    matTooltipPosition="above">
+              @if (ocrRetryInProgress()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+              } @else {
+                <mat-icon>play_arrow</mat-icon>
+              }
+              Relancer avec OCR
+            </button>
+          </div>
+        }
+      }
+
       @if (pendingFiles().length > 0) {
         <div class="pending-files">
           <div class="pending-files-list">
