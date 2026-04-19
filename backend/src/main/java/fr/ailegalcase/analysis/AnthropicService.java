@@ -93,11 +93,23 @@ public class AnthropicService {
                         .body(AnthropicResponse.class);
 
                 String content = response.content().get(0).text();
-                log.debug("Anthropic response received ({} chars, {} prompt tokens, {} completion tokens)",
-                        content.length(), response.usage().inputTokens(), response.usage().outputTokens());
+                String stopReason = response.stopReason();
+                log.debug("Anthropic response received ({} chars, {} prompt tokens, {} completion tokens, stop_reason={})",
+                        content.length(), response.usage().inputTokens(), response.usage().outputTokens(), stopReason);
+
+                // Détection explicite de la troncature silencieuse : Claude retourne
+                // stop_reason="max_tokens" quand il a été coupé en pleine génération.
+                // Le JSON / texte est souvent incomplet et non parsable côté caller.
+                // Bug historique : AiQuestionService avec max_tokens=1024 sur dossier
+                // riche → 0 questions sans aucune trace d'erreur visible.
+                if ("max_tokens".equals(stopReason)) {
+                    log.warn("Anthropic response TRUNCATED — stop_reason=max_tokens, model={}, max_tokens={}, " +
+                                    "output tokens={}. Le caller va probablement voir un JSON/texte incomplet.",
+                            modelId, maxTokens, response.usage().outputTokens());
+                }
 
                 return new AnthropicResult(content, response.model(),
-                        response.usage().inputTokens(), response.usage().outputTokens());
+                        response.usage().inputTokens(), response.usage().outputTokens(), stopReason);
 
             } catch (HttpServerErrorException e) {
                 boolean retryable = e.getStatusCode().value() == 529 || e.getStatusCode().value() == 529
@@ -118,7 +130,11 @@ public class AnthropicService {
         throw new IllegalStateException("Unreachable");
     }
 
-    private record AnthropicResponse(List<ContentBlock> content, String model, Usage usage) {
+    private record AnthropicResponse(
+            List<ContentBlock> content,
+            String model,
+            @JsonProperty("stop_reason") String stopReason,
+            Usage usage) {
         private record ContentBlock(String type, String text) {}
         private record Usage(
                 @JsonProperty("input_tokens") int inputTokens,
