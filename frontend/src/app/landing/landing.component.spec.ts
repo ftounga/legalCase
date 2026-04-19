@@ -54,4 +54,32 @@ describe('LandingComponent', () => {
     const cta = fixture.nativeElement.querySelector('.hero-actions .btn-primary');
     expect(cta?.getAttribute('href')).toBe('/login');
   });
+
+  // SF-126-01 : galerie vidéo
+  it('expose 3 vidéos dans la galerie démo', () => {
+    expect(component.videos.length).toBe(3);
+    expect(component.videos.map(v => v.videoId)).toEqual([
+      'NGTRMWQKPEA', 'I5EemkFR8NE', 'HVGXeUnrbks'
+    ]);
+  });
+
+  it('sélectionne la première vidéo par défaut', () => {
+    expect(component.selectedVideoId()).toBe('NGTRMWQKPEA');
+  });
+
+  it('selectVideo change la vidéo active', () => {
+    component.selectVideo('I5EemkFR8NE');
+    expect(component.selectedVideoId()).toBe('I5EemkFR8NE');
+  });
+
+  it('affiche 3 miniatures cliquables sous le player', () => {
+    const thumbs = fixture.nativeElement.querySelectorAll('.video-thumb');
+    expect(thumbs.length).toBe(3);
+  });
+
+  it('la première miniature est marquée active au chargement', () => {
+    const firstThumb = fixture.nativeElement.querySelector('.video-thumb');
+    expect(firstThumb?.classList.contains('video-thumb--active')).toBe(true);
+    expect(firstThumb?.getAttribute('aria-pressed')).toBe('true');
+  });
 });

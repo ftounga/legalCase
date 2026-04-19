@@ -293,6 +293,64 @@ nav a:hover { color: var(--navy); }
   border: none;
 }
 
+/* SF-126-01 — galerie miniatures sous le player */
+.video-thumbnails {
+  max-width: 840px;
+  margin: 32px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.video-thumb {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(26, 58, 92, 0.08);
+  outline: 2px solid transparent;
+  transition: transform .2s, box-shadow .2s, outline-color .2s;
+  text-align: left;
+}
+.video-thumb:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(26, 58, 92, 0.14); }
+.video-thumb:focus-visible { outline-color: var(--gold); outline-offset: 2px; }
+.video-thumb--active { outline-color: var(--gold); transform: scale(1.02); box-shadow: 0 8px 24px rgba(201, 151, 58, 0.22); }
+.video-thumb-image {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--navy-deep);
+  overflow: hidden;
+}
+.video-thumb-image img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform .3s;
+}
+.video-thumb:hover .video-thumb-image img { transform: scale(1.04); }
+.video-thumb-play {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--navy-deep);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform .2s, background .2s, color .2s;
+}
+.video-thumb:hover .video-thumb-play,
+.video-thumb--active .video-thumb-play { background: var(--gold); color: #fff; }
+.video-thumb:hover .video-thumb-play { transform: translate(-50%, -50%) scale(1.1); }
+.video-thumb-text { padding: 14px 16px 16px; }
+.video-thumb-title { font-size: 0.98rem; font-weight: 600; color: var(--navy-deep); margin-bottom: 4px; line-height: 1.3; }
+.video-thumb-subtitle { font-size: 0.82rem; color: #6b7a8a; line-height: 1.4; }
+@media (max-width: 768px) {
+  .video-thumbnails { grid-template-columns: 1fr; gap: 12px; }
+}
+
 /* ─── SECTIONS COMMUNES ─── */
 section { padding: 96px 5%; }
 

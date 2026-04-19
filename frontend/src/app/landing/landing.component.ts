@@ -1,7 +1,34 @@
-import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit, OnDestroy, PLATFORM_ID, signal, computed } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Title, Meta } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
+
+/** SF-126-01 : vidéos de la galerie démo.
+ *  Éditer ici pour changer l'ordre, les titres ou remplacer les vidéos.
+ *  Les thumbnails proviennent de YouTube : img.youtube.com/vi/{ID}/maxresdefault.jpg */
+export interface DemoVideo {
+  videoId: string;
+  title: string;
+  subtitle: string;
+}
+
+export const DEMO_VIDEOS: DemoVideo[] = [
+  {
+    videoId: 'NGTRMWQKPEA',
+    title: 'Votre dossier analysé en 3 min',
+    subtitle: "De l'upload des pièces à la synthèse structurée",
+  },
+  {
+    videoId: 'I5EemkFR8NE',
+    title: 'Checklist prud\'homale automatique',
+    subtitle: 'Pièces manquantes + vices de procédure détectés',
+  },
+  {
+    videoId: 'HVGXeUnrbks',
+    title: 'Comparateur d\'indemnités',
+    subtitle: 'Barème Macron vs conventionnel en un clic',
+  },
+];
 
 @Component({
   selector: 'app-landing',
@@ -16,7 +43,33 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   private meta = inject(Meta);
   private platformId = inject(PLATFORM_ID);
   private document = inject(DOCUMENT);
+  private sanitizer = inject(DomSanitizer);
   private jsonLdElement: HTMLScriptElement | null = null;
+
+  readonly videos = DEMO_VIDEOS;
+  readonly selectedVideoId = signal<string>(DEMO_VIDEOS[0].videoId);
+  readonly videoEmbedUrl = computed<SafeResourceUrl>(() =>
+    this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube.com/embed/${this.selectedVideoId()}?rel=0`
+    )
+  );
+
+  selectVideo(videoId: string): void {
+    this.selectedVideoId.set(videoId);
+  }
+
+  videoThumbnailUrl(videoId: string): string {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+
+  onThumbnailError(event: Event, videoId: string): void {
+    // Fallback sur hqdefault.jpg si maxresdefault n'existe pas (vidéos anciennes)
+    const img = event.target as HTMLImageElement;
+    const hqUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    if (img.src !== hqUrl) {
+      img.src = hqUrl;
+    }
+  }
 
   ngOnInit(): void {
     this.title.setTitle('AI LegalCase — Analyse IA pour avocats en droit du travail');

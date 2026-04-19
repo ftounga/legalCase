@@ -68,16 +68,43 @@
       Démo
     </div>
     <h2 class="section-title">Voyez AI LegalCase en action</h2>
-    <p class="section-sub">De l'upload à la synthèse structurée, en quelques minutes.</p>
+    <p class="section-sub">Trois cas d'usage concrets, du licenciement à l'indemnisation.</p>
   </div>
   <div class="video-container fade-in">
     <iframe
-      src="https://www.youtube.com/embed/NGTRMWQKPEA"
+      [src]="videoEmbedUrl()"
       title="AI LegalCase — Démo vidéo"
       frameborder="0"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowfullscreen>
     </iframe>
+  </div>
+  <div class="video-thumbnails fade-in">
+    @for (video of videos; track video.videoId) {
+      <button
+        class="video-thumb"
+        [class.video-thumb--active]="selectedVideoId() === video.videoId"
+        [attr.aria-pressed]="selectedVideoId() === video.videoId"
+        [attr.aria-label]="'Lire : ' + video.title"
+        (click)="selectVideo(video.videoId)">
+        <div class="video-thumb-image">
+          <img
+            [src]="videoThumbnailUrl(video.videoId)"
+            [alt]="video.title"
+            (error)="onThumbnailError($event, video.videoId)"
+            loading="lazy">
+          <div class="video-thumb-play">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <polygon points="7,5 16,10 7,15" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+        <div class="video-thumb-text">
+          <div class="video-thumb-title">{{ video.title }}</div>
+          <div class="video-thumb-subtitle">{{ video.subtitle }}</div>
+        </div>
+      </button>
+    }
   </div>
 </section>
 
