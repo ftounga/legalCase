@@ -53,6 +53,10 @@ public class Workspace {
     @Column(name = "ocr_pages_used_current_day", nullable = false)
     private int ocrPagesUsedCurrentDay = 0;
 
+    // SF-122-04 : compteur cumulatif (never reset) pour calculer le reliquat des packs achetés.
+    @Column(name = "ocr_pages_used_all_time", nullable = false)
+    private int ocrPagesUsedAllTime = 0;
+
     @Column(name = "ocr_usage_last_reset_date")
     private LocalDate ocrUsageLastResetDate;
 

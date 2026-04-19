@@ -703,6 +703,36 @@ class PlanLimitServiceTest {
         verify(workspaceRepository, never()).findById(any());
     }
 
+    // SF-122-04 : U-PLS-OCR-12 — avec packs achetés, quota effectif = plan + reliquat
+    @Test
+    void U_PLS_OCR_12_packsExtendLimit() {
+        UUID wid = UUID.randomUUID();
+        Workspace ws = workspaceWithOcrUsage(wid, 100, 0, LocalDate.now()); // FREE monthly=100, déjà consommé
+        ws.setOcrPagesUsedAllTime(100);
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.of(ws));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("FREE")));
+        when(creditPurchaseService.getTotalOcrPagesBought(wid)).thenReturn(500L); // OCR_500 acheté
+
+        // Sans packs : quota dépassé (100 + 5 > 100). Avec 500 achetés, reliquat = 500 - max(0, 100 - 100) = 500
+        // → quota effectif = 100 + 500 = 600. current=100, additional=5, total=105 ≤ 600 → OK
+        assertThat(service.isOcrQuotaExceeded(wid, 5)).isFalse();
+    }
+
+    // SF-122-04 : U-PLS-OCR-13 — packs épuisés → bloqué
+    @Test
+    void U_PLS_OCR_13_packsConsumed_blocks() {
+        UUID wid = UUID.randomUUID();
+        Workspace ws = workspaceWithOcrUsage(wid, 600, 0, LocalDate.now());
+        ws.setOcrPagesUsedAllTime(600); // déjà consommé 500 au-delà du plan
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.of(ws));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("FREE")));
+        when(creditPurchaseService.getTotalOcrPagesBought(wid)).thenReturn(500L);
+
+        // Reliquat = 500 - max(0, 600 - 100) = 500 - 500 = 0. Effective = 100 + 0 = 100.
+        // current=600, additional=1 → 601 > 100 → exceeded
+        assertThat(service.isOcrQuotaExceeded(wid, 1)).isTrue();
+    }
+
     private Workspace workspaceWithOcrUsage(UUID id, int monthlyPages, int dailyPages, LocalDate lastReset) {
         Workspace ws = new Workspace();
         ws.setId(id);

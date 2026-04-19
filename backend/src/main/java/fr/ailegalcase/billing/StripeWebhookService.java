@@ -96,6 +96,22 @@ public class StripeWebhookService {
             log.warn("Topup payment missing metadata in session {}", session.getId());
             return;
         }
+        java.util.UUID workspaceId = java.util.UUID.fromString(workspaceIdStr);
+
+        // SF-122-04 : dispatch OCR packs vs token packs
+        if (OcrPack.isOcrPack(packCode)) {
+            OcrPack ocr;
+            try {
+                ocr = OcrPack.valueOf(packCode);
+            } catch (IllegalArgumentException e) {
+                log.warn("Unknown OCR pack_code '{}' in topup session {}", packCode, session.getId());
+                return;
+            }
+            creditPurchaseService.recordOcrPack(workspaceId, ocr.getPages(), ocr.getAmountCents(), session.getId());
+            log.info("OCR topup recorded: {} pages for workspace {}", ocr.getPages(), workspaceId);
+            return;
+        }
+
         TokenPack pack;
         try {
             pack = TokenPack.valueOf(packCode);
@@ -103,7 +119,6 @@ public class StripeWebhookService {
             log.warn("Unknown pack_code '{}' in topup session {}", packCode, session.getId());
             return;
         }
-        java.util.UUID workspaceId = java.util.UUID.fromString(workspaceIdStr);
         creditPurchaseService.record(workspaceId, pack.getTokens(), pack.getAmountCents(), session.getId());
         log.info("Topup recorded: {} tokens for workspace {}", pack.getTokens(), workspaceId);
     }

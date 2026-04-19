@@ -47,4 +47,37 @@ class CreditPurchaseServiceTest {
         service.record(UUID.randomUUID(), 1_000_000L, 990, "sess_dup");
         verify(repo, never()).save(any());
     }
+
+    // SF-122-04 : C-OCR-01 — getTotalOcrPagesBought
+    @Test
+    void getTotalOcrPagesBought_returnsRepoSum() {
+        UUID wsId = UUID.randomUUID();
+        when(repo.sumOcrPagesBoughtByWorkspaceId(wsId)).thenReturn(2_500L);
+        assertThat(service.getTotalOcrPagesBought(wsId)).isEqualTo(2_500L);
+    }
+
+    // SF-122-04 : C-OCR-02 — recordOcrPack nouveau → persiste avec pages, tokens=0
+    @Test
+    void recordOcrPack_newSession_persistsWithPages() {
+        when(repo.findByStripeSessionId("sess_ocr_1")).thenReturn(Optional.empty());
+        org.mockito.ArgumentCaptor<CreditPurchase> captor = org.mockito.ArgumentCaptor.forClass(CreditPurchase.class);
+        when(repo.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        UUID wsId = UUID.randomUUID();
+        service.recordOcrPack(wsId, 2_000, 5900, "sess_ocr_1");
+
+        CreditPurchase persisted = captor.getValue();
+        assertThat(persisted.getWorkspaceId()).isEqualTo(wsId);
+        assertThat(persisted.getOcrPagesBought()).isEqualTo(2_000);
+        assertThat(persisted.getTokensBought()).isZero();
+        assertThat(persisted.getAmountCents()).isEqualTo(5900);
+    }
+
+    // SF-122-04 : C-OCR-03 — recordOcrPack doublon → idempotent
+    @Test
+    void recordOcrPack_duplicateSession_isIdempotent() {
+        when(repo.findByStripeSessionId("sess_dup")).thenReturn(Optional.of(new CreditPurchase()));
+        service.recordOcrPack(UUID.randomUUID(), 500, 1900, "sess_dup");
+        verify(repo, never()).save(any());
+    }
 }

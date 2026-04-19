@@ -40,6 +40,7 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
                     WHEN w.ocrUsageLastResetDate = :today THEN w.ocrPagesUsedCurrentDay + :pages
                     ELSE :pages
                 END,
+                w.ocrPagesUsedAllTime = w.ocrPagesUsedAllTime + :pages,
                 w.ocrUsageLastResetDate = :today
             WHERE w.id = :workspaceId
             """)
