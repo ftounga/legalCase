@@ -10,6 +10,8 @@ import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.document.DocumentExtractionRepository;
+import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
@@ -36,6 +38,8 @@ class ChatServiceTest {
     @Mock private ChatMessageRepository chatMessageRepository;
     @Mock private CaseFileRepository caseFileRepository;
     @Mock private CaseAnalysisRepository caseAnalysisRepository;
+    @Mock private DocumentRepository documentRepository;
+    @Mock private DocumentExtractionRepository documentExtractionRepository;
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private CurrentUserResolver currentUserResolver;
     @Mock private AnthropicService anthropicService;
@@ -51,6 +55,7 @@ class ChatServiceTest {
     @BeforeEach
     void setUp() {
         service = new ChatService(chatMessageRepository, caseFileRepository, caseAnalysisRepository,
+                documentRepository, documentExtractionRepository,
                 workspaceMemberRepository, currentUserResolver, anthropicService,
                 usageEventService, planLimitService);
     }
@@ -80,6 +85,9 @@ class ChatServiceTest {
             analysis.setAnalysisStatus(AnalysisStatus.DONE);
             when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                     CASE_FILE_ID, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+            // SF-35-03 : par défaut aucun document (les tests dédiés SF-35-03 overrideront)
+            when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_FILE_ID))
+                    .thenReturn(java.util.List.of());
         } else if (!budgetExceeded) {
             when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                     CASE_FILE_ID, AnalysisStatus.DONE)).thenReturn(Optional.empty());
@@ -175,5 +183,100 @@ class ChatServiceTest {
                 CASE_FILE_ID, new ChatMessageRequest("Question", false), null, "GOOGLE", null);
 
         assertThat(response.answer()).isEqualTo("OK");
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // SF-35-03 : buildUserMessage — injection texte brut documents
+    // ────────────────────────────────────────────────────────────────────────
+
+    @Test
+    void buildUserMessage_noDocuments_returnsSynthesisOnly() {
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_FILE_ID))
+                .thenReturn(java.util.List.of());
+
+        String result = service.buildUserMessage("La synthèse", CASE_FILE_ID, "Ma question");
+
+        assertThat(result).isEqualTo("Dossier :\nLa synthèse\n\nQuestion : Ma question");
+    }
+
+    @Test
+    void buildUserMessage_withDoneDocument_injectsExtractedText() {
+        fr.ailegalcase.document.Document doc = buildDoc(UUID.randomUUID(), "P3-releve.pdf");
+        fr.ailegalcase.document.DocumentExtraction ex = buildExtraction(doc,
+                fr.ailegalcase.document.ExtractionStatus.DONE, "Virement de 804,05 EUR le 15 mars.",
+                "{\"extractor\":\"TEXTRACT\",\"pageCount\":2}");
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_FILE_ID))
+                .thenReturn(java.util.List.of(doc));
+        when(documentExtractionRepository.findByDocumentIdIn(java.util.List.of(doc.getId())))
+                .thenReturn(java.util.List.of(ex));
+
+        String result = service.buildUserMessage("Synthèse", CASE_FILE_ID, "Est-ce 804 te parle ?");
+
+        assertThat(result).contains("P3-releve.pdf");
+        assertThat(result).contains("OCR");
+        assertThat(result).contains("804,05 EUR");
+        assertThat(result).contains("Question : Est-ce 804 te parle ?");
+    }
+
+    @Test
+    void buildUserMessage_failedExtractions_excluded() {
+        fr.ailegalcase.document.Document ok = buildDoc(UUID.randomUUID(), "ok.pdf");
+        fr.ailegalcase.document.Document failed = buildDoc(UUID.randomUUID(), "corrompu.pdf");
+        fr.ailegalcase.document.DocumentExtraction okEx = buildExtraction(ok,
+                fr.ailegalcase.document.ExtractionStatus.DONE, "Texte OK.", null);
+        fr.ailegalcase.document.DocumentExtraction failedEx = buildExtraction(failed,
+                fr.ailegalcase.document.ExtractionStatus.FAILED, null, null);
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_FILE_ID))
+                .thenReturn(java.util.List.of(ok, failed));
+        when(documentExtractionRepository.findByDocumentIdIn(any()))
+                .thenReturn(java.util.List.of(okEx, failedEx));
+
+        String result = service.buildUserMessage("Synth", CASE_FILE_ID, "Q");
+
+        assertThat(result).contains("ok.pdf");
+        assertThat(result).doesNotContain("corrompu.pdf");
+    }
+
+    @Test
+    void buildUserMessage_budgetExceeded_truncatesAndMentionsExcluded() {
+        // 2 docs : le premier prend tout le budget, le second est exclu
+        String hugeText = "A".repeat(ChatService.DOCUMENT_TEXT_BUDGET_CHARS + 50_000);
+        fr.ailegalcase.document.Document d1 = buildDoc(UUID.randomUUID(), "big.pdf");
+        fr.ailegalcase.document.Document d2 = buildDoc(UUID.randomUUID(), "small.pdf");
+        fr.ailegalcase.document.DocumentExtraction ex1 = buildExtraction(d1,
+                fr.ailegalcase.document.ExtractionStatus.DONE, hugeText, null);
+        fr.ailegalcase.document.DocumentExtraction ex2 = buildExtraction(d2,
+                fr.ailegalcase.document.ExtractionStatus.DONE, "Petit texte.", null);
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_FILE_ID))
+                .thenReturn(java.util.List.of(d1, d2));
+        when(documentExtractionRepository.findByDocumentIdIn(any()))
+                .thenReturn(java.util.List.of(ex1, ex2));
+
+        String result = service.buildUserMessage("Synth", CASE_FILE_ID, "Q");
+
+        assertThat(result).contains("1 inclus, 1 exclus par limite de taille");
+        assertThat(result).contains("[… tronqué]");
+    }
+
+    private fr.ailegalcase.document.Document buildDoc(UUID id, String name) {
+        fr.ailegalcase.document.Document d = new fr.ailegalcase.document.Document();
+        d.setId(id);
+        d.setOriginalFilename(name);
+        d.setContentType("application/pdf");
+        d.setFileSize(1000L);
+        d.setStorageKey("k/" + id);
+        return d;
+    }
+
+    private fr.ailegalcase.document.DocumentExtraction buildExtraction(
+            fr.ailegalcase.document.Document doc,
+            fr.ailegalcase.document.ExtractionStatus status,
+            String text, String metadata) {
+        fr.ailegalcase.document.DocumentExtraction ex = new fr.ailegalcase.document.DocumentExtraction();
+        ex.setDocument(doc);
+        ex.setExtractionStatus(status);
+        ex.setExtractedText(text);
+        ex.setExtractionMetadata(metadata);
+        return ex;
     }
 }

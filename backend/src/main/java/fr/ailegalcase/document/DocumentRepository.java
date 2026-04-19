@@ -14,6 +14,8 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     List<Document> findByCaseFileOrderByCreatedAtDesc(CaseFile caseFile);
 
+    List<Document> findByCaseFile_IdOrderByCreatedAtDesc(UUID caseFileId);
+
     long countByCaseFileId(UUID caseFileId);
 
     List<Document> findByCaseFileIdIn(Collection<UUID> caseFileIds);
