@@ -17,4 +17,11 @@ interface CreditPurchaseRepository extends JpaRepository<CreditPurchase, UUID> {
             WHERE cp.workspaceId = :workspaceId
             """)
     long sumTokensBoughtByWorkspaceId(@Param("workspaceId") UUID workspaceId);
+
+    @Query("""
+            SELECT COALESCE(SUM(cp.ocrPagesBought), 0)
+            FROM CreditPurchase cp
+            WHERE cp.workspaceId = :workspaceId
+            """)
+    long sumOcrPagesBoughtByWorkspaceId(@Param("workspaceId") UUID workspaceId);
 }

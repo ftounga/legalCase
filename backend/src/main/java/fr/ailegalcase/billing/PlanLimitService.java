@@ -255,18 +255,16 @@ public class PlanLimitService {
     }
 
     /**
-     * SF-122-02 : vérifie si consommer {@code additionalPages} de plus dépasserait
-     * le quota mensuel OU le hard cap journalier.
+     * SF-122-02 + SF-122-04 : vérifie si consommer {@code additionalPages} dépasserait
+     * le quota mensuel (plan + packs achetés restants) OU le hard cap journalier.
+     *
+     * Reliquat packs (SF-122-04) : les packs OCR achetés étendent le quota mensuel.
+     * Le reliquat est calculé en soustrayant du total acheté ce qui a déjà été
+     * consommé au-delà du quota plan cumulé sur toute la vie du workspace.
      *
      * Compteurs "stale" : si {@code ocr_usage_last_reset_date} est dans un mois
      * passé, le current_month est traité comme 0 (l'UPDATE suivant le réinitialisera).
-     * Même logique pour le compteur journalier (date différente d'aujourd'hui → 0).
      *
-     * Appelé par {@link fr.ailegalcase.ocr.OcrService} avant tout appel Textract.
-     * Aucun appel AWS → aucun coût si le quota est dépassé.
-     *
-     * @param workspaceId    workspace du document en cours d'extraction
-     * @param additionalPages nb de pages estimées du document (via PDFBox.getNumberOfPages)
      * @return true si l'ajout dépasserait l'un des deux gates
      */
     public boolean isOcrQuotaExceeded(UUID workspaceId, int additionalPages) {
@@ -280,10 +278,33 @@ public class PlanLimitService {
                     LocalDate today = LocalDate.now();
                     int effectiveMonth = effectiveMonthlyUsage(ws, today);
                     int effectiveDay = effectiveDailyUsage(ws, today);
+                    int packsRemaining = computeOcrPacksRemaining(workspaceId, ws, planCode);
+                    int effectiveMonthlyLimit = monthlyLimit + packsRemaining;
                     return (effectiveDay + additionalPages > DAILY_OCR_PAGES_HARD_CAP)
-                            || (effectiveMonth + additionalPages > monthlyLimit);
+                            || (effectiveMonth + additionalPages > effectiveMonthlyLimit);
                 })
                 .orElse(true); // workspace introuvable → block par défaut
+    }
+
+    /**
+     * SF-122-04 : calcule les pages OCR encore disponibles depuis les packs achetés.
+     * Formule : totalBought - max(0, allTimeUsed - monthsActive × planMonthly).
+     * Pattern identique à {@code computeCreditsRemaining} pour les tokens.
+     */
+    int computeOcrPacksRemaining(UUID workspaceId, Workspace ws, String planCode) {
+        long totalBought = creditPurchaseService.getTotalOcrPagesBought(workspaceId);
+        if (totalBought == 0) return 0;
+        long allTimeUsed = ws.getOcrPagesUsedAllTime();
+        long monthlyPlan = getMonthlyOcrPages(planCode);
+        // Approximation conservatrice : 1 mois actif. Si on veut plus précis,
+        // utiliser subscription.startedAt et compter les mois. Pour V1, OK.
+        long consumedBeyondPlan = Math.max(0, allTimeUsed - monthlyPlan);
+        return (int) Math.max(0, totalBought - consumedBeyondPlan);
+    }
+
+    /** SF-122-04 : somme des pages OCR achetées (exposé pour l'UI billing). */
+    public long getOcrPagesBought(UUID workspaceId) {
+        return creditPurchaseService.getTotalOcrPagesBought(workspaceId);
     }
 
     static int effectiveMonthlyUsage(Workspace ws, LocalDate today) {

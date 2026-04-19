@@ -98,6 +98,9 @@ app:
     price-id-tokens-1m: ${STRIPE_PRICE_ID_TOKENS_1M:}
     price-id-tokens-5m: ${STRIPE_PRICE_ID_TOKENS_5M:}
     price-id-tokens-20m: ${STRIPE_PRICE_ID_TOKENS_20M:}
+    price-id-ocr-500: ${STRIPE_PRICE_ID_OCR_500:}
+    price-id-ocr-2000: ${STRIPE_PRICE_ID_OCR_2000:}
+    price-id-ocr-8000: ${STRIPE_PRICE_ID_OCR_8000:}
 
 rabbitmq:
   management:

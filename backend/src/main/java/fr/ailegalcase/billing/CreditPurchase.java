@@ -18,6 +18,10 @@ public class CreditPurchase {
     @Column(name = "tokens_bought", nullable = false)
     private long tokensBought;
 
+    /** SF-122-04 : pages OCR achetées (un des deux champs est 0 selon le type de pack). */
+    @Column(name = "ocr_pages_bought", nullable = false)
+    private int ocrPagesBought;
+
     @Column(name = "amount_cents", nullable = false)
     private int amountCents;
 
@@ -37,6 +41,8 @@ public class CreditPurchase {
     public void setWorkspaceId(UUID workspaceId) { this.workspaceId = workspaceId; }
     public long getTokensBought() { return tokensBought; }
     public void setTokensBought(long tokensBought) { this.tokensBought = tokensBought; }
+    public int getOcrPagesBought() { return ocrPagesBought; }
+    public void setOcrPagesBought(int ocrPagesBought) { this.ocrPagesBought = ocrPagesBought; }
     public int getAmountCents() { return amountCents; }
     public void setAmountCents(int amountCents) { this.amountCents = amountCents; }
     public String getStripeSessionId() { return stripeSessionId; }

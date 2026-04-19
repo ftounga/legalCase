@@ -30,6 +30,9 @@ public class TopupCheckoutService {
     private final String priceIdTokens1m;
     private final String priceIdTokens5m;
     private final String priceIdTokens20m;
+    private final String priceIdOcr500;
+    private final String priceIdOcr2000;
+    private final String priceIdOcr8000;
     private final String frontendUrl;
     private final SubscriptionRepository subscriptionRepository;
     private final StripeCustomerService stripeCustomerService;
@@ -42,6 +45,9 @@ public class TopupCheckoutService {
             @Value("${app.stripe.price-id-tokens-1m:}") String priceIdTokens1m,
             @Value("${app.stripe.price-id-tokens-5m:}") String priceIdTokens5m,
             @Value("${app.stripe.price-id-tokens-20m:}") String priceIdTokens20m,
+            @Value("${app.stripe.price-id-ocr-500:}") String priceIdOcr500,
+            @Value("${app.stripe.price-id-ocr-2000:}") String priceIdOcr2000,
+            @Value("${app.stripe.price-id-ocr-8000:}") String priceIdOcr8000,
             @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
             SubscriptionRepository subscriptionRepository,
             StripeCustomerService stripeCustomerService,
@@ -52,6 +58,9 @@ public class TopupCheckoutService {
         this.priceIdTokens1m = priceIdTokens1m;
         this.priceIdTokens5m = priceIdTokens5m;
         this.priceIdTokens20m = priceIdTokens20m;
+        this.priceIdOcr500 = priceIdOcr500;
+        this.priceIdOcr2000 = priceIdOcr2000;
+        this.priceIdOcr8000 = priceIdOcr8000;
         this.frontendUrl = frontendUrl;
         this.subscriptionRepository = subscriptionRepository;
         this.stripeCustomerService = stripeCustomerService;
@@ -65,11 +74,35 @@ public class TopupCheckoutService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Stripe is not enabled");
         }
 
-        TokenPack pack;
-        try {
-            pack = TokenPack.valueOf(packCode);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pack code: " + packCode);
+        // SF-122-04 : dispatch OCR packs vs token packs par prefix
+        String priceId;
+        String metadataPackCode;
+        if (OcrPack.isOcrPack(packCode)) {
+            OcrPack ocr;
+            try {
+                ocr = OcrPack.valueOf(packCode);
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pack code: " + packCode);
+            }
+            priceId = switch (ocr) {
+                case OCR_8000 -> priceIdOcr8000;
+                case OCR_2000 -> priceIdOcr2000;
+                case OCR_500  -> priceIdOcr500;
+            };
+            metadataPackCode = ocr.name();
+        } else {
+            TokenPack pack;
+            try {
+                pack = TokenPack.valueOf(packCode);
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pack code: " + packCode);
+            }
+            priceId = switch (pack) {
+                case TOKENS_20M -> priceIdTokens20m;
+                case TOKENS_5M  -> priceIdTokens5m;
+                case TOKENS_1M  -> priceIdTokens1m;
+            };
+            metadataPackCode = pack.name();
         }
 
         User user = currentUserResolver.resolve(oidcUser, provider, principal);
@@ -78,7 +111,7 @@ public class TopupCheckoutService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"));
 
         if (!ALLOWED_ROLES.contains(member.getMemberRole())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only OWNER or ADMIN can purchase tokens");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only OWNER or ADMIN can purchase packs");
         }
 
         var workspace = member.getWorkspace();
@@ -95,12 +128,6 @@ public class TopupCheckoutService {
                     });
         }
 
-        String priceId = switch (pack) {
-            case TOKENS_20M -> priceIdTokens20m;
-            case TOKENS_5M  -> priceIdTokens5m;
-            case TOKENS_1M  -> priceIdTokens1m;
-        };
-
         try {
             Stripe.apiKey = secretKey;
             SessionCreateParams.Builder params = SessionCreateParams.builder()
@@ -111,7 +138,7 @@ public class TopupCheckoutService {
                             .setPrice(priceId)
                             .setQuantity(1L)
                             .build())
-                    .putMetadata("pack_code", pack.name())
+                    .putMetadata("pack_code", metadataPackCode)
                     .putMetadata("workspace_id", workspace.getId().toString());
 
             if (sub.getStripeCustomerId() != null) {
