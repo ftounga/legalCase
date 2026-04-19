@@ -125,4 +125,26 @@ describe('AnalysisPipelineComponent', () => {
     expect(caseStep.status).toBe('waiting');
     expect(caseStep.progressValue).toBe(0);
   });
+
+  // SF-121-04 : counter "X non analysables / Y" pour DOCUMENT_ANALYSIS FAILED
+  it('U-AP-04-01 : DOCUMENT_ANALYSIS FAILED → counter "3 non analysables / 9"', () => {
+    component.jobs = [job('DOCUMENT_ANALYSIS', 'FAILED', 100, 9, 3)];
+    component.documentsCount = 9;
+    component.ngOnChanges();
+
+    const step = component.steps.find(s => s.jobType === 'DOCUMENT_ANALYSIS')!;
+    expect(step.status).toBe('failed');
+    expect(step.counter).toBe('3 non analysables / 9');
+  });
+
+  // SF-121-04 : le format spécial ne s'applique qu'à DOCUMENT_ANALYSIS FAILED
+  it('U-AP-04-02 : CASE_ANALYSIS FAILED → counter classique "X / Y"', () => {
+    component.jobs = [job('CASE_ANALYSIS', 'FAILED', 100, 5, 3)];
+    component.documentsCount = 1;
+    component.ngOnChanges();
+
+    const step = component.steps.find(s => s.jobType === 'CASE_ANALYSIS')!;
+    expect(step.status).toBe('failed');
+    expect(step.counter).toBe('3 / 5');
+  });
 });
