@@ -25,6 +25,8 @@ import static org.mockito.Mockito.*;
 class CaseAnalysisServiceTest {
 
     private final DocumentAnalysisRepository documentAnalysisRepository = mock(DocumentAnalysisRepository.class);
+    private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository =
+            mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
     private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
@@ -40,7 +42,7 @@ class CaseAnalysisServiceTest {
     private final SourceExplanationService sourceExplanationService = mock(SourceExplanationService.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
-            documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
+            documentAnalysisRepository, documentExtractionRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, caseDeadlineService,
             sourceExplanationGenerator, sourceExplanationService);

@@ -3,6 +3,9 @@ package fr.ailegalcase.analysis;
 import fr.ailegalcase.casefile.CaseDeadlineService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import fr.ailegalcase.document.DocumentExtraction;
+import fr.ailegalcase.document.DocumentExtractionRepository;
+import fr.ailegalcase.document.ExtractionStatus;
 import io.sentry.Sentry;
 import io.sentry.SentryEvent;
 import io.sentry.SentryLevel;
@@ -20,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -78,7 +83,14 @@ public class CaseAnalysisService {
     record PreparedCaseAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
                                  AnalysisLimitsProperties.LevelLimits limits) {}
 
+    /** SF — budget pour les extraits bruts injectés par doc (pour éviter les
+     *  mauvaises classifications quand les doc-analyses ne captent pas le
+     *  mécanisme factuel de rupture, ex. Convention de rupture signée vs
+     *  requalification en licenciement). 2000 car ≈ ~500 tokens par doc. */
+    static final int RAW_DOC_PREFIX_CHARS = 2_000;
+
     private final DocumentAnalysisRepository documentAnalysisRepository;
+    private final DocumentExtractionRepository documentExtractionRepository;
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
     private final AnthropicService anthropicService;
@@ -97,6 +109,7 @@ public class CaseAnalysisService {
     private CaseAnalysisService self;
 
     public CaseAnalysisService(DocumentAnalysisRepository documentAnalysisRepository,
+                               DocumentExtractionRepository documentExtractionRepository,
                                CaseAnalysisRepository caseAnalysisRepository,
                                CaseFileRepository caseFileRepository,
                                AnthropicService anthropicService,
@@ -111,6 +124,7 @@ public class CaseAnalysisService {
                                SourceExplanationGenerator sourceExplanationGenerator,
                                SourceExplanationService sourceExplanationService) {
         this.documentAnalysisRepository = documentAnalysisRepository;
+        this.documentExtractionRepository = documentExtractionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.anthropicService = anthropicService;
@@ -303,11 +317,33 @@ public class CaseAnalysisService {
         List<DocumentAnalysis> sorted = documentAnalyses.stream()
                 .sorted((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
                 .toList();
+
+        // Charge les extractions en batch pour récupérer le texte brut (prefix).
+        // Permet à Claude de voir directement "Convention de rupture signée le..."
+        // au lieu de s'appuyer uniquement sur les faits pré-extraits qui peuvent
+        // être biaisés par les arguments de requalification.
+        List<UUID> docIds = sorted.stream().map(da -> da.getDocument().getId()).toList();
+        Map<UUID, DocumentExtraction> extractionsByDocId = documentExtractionRepository
+                .findByDocumentIdIn(docIds).stream()
+                .collect(Collectors.toMap(e -> e.getDocument().getId(), e -> e, (a, b) -> a, HashMap::new));
+
         return IntStream.range(0, sorted.size())
                 .mapToObj(i -> {
-                    String filename = sorted.get(i).getDocument().getOriginalFilename();
+                    DocumentAnalysis da = sorted.get(i);
+                    String filename = da.getDocument().getOriginalFilename();
                     String label = filename != null ? filename : "document-%d".formatted(i);
-                    return "%s : %s".formatted(label, sorted.get(i).getAnalysisResult());
+
+                    String rawPrefix = "";
+                    DocumentExtraction ex = extractionsByDocId.get(da.getDocument().getId());
+                    if (ex != null && ex.getExtractionStatus() == ExtractionStatus.DONE
+                            && ex.getExtractedText() != null && !ex.getExtractedText().isBlank()) {
+                        String text = ex.getExtractedText();
+                        String slice = text.length() <= RAW_DOC_PREFIX_CHARS
+                                ? text : text.substring(0, RAW_DOC_PREFIX_CHARS) + " [...]";
+                        rawPrefix = "\n[Extrait du document brut] " + slice.replace("\n", " ").trim() + "\n";
+                    }
+
+                    return "%s : %s%s".formatted(label, da.getAnalysisResult(), rawPrefix);
                 })
                 .collect(Collectors.joining("\n"));
     }

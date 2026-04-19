@@ -45,8 +45,11 @@ class SentryJobReportingTest {
     private final SourceExplanationGenerator sourceExplanationGenerator = mock(SourceExplanationGenerator.class);
     private final SourceExplanationService sourceExplanationService = mock(SourceExplanationService.class);
 
+    private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository =
+            mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
+
     private final CaseAnalysisService caseAnalysisService = new CaseAnalysisService(
-            documentAnalysisRepository, caseAnalysisRepository, caseFileRepository,
+            documentAnalysisRepository, documentExtractionRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, caseDeadlineService,
             sourceExplanationGenerator, sourceExplanationService);
