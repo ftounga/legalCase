@@ -87,12 +87,13 @@ public class AiQuestionService {
         try {
             log.info("Question generation START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            // 4096 tokens : permet de générer 5-8 questions complètes avec justifications
-            // même sur des dossiers riches (19k+ chars d'input). 1024 était trop serré
-            // et tronquait le JSON → 0 questions parsables (bug observé staging E21
-            // 2026-04-19, 19342 chars d'input OCR-extraits de 9 docs → output cappé
-            // à 1024 tokens au milieu du JSON).
-            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 4096);
+            // 8192 tokens = max output Sonnet 4.6. Largement suffisant pour 5-8 questions
+            // avec justifications sur n'importe quel dossier. Anthropic facture sur
+            // l'usage réel (~1000-2000 tokens typiquement), pas le max → zéro surcoût.
+            // Aligne avec CaseAnalysisService et EnrichedAnalysisService. Historique :
+            // 1024 → 4096 (2026-04-19 PR #386) → 8192 (cette PR, demande user pour
+            // éliminer définitivement le risque de troncature silencieuse).
+            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 8192);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Question generation DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
