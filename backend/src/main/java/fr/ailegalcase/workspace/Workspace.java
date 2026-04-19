@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -44,6 +45,16 @@ public class Workspace {
 
     @Column(nullable = false)
     private Instant createdAt;
+
+    // SF-122-01 : compteurs OCR pour Textract. Enforcement en SF-122-02.
+    @Column(name = "ocr_pages_used_current_month", nullable = false)
+    private int ocrPagesUsedCurrentMonth = 0;
+
+    @Column(name = "ocr_pages_used_current_day", nullable = false)
+    private int ocrPagesUsedCurrentDay = 0;
+
+    @Column(name = "ocr_usage_last_reset_date")
+    private LocalDate ocrUsageLastResetDate;
 
     @PrePersist
     void onPrePersist() {

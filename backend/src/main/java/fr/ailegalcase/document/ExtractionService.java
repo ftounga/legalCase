@@ -1,6 +1,9 @@
 package fr.ailegalcase.document;
 
+import fr.ailegalcase.ocr.OcrResult;
+import fr.ailegalcase.ocr.OcrService;
 import fr.ailegalcase.storage.StorageService;
+import fr.ailegalcase.workspace.WorkspaceRepository;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -21,6 +24,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
@@ -32,6 +36,8 @@ public class ExtractionService {
     private final DocumentExtractionRepository extractionRepository;
     private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
+    private final OcrService ocrService;
+    private final WorkspaceRepository workspaceRepository;
 
     @Lazy @Autowired
     private ExtractionService self;
@@ -39,11 +45,15 @@ public class ExtractionService {
     public ExtractionService(DocumentRepository documentRepository,
                              DocumentExtractionRepository extractionRepository,
                              StorageService storageService,
-                             ApplicationEventPublisher eventPublisher) {
+                             ApplicationEventPublisher eventPublisher,
+                             OcrService ocrService,
+                             WorkspaceRepository workspaceRepository) {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
         this.storageService = storageService;
         this.eventPublisher = eventPublisher;
+        this.ocrService = ocrService;
+        this.workspaceRepository = workspaceRepository;
     }
 
     @Async
@@ -71,16 +81,39 @@ public class ExtractionService {
             long duration = System.currentTimeMillis() - start;
 
             // SF-121-01 : détection du cas "texte vide" (PDF scanné sans couche texte).
-            // Sans cette vérif, l'extraction passait en DONE et ChunkingService abandonnait
-            // silencieusement → barre d'analyse figée côté UI (bug MEA AVOCATS 2026-04-17).
+            // SF-122-01 : sur PDF vide, tente un fallback OCR Textract avant de marquer FAILED.
             if (text == null || text.isBlank()) {
-                log.warn("Extraction {} for document {} produced empty text — marking FAILED (EMPTY_TEXT)",
-                        extraction.getId(), documentId);
-                extraction.setExtractedText(null);
-                extraction.setExtractionMetadata(
-                        "{\"extractor\":\"internal\",\"charCount\":0,\"durationMs\":%d,\"reason\":\"EMPTY_TEXT\"}".formatted(duration));
-                extraction.setExtractionStatus(ExtractionStatus.FAILED);
-                extraction.setFailureReason(ExtractionFailureReason.EMPTY_TEXT);
+                if ("application/pdf".equals(contentType)) {
+                    OcrResult ocr = ocrService.tryOcr(fileBytes);
+                    if (ocr.success()) {
+                        extraction.setExtractedText(ocr.text());
+                        extraction.setExtractionMetadata(
+                                "{\"extractor\":\"textract\",\"charCount\":%d,\"pageCount\":%d,\"durationMs\":%d}"
+                                        .formatted(ocr.text().length(), ocr.pageCount(), duration));
+                        extraction.setExtractionStatus(ExtractionStatus.DONE);
+                        extraction.setFailureReason(null);
+                        incrementOcrUsage(docRef, ocr.pageCount());
+                        log.info("Extraction done via OCR for document {} — {} chars from {} page(s)",
+                                documentId, ocr.text().length(), ocr.pageCount());
+                    } else {
+                        log.warn("Extraction {} for document {} produced empty text — OCR also failed ({})",
+                                extraction.getId(), documentId, ocr.failureMotif());
+                        extraction.setExtractedText(null);
+                        extraction.setExtractionMetadata(
+                                "{\"extractor\":\"internal+textract\",\"charCount\":0,\"durationMs\":%d,\"reason\":\"%s\"}"
+                                        .formatted(duration, ocr.failureMotif().name()));
+                        extraction.setExtractionStatus(ExtractionStatus.FAILED);
+                        extraction.setFailureReason(ocr.failureMotif());
+                    }
+                } else {
+                    log.warn("Extraction {} for document {} produced empty text — marking FAILED (EMPTY_TEXT)",
+                            extraction.getId(), documentId);
+                    extraction.setExtractedText(null);
+                    extraction.setExtractionMetadata(
+                            "{\"extractor\":\"internal\",\"charCount\":0,\"durationMs\":%d,\"reason\":\"EMPTY_TEXT\"}".formatted(duration));
+                    extraction.setExtractionStatus(ExtractionStatus.FAILED);
+                    extraction.setFailureReason(ExtractionFailureReason.EMPTY_TEXT);
+                }
             } else {
                 extraction.setExtractedText(text);
                 extraction.setExtractionMetadata(
@@ -119,6 +152,26 @@ public class ExtractionService {
             String filename = docRef.getOriginalFilename();
             eventPublisher.publishEvent(new ExtractionFailedEvent(
                     extraction.getId(), documentId, filename, extraction.getFailureReason()));
+        }
+    }
+
+    /**
+     * SF-122-01 : incrémente atomiquement les compteurs OCR du workspace du document.
+     * Fail-open : une erreur ici ne fait pas retomber l'extraction elle-même en FAILED
+     * (le texte OCR a bien été persisté, la pipeline IA peut repartir normalement).
+     */
+    private void incrementOcrUsage(Document docRef, int pageCount) {
+        if (pageCount <= 0) return;
+        try {
+            UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
+            int updated = workspaceRepository.incrementOcrUsage(workspaceId, pageCount, LocalDate.now());
+            if (updated == 0) {
+                log.warn("OCR usage increment found no workspace row for documentId={}, pageCount={}",
+                        docRef.getId(), pageCount);
+            }
+        } catch (Exception e) {
+            log.error("OCR usage increment failed for documentId={} — fail-open (pipeline continue)",
+                    docRef.getId(), e);
         }
     }
 

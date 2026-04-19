@@ -1,6 +1,8 @@
 package fr.ailegalcase.document;
 
+import fr.ailegalcase.ocr.OcrService;
 import fr.ailegalcase.storage.StorageService;
+import fr.ailegalcase.workspace.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -38,6 +41,8 @@ class ExtractionServiceTest {
     @Mock private DocumentExtractionRepository extractionRepository;
     @Mock private StorageService storageService;
     @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private OcrService ocrService;
+    @Mock private WorkspaceRepository workspaceRepository;
 
     private ExtractionService service;
 
@@ -47,7 +52,12 @@ class ExtractionServiceTest {
     @BeforeEach
     void setUp() {
         service = new ExtractionService(documentRepository, extractionRepository,
-                storageService, eventPublisher);
+                storageService, eventPublisher, ocrService, workspaceRepository);
+        // SF-122-01 : par défaut, OCR indisponible — les tests existants SF-121-01
+        // continuent de valider le comportement "texte vide → FAILED EMPTY_TEXT" sur non-PDF
+        // (pour PDF, le fallback OCR est testé séparément dans OcrServiceTest + I-ES-OCR-*).
+        lenient().when(ocrService.tryOcr(any())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.EMPTY_TEXT));
         Document docRef = new Document();
         docRef.setId(DOC_ID);
         lenient().when(documentRepository.getReferenceById(DOC_ID)).thenReturn(docRef);
@@ -152,6 +162,95 @@ class ExtractionServiceTest {
 
         DocumentExtraction saved = capturedFinalSave();
         assertThat(saved.getExtractionMetadata()).contains("EMPTY_TEXT");
+    }
+
+    // --- SF-122-01 : fallback OCR sur PDF à texte vide ---
+
+    // U-EXT-OCR-01 : PDF texte vide + OCR success → DONE via textract, workspace incrémenté
+    @Test
+    void extract_emptyPdf_ocrSuccess_marksDone() throws IOException {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
+        when(ocrService.tryOcr(any())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("Texte OCR reconstruit", 3));
+
+        service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        assertThat(saved.getExtractedText()).isEqualTo("Texte OCR reconstruit");
+        assertThat(saved.getFailureReason()).isNull();
+        assertThat(saved.getExtractionMetadata()).contains("textract").contains("\"pageCount\":3");
+        verify(eventPublisher).publishEvent(any(ExtractionDoneEvent.class));
+        verify(workspaceRepository).incrementOcrUsage(eq(workspaceId), eq(3), any(java.time.LocalDate.class));
+    }
+
+    // U-EXT-OCR-02 : PDF texte vide + OCR failure → FAILED avec motif propagé
+    @Test
+    void extract_emptyPdf_ocrFailure_marksFailed() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
+        when(ocrService.tryOcr(any())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.OCR_FAILED));
+
+        service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.OCR_FAILED);
+        verify(eventPublisher, never()).publishEvent(any(ExtractionDoneEvent.class));
+        verify(workspaceRepository, never()).incrementOcrUsage(any(), anyInt(), any());
+    }
+
+    // U-EXT-OCR-03 : non-PDF texte vide → pas d'appel OCR (SF-121-01 conservé)
+    @Test
+    void extract_emptyTxt_doesNotCallOcr() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn(new byte[0]);
+
+        service.extract(DOC_ID, STORAGE_KEY, "text/plain");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
+        verify(ocrService, never()).tryOcr(any());
+    }
+
+    // U-EXT-OCR-04 : PDF texte vide + OCR UNSUPPORTED_SIZE → FAILED avec motif OCR_UNSUPPORTED_SIZE
+    @Test
+    void extract_emptyPdf_ocrUnsupportedSize_marksFailedWithMotif() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
+        when(ocrService.tryOcr(any())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE));
+
+        service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
+    }
+
+    /** PDF minimal valide (1 page, aucun texte) → PDFBox parse OK mais renvoie "" → branche fallback OCR déclenchée. */
+    private byte[] emptyPdfBytes() {
+        try (org.apache.pdfbox.pdmodel.PDDocument doc = new org.apache.pdfbox.pdmodel.PDDocument();
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            doc.addPage(new org.apache.pdfbox.pdmodel.PDPage());
+            doc.save(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /** Reconstruit le stub Document avec un caseFile + workspace pour les tests OCR. */
+    private void setupDocWithWorkspace(UUID workspaceId) {
+        fr.ailegalcase.casefile.CaseFile cf = new fr.ailegalcase.casefile.CaseFile();
+        fr.ailegalcase.workspace.Workspace ws = new fr.ailegalcase.workspace.Workspace();
+        ws.setId(workspaceId);
+        cf.setWorkspace(ws);
+        Document docRef = new Document();
+        docRef.setId(DOC_ID);
+        docRef.setCaseFile(cf);
+        when(documentRepository.getReferenceById(DOC_ID)).thenReturn(docRef);
     }
 
     /** Récupère le DERNIER DocumentExtraction sauvegardé (reflétant l'état final après logique). */
