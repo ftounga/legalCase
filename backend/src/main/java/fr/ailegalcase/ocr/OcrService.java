@@ -11,6 +11,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.retry.RetryMode;
+import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.model.AnalyzeDocumentRequest;
@@ -161,8 +164,17 @@ public class OcrService {
         @Bean
         @ConditionalOnProperty(prefix = "aws.textract", name = "enabled", havingValue = "true")
         TextractClient textractClient(OcrProperties properties) {
+            // SF-122-07 fix : RetryMode.ADAPTIVE = token bucket client-side rate
+            // limiter + backoff exponentiel sur ThrottlingException /
+            // ProvisionedThroughputExceededException. 5 tentatives max. Essentiel
+            // pour les retries massifs où 9 docs partent en parallèle chez Textract.
             return TextractClient.builder()
                     .region(Region.of(properties.region()))
+                    .overrideConfiguration(ClientOverrideConfiguration.builder()
+                            .retryPolicy(RetryPolicy.builder(RetryMode.ADAPTIVE)
+                                    .numRetries(5)
+                                    .build())
+                            .build())
                     .build();
         }
     }
