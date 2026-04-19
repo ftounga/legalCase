@@ -4,6 +4,22 @@ public final class LegalDomainPromptBuilder {
 
     private static final String FAMILLE_INSTRUCTION = """
 
+            ========== RÈGLE CRITIQUE DE CLASSIFICATION — À APPLIQUER EN PREMIER ==========
+            Identifier le MÉCANISME FACTUEL (pièce signée / décision notifiée),
+            JAMAIS la qualification demandée dans les arguments d'une partie.
+
+            Exemples critiques :
+            - Contrat de mariage signé (séparation de biens, participation aux acquêts) +
+              arguments de la partie pour requalifier en communauté légale de fait →
+              regime_matrimonial reste SEPARATION_BIENS (ou PARTICIPATION_ACQUETS) tant
+              que le juge n'a pas requalifié ; la convention existe factuellement.
+            - Mode de garde actuel acté dans une ordonnance provisoire vs demande de
+              modification → mode_garde_detaille reflète l'ORDONNANCE EN COURS, pas la
+              demande en cours d'instruction.
+            - Convention de divorce signée mais non homologuée → elle sert d'indice
+              sur le régime choisi mais la situation procédurale peut rester incertaine.
+            ================================================================================
+
             Pour ce dossier de droit de la famille, inclure également dans le JSON les champs suivants :
             "pension_alimentaire_data" : objet avec les champs :
               "revenus_net_mensuel_debiteur" : revenu net mensuel du parent débiteur en euros, null si non détectable.
@@ -115,6 +131,24 @@ public final class LegalDomainPromptBuilder {
             """;
 
     private static final String IMMIGRATION_INSTRUCTION = """
+
+            ========== RÈGLE CRITIQUE DE CLASSIFICATION — À APPLIQUER EN PREMIER ==========
+            Identifier le MÉCANISME FACTUEL (pièce signée / décision notifiée),
+            JAMAIS la qualification demandée dans les arguments d'une partie.
+
+            Exemples critiques :
+            - Refus OFPRA notifié + arguments pour recours CNDA non encore déposé →
+              type_procedure_detectee = DEMANDE_ASILE_OFPRA (état actuel), type_recours_code
+              reste null tant que le recours n'est pas formellement introduit (date de dépôt).
+              Une fois le recours déposé : type_procedure_detectee = RECOURS_CNDA.
+            - Titre de séjour temporaire en cours de validité + demande de renouvellement
+              déposée → type_titre_sejour_code reflète le TITRE ACTUEL (ex. VLS_TS_SALARIE),
+              pas le titre demandé. type_procedure_detectee = RENOUVELLEMENT_TITRE_SEJOUR.
+            - OQTF reçue + arguments pour recours contentieux TA non encore introduit →
+              type_procedure_detectee reste null (ou DEMANDE_ASILE_OFPRA selon contexte) ;
+              type_recours_code = RECOURS_CONTENTIEUX_TA seulement si le recours est déposé
+              ou immédiatement sur le point de l'être (pièce rédigée au dossier).
+            ================================================================================
 
             Pour ce dossier de droit de l'immigration, inclure également dans le JSON les champs suivants :
             "date_expiration_titre" : date d'expiration du titre de séjour au format YYYY-MM-DD, null si non détectable.

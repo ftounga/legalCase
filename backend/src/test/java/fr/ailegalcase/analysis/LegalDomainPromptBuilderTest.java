@@ -33,4 +33,29 @@ class LegalDomainPromptBuilderTest {
         assertThat(LegalDomainPromptBuilder.domainLabel("DROIT_IMMIGRATION", "BELGIQUE"))
                 .isEqualTo("droit de l'immigration belge");
     }
+
+    // SF-128-01 : règle critique de classification en tête pour chaque domaine
+    @Test
+    void domainSpecificInstruction_travail_containsClassificationRule() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("RÈGLE CRITIQUE DE CLASSIFICATION");
+        assertThat(instruction).contains("MÉCANISME FACTUEL");
+        assertThat(instruction).contains("RUPTURE_CONVENTIONNELLE");
+    }
+
+    @Test
+    void domainSpecificInstruction_immigration_containsClassificationRule() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        assertThat(instruction).contains("RÈGLE CRITIQUE DE CLASSIFICATION");
+        assertThat(instruction).contains("MÉCANISME FACTUEL");
+        assertThat(instruction).contains("RECOURS_CNDA");
+    }
+
+    @Test
+    void domainSpecificInstruction_famille_containsClassificationRule() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_FAMILLE");
+        assertThat(instruction).contains("RÈGLE CRITIQUE DE CLASSIFICATION");
+        assertThat(instruction).contains("MÉCANISME FACTUEL");
+        assertThat(instruction).contains("regime_matrimonial");
+    }
 }
