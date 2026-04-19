@@ -240,10 +240,23 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   canCompare = signal(false);
   deletingDocId = signal<string | null>(null);
   pendingFiles = signal<File[]>([]);
+  /** SF-122-07 : si coché (défaut), un PDF scanné déclenche l'OCR Textract en
+   * fallback. Si décoché, le scan reste non analysable (aucun appel AWS, quota
+   * préservé). L'avocat pourra toujours réactiver l'OCR a posteriori via le
+   * bouton "Relancer avec OCR" (bandeau F-122-05). Batch-level, reset après upload. */
+  ocrEnabled = signal(true);
+
   /** SF-122-03 : si coché, les PDF uploadés bénéficient de l'OCR Textract approfondi
-   * (FORMS + TABLES). Compte ×3 dans le quota OCR. Batch-level (tous les fichiers
-   * du batch partagent le flag). Reset après chaque upload. */
+   * (FORMS + TABLES). Compte ×3 dans le quota OCR. Grisé si ocrEnabled=false. */
   ocrFormsMode = signal(false);
+
+  /** SF-122-07 : tooltip de la 2ème checkbox, contextuel selon l'état de ocrEnabled. */
+  readonly ocrFormsTooltip = computed(() => {
+    if (!this.ocrEnabled()) {
+      return "Activez d'abord l'OCR pour choisir le mode approfondi";
+    }
+    return "Active l'OCR approfondi (détection des champs de formulaire) pour CERFA, déclarations préfecture, URSSAF. Compte ×3 dans le quota.";
+  });
 
   /** SF-122-05 : preview du retry OCR — chargée à l'ouverture du dossier si ≥ 1 doc FAILED éligible. */
   ocrRetryPreview = signal<OcrRetryPreview | null>(null);
@@ -906,8 +919,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.fileUploadProgresses.set(initialProgresses);
 
     const formsMode = this.ocrFormsMode();
+    const ocrEnabled = this.ocrEnabled();
+    // Cohérence : si OCR désactivé, forms mode ignoré (checkbox grisée côté UI)
+    const effectiveFormsMode = ocrEnabled && formsMode;
     const uploads = files.map(f =>
-      this.documentService.uploadWithProgress(caseFileId, f, formsMode).pipe(
+      this.documentService.uploadWithProgress(caseFileId, f, effectiveFormsMode, ocrEnabled).pipe(
         tap(event => {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             const pct = Math.round((event.loaded / event.total) * 100);
@@ -928,6 +944,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       this.fileUploadProgresses.set(new Map());
       this.pendingFiles.set([]);
       this.ocrFormsMode.set(false); // SF-122-03 : reset après chaque batch
+      this.ocrEnabled.set(true);    // SF-122-07 : reset après chaque batch
 
       if (succeeded.length > 0) {
         this.documents.update(docs => [...succeeded, ...docs]);

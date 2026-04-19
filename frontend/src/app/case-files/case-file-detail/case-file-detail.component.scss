@@ -335,13 +335,29 @@
   }
 }
 
-/* SF-122-03 : checkbox OCR approfondi (formulaires) */
-.ocr-forms-toggle {
+/* SF-122-07 + SF-122-03 : bloc Options OCR (2 checkboxes groupées) */
+.ocr-options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background-color: rgba(var(--color-accent-rgb, 255, 152, 0), 0.04);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 4px;
+}
+
+.ocr-options-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.ocr-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
   font-size: 0.9rem;
   color: var(--color-text-primary);
   cursor: pointer;
@@ -357,11 +373,20 @@
     cursor: not-allowed;
   }
 
-  .ocr-forms-hint {
+  .ocr-hint {
     font-size: 0.8rem;
     color: var(--color-text-secondary);
     font-style: italic;
   }
+}
+
+.ocr-toggle-sub {
+  padding-left: 24px;
+}
+
+.ocr-toggle.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Placeholder analyse IA */

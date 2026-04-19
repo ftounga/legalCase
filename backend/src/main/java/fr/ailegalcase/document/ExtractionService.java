@@ -83,7 +83,7 @@ public class ExtractionService {
             // SF-121-01 : détection du cas "texte vide" (PDF scanné sans couche texte).
             // SF-122-01 : sur PDF vide, tente un fallback OCR Textract avant de marquer FAILED.
             if (text == null || text.isBlank()) {
-                if ("application/pdf".equals(contentType)) {
+                if ("application/pdf".equals(contentType) && docRef.isOcrEnabled()) {
                     UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
                     boolean formsMode = docRef.isOcrFormsMode(); // SF-122-03
                     OcrResult ocr = ocrService.tryOcr(fileBytes, workspaceId, formsMode);

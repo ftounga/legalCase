@@ -152,17 +152,33 @@
               </div>
             }
           </div>
-          <!-- SF-122-03 : checkbox mode OCR approfondi (formulaires CERFA / préfecture) -->
-          <label class="ocr-forms-toggle"
-                 matTooltip="Active l'OCR approfondi (détection des champs de formulaire) pour CERFA, déclarations préfecture, URSSAF. Ce document compte ×3 dans votre quota OCR."
-                 matTooltipPosition="above">
-            <input type="checkbox"
-                   [checked]="ocrFormsMode()"
-                   (change)="ocrFormsMode.set(!ocrFormsMode())"
-                   [disabled]="uploading()">
-            <span>Analyse approfondie formulaire administratif</span>
-            <span class="ocr-forms-hint">(×3 quota OCR)</span>
-          </label>
+          <!-- SF-122-07 + SF-122-03 : bloc Options OCR (2 checkboxes groupées) -->
+          <div class="ocr-options-group">
+            <div class="ocr-options-title">⚙️ Options OCR</div>
+
+            <label class="ocr-toggle"
+                   matTooltip="Si décoché, les PDF scannés ne seront pas analysés par OCR et ne consommeront pas de quota. Vous pourrez toujours activer l'OCR plus tard via le bouton 'Relancer avec OCR'."
+                   matTooltipPosition="above">
+              <input type="checkbox"
+                     [checked]="ocrEnabled()"
+                     (change)="ocrEnabled.set(!ocrEnabled())"
+                     [disabled]="uploading()">
+              <span>Activer l'OCR si le document est un scan</span>
+              <span class="ocr-hint">(recommandé, consomme votre quota OCR)</span>
+            </label>
+
+            <label class="ocr-toggle ocr-toggle-sub"
+                   [class.disabled]="!ocrEnabled()"
+                   [matTooltip]="ocrFormsTooltip()"
+                   matTooltipPosition="above">
+              <input type="checkbox"
+                     [checked]="ocrFormsMode()"
+                     (change)="ocrFormsMode.set(!ocrFormsMode())"
+                     [disabled]="uploading() || !ocrEnabled()">
+              <span>Analyse approfondie formulaire administratif</span>
+              <span class="ocr-hint">(CERFA, préfecture — ×3 quota)</span>
+            </label>
+          </div>
           <button mat-raised-button color="accent" (click)="uploadPendingFiles()" [disabled]="!canSubmitUpload()" class="upload-submit-btn">
             @if (uploading()) {
               <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>

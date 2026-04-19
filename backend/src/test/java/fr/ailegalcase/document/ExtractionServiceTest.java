@@ -237,6 +237,25 @@ class ExtractionServiceTest {
         assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
     }
 
+    // U-EXT-OCR-07 : SF-122-07 — doc avec ocrEnabled=false → skip OCR, FAILED EMPTY_TEXT
+    @Test
+    void extract_emptyPdf_ocrDisabled_skipsTextract() throws IOException {
+        Document docRef = documentRepository.getReferenceById(DOC_ID);
+        docRef.setOcrEnabled(false);
+
+        when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
+
+        service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
+        // Metadata "internal" seul → retry éligible plus tard (SF-122-06 compatible)
+        assertThat(saved.getExtractionMetadata()).contains("\"extractor\":\"internal\"").doesNotContain("textract");
+        verify(ocrService, never()).tryOcr(any(), any(), anyBoolean());
+        verify(workspaceRepository, never()).incrementOcrUsage(any(), anyInt(), any());
+    }
+
     // U-EXT-OCR-05 : SF-122-03 — doc avec ocrFormsMode=true → incrément OCR × 3
     @Test
     void extract_emptyPdf_formsMode_incrementsWorkspaceByTimesThree() throws IOException {
