@@ -59,16 +59,9 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   videoThumbnailUrl(videoId: string): string {
-    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-  }
-
-  onThumbnailError(event: Event, videoId: string): void {
-    // Fallback sur hqdefault.jpg si maxresdefault n'existe pas (vidéos anciennes)
-    const img = event.target as HTMLImageElement;
-    const hqUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-    if (img.src !== hqUrl) {
-      img.src = hqUrl;
-    }
+    // hqdefault.jpg (480x360) existe pour 100% des vidéos YouTube.
+    // maxresdefault peut renvoyer 404 selon la résolution d'upload → évité.
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   }
 
   ngOnInit(): void {
