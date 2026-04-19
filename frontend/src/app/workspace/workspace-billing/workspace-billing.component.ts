@@ -52,6 +52,7 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
         { label: '2 analyses de dossier',          included: true },
         { label: '10 messages chat / mois',        included: true },
         { label: '500K tokens / mois',             included: true },
+        { label: '100 pages OCR / mois',           included: true },
         { label: 'Synthèse et questions complémentaires',       included: true },
         { label: 'Re-synthèse enrichie (1 essai)',   included: true },
       ]
@@ -67,6 +68,7 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
         { label: '8 analyses de dossier',            included: true },
         { label: '100 messages chat / mois',         included: true },
         { label: '6M tokens / mois',                 included: true },
+        { label: '800 pages OCR / mois',             included: true },
         { label: 'Synthèse et questions complémentaires',         included: true },
         { label: 'Re-synthèse enrichie (3/dossier)', included: true },
       ]
@@ -82,6 +84,7 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
         { label: '15 analyses de dossier',           included: true },
         { label: '300 messages chat / mois',         included: true },
         { label: '18M tokens / mois',                included: true },
+        { label: '3 000 pages OCR / mois',           included: true },
         { label: 'Synthèse et questions complémentaires',         included: true },
         { label: 'Re-synthèse enrichie (8/dossier)', included: true },
       ]
@@ -97,6 +100,7 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
         { label: 'Analyses illimitées',              included: true },
         { label: '1000 messages chat / mois',        included: true },
         { label: '60M tokens / mois',                included: true },
+        { label: '10 000 pages OCR / mois',          included: true },
         { label: 'Synthèse et questions complémentaires',         included: true },
         { label: 'Re-synthèse enrichie illimitée',   included: true },
       ]
