@@ -301,6 +301,40 @@
   border-radius: 0;
 }
 
+/* SF-122-05 : bandeau retry OCR */
+.ocr-retry-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background-color: rgba(255, 152, 0, 0.08);
+  border-left: 4px solid var(--color-accent);
+  border-radius: 4px;
+
+  .ocr-retry-icon {
+    color: var(--color-accent);
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .ocr-retry-message {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--color-text-primary);
+
+    strong { color: var(--color-text-primary); }
+
+    .ocr-retry-meta {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+  }
+}
+
 /* SF-122-03 : checkbox OCR approfondi (formulaires) */
 .ocr-forms-toggle {
   display: flex;

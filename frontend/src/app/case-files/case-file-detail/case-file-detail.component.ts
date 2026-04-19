@@ -62,6 +62,7 @@ import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
+import { OcrRetryService, OcrRetryPreview } from '../../core/services/ocr-retry.service';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.component';
 
@@ -243,6 +244,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
    * (FORMS + TABLES). Compte ×3 dans le quota OCR. Batch-level (tous les fichiers
    * du batch partagent le flag). Reset après chaque upload. */
   ocrFormsMode = signal(false);
+
+  /** SF-122-05 : preview du retry OCR — chargée à l'ouverture du dossier si ≥ 1 doc FAILED éligible. */
+  ocrRetryPreview = signal<OcrRetryPreview | null>(null);
+  ocrRetryInProgress = signal(false);
+
+  /** true si ≥ 1 doc FAILED avec motif EMPTY_TEXT ou OCR_FAILED. Déclenche le bandeau. */
+  readonly hasRetryableFailedDocs = computed(() =>
+    this.documents().some(d => d.extractionStatus === 'FAILED'
+        && (d.failureReason === 'EMPTY_TEXT' || d.failureReason === 'OCR_FAILED')));
   fileUploadProgresses = signal<Map<string, number>>(new Map());
 
   readonly overallUploadProgress = computed(() => {
@@ -292,7 +302,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private analyticsService: AnalyticsService,
     private caseDeadlineService: CaseDeadlineService,
     private procedureCheckService: ProcedureCheckService,
-    private dashboardRefreshService: CaseDashboardRefreshService
+    private dashboardRefreshService: CaseDashboardRefreshService,
+    private ocrRetryService: OcrRetryService
   ) {}
 
   ngOnInit(): void {
@@ -389,10 +400,56 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.documents.set(docs);
         // SF-121-04 : après fetch docs, ré-applique l'override FAILED si pertinent.
         this.applyExtractionFailedOverride();
+        // SF-122-05 : si au moins un doc FAILED éligible, charger le preview retry.
+        if (this.hasRetryableFailedDocs()) {
+          this.loadOcrRetryPreview(caseFileId);
+        } else {
+          this.ocrRetryPreview.set(null);
+        }
       },
       error: () => this.snackBar.open('Erreur lors du chargement des documents', 'Fermer', {
         duration: 4000, panelClass: ['snack-error']
       })
+    });
+  }
+
+  /** SF-122-05 : charge le preview de retry OCR (nb docs éligibles, quota restant). */
+  private loadOcrRetryPreview(caseFileId: string): void {
+    this.ocrRetryService.preview(caseFileId).subscribe({
+      next: p => this.ocrRetryPreview.set(p),
+      error: () => this.ocrRetryPreview.set(null),
+    });
+  }
+
+  /** SF-122-05 : handler bouton "Relancer avec OCR" du bandeau. */
+  triggerOcrRetry(): void {
+    const id = this.caseFile()?.id;
+    const preview = this.ocrRetryPreview();
+    if (!id || !preview || !preview.canRetry) return;
+
+    const message = `Relancer l'OCR sur ${preview.failedDocsCount} document(s) ? ` +
+        `Cela va consommer ~${preview.estimatedPages} pages de votre quota OCR ` +
+        `(restantes : ${preview.monthlyRemaining + preview.packsRemaining}).`;
+    if (!confirm(message)) return;
+
+    this.ocrRetryInProgress.set(true);
+    this.ocrRetryService.retry(id).subscribe({
+      next: res => {
+        this.ocrRetryInProgress.set(false);
+        this.snackBar.open(
+            `${res.retryedCount} document(s) en cours de re-extraction…`,
+            'Fermer', { duration: 4000, panelClass: ['snack-success'] });
+        // Relance polling en forçant le démarrage, et recharge docs après 3s
+        this.loadAnalysisJobs(id, true);
+        setTimeout(() => this.loadDocuments(id), 3000);
+      },
+      error: err => {
+        this.ocrRetryInProgress.set(false);
+        const msg = err?.status === 429
+            ? 'Un retry OCR a déjà été lancé récemment. Réessayez dans quelques minutes.'
+            : 'Erreur lors du lancement du retry OCR.';
+        this.snackBar.open(msg, 'Fermer', { duration: 4500, panelClass: ['snack-error'] });
+      }
     });
   }
 
