@@ -100,9 +100,10 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
     try {
       // Import dynamique : évite de gonfler le bundle initial.
       const pdfjs = await import('pdfjs-dist');
-      // Worker via CDN officiel (même version que la lib npm, fallback si dist local indispo)
-      pdfjs.GlobalWorkerOptions.workerSrc =
-        `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+      // Worker servi localement depuis /public — évite la latence CDN (jsdelivr
+      // mettait parfois 20-30s à répondre au premier appel → "Aperçu indisponible"
+      // alors que le PDF était parfaitement valide).
+      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
       const pdfUrl = `/api/v1/case-files/${this.data.caseFileId}/documents/${this.data.documentId}/download`;
       const loadingTask = pdfjs.getDocument({ url: pdfUrl, withCredentials: true });
