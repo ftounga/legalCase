@@ -69,6 +69,20 @@ describe('WorkspaceBillingComponent', () => {
     expect(pro.price).toBe('249 €');
   });
 
+  it('chaque plan affiche son quota OCR mensuel', () => {
+    const expected: Record<string, string> = {
+      FREE: '100 pages OCR / mois',
+      SOLO: '800 pages OCR / mois',
+      TEAM: '3 000 pages OCR / mois',
+      PRO:  '10 000 pages OCR / mois',
+    };
+    for (const plan of component.plans) {
+      const ocr = plan.features.find(f => /pages OCR/.test(f.label));
+      expect(ocr?.label).toBe(expected[plan.code]);
+      expect(ocr?.included).toBe(true);
+    }
+  });
+
   it('SOLO est le plan featured (Recommandé)', () => {
     const solo = component.plans.find(p => p.code === 'SOLO')!;
     expect(solo.code).toBe('SOLO');
