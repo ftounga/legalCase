@@ -17,6 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocumentDeleteDialogComponent } from './document-delete-dialog.component';
 import { CaseFileDeleteDialogComponent } from './case-file-delete-dialog.component';
 import { FullReanalysisConfirmDialogComponent, FullReanalysisConfirmResult } from './full-reanalysis-confirm-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { CaseFileEditDialogComponent, CaseFileEditDialogData } from '../case-file-edit-dialog/case-file-edit-dialog.component';
 import { ShareDialogComponent, ShareDialogData } from '../share-dialog/share-dialog.component';
 import { CaseFileService } from '../../core/services/case-file.service';
@@ -440,11 +441,23 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const preview = this.ocrRetryPreview();
     if (!id || !preview || !preview.canRetry) return;
 
-    const message = `Relancer l'OCR sur ${preview.failedDocsCount} document(s) ? ` +
-        `Cela va consommer ~${preview.estimatedPages} pages de votre quota OCR ` +
-        `(restantes : ${preview.monthlyRemaining + preview.packsRemaining}).`;
-    if (!confirm(message)) return;
+    const data: ConfirmDialogData = {
+      title: 'Relancer avec OCR',
+      message: `Relancer l'OCR sur ${preview.failedDocsCount} document(s) ? ` +
+          `Cela va consommer ~${preview.estimatedPages} pages de votre quota OCR ` +
+          `(restantes : ${preview.monthlyRemaining + preview.packsRemaining}).`,
+      confirmLabel: 'Relancer',
+      confirmColor: 'primary',
+    };
+    this.dialog.open(ConfirmDialogComponent, { data, width: '480px' })
+        .afterClosed().subscribe(ok => {
+          if (ok) this.runOcrRetry(id);
+        });
+  }
 
+  private runOcrRetry(id: string): void {
+    const preview = this.ocrRetryPreview();
+    if (!preview) return;
     this.ocrRetryInProgress.set(true);
     // SF-122-07 fix : remplace le virtuel FAILED par un virtuel PROCESSING le
     // temps du retry, pour que la step 2 "Analyse des documents" passe en bleu
