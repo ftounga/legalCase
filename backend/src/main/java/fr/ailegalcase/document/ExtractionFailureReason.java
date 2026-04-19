@@ -9,12 +9,16 @@ package fr.ailegalcase.document;
  * {@code OCR_QUOTA_EXCEEDED}.
  */
 public enum ExtractionFailureReason {
-    /** Parsing réussi mais texte vide après trim — cas typique du PDF scanné sans OCR. */
+    /** Parsing réussi mais texte vide après trim — PDF scanné sans OCR + OCR désactivé/ sans résultat. */
     EMPTY_TEXT,
     /** Content type non supporté (ex. .odt, .pages) — {@code IllegalArgumentException} dans parseText. */
     UNSUPPORTED_FORMAT,
     /** Erreur de parsing du fichier (PDF endommagé, DOCX corrompu). */
     CORRUPTED,
     /** Toute autre exception au cours de l'extraction (S3 download, IOException générique, etc.). */
-    EXTRACTION_EXCEPTION
+    EXTRACTION_EXCEPTION,
+    /** SF-122-01 : OCR Textract a levé une exception ou renvoyé une erreur. */
+    OCR_FAILED,
+    /** SF-122-01 : document trop volumineux pour l'API Textract sync (>5 Mo ou >11 pages). */
+    OCR_UNSUPPORTED_SIZE
 }

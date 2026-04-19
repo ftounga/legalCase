@@ -122,6 +122,13 @@ storage:
     bucket: ${S3_BUCKET:legalcase-dev}
     path-style-access: ${S3_PATH_STYLE_ACCESS:true}
 
+aws:
+  textract:
+    enabled: ${AWS_TEXTRACT_ENABLED:false}
+    region: ${AWS_TEXTRACT_REGION:eu-west-3}
+    max-size-mb: ${AWS_TEXTRACT_MAX_SIZE_MB:5}
+    max-pages: ${AWS_TEXTRACT_MAX_PAGES:11}
+
 server:
   port: 8080
 

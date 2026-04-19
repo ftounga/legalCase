@@ -91,10 +91,12 @@ public class ExtractionNotificationService {
     static String humanLabel(ExtractionFailureReason reason) {
         if (reason == null) return "Extraction impossible";
         return switch (reason) {
-            case EMPTY_TEXT -> "Document illisible (probablement un scan sans OCR)";
+            case EMPTY_TEXT -> "Document illisible (scan sans texte ou image non-textuelle)";
             case UNSUPPORTED_FORMAT -> "Format de fichier non pris en charge";
             case CORRUPTED -> "Document corrompu ou illisible";
             case EXTRACTION_EXCEPTION -> "Erreur technique lors de l'analyse du document";
+            case OCR_FAILED -> "Reconnaissance OCR impossible — réessayer ou envoyer un autre document";
+            case OCR_UNSUPPORTED_SIZE -> "Document trop volumineux pour l'OCR (max 5 Mo / 11 pages)";
         };
     }
 }
