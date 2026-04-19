@@ -108,6 +108,19 @@ public class OcrRetryService {
         List<UUID> docIds = eligible.stream().map(e -> e.getDocument().getId()).toList();
         extractionRepository.deleteByDocumentIdIn(docIds);
 
+        // SF-122-07 bug fix : force ocrEnabled=true avant republish. Si l'avocat avait
+        // décoché l'OCR à l'upload (ocrEnabled=false), ExtractionService skippait
+        // Textract et remettait les docs en EMPTY_TEXT direct — le bouton "Relancer
+        // avec OCR" ne faisait alors aucun OCR. Le clic sur ce bouton EST l'opt-in
+        // explicite a posteriori.
+        for (DocumentExtraction extraction : eligible) {
+            Document doc = extraction.getDocument();
+            if (!doc.isOcrEnabled()) {
+                doc.setOcrEnabled(true);
+                // La sauvegarde est gérée par la @Transactional du service (dirty checking)
+            }
+        }
+
         // Republie les events pour re-déclencher ExtractionService (qui passera par OcrService)
         for (DocumentExtraction extraction : eligible) {
             Document doc = extraction.getDocument();
