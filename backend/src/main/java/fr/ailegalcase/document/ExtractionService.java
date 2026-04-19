@@ -84,7 +84,8 @@ public class ExtractionService {
             // SF-122-01 : sur PDF vide, tente un fallback OCR Textract avant de marquer FAILED.
             if (text == null || text.isBlank()) {
                 if ("application/pdf".equals(contentType)) {
-                    OcrResult ocr = ocrService.tryOcr(fileBytes);
+                    UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
+                    OcrResult ocr = ocrService.tryOcr(fileBytes, workspaceId);
                     if (ocr.success()) {
                         extraction.setExtractedText(ocr.text());
                         extraction.setExtractionMetadata(

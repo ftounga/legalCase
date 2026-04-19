@@ -56,10 +56,17 @@ class ExtractionServiceTest {
         // SF-122-01 : par défaut, OCR indisponible — les tests existants SF-121-01
         // continuent de valider le comportement "texte vide → FAILED EMPTY_TEXT" sur non-PDF
         // (pour PDF, le fallback OCR est testé séparément dans OcrServiceTest + I-ES-OCR-*).
-        lenient().when(ocrService.tryOcr(any())).thenReturn(
+        lenient().when(ocrService.tryOcr(any(), any())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.EMPTY_TEXT));
+        // SF-122-02 : caseFile + workspace par défaut — tous les tests OCR PDF ont besoin
+        // de resolve workspaceId via docRef.getCaseFile().getWorkspace().getId().
+        fr.ailegalcase.casefile.CaseFile cf = new fr.ailegalcase.casefile.CaseFile();
+        fr.ailegalcase.workspace.Workspace ws = new fr.ailegalcase.workspace.Workspace();
+        ws.setId(UUID.randomUUID());
+        cf.setWorkspace(ws);
         Document docRef = new Document();
         docRef.setId(DOC_ID);
+        docRef.setCaseFile(cf);
         lenient().when(documentRepository.getReferenceById(DOC_ID)).thenReturn(docRef);
         lenient().when(extractionRepository.save(any(DocumentExtraction.class)))
                 .thenAnswer(inv -> {
@@ -172,7 +179,7 @@ class ExtractionServiceTest {
         UUID workspaceId = UUID.randomUUID();
         setupDocWithWorkspace(workspaceId);
         when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
-        when(ocrService.tryOcr(any())).thenReturn(
+        when(ocrService.tryOcr(any(), any())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.success("Texte OCR reconstruit", 3));
 
         service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
@@ -190,7 +197,7 @@ class ExtractionServiceTest {
     @Test
     void extract_emptyPdf_ocrFailure_marksFailed() throws IOException {
         when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
-        when(ocrService.tryOcr(any())).thenReturn(
+        when(ocrService.tryOcr(any(), any())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.OCR_FAILED));
 
         service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
@@ -212,14 +219,14 @@ class ExtractionServiceTest {
         DocumentExtraction saved = capturedFinalSave();
         assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
         assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
-        verify(ocrService, never()).tryOcr(any());
+        verify(ocrService, never()).tryOcr(any(), any());
     }
 
     // U-EXT-OCR-04 : PDF texte vide + OCR UNSUPPORTED_SIZE → FAILED avec motif OCR_UNSUPPORTED_SIZE
     @Test
     void extract_emptyPdf_ocrUnsupportedSize_marksFailedWithMotif() throws IOException {
         when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
-        when(ocrService.tryOcr(any())).thenReturn(
+        when(ocrService.tryOcr(any(), any())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE));
 
         service.extract(DOC_ID, STORAGE_KEY, "application/pdf");

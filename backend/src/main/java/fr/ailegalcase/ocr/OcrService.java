@@ -1,5 +1,6 @@
 package fr.ailegalcase.ocr;
 
+import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.document.ExtractionFailureReason;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -20,6 +21,7 @@ import software.amazon.awssdk.services.textract.model.Document;
 import software.amazon.awssdk.services.textract.model.FeatureType;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -43,10 +45,14 @@ public class OcrService {
 
     private final TextractClient textractClient;
     private final OcrProperties properties;
+    private final PlanLimitService planLimitService;
 
-    public OcrService(Optional<TextractClient> textractClient, OcrProperties properties) {
+    public OcrService(Optional<TextractClient> textractClient,
+                      OcrProperties properties,
+                      PlanLimitService planLimitService) {
         this.textractClient = textractClient.orElse(null);
         this.properties = properties;
+        this.planLimitService = planLimitService;
     }
 
     /**
@@ -54,10 +60,18 @@ public class OcrService {
      * Ne met pas à jour le compteur {@code ocr_pages_used} du workspace —
      * ExtractionService s'en charge via {@code WorkspaceRepository.incrementOcrUsage}.
      *
-     * @param fileBytes contenu binaire du fichier
+     * Ordre des checks :
+     * 1. toggle {@code aws.textract.enabled}
+     * 2. taille fichier ≤ 5 Mo (AWS sync)
+     * 3. nombre de pages PDF ≤ 11 (AWS sync)
+     * 4. SF-122-02 : quota mensuel + hard cap journalier du workspace
+     * 5. appel Textract
+     *
+     * @param fileBytes   contenu binaire du fichier
+     * @param workspaceId workspace du document (pour le gate quota)
      * @return {@link OcrResult} success avec texte + pageCount, ou failure avec motif
      */
-    public OcrResult tryOcr(byte[] fileBytes) {
+    public OcrResult tryOcr(byte[] fileBytes, UUID workspaceId) {
         if (!properties.enabled() || textractClient == null) {
             log.debug("OCR skipped — textract.enabled=false");
             return OcrResult.failure(ExtractionFailureReason.EMPTY_TEXT);
@@ -73,6 +87,13 @@ public class OcrService {
         if (pdfPages > properties.maxPages()) {
             log.info("OCR skipped — document has too many pages ({} > {} max)", pdfPages, properties.maxPages());
             return OcrResult.failure(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
+        }
+
+        // SF-122-02 : gate quota avant tout appel AWS (zéro coût si quota atteint).
+        if (workspaceId != null && planLimitService.isOcrQuotaExceeded(workspaceId, pdfPages)) {
+            log.info("OCR blocked — quota exceeded for workspace {} (requested {} pages)",
+                    workspaceId, pdfPages);
+            return OcrResult.failure(ExtractionFailureReason.OCR_QUOTA_EXCEEDED);
         }
 
         try {

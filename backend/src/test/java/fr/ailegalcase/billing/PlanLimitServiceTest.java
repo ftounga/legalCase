@@ -3,6 +3,8 @@ package fr.ailegalcase.billing;
 import fr.ailegalcase.analysis.JobType;
 import fr.ailegalcase.analysis.UsageEventRepository;
 import fr.ailegalcase.chat.ChatMessageRepository;
+import fr.ailegalcase.workspace.Workspace;
+import fr.ailegalcase.workspace.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,13 +30,14 @@ class PlanLimitServiceTest {
     @Mock private UsageEventRepository usageEventRepository;
     @Mock private ChatMessageRepository chatMessageRepository;
     @Mock private CreditPurchaseService creditPurchaseService;
+    @Mock private WorkspaceRepository workspaceRepository;
 
     private PlanLimitService service;
 
     @BeforeEach
     void setUp() {
         service = new PlanLimitService(subscriptionRepository, usageEventRepository,
-                chatMessageRepository, creditPurchaseService);
+                chatMessageRepository, creditPurchaseService, workspaceRepository);
         // Default: no credits purchased (lenient — not all tests use isMonthlyTokenBudgetExceeded)
         lenient().when(creditPurchaseService.getTotalTokensBought(any())).thenReturn(0L);
     }
@@ -614,5 +618,103 @@ class PlanLimitServiceTest {
         // getTotalTokensBought returns 0L by default (setUp)
 
         assertThat(service.isMonthlyTokenBudgetExceeded(wid)).isTrue();
+    }
+
+    // ── SF-122-02 : Quotas OCR ───────────────────────────────────────────
+
+    @Test void U_PLS_OCR_01_getMonthlyOcrPages_FREE()  { assertThat(service.getMonthlyOcrPages("FREE")).isEqualTo(100); }
+    @Test void U_PLS_OCR_02_getMonthlyOcrPages_SOLO()  { assertThat(service.getMonthlyOcrPages("SOLO")).isEqualTo(800); }
+    @Test void U_PLS_OCR_03_getMonthlyOcrPages_TEAM()  { assertThat(service.getMonthlyOcrPages("TEAM")).isEqualTo(3_000); }
+    @Test void U_PLS_OCR_04_getMonthlyOcrPages_PRO()   { assertThat(service.getMonthlyOcrPages("PRO")).isEqualTo(10_000); }
+    @Test void U_PLS_OCR_unknown_defaultsToFree()     { assertThat(service.getMonthlyOcrPages("UNKNOWN")).isEqualTo(100); }
+
+    // U-PLS-OCR-05 : SOLO current_month=800, ajout 5 → 805 > 800 → exceeded
+    @Test
+    void U_PLS_OCR_05_monthlyLimitExceeded() {
+        UUID wid = UUID.randomUUID();
+        Workspace ws = workspaceWithOcrUsage(wid, 800, 0, LocalDate.now());
+        Subscription sub = subscriptionWithPlan("SOLO");
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.of(ws));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(sub));
+
+        assertThat(service.isOcrQuotaExceeded(wid, 5)).isTrue();
+    }
+
+    // U-PLS-OCR-06 : SOLO current_month=790, ajout 5 → 795 ≤ 800 → OK
+    @Test
+    void U_PLS_OCR_06_monthlyWithinLimit() {
+        UUID wid = UUID.randomUUID();
+        Workspace ws = workspaceWithOcrUsage(wid, 790, 0, LocalDate.now());
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.of(ws));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("SOLO")));
+
+        assertThat(service.isOcrQuotaExceeded(wid, 5)).isFalse();
+    }
+
+    // U-PLS-OCR-07 : compteur stale (lastReset mois passé) traité comme 0 → pas de dépassement
+    @Test
+    void U_PLS_OCR_07_staleMonthlyCounter_treatedAsZero() {
+        UUID wid = UUID.randomUUID();
+        LocalDate pastMonth = LocalDate.now().minusMonths(2);
+        Workspace ws = workspaceWithOcrUsage(wid, 800, 800, pastMonth);
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.of(ws));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("SOLO")));
+
+        assertThat(service.isOcrQuotaExceeded(wid, 50)).isFalse();
+    }
+
+    // U-PLS-OCR-08 : hard cap journalier — 450 aujourd'hui + 60 = 510 > 500 → exceeded
+    @Test
+    void U_PLS_OCR_08_dailyHardCapExceeded() {
+        UUID wid = UUID.randomUUID();
+        Workspace ws = workspaceWithOcrUsage(wid, 450, 450, LocalDate.now());
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.of(ws));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("TEAM")));
+
+        assertThat(service.isOcrQuotaExceeded(wid, 60)).isTrue();
+    }
+
+    // U-PLS-OCR-09 : compteur journalier stale (lastReset hier) → current_day effectif = 0
+    @Test
+    void U_PLS_OCR_09_staleDailyCounter_treatedAsZero() {
+        UUID wid = UUID.randomUUID();
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        Workspace ws = workspaceWithOcrUsage(wid, 50, 500, yesterday);
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.of(ws));
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("TEAM")));
+
+        assertThat(service.isOcrQuotaExceeded(wid, 100)).isFalse();
+    }
+
+    // U-PLS-OCR-10 : workspace introuvable → blocked (défaut sécurité)
+    @Test
+    void U_PLS_OCR_10_workspaceNotFound_blocks() {
+        UUID wid = UUID.randomUUID();
+        when(workspaceRepository.findById(wid)).thenReturn(Optional.empty());
+
+        assertThat(service.isOcrQuotaExceeded(wid, 5)).isTrue();
+    }
+
+    // U-PLS-OCR-11 : additionalPages = 0 → never exceeded (edge case safeguard)
+    @Test
+    void U_PLS_OCR_11_zeroPages_neverExceeded() {
+        UUID wid = UUID.randomUUID();
+        assertThat(service.isOcrQuotaExceeded(wid, 0)).isFalse();
+        verify(workspaceRepository, never()).findById(any());
+    }
+
+    private Workspace workspaceWithOcrUsage(UUID id, int monthlyPages, int dailyPages, LocalDate lastReset) {
+        Workspace ws = new Workspace();
+        ws.setId(id);
+        ws.setOcrPagesUsedCurrentMonth(monthlyPages);
+        ws.setOcrPagesUsedCurrentDay(dailyPages);
+        ws.setOcrUsageLastResetDate(lastReset);
+        return ws;
+    }
+
+    private Subscription subscriptionWithPlan(String planCode) {
+        Subscription sub = new Subscription();
+        sub.setPlanCode(planCode);
+        return sub;
     }
 }

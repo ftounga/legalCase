@@ -6,7 +6,8 @@ export type ExtractionFailureReason =
   | 'CORRUPTED'
   | 'EXTRACTION_EXCEPTION'
   | 'OCR_FAILED'
-  | 'OCR_UNSUPPORTED_SIZE';
+  | 'OCR_UNSUPPORTED_SIZE'
+  | 'OCR_QUOTA_EXCEEDED';
 
 export interface Document {
   id: string;
@@ -36,6 +37,8 @@ export function extractionFailureLabel(reason: ExtractionFailureReason | null | 
       return 'Reconnaissance OCR impossible — réessayer ou envoyer un autre document';
     case 'OCR_UNSUPPORTED_SIZE':
       return 'Document trop volumineux pour l\'OCR (max 5 Mo / 11 pages)';
+    case 'OCR_QUOTA_EXCEEDED':
+      return 'Quota OCR atteint — voir votre espace Abonnement pour acheter des pages supplémentaires';
     default:
       return 'Extraction impossible';
   }
