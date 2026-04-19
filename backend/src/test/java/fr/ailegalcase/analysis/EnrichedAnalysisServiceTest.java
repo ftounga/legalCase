@@ -295,6 +295,21 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("enrichie");
     }
 
+    // SF-128-01 : règle de préservation baseline généralisée dans le prompt enrichi
+    @Test
+    void systemPrompt_containsBaselinePreservationRuleForAllDomains() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l,
+                java.util.List.of("LICENCIEMENT_SANS_CAUSE_REELLE"));
+        assertThat(prompt).contains("RÈGLE CRITIQUE DE PRÉSERVATION BASELINE");
+        // Les 3 domaines cités avec leurs champs
+        assertThat(prompt).contains("type_rupture");
+        assertThat(prompt).contains("type_titre_sejour_code");
+        assertThat(prompt).contains("regime_matrimonial");
+        assertThat(prompt).contains("mode_garde_detaille");
+    }
+
     // TC-01 : buildEnrichedPrompt avec checks NON_COMPLIANT → section injectée
     @Test
     void buildEnrichedPrompt_withNonCompliantChecks_injectsSection() {
