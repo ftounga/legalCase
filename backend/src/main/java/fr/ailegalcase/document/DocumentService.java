@@ -81,6 +81,26 @@ public class DocumentService {
         return storageService.presignedDownloadUrl(document.getStorageKey(), PRESIGNED_URL_EXPIRATION_MINUTES);
     }
 
+    /** SF-127-01 (fix) : bytes PDF servis en same-origin pour PDF.js (pas de CORS S3). */
+    public record DocumentContent(byte[] bytes, String contentType, String filename) {}
+
+    @Transactional(readOnly = true)
+    public DocumentContent content(UUID caseFileId, UUID documentId, OidcUser oidcUser, String provider, Principal principal) {
+        User user = resolveUser(oidcUser, provider, principal);
+        Workspace workspace = resolveWorkspace(user);
+        resolveCaseFile(caseFileId, workspace);
+
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found"));
+
+        if (!document.getCaseFile().getId().equals(caseFileId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found");
+        }
+
+        byte[] bytes = storageService.download(document.getStorageKey());
+        return new DocumentContent(bytes, document.getContentType(), document.getOriginalFilename());
+    }
+
     @Transactional(readOnly = true)
     public List<DocumentResponse> list(UUID caseFileId, OidcUser oidcUser, String provider, Principal principal) {
         User user = resolveUser(oidcUser, provider, principal);

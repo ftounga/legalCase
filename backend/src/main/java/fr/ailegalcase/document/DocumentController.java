@@ -3,6 +3,7 @@ package fr.ailegalcase.document;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -59,6 +60,27 @@ public class DocumentController {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, url)
                 .build();
+    }
+
+    /**
+     * SF-127-01 (fix) : stream binaire du PDF via le backend plutôt qu'une redirection
+     * 302 vers S3. PDF.js côté frontend ne peut pas suivre la redirection cross-origin
+     * avec credentials vers S3 (CORS bloqué sur les URLs présignées). Ce endpoint
+     * retourne directement les bytes en same-origin.
+     */
+    @GetMapping("/{documentId}/content")
+    public ResponseEntity<byte[]> content(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        DocumentService.DocumentContent content = documentService.content(caseFileId, documentId, oidcUser,
+                OAuthProviderResolver.resolve(principal), principal);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + content.filename().replace("\"", "") + "\"")
+                .body(content.bytes());
     }
 
     @DeleteMapping("/{documentId}")

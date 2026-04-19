@@ -105,8 +105,10 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
       // alors que le PDF était parfaitement valide).
       pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
-      const pdfUrl = `/api/v1/case-files/${this.data.caseFileId}/documents/${this.data.documentId}/download`;
-      const loadingTask = pdfjs.getDocument({ url: pdfUrl, withCredentials: true });
+      // Fix CORS : on utilise /content qui stream les bytes en same-origin
+      // plutôt que /download qui redirige 302 vers S3 (cross-origin bloqué avec credentials).
+      const pdfUrl = `/api/v1/case-files/${this.data.caseFileId}/documents/${this.data.documentId}/content`;
+      const loadingTask = pdfjs.getDocument({ url: pdfUrl });
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1 });
