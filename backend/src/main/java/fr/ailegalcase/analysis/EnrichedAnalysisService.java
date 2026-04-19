@@ -131,6 +131,14 @@ public class EnrichedAnalysisService {
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
     private final SourceExplanationService sourceExplanationService;
+    private final fr.ailegalcase.document.DocumentRepository documentRepository;
+    private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository;
+
+    /** SF-35-03-bis : budget pour les extraits bruts injectés dans l'enrichie —
+     *  identique à CaseAnalysisService pour cohérence. Permet à l'IA de voir
+     *  directement les pièces signées (ex. Convention de rupture) au lieu de
+     *  s'appuyer sur la synthèse précédente qui peut avoir été biaisée. */
+    static final int RAW_DOC_PREFIX_CHARS = 2_000;
 
     @Lazy @Autowired
     private EnrichedAnalysisService self;
@@ -151,7 +159,9 @@ public class EnrichedAnalysisService {
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
-                                   SourceExplanationService sourceExplanationService) {
+                                   SourceExplanationService sourceExplanationService,
+                                   fr.ailegalcase.document.DocumentRepository documentRepository,
+                                   fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -169,6 +179,8 @@ public class EnrichedAnalysisService {
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
         this.sourceExplanationService = sourceExplanationService;
+        this.documentRepository = documentRepository;
+        this.documentExtractionRepository = documentExtractionRepository;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -418,6 +430,16 @@ public class EnrichedAnalysisService {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("[Synthèse précédente]\n").append(previousAnalysisResult).append("\n\n");
+
+        // SF — injecter les 2000 premiers car de chaque doc brut pour que Claude puisse
+        // vérifier la classification baseline contre les pièces signées réelles, au lieu
+        // de se fier uniquement à la synthèse précédente (risque de dérive sur l'enrichie).
+        String rawDocs = buildRawDocumentsSection(caseFileId);
+        if (!rawDocs.isEmpty()) {
+            prompt.append("[Pièces du dossier — extraits bruts pour vérification baseline]\n")
+                  .append(rawDocs).append("\n\n");
+        }
+
         prompt.append("[Questions et réponses de l'avocat]\n")
               .append(qaSection.isEmpty() ? "(aucune réponse)" : qaSection);
 
@@ -441,5 +463,30 @@ public class EnrichedAnalysisService {
         }
 
         return prompt.toString();
+    }
+
+    /** Construit la section extraits bruts documents pour le prompt enrichi. */
+    private String buildRawDocumentsSection(UUID caseFileId) {
+        var docs = documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId);
+        if (docs.isEmpty()) return "";
+        var docIds = docs.stream().map(fr.ailegalcase.document.Document::getId).toList();
+        var extractionsByDocId = documentExtractionRepository.findByDocumentIdIn(docIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        e -> e.getDocument().getId(), e -> e, (a, b) -> a, java.util.HashMap::new));
+        StringBuilder sb = new StringBuilder();
+        for (var doc : docs) {
+            var ex = extractionsByDocId.get(doc.getId());
+            if (ex == null
+                    || ex.getExtractionStatus() != fr.ailegalcase.document.ExtractionStatus.DONE
+                    || ex.getExtractedText() == null || ex.getExtractedText().isBlank()) {
+                continue;
+            }
+            String text = ex.getExtractedText();
+            String slice = text.length() <= RAW_DOC_PREFIX_CHARS
+                    ? text : text.substring(0, RAW_DOC_PREFIX_CHARS) + " [...]";
+            sb.append("=== ").append(doc.getOriginalFilename()).append(" ===\n")
+              .append(slice.replace("\n", " ").trim()).append("\n\n");
+        }
+        return sb.toString();
     }
 }
