@@ -15,15 +15,17 @@ export class DocumentService {
     return this.http.get<Document[]>(this.apiUrl(caseFileId));
   }
 
-  upload(caseFileId: string, file: File): Observable<Document> {
+  upload(caseFileId: string, file: File, ocrFormsMode = false): Observable<Document> {
     const formData = new FormData();
     formData.append('file', file);
+    if (ocrFormsMode) formData.append('ocrFormsMode', 'true');
     return this.http.post<Document>(this.apiUrl(caseFileId), formData);
   }
 
-  uploadWithProgress(caseFileId: string, file: File): Observable<HttpEvent<Document>> {
+  uploadWithProgress(caseFileId: string, file: File, ocrFormsMode = false): Observable<HttpEvent<Document>> {
     const formData = new FormData();
     formData.append('file', file);
+    if (ocrFormsMode) formData.append('ocrFormsMode', 'true');
     const req = new HttpRequest('POST', this.apiUrl(caseFileId), formData, { reportProgress: true });
     return this.http.request<Document>(req);
   }

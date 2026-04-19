@@ -42,6 +42,14 @@ public class Document {
     @Column(nullable = false)
     private Instant createdAt;
 
+    /**
+     * SF-122-03 : si true, l'OCR Textract fera de l'analyse approfondie
+     * (FeatureType.TABLES + FORMS) et le document comptera ×3 dans le quota OCR.
+     * Défini à l'upload par l'avocat via la checkbox "Analyse approfondie".
+     */
+    @Column(name = "ocr_forms_mode", nullable = false)
+    private boolean ocrFormsMode = false;
+
     @PrePersist
     void onPrePersist() {
         this.createdAt = Instant.now();

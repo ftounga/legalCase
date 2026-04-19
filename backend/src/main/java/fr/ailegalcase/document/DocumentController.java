@@ -63,8 +63,10 @@ public class DocumentController {
     public DocumentResponse upload(
             @PathVariable UUID caseFileId,
             @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "ocrFormsMode", required = false, defaultValue = "false") boolean ocrFormsMode,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return documentService.upload(caseFileId, file, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+        return documentService.upload(caseFileId, file, ocrFormsMode, oidcUser,
+                OAuthProviderResolver.resolve(principal), principal);
     }
 }

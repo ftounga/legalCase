@@ -85,17 +85,19 @@ public class ExtractionService {
             if (text == null || text.isBlank()) {
                 if ("application/pdf".equals(contentType)) {
                     UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
-                    OcrResult ocr = ocrService.tryOcr(fileBytes, workspaceId);
+                    boolean formsMode = docRef.isOcrFormsMode(); // SF-122-03
+                    OcrResult ocr = ocrService.tryOcr(fileBytes, workspaceId, formsMode);
                     if (ocr.success()) {
                         extraction.setExtractedText(ocr.text());
+                        int quotaPages = formsMode ? ocr.pageCount() * OcrService.FORMS_QUOTA_MULTIPLIER : ocr.pageCount();
                         extraction.setExtractionMetadata(
-                                "{\"extractor\":\"textract\",\"charCount\":%d,\"pageCount\":%d,\"durationMs\":%d}"
-                                        .formatted(ocr.text().length(), ocr.pageCount(), duration));
+                                "{\"extractor\":\"textract\",\"formsMode\":%s,\"charCount\":%d,\"pageCount\":%d,\"quotaPages\":%d,\"durationMs\":%d}"
+                                        .formatted(formsMode, ocr.text().length(), ocr.pageCount(), quotaPages, duration));
                         extraction.setExtractionStatus(ExtractionStatus.DONE);
                         extraction.setFailureReason(null);
-                        incrementOcrUsage(docRef, ocr.pageCount());
-                        log.info("Extraction done via OCR for document {} — {} chars from {} page(s)",
-                                documentId, ocr.text().length(), ocr.pageCount());
+                        incrementOcrUsage(docRef, quotaPages);
+                        log.info("Extraction done via OCR for document {} — {} chars from {} page(s) (formsMode={}, quotaPages={})",
+                                documentId, ocr.text().length(), ocr.pageCount(), formsMode, quotaPages);
                     } else {
                         log.warn("Extraction {} for document {} produced empty text — OCR also failed ({})",
                                 extraction.getId(), documentId, ocr.failureMotif());

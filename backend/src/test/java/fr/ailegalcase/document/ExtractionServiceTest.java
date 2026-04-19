@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -56,7 +57,7 @@ class ExtractionServiceTest {
         // SF-122-01 : par défaut, OCR indisponible — les tests existants SF-121-01
         // continuent de valider le comportement "texte vide → FAILED EMPTY_TEXT" sur non-PDF
         // (pour PDF, le fallback OCR est testé séparément dans OcrServiceTest + I-ES-OCR-*).
-        lenient().when(ocrService.tryOcr(any(), any())).thenReturn(
+        lenient().when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.EMPTY_TEXT));
         // SF-122-02 : caseFile + workspace par défaut — tous les tests OCR PDF ont besoin
         // de resolve workspaceId via docRef.getCaseFile().getWorkspace().getId().
@@ -179,7 +180,7 @@ class ExtractionServiceTest {
         UUID workspaceId = UUID.randomUUID();
         setupDocWithWorkspace(workspaceId);
         when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
-        when(ocrService.tryOcr(any(), any())).thenReturn(
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.success("Texte OCR reconstruit", 3));
 
         service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
@@ -197,7 +198,7 @@ class ExtractionServiceTest {
     @Test
     void extract_emptyPdf_ocrFailure_marksFailed() throws IOException {
         when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
-        when(ocrService.tryOcr(any(), any())).thenReturn(
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.OCR_FAILED));
 
         service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
@@ -219,14 +220,14 @@ class ExtractionServiceTest {
         DocumentExtraction saved = capturedFinalSave();
         assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
         assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
-        verify(ocrService, never()).tryOcr(any(), any());
+        verify(ocrService, never()).tryOcr(any(), any(), anyBoolean());
     }
 
     // U-EXT-OCR-04 : PDF texte vide + OCR UNSUPPORTED_SIZE → FAILED avec motif OCR_UNSUPPORTED_SIZE
     @Test
     void extract_emptyPdf_ocrUnsupportedSize_marksFailedWithMotif() throws IOException {
         when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
-        when(ocrService.tryOcr(any(), any())).thenReturn(
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
                 fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE));
 
         service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
@@ -234,6 +235,28 @@ class ExtractionServiceTest {
         DocumentExtraction saved = capturedFinalSave();
         assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
         assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.OCR_UNSUPPORTED_SIZE);
+    }
+
+    // U-EXT-OCR-05 : SF-122-03 — doc avec ocrFormsMode=true → incrément OCR × 3
+    @Test
+    void extract_emptyPdf_formsMode_incrementsWorkspaceByTimesThree() throws IOException {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        // Set formsMode=true sur le docRef — on récupère via documentRepository.getReferenceById
+        Document docRef = documentRepository.getReferenceById(DOC_ID);
+        docRef.setOcrFormsMode(true);
+
+        when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("Texte formulaire", 2));
+
+        service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        assertThat(saved.getExtractionMetadata()).contains("\"formsMode\":true").contains("\"quotaPages\":6");
+        // Compteur workspace incrémenté de 2 * 3 = 6
+        verify(workspaceRepository).incrementOcrUsage(eq(workspaceId), eq(6), any(java.time.LocalDate.class));
     }
 
     /** PDF minimal valide (1 page, aucun texte) → PDFBox parse OK mais renvoie "" → branche fallback OCR déclenchée. */

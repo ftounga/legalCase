@@ -98,8 +98,15 @@ public class DocumentService {
                 .toList();
     }
 
+    /** Surcharge rétrocompat — garde les callers existants (tests, autres services) qui ne passent pas le flag. */
     @Transactional
     public DocumentResponse upload(UUID caseFileId, MultipartFile file, OidcUser oidcUser, String provider, Principal principal) {
+        return upload(caseFileId, file, false, oidcUser, provider, principal);
+    }
+
+    @Transactional
+    public DocumentResponse upload(UUID caseFileId, MultipartFile file, boolean ocrFormsMode,
+                                    OidcUser oidcUser, String provider, Principal principal) {
         validateFile(file);
 
         User user = resolveUser(oidcUser, provider, principal);
@@ -129,6 +136,7 @@ public class DocumentService {
         document.setContentType(file.getContentType());
         document.setFileSize(file.getSize());
         document.setStorageKey(storageKey);
+        document.setOcrFormsMode(ocrFormsMode); // SF-122-03
         documentRepository.save(document);
         eventPublisher.publishEvent(new DocumentUploadedEvent(document.getId(), storageKey, file.getContentType()));
 
