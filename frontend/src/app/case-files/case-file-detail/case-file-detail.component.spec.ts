@@ -1026,4 +1026,76 @@ describe('CaseFileDetailComponent', () => {
 
   });
 
+  // SF-121-03 : débloque la pipeline UI quand toutes les extractions échouent
+  describe('SF-121-03 pipeline débloquée quand toutes les extractions échouent', () => {
+    const failedDoc = (id: string): Document => ({
+      ...mockDocument, id, extractionStatus: 'FAILED', failureReason: 'EMPTY_TEXT',
+    });
+    const doneDoc = (id: string): Document => ({
+      ...mockDocument, id, extractionStatus: 'DONE',
+    });
+    const pendingDoc = (id: string): Document => ({
+      ...mockDocument, id, extractionStatus: 'PENDING',
+    });
+
+    beforeEach(() => {
+      component['docAnalysisPending'].set(true);
+      const stopSpy = jest.spyOn(component as any, 'stopPolling');
+      stopSpy.mockImplementation(() => { /* stub — pas d'interval à nettoyer dans le test */ });
+    });
+
+    // U-CFD-121-03-01 : tous FAILED → job virtuel FAILED, pending false, stopPolling
+    it('U-CFD-121-03-01 : 9 docs FAILED → virtual FAILED job posé + polling stoppé', () => {
+      const docs = Array.from({ length: 9 }, (_, i) => failedDoc('d' + i));
+      documentServiceSpy.list.mockReturnValue(of(docs));
+      const stopSpy = jest.spyOn(component as any, 'stopPolling');
+
+      (component as any).detectAllExtractionsFailed('cf1');
+
+      const docAnalysisJob = component.analysisJobs().find(j => j.jobType === 'DOCUMENT_ANALYSIS');
+      expect(docAnalysisJob).toBeDefined();
+      expect(docAnalysisJob!.status).toBe('FAILED');
+      expect(docAnalysisJob!.totalItems).toBe(9);
+      expect(docAnalysisJob!.processedItems).toBe(9);
+      expect(docAnalysisJob!.progressPercentage).toBe(100);
+      expect(component['docAnalysisPending']()).toBe(false);
+      expect(stopSpy).toHaveBeenCalled();
+    });
+
+    // U-CFD-121-03-02 : mix FAILED + DONE → pas de virtuel, pending reste true
+    it('U-CFD-121-03-02 : 1 DONE parmi des FAILED → pas de virtual, pending inchangé', () => {
+      const docs = [doneDoc('d0'), failedDoc('d1'), failedDoc('d2')];
+      documentServiceSpy.list.mockReturnValue(of(docs));
+
+      (component as any).detectAllExtractionsFailed('cf1');
+
+      const docAnalysisJob = component.analysisJobs().find(j => j.jobType === 'DOCUMENT_ANALYSIS');
+      expect(docAnalysisJob).toBeUndefined();
+      expect(component['docAnalysisPending']()).toBe(true);
+    });
+
+    // U-CFD-121-03-03 : extraction en cours (PENDING) → pas de virtuel
+    it('U-CFD-121-03-03 : 1 PENDING parmi des FAILED → pas de virtual', () => {
+      const docs = [pendingDoc('d0'), failedDoc('d1'), failedDoc('d2')];
+      documentServiceSpy.list.mockReturnValue(of(docs));
+
+      (component as any).detectAllExtractionsFailed('cf1');
+
+      const docAnalysisJob = component.analysisJobs().find(j => j.jobType === 'DOCUMENT_ANALYSIS');
+      expect(docAnalysisJob).toBeUndefined();
+      expect(component['docAnalysisPending']()).toBe(true);
+    });
+
+    // U-CFD-121-03-04 : documents vide → pas de virtuel (safeguard)
+    it('U-CFD-121-03-04 : aucun document → pas de virtual (safeguard)', () => {
+      documentServiceSpy.list.mockReturnValue(of([]));
+
+      (component as any).detectAllExtractionsFailed('cf1');
+
+      const docAnalysisJob = component.analysisJobs().find(j => j.jobType === 'DOCUMENT_ANALYSIS');
+      expect(docAnalysisJob).toBeUndefined();
+      expect(component['docAnalysisPending']()).toBe(true);
+    });
+  });
+
 });
