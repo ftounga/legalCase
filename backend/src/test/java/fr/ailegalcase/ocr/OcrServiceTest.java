@@ -29,8 +29,8 @@ import static org.mockito.Mockito.*;
  */
 class OcrServiceTest {
 
-    private static final OcrProperties PROPS_ENABLED = new OcrProperties(true, "eu-west-3", 5, 11);
-    private static final OcrProperties PROPS_DISABLED = new OcrProperties(false, "eu-west-3", 5, 11);
+    private static final OcrProperties PROPS_ENABLED = new OcrProperties(true, "eu-west-3", 5, 11, 3);
+    private static final OcrProperties PROPS_DISABLED = new OcrProperties(false, "eu-west-3", 5, 11, 3);
 
     // U-OCR-01-01 : succès sync — blocks LINE concaténés, pageCount dérivé
     @Test
@@ -72,7 +72,7 @@ class OcrServiceTest {
     @Test
     void tryOcr_tooManyPages_skipsTextract() {
         TextractClient client = mock(TextractClient.class);
-        OcrService svc = new OcrService(Optional.of(client), new OcrProperties(true, "eu-west-3", 5, 11), noQuotaBlock());
+        OcrService svc = new OcrService(Optional.of(client), new OcrProperties(true, "eu-west-3", 5, 11, 3), noQuotaBlock());
 
         OcrResult result = svc.tryOcr(multiPagePdfBytes(12), UUID.randomUUID(), false);
 
