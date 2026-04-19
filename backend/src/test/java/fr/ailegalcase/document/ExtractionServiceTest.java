@@ -191,7 +191,7 @@ class ExtractionServiceTest {
         assertThat(saved.getFailureReason()).isNull();
         assertThat(saved.getExtractionMetadata()).contains("textract").contains("\"pageCount\":3");
         verify(eventPublisher).publishEvent(any(ExtractionDoneEvent.class));
-        verify(workspaceRepository).incrementOcrUsage(eq(workspaceId), eq(3), any(java.time.LocalDate.class));
+        verify(workspaceRepository).incrementOcrUsage(eq(workspaceId), eq(3), any(java.time.LocalDate.class), any(java.time.LocalDate.class));
     }
 
     // U-EXT-OCR-02 : PDF texte vide + OCR failure → FAILED avec motif propagé
@@ -207,7 +207,7 @@ class ExtractionServiceTest {
         assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
         assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.OCR_FAILED);
         verify(eventPublisher, never()).publishEvent(any(ExtractionDoneEvent.class));
-        verify(workspaceRepository, never()).incrementOcrUsage(any(), anyInt(), any());
+        verify(workspaceRepository, never()).incrementOcrUsage(any(), anyInt(), any(), any());
     }
 
     // U-EXT-OCR-03 : non-PDF texte vide → pas d'appel OCR (SF-121-01 conservé)
@@ -253,7 +253,7 @@ class ExtractionServiceTest {
         // Metadata "internal" seul → retry éligible plus tard (SF-122-06 compatible)
         assertThat(saved.getExtractionMetadata()).contains("\"extractor\":\"internal\"").doesNotContain("textract");
         verify(ocrService, never()).tryOcr(any(), any(), anyBoolean());
-        verify(workspaceRepository, never()).incrementOcrUsage(any(), anyInt(), any());
+        verify(workspaceRepository, never()).incrementOcrUsage(any(), anyInt(), any(), any());
     }
 
     // U-EXT-OCR-05 : SF-122-03 — doc avec ocrFormsMode=true → incrément OCR × 3
@@ -275,7 +275,7 @@ class ExtractionServiceTest {
         assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
         assertThat(saved.getExtractionMetadata()).contains("\"formsMode\":true").contains("\"quotaPages\":6");
         // Compteur workspace incrémenté de 2 * 3 = 6
-        verify(workspaceRepository).incrementOcrUsage(eq(workspaceId), eq(6), any(java.time.LocalDate.class));
+        verify(workspaceRepository).incrementOcrUsage(eq(workspaceId), eq(6), any(java.time.LocalDate.class), any(java.time.LocalDate.class));
     }
 
     /** PDF minimal valide (1 page, aucun texte) → PDFBox parse OK mais renvoie "" → branche fallback OCR déclenchée. */

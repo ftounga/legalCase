@@ -27,12 +27,19 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
      *
      * @return nombre de lignes affectées (1 si OK, 0 si workspace introuvable)
      */
+    /**
+     * SF-122-01/02/04 + fix staging 2026-04-19 : remplace EXTRACT(YEAR/MONTH)
+     * par une comparaison de date directe (>= monthStart) pour éviter l'erreur
+     * PostgreSQL "function pg_catalog.extract(unknown, unknown) is not unique".
+     * Sémantique identique : si last_reset_date est ≥ 1er du mois courant, c'est
+     * le même mois, on incrémente ; sinon on reset.
+     */
     @Modifying
     @Query("""
             UPDATE Workspace w
             SET w.ocrPagesUsedCurrentMonth = CASE
-                    WHEN EXTRACT(YEAR FROM w.ocrUsageLastResetDate) = EXTRACT(YEAR FROM :today)
-                     AND EXTRACT(MONTH FROM w.ocrUsageLastResetDate) = EXTRACT(MONTH FROM :today)
+                    WHEN w.ocrUsageLastResetDate IS NOT NULL
+                     AND w.ocrUsageLastResetDate >= :monthStart
                     THEN w.ocrPagesUsedCurrentMonth + :pages
                     ELSE :pages
                 END,
@@ -46,5 +53,6 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
             """)
     int incrementOcrUsage(@Param("workspaceId") UUID workspaceId,
                            @Param("pages") int pages,
-                           @Param("today") LocalDate today);
+                           @Param("today") LocalDate today,
+                           @Param("monthStart") LocalDate monthStart);
 }

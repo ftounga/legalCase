@@ -168,7 +168,9 @@ public class ExtractionService {
         if (pageCount <= 0) return;
         try {
             UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
-            int updated = workspaceRepository.incrementOcrUsage(workspaceId, pageCount, LocalDate.now());
+            LocalDate today = LocalDate.now();
+            LocalDate monthStart = today.withDayOfMonth(1);
+            int updated = workspaceRepository.incrementOcrUsage(workspaceId, pageCount, today, monthStart);
             if (updated == 0) {
                 log.warn("OCR usage increment found no workspace row for documentId={}, pageCount={}",
                         docRef.getId(), pageCount);
