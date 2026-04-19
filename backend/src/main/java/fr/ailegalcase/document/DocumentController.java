@@ -20,10 +20,14 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final DocumentDeleteService documentDeleteService;
+    private final DocumentPreviewService documentPreviewService;
 
-    public DocumentController(DocumentService documentService, DocumentDeleteService documentDeleteService) {
+    public DocumentController(DocumentService documentService,
+                              DocumentDeleteService documentDeleteService,
+                              DocumentPreviewService documentPreviewService) {
         this.documentService = documentService;
         this.documentDeleteService = documentDeleteService;
+        this.documentPreviewService = documentPreviewService;
     }
 
     @GetMapping
@@ -32,6 +36,16 @@ public class DocumentController {
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
         return documentService.list(caseFileId, oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    @GetMapping("/{documentId}/preview")
+    public DocumentPreviewResponse preview(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return documentPreviewService.preview(caseFileId, documentId, oidcUser,
+                OAuthProviderResolver.resolve(principal), principal);
     }
 
     @GetMapping("/{documentId}/download")

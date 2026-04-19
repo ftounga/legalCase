@@ -1,0 +1,101 @@
+@if (loading()) {
+  <div class="loading-center">
+    <mat-spinner diameter="48" />
+  </div>
+} @else if (error()) {
+  <h2 mat-dialog-title>Aperçu du document</h2>
+  <mat-dialog-content>
+    <p class="error">{{ error() }}</p>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button (click)="dialogRef.close()">Fermer</button>
+  </mat-dialog-actions>
+} @else if (preview()) {
+  @let p = preview()!;
+  <div class="preview-header">
+    <div class="preview-title-row">
+      <mat-icon class="header-icon">description</mat-icon>
+      <h2 class="preview-title">{{ p.fileName }}</h2>
+    </div>
+    <div class="preview-meta-row">
+      <span class="meta-chip">{{ p.mimeType }}</span>
+      <span class="meta-chip">{{ formatSize(p.fileSize) }}</span>
+      @if (p.pageCount) {
+        <span class="meta-chip">{{ p.pageCount }} page{{ p.pageCount > 1 ? 's' : '' }}</span>
+      }
+      <span class="meta-chip">Uploadé le {{ p.uploadedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+    <div class="preview-status-row">
+      <span class="preview-badge" [class]="badgeClass()">{{ badgeLabel() }}</span>
+      @if (p.extractionStatus === 'DONE') {
+        <span class="preview-stat">{{ p.charCount | number }} caractères extraits</span>
+        @if (p.ocrPagesUsed > 0) {
+          <span class="preview-stat">{{ p.ocrPagesUsed }} page{{ p.ocrPagesUsed > 1 ? 's' : '' }} OCR consommée{{ p.ocrPagesUsed > 1 ? 's' : '' }}</span>
+        }
+      }
+    </div>
+  </div>
+
+  <mat-dialog-content class="preview-content">
+    @if (p.extractionStatus === 'FAILED') {
+      <div class="alert alert-error">
+        <mat-icon>error</mat-icon>
+        <div>
+          <div class="alert-title">Extraction échouée</div>
+          <div class="alert-body">
+            Ce document ne sera pas pris en compte par l'IA.
+            @if (p.failureReason) {
+              Motif : {{ p.failureReason }}.
+            }
+          </div>
+        </div>
+      </div>
+    } @else if (p.extractionStatus !== 'DONE') {
+      <div class="alert alert-info">
+        <mat-icon>hourglass_empty</mat-icon>
+        <div class="alert-body">Extraction en cours — revenez dans quelques instants.</div>
+      </div>
+    } @else {
+      <mat-tab-group [selectedIndex]="activeTab()" (selectedIndexChange)="onTabChange($event)" animationDuration="200ms">
+        <mat-tab label="Texte extrait">
+          @if (isTextEmpty()) {
+            <div class="alert alert-error">
+              <mat-icon>warning</mat-icon>
+              <div>
+                <div class="alert-title">Aucun texte extrait</div>
+                <div class="alert-body">Ce document ne sera pas pris en compte par l'IA.</div>
+              </div>
+            </div>
+          } @else {
+            <pre class="extracted-text">{{ p.extractedText }}</pre>
+            @if (p.textTruncated) {
+              <p class="truncate-note">
+                Texte tronqué à 200 000 caractères pour l'affichage (le document complet est bien traité par l'IA).
+              </p>
+            }
+          }
+        </mat-tab>
+        @if (isPdf()) {
+          <mat-tab label="Aperçu 1re page">
+            <div class="pdf-wrapper">
+              @if (pdfRendering()) {
+                <mat-spinner diameter="36" />
+              }
+              @if (pdfError()) {
+                <div class="alert alert-info">
+                  <mat-icon>info</mat-icon>
+                  <div class="alert-body">{{ pdfError() }}</div>
+                </div>
+              }
+              <canvas #pdfCanvas class="pdf-canvas" [class.pdf-canvas--hidden]="pdfRendering() || pdfError()"></canvas>
+            </div>
+          </mat-tab>
+        }
+      </mat-tab-group>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-flat-button color="primary" (click)="dialogRef.close()">Fermer</button>
+  </mat-dialog-actions>
+}

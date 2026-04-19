@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Document } from '../models/document.model';
+import { DocumentPreview } from '../models/document-preview.model';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
@@ -38,5 +39,9 @@ export class DocumentService {
 
   downloadUrl(caseFileId: string, documentId: string): string {
     return `${this.apiUrl(caseFileId)}/${documentId}/download`;
+  }
+
+  preview(caseFileId: string, documentId: string): Observable<DocumentPreview> {
+    return this.http.get<DocumentPreview>(`${this.apiUrl(caseFileId)}/${documentId}/preview`);
   }
 }
