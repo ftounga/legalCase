@@ -28,6 +28,33 @@ public final class LegalDomainPromptBuilder {
 
     private static final String TRAVAIL_INSTRUCTION = """
 
+            ========== RÈGLE CRITIQUE DE CLASSIFICATION — À APPLIQUER EN PREMIER ==========
+            Avant toute autre analyse, identifie le MÉCANISME FACTUEL de la rupture
+            (ce qui s'est réellement passé, attesté par une pièce signée/notifiée),
+            JAMAIS la qualification juridique demandée dans les arguments d'une partie.
+
+            Procédure OBLIGATOIRE de classification (dans cet ordre strict) :
+            1. Existe-t-il dans les documents une CONVENTION DE RUPTURE signée par les deux
+               parties ? → OUI = "RUPTURE_CONVENTIONNELLE" (ne cherche pas plus loin, même
+               si le dossier argumente la nullité pour obtenir une requalification en
+               licenciement sans cause réelle). Les vices de la RC (pas d'homologation,
+               délai rétractation non respecté, consentement vicié, etc.) alimenteront
+               "rupture_conv_validity_detection" avec "NON" justifiés — jamais type_rupture.
+            2. Existe-t-il une LETTRE DE LICENCIEMENT notifiée par l'employeur ? →
+               "LICENCIEMENT" (ou "LICENCIEMENT_ECONOMIQUE" si motif économique explicite).
+            3. Le salarié a-t-il pris acte de la rupture ? → "PRISE_ACTE".
+            4. Y a-t-il une demande de résiliation judiciaire en cours ? → "RESILIATION_JUDICIAIRE".
+            5. Lettre de démission du salarié ? → "DEMISSION".
+            6. Aucun de ces faits mais une rupture est évoquée ? → Choisir la valeur la
+               plus probable au vu des pièces ; ne jamais omettre.
+
+            PIÈGE FRÉQUENT À ÉVITER : un dossier où le salarié conteste une RC en demandant
+            sa REQUALIFICATION en licenciement sans cause réelle comporte souvent de
+            nombreuses mentions de "licenciement" dans les conclusions/arguments. Ces
+            mentions sont des DEMANDES JURIDIQUES, pas des faits. type_rupture reste
+            "RUPTURE_CONVENTIONNELLE" tant que la RC n'a pas été annulée par un juge.
+            ================================================================================
+
             Pour ce dossier de droit du travail, inclure également dans le JSON les champs suivants :
             "travail_extracted_data" : objet avec les champs :
               "convention_collective" : identifiant de la convention collective détectée (ex: "METALLURGIE", "SYNTEC", "BTP", "HCR", "COMMERCE", "CP200", "CP124", "CP302"), null si non détectable.
