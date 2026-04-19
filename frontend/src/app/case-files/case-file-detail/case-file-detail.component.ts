@@ -381,7 +381,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   loadDocuments(caseFileId: string): void {
     this.documentService.list(caseFileId).subscribe({
-      next: docs => this.documents.set(docs),
+      next: docs => {
+        this.documents.set(docs);
+        // SF-121-04 : après fetch docs, ré-applique l'override FAILED si pertinent.
+        this.applyExtractionFailedOverride();
+      },
       error: () => this.snackBar.open('Erreur lors du chargement des documents', 'Fermer', {
         duration: 4000, panelClass: ['snack-error']
       })
@@ -395,6 +399,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         if (jobs.length > 0 && !this.docAnalysisPending() && !this.caseAnalysisPending()) {
           this.analysisJobs.set(jobs);
         }
+        // SF-121-04 : après application des jobs backend, ré-applique l'override FAILED.
+        this.applyExtractionFailedOverride();
         this.managePolling(caseFileId, jobs, forceStart);
         if (jobs.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE')) {
           this.loadSynthesis(caseFileId);
@@ -413,13 +419,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
     if ((hasPendingOrProcessing || forceStart || this.docAnalysisPending() || this.caseAnalysisPending()) && !this.pollingInterval) {
       this.pollingInterval = setInterval(() => {
-        // SF-121-03 : si toutes les extractions ont échoué, le backend n'émet
-        // jamais de `ExtractionDoneEvent` (SF-121-01) donc aucun job DOCUMENT_ANALYSIS
-        // ne sera créé. Sans cette garde, le placeholder PENDING posé à l'upload
-        // reste en sablier indéfiniment + polling infini à vide.
-        if (this.docAnalysisPending()) {
-          this.detectAllExtractionsFailed(caseFileId);
-        }
+        // SF-121-04 : re-fetch docs pour détecter l'état d'extraction courant,
+        // puis re-applique l'override FAILED si ≥ 1 doc FAILED.
+        this.refreshDocumentsAndApplyOverride(caseFileId);
         this.analysisJobService.getJobs(caseFileId).subscribe({
           next: updated => {
             if (updated.length === 0) return; // pipeline not started yet — keep placeholders
@@ -444,6 +446,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
             }
 
             this.analysisJobs.set(updated);
+            // SF-121-04 : après avoir écrasé avec les jobs backend, ré-applique l'override FAILED.
+            this.applyExtractionFailedOverride();
             const stillRunning = updated.some(
               j => j.status === 'PENDING' || j.status === 'PROCESSING'
             );
@@ -462,31 +466,62 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * SF-121-03 : si tous les documents du dossier ont extractionStatus === 'FAILED',
-   * pose un job virtuel DOCUMENT_ANALYSIS en FAILED pour débloquer la pipeline UI
-   * (step 2 passe en rouge + polling stoppé). Rien n'est persisté côté backend —
-   * c'est une construction locale consommée par AnalysisPipelineComponent.
+   * SF-121-04 : règle "any FAILED". Si ≥ 1 document du dossier a
+   * `extractionStatus === 'FAILED'` et que toutes les extractions sont dans
+   * un état stable (FAILED ou DONE), remplace/pose un job virtuel
+   * DOCUMENT_ANALYSIS en FAILED avec compteur "N non analysables / M".
+   *
+   * Why : SF-121-01 empêche le pipeline IA de tourner sur des extractions vides,
+   * et même en cas d'échec partiel (3 FAILED + 6 DONE) la synthèse IA sur les
+   * 6 docs lisibles peut être trompeuse si des pièces clés sont dans les 3 FAILED.
+   * Faire remonter l'échec en step 2 alerte l'avocat avant qu'il ne consomme une
+   * synthèse incomplète. Idempotent — ne repose le virtuel que si données diffèrent.
    */
-  private detectAllExtractionsFailed(caseFileId: string): void {
+  private applyExtractionFailedOverride(): void {
+    const docs = this.documents();
+    if (docs.length === 0) return;
+
+    const failedCount = docs.filter(d => d.extractionStatus === 'FAILED').length;
+    if (failedCount === 0) return;
+
+    // Attendre que toutes les extractions se stabilisent (PENDING/PROCESSING → FAILED ou DONE)
+    // avant de figer l'affichage en rouge. Les docs sans `extractionStatus` (legacy) sont
+    // considérés stables (pas d'extraction en cours).
+    const anyUnstable = docs.some(d =>
+      d.extractionStatus === 'PENDING' || d.extractionStatus === 'PROCESSING'
+    );
+    if (anyUnstable) return;
+
+    this.analysisJobs.update(jobs => {
+      const existing = jobs.find(j => j.jobType === 'DOCUMENT_ANALYSIS');
+      if (existing
+          && existing.status === 'FAILED'
+          && existing.processedItems === failedCount
+          && existing.totalItems === docs.length) {
+        return jobs; // idempotent — rien à changer
+      }
+      const virtualFailed: AnalysisJob = {
+        jobType: 'DOCUMENT_ANALYSIS',
+        status: 'FAILED',
+        totalItems: docs.length,
+        processedItems: failedCount,
+        progressPercentage: 100,
+      };
+      return [
+        ...jobs.filter(j => j.jobType !== 'DOCUMENT_ANALYSIS' && j.jobType !== 'CHUNK_ANALYSIS'),
+        virtualFailed,
+      ];
+    });
+    this.docAnalysisPending.set(false);
+    // stopPolling géré par managePolling en fonction des autres jobs (ex. CASE_ANALYSIS
+    // peut être en cours sur les docs lisibles — ne pas couper le polling prématurément).
+  }
+
+  private refreshDocumentsAndApplyOverride(caseFileId: string): void {
     this.documentService.list(caseFileId).subscribe({
       next: docs => {
         this.documents.set(docs);
-        if (docs.length === 0) return;
-        if (!docs.every(d => d.extractionStatus === 'FAILED')) return;
-
-        const virtualFailed: AnalysisJob = {
-          jobType: 'DOCUMENT_ANALYSIS',
-          status: 'FAILED',
-          totalItems: docs.length,
-          processedItems: docs.length,
-          progressPercentage: 100,
-        };
-        this.analysisJobs.update(jobs => [
-          ...jobs.filter(j => j.jobType !== 'DOCUMENT_ANALYSIS' && j.jobType !== 'CHUNK_ANALYSIS'),
-          virtualFailed,
-        ]);
-        this.docAnalysisPending.set(false);
-        this.stopPolling();
+        this.applyExtractionFailedOverride();
       },
     });
   }

@@ -109,6 +109,11 @@ export class AnalysisPipelineComponent implements OnChanges, OnDestroy {
 
   private counter(j: AnalysisJob | undefined): string | null {
     if (!j || j.totalItems === 0) return null;
+    // SF-121-04 : DOCUMENT_ANALYSIS FAILED → compteur explicite "N non analysables / M"
+    // (les processedItems représentent alors le nombre de docs FAILED, pas le nombre traités).
+    if (j.jobType === 'DOCUMENT_ANALYSIS' && j.status === 'FAILED') {
+      return `${j.processedItems} non analysables / ${j.totalItems}`;
+    }
     return `${j.processedItems} / ${j.totalItems}`;
   }
 
