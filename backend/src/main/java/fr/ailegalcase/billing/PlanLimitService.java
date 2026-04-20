@@ -50,6 +50,19 @@ public class PlanLimitService {
     static final long TEAM_MONTHLY_CHAT_LIMIT  =  300L;
     static final long PRO_MONTHLY_CHAT_LIMIT   = 1000L;
 
+    // ── Seats facturables (SF-123-02) ────────────────────────────────────
+    // Seats inclus dans le prix de base du plan (tranche 0 € sur Stripe tiered).
+    static final int FREE_INCLUDED_SEATS = 1;
+    static final int SOLO_INCLUDED_SEATS = 1;
+    static final int TEAM_INCLUDED_SEATS = 3;
+    static final int PRO_INCLUDED_SEATS  = 5;
+
+    // Cap absolu de seats par plan (Integer.MAX_VALUE = illimité).
+    static final int FREE_MAX_SEATS = 1;
+    static final int SOLO_MAX_SEATS = 1;
+    static final int TEAM_MAX_SEATS = 6;
+    static final int PRO_MAX_SEATS  = Integer.MAX_VALUE;
+
     // ── Quotas OCR (SF-122-02) ───────────────────────────────────────────
     static final int FREE_MONTHLY_OCR_PAGES =    100;
     static final int SOLO_MONTHLY_OCR_PAGES =    800;
@@ -305,6 +318,38 @@ public class PlanLimitService {
     /** SF-122-04 : somme des pages OCR achetées (exposé pour l'UI billing). */
     public long getOcrPagesBought(UUID workspaceId) {
         return creditPurchaseService.getTotalOcrPagesBought(workspaceId);
+    }
+
+    // ── Seats par plan (SF-123-02) ───────────────────────────────────────
+
+    public int getIncludedSeats(String planCode) {
+        return switch (planCode) {
+            case "PRO"  -> PRO_INCLUDED_SEATS;
+            case "TEAM" -> TEAM_INCLUDED_SEATS;
+            case "SOLO" -> SOLO_INCLUDED_SEATS;
+            default     -> FREE_INCLUDED_SEATS;
+        };
+    }
+
+    public int getMaxSeats(String planCode) {
+        return switch (planCode) {
+            case "PRO"  -> PRO_MAX_SEATS;
+            case "TEAM" -> TEAM_MAX_SEATS;
+            case "SOLO" -> SOLO_MAX_SEATS;
+            default     -> FREE_MAX_SEATS;
+        };
+    }
+
+    public int getMaxSeatsForWorkspace(UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(sub -> isExpiredFree(sub) ? 0 : getMaxSeats(sub.getPlanCode()))
+                .orElse(FREE_MAX_SEATS);
+    }
+
+    public String getPlanCodeForWorkspace(UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(Subscription::getPlanCode)
+                .orElse("FREE");
     }
 
     public static int effectiveMonthlyUsage(Workspace ws, LocalDate today) {

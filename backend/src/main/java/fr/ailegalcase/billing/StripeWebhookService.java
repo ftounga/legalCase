@@ -146,12 +146,19 @@ public class StripeWebhookService {
         String customerId = stripeSub.getCustomer();
         String priceId = stripeSub.getItems().getData().isEmpty() ? null
                 : stripeSub.getItems().getData().get(0).getPrice().getId();
+        // SF-123-02 : synchroniser seat_count si la quantity a changé côté Dashboard Stripe.
+        Long quantity = stripeSub.getItems().getData().isEmpty() ? null
+                : stripeSub.getItems().getData().get(0).getQuantity();
 
         subscriptionRepository.findByStripeCustomerId(customerId).ifPresentOrElse(sub -> {
             sub.setPlanCode(resolvePlanCodeFromPriceId(priceId));
             sub.setStripeSubscriptionId(stripeSub.getId());
             sub.setExpiresAt(null);
             sub.setStatus("ACTIVE");
+            if (quantity != null && quantity > 0 && quantity.intValue() != sub.getSeatCount()) {
+                sub.setSeatCount(quantity.intValue());
+                log.info("Seat count synced from Stripe to {} for customer {}", quantity, customerId);
+            }
             subscriptionRepository.save(sub);
             log.info("Plan synced to {} for customer {}", sub.getPlanCode(), customerId);
         }, () -> log.warn("No subscription found for Stripe customer {}", customerId));

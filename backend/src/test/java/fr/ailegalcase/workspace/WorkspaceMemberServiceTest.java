@@ -1,6 +1,7 @@
 package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.StripeSeatService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,12 +29,13 @@ class WorkspaceMemberServiceTest {
 
     @Mock private WorkspaceMemberRepository workspaceMemberRepository;
     @Mock private CurrentUserResolver currentUserResolver;
+    @Mock private StripeSeatService stripeSeatService;
 
     private WorkspaceMemberService service;
 
     @BeforeEach
     void setUp() {
-        service = new WorkspaceMemberService(workspaceMemberRepository, currentUserResolver);
+        service = new WorkspaceMemberService(workspaceMemberRepository, currentUserResolver, stripeSeatService);
     }
 
     // U-01 : listMembers retourne les membres du workspace courant

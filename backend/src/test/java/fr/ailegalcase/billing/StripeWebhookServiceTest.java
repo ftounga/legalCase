@@ -247,4 +247,41 @@ class StripeWebhookServiceTest {
         verify(creditPurchaseService, never()).record(any(), anyLong(), anyInt(), any());
         verify(subscriptionRepository).save(any());
     }
+
+    // SF-123-02 — customer.subscription.updated avec quantity différent → seatCount sync
+    @Test
+    void handleEvent_subscriptionUpdated_syncsSeatCountFromStripe() throws Exception {
+        fr.ailegalcase.billing.Subscription sub = new fr.ailegalcase.billing.Subscription();
+        sub.setPlanCode("TEAM");
+        sub.setSeatCount(3);
+        when(subscriptionRepository.findByStripeCustomerId("cus_team")).thenReturn(Optional.of(sub));
+        when(subscriptionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        com.stripe.model.Subscription stripeSub = mock(com.stripe.model.Subscription.class);
+        com.stripe.model.SubscriptionItem item = mock(com.stripe.model.SubscriptionItem.class);
+        com.stripe.model.Price price = mock(com.stripe.model.Price.class);
+        com.stripe.model.SubscriptionItemCollection items = mock(com.stripe.model.SubscriptionItemCollection.class);
+        when(stripeSub.getCustomer()).thenReturn("cus_team");
+        when(stripeSub.getId()).thenReturn("sub_t_123");
+        when(stripeSub.getItems()).thenReturn(items);
+        when(items.getData()).thenReturn(java.util.List.of(item));
+        when(item.getPrice()).thenReturn(price);
+        when(price.getId()).thenReturn("price_team_v2_test");
+        when(item.getQuantity()).thenReturn(5L);
+
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        when(deserializer.deserializeUnsafe()).thenReturn((StripeObject) stripeSub);
+
+        Event event = mock(Event.class);
+        when(event.getType()).thenReturn("customer.subscription.updated");
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+
+        service.handleEvent(event);
+
+        ArgumentCaptor<fr.ailegalcase.billing.Subscription> captor =
+                ArgumentCaptor.forClass(fr.ailegalcase.billing.Subscription.class);
+        verify(subscriptionRepository).save(captor.capture());
+        assertThat(captor.getValue().getSeatCount()).isEqualTo(5);
+        assertThat(captor.getValue().getPlanCode()).isEqualTo("TEAM");
+    }
 }

@@ -1,6 +1,8 @@
 package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.billing.StripeSeatService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,13 +37,17 @@ class WorkspaceInvitationServiceTest {
     @Mock private WorkspaceRepository workspaceRepository;
     @Mock private EmailService emailService;
     @Mock private CurrentUserResolver currentUserResolver;
+    @Mock private PlanLimitService planLimitService;
+    @Mock private StripeSeatService stripeSeatService;
 
     private WorkspaceInvitationService service;
 
     @BeforeEach
     void setUp() {
         service = new WorkspaceInvitationService(workspaceInvitationRepository, workspaceMemberRepository,
-                workspaceRepository, currentUserResolver, emailService);
+                workspaceRepository, currentUserResolver, emailService, planLimitService, stripeSeatService);
+        // SF-123-02 : par défaut les tests existants sont sur un plan sans gate (TEAM/PRO avec large cap).
+        lenient().when(planLimitService.getMaxSeatsForWorkspace(any())).thenReturn(100);
     }
 
     // U-01 : createInvitation — token généré, status PENDING, expiry +7j
@@ -212,6 +218,109 @@ class WorkspaceInvitationServiceTest {
 
         assertThat(response.status()).isEqualTo("PENDING");
         verify(workspaceInvitationRepository).save(any());
+    }
+
+    // U-SF123-02-01 : SOLO + 2e invitation → 402 PAYMENT_REQUIRED
+    @Test
+    void createInvitation_soloPlanSecondMember_throws402() {
+        User owner = buildUser("owner@example.com");
+        Workspace workspace = buildWorkspace();
+        WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
+
+        setupAuth(owner);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
+        when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
+        when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
+        when(workspaceMemberRepository.findByWorkspace_Id(workspace.getId())).thenReturn(List.of(ownerMember));
+        when(workspaceInvitationRepository.findByWorkspaceIdAndStatus(workspace.getId(), "PENDING")).thenReturn(List.of());
+        when(planLimitService.getMaxSeatsForWorkspace(workspace.getId())).thenReturn(1);
+        when(planLimitService.getPlanCodeForWorkspace(workspace.getId())).thenReturn("SOLO");
+
+        WorkspaceInvitationRequest request = new WorkspaceInvitationRequest("invitee@example.com", "LAWYER");
+        assertThatThrownBy(() -> service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("402")
+                .hasMessageContaining("TEAM");
+    }
+
+    // U-SF123-02-02 : TEAM avec 6 seats utilisés (3 membres + 3 invites pending) → 402
+    @Test
+    void createInvitation_teamPlanAtCap_throws402() {
+        User owner = buildUser("owner@example.com");
+        Workspace workspace = buildWorkspace();
+        WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
+        WorkspaceMember m2 = buildMember(workspace, buildUser("m2@ex.com"), "LAWYER");
+        WorkspaceMember m3 = buildMember(workspace, buildUser("m3@ex.com"), "LAWYER");
+
+        setupAuth(owner);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
+        when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
+        when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
+        when(workspaceMemberRepository.findByWorkspace_Id(workspace.getId())).thenReturn(List.of(ownerMember, m2, m3));
+        when(workspaceInvitationRepository.findByWorkspaceIdAndStatus(workspace.getId(), "PENDING"))
+                .thenReturn(List.of(new WorkspaceInvitation(), new WorkspaceInvitation(), new WorkspaceInvitation()));
+        when(planLimitService.getMaxSeatsForWorkspace(workspace.getId())).thenReturn(6);
+        when(planLimitService.getPlanCodeForWorkspace(workspace.getId())).thenReturn("TEAM");
+
+        WorkspaceInvitationRequest request = new WorkspaceInvitationRequest("invitee@example.com", "LAWYER");
+        assertThatThrownBy(() -> service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("402")
+                .hasMessageContaining("PRO");
+    }
+
+    // U-SF123-02-03 : PRO 20 seats → pas de gate (Integer.MAX_VALUE)
+    @Test
+    void createInvitation_proPlan_noCap_succeeds() {
+        User owner = buildUser("owner@example.com");
+        Workspace workspace = buildWorkspace();
+        WorkspaceMember ownerMember = buildMember(workspace, owner, "OWNER");
+        List<WorkspaceMember> twentyMembers = new java.util.ArrayList<>();
+        twentyMembers.add(ownerMember);
+        for (int i = 0; i < 19; i++) twentyMembers.add(buildMember(workspace, buildUser("m" + i + "@ex.com"), "LAWYER"));
+
+        setupAuth(owner);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(owner)).thenReturn(Optional.of(ownerMember));
+        when(workspaceMemberRepository.findByWorkspace_IdAndUser_Id(workspace.getId(), owner.getId())).thenReturn(Optional.of(ownerMember));
+        when(workspaceInvitationRepository.existsByWorkspaceIdAndEmailAndStatus(workspace.getId(), "invitee@example.com", "PENDING")).thenReturn(false);
+        when(workspaceMemberRepository.findByWorkspace_Id(workspace.getId())).thenReturn(twentyMembers);
+        when(workspaceInvitationRepository.findByWorkspaceIdAndStatus(workspace.getId(), "PENDING")).thenReturn(List.of());
+        when(planLimitService.getMaxSeatsForWorkspace(workspace.getId())).thenReturn(Integer.MAX_VALUE);
+        when(workspaceInvitationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        WorkspaceInvitationResponse r = service.createInvitation(
+                new WorkspaceInvitationRequest("invitee@example.com", "LAWYER"),
+                buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null);
+
+        assertThat(r.status()).isEqualTo("PENDING");
+    }
+
+    // U-SF123-02-04 : acceptInvitation → stripeSeatService.syncSeatCount appelé
+    @Test
+    void acceptInvitation_callsStripeSeatSync() {
+        User invitee = buildUser("invitee@example.com");
+        Workspace targetWorkspace = buildWorkspace();
+        WorkspaceMember existingPrimary = buildMember(buildWorkspace(), invitee, "OWNER");
+
+        WorkspaceInvitation invitation = new WorkspaceInvitation();
+        invitation.setToken("valid-token");
+        invitation.setEmail("invitee@example.com");
+        invitation.setRole("LAWYER");
+        invitation.setStatus("PENDING");
+        invitation.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        invitation.setWorkspaceId(targetWorkspace.getId());
+
+        setupAuth(invitee);
+        when(workspaceInvitationRepository.findByToken("valid-token")).thenReturn(Optional.of(invitation));
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(invitee)).thenReturn(Optional.of(existingPrimary));
+        when(workspaceRepository.findById(targetWorkspace.getId())).thenReturn(Optional.of(targetWorkspace));
+        when(workspaceMemberRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(workspaceInvitationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.acceptInvitation(new AcceptInvitationRequest("valid-token"),
+                buildOidcUser("sub-invitee", "invitee@example.com"), "GOOGLE", null);
+
+        verify(stripeSeatService).syncSeatCount(targetWorkspace.getId());
     }
 
     // Helpers
