@@ -14,25 +14,6 @@ public final class AncienneteCalculator {
 
     private AncienneteCalculator() {}
 
-    /**
-     * @param conventionCode  code du barème
-     * @param dateEntree      date d'entrée dans l'entreprise
-     * @param salaireBase     salaire mensuel brut
-     * @param congesContrat   nombre de jours de congés prévus au contrat
-     * @param primeContrat    pourcentage de prime d'ancienneté prévu au contrat (nullable = 0)
-     * @return le résultat complet du calcul
-     */
-    public static AncienneteResult calculate(
-            String conventionCode,
-            LocalDate dateEntree,
-            BigDecimal salaireBase,
-            int congesContrat,
-            BigDecimal primeContrat
-    ) {
-        return calculate(conventionCode, dateEntree, salaireBase, congesContrat, primeContrat,
-                ConventionBaremeReferentiel.getByCode(conventionCode));
-    }
-
     public static AncienneteResult calculate(
             String conventionCode,
             LocalDate dateEntree,

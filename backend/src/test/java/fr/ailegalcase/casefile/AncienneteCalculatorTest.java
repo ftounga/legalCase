@@ -16,8 +16,9 @@ class AncienneteCalculatorTest {
                 "METALLURGIE",
                 LocalDate.now().minusYears(10).minusMonths(3),
                 new BigDecimal("3000"),
-                25, // contrat prévoit 25 jours (pas de supplément)
-                new BigDecimal("5") // contrat prévoit 5%
+                25,
+                new BigDecimal("5"),
+                TestConventionBaremes.METALLURGIE
         );
 
         assertThat(result.ancienneteAnnees()).isEqualTo(10);
@@ -34,7 +35,8 @@ class AncienneteCalculatorTest {
                 LocalDate.now().minusYears(10),
                 new BigDecimal("3000"),
                 25, // contrat: 25 jours, minimum: 27
-                BigDecimal.ZERO
+                BigDecimal.ZERO,
+                TestConventionBaremes.METALLURGIE
         );
 
         assertThat(result.ecarts()).anyMatch(e ->
@@ -47,8 +49,9 @@ class AncienneteCalculatorTest {
                 "CP200",
                 LocalDate.now().minusYears(5).minusMonths(1),
                 new BigDecimal("2500"),
-                21, // contrat prévoit 21 jours
-                new BigDecimal("2") // contrat prévoit 2%
+                21,
+                new BigDecimal("2"),
+                TestConventionBaremes.CP200
         );
 
         assertThat(result.country()).isEqualTo("BELGIQUE");
@@ -64,8 +67,9 @@ class AncienneteCalculatorTest {
                 "CP200",
                 LocalDate.now().minusYears(5),
                 new BigDecimal("2500"),
-                21, // contrat = minimum convention (20+1)
-                new BigDecimal("2")
+                21,
+                new BigDecimal("2"),
+                TestConventionBaremes.CP200
         );
 
         assertThat(result.ecarts()).anyMatch(e ->
@@ -79,7 +83,8 @@ class AncienneteCalculatorTest {
                 LocalDate.now().minusYears(5),
                 new BigDecimal("4000"),
                 25,
-                BigDecimal.ZERO
+                BigDecimal.ZERO,
+                TestConventionBaremes.SYNTEC
         );
 
         // Syntec 5 ans = 5%, 4000 * 5% = 200
@@ -93,8 +98,9 @@ class AncienneteCalculatorTest {
                 "SYNTEC",
                 LocalDate.now().minusYears(10),
                 new BigDecimal("4000"),
-                30, // conforme
-                new BigDecimal("3") // contrat 3% mais convention = 10%
+                30,
+                new BigDecimal("3"), // contrat 3% mais convention = 10%
+                TestConventionBaremes.SYNTEC
         );
 
         assertThat(result.ecarts()).anyMatch(e ->
@@ -108,7 +114,8 @@ class AncienneteCalculatorTest {
                 LocalDate.now().minusMonths(6),
                 new BigDecimal("2500"),
                 25,
-                BigDecimal.ZERO
+                BigDecimal.ZERO,
+                TestConventionBaremes.METALLURGIE
         );
 
         assertThat(result.ancienneteAnnees()).isZero();
@@ -120,7 +127,8 @@ class AncienneteCalculatorTest {
     void conventionInconnue_throwsException() {
         assertThatThrownBy(() -> AncienneteCalculator.calculate(
                 "INCONNU", LocalDate.now().minusYears(5),
-                new BigDecimal("3000"), 25, BigDecimal.ZERO
+                new BigDecimal("3000"), 25, BigDecimal.ZERO,
+                null
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Convention inconnue");
     }
@@ -130,7 +138,8 @@ class AncienneteCalculatorTest {
         // BTP à 15 ans : bareme = 12% (référentiel). User 22% → effectif = 22%, pas d'écart.
         AncienneteResult result = AncienneteCalculator.calculate(
                 "BTP", LocalDate.now().minusYears(15),
-                new BigDecimal("3000"), 25, new BigDecimal("22")
+                new BigDecimal("3000"), 25, new BigDecimal("22"),
+                TestConventionBaremes.BTP
         );
         assertThat(result.primeAnciennetePourcentage()).isEqualByComparingTo(new BigDecimal("22"));
         assertThat(result.primeAncienneteMontant()).isEqualByComparingTo(new BigDecimal("660"));
@@ -144,7 +153,8 @@ class AncienneteCalculatorTest {
         // BTP 15 ans : bareme = 12%. User 5% → effectif = 12%, écart détecté.
         AncienneteResult result = AncienneteCalculator.calculate(
                 "BTP", LocalDate.now().minusYears(15),
-                new BigDecimal("3000"), 25, new BigDecimal("5")
+                new BigDecimal("3000"), 25, new BigDecimal("5"),
+                TestConventionBaremes.BTP
         );
         assertThat(result.primeAnciennetePourcentage()).isEqualByComparingTo(new BigDecimal("12"));
         assertThat(result.primeAncienneteMontant()).isEqualByComparingTo(new BigDecimal("360"));
@@ -160,7 +170,8 @@ class AncienneteCalculatorTest {
         // SYNTEC : bareme = 25j légaux. User 30 → effectif = 30, conforme.
         AncienneteResult result = AncienneteCalculator.calculate(
                 "SYNTEC", LocalDate.now().minusYears(2),
-                new BigDecimal("3000"), 30, BigDecimal.ZERO
+                new BigDecimal("3000"), 30, BigDecimal.ZERO,
+                TestConventionBaremes.SYNTEC
         );
         assertThat(result.congesTotalJours()).isEqualTo(30);
         AncienneteResult.Ecart congesEcart = result.ecarts().stream()
@@ -170,13 +181,14 @@ class AncienneteCalculatorTest {
 
     @Test
     void allConventions_calculateWithoutError() {
-        for (ConventionBareme b : ConventionBaremeReferentiel.getAll()) {
+        for (ConventionBareme b : TestConventionBaremes.SAMPLE) {
             AncienneteResult result = AncienneteCalculator.calculate(
                     b.code(),
                     LocalDate.now().minusYears(8),
                     new BigDecimal("3000"),
                     25,
-                    new BigDecimal("5")
+                    new BigDecimal("5"),
+                    b
             );
             assertThat(result.conventionCode()).as("code %s", b.code()).isEqualTo(b.code());
             assertThat(result.congesTotalJours()).as("conges %s", b.code()).isPositive();

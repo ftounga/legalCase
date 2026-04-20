@@ -299,26 +299,34 @@ public class LegalReferentialService {
         return ImmigrationWorkRightReferentiel.getByTitreType(titreType, country);
     }
 
-    /** Barème convention collective. DB first → fallback ConventionBaremeReferentiel. */
+    /**
+     * SF-129-03 : Barème convention collective, DB uniquement (plus de fallback statique).
+     * Normalise automatiquement les codes legacy (METALLURGIE → IDCC_3248 etc.) via
+     * ConventionCodeNormalizer pour les dossiers anciens qui ont stocké ces codes.
+     * Retourne null si code inconnu.
+     */
     public ConventionBareme getConventionBareme(String code) {
+        String normalized = fr.ailegalcase.casefile.ConventionCodeNormalizer.normalize(code);
+        if (normalized == null) return null;
         try {
-            List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "CONVENTION_BAREMES", code);
-            if (!entries.isEmpty()) {
-                LegalReferential e = entries.get(0);
-                JsonNode node = MAPPER.readTree(e.getValueJson());
-                int congesLegaux = node.path("congesLegauxJours").asInt();
-                List<ConventionBareme.CongesSupplementaire> congesSupp = new ArrayList<>();
-                for (JsonNode cs : node.path("congesSupp")) {
-                    congesSupp.add(new ConventionBareme.CongesSupplementaire(cs.path("min").asInt(), cs.path("jours").asInt(), ""));
-                }
-                List<ConventionBareme.PrimeAnciennete> primes = new ArrayList<>();
-                for (JsonNode p : node.path("primes")) {
-                    primes.add(new ConventionBareme.PrimeAnciennete(p.path("min").asInt(), p.path("pct").decimalValue(), ""));
-                }
-                return new ConventionBareme(code, e.getLabel(), e.getCountry(), congesLegaux, congesSupp, primes, e.getSourceRef());
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "CONVENTION_BAREMES", normalized);
+            if (entries.isEmpty()) return null;
+            LegalReferential e = entries.get(0);
+            JsonNode node = MAPPER.readTree(e.getValueJson());
+            int congesLegaux = node.path("congesLegauxJours").asInt();
+            List<ConventionBareme.CongesSupplementaire> congesSupp = new ArrayList<>();
+            for (JsonNode cs : node.path("congesSupp")) {
+                congesSupp.add(new ConventionBareme.CongesSupplementaire(cs.path("min").asInt(), cs.path("jours").asInt(), ""));
             }
-        } catch (Exception ex) { log.warn("Fallback statique pour CONVENTION_BAREMES/{}", code, ex); }
-        return ConventionBaremeReferentiel.getByCode(code);
+            List<ConventionBareme.PrimeAnciennete> primes = new ArrayList<>();
+            for (JsonNode p : node.path("primes")) {
+                primes.add(new ConventionBareme.PrimeAnciennete(p.path("min").asInt(), p.path("pct").decimalValue(), ""));
+            }
+            return new ConventionBareme(normalized, e.getLabel(), e.getCountry(), congesLegaux, congesSupp, primes, e.getSourceRef());
+        } catch (Exception ex) {
+            log.warn("Erreur lecture référentiel CONVENTION_BAREMES/{}: {}", normalized, ex.getMessage());
+            return null;
+        }
     }
 
     /** Critère de validité licenciement. DB first → fallback LicenciementCritereReferentiel. */
