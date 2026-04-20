@@ -12,7 +12,7 @@ import java.util.Set;
 public final class IndemniteComparatifCalculator {
 
     static final Set<String> TYPES_RUPTURE_FR = Set.of(
-            "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE", "RUPTURE_CONVENTIONNELLE");
+            "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE");
     static final Set<String> TYPES_RUPTURE_BE = Set.of(
             "LICENCIEMENT_ORDINAIRE", "RUPTURE_AMIABLE");
 
@@ -46,25 +46,9 @@ public final class IndemniteComparatifCalculator {
     }
 
     private static IndemniteComparatifResult calculateFrance(String typeRupture, int anciennete, int age, BigDecimal salaire) {
-        if ("RUPTURE_CONVENTIONNELLE".equals(typeRupture)) {
-            BigDecimal indemniteLegale = computeIndemniteLegaleLicenciement(anciennete, salaire);
-            List<String> messages = List.of(
-                    "L'indemnité spécifique de rupture conventionnelle doit être au moins égale à l'indemnité légale de licenciement (art. L1237-13).",
-                    "Vérifier l'indemnité conventionnelle si la convention collective prévoit une indemnité plus favorable."
-            );
-            return new IndemniteComparatifResult(
-                    "FRANCE", typeRupture, anciennete, age, salaire,
-                    "INDEMNITE_SPECIFIQUE",
-                    BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                    indemniteLegale,
-                    "Indemnité légale de licenciement (art. R1234-2)",
-                    "Minimum légal applicable à la rupture conventionnelle homologuée.",
-                    messages);
-        }
-
-        // LICENCIEMENT et LICENCIEMENT_ECONOMIQUE : fourchette Macron
+        // SF-132-02 : la branche RUPTURE_CONVENTIONNELLE a été extraite vers
+        // RuptureConvIndemniteCalculator (outil décisionnel dédié, F-132).
+        // Ce calculateur ne gère plus que le barème Macron pour la France.
         IndemniteBareme bareme = IndemniteJurisprudentielReferentiel.getBaremeMacron(anciennete);
         BigDecimal[] fourchette = IndemniteJurisprudentielReferentiel.getFourchetteFrance(anciennete, age);
 
@@ -129,22 +113,5 @@ public final class IndemniteComparatifCalculator {
                         ? "Ancienneté significative : les tribunaux du travail tendent vers la partie haute de la fourchette CCT 109."
                         : "Fourchette indicative basée sur les tendances jurisprudentielles des tribunaux du travail.",
                 messages);
-    }
-
-    /**
-     * Indemnité légale de licenciement (art. R1234-2 Code du travail) :
-     * - 1/4 de mois de salaire × min(10, ancienneté complète)
-     * - + 1/3 de mois de salaire × max(0, ancienneté complète - 10)
-     * - Seuil minimum d'ouverture : 1 an (pour simplicité ; le seuil légal strict est 8 mois continus).
-     */
-    static BigDecimal computeIndemniteLegaleLicenciement(int anciennete, BigDecimal salaire) {
-        if (anciennete < 1 || salaire == null) return BigDecimal.ZERO;
-        int part1Years = Math.min(10, anciennete);
-        int part2Years = Math.max(0, anciennete - 10);
-        BigDecimal part1 = salaire.multiply(new BigDecimal(part1Years))
-                .divide(new BigDecimal(4), 4, RoundingMode.HALF_UP);
-        BigDecimal part2 = salaire.multiply(new BigDecimal(part2Years))
-                .divide(new BigDecimal(3), 4, RoundingMode.HALF_UP);
-        return part1.add(part2).setScale(2, RoundingMode.HALF_UP);
     }
 }

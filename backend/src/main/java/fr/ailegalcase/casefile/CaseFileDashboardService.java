@@ -31,6 +31,7 @@ public class CaseFileDashboardService {
     private final CaseAnalysisRepository analysisRepository;
     private final LicenciementAnalysisRepository licenciementRepo;
     private final IndemniteComparatifRepository indemniteRepo;
+    private final RuptureConvIndemniteRepository ruptureConvIndemniteRepo;
     private final AncienneteAnalysisRepository ancienneteRepo;
     private final ImmigrationTitleDecisionRepository titleDecisionRepo;
     private final ImmigrationWorkRightRepository workRightRepo;
@@ -45,6 +46,7 @@ public class CaseFileDashboardService {
                                      CaseAnalysisRepository analysisRepository,
                                      LicenciementAnalysisRepository licenciementRepo,
                                      IndemniteComparatifRepository indemniteRepo,
+                                     RuptureConvIndemniteRepository ruptureConvIndemniteRepo,
                                      AncienneteAnalysisRepository ancienneteRepo,
                                      ImmigrationTitleDecisionRepository titleDecisionRepo,
                                      ImmigrationWorkRightRepository workRightRepo,
@@ -59,6 +61,7 @@ public class CaseFileDashboardService {
         this.analysisRepository = analysisRepository;
         this.licenciementRepo = licenciementRepo;
         this.indemniteRepo = indemniteRepo;
+        this.ruptureConvIndemniteRepo = ruptureConvIndemniteRepo;
         this.ancienneteRepo = ancienneteRepo;
         this.titleDecisionRepo = titleDecisionRepo;
         this.workRightRepo = workRightRepo;
@@ -112,6 +115,23 @@ public class CaseFileDashboardService {
     }
 
     private CaseFileDashboardResponse.IndemniteSummary buildIndemnite(UUID caseFileId) {
+        // SF-132-02 : si une analyse "Indemnité rupture conventionnelle" existe,
+        // elle prime sur la fourchette Macron (laquelle retournerait 0—0 € sur
+        // ce type de dossier). Évite la card dashboard trompeuse "0 — 0 €"
+        // observée sur le dossier E28.
+        var ruptureConv = ruptureConvIndemniteRepo.findByCaseFileId(caseFileId)
+                .map(e -> {
+                    try {
+                        var r = objectMapper.readValue(e.getResultData(), RuptureConvIndemniteResult.class);
+                        return new CaseFileDashboardResponse.IndemniteSummary(
+                                "FRANCE",
+                                r.indemniteLegaleMinimum(),
+                                r.indemniteLegaleMinimum(),
+                                "Indemnité légale de licenciement (art. R1234-2)");
+                    } catch (Exception ex) { return null; }
+                }).orElse(null);
+        if (ruptureConv != null) return ruptureConv;
+
         return indemniteRepo.findByCaseFileId(caseFileId).map(e -> {
             try {
                 var r = objectMapper.readValue(e.getResultData(), IndemniteComparatifResult.class);
