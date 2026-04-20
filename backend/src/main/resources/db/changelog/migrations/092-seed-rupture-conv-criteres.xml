@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="092-seed-rupture-conv-criteres" author="legalcase">
+        <comment>
+            SF-136-04 : seedage du type RUPTURE_CONV_CRITERES identifié par
+            l'audit F-138 SF-138-01 comme jamais seedé en DB (fallback Java
+            uniquement via RuptureConvCritereReferentiel).
+
+            Après cette SF, les 6 critères de validité rupture conventionnelle FR
+            sont disponibles dans legal_referentials, consommés par
+            RuptureConvAnalyzer via LegalReferentialService (pattern DB-first
+            avec fallback Java préservé pour sécurité).
+
+            UUIDs c6-cb pour éviter collision avec plages antérieures (b8-be
+            SF-129-04, bf-c5 SF-136-03).
+
+            Les 6 critères (sum poids = 100) :
+            - RC_CONSENTEMENT : bloquant, poids 25, art. L1237-11
+            - RC_DELAI_RETRACTATION : bloquant, poids 20, art. L1237-13 al.2
+            - RC_HOMOLOGATION : bloquant, poids 25, art. L1237-14
+            - RC_ASSISTANCE : non-bloquant, poids 10, art. L1237-12 dernier al.
+            - RC_INDEMNITE : bloquant, poids 15, art. L1237-13 al.1
+            - RC_ENTRETIENS : non-bloquant, poids 5, art. L1237-12 al.1
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c6', NULL, 'DROIT_DU_TRAVAIL', 'RUPTURE_CONV_CRITERES', 'RC_CONSENTEMENT', '{"poids":25,"bloquant":true,"description":"Le consentement du salarié est-il exempt de vice (pression, dol, violence morale, erreur) ? Des échanges, pièces ou circonstances laissent-ils présumer une contrainte ?"}', 'Consentement libre et éclairé', 'FRANCE', true, true, 'Art. L1237-11, 1er alinéa du Code du travail ; Cass. soc. 29 janv. 2020, n° 18-24.558', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c7', NULL, 'DROIT_DU_TRAVAIL', 'RUPTURE_CONV_CRITERES', 'RC_DELAI_RETRACTATION', '{"poids":20,"bloquant":true,"description":"Un délai de 15 jours calendaires a-t-il été respecté entre la signature de la convention et la demande d''homologation adressée à l''administration ?"}', 'Délai de rétractation de 15 jours calendaires respecté', 'FRANCE', true, true, 'Art. L1237-13, 2e alinéa du Code du travail', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c8', NULL, 'DROIT_DU_TRAVAIL', 'RUPTURE_CONV_CRITERES', 'RC_HOMOLOGATION', '{"poids":25,"bloquant":true,"description":"La demande d''homologation a-t-elle été déposée auprès de la DREETS compétente et l''homologation a-t-elle été obtenue (ou réputée acquise après 15 jours ouvrables sans réponse) ?"}', 'Homologation par la DREETS (ex-DIRECCTE)', 'FRANCE', true, true, 'Art. L1237-14 du Code du travail', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c9', NULL, 'DROIT_DU_TRAVAIL', 'RUPTURE_CONV_CRITERES', 'RC_ASSISTANCE', '{"poids":10,"bloquant":false,"description":"Le salarié a-t-il été informé de sa possibilité de se faire assister (avocat, conseiller du salarié, représentant du personnel) lors des entretiens, et cette assistance est-elle documentée ?"}', 'Assistance possible et documentée', 'FRANCE', true, true, 'Art. L1237-12, dernier alinéa du Code du travail', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000ca', NULL, 'DROIT_DU_TRAVAIL', 'RUPTURE_CONV_CRITERES', 'RC_INDEMNITE', '{"poids":15,"bloquant":true,"description":"L''indemnité spécifique de rupture conventionnelle est-elle au moins égale à l''indemnité légale de licenciement (¼ de mois par année les 10 premières années + ⅓ au-delà) ?"}', 'Indemnité spécifique supérieure ou égale à l''indemnité légale', 'FRANCE', true, true, 'Art. L1237-13, 1er alinéa du Code du travail', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000cb', NULL, 'DROIT_DU_TRAVAIL', 'RUPTURE_CONV_CRITERES', 'RC_ENTRETIENS', '{"poids":5,"bloquant":false,"description":"Un entretien préalable a-t-il été organisé entre l''employeur et le salarié avant signature, et existe-t-il une trace écrite (compte-rendu, correspondance) ?"}', 'Au moins un entretien préalable tenu et documenté', 'FRANCE', true, true, 'Art. L1237-12, 1er alinéa du Code du travail', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            DELETE FROM legal_referentials WHERE id IN (
+                'f1100001-0000-0000-0000-0000000000c6',
+                'f1100001-0000-0000-0000-0000000000c7',
+                'f1100001-0000-0000-0000-0000000000c8',
+                'f1100001-0000-0000-0000-0000000000c9',
+                'f1100001-0000-0000-0000-0000000000ca',
+                'f1100001-0000-0000-0000-0000000000cb'
+            );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
