@@ -77,7 +77,9 @@ public class AncienneteService {
     }
 
     private void validateRequest(AncienneteRequest request) {
-        if (!ConventionBaremeReferentiel.isCodeValid(request.conventionCode()))
+        // SF-129-01 : validation DB-first (supporte IDCC_XXXX seedés) avec fallback static
+        // pour les codes legacy (METALLURGIE, COMMERCE, BTP, HCR, SYNTEC).
+        if (referentialService.getConventionBareme(request.conventionCode()) == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Convention inconnue : " + request.conventionCode());
         if (request.dateEntree() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Date d'entrée requise");
