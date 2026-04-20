@@ -61,6 +61,7 @@ import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.compone
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
 import { RuptureConvIndemniteSectionComponent } from '../rupture-conv-indemnite-section/rupture-conv-indemnite-section.component';
+import { RuptureAmiableInfoSectionComponent } from '../rupture-amiable-info-section/rupture-amiable-info-section.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
@@ -83,7 +84,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     ImmigrationRecoursSectionComponent, ImmigrationWorkRightSectionComponent,
     AncienneteSectionComponent, LicenciementSectionComponent,
     IndemniteComparatifSectionComponent, PartageImmobilierSectionComponent, CalendrierGardeSectionComponent, DivorceChecklistSectionComponent,
-    RuptureConvSectionComponent, RuptureConvIndemniteSectionComponent,
+    RuptureConvSectionComponent, RuptureConvIndemniteSectionComponent, RuptureAmiableInfoSectionComponent,
     CaseDashboardComponent, AnalysisPipelineComponent
   ],
   templateUrl: './case-file-detail.component.html',
@@ -176,6 +177,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const type = this.synthesis()?.compensationEstimate?.typeRupture;
     return type === 'RUPTURE_CONVENTIONNELLE'
         && this.workspaceCountry() === 'FRANCE'
+        && this.caseFile()?.legalDomain === 'DROIT_DU_TRAVAIL';
+  });
+
+  // SF-132-03 : outil informationnel "Rupture amiable" Belgique (F-132).
+  // Remplace la branche RUPTURE_AMIABLE/NEGOCIATION_LIBRE de F-DT-09.
+  readonly showRuptureAmiableInfo = computed(() => {
+    const type = this.synthesis()?.compensationEstimate?.typeRupture;
+    return type === 'RUPTURE_AMIABLE'
+        && this.workspaceCountry() === 'BELGIQUE'
         && this.caseFile()?.legalDomain === 'DROIT_DU_TRAVAIL';
   });
 

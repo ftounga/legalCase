@@ -44,14 +44,14 @@ const KNOWN_TYPE_RUPTURE_VALUES = new Set([
   'LICENCIEMENT_ORDINAIRE', 'RUPTURE_AMIABLE',
 ]);
 
+// SF-132-02/03 : RUPTURE_CONVENTIONNELLE (FR) et RUPTURE_AMIABLE (BE) ont leurs
+// outils dédiés ; le comparateur Macron/CCT 109 ne les accepte plus.
 const TYPES_FR: TypeRuptureOption[] = [
   { value: 'LICENCIEMENT', label: 'Licenciement (cause réelle et sérieuse)' },
   { value: 'LICENCIEMENT_ECONOMIQUE', label: 'Licenciement économique' },
-  { value: 'RUPTURE_CONVENTIONNELLE', label: 'Rupture conventionnelle homologuée' },
 ];
 const TYPES_BE: TypeRuptureOption[] = [
   { value: 'LICENCIEMENT_ORDINAIRE', label: 'Licenciement ordinaire' },
-  { value: 'RUPTURE_AMIABLE', label: 'Rupture amiable' },
 ];
 
 @Component({

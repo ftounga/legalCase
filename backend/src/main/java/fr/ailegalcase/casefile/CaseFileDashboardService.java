@@ -135,6 +135,10 @@ public class CaseFileDashboardService {
         return indemniteRepo.findByCaseFileId(caseFileId).map(e -> {
             try {
                 var r = objectMapper.readValue(e.getResultData(), IndemniteComparatifResult.class);
+                // SF-132-03 : legacy NEGOCIATION_LIBRE (rupture amiable BE) — la
+                // card avait affiché "0 — 0 €" à tort avant la refonte. L'outil
+                // dédié vit désormais côté frontend (rupture-amiable-info-section).
+                if ("NEGOCIATION_LIBRE".equals(r.displayMode())) return null;
                 return new CaseFileDashboardResponse.IndemniteSummary(r.country(), r.fourchetteBasseMontant(), r.fourhetteHauteMontant(), r.baremeSource());
             } catch (Exception ex) { return null; }
         }).orElse(null);

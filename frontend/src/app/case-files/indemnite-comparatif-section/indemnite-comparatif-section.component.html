@@ -187,15 +187,6 @@
               </div>
             }
 
-            @if (result()!.displayMode === 'NEGOCIATION_LIBRE') {
-              <div class="negociation-libre">
-                <mat-icon>handshake</mat-icon>
-                <div>
-                  <div class="nego-title">Négociation libre</div>
-                  <div class="nego-subtitle">Aucun barème ne s'impose. Le montant résulte de l'accord entre les parties.</div>
-                </div>
-              </div>
-            }
 
             @if (result()!.contextualMessages && result()!.contextualMessages.length > 0) {
               <div class="contextual-messages">

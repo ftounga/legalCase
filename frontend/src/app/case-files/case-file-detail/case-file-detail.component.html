@@ -450,6 +450,10 @@
           [caseFileId]="caseFile()!.id"
           [synthesis]="synthesis()">
         </app-rupture-conv-indemnite-section>
+      } @else if (showRuptureAmiableInfo()) {
+        <app-rupture-amiable-info-section
+          [caseFileId]="caseFile()!.id">
+        </app-rupture-amiable-info-section>
       } @else {
         <app-indemnite-comparatif-section
           [caseFileId]="caseFile()!.id"

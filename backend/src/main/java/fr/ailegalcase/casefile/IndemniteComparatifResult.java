@@ -25,16 +25,4 @@ public record IndemniteComparatifResult(
         String baremeSource,
         String commentaire,
         List<String> contextualMessages
-) {
-    /** Construit un résultat vide pour un mode NEGOCIATION_LIBRE. */
-    public static IndemniteComparatifResult negociationLibre(
-            String country, String typeRupture, int anciennete, int age, BigDecimal salaire,
-            String baremeSource, String commentaire, List<String> messages) {
-        return new IndemniteComparatifResult(country, typeRupture, anciennete, age, salaire,
-                "NEGOCIATION_LIBRE",
-                BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                null, baremeSource, commentaire, messages);
-    }
-}
+) {}

@@ -1,4 +1,4 @@
-export type IndemniteDisplayMode = 'MACRON' | 'CCT_109' | 'INDEMNITE_SPECIFIQUE' | 'NEGOCIATION_LIBRE';
+export type IndemniteDisplayMode = 'MACRON' | 'CCT_109' | 'INDEMNITE_SPECIFIQUE' | 'NEGOCIATION_LIBRE'; // NEGOCIATION_LIBRE conservé pour rétrocompat transitoire (ancien dossiers persistés) — plus produit par le backend depuis SF-132-03
 
 export interface IndemniteComparatifRequest {
   country: string;
