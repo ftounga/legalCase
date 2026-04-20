@@ -49,7 +49,7 @@ public class LicenciementService {
                                          LicenciementRequest request,
                                          OidcUser oidcUser,
                                          Principal principal) {
-        if (!LicenciementCritereReferentiel.isCountryValid(request.country())) {
+        if (!LicenciementAnalyzer.isCountryValid(request.country())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Pays non supporté : " + request.country());
         }
@@ -57,6 +57,10 @@ public class LicenciementService {
         CaseFile caseFile = resolveCaseFileForUser(caseFileId, user);
 
         List<LicenciementCritere> criteres = referentialService.getLicenciementCriteres(request.country());
+        if (criteres.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Référentiel LICENCIEMENT_CRITERES indisponible pour " + request.country());
+        }
         LicenciementAnalysisResult result = LicenciementAnalyzer.analyze(
                 request.country(), request.reponses() != null ? request.reponses() : Map.of(), criteres);
 

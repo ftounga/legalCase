@@ -9,10 +9,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class IndemniteComparatifCalculatorTest {
 
+    /** SF-139-01 : helper résolvant les fixtures DB-like selon country. */
+    private static IndemniteComparatifResult calc(
+            String country, String typeRupture, int anciennete, int age, BigDecimal salaire) {
+        IndemniteBareme macron = "FRANCE".equals(country) ? TestIndemniteBaremes.macron(anciennete) : null;
+        var cct = "BELGIQUE".equals(country) ? TestIndemniteBaremes.CCT_109 : null;
+        return IndemniteComparatifCalculator.calculate(country, typeRupture, anciennete, age, salaire, macron, cct);
+    }
+
     @Test
     void france_10ans_35ans_returnsValidResult() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "FRANCE", "LICENCIEMENT", 10, 35, new BigDecimal("3000"));
+        IndemniteComparatifResult r = calc("FRANCE", "LICENCIEMENT", 10, 35, new BigDecimal("3000"));
 
         assertThat(r.country()).isEqualTo("FRANCE");
         assertThat(r.typeRupture()).isEqualTo("LICENCIEMENT");
@@ -29,15 +36,13 @@ class IndemniteComparatifCalculatorTest {
 
     @Test
     void france_senior_higherCommentaire() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "FRANCE", "LICENCIEMENT", 15, 55, new BigDecimal("4000"));
+        IndemniteComparatifResult r = calc("FRANCE", "LICENCIEMENT", 15, 55, new BigDecimal("4000"));
         assertThat(r.commentaire()).contains("50 ans");
     }
 
     @Test
     void belgique_5ans_returnsValidResult() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "BELGIQUE", "LICENCIEMENT_ORDINAIRE", 5, 40, new BigDecimal("2500"));
+        IndemniteComparatifResult r = calc("BELGIQUE", "LICENCIEMENT_ORDINAIRE", 5, 40, new BigDecimal("2500"));
 
         assertThat(r.country()).isEqualTo("BELGIQUE");
         assertThat(r.displayMode()).isEqualTo("CCT_109");
@@ -48,32 +53,26 @@ class IndemniteComparatifCalculatorTest {
 
     @Test
     void belgique_highAnciennete_commentaire() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "BELGIQUE", "LICENCIEMENT_ORDINAIRE", 12, 45, new BigDecimal("3000"));
+        IndemniteComparatifResult r = calc("BELGIQUE", "LICENCIEMENT_ORDINAIRE", 12, 45, new BigDecimal("3000"));
         assertThat(r.commentaire()).contains("Ancienneté significative");
     }
 
     @Test
     void montantsCalculated_correctly() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "FRANCE", "LICENCIEMENT", 5, 30, new BigDecimal("2000"));
+        IndemniteComparatifResult r = calc("FRANCE", "LICENCIEMENT", 5, 30, new BigDecimal("2000"));
         assertThat(r.fourchetteBasseMontant())
                 .isEqualByComparingTo(r.salaireMensuel().multiply(r.fourchetteBasseMois()).setScale(2, java.math.RoundingMode.HALF_UP));
     }
 
     @Test
     void invalidCountry_throws() {
-        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
-                "ALLEMAGNE", "LICENCIEMENT", 5, 30, new BigDecimal("3000")))
+        assertThatThrownBy(() -> calc("ALLEMAGNE", "LICENCIEMENT", 5, 30, new BigDecimal("3000")))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // SF-DT-09-04 — type_rupture
-
     @Test
     void france_licenciementEconomique_returnsMacronWithMessage() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "FRANCE", "LICENCIEMENT_ECONOMIQUE", 8, 40, new BigDecimal("3500"));
+        IndemniteComparatifResult r = calc("FRANCE", "LICENCIEMENT_ECONOMIQUE", 8, 40, new BigDecimal("3500"));
         assertThat(r.displayMode()).isEqualTo("MACRON");
         assertThat(r.typeRupture()).isEqualTo("LICENCIEMENT_ECONOMIQUE");
         assertThat(r.contextualMessages()).isNotEmpty();
@@ -82,52 +81,55 @@ class IndemniteComparatifCalculatorTest {
 
     @Test
     void france_ruptureConventionnelle_throws() {
-        // SF-132-02 : l'outil Macron ne gère plus la rupture conventionnelle.
-        // Cette situation a son propre outil : RuptureConvIndemniteCalculator.
-        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
-                "FRANCE", "RUPTURE_CONVENTIONNELLE", 12, 40, new BigDecimal("3000")))
+        assertThatThrownBy(() -> calc("FRANCE", "RUPTURE_CONVENTIONNELLE", 12, 40, new BigDecimal("3000")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("invalide pour FRANCE");
     }
 
     @Test
     void belgique_ruptureAmiable_throws() {
-        // SF-132-03 : la rupture amiable belge n'a plus de barème dans ce calculateur —
-        // outil frontend informationnel dédié (rupture-amiable-info-section).
-        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
-                "BELGIQUE", "RUPTURE_AMIABLE", 5, 35, new BigDecimal("2500")))
+        assertThatThrownBy(() -> calc("BELGIQUE", "RUPTURE_AMIABLE", 5, 35, new BigDecimal("2500")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("invalide pour BELGIQUE");
     }
 
     @Test
     void france_typeRupture_belge_throws() {
-        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
-                "FRANCE", "LICENCIEMENT_ORDINAIRE", 5, 30, new BigDecimal("3000")))
+        assertThatThrownBy(() -> calc("FRANCE", "LICENCIEMENT_ORDINAIRE", 5, 30, new BigDecimal("3000")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("invalide pour FRANCE");
     }
 
     @Test
     void belgique_typeRupture_fr_throws() {
-        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
-                "BELGIQUE", "RUPTURE_CONVENTIONNELLE", 5, 30, new BigDecimal("3000")))
+        assertThatThrownBy(() -> calc("BELGIQUE", "RUPTURE_CONVENTIONNELLE", 5, 30, new BigDecimal("3000")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("invalide pour BELGIQUE");
     }
 
     @Test
     void typeRupture_blank_throws() {
-        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
-                "FRANCE", null, 5, 30, new BigDecimal("3000")))
+        assertThatThrownBy(() -> calc("FRANCE", null, 5, 30, new BigDecimal("3000")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("requis");
-        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
-                "FRANCE", "", 5, 30, new BigDecimal("3000")))
+        assertThatThrownBy(() -> calc("FRANCE", "", 5, 30, new BigDecimal("3000")))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // Les tests de indemniteLegale_* (0/10/15 ans) ont été migrés vers
-    // RuptureConvIndemniteCalculatorTest (SF-132-01) puisque la méthode
-    // computeIndemniteLegaleLicenciement a été extraite.
+    @Test
+    void france_baremeNull_throws() {
+        // Si LegalReferentialService.getBaremeMacron renvoie null (DB vide), le calc lève IllegalStateException
+        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
+                "FRANCE", "LICENCIEMENT", 5, 30, new BigDecimal("3000"), null, null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Barème Macron non trouvé");
+    }
+
+    @Test
+    void belgique_cctNull_throws() {
+        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
+                "BELGIQUE", "LICENCIEMENT_ORDINAIRE", 5, 30, new BigDecimal("3000"), null, null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("CCT 109 non trouvé");
+    }
 }

@@ -353,38 +353,105 @@ public class LegalReferentialService {
         }
     }
 
-    /** Critère de validité licenciement. DB first → fallback LicenciementCritereReferentiel. */
+    /**
+     * SF-139-01 : critère de validité licenciement. DB only (plus de fallback Java
+     * depuis la suppression de {@code LicenciementCritereReferentiel}).
+     */
     public LicenciementCritere getLicenciementCritere(String code) {
         try {
             List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "LICENCIEMENT_CRITERES", code);
-            if (!entries.isEmpty()) {
-                LegalReferential e = entries.get(0);
-                JsonNode node = MAPPER.readTree(e.getValueJson());
-                return new LicenciementCritere(code, e.getLabel(), e.getCountry(),
-                        node.path("description").asText(), node.path("poids").asInt(),
-                        node.path("bloquant").asBoolean(), e.getSourceRef());
-            }
-        } catch (Exception ex) { log.warn("Fallback statique pour LICENCIEMENT_CRITERES/{}", code, ex); }
-        return LicenciementCritereReferentiel.getByCode(code);
+            if (entries.isEmpty()) return null;
+            LegalReferential e = entries.get(0);
+            JsonNode node = MAPPER.readTree(e.getValueJson());
+            return new LicenciementCritere(code, e.getLabel(), e.getCountry(),
+                    node.path("description").asText(), node.path("poids").asInt(),
+                    node.path("bloquant").asBoolean(), e.getSourceRef());
+        } catch (Exception ex) {
+            log.warn("Erreur lecture LICENCIEMENT_CRITERES/{}: {}", code, ex.getMessage());
+            return null;
+        }
     }
 
-    /** Liste des critères licenciement par pays. DB first → fallback. */
+    /** SF-139-01 : liste des critères licenciement par pays. DB only. */
     public List<LicenciementCritere> getLicenciementCriteres(String country) {
         try {
             List<LegalReferential> entries = repository.findSystemEntriesByTypeAndCountry("DROIT_DU_TRAVAIL", "LICENCIEMENT_CRITERES", country);
-            if (!entries.isEmpty()) {
-                List<LicenciementCritere> result = new ArrayList<>();
-                for (LegalReferential e : entries) {
-                    JsonNode node = MAPPER.readTree(e.getValueJson());
-                    result.add(new LicenciementCritere(e.getEntryKey(), e.getLabel(), country,
-                            node.path("description").asText(), node.path("poids").asInt(),
-                            node.path("bloquant").asBoolean(), e.getSourceRef()));
-                }
-                return result;
+            List<LicenciementCritere> result = new ArrayList<>();
+            for (LegalReferential e : entries) {
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                result.add(new LicenciementCritere(e.getEntryKey(), e.getLabel(), country,
+                        node.path("description").asText(), node.path("poids").asInt(),
+                        node.path("bloquant").asBoolean(), e.getSourceRef()));
             }
-        } catch (Exception ex) { log.warn("Fallback statique pour LICENCIEMENT_CRITERES country={}", country, ex); }
-        return LicenciementCritereReferentiel.getByCountry(country);
+            return result;
+        } catch (Exception ex) {
+            log.warn("Erreur lecture LICENCIEMENT_CRITERES country={}: {}", country, ex.getMessage());
+            return List.of();
+        }
     }
+
+    /** SF-139-01 : critères de validité rupture conventionnelle par pays. DB only. */
+    public List<RuptureConvCritere> getRuptureConvCriteres(String country) {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntriesByTypeAndCountry("DROIT_DU_TRAVAIL", "RUPTURE_CONV_CRITERES", country);
+            List<RuptureConvCritere> result = new ArrayList<>();
+            for (LegalReferential e : entries) {
+                JsonNode node = MAPPER.readTree(e.getValueJson());
+                result.add(new RuptureConvCritere(e.getEntryKey(), e.getLabel(), country,
+                        node.path("description").asText(), node.path("poids").asInt(),
+                        node.path("bloquant").asBoolean(), e.getSourceRef()));
+            }
+            return result;
+        } catch (Exception ex) {
+            log.warn("Erreur lecture RUPTURE_CONV_CRITERES country={}: {}", country, ex.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * SF-139-01 : barème Macron depuis DB (INDEMNITE_BAREMES/MACRON).
+     * Retourne la ligne correspondant à l'ancienneté (plafonnée à 29 ans).
+     */
+    public IndemniteBareme getBaremeMacron(int ancienneteAnnees) {
+        int capped = Math.min(Math.max(ancienneteAnnees, 0), 29);
+        try {
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "INDEMNITE_BAREMES", "MACRON");
+            if (entries.isEmpty()) return null;
+            JsonNode root = MAPPER.readTree(entries.get(0).getValueJson());
+            for (JsonNode e : root.path("entries")) {
+                if (e.path("an").asInt() == capped) {
+                    return new IndemniteBareme(
+                            capped,
+                            e.path("min").decimalValue(),
+                            e.path("max").decimalValue());
+                }
+            }
+            return null;
+        } catch (Exception ex) {
+            log.warn("Erreur lecture INDEMNITE_BAREMES/MACRON ancienneté={}: {}", capped, ex.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * SF-139-01 : CCT 109 (Belgique) — min/max en semaines, depuis DB
+     * (INDEMNITE_BAREMES/CCT109).
+     */
+    public Cct109Range getCct109Range() {
+        try {
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "INDEMNITE_BAREMES", "CCT109");
+            if (entries.isEmpty()) return null;
+            JsonNode node = MAPPER.readTree(entries.get(0).getValueJson());
+            return new Cct109Range(
+                    node.path("minSemaines").decimalValue(),
+                    node.path("maxSemaines").decimalValue());
+        } catch (Exception ex) {
+            log.warn("Erreur lecture INDEMNITE_BAREMES/CCT109: {}", ex.getMessage());
+            return null;
+        }
+    }
+
+    public record Cct109Range(java.math.BigDecimal minSemaines, java.math.BigDecimal maxSemaines) {}
 
     /** Mode de garde famille. DB first → fallback GardeModeReferentiel. */
     public GardeMode getGardeMode(String code) {

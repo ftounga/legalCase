@@ -14,12 +14,13 @@ public final class RuptureConvAnalyzer {
 
     private RuptureConvAnalyzer() {}
 
-    public static RuptureConvAnalysisResult analyze(String country, Map<String, String> reponses) {
-        if (country == null || !RuptureConvCritereReferentiel.isCountryValid(country.toUpperCase())) {
-            throw new IllegalArgumentException("Pays non supporté : " + country);
-        }
-        return analyze(country.toUpperCase(), reponses,
-                RuptureConvCritereReferentiel.getByCountry(country.toUpperCase()));
+    /**
+     * SF-139-01 : pays supportés (rupture conventionnelle FR only).
+     * Remplace le static helper {@code RuptureConvCritereReferentiel.isCountryValid}
+     * après suppression de la classe.
+     */
+    public static boolean isCountryValid(String country) {
+        return "FRANCE".equalsIgnoreCase(country);
     }
 
     public static RuptureConvAnalysisResult analyze(String country, Map<String, String> reponses,
