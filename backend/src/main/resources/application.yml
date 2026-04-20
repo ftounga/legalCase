@@ -92,17 +92,11 @@ app:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
-    # SF-123-01 V1 (grille historique — conservée pour reconnaître les subscriptions
-    # existantes via webhook, ne plus utilisée pour de nouveaux checkouts) :
+    # Price IDs des 3 plans Stripe (SOLO 99 € flat · TEAM 219 € graduated ·
+    # PRO 429 € graduated — voir docs/features/F-123-repricing-v7/).
     price-id-solo: ${STRIPE_PRICE_ID_SOLO:}
     price-id-team: ${STRIPE_PRICE_ID_TEAM:}
     price-id-pro: ${STRIPE_PRICE_ID_PRO:}
-    # SF-123-01 V2 (grille alignée marché — SOLO 99 € · TEAM 219 € · PRO 429 €,
-    # appliquée aux nouveaux checkouts. Les prices Stripe doivent être créés dans
-    # le dashboard puis leurs IDs setup via ces env vars) :
-    price-id-solo-v2: ${STRIPE_PRICE_ID_SOLO_V2:}
-    price-id-team-v2: ${STRIPE_PRICE_ID_TEAM_V2:}
-    price-id-pro-v2: ${STRIPE_PRICE_ID_PRO_V2:}
     price-id-tokens-1m: ${STRIPE_PRICE_ID_TOKENS_1M:}
     price-id-tokens-5m: ${STRIPE_PRICE_ID_TOKENS_5M:}
     price-id-tokens-20m: ${STRIPE_PRICE_ID_TOKENS_20M:}

@@ -66,8 +66,7 @@ class StripeCheckoutServiceTest {
     private StripeCheckoutService buildService(boolean enabled) {
         return new StripeCheckoutService(
                 enabled, "sk_test_fake",
-                "price_solo_v1", "price_team_v1", "price_pro_v1",
-                "price_solo_v2", "price_team_v2", "price_pro_v2",
+                "price_solo", "price_team", "price_pro",
                 "http://localhost:4200",
                 subscriptionRepository, stripeCustomerService,
                 currentUserResolver, workspaceMemberRepository);
