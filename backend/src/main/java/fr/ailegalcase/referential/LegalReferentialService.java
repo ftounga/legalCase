@@ -103,7 +103,8 @@ public class LegalReferentialService {
 
         return new ReferentialUpdateResponse(true,
                 new ReferentialResponse.Entry(saved.getId(), saved.getEntryKey(), saved.getLabel(),
-                        saved.getCountry(), saved.getValueJson(), saved.isSystem(), saved.getSourceRef()),
+                        saved.getCountry(), saved.getValueJson(), saved.isSystem(), saved.getSourceRef(),
+                        saved.getDescription()),
                 null);
     }
 
@@ -250,7 +251,8 @@ public class LegalReferentialService {
                                         e.getCountry(),
                                         e.getValueJson(),
                                         e.isSystem(),
-                                        e.getSourceRef()),
+                                        e.getSourceRef(),
+                                        e.getDescription()),
                                 Collectors.toList())));
 
         return new ReferentialResponse(domain, sections);

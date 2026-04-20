@@ -266,17 +266,16 @@ export class ReferentialsComponent implements OnInit {
   }
 
   /**
-   * SF-140-01 : lit le JSON d'une entrée et retourne la meilleure description
-   * métier disponible. Ordre de priorité par type :
-   * - LICENCIEMENT_CRITERES / RUPTURE_CONV_CRITERES : `description`
-   * - IMMIGRATION_TITLES : `conditions` + `motif`
-   * - IMMIGRATION_RECOURS : `juridiction` + textes applicables
-   * - IMMIGRATION_WORK_RIGHTS : `conditions` + `droitTravail`
-   * - GARDE_MODES : description de la répartition
-   * - DIVORCE_ETAPES / DIVORCE_PIECES : `description`
-   * - autres : `null` (fallback sur la doc de section)
+   * SF-140-01 + SF-140-02 : retourne la meilleure description métier.
+   * Priorité : description persistée en DB (seule source de vérité, pattern F-139)
+   * → sinon fallback vers extraction depuis le JSON pour les 6 types à
+   * description riche native.
    */
   private extractMetierDescription(entry: EntryWithAlert, sectionType: string): string | undefined {
+    // SF-140-02 : description DB prime sur l'extraction JSON.
+    if (entry.description && entry.description.trim().length > 0) {
+      return entry.description;
+    }
     try {
       const val = JSON.parse(entry.valueJson);
       switch (sectionType) {

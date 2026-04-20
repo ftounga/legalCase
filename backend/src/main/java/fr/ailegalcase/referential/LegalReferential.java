@@ -47,6 +47,13 @@ public class LegalReferential {
     @Column(name = "source_ref", length = 200)
     private String sourceRef;
 
+    /**
+     * SF-140-02 : description métier de l'entrée, destinée à l'avocat en
+     * langage non technique. DB = seule source de vérité (cohérence F-139).
+     */
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 

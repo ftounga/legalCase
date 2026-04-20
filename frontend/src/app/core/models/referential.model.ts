@@ -6,6 +6,8 @@ export interface ReferentialEntry {
   valueJson: string;
   isSystem: boolean;
   sourceRef?: string | null;
+  /** SF-140-02 : description métier persistée en DB (peut être null si pas encore peuplée). */
+  description?: string | null;
 }
 
 export interface ReferentialResponse {
