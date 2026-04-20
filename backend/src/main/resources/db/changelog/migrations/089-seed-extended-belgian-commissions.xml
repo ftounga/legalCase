@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="089-seed-extended-belgian-commissions" author="legalcase">
+        <comment>
+            SF-129-04 : ajout de 7 commissions paritaires belges à fort volume
+            d'emploi, au-delà des 3 déjà seedées en migration 067 (CP 200 Employés,
+            CP 124 Construction, CP 302 Hôtellerie). Les valeurs sont indicatives
+            (base commune 20j congés légaux, congés supplémentaires / primes
+            d'ancienneté renseignés uniquement quand documentés par la CCT
+            sectorielle ; laissés vides sinon). L'admin peut override par
+            workspace via PUT /api/v1/referential/{id} (cf. F-110).
+
+            Les 7 nouvelles CP retenues :
+            - CP 100 : CP auxiliaire ouvriers (toutes industries non spécifiquement couvertes)
+            - CP 111 : Industries des métaux (ouvriers)
+            - CP 118 : Industries alimentaires (ouvriers)
+            - CP 209 : Fabrications métalliques (employés)
+            - CP 220 : Industrie alimentaire (employés)
+            - CP 311 : Grandes entreprises de vente au détail
+            - CP 330 : Soins de santé (hôpitaux, maisons de repos)
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b8', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP100', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 100 — Commission paritaire auxiliaire pour ouvriers', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 100 auxiliaire (valeurs indicatives — vérification juridique recommandée selon accords d''entreprise applicables)', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000b9', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP111', '{"congesLegauxJours":20,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[]}', 'CP 111 — Industries des métaux, des machines et matériel électrique (ouvriers)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 111 (valeurs indicatives — vérification juridique recommandée)', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000ba', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP118', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 118 — Industries alimentaires (ouvriers)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 118 (valeurs indicatives — congés supplémentaires et primes selon accords sectoriels spécifiques)', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000bb', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP209', '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":15,"jours":2}],"primes":[]}', 'CP 209 — Employés des fabrications métalliques', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 209 (valeurs indicatives — vérification juridique recommandée)', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000bc', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP220', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 220 — Industrie alimentaire (employés)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 220 (valeurs indicatives — congés supplémentaires et primes selon accords sectoriels spécifiques)', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000bd', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP311', '{"congesLegauxJours":20,"congesSupp":[{"min":10,"jours":1}],"primes":[]}', 'CP 311 — Grandes entreprises de vente au détail', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 311 (valeurs indicatives — vérification juridique recommandée)', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000be', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP330', '{"congesLegauxJours":20,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[]}', 'CP 330 — Secteur des soins de santé', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 330 (valeurs indicatives — variations selon sous-secteur hôpitaux/MR/aide à domicile, vérification juridique recommandée)', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            DELETE FROM legal_referentials WHERE id IN (
+                'f1100001-0000-0000-0000-0000000000b8',
+                'f1100001-0000-0000-0000-0000000000b9',
+                'f1100001-0000-0000-0000-0000000000ba',
+                'f1100001-0000-0000-0000-0000000000bb',
+                'f1100001-0000-0000-0000-0000000000bc',
+                'f1100001-0000-0000-0000-0000000000bd',
+                'f1100001-0000-0000-0000-0000000000be'
+            );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
