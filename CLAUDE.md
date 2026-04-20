@@ -161,6 +161,7 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Subfeature backend mergée sans subfeature frontend planifiée (si la feature a une UI) | BLOCAGE — planifier et créer la subfeature frontend correspondante avant de continuer |
 | Préoccupation transversale cochée sans liste de composants impactés dans la mini-spec | BLOCAGE — compléter l'analyse d'impact avant de continuer |
 | Smoke tests E2E échouent après implémentation d'une préoccupation transversale | BLOCAGE — corriger avant push |
+| Ajout backlog ou SF touchant un outil décisionnel métier sans scan systématique des autres outils décisionnels | REFUS — scanner tous les outils décisionnels existants, classer chacun (déjà séparé / multi-situations à scinder / paramétrage simple), inclure les cas jumeaux dans le périmètre ou ouvrir des features jumelles au backlog avant de continuer |
 
 **Format de refus standard :**
 ```
@@ -208,6 +209,7 @@ Ces **préoccupations transversales** doivent être traitées explicitement à c
 | **Workspace context** | Nouveau moyen de résoudre le workspace, changement de `workspace_id` | Lister tous les composants qui résolvent le workspace. Vérifier leur comportement. |
 | **Plans / limites** | Nouveau plan, changement de quota, nouveau gate | Lister tous les appels à `PlanLimitService`. Vérifier les gates. |
 | **Navigation / routing** | Nouvelle route, guard modifié, redirection ajoutée | Vérifier tous les chemins de navigation existants. Lancer les smoke tests. |
+| **Outil décisionnel métier** | Création, modification ou observation concernant un outil décisionnel (calculator / analyzer / generator / decision engine côté backend ; section composant côté frontend). Inclut tout ajout backlog, toute SF qui touche un outil existant, toute observation de bug qui en mentionne un. | **Lister tous les outils décisionnels** (F-DT-07/08/09/10, F-IM-05/06/07, F-FA-05/06/07, etc.). **Scanner chacun** pour vérifier s'il contient un switch conditionnel sur un type métier, un pays ou un mode qui mélange plusieurs situations distinctes. **Classer** chaque outil : déjà séparé / multi-situations à scinder / paramétrage simple. **Appliquer l'invariant** : un outil décisionnel = une situation métier (pattern F-DT-08/F-DT-10). Si un autre outil présente le même pattern que celui à l'origine de la demande, l'inclure dans le périmètre ou ouvrir une feature jumelle au backlog. |
 
 ### Règle de blocage automatique
 
