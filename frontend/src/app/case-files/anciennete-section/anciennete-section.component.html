@@ -88,6 +88,13 @@
                   <mat-icon>warning</mat-icon> Incohérence détectée
                 </span>
               }
+              @if (showSalaireDeduitBadge()) {
+                <span class="coherence-badge coherence-info"
+                      matTooltip="Aucun salaire brut mentionné dans les documents. Valeur déduite d'un salaire net détecté, multipliée par 1,30 (approximation FR non-cadre). Corrigez si vous connaissez le brut exact.">
+                  <mat-icon>info</mat-icon>
+                  Déduit du net (approx.)
+                </span>
+              }
             </div>
 
             <div class="field-with-alert">

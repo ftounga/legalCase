@@ -136,6 +136,15 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     ];
   }
 
+  /** SF-130-01 : afficher le badge "Déduit du net" si l'IA a marqué le flag
+   *  ET si un salaire brut est effectivement présent (sinon rien à justifier). */
+  readonly showSalaireDeduitBadge = computed(() => {
+    const ai = this.aiDataSignal();
+    return ai?.salaireEstDeduit === true
+        && ai?.salaireBrutMensuel != null
+        && this.salaireBase() > 0;
+  });
+
   /** SF-129-01 : valeur IA non présente dans le référentiel → badge informatif. */
   readonly aiConventionUnknown = computed(() => {
     const ai = this.aiDataSignal();
