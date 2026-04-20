@@ -14,6 +14,7 @@ import { AncienneteService } from '../../core/services/anciennete.service';
 import { AncienneteResponse } from '../../core/models/anciennete.model';
 import { BaremeService } from '../../core/services/bareme.service';
 import { BaremeResponse } from '../../core/models/bareme.model';
+import { ConventionReferentialService, ConventionOption } from '../../core/services/convention-referential.service';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
@@ -123,26 +124,28 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     return `Détecté : ${alert.iaValue}`;
   }
 
-  readonly conventionsFrance = [
-    { value: 'METALLURGIE', label: 'Métallurgie (IDCC 3248)' },
-    { value: 'COMMERCE', label: 'Commerce de détail (IDCC 2216)' },
-    { value: 'BTP', label: 'BTP (IDCC 1596)' },
-    { value: 'HCR', label: 'Hôtels, cafés, restaurants (IDCC 1979)' },
-    { value: 'SYNTEC', label: 'Syntec (IDCC 1486)' },
-  ];
-
-  readonly conventionsBelgique = [
-    { value: 'CP200', label: 'CP 200 — Employés' },
-    { value: 'CP124', label: 'CP 124 — Construction' },
-    { value: 'CP302', label: 'CP 302 — Hôtellerie' },
-  ];
+  // SF-129-01 : liste dynamique chargée depuis le backend (legal_referentials seedée
+  // avec 49 CCN FR top effectif + 3 CP BE). Fallback statique via le service.
+  conventionsFrance = signal<{ value: string; label: string }[]>([]);
+  conventionsBelgique = signal<{ value: string; label: string }[]>([]);
 
   get allConventions() {
     return [
-      { group: 'France', items: this.conventionsFrance },
-      { group: 'Belgique', items: this.conventionsBelgique },
+      { group: 'France', items: this.conventionsFrance() },
+      { group: 'Belgique', items: this.conventionsBelgique() },
     ];
   }
+
+  /** SF-129-01 : valeur IA non présente dans le référentiel → badge informatif. */
+  readonly aiConventionUnknown = computed(() => {
+    const ai = this.aiDataSignal();
+    if (!ai?.conventionCollective) return null;
+    const normalized = ConventionReferentialService.normalizeCode(ai.conventionCollective);
+    if (!normalized) return null;
+    const all = [...this.conventionsFrance(), ...this.conventionsBelgique()];
+    const match = all.find(o => o.value.toUpperCase() === normalized);
+    return match ? null : ai.conventionCollective;
+  });
 
   // SF-DT-07-05 — bareme courant, chargé pour prefill et alerte vs convention
   private currentBareme = signal<BaremeResponse | null>(null);
@@ -154,14 +157,39 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     private ancienneteService: AncienneteService,
     private baremeService: BaremeService,
     private sourceExplanationService: SourceExplanationService,
+    private conventionRefService: ConventionReferentialService,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
 
   ngOnInit(): void {
     this.aiDataSignal.set(this.aiData);
+    this.loadConventions();
     this.loadExisting();
     this.loadSourceExplanations();
+  }
+
+  private loadConventions(): void {
+    this.conventionRefService.list().subscribe(options => {
+      this.conventionsFrance.set(
+        options.filter(o => o.country === 'FRANCE').map(o => ({ value: o.code, label: o.label }))
+      );
+      this.conventionsBelgique.set(
+        options.filter(o => o.country === 'BELGIQUE').map(o => ({ value: o.code, label: o.label }))
+      );
+      // Si l'aiData est déjà là et qu'un match existe, re-trigger la pré-sélection
+      this.maybePreselectFromAi();
+    });
+  }
+
+  private maybePreselectFromAi(): void {
+    const ai = this.aiDataSignal();
+    if (!ai?.conventionCollective) return;
+    const normalized = ConventionReferentialService.normalizeCode(ai.conventionCollective);
+    if (!normalized) return;
+    const all = [...this.conventionsFrance(), ...this.conventionsBelgique()];
+    const match = all.find(o => o.value.toUpperCase() === normalized);
+    if (match) this.conventionCode.set(match.value);
   }
 
   private loadSourceExplanations(): void {
@@ -244,7 +272,11 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
       this.loadBaremeAndPrefill();
       return;
     }
-    if (this.aiData.conventionCollective) this.conventionCode.set(this.aiData.conventionCollective);
+    if (this.aiData.conventionCollective) {
+      // SF-129-01 : normaliser (ex. "3043" → "IDCC_3043", "METALLURGIE" → "IDCC_3248")
+      const normalized = ConventionReferentialService.normalizeCode(this.aiData.conventionCollective);
+      if (normalized) this.conventionCode.set(normalized);
+    }
     if (this.aiData.dateEntree) this.dateEntree.set(this.aiData.dateEntree);
     if (this.aiData.salaireBrutMensuel) this.salaireBase.set(this.aiData.salaireBrutMensuel);
     if (this.aiData.congesContractuels != null) this.congesContrat.set(this.aiData.congesContractuels);

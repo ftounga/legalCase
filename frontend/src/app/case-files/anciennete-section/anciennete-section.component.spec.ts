@@ -46,6 +46,12 @@ describe('AncienneteSectionComponent', () => {
     reqs.forEach(r => r.flush(explanations));
   }
 
+  /** SF-129-01 : le composant charge les conventions depuis le référentiel au ngOnInit. */
+  function flushAnyConventionsCalls(): void {
+    const reqs = httpMock.match('/api/v1/referentials/conventions');
+    reqs.forEach(r => r.flush([]));
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AncienneteSectionComponent],
@@ -67,6 +73,7 @@ describe('AncienneteSectionComponent', () => {
     flushAnyBaremeCalls();
     // SF-IA-03-15a : loadSourceExplanations déclenche un GET — liste vide par défaut.
     flushAnySourceExplanationsCalls();
+    flushAnyConventionsCalls();
   }
 
   function initWithExisting(resp = MOCK_RESPONSE): void {
@@ -75,6 +82,7 @@ describe('AncienneteSectionComponent', () => {
     // Pas de call bareme attendu ici (prefillFromAi non appelé), mais on rest tolerant si flow change.
     flushAnyBaremeCalls();
     flushAnySourceExplanationsCalls();
+    flushAnyConventionsCalls();
   }
 
   it('should create', () => {
@@ -89,6 +97,7 @@ describe('AncienneteSectionComponent', () => {
     req.flush(null, { status: 404, statusText: 'Not Found' });
     flushAnyBaremeCalls();
     flushAnySourceExplanationsCalls();
+    flushAnyConventionsCalls();
   });
 
   it('should show form when no existing', () => {
@@ -339,6 +348,7 @@ describe('AncienneteSectionComponent', () => {
     const baremeReqs = httpMock.match(r => r.url.startsWith('/api/v1/anciennete/baremes/'));
     baremeReqs.forEach(r => r.flush(baremeResp));
     flushAnySourceExplanationsCalls();
+    flushAnyConventionsCalls();
   }
 
   it('SF-DT-07-05: prefill primeContrat depuis bareme si IA ne fournit pas', () => {
@@ -376,6 +386,7 @@ describe('AncienneteSectionComponent', () => {
     const req = httpMock.expectOne('/api/v1/anciennete/baremes/UNKNOWN');
     req.flush(null, { status: 404, statusText: 'Not Found' });
     flushAnySourceExplanationsCalls();
+    flushAnyConventionsCalls();
     expect(component.primeContrat()).toBe(0);
     expect(component.congesContrat()).toBe(25);
   });
@@ -391,6 +402,7 @@ describe('AncienneteSectionComponent', () => {
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
     flushAnyBaremeCalls();
     flushAnySourceExplanationsCalls(explanations);
+    flushAnyConventionsCalls();
     expect(component.sourceExplanations().get('convention_collective')?.[0]?.sentence).toBe('Convention BTP.');
   });
 
@@ -403,6 +415,7 @@ describe('AncienneteSectionComponent', () => {
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
     flushAnyBaremeCalls();
     flushAnySourceExplanationsCalls(explanations);
+    flushAnyConventionsCalls();
     expect(component.explanationFor('CONVENTION')[0]?.sourceKey).toBe('convention_collective');
   });
 

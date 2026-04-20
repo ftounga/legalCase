@@ -550,7 +550,8 @@ public record CaseAnalysisResponse(
         if (node == null || !node.isObject()) return null;
         try {
             return new TravailExtractedData(
-                    textOrNull(node, "convention_collective"),
+                    // SF-129-01 : normaliser le code convention pour matcher le référentiel
+                    fr.ailegalcase.casefile.ConventionCodeNormalizer.normalize(textOrNull(node, "convention_collective")),
                     textOrNull(node, "date_entree"),
                     doubleOrNull(node, "salaire_brut_mensuel"),
                     textOrNull(node, "type_contrat"),
