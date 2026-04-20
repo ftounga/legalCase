@@ -1,5 +1,6 @@
 package fr.ailegalcase.casefile;
 
+import fr.ailegalcase.referential.LegalReferentialService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -8,9 +9,22 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/v1/anciennete/baremes")
 public class BaremeController {
 
+    private final LegalReferentialService legalReferentialService;
+
+    public BaremeController(LegalReferentialService legalReferentialService) {
+        this.legalReferentialService = legalReferentialService;
+    }
+
+    /**
+     * SF-129-01 : lit via LegalReferentialService (DB-first, fallback static).
+     * Supporte les nouveaux codes IDCC_XXXX seedés en DB ET les codes legacy
+     * (METALLURGIE, COMMERCE, BTP, HCR, SYNTEC) du static file.
+     */
     @GetMapping("/{conventionCode}")
     public BaremeResponse get(@PathVariable String conventionCode) {
-        ConventionBareme bareme = ConventionBaremeReferentiel.getByCode(conventionCode);
+        String normalized = ConventionCodeNormalizer.normalize(conventionCode);
+        ConventionBareme bareme = legalReferentialService.getConventionBareme(
+                normalized != null ? normalized : conventionCode);
         if (bareme == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Convention inconnue : " + conventionCode);
         }
