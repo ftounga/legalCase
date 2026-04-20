@@ -421,11 +421,31 @@ describe('ReferentialsComponent — SF-140-01 aide contextuelle', () => {
     expect(callArgs.data.entry.rawJson).toContain('"poids":20');
   });
 
-  it('SF-140-01: openEntryHelp retourne undefined metierDescription pour CONVENTION_BAREMES (pas de description native)', () => {
+  it('SF-140-01: openEntryHelp retourne undefined metierDescription pour CONVENTION_BAREMES sans description DB ni native', () => {
     const entry = richResponse.sections.CONVENTION_BAREMES[0];
     component.openEntryHelp(entry as any, 'CONVENTION_BAREMES');
     const callArgs = dialogSpy.open.mock.calls[0][1];
     expect(callArgs.data.entry.metierDescription).toBeUndefined();
+  });
+
+  it('SF-140-02: description DB prime sur le fallback JSON', () => {
+    const entry = {
+      ...richResponse.sections.CONVENTION_BAREMES[0],
+      description: 'Description métier persistée en DB via migration 094.'
+    };
+    component.openEntryHelp(entry as any, 'CONVENTION_BAREMES');
+    const callArgs = dialogSpy.open.mock.calls[0][1];
+    expect(callArgs.data.entry.metierDescription).toBe('Description métier persistée en DB via migration 094.');
+  });
+
+  it('SF-140-02: description DB ignorée si vide ou espaces → fallback JSON', () => {
+    const entry = {
+      ...richResponse.sections.LICENCIEMENT_CRITERES[0],
+      description: '   '
+    };
+    component.openEntryHelp(entry as any, 'LICENCIEMENT_CRITERES');
+    const callArgs = dialogSpy.open.mock.calls[0][1];
+    expect(callArgs.data.entry.metierDescription).toContain('Motifs précis');
   });
 });
 

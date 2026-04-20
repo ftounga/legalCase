@@ -15,6 +15,8 @@ public record ReferentialResponse(
             String country,
             String valueJson,
             boolean isSystem,
-            String sourceRef
+            String sourceRef,
+            /** SF-140-02 : description métier en langage avocat (peut être null). */
+            String description
     ) {}
 }

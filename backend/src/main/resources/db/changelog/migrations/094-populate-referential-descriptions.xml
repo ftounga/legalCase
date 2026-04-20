@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="094-populate-descriptions" author="legalcase">
+        <comment>
+            SF-140-02 : peuple la colonne description ajoutée par migration 093
+            pour les types de référentiel dont le JSON ne contient pas déjà une
+            description riche native (les 6 types à description native —
+            LICENCIEMENT_CRITERES, RUPTURE_CONV_CRITERES, IMMIGRATION_TITLES,
+            IMMIGRATION_RECOURS, IMMIGRATION_WORK_RIGHTS, DIVORCE_ETAPES,
+            DIVORCE_PIECES — continuent à être exposés par le frontend via
+            extractMetierDescription depuis le JSON, mais peuvent aussi recevoir
+            une description DB si l'admin les édite via F-110).
+
+            Descriptions générées depuis le label (et parfois country) pour rester
+            compatibles H2 + PostgreSQL (pas de fonctions JSON pour garder le SQL
+            portable entre runtime test et production).
+        </comment>
+
+        <sql splitStatements="true">
+-- LITIGATION_TYPE : 7 entries
+UPDATE legal_referentials SET description = 'Type de litige prud''homal "' || label || '" et son délai de prescription légal associé. Dès que ce type est identifié sur un dossier (par l''IA ou l''avocat), l''application calcule automatiquement la date limite de saisine au-delà de laquelle l''action contentieuse serait irrecevable.'
+WHERE referential_type = 'LITIGATION_TYPE' AND description IS NULL;
+
+-- BAREME_MACRON : 3 entries (LICENCIEMENT, LICENCIEMENT_ECONOMIQUE, RUPTURE_CONVENTIONNELLE)
+UPDATE legal_referentials SET description = 'Indique que le type de rupture "' || label || '" est couvert par le barème Macron (dommages-intérêts prud''homaux plafonnés par ancienneté, art. L1235-3 Code du travail). Sert d''aiguillage au Comparateur d''indemnités pour appliquer le mode de calcul approprié.'
+WHERE referential_type = 'BAREME_MACRON' AND description IS NULL;
+
+-- INDEMNITE_BAREMES : valeurs concrètes du plafond
+UPDATE legal_referentials SET description = 'Barème Macron applicable aux salariés français licenciés sans cause réelle et sérieuse (art. L1235-3 Code du travail) — plancher et plafond en mois de salaire par tranche d''ancienneté, de 0 à 29 ans et plus. Utilisé par le Comparateur d''indemnités pour déterminer la fourchette des dommages-intérêts envisageable aux prud''hommes.'
+WHERE referential_type = 'INDEMNITE_BAREMES' AND entry_key = 'MACRON' AND description IS NULL;
+
+UPDATE legal_referentials SET description = 'Barème CCT 109 (Belgique) — indemnité pour licenciement manifestement déraisonnable : 3 à 17 semaines de rémunération. Appliqué par le Comparateur d''indemnités au tribunal du travail pour un licenciement contesté sur le fondement de la CCT du 12 février 2014.'
+WHERE referential_type = 'INDEMNITE_BAREMES' AND entry_key = 'CCT109' AND description IS NULL;
+
+-- CONVENTION_BAREMES : ~66 entries (25 CCN FR + 17 CP BE + autres au minimum légal)
+UPDATE legal_referentials SET description = 'Barème d''ancienneté de la ' || label || '. Référence utilisée par l''outil Ancienneté pour calculer les droits conventionnels du salarié — congés légaux, congés supplémentaires d''ancienneté et prime d''ancienneté — puis comparer automatiquement à son contrat individuel pour détecter un écart. Également appliqué en amont du Comparateur d''indemnités quand la convention permet de reconstituer précisément l''ancienneté.'
+WHERE referential_type = 'CONVENTION_BAREMES' AND country = 'FRANCE' AND description IS NULL;
+
+UPDATE legal_referentials SET description = 'Barème d''ancienneté de la ' || label || '. Référence utilisée par l''outil Ancienneté pour calculer les droits conventionnels du salarié — congés légaux (20 jours base belge), congés supplémentaires d''ancienneté et prime d''ancienneté quand elle est documentée par la CCT sectorielle — puis comparer à son contrat individuel.'
+WHERE referential_type = 'CONVENTION_BAREMES' AND country = 'BELGIQUE' AND description IS NULL;
+
+-- PENSION_TAUX : 2 entries (FR, BE)
+UPDATE legal_referentials SET description = 'Barème de référence du taux de pension alimentaire (' || label || '). Matrice de pourcentages du revenu de l''obligé selon le nombre d''enfants et le mode de garde (exclusive vs alternée). Utilisée par l''outil Grille pension alimentaire pour produire une fourchette indicative utile à la négociation ou à la demande au juge aux affaires familiales.'
+WHERE referential_type = 'PENSION_TAUX' AND description IS NULL;
+
+-- PRESTATION_COEFF : 2 entries (FR, BE)
+UPDATE legal_referentials SET description = 'Paramètres du calcul indicatif de la prestation compensatoire (' || label || ') — coefficient appliqué à l''écart de revenus entre les époux, et durée de mariage de référence pour la proratisation. Utilisés par l''outil Calcul prestation compensatoire (art. 271 Code civil) pour produire une fourchette indicative en fonction de la durée du mariage, des revenus et du patrimoine.'
+WHERE referential_type = 'PRESTATION_COEFF' AND description IS NULL;
+
+-- IMMIGRATION_JALONS : 4 entries
+UPDATE legal_referentials SET description = 'Séquence de jalons procéduraux pour la procédure "' || label || '" : dates prévisionnelles des étapes administratives (dépôt, instruction préfecture, silence valant rejet, notification…), exprimées en décalage de jours par rapport au dépôt de la demande. Génère la timeline prévisionnelle affichée sur le dossier immigration.'
+WHERE referential_type = 'IMMIGRATION_JALONS' AND description IS NULL;
+
+-- IMMIGRATION_PIECES : 10 entries
+UPDATE legal_referentials SET description = 'Liste type des pièces requises pour la procédure "' || label || '". Sert à initialiser la checklist de pièces à l''ouverture d''un dossier immigration — l''avocat coche au fur et à mesure de la réception, ou ajuste la liste selon la préfecture / commune saisie.'
+WHERE referential_type = 'IMMIGRATION_PIECES' AND description IS NULL;
+
+-- GARDE_MODES : 6 entries (3 FR + 3 BE) — ont déjà une logique synthétisée côté frontend mais on persiste une description DB propre
+UPDATE legal_referentials SET description = 'Mode de répartition de la garde "' || label || '" — base de départ utilisée par l''outil Calendrier de garde pour générer un calendrier annuel conforme aux usages du juge aux affaires familiales (France) ou du tribunal de la famille (Belgique). L''avocat peut personnaliser jours et périodes après génération.'
+WHERE referential_type = 'GARDE_MODES' AND description IS NULL;
+        </sql>
+
+        <rollback>
+            UPDATE legal_referentials SET description = NULL WHERE referential_type IN (
+                'LITIGATION_TYPE', 'BAREME_MACRON', 'INDEMNITE_BAREMES',
+                'CONVENTION_BAREMES', 'PENSION_TAUX', 'PRESTATION_COEFF',
+                'IMMIGRATION_JALONS', 'IMMIGRATION_PIECES', 'GARDE_MODES'
+            );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

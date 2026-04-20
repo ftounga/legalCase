@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="093-add-description-column" author="legalcase">
+        <comment>
+            SF-140-02 : ajout d'une colonne description au niveau de l'entry
+            legal_referentials pour porter la description métier (texte libre).
+            Stockée au niveau entry (pas dans value_json) pour être indépendante
+            du schéma JSON de chaque type (certains JSONs sont des objects avec
+            clés, d'autres sont des arrays — ex. IMMIGRATION_PIECES qui est
+            une liste). Éditable via F-110 comme les autres champs d'entry.
+        </comment>
+
+        <addColumn tableName="legal_referentials">
+            <column name="description" type="text"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
