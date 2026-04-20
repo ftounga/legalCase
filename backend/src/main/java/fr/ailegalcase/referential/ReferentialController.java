@@ -52,12 +52,13 @@ public class ReferentialController {
         }
 
         User user = currentUserResolver.resolve(oidcUser, OAuthProviderResolver.resolve(principal), principal);
-        UUID workspaceId = workspaceMemberRepository
-                .findByUserAndPrimaryTrue(user)
-                .map(m -> m.getWorkspace().getId())
-                .orElse(null);
+        WorkspaceMember member = workspaceMemberRepository.findByUserAndPrimaryTrue(user).orElse(null);
+        UUID workspaceId = member != null ? member.getWorkspace().getId() : null;
+        // SF-137-01 : filtrer les entries sur le country du workspace pour ne pas
+        // polluer l'écran Guides & barèmes avec des entries de l'autre pays.
+        String workspaceCountry = member != null ? member.getWorkspace().getCountry() : null;
 
-        return ResponseEntity.ok(referentialService.getReferentials(domain.toUpperCase(), workspaceId));
+        return ResponseEntity.ok(referentialService.getReferentials(domain.toUpperCase(), workspaceId, workspaceCountry));
     }
 
     @PutMapping("/{id}")

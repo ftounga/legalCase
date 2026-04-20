@@ -210,21 +210,33 @@ public class LegalReferentialService {
     // -----------------------------------------------------------------------
 
     public ReferentialResponse getReferentials(String domain, UUID workspaceId) {
+        return getReferentials(domain, workspaceId, null);
+    }
+
+    /**
+     * SF-137-01 : filtrage pays workspace.
+     *
+     * <p>Quand {@code workspaceCountry} est fourni (FR ou BE), les entries
+     * ciblées sur l'autre pays sont masquées. Les entries neutres
+     * ({@code country == null}) restent visibles — elles sont communes
+     * (ex. BAREME_MACRON, LITIGATION_TYPE).
+     *
+     * <p>Quand {@code workspaceCountry} est null, aucun filtrage (retour
+     * intégral, utile pour l'API super-admin).
+     */
+    public ReferentialResponse getReferentials(String domain, UUID workspaceId, String workspaceCountry) {
         UUID safeWorkspaceId = workspaceId != null ? workspaceId : UUID.fromString("00000000-0000-0000-0000-000000000000");
         List<LegalReferential> all = repository.findActiveByDomain(domain, safeWorkspaceId);
 
         // Deduplicate: workspace override wins over system entry for same (type, key, country).
-        // The query orders system DESC, so workspace entries appear last — we keep the first
-        // occurrence per (type, key, country) after reversing (workspace entries take priority).
         Map<String, LegalReferential> deduped = new LinkedHashMap<>();
-        // First pass: index system entries
         all.stream().filter(LegalReferential::isSystem)
                 .forEach(e -> deduped.put(dedupeKey(e), e));
-        // Second pass: workspace overrides replace system entries
         all.stream().filter(e -> !e.isSystem())
                 .forEach(e -> deduped.put(dedupeKey(e), e));
 
         Map<String, List<ReferentialResponse.Entry>> sections = deduped.values().stream()
+                .filter(e -> isEntryVisibleForCountry(e, workspaceCountry))
                 .sorted(Comparator.comparing(LegalReferential::getReferentialType)
                         .thenComparing(LegalReferential::getEntryKey))
                 .collect(Collectors.groupingBy(
@@ -242,6 +254,18 @@ public class LegalReferentialService {
                                 Collectors.toList())));
 
         return new ReferentialResponse(domain, sections);
+    }
+
+    /**
+     * SF-137-01 : une entry est visible si
+     * - elle est globale (country == null), ou
+     * - le workspaceCountry n'est pas fourni (pas de filtrage), ou
+     * - elle cible exactement le workspaceCountry.
+     */
+    private static boolean isEntryVisibleForCountry(LegalReferential e, String workspaceCountry) {
+        if (workspaceCountry == null || workspaceCountry.isBlank()) return true;
+        if (e.getCountry() == null || e.getCountry().isBlank()) return true;
+        return workspaceCountry.equalsIgnoreCase(e.getCountry());
     }
 
     private static String dedupeKey(LegalReferential e) {
