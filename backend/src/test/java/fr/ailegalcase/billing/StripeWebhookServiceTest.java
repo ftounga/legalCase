@@ -30,7 +30,8 @@ class StripeWebhookServiceTest {
     @BeforeEach
     void setUp() {
         service = new StripeWebhookService(subscriptionRepository, creditPurchaseService,
-                "price_solo_test", "price_team_test", "price_pro_test",
+                "price_solo_v1_test", "price_team_v1_test", "price_pro_v1_test",
+                "price_solo_v2_test", "price_team_v2_test", "price_pro_v2_test",
                 "price_tokens_1m_test", "price_tokens_5m_test", "price_tokens_20m_test");
     }
 
@@ -132,20 +133,35 @@ class StripeWebhookServiceTest {
         verify(subscriptionRepository, never()).save(any());
     }
 
-    // U-05 : resolvePlanCodeFromPriceId
+    // U-05 : resolvePlanCodeFromPriceId — reconnaît V1 (grandfather) ET V2 (nouveaux checkouts)
     @Test
-    void resolvePlanCodeFromPriceId_soloPriceId_returnsSolo() {
-        assertThat(service.resolvePlanCodeFromPriceId("price_solo_test")).isEqualTo("SOLO");
+    void resolvePlanCodeFromPriceId_soloV1PriceId_returnsSolo() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_solo_v1_test")).isEqualTo("SOLO");
     }
 
     @Test
-    void resolvePlanCodeFromPriceId_teamPriceId_returnsTeam() {
-        assertThat(service.resolvePlanCodeFromPriceId("price_team_test")).isEqualTo("TEAM");
+    void resolvePlanCodeFromPriceId_soloV2PriceId_returnsSolo() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_solo_v2_test")).isEqualTo("SOLO");
     }
 
     @Test
-    void resolvePlanCodeFromPriceId_proPriceId_returnsPro() {
-        assertThat(service.resolvePlanCodeFromPriceId("price_pro_test")).isEqualTo("PRO");
+    void resolvePlanCodeFromPriceId_teamV1PriceId_returnsTeam() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_team_v1_test")).isEqualTo("TEAM");
+    }
+
+    @Test
+    void resolvePlanCodeFromPriceId_teamV2PriceId_returnsTeam() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_team_v2_test")).isEqualTo("TEAM");
+    }
+
+    @Test
+    void resolvePlanCodeFromPriceId_proV1PriceId_returnsPro() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_pro_v1_test")).isEqualTo("PRO");
+    }
+
+    @Test
+    void resolvePlanCodeFromPriceId_proV2PriceId_returnsPro() {
+        assertThat(service.resolvePlanCodeFromPriceId("price_pro_v2_test")).isEqualTo("PRO");
     }
 
     @Test
