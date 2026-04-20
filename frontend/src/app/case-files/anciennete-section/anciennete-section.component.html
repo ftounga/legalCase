@@ -49,6 +49,13 @@
                   <mat-icon>warning</mat-icon> Incohérence détectée
                 </span>
               }
+              @if (aiConventionUnknown(); as aiValue) {
+                <span class="coherence-badge coherence-info"
+                      matTooltip="Convention détectée par l'IA mais absente du référentiel. Sélectionnez la plus proche ou saisissez les barèmes manuellement.">
+                  <mat-icon>info</mat-icon>
+                  Convention IA : {{ aiValue }} (non référencée)
+                </span>
+              }
             </div>
 
             <div class="field-with-alert">

@@ -73,7 +73,7 @@ public final class LegalDomainPromptBuilder {
 
             Pour ce dossier de droit du travail, inclure également dans le JSON les champs suivants :
             "travail_extracted_data" : objet avec les champs :
-              "convention_collective" : identifiant de la convention collective détectée (ex: "METALLURGIE", "SYNTEC", "BTP", "HCR", "COMMERCE", "CP200", "CP124", "CP302"), null si non détectable.
+              "convention_collective" : code identifiant la convention collective détectée. FORMAT ATTENDU : numéro IDCC officiel sur 4 chiffres préfixé par "IDCC_" (ex: "IDCC_3043" pour Propreté, "IDCC_3248" pour Métallurgie, "IDCC_1486" pour Syntec, "IDCC_2216" pour Commerce de détail). Pour la Belgique, utiliser le format "CP{numéro}" (ex: "CP200"). Si la convention est identifiable mais que son numéro IDCC exact n'est pas certain, retourner un code descriptif en MAJUSCULES (ex: "NETTOYAGE"). Retourner null si aucune convention n'est détectable.
               "date_entree" : date d'entrée dans l'entreprise au format YYYY-MM-DD, null si non détectable.
               "salaire_brut_mensuel" : salaire brut mensuel en euros (nombre), null si non détectable.
               "type_contrat" : type de contrat détecté ("CDI", "CDD", "INTERIM"), null si non détectable.
