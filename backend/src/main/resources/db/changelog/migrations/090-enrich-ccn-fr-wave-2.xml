@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="090-enrich-ccn-fr-wave-2" author="legalcase">
+        <comment>
+            SF-136-02 : enrichissement vague 2 des CCN FR. Couvre 10 CCN à fort
+            effectif ou visibilité métier, non enrichies par la vague 1 (SF-129-02 :
+            propreté, transport, assurances, aide domicile, immobilier, chimie,
+            automobile, commerce gros, restauration rapide, hospitalisation privée)
+            ni par le seeding initial SF-129-01 (métallurgie, commerce, BTP, HCR,
+            Syntec).
+
+            Les 10 CCN de cette vague :
+            - IDCC 2120 Banques (~230k salariés)
+            - IDCC 1351 Prévention et sécurité (~180k)
+            - IDCC 2098 Prestataires de services du secteur tertiaire
+            - IDCC 1480 Journalistes
+            - IDCC 1483 Habillement
+            - IDCC 2596 Coiffure et professions connexes
+            - IDCC 2148 Télécommunications
+            - IDCC 2511 Sport
+            - IDCC 3127 Promotion-construction
+            - IDCC 1516 Organismes de formation
+
+            Valeurs indicatives basées sur les CCT publiques. L'admin peut override
+            par workspace via F-110. Congés supplémentaires et primes d'ancienneté
+            renseignés uniquement quand documentés par la CCT ; pattern source_ref
+            homogène avec SF-129-02.
+        </comment>
+
+        <sql splitStatements="true">
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[]}', source_ref = 'IDCC 2120 — CCN des banques (AFB) — valeurs indicatives, vérifier accord de branche et accord d''entreprise applicables', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_2120';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3}],"primes":[{"min":2,"pct":2},{"min":5,"pct":3},{"min":10,"pct":5},{"min":15,"pct":7},{"min":20,"pct":9}]}', source_ref = 'IDCC 1351 — CCN entreprises de prévention et de sécurité (art. 7 &amp; 10) — valeurs indicatives', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_1351';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3}],"primes":[{"min":3,"pct":3},{"min":6,"pct":6},{"min":10,"pct":10}]}', source_ref = 'IDCC 2098 — CCN prestataires de services du secteur tertiaire — valeurs indicatives proches de la CCN Syntec', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_2098';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":30,"congesSupp":[{"min":5,"jours":2},{"min":10,"jours":4},{"min":15,"jours":6},{"min":20,"jours":8}],"primes":[{"min":5,"pct":3},{"min":10,"pct":5},{"min":15,"pct":8},{"min":20,"pct":11}]}', source_ref = 'IDCC 1480 — CCN des journalistes (30 jours ouvrables + congés d''ancienneté, art. 30 &amp; 39)', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_1480';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[{"min":3,"pct":3},{"min":6,"pct":6},{"min":9,"pct":9},{"min":12,"pct":12},{"min":15,"pct":15}]}', source_ref = 'IDCC 1483 — CCN commerces de détail de l''habillement (art. 14 prime ancienneté)', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_1483';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":10,"jours":1},{"min":15,"jours":2}],"primes":[{"min":3,"pct":3},{"min":6,"pct":6},{"min":9,"pct":9},{"min":15,"pct":12}]}', source_ref = 'IDCC 2596 — CCN coiffure et professions connexes — valeurs indicatives selon barèmes pratiqués', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_2596';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":10,"jours":1},{"min":15,"jours":2},{"min":20,"jours":3}],"primes":[{"min":3,"pct":3},{"min":6,"pct":6},{"min":10,"pct":10},{"min":15,"pct":15}]}', source_ref = 'IDCC 2148 — CCN des télécommunications (art. 3.7.1 ancienneté)', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_2148';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3}],"primes":[{"min":3,"pct":3},{"min":6,"pct":6},{"min":9,"pct":9}]}', source_ref = 'IDCC 2511 — CCN du sport — valeurs indicatives, variables selon sous-secteur', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_2511';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[{"min":3,"pct":3},{"min":6,"pct":6},{"min":9,"pct":9},{"min":12,"pct":12},{"min":15,"pct":15}]}', source_ref = 'IDCC 3127 — CCN promotion-construction (art. 34 prime ancienneté)', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_3127';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3}],"primes":[{"min":3,"pct":3},{"min":6,"pct":6},{"min":9,"pct":9},{"min":12,"pct":12},{"min":15,"pct":15}]}', source_ref = 'IDCC 1516 — CCN des organismes de formation — valeurs indicatives proches du pattern cadres tertiaires', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'IDCC_1516';
+        </sql>
+
+        <rollback>
+            UPDATE legal_referentials SET value_json = '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', source_ref = 'Minimum légal — valeurs indicatives à enrichir' WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key IN (
+                'IDCC_2120', 'IDCC_1351', 'IDCC_2098', 'IDCC_1480', 'IDCC_1483',
+                'IDCC_2596', 'IDCC_2148', 'IDCC_2511', 'IDCC_3127', 'IDCC_1516'
+            );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
