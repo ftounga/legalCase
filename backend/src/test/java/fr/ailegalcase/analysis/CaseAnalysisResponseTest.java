@@ -789,7 +789,8 @@ class CaseAnalysisResponseTest {
 
         var t = response.travailExtractedData();
         assertThat(t).isNotNull();
-        assertThat(t.conventionCollective()).isEqualTo("SYNTEC");
+        // SF-129-01 : ConventionCodeNormalizer mappe SYNTEC (legacy) → IDCC_1486
+        assertThat(t.conventionCollective()).isEqualTo("IDCC_1486");
         assertThat(t.nomSalarie()).isNull();
         assertThat(t.nomEmployeur()).isNull();
         assertThat(t.siretEmployeur()).isNull();

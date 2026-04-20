@@ -209,8 +209,8 @@ public record CaseAnalysisResponse(
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
-            try {
-                JsonNode root = MAPPER.readTree(raw);
+            JsonNode root = tryParseJson(raw);
+            if (root != null) try {
                 timeline = extractTimeline(root);
                 faits = extractItemList(root, "faits");
                 pointsJuridiques = extractItemList(root, "points_juridiques");
@@ -529,6 +529,55 @@ public record CaseAnalysisResponse(
             if (s.endsWith("```")) s = s.substring(0, s.lastIndexOf("```")).strip();
         }
         return s;
+    }
+
+    /**
+     * Parse avec fallback récupération : tente d'abord parse strict, puis si échec
+     * essaie de tronquer au dernier '}' valide. Retourne null si tout échoue.
+     */
+    static JsonNode tryParseJson(String raw) {
+        try {
+            return MAPPER.readTree(raw);
+        } catch (Exception strictFail) {
+            String recovered = recoverTruncatedJson(raw);
+            if (recovered != null) {
+                try {
+                    return MAPPER.readTree(recovered);
+                } catch (Exception recoveryFail) {
+                    return null;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Essaie de récupérer un JSON valide depuis une chaîne potentiellement tronquée
+     * (cas stop_reason=max_tokens). Coupe au dernier '}' trouvé et ferme les accolades
+     * manquantes. Retourne null si aucune récupération possible.
+     */
+    static String recoverTruncatedJson(String raw) {
+        if (raw == null || raw.isBlank() || !raw.startsWith("{")) return null;
+        // Cherche le dernier '}' matching qui pourrait fermer l'objet racine
+        int depth = 0;
+        int lastValidObjectClose = -1;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (escaped) { escaped = false; continue; }
+            if (c == '\\' && inString) { escaped = true; continue; }
+            if (c == '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (c == '{') depth++;
+            else if (c == '}') {
+                depth--;
+                if (depth == 1) lastValidObjectClose = i;  // dernier child-object fermé
+            }
+        }
+        if (lastValidObjectClose == -1) return null;
+        // Tronque à ce point et ferme l'objet racine
+        return raw.substring(0, lastValidObjectClose + 1) + "}";
     }
 
     private static List<TimelineEntry> extractTimeline(JsonNode root) {
