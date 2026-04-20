@@ -168,6 +168,11 @@ jobs:
           sed -i "s|legalcase-frontend:FRONTEND_IMAGE_TAG|legalcase-frontend:${{ steps.build-frontend.outputs.prod_tag }}|g" \
             k8s/base/frontend/deployment.yaml
 
+          # SF-123-05 : injecter un hash des secrets → force rollout si secrets changent
+          SECRETS_HASH=$(kubectl -n production get secret backend-secrets -o yaml \
+            | sha256sum | cut -d' ' -f1 | head -c 16)
+          sed -i "s|SECRETS_HASH_PLACEHOLDER|$SECRETS_HASH|g" k8s/base/backend/deployment.yaml
+
           kubectl apply -k k8s/overlays/production/
           kubectl rollout status deployment/legalcase-backend -n production --timeout=180s || \
             (kubectl describe pods -n production -l app=legalcase-backend && \
