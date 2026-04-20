@@ -271,3 +271,67 @@
   color: white;
   margin-top: 4px;
 }
+
+.seats-section {
+  margin-top: 48px;
+  font-family: 'Inter', sans-serif;
+}
+
+.seats-title {
+  font-family: 'Merriweather', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1C2B3A;
+  margin: 0 0 16px 0;
+}
+
+.seats-card {
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid #EEF2F7;
+
+  &:last-of-type { border-bottom: none; }
+
+  &--total {
+    margin-top: 8px;
+    border-top: 2px solid #1A3A5C;
+    padding-top: 16px;
+    border-bottom: none;
+  }
+}
+
+.seats-label {
+  color: #6B7A8D;
+  font-size: 14px;
+}
+
+.seats-value {
+  color: #1C2B3A;
+  font-size: 15px;
+  font-weight: 500;
+
+  &--total {
+    font-family: 'Merriweather', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1A3A5C;
+  }
+}
+
+.seats-cta {
+  margin-top: 12px;
+  align-self: flex-start;
+}
