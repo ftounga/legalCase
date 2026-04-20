@@ -1,0 +1,109 @@
+<div class="help-dialog">
+  <div class="help-header">
+    <mat-icon class="help-icon">{{ data.entry ? 'description' : 'info' }}</mat-icon>
+    <div class="help-titles">
+      @if (data.entry) {
+        <h2 class="help-title">{{ data.entry.label }}</h2>
+        <span class="help-subtitle">{{ doc?.title ?? data.sectionType }}</span>
+      } @else {
+        <h2 class="help-title">{{ doc?.title ?? data.sectionType }}</h2>
+      }
+    </div>
+    <button mat-icon-button (click)="close()" aria-label="Fermer">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="help-body">
+    @if (data.entry) {
+      <!-- Aide spécifique à l'entrée -->
+      <section class="help-section">
+        <div class="help-chips">
+          <mat-chip class="entry-key-chip" [disableRipple]="true">{{ data.entry.key }}</mat-chip>
+          @if (data.entry.country) {
+            <mat-chip [disableRipple]="true">{{ data.entry.country }}</mat-chip>
+          }
+        </div>
+
+        @if (hasEntryDescription()) {
+          <h3 class="help-section-title">
+            <mat-icon>info</mat-icon>
+            À quoi correspond cette entrée
+          </h3>
+          <p class="help-text">{{ data.entry.metierDescription }}</p>
+        } @else {
+          <h3 class="help-section-title">
+            <mat-icon>auto_awesome</mat-icon>
+            Description métier
+          </h3>
+          <p class="help-text help-text--muted">
+            Pas encore de description détaillée pour cette entrée en particulier.
+            La section "Comment c'est utilisé" ci-dessous explique l'usage général de ce type de barème.
+          </p>
+        }
+
+        @if (data.entry.sourceRef) {
+          <h3 class="help-section-title">
+            <mat-icon>gavel</mat-icon>
+            Source juridique
+          </h3>
+          <p class="help-text help-text--source">{{ data.entry.sourceRef }}</p>
+        }
+      </section>
+
+      @if (doc) {
+        <hr class="help-divider">
+      }
+    }
+
+    @if (doc) {
+      <!-- Aide de la section (type) -->
+      @if (!data.entry) {
+        <p class="help-description">{{ doc.description }}</p>
+      } @else {
+        <h3 class="help-section-title help-section-title--secondary">
+          <mat-icon>category</mat-icon>
+          Sur ce type de barème en général
+        </h3>
+        <p class="help-text">{{ doc.description }}</p>
+      }
+
+      <h3 class="help-section-title">
+        <mat-icon>widgets</mat-icon>
+        Où vous le verrez dans l'application
+      </h3>
+      <ul class="help-list">
+        @for (usage of doc.usedIn; track usage) {
+          <li>{{ usage }}</li>
+        }
+      </ul>
+
+      <h3 class="help-section-title">
+        <mat-icon>edit</mat-icon>
+        Comment le modifier
+      </h3>
+      <p class="help-text">{{ doc.howToModify }}</p>
+
+      <h3 class="help-section-title">
+        <mat-icon>data_object</mat-icon>
+        Format attendu
+      </h3>
+      <p class="help-text">{{ doc.format }}</p>
+    } @else {
+      <p class="help-text help-text--muted">
+        Aucune documentation n'est disponible pour ce type de barème ({{ data.sectionType }}).
+      </p>
+    }
+
+    @if (data.entry?.rawJson) {
+      <details class="help-raw">
+        <summary>Voir la valeur brute (JSON)</summary>
+        <pre>{{ data.entry!.rawJson }}</pre>
+      </details>
+    }
+  </div>
+
+  <div class="help-footer">
+    <button mat-flat-button color="primary" (click)="close()">Fermer</button>
+  </div>
+</div>

@@ -32,6 +32,11 @@ import {
   ReferentialWarningDialogComponent,
   ReferentialWarningDialogData,
 } from './referential-warning-dialog/referential-warning-dialog.component';
+import {
+  ReferentialHelpDialogComponent,
+  ReferentialHelpDialogData,
+} from './referential-help-dialog/referential-help-dialog.component';
+import { SECTION_DOCS } from './section-docs';
 
 interface EntryWithAlert extends ReferentialEntry {
   alertId?: string;
@@ -226,6 +231,94 @@ export class ReferentialsComponent implements OnInit {
         });
       }
     });
+  }
+
+  /** SF-140-01 : popover d'aide pour le type de barème. */
+  openSectionHelp(sectionType: string): void {
+    this.dialog.open<ReferentialHelpDialogComponent, ReferentialHelpDialogData, void>(
+        ReferentialHelpDialogComponent,
+        { width: '640px', data: { sectionType } });
+  }
+
+  /** SF-140-01 : popover d'aide pour une entrée — extrait la description métier du JSON si présente. */
+  openEntryHelp(entry: EntryWithAlert, sectionType: string): void {
+    this.dialog.open<ReferentialHelpDialogComponent, ReferentialHelpDialogData, void>(
+        ReferentialHelpDialogComponent,
+        {
+          width: '640px',
+          data: {
+            sectionType,
+            entry: {
+              key: entry.key,
+              label: entry.label ?? entry.key,
+              country: entry.country,
+              sourceRef: entry.sourceRef,
+              metierDescription: this.extractMetierDescription(entry, sectionType),
+              rawJson: entry.valueJson,
+            },
+          },
+        });
+  }
+
+  /** Retrouve la doc de section pour test/vérif. */
+  hasSectionDoc(sectionType: string): boolean {
+    return !!SECTION_DOCS[sectionType];
+  }
+
+  /**
+   * SF-140-01 : lit le JSON d'une entrée et retourne la meilleure description
+   * métier disponible. Ordre de priorité par type :
+   * - LICENCIEMENT_CRITERES / RUPTURE_CONV_CRITERES : `description`
+   * - IMMIGRATION_TITLES : `conditions` + `motif`
+   * - IMMIGRATION_RECOURS : `juridiction` + textes applicables
+   * - IMMIGRATION_WORK_RIGHTS : `conditions` + `droitTravail`
+   * - GARDE_MODES : description de la répartition
+   * - DIVORCE_ETAPES / DIVORCE_PIECES : `description`
+   * - autres : `null` (fallback sur la doc de section)
+   */
+  private extractMetierDescription(entry: EntryWithAlert, sectionType: string): string | undefined {
+    try {
+      const val = JSON.parse(entry.valueJson);
+      switch (sectionType) {
+        case 'LICENCIEMENT_CRITERES':
+        case 'RUPTURE_CONV_CRITERES':
+          return val.description;
+        case 'IMMIGRATION_TITLES': {
+          const motif = val.motif ? `Motif : ${val.motif}. ` : '';
+          const conditions = val.conditions ? `${val.conditions}` : '';
+          return (motif + conditions).trim() || undefined;
+        }
+        case 'IMMIGRATION_RECOURS': {
+          const juridiction = val.juridiction ? `Juridiction : ${val.juridiction}. ` : '';
+          const delai = val.delaiJours != null ? `Délai de recours : ${val.delaiJours} jours. ` : '';
+          const textes = Array.isArray(val.textesApplicables) && val.textesApplicables.length > 0
+              ? `Textes applicables : ${val.textesApplicables.join(' ; ')}.` : '';
+          return (juridiction + delai + textes).trim() || undefined;
+        }
+        case 'IMMIGRATION_WORK_RIGHTS': {
+          const droit = val.droitTravail ? `Droit au travail : ${val.droitTravail}. ` : '';
+          const conditions = val.conditions ? `${val.conditions}` : '';
+          return (droit + conditions).trim() || undefined;
+        }
+        case 'DIVORCE_ETAPES':
+        case 'DIVORCE_PIECES':
+          return val.description;
+        case 'GARDE_MODES': {
+          const rep = val.repartitionType ? `Répartition : ${val.repartitionType}. ` : '';
+          const vac = val.vacances ? `Vacances : ${val.vacances}.` : '';
+          return (rep + vac).trim() || undefined;
+        }
+        case 'LITIGATION_TYPE': {
+          const years = val.years != null ? `Délai de prescription : ${val.years} an(s). ` : '';
+          const article = val.article ? `Référence : ${val.article}.` : '';
+          return (years + article).trim() || undefined;
+        }
+        default:
+          return undefined;
+      }
+    } catch {
+      return undefined;
+    }
   }
 
   openEditDialog(entry: EntryWithAlert, sectionType: string): void {

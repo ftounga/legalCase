@@ -103,6 +103,14 @@
               <mat-icon class="section-icon">{{ sectionIcon(section.type) }}</mat-icon>
               <span class="section-title-text">{{ section.title }}</span>
               <span class="section-type-badge">{{ section.type }}</span>
+              @if (hasSectionDoc(section.type)) {
+                <button mat-icon-button class="section-help-btn"
+                        matTooltip="À quoi sert ce barème ?"
+                        (click)="openSectionHelp(section.type); $event.stopPropagation()"
+                        aria-label="Aide sur ce barème">
+                  <mat-icon>help_outline</mat-icon>
+                </button>
+              }
             </mat-panel-title>
             <mat-panel-description>
               <span class="section-count-pill">{{ section.entries.length }}</span>
@@ -130,6 +138,11 @@
                               matTooltip="Personnalisé pour ce workspace">Perso</mat-chip>
                   }
                   <span class="header-spacer"></span>
+                  <button mat-icon-button class="entry-help-btn" aria-label="Aide sur cette entrée"
+                          matTooltip="En savoir plus"
+                          (click)="openEntryHelp(entry, section.type); $event.stopPropagation()">
+                    <mat-icon>help_outline</mat-icon>
+                  </button>
                   @if (canEdit()) {
                     <button mat-icon-button class="edit-btn" aria-label="Modifier"
                             (click)="openEditDialog(entry, section.type); $event.stopPropagation()">

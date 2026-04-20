@@ -370,6 +370,65 @@ describe('ReferentialsComponent — SF-137-02/03/04 recherche + filtres', () => 
   });
 });
 
+describe('ReferentialsComponent — SF-140-01 aide contextuelle', () => {
+  let fixture: ComponentFixture<ReferentialsComponent>;
+  let component: ReferentialsComponent;
+  let dialogSpy: { open: jest.Mock };
+
+  const richResponse: ReferentialResponse = {
+    domain: 'DROIT_DU_TRAVAIL',
+    sections: {
+      LICENCIEMENT_CRITERES: [
+        { key: 'FR_MOTIVATION', label: 'Motivation lettre licenciement',
+          valueJson: '{"poids":20,"bloquant":true,"description":"Motifs précis et vérifiables"}',
+          country: 'FRANCE', isSystem: true, sourceRef: 'Code travail L. 1232-1' },
+      ],
+      CONVENTION_BAREMES: [
+        { key: 'IDCC_3248', label: 'Métallurgie', valueJson: '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}',
+          country: 'FRANCE', isSystem: true, sourceRef: 'CCN IDCC 3248' },
+      ],
+    }
+  };
+
+  beforeEach(async () => {
+    await buildTestBed(of(richResponse), 'OWNER').compileComponents();
+    fixture = TestBed.createComponent(ReferentialsComponent);
+    component = fixture.componentInstance;
+    dialogSpy = TestBed.inject(MatDialog) as unknown as { open: jest.Mock };
+    fixture.detectChanges();
+  });
+
+  it('SF-140-01: hasSectionDoc renvoie true pour un type documenté', () => {
+    expect(component.hasSectionDoc('CONVENTION_BAREMES')).toBe(true);
+    expect(component.hasSectionDoc('LICENCIEMENT_CRITERES')).toBe(true);
+    expect(component.hasSectionDoc('TYPE_INEXISTANT')).toBe(false);
+  });
+
+  it('SF-140-01: openSectionHelp ouvre le dialog avec le type seul', () => {
+    component.openSectionHelp('CONVENTION_BAREMES');
+    expect(dialogSpy.open).toHaveBeenCalled();
+    const callArgs = dialogSpy.open.mock.calls[0][1];
+    expect(callArgs.data).toEqual({ sectionType: 'CONVENTION_BAREMES' });
+  });
+
+  it('SF-140-01: openEntryHelp ouvre le dialog avec description métier extraite (LICENCIEMENT_CRITERES)', () => {
+    const entry = richResponse.sections.LICENCIEMENT_CRITERES[0];
+    component.openEntryHelp(entry as any, 'LICENCIEMENT_CRITERES');
+    const callArgs = dialogSpy.open.mock.calls[0][1];
+    expect(callArgs.data.entry.key).toBe('FR_MOTIVATION');
+    expect(callArgs.data.entry.metierDescription).toContain('Motifs précis');
+    expect(callArgs.data.entry.sourceRef).toBe('Code travail L. 1232-1');
+    expect(callArgs.data.entry.rawJson).toContain('"poids":20');
+  });
+
+  it('SF-140-01: openEntryHelp retourne undefined metierDescription pour CONVENTION_BAREMES (pas de description native)', () => {
+    const entry = richResponse.sections.CONVENTION_BAREMES[0];
+    component.openEntryHelp(entry as any, 'CONVENTION_BAREMES');
+    const callArgs = dialogSpy.open.mock.calls[0][1];
+    expect(callArgs.data.entry.metierDescription).toBeUndefined();
+  });
+});
+
 describe('ReferentialsComponent — sections vides', () => {
   let fixture: ComponentFixture<ReferentialsComponent>;
 
