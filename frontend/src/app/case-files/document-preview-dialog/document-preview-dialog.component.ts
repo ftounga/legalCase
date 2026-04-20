@@ -103,7 +103,10 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
       // Worker servi localement depuis /public — évite la latence CDN (jsdelivr
       // mettait parfois 20-30s à répondre au premier appel → "Aperçu indisponible"
       // alors que le PDF était parfaitement valide).
-      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      // Cache-bust sur la version pdfjs — force les navigateurs à re-fetcher
+      // quand on bump pdfjs-dist (et contourne le Cache-Control immutable qui
+      // gardait un vieux worker avec MIME type incorrect avant PR #406).
+      pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${pdfjs.version}`;
 
       // Fix CORS : on utilise /content qui stream les bytes en same-origin
       // plutôt que /download qui redirige 302 vers S3 (cross-origin bloqué avec credentials).
