@@ -57,6 +57,7 @@ const SECTION_LABELS: Record<string, string> = {
   IMMIGRATION_WORK_RIGHTS:'Droits au travail',
   CONVENTION_BAREMES:     'Conventions collectives',
   LICENCIEMENT_CRITERES:  'Critères de licenciement',
+  RUPTURE_CONV_CRITERES:  'Critères de rupture conventionnelle',
   INDEMNITE_BAREMES:      'Barèmes indemnités',
   GARDE_MODES:            'Modes de garde',
   DIVORCE_ETAPES:         'Étapes divorce',
@@ -368,7 +369,8 @@ export class ReferentialsComponent implements OnInit {
         }
         case 'CONVENTION_BAREMES':
           return `Congés légaux : ${val.congesLegauxJours ?? '—'} jours`;
-        case 'LICENCIEMENT_CRITERES': {
+        case 'LICENCIEMENT_CRITERES':
+        case 'RUPTURE_CONV_CRITERES': {
           const poids = val.poids ?? '—';
           const bloquant = val.bloquant ? 'Bloquant' : 'Non bloquant';
           const desc = val.description ?? '—';
@@ -425,6 +427,7 @@ export class ReferentialsComponent implements OnInit {
       case 'IMMIGRATION_WORK_RIGHTS': return 'work';
       case 'CONVENTION_BAREMES':      return 'groups';
       case 'LICENCIEMENT_CRITERES':   return 'rule';
+      case 'RUPTURE_CONV_CRITERES':   return 'handshake';
       case 'INDEMNITE_BAREMES':       return 'payments';
       case 'GARDE_MODES':             return 'child_care';
       case 'DIVORCE_ETAPES':          return 'list_alt';
