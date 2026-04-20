@@ -3,6 +3,7 @@ package fr.ailegalcase.casefile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,17 +26,20 @@ public class RuptureConvService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    private final LegalReferentialService referentialService;
 
     public RuptureConvService(RuptureConvAnalysisRepository analysisRepository,
                                CaseFileRepository caseFileRepository,
                                WorkspaceMemberRepository workspaceMemberRepository,
                                CurrentUserResolver currentUserResolver,
-                               ObjectMapper objectMapper) {
+                               ObjectMapper objectMapper,
+                               LegalReferentialService referentialService) {
         this.analysisRepository = analysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
         this.objectMapper = objectMapper;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -43,15 +48,21 @@ public class RuptureConvService {
                                         OidcUser oidcUser,
                                         Principal principal) {
         String country = request.country();
-        if (country == null || !RuptureConvCritereReferentiel.isCountryValid(country.toUpperCase())) {
+        if (country == null || !RuptureConvAnalyzer.isCountryValid(country)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Pays non supporté : " + country);
         }
+        String normalized = country.toUpperCase();
         User user = resolveUser(oidcUser, principal);
         CaseFile caseFile = resolveCaseFileForUser(caseFileId, user);
 
         Map<String, String> reponses = request.reponses() != null ? request.reponses() : Map.of();
-        RuptureConvAnalysisResult result = RuptureConvAnalyzer.analyze(country, reponses);
+        List<RuptureConvCritere> criteres = referentialService.getRuptureConvCriteres(normalized);
+        if (criteres.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Référentiel RUPTURE_CONV_CRITERES indisponible pour " + normalized);
+        }
+        RuptureConvAnalysisResult result = RuptureConvAnalyzer.analyze(normalized, reponses, criteres);
 
         RuptureConvAnalysis entity = analysisRepository.findByCaseFileId(caseFileId)
                 .orElseGet(() -> {

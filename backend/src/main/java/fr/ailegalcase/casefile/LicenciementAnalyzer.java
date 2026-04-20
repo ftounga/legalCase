@@ -13,15 +13,11 @@ public final class LicenciementAnalyzer {
     private LicenciementAnalyzer() {}
 
     /**
-     * @param country  FRANCE ou BELGIQUE
-     * @param reponses map code critère → "OUI" / "NON" / "INCONNU"
-     * @return résultat avec score et verdict
+     * SF-139-01 : pays supportés (FR + BE). Remplace le static helper
+     * {@code LicenciementCritereReferentiel.isCountryValid} après suppression.
      */
-    public static LicenciementAnalysisResult analyze(String country, Map<String, String> reponses) {
-        if (!LicenciementCritereReferentiel.isCountryValid(country)) {
-            throw new IllegalArgumentException("Pays non supporté : " + country);
-        }
-        return analyze(country, reponses, LicenciementCritereReferentiel.getByCountry(country));
+    public static boolean isCountryValid(String country) {
+        return "FRANCE".equalsIgnoreCase(country) || "BELGIQUE".equalsIgnoreCase(country);
     }
 
     public static LicenciementAnalysisResult analyze(String country, Map<String, String> reponses, List<LicenciementCritere> criteres) {

@@ -3,6 +3,7 @@ package fr.ailegalcase.casefile;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.referential.LegalReferentialService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -23,17 +24,20 @@ public class IndemniteComparatifService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
     private final ObjectMapper objectMapper;
+    private final LegalReferentialService referentialService;
 
     public IndemniteComparatifService(IndemniteComparatifRepository repository,
                                       CaseFileRepository caseFileRepository,
                                       WorkspaceMemberRepository workspaceMemberRepository,
                                       CurrentUserResolver currentUserResolver,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      LegalReferentialService referentialService) {
         this.repository = repository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
         this.objectMapper = objectMapper;
+        this.referentialService = referentialService;
     }
 
     @Transactional
@@ -43,11 +47,19 @@ public class IndemniteComparatifService {
         User user = resolveUser(oidcUser, principal);
         CaseFile caseFile = resolveCaseFile(caseFileId, user);
 
+        // SF-139-01 : lookup DB-only des barèmes
+        IndemniteBareme macronBareme = "FRANCE".equals(request.country())
+                ? referentialService.getBaremeMacron(request.ancienneteAnnees())
+                : null;
+        LegalReferentialService.Cct109Range cctRange = "BELGIQUE".equals(request.country())
+                ? referentialService.getCct109Range()
+                : null;
+
         IndemniteComparatifResult result;
         try {
             result = IndemniteComparatifCalculator.calculate(
                     request.country(), request.typeRupture(), request.ancienneteAnnees(),
-                    request.age(), request.salaireMensuel());
+                    request.age(), request.salaireMensuel(), macronBareme, cctRange);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
