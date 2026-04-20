@@ -1,5 +1,6 @@
 package fr.ailegalcase.referential;
 
+import fr.ailegalcase.casefile.ConventionBareme;
 import fr.ailegalcase.casefile.ImmigrationProcedureReferentiel.ProcedureJalon;
 import fr.ailegalcase.casefile.LitigationTypeMapper.LitigationPeriod;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,6 +96,84 @@ class LegalReferentialServiceTest {
     void getImmigrationJalons_retourne_liste_vide_si_type_null() {
         List<ProcedureJalon> jalons = service.getImmigrationJalons(null);
         assertThat(jalons).isEmpty();
+    }
+
+    // --- getConventionBareme (SF-129-03 : DB only + normalizer) ---
+
+    private LegalReferential metallurgieDbEntry() {
+        LegalReferential e = new LegalReferential();
+        e.setEntryKey("IDCC_3248");
+        e.setLabel("Métallurgie (IDCC 3248)");
+        e.setCountry("FRANCE");
+        e.setSourceRef("Convention collective nationale de la métallurgie (IDCC 3248)");
+        e.setValueJson("""
+                {
+                  "congesLegauxJours": 25,
+                  "congesSupp": [
+                    {"min": 5, "jours": 1},
+                    {"min": 10, "jours": 2}
+                  ],
+                  "primes": [
+                    {"min": 3, "pct": 3},
+                    {"min": 9, "pct": 9}
+                  ]
+                }
+                """);
+        return e;
+    }
+
+    @Test
+    void getConventionBareme_idccCode_returnsDbBareme() {
+        when(repository.findSystemEntry("DROIT_DU_TRAVAIL", "CONVENTION_BAREMES", "IDCC_3248"))
+                .thenReturn(List.of(metallurgieDbEntry()));
+
+        ConventionBareme bareme = service.getConventionBareme("IDCC_3248");
+
+        assertThat(bareme).isNotNull();
+        assertThat(bareme.code()).isEqualTo("IDCC_3248");
+        assertThat(bareme.country()).isEqualTo("FRANCE");
+        assertThat(bareme.congesLegauxJours()).isEqualTo(25);
+        assertThat(bareme.congesSupplementaires()).hasSize(2);
+        assertThat(bareme.primesAnciennete()).hasSize(2);
+    }
+
+    @Test
+    void getConventionBareme_legacyCode_normalizesAndReturnsDbBareme() {
+        // Le normalizer doit transformer METALLURGIE en IDCC_3248 avant le lookup DB
+        when(repository.findSystemEntry("DROIT_DU_TRAVAIL", "CONVENTION_BAREMES", "IDCC_3248"))
+                .thenReturn(List.of(metallurgieDbEntry()));
+
+        ConventionBareme bareme = service.getConventionBareme("METALLURGIE");
+
+        assertThat(bareme).isNotNull();
+        assertThat(bareme.code()).isEqualTo("IDCC_3248");
+        verify(repository).findSystemEntry("DROIT_DU_TRAVAIL", "CONVENTION_BAREMES", "IDCC_3248");
+    }
+
+    @Test
+    void getConventionBareme_unknownCode_returnsNull() {
+        // SF-129-03 : plus de fallback statique — code inconnu → null
+        when(repository.findSystemEntry(any(), any(), any())).thenReturn(List.of());
+
+        ConventionBareme bareme = service.getConventionBareme("INCONNU_XYZ");
+
+        assertThat(bareme).isNull();
+    }
+
+    @Test
+    void getConventionBareme_nullInput_returnsNull() {
+        ConventionBareme bareme = service.getConventionBareme(null);
+
+        assertThat(bareme).isNull();
+        verify(repository, never()).findSystemEntry(any(), any(), any());
+    }
+
+    @Test
+    void getConventionBareme_blankInput_returnsNull() {
+        ConventionBareme bareme = service.getConventionBareme("   ");
+
+        assertThat(bareme).isNull();
+        verify(repository, never()).findSystemEntry(any(), any(), any());
     }
 
     // --- getReferentials ---
