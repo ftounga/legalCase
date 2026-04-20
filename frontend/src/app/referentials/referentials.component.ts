@@ -1,10 +1,15 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReferentialService } from '../core/services/referential.service';
@@ -62,8 +67,10 @@ const SECTION_LABELS: Record<string, string> = {
   selector: 'app-referentials',
   standalone: true,
   imports: [
+    FormsModule,
     MatExpansionModule, MatIconModule, MatProgressSpinnerModule,
     MatChipsModule, MatButtonModule, MatTooltipModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonToggleModule,
   ],
   templateUrl: './referentials.component.html',
   styleUrl: './referentials.component.scss',
@@ -78,6 +85,57 @@ export class ReferentialsComponent implements OnInit {
   canEdit = signal(false);
   canReport = signal(false);
   pendingAlertsCount = signal(0);
+
+  // SF-137-02/03 : filtres UX
+  searchQuery = signal('');
+  typeFilter = signal<string>('');           // vide = tous les types
+  scopeFilter = signal<'ALL' | 'SYSTEM' | 'CUSTOM'>('ALL');
+
+  /** SF-137-02/03 : sections affichables après application des filtres. */
+  filteredSections = computed<SectionDisplay[]>(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const type = this.typeFilter();
+    const scope = this.scopeFilter();
+    return this.sections()
+        .filter(s => !type || s.type === type)
+        .map(s => ({
+          ...s,
+          entries: s.entries.filter(e => this.entryMatches(e, q, scope)),
+        }))
+        .filter(s => s.entries.length > 0);
+  });
+
+  /** SF-137-04 : compteur global pour feedback utilisateur. */
+  filteredEntryCount = computed(() =>
+      this.filteredSections().reduce((acc, s) => acc + s.entries.length, 0));
+  totalEntryCount = computed(() =>
+      this.sections().reduce((acc, s) => acc + s.entries.length, 0));
+
+  availableTypes = computed<{ type: string; label: string }[]>(() =>
+      this.sections().map(s => ({ type: s.type, label: s.title })));
+
+  private entryMatches(e: EntryWithAlert, q: string, scope: 'ALL' | 'SYSTEM' | 'CUSTOM'): boolean {
+    if (scope === 'SYSTEM' && !e.isSystem) return false;
+    if (scope === 'CUSTOM' && e.isSystem) return false;
+    if (!q) return true;
+    const haystack = [e.key, e.label, e.sourceRef ?? '']
+        .join(' ')
+        .toLowerCase();
+    return haystack.includes(q);
+  }
+
+  clearFilters(): void {
+    this.searchQuery.set('');
+    this.typeFilter.set('');
+    this.scopeFilter.set('ALL');
+  }
+
+  hasActiveFilters(): boolean {
+    return this.searchQuery().trim() !== ''
+        || this.typeFilter() !== ''
+        || this.scopeFilter() !== 'ALL';
+  }
+
   private domain = '';
   private alertsById = new Map<string, { alertId: string; proposedValueJson: string; aiMessage?: string | null }>();
 

@@ -293,6 +293,83 @@ describe('ReferentialsComponent — MEMBER (bouton Signaler visible)', () => {
   });
 });
 
+describe('ReferentialsComponent — SF-137-02/03/04 recherche + filtres', () => {
+  let fixture: ComponentFixture<ReferentialsComponent>;
+  let component: ReferentialsComponent;
+
+  const richResponse: ReferentialResponse = {
+    domain: 'DROIT_DU_TRAVAIL',
+    sections: {
+      LITIGATION_TYPE: [
+        { key: 'DISCRIMINATION', label: 'Discrimination', valueJson: '{"years":5,"article":"Art. L1132-1"}', isSystem: true, sourceRef: 'Art. L1132-1' },
+        { key: 'HARCELEMENT', label: 'Harcèlement moral', valueJson: '{"years":5,"article":"Art. L1152-1"}', isSystem: true, sourceRef: 'Art. L1152-1' },
+      ],
+      CONVENTION_BAREMES: [
+        { key: 'IDCC_3248', label: 'Métallurgie', valueJson: '{"congesLegauxJours":25}', country: 'FRANCE', isSystem: true, sourceRef: 'IDCC 3248' },
+        { key: 'MY_CUSTOM', label: 'Barème workspace custom', valueJson: '{"congesLegauxJours":25}', country: 'FRANCE', isSystem: false, sourceRef: 'custom' },
+      ],
+    }
+  };
+
+  beforeEach(async () => {
+    await buildTestBed(of(richResponse), 'OWNER').compileComponents();
+    fixture = TestBed.createComponent(ReferentialsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('SF-137-02: recherche filtre les entries par key/label/sourceRef', () => {
+    component.searchQuery.set('harcel');
+    const filtered = component.filteredSections();
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].type).toBe('LITIGATION_TYPE');
+    expect(filtered[0].entries.map(e => e.key)).toEqual(['HARCELEMENT']);
+  });
+
+  it('SF-137-02: recherche case-insensitive sur sourceRef', () => {
+    component.searchQuery.set('IDCC 3248');
+    const filtered = component.filteredSections();
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].type).toBe('CONVENTION_BAREMES');
+  });
+
+  it('SF-137-03: typeFilter restreint aux sections sélectionnées', () => {
+    component.typeFilter.set('LITIGATION_TYPE');
+    expect(component.filteredSections().map(s => s.type)).toEqual(['LITIGATION_TYPE']);
+  });
+
+  it('SF-137-03: scope SYSTEM masque les entries personnalisées', () => {
+    component.scopeFilter.set('SYSTEM');
+    const conv = component.filteredSections().find(s => s.type === 'CONVENTION_BAREMES');
+    expect(conv?.entries.map(e => e.key)).toEqual(['IDCC_3248']);
+  });
+
+  it('SF-137-03: scope CUSTOM garde uniquement les workspace entries', () => {
+    component.scopeFilter.set('CUSTOM');
+    const conv = component.filteredSections().find(s => s.type === 'CONVENTION_BAREMES');
+    expect(conv?.entries.map(e => e.key)).toEqual(['MY_CUSTOM']);
+    // Section LITIGATION_TYPE est vide en CUSTOM → doit disparaître
+    expect(component.filteredSections().map(s => s.type)).not.toContain('LITIGATION_TYPE');
+  });
+
+  it('SF-137-04: compteurs reflètent filtre actif', () => {
+    expect(component.totalEntryCount()).toBe(4);
+    component.searchQuery.set('harcel');
+    expect(component.filteredEntryCount()).toBe(1);
+    expect(component.hasActiveFilters()).toBe(true);
+  });
+
+  it('SF-137-03: clearFilters réinitialise tout', () => {
+    component.searchQuery.set('xyz');
+    component.typeFilter.set('LITIGATION_TYPE');
+    component.scopeFilter.set('SYSTEM');
+    expect(component.hasActiveFilters()).toBe(true);
+    component.clearFilters();
+    expect(component.hasActiveFilters()).toBe(false);
+    expect(component.filteredEntryCount()).toBe(4);
+  });
+});
+
 describe('ReferentialsComponent — sections vides', () => {
   let fixture: ComponentFixture<ReferentialsComponent>;
 

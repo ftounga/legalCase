@@ -1,7 +1,7 @@
 <div class="referentials-wrapper">
   <div class="referentials-header">
     <mat-icon class="header-icon">menu_book</mat-icon>
-    <div>
+    <div class="header-titles">
       <h1 class="page-title">Guides & barèmes</h1>
       @if (domainLabel()) {
         <p class="domain-subtitle">{{ domainLabel() }}</p>
@@ -14,6 +14,60 @@
       </div>
     }
   </div>
+
+  @if (!loading() && !error() && domainLabel() && totalEntryCount() > 0) {
+    <div class="referentials-toolbar">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Rechercher</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput
+               [ngModel]="searchQuery()"
+               (ngModelChange)="searchQuery.set($event)"
+               placeholder="Entrée, libellé, source juridique…" />
+        @if (searchQuery()) {
+          <button mat-icon-button matSuffix aria-label="Effacer la recherche"
+                  (click)="searchQuery.set('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="type-field">
+        <mat-label>Type</mat-label>
+        <mat-select [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
+          <mat-option [value]="''">Tous les types</mat-option>
+          @for (t of availableTypes(); track t.type) {
+            <mat-option [value]="t.type">{{ t.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-button-toggle-group class="scope-toggle"
+                               [ngModel]="scopeFilter()"
+                               (ngModelChange)="scopeFilter.set($event)"
+                               aria-label="Filtre par portée">
+        <mat-button-toggle value="ALL">Tous</mat-button-toggle>
+        <mat-button-toggle value="SYSTEM">Système</mat-button-toggle>
+        <mat-button-toggle value="CUSTOM">Personnalisés</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      @if (hasActiveFilters()) {
+        <button mat-stroked-button class="clear-btn" (click)="clearFilters()">
+          <mat-icon>filter_alt_off</mat-icon>
+          Réinitialiser
+        </button>
+      }
+    </div>
+
+    <div class="result-counter">
+      <mat-icon class="counter-icon">fact_check</mat-icon>
+      @if (hasActiveFilters()) {
+        <span>{{ filteredEntryCount() }} sur {{ totalEntryCount() }} entrées</span>
+      } @else {
+        <span>{{ totalEntryCount() }} entrée{{ totalEntryCount() > 1 ? 's' : '' }} au total</span>
+      }
+    </div>
+  }
 
   @if (loading()) {
     <div class="spinner-center">
@@ -34,30 +88,48 @@
       <mat-icon class="empty-icon">info_outline</mat-icon>
       <p>Aucun référentiel disponible pour ce domaine.</p>
     </div>
+  } @else if (filteredSections().length === 0) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">search_off</mat-icon>
+      <p>Aucun résultat pour votre recherche ou vos filtres.</p>
+      <button mat-stroked-button color="primary" (click)="clearFilters()">Réinitialiser les filtres</button>
+    </div>
   } @else {
     <mat-accordion class="referentials-accordion" multi>
-      @for (section of sections(); track section.type) {
-        <mat-expansion-panel class="section-panel">
+      @for (section of filteredSections(); track section.type) {
+        <mat-expansion-panel class="section-panel" expanded>
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="section-icon">{{ sectionIcon(section.type) }}</mat-icon>
-              {{ section.title }}
+              <span class="section-title-text">{{ section.title }}</span>
+              <span class="section-type-badge">{{ section.type }}</span>
             </mat-panel-title>
-            <mat-panel-description>{{ section.entries.length }} entrée{{ section.entries.length > 1 ? 's' : '' }}</mat-panel-description>
+            <mat-panel-description>
+              <span class="section-count-pill">{{ section.entries.length }}</span>
+              entrée{{ section.entries.length > 1 ? 's' : '' }}
+            </mat-panel-description>
           </mat-expansion-panel-header>
 
           <div class="entries-list">
             @for (entry of section.entries; track entry.key) {
-              <div class="entry-card" [class.entry-card--alert]="entry.alertId">
+              <div class="entry-card"
+                   [class.entry-card--alert]="entry.alertId"
+                   [class.entry-card--custom]="!entry.isSystem">
                 <div class="entry-header">
                   @if (entry.alertId) {
                     <mat-icon class="alert-icon" color="warn"
                               [matTooltip]="entry.alertAiMessage ?? 'Mise à jour suggérée par l\'IA'">warning</mat-icon>
                   }
                   <span class="entry-label">{{ entry.label }}</span>
+                  <span class="entry-key-chip">{{ entry.key }}</span>
                   @if (entry.country) {
                     <mat-chip class="country-chip" [disableRipple]="true">{{ entry.country }}</mat-chip>
                   }
+                  @if (!entry.isSystem) {
+                    <mat-chip class="custom-chip" [disableRipple]="true"
+                              matTooltip="Personnalisé pour ce workspace">Perso</mat-chip>
+                  }
+                  <span class="header-spacer"></span>
                   @if (canEdit()) {
                     <button mat-icon-button class="edit-btn" aria-label="Modifier"
                             (click)="openEditDialog(entry, section.type); $event.stopPropagation()">
