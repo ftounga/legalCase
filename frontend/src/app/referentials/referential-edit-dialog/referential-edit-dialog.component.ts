@@ -18,6 +18,8 @@ export interface ReferentialEditDialogResult {
   label: string;
   valueJson: string;
   force: boolean;
+  /** SF-140-03 : description métier éditable par l'admin (empty → pas mise à jour). */
+  description: string;
 }
 
 const PENSION_ROWS = [
@@ -56,6 +58,11 @@ export class ReferentialEditDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: ReferentialEditDialogData
   ) {
     this.form = this.buildForm(data);
+    // SF-140-03 : champ description commun à tous les types de référentiel.
+    this.form.addControl(
+      'description',
+      this.fb.control(data.entry.description ?? '', [Validators.maxLength(2000)])
+    );
   }
 
   // ---- FormArray getters (pour le template) -------------------------------
@@ -440,10 +447,12 @@ export class ReferentialEditDialogComponent {
 
   submit(): void {
     if (this.form.invalid) return;
+    const raw = this.form.getRawValue();
     this.dialogRef.close({
-      label:     this.form.getRawValue().label,
-      valueJson: this.serializeValueJson(),
-      force:     false,
+      label:       raw.label,
+      valueJson:   this.serializeValueJson(),
+      force:       false,
+      description: (raw.description ?? '').trim(),
     });
   }
 

@@ -82,7 +82,7 @@ public class ReferentialController {
 
         ReferentialUpdateResponse response = referentialService.updateReferential(
                 id, workspaceId, userId,
-                request.label(), request.valueJson(), request.force(),
+                request.label(), request.valueJson(), request.force(), request.description(),
                 validationService);
 
         return ResponseEntity.ok(response);

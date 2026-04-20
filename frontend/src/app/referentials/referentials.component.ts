@@ -339,7 +339,7 @@ export class ReferentialsComponent implements OnInit {
 
   private submitUpdate(entry: EntryWithAlert, result: ReferentialEditDialogResult): void {
     if (!entry.id) return;
-    this.referentialService.updateReferential(entry.id, result.label, result.valueJson, result.force)
+    this.referentialService.updateReferential(entry.id, result.label, result.valueJson, result.force, result.description)
       .subscribe({
         next: response => {
           if (response.saved) {

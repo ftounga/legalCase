@@ -42,6 +42,18 @@ public class LegalReferentialService {
                                                        String newLabel, String newValueJson,
                                                        boolean force,
                                                        ReferentialValidationService validationService) {
+        return updateReferential(entryId, workspaceId, userId, newLabel, newValueJson, force, null, validationService);
+    }
+
+    /**
+     * SF-140-03 : surcharge avec description. Rétrocompat préservée via la méthode
+     * ci-dessus qui passe null.
+     */
+    @Transactional
+    public ReferentialUpdateResponse updateReferential(UUID entryId, UUID workspaceId, UUID userId,
+                                                       String newLabel, String newValueJson,
+                                                       boolean force, String newDescription,
+                                                       ReferentialValidationService validationService) {
         LegalReferential source = repository.findById(entryId)
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND, "Référentiel introuvable"));
@@ -97,6 +109,10 @@ public class LegalReferentialService {
         // System entries: label is locked — always use source label
         target.setLabel(source.getWorkspaceId() == null ? source.getLabel() : newLabel);
         target.setValueJson(newValueJson);
+        // SF-140-03 : description optionnelle — seulement mise à jour si fournie.
+        if (newDescription != null && !newDescription.isBlank()) {
+            target.setDescription(newDescription);
+        }
         target.setUpdatedAt(Instant.now());
         target.setUpdatedBy(userId);
         LegalReferential saved = repository.save(target);
