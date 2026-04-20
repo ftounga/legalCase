@@ -412,6 +412,17 @@
         </mat-form-field>
       }
     }
+
+    <!-- SF-140-03 : description métier commune à tous les types -->
+    <mat-form-field appearance="outline" class="full-width description-field">
+      <mat-label>Description métier (optionnelle)</mat-label>
+      <textarea matInput formControlName="description" rows="4"
+                placeholder="Comment cette entrée est utilisée dans votre cabinet, particularités à connaître, limites d'application…"></textarea>
+      <mat-hint align="end">{{ (form.get('description')?.value?.length ?? 0) }}/2000</mat-hint>
+      @if (form.get('description')?.hasError('maxlength')) {
+        <mat-error>Description trop longue (maximum 2000 caractères).</mat-error>
+      }
+    </mat-form-field>
   </form>
 </mat-dialog-content>
 

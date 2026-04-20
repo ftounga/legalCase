@@ -162,6 +162,7 @@ Ces situations déclenchent un refus immédiat. Répondre avec le format de refu
 | Préoccupation transversale cochée sans liste de composants impactés dans la mini-spec | BLOCAGE — compléter l'analyse d'impact avant de continuer |
 | Smoke tests E2E échouent après implémentation d'une préoccupation transversale | BLOCAGE — corriger avant push |
 | Ajout backlog ou SF touchant un outil décisionnel métier sans scan systématique des autres outils décisionnels | REFUS — scanner tous les outils décisionnels existants, classer chacun (déjà séparé / multi-situations à scinder / paramétrage simple), inclure les cas jumeaux dans le périmètre ou ouvrir des features jumelles au backlog avant de continuer |
+| Migration Liquibase qui INSERT une entry `legal_referentials` avec `is_system=true` sans la colonne `description` renseignée | REFUS — ajouter `description` (texte en langage avocat — ce que c'est, par quel outil c'est utilisé, comment l'ajuster). Seuls les 7 types à description riche native dans `value_json` (`LICENCIEMENT_CRITERES`, `RUPTURE_CONV_CRITERES`, `IMMIGRATION_TITLES`, `IMMIGRATION_RECOURS`, `IMMIGRATION_WORK_RIGHTS`, `DIVORCE_ETAPES`, `DIVORCE_PIECES`) en sont exemptés. Le test `LegalReferentialDescriptionIntegrityIT` échoue automatiquement en CI si la règle est violée (garde-fou F-140 SF-140-03). |
 
 **Format de refus standard :**
 ```

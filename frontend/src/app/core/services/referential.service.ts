@@ -13,8 +13,12 @@ export class ReferentialService {
     });
   }
 
-  updateReferential(id: string, label: string, valueJson: string, force: boolean): Observable<ReferentialUpdateResponse> {
-    return this.http.put<ReferentialUpdateResponse>(`/api/v1/referentials/${id}`, { label, valueJson, force });
+  updateReferential(id: string, label: string, valueJson: string, force: boolean,
+                    description?: string): Observable<ReferentialUpdateResponse> {
+    return this.http.put<ReferentialUpdateResponse>(
+      `/api/v1/referentials/${id}`,
+      { label, valueJson, force, description: description ?? null }
+    );
   }
 
   getPendingAlertsCount(): Observable<{ count: number }> {
