@@ -216,6 +216,68 @@ class LegalReferentialServiceTest {
         assertThat(response.sections()).isEmpty();
     }
 
+    // --- SF-137-01 : filtrage pays workspace ---
+
+    private LegalReferential sysEntry(String type, String key, String country, String value) {
+        LegalReferential e = new LegalReferential();
+        e.setReferentialType(type);
+        e.setEntryKey(key);
+        e.setLabel(key + " label");
+        e.setCountry(country);
+        e.setValueJson(value);
+        e.setSystem(true);
+        e.setActive(true);
+        return e;
+    }
+
+    @Test
+    void getReferentials_workspaceFR_masque_entries_BE_garde_globales_et_FR() {
+        var conventionFR = sysEntry("CONVENTION_BAREMES", "IDCC_3248", "FRANCE", "{}");
+        var conventionBE = sysEntry("CONVENTION_BAREMES", "CP200", "BELGIQUE", "{}");
+        var litigeGlobal = sysEntry("LITIGATION_TYPE", "DISCRIMINATION", null, "{}");
+        when(repository.findActiveByDomain(any(), any())).thenReturn(List.of(conventionFR, conventionBE, litigeGlobal));
+
+        ReferentialResponse response = service.getReferentials("DROIT_DU_TRAVAIL", UUID.randomUUID(), "FRANCE");
+
+        assertThat(response.sections().get("CONVENTION_BAREMES"))
+                .extracting(ReferentialResponse.Entry::key)
+                .containsExactly("IDCC_3248");
+        assertThat(response.sections().get("LITIGATION_TYPE"))
+                .extracting(ReferentialResponse.Entry::key)
+                .containsExactly("DISCRIMINATION");
+    }
+
+    @Test
+    void getReferentials_workspaceBE_masque_entries_FR_garde_globales_et_BE() {
+        var conventionFR = sysEntry("CONVENTION_BAREMES", "IDCC_3248", "FRANCE", "{}");
+        var conventionBE = sysEntry("CONVENTION_BAREMES", "CP200", "BELGIQUE", "{}");
+        var litigeGlobal = sysEntry("LITIGATION_TYPE", "DISCRIMINATION", null, "{}");
+        when(repository.findActiveByDomain(any(), any())).thenReturn(List.of(conventionFR, conventionBE, litigeGlobal));
+
+        ReferentialResponse response = service.getReferentials("DROIT_DU_TRAVAIL", UUID.randomUUID(), "BELGIQUE");
+
+        assertThat(response.sections().get("CONVENTION_BAREMES"))
+                .extracting(ReferentialResponse.Entry::key)
+                .containsExactly("CP200");
+        assertThat(response.sections().get("LITIGATION_TYPE"))
+                .extracting(ReferentialResponse.Entry::key)
+                .containsExactly("DISCRIMINATION");
+    }
+
+    @Test
+    void getReferentials_workspaceCountryNull_noFiltering() {
+        var conventionFR = sysEntry("CONVENTION_BAREMES", "IDCC_3248", "FRANCE", "{}");
+        var conventionBE = sysEntry("CONVENTION_BAREMES", "CP200", "BELGIQUE", "{}");
+        when(repository.findActiveByDomain(any(), any())).thenReturn(List.of(conventionFR, conventionBE));
+
+        // Signature 2-arg préserve rétrocompat (ne filtre pas)
+        ReferentialResponse response = service.getReferentials("DROIT_DU_TRAVAIL", UUID.randomUUID());
+
+        assertThat(response.sections().get("CONVENTION_BAREMES"))
+                .extracting(ReferentialResponse.Entry::key)
+                .containsExactlyInAnyOrder("IDCC_3248", "CP200");
+    }
+
     // --- updateReferential ---
 
     private ReferentialValidationService mockValidationOk() {
