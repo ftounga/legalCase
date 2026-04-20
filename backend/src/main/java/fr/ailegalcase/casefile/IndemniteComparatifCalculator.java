@@ -14,7 +14,7 @@ public final class IndemniteComparatifCalculator {
     static final Set<String> TYPES_RUPTURE_FR = Set.of(
             "LICENCIEMENT", "LICENCIEMENT_ECONOMIQUE");
     static final Set<String> TYPES_RUPTURE_BE = Set.of(
-            "LICENCIEMENT_ORDINAIRE", "RUPTURE_AMIABLE");
+            "LICENCIEMENT_ORDINAIRE");
 
     private IndemniteComparatifCalculator() {}
 
@@ -76,18 +76,9 @@ public final class IndemniteComparatifCalculator {
     }
 
     private static IndemniteComparatifResult calculateBelgique(String typeRupture, int anciennete, int age, BigDecimal salaire) {
-        if ("RUPTURE_AMIABLE".equals(typeRupture)) {
-            return IndemniteComparatifResult.negociationLibre(
-                    "BELGIQUE", typeRupture, anciennete, age, salaire,
-                    "Rupture amiable (sans cadre légal spécifique)",
-                    "Négociation libre entre les parties.",
-                    List.of(
-                            "Aucun barème ne s'impose en rupture amiable belge.",
-                            "Le salarié conserve le droit à l'indemnité compensatoire de préavis si la rupture n'est pas effective (cf. F-DT-05)."
-                    ));
-        }
-
-        // LICENCIEMENT_ORDINAIRE : fourchette CCT 109
+        // SF-132-03 : la branche RUPTURE_AMIABLE a été extraite vers un outil
+        // purement informationnel côté frontend (rupture-amiable-info-section).
+        // Ce calculateur ne gère plus que le barème CCT 109 (LICENCIEMENT_ORDINAIRE).
         BigDecimal[] fourchette = IndemniteJurisprudentielReferentiel.getFourchetteBelgique(anciennete, age);
         BigDecimal diviseur = new BigDecimal("4.33");
         BigDecimal plancherMois = IndemniteJurisprudentielReferentiel.getCct109MinSemaines()

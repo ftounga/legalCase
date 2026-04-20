@@ -91,13 +91,13 @@ class IndemniteComparatifCalculatorTest {
     }
 
     @Test
-    void belgique_ruptureAmiable_returnsNegociationLibre() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "BELGIQUE", "RUPTURE_AMIABLE", 5, 35, new BigDecimal("2500"));
-        assertThat(r.displayMode()).isEqualTo("NEGOCIATION_LIBRE");
-        assertThat(r.indemniteLegaleMontant()).isNull();
-        assertThat(r.fourchetteBasseMontant()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(r.contextualMessages()).anyMatch(m -> m.contains("Aucun barème"));
+    void belgique_ruptureAmiable_throws() {
+        // SF-132-03 : la rupture amiable belge n'a plus de barème dans ce calculateur —
+        // outil frontend informationnel dédié (rupture-amiable-info-section).
+        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
+                "BELGIQUE", "RUPTURE_AMIABLE", 5, 35, new BigDecimal("2500")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("invalide pour BELGIQUE");
     }
 
     @Test

@@ -1,0 +1,21 @@
+<section class="rai-section">
+  <header class="rai-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rai-body">
+    <mat-icon class="rai-icon">handshake</mat-icon>
+    <span class="rai-title">RUPTURE AMIABLE — CADRE JURIDIQUE</span>
+    <mat-icon class="rai-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rai-body" class="rai-body">
+      <ul class="rai-messages">
+        @for (m of messages; track m) {
+          <li>
+            <mat-icon class="rai-bullet">info</mat-icon>
+            <span>{{ m }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</section>

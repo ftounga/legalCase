@@ -60,19 +60,19 @@ describe('IndemniteComparatifSectionComponent', () => {
 
   // ---- Type de rupture (SF-DT-09-04) ----
 
-  it('should list 3 FR options when country is FRANCE', () => {
+  it('should list 2 FR options when country is FRANCE (SF-132-02 : sans RUPTURE_CONVENTIONNELLE)', () => {
     initNo();
     component.country.set('FRANCE');
     expect(component.typeRuptureOptions().map(o => o.value)).toEqual([
-      'LICENCIEMENT', 'LICENCIEMENT_ECONOMIQUE', 'RUPTURE_CONVENTIONNELLE'
+      'LICENCIEMENT', 'LICENCIEMENT_ECONOMIQUE'
     ]);
   });
 
-  it('should list 2 BE options when country is BELGIQUE', () => {
+  it('should list 1 BE option when country is BELGIQUE (SF-132-03 : sans RUPTURE_AMIABLE)', () => {
     initNo();
     component.country.set('BELGIQUE');
     expect(component.typeRuptureOptions().map(o => o.value)).toEqual([
-      'LICENCIEMENT_ORDINAIRE', 'RUPTURE_AMIABLE'
+      'LICENCIEMENT_ORDINAIRE'
     ]);
   });
 
@@ -85,19 +85,19 @@ describe('IndemniteComparatifSectionComponent', () => {
 
   it('should send typeRupture in POST payload', () => {
     initNo();
-    component.typeRupture.set('RUPTURE_CONVENTIONNELLE');
+    component.typeRupture.set('LICENCIEMENT_ECONOMIQUE');
     component.calculate();
     const r = httpMock.expectOne(API_URL);
-    expect(r.request.body.typeRupture).toBe('RUPTURE_CONVENTIONNELLE');
-    r.flush({ ...MOCK, typeRupture: 'RUPTURE_CONVENTIONNELLE', displayMode: 'INDEMNITE_SPECIFIQUE', indemniteLegaleMontant: 12500, contextualMessages: [] });
+    expect(r.request.body.typeRupture).toBe('LICENCIEMENT_ECONOMIQUE');
+    r.flush({ ...MOCK, typeRupture: 'LICENCIEMENT_ECONOMIQUE', displayMode: 'MACRON', indemniteLegaleMontant: null, contextualMessages: [] });
   });
 
   it('should prefill typeRupture from compensationEstimate', () => {
     component.synthesis = {
-      compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' }
+      compensationEstimate: { typeRupture: 'LICENCIEMENT_ECONOMIQUE' }
     } as any;
     initNo();
-    expect(component.typeRupture()).toBe('RUPTURE_CONVENTIONNELLE');
+    expect(component.typeRupture()).toBe('LICENCIEMENT_ECONOMIQUE');
     expect(component.typeRuptureNote()).toBeNull();
   });
 
