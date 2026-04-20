@@ -127,6 +127,8 @@ export interface TravailExtractedData {
   dateLicenciement?: string | null;
   congesContractuels?: number | null;
   primeAncienneteContractuelle?: number | null;
+  /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */
+  salaireEstDeduit?: boolean | null;
 }
 
 export interface ImmigrationExtractedData {

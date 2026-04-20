@@ -52,7 +52,9 @@ public record CaseAnalysisResponse(
             String nomSalarie, String prenomSalarie, String adresseSalarie,
             String nomEmployeur, String adresseEmployeur,
             String siretEmployeur, String bceEmployeur,
-            String representantEmployeur) {
+            String representantEmployeur,
+            // SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via conversion × 1,30
+            Boolean salaireEstDeduit) {
 
         /** Constructeur rétrocompat 9 champs (avant SF-DT-04-04). */
         public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
@@ -61,7 +63,24 @@ public record CaseAnalysisResponse(
             this(conventionCollective, dateEntree, salaireBrutMensuel,
                     typeContrat, poste, motifLicenciement, dateLicenciement,
                     congesContractuels, primeAncienneteContractuelle,
-                    null, null, null, null, null, null, null, null);
+                    null, null, null, null, null, null, null, null, null);
+        }
+
+        /** Constructeur rétrocompat 17 champs (avant SF-130-01). */
+        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
+                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
+                                     Integer congesContractuels, Double primeAncienneteContractuelle,
+                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
+                                     String nomEmployeur, String adresseEmployeur,
+                                     String siretEmployeur, String bceEmployeur,
+                                     String representantEmployeur) {
+            this(conventionCollective, dateEntree, salaireBrutMensuel,
+                    typeContrat, poste, motifLicenciement, dateLicenciement,
+                    congesContractuels, primeAncienneteContractuelle,
+                    nomSalarie, prenomSalarie, adresseSalarie,
+                    nomEmployeur, adresseEmployeur,
+                    siretEmployeur, bceEmployeur,
+                    representantEmployeur, null);
         }
     }
 
@@ -616,7 +635,9 @@ public record CaseAnalysisResponse(
                     textOrNull(node, "adresse_employeur"),
                     normalizeFrIdentifier(textOrNull(node, "siret_employeur")),
                     normalizeBeBceIdentifier(textOrNull(node, "bce_employeur")),
-                    textOrNull(node, "representant_employeur")
+                    textOrNull(node, "representant_employeur"),
+                    // SF-130-01 : flag IA "salaire déduit d'un net"
+                    booleanOrNull(node, "salaire_est_deduit")
             );
         } catch (Exception ignored) { return null; }
     }
@@ -728,5 +749,17 @@ public record CaseAnalysisResponse(
 
     private static Integer intOrNull(JsonNode node, String field) {
         return node.has(field) && !node.get(field).isNull() ? node.get(field).intValue() : null;
+    }
+
+    private static Boolean booleanOrNull(JsonNode node, String field) {
+        if (!node.has(field) || node.get(field).isNull()) return null;
+        JsonNode v = node.get(field);
+        if (v.isBoolean()) return v.asBoolean();
+        if (v.isTextual()) {
+            String s = v.asText().toLowerCase();
+            if ("true".equals(s)) return true;
+            if ("false".equals(s)) return false;
+        }
+        return null;
     }
 }

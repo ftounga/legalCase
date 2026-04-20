@@ -75,7 +75,8 @@ public final class LegalDomainPromptBuilder {
             "travail_extracted_data" : objet avec les champs :
               "convention_collective" : code identifiant la convention collective détectée. FORMAT ATTENDU : numéro IDCC officiel sur 4 chiffres préfixé par "IDCC_" (ex: "IDCC_3043" pour Propreté, "IDCC_3248" pour Métallurgie, "IDCC_1486" pour Syntec, "IDCC_2216" pour Commerce de détail). Pour la Belgique, utiliser le format "CP{numéro}" (ex: "CP200"). Si la convention est identifiable mais que son numéro IDCC exact n'est pas certain, retourner un code descriptif en MAJUSCULES (ex: "NETTOYAGE"). Retourner null si aucune convention n'est détectable.
               "date_entree" : date d'entrée dans l'entreprise au format YYYY-MM-DD, null si non détectable.
-              "salaire_brut_mensuel" : salaire brut mensuel en euros (nombre), null si non détectable.
+              "salaire_brut_mensuel" : salaire brut mensuel en euros (nombre). Si les documents mentionnent UNIQUEMENT un salaire net (pas de brut explicite), applique la conversion approximative brut ≈ net × 1,30 (moyenne FR non-cadre) et positionne "salaire_est_deduit": true. Si brut explicite détecté → omets "salaire_est_deduit" ou le positionnes à false. Null uniquement si AUCUN salaire (ni brut ni net) n'est détectable.
+              "salaire_est_deduit" : booléen optionnel (true/false/null). True quand salaire_brut_mensuel a été déduit d'un net via la conversion × 1,30. False ou null sinon.
               "type_contrat" : type de contrat détecté ("CDI", "CDD", "INTERIM"), null si non détectable.
               "poste" : intitulé du poste occupé, null si non détectable.
               "motif_licenciement" : motif du licenciement si détecté (texte libre), null si non détectable.
