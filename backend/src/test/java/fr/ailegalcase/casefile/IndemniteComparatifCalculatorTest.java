@@ -81,16 +81,13 @@ class IndemniteComparatifCalculatorTest {
     }
 
     @Test
-    void france_ruptureConventionnelle_returnsIndemniteLegale() {
-        IndemniteComparatifResult r = IndemniteComparatifCalculator.calculate(
-                "FRANCE", "RUPTURE_CONVENTIONNELLE", 12, 40, new BigDecimal("3000"));
-        assertThat(r.displayMode()).isEqualTo("INDEMNITE_SPECIFIQUE");
-        assertThat(r.indemniteLegaleMontant()).isNotNull();
-        // 12 ans : 10×0.25 + 2×(1/3) = 2.5 + 0.666... = 3.1666...
-        // × 3000 = 9500 (exact avec la précision 4 du calcul interne)
-        assertThat(r.indemniteLegaleMontant())
-                .isEqualByComparingTo(new BigDecimal("9500.00"));
-        assertThat(r.contextualMessages()).anyMatch(m -> m.contains("L1237-13"));
+    void france_ruptureConventionnelle_throws() {
+        // SF-132-02 : l'outil Macron ne gère plus la rupture conventionnelle.
+        // Cette situation a son propre outil : RuptureConvIndemniteCalculator.
+        assertThatThrownBy(() -> IndemniteComparatifCalculator.calculate(
+                "FRANCE", "RUPTURE_CONVENTIONNELLE", 12, 40, new BigDecimal("3000")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("invalide pour FRANCE");
     }
 
     @Test
@@ -130,24 +127,7 @@ class IndemniteComparatifCalculatorTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    @Test
-    void indemniteLegale_lessThanOneYear_returnsZero() {
-        assertThat(IndemniteComparatifCalculator.computeIndemniteLegaleLicenciement(0, new BigDecimal("3000")))
-                .isEqualByComparingTo(BigDecimal.ZERO);
-    }
-
-    @Test
-    void indemniteLegale_10ansPile() {
-        // 10 ans × 0.25 × 3000 = 7500
-        assertThat(IndemniteComparatifCalculator.computeIndemniteLegaleLicenciement(10, new BigDecimal("3000")))
-                .isEqualByComparingTo(new BigDecimal("7500.00"));
-    }
-
-    @Test
-    void indemniteLegale_15ans() {
-        // 10 × 0.25 + 5 × (1/3) = 2.5 + 1.6666... = 4.1666...
-        // × 3000 = 12500 (exact)
-        assertThat(IndemniteComparatifCalculator.computeIndemniteLegaleLicenciement(15, new BigDecimal("3000")))
-                .isEqualByComparingTo(new BigDecimal("12500.00"));
-    }
+    // Les tests de indemniteLegale_* (0/10/15 ans) ont été migrés vers
+    // RuptureConvIndemniteCalculatorTest (SF-132-01) puisque la méthode
+    // computeIndemniteLegaleLicenciement a été extraite.
 }

@@ -445,14 +445,21 @@
         [aiData]="synthesis()?.travailExtractedData">
       </app-anciennete-section>
 
-      <app-indemnite-comparatif-section
-        [caseFileId]="caseFile()!.id"
-        [workspaceCountry]="workspaceCountry()"
-        [aiData]="synthesis()?.travailExtractedData"
-        [synthesis]="synthesis()"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()">
-      </app-indemnite-comparatif-section>
+      @if (showRuptureConvIndemnite()) {
+        <app-rupture-conv-indemnite-section
+          [caseFileId]="caseFile()!.id"
+          [synthesis]="synthesis()">
+        </app-rupture-conv-indemnite-section>
+      } @else {
+        <app-indemnite-comparatif-section
+          [caseFileId]="caseFile()!.id"
+          [workspaceCountry]="workspaceCountry()"
+          [aiData]="synthesis()?.travailExtractedData"
+          [synthesis]="synthesis()"
+          [procedureChecks]="procedureChecks()"
+          [aiQuestions]="questions()">
+        </app-indemnite-comparatif-section>
+      }
     }
 
     @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'FRANCE') {

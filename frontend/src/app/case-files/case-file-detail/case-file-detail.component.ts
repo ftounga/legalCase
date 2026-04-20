@@ -60,6 +60,7 @@ import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/d
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
+import { RuptureConvIndemniteSectionComponent } from '../rupture-conv-indemnite-section/rupture-conv-indemnite-section.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
@@ -82,7 +83,7 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     ImmigrationRecoursSectionComponent, ImmigrationWorkRightSectionComponent,
     AncienneteSectionComponent, LicenciementSectionComponent,
     IndemniteComparatifSectionComponent, PartageImmobilierSectionComponent, CalendrierGardeSectionComponent, DivorceChecklistSectionComponent,
-    RuptureConvSectionComponent,
+    RuptureConvSectionComponent, RuptureConvIndemniteSectionComponent,
     CaseDashboardComponent, AnalysisPipelineComponent
   ],
   templateUrl: './case-file-detail.component.html',
@@ -167,6 +168,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   readonly showValiditeRuptureConv = computed(() => {
     const type = this.synthesis()?.compensationEstimate?.typeRupture;
     return type === 'RUPTURE_CONVENTIONNELLE' && this.workspaceCountry() === 'FRANCE';
+  });
+
+  // SF-132-02 : outil dédié "Indemnité rupture conventionnelle" (F-132).
+  // Remplace la branche RUPTURE_CONVENTIONNELLE de F-DT-09 quand applicable.
+  readonly showRuptureConvIndemnite = computed(() => {
+    const type = this.synthesis()?.compensationEstimate?.typeRupture;
+    return type === 'RUPTURE_CONVENTIONNELLE'
+        && this.workspaceCountry() === 'FRANCE'
+        && this.caseFile()?.legalDomain === 'DROIT_DU_TRAVAIL';
   });
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'preview', 'actions'];

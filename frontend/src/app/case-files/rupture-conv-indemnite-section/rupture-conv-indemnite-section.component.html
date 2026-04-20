@@ -1,0 +1,76 @@
+<section class="rci-section">
+  <header class="rci-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rci-body">
+    <mat-icon class="rci-icon">euro_symbol</mat-icon>
+    <span class="rci-title">INDEMNITÉ RUPTURE CONVENTIONNELLE</span>
+    @if (result()) {
+      <span class="rci-chip">{{ result()!.indemniteLegaleMinimum | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="rci-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rci-body" class="rci-body">
+      @if (loading()) {
+        <div class="rci-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="rci-form" (ngSubmit)="calculate()">
+            <mat-form-field appearance="outline">
+              <mat-label>Ancienneté (années complètes)</mat-label>
+              <input matInput type="number" min="0" step="1"
+                     [ngModel]="ancienneteAnnees()"
+                     (ngModelChange)="ancienneteAnnees.set($event)"
+                     name="ancienneteAnnees" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+              <input matInput type="number" min="0.01" step="0.01"
+                     [ngModel]="salaireMensuel()"
+                     (ngModelChange)="salaireMensuel.set($event)"
+                     name="salaireMensuel" required />
+            </mat-form-field>
+
+            <div class="rci-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="rci-result">
+            <div class="rci-amount-block">
+              <span class="rci-amount-label">Indemnité légale de licenciement (minimum applicable)</span>
+              <span class="rci-amount">{{ result()!.indemniteLegaleMinimum | number:'1.0-2' }} €</span>
+              <span class="rci-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="rci-meta">
+              <span class="rci-meta-base">{{ result()!.baseJuridique }}</span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="rci-messages">
+                @for (m of result()!.messages; track m) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
