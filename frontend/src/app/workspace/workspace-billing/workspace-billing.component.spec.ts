@@ -22,10 +22,14 @@ describe('WorkspaceBillingComponent', () => {
 
   beforeEach(async () => {
     workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
-    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession']);
+    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession', 'getSeatsSummary']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
+    billingServiceSpy.getSeatsSummary.mockReturnValue(of({
+      planCode: 'SOLO', seatCount: 1, includedSeats: 1, maxSeats: 1,
+      extraSeatPriceCents: 0, baseMonthlyCostCents: 9900, totalMonthlyCostCents: 9900
+    }));
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceBillingComponent, NoopAnimationsModule],
@@ -157,9 +161,13 @@ describe('WorkspaceBillingComponent — topup query params', () => {
 
   const setupWith = async (queryParams: Record<string, string>) => {
     workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
-    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession']);
+    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession', 'getSeatsSummary']);
     snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
+    billingServiceSpy.getSeatsSummary.mockReturnValue(of({
+      planCode: 'SOLO', seatCount: 1, includedSeats: 1, maxSeats: 1,
+      extraSeatPriceCents: 0, baseMonthlyCostCents: 9900, totalMonthlyCostCents: 9900
+    }));
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceBillingComponent, NoopAnimationsModule],
@@ -201,5 +209,60 @@ describe('WorkspaceBillingComponent — topup query params', () => {
     expect(snackBarSpy.open).toHaveBeenCalledWith(
       'Achat de pages OCR annulé.', 'Fermer', expect.objectContaining({ duration: 4000 })
     );
+  });
+});
+
+describe('WorkspaceBillingComponent — SF-123-03 seats section', () => {
+  let component: WorkspaceBillingComponent;
+  let fixture: ComponentFixture<WorkspaceBillingComponent>;
+  let billingServiceSpy: jest.Mocked<BillingService>;
+
+  beforeEach(async () => {
+    const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
+    billingServiceSpy = jasmine.createSpyObj('BillingService', ['createCheckoutSession', 'createTopupSession', 'getSeatsSummary']);
+    const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+
+    workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of(mockWorkspace));
+    billingServiceSpy.getSeatsSummary.mockReturnValue(of({
+      planCode: 'TEAM', seatCount: 4, includedSeats: 3, maxSeats: 6,
+      extraSeatPriceCents: 5900, baseMonthlyCostCents: 21900, totalMonthlyCostCents: 27800
+    }));
+
+    await TestBed.configureTestingModule({
+      imports: [WorkspaceBillingComponent, NoopAnimationsModule],
+      providers: [
+        { provide: WorkspaceService, useValue: workspaceServiceSpy },
+        { provide: BillingService, useValue: billingServiceSpy },
+        { provide: MatSnackBar, useValue: snackBarSpy },
+        { provide: ActivatedRoute, useValue: { queryParams: of({}) } },
+        { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(WorkspaceBillingComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('charge le résumé seats au init', () => {
+    expect(billingServiceSpy.getSeatsSummary).toHaveBeenCalled();
+    expect(component.seatsSummary()?.planCode).toBe('TEAM');
+  });
+
+  it('seatsCostEuros — 27800 cents → 278 €', () => {
+    const s = component.seatsSummary()!;
+    expect(component.seatsCostEuros(s)).toBe(278);
+  });
+
+  it('extraSeats — seatCount - includedSeats', () => {
+    const s = component.seatsSummary()!;
+    expect(component.extraSeats(s)).toBe(1);
+  });
+
+  it('section Utilisateurs actifs rendue dans le DOM', () => {
+    const html = fixture.nativeElement as HTMLElement;
+    expect(html.textContent).toContain('Utilisateurs actifs');
+    expect(html.textContent).toContain('Team');
+    expect(html.textContent).toContain('278 €');
   });
 });

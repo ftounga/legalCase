@@ -7,16 +7,18 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { interval, Subscription, switchMap, takeWhile } from 'rxjs';
+import { RouterLink } from '@angular/router';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { BillingService } from '../../core/services/billing.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { Workspace } from '../../core/models/workspace.model';
+import { SeatsSummary } from '../../core/models/seats-summary.model';
 import { fadeInUp } from '../../shared/animations';
 
 @Component({
   selector: 'app-workspace-billing',
   standalone: true,
-  imports: [MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './workspace-billing.component.html',
   styleUrl: './workspace-billing.component.scss',
   animations: [fadeInUp],
@@ -26,6 +28,7 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
   workspace = signal<Workspace | null>(null);
   upgrading = signal<string | null>(null);
   buying = signal<string | null>(null);
+  seatsSummary = signal<SeatsSummary | null>(null);
   private pollSub?: Subscription;
 
   readonly tokenPacks = [
@@ -128,6 +131,12 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
       error: () => {}
     });
 
+    // SF-123-03 : résumé seats — silencieux en cas d'erreur (non-critique pour la page)
+    this.billingService.getSeatsSummary().subscribe({
+      next: s => this.seatsSummary.set(s),
+      error: () => this.seatsSummary.set(null)
+    });
+
     this.route.queryParams.subscribe(params => {
       if (params['success'] === 'true') {
         this.snackBar.open('Paiement confirmé — mise à jour du plan en cours…', 'Fermer', {
@@ -217,5 +226,19 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     const ws = this.workspace();
     if (!ws || ws.planCode !== 'FREE' || !ws.expiresAt) return false;
     return new Date(ws.expiresAt) < new Date();
+  }
+
+  // SF-123-03 : helpers section Utilisateurs actifs
+  seatsCostEuros(s: SeatsSummary): number {
+    return Math.round(s.totalMonthlyCostCents / 100);
+  }
+
+  extraSeats(s: SeatsSummary): number {
+    return Math.max(0, s.seatCount - s.includedSeats);
+  }
+
+  seatsPlanLabel(plan: string): string {
+    const l: Record<string, string> = { FREE: 'Free', SOLO: 'Solo', TEAM: 'Team', PRO: 'Pro' };
+    return l[plan] ?? plan;
   }
 }

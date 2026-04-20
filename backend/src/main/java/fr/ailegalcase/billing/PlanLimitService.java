@@ -63,6 +63,17 @@ public class PlanLimitService {
     static final int TEAM_MAX_SEATS = 6;
     static final int PRO_MAX_SEATS  = Integer.MAX_VALUE;
 
+    // Prix mensuels en centimes TTC (aligne avec Stripe Dashboard V2 tiered pricing).
+    static final int FREE_BASE_MONTHLY_CENTS = 0;
+    static final int SOLO_BASE_MONTHLY_CENTS = 9900;   // 99 €
+    static final int TEAM_BASE_MONTHLY_CENTS = 21900;  // 219 €
+    static final int PRO_BASE_MONTHLY_CENTS  = 42900;  // 429 €
+
+    static final int FREE_EXTRA_SEAT_CENTS = 0;
+    static final int SOLO_EXTRA_SEAT_CENTS = 0;        // pas de seat supp sur SOLO
+    static final int TEAM_EXTRA_SEAT_CENTS = 5900;     // +59 €/user
+    static final int PRO_EXTRA_SEAT_CENTS  = 7900;     // +79 €/user
+
     // ── Quotas OCR (SF-122-02) ───────────────────────────────────────────
     static final int FREE_MONTHLY_OCR_PAGES =    100;
     static final int SOLO_MONTHLY_OCR_PAGES =    800;
@@ -350,6 +361,24 @@ public class PlanLimitService {
         return subscriptionRepository.findByWorkspaceId(workspaceId)
                 .map(Subscription::getPlanCode)
                 .orElse("FREE");
+    }
+
+    public int getBaseMonthlyCostCents(String planCode) {
+        return switch (planCode) {
+            case "PRO"  -> PRO_BASE_MONTHLY_CENTS;
+            case "TEAM" -> TEAM_BASE_MONTHLY_CENTS;
+            case "SOLO" -> SOLO_BASE_MONTHLY_CENTS;
+            default     -> FREE_BASE_MONTHLY_CENTS;
+        };
+    }
+
+    public int getExtraSeatPriceCents(String planCode) {
+        return switch (planCode) {
+            case "PRO"  -> PRO_EXTRA_SEAT_CENTS;
+            case "TEAM" -> TEAM_EXTRA_SEAT_CENTS;
+            case "SOLO" -> SOLO_EXTRA_SEAT_CENTS;
+            default     -> FREE_EXTRA_SEAT_CENTS;
+        };
     }
 
     public static int effectiveMonthlyUsage(Workspace ws, LocalDate today) {

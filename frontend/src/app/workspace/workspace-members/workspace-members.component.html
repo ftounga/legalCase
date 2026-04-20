@@ -8,6 +8,38 @@
       <mat-spinner diameter="40" />
     </div>
   } @else {
+    @if (seatsSummary(); as s) {
+      <div class="seats-banner">
+        <div class="seats-banner__main">
+          <span class="seats-banner__plan">Plan {{ planLabel(s.planCode) }}</span>
+          <span class="seats-banner__sep">·</span>
+          <span class="seats-banner__count">{{ seatsLabel(s) }}</span>
+          @if (s.totalMonthlyCostCents > 0) {
+            <span class="seats-banner__sep">·</span>
+            <span class="seats-banner__cost">{{ totalEuros(s) }} €/mois</span>
+          }
+        </div>
+        <div class="seats-banner__sub">
+          {{ s.includedSeats }} inclus
+          @if (s.seatCount > s.includedSeats) {
+            · {{ s.seatCount - s.includedSeats }} seat{{ s.seatCount - s.includedSeats > 1 ? 's' : '' }} supplémentaire{{ s.seatCount - s.includedSeats > 1 ? 's' : '' }}
+            (+{{ s.extraSeatPriceCents / 100 }} €/user)
+          }
+        </div>
+        <button mat-flat-button color="primary" class="seats-banner__action" (click)="openInviteDialog()">
+          <mat-icon>person_add</mat-icon>
+          Inviter un membre
+        </button>
+      </div>
+    } @else {
+      <div class="seats-banner seats-banner--fallback">
+        <button mat-flat-button color="primary" class="seats-banner__action" (click)="openInviteDialog()">
+          <mat-icon>person_add</mat-icon>
+          Inviter un membre
+        </button>
+      </div>
+    }
+
     <!-- Membres -->
     <section class="section-card">
       <h3>Membres actifs</h3>
@@ -89,36 +121,6 @@
       @if (invitations.length === 0) {
         <p class="empty-state">Aucune invitation en attente.</p>
       }
-    </section>
-
-    <!-- Formulaire invitation -->
-    <section class="section-card">
-      <h3>Inviter un membre</h3>
-      <form [formGroup]="inviteForm" (ngSubmit)="sendInvitation()" class="invite-form">
-        <mat-form-field appearance="outline">
-          <mat-label>Adresse email</mat-label>
-          <input matInput formControlName="email" type="email" placeholder="avocat@cabinet.fr" />
-          @if (inviteForm.get('email')?.hasError('required') && inviteForm.get('email')?.touched) {
-            <mat-error>L'email est requis</mat-error>
-          }
-          @if (inviteForm.get('email')?.hasError('email') && inviteForm.get('email')?.touched) {
-            <mat-error>Email invalide</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Rôle</mat-label>
-          <mat-select formControlName="role">
-            <mat-option value="ADMIN">Admin</mat-option>
-            <mat-option value="LAWYER">Avocat</mat-option>
-            <mat-option value="MEMBER">Membre</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <button mat-flat-button color="primary" type="submit" [disabled]="inviting || inviteForm.invalid">
-          @if (inviting) { <mat-spinner diameter="20" /> } @else { Envoyer l'invitation }
-        </button>
-      </form>
     </section>
   }
 </div>

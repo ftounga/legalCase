@@ -83,6 +83,45 @@
     </div>
   </div>
 
+  @if (seatsSummary(); as s) {
+    <div class="seats-section">
+      <h2 class="seats-title">Utilisateurs actifs</h2>
+      <div class="seats-card">
+        <div class="seats-row">
+          <div class="seats-label">Plan</div>
+          <div class="seats-value">{{ seatsPlanLabel(s.planCode) }}</div>
+        </div>
+        <div class="seats-row">
+          <div class="seats-label">Utilisateurs</div>
+          <div class="seats-value">
+            {{ s.seatCount }}
+            @if (s.maxSeats < 1000) { / {{ s.maxSeats }} } @else { (illimité) }
+          </div>
+        </div>
+        <div class="seats-row">
+          <div class="seats-label">Inclus dans le plan</div>
+          <div class="seats-value">{{ s.includedSeats }}</div>
+        </div>
+        @if (extraSeats(s) > 0) {
+          <div class="seats-row">
+            <div class="seats-label">Seats supplémentaires</div>
+            <div class="seats-value">
+              {{ extraSeats(s) }} × {{ s.extraSeatPriceCents / 100 }} € = {{ extraSeats(s) * s.extraSeatPriceCents / 100 }} €/mois
+            </div>
+          </div>
+        }
+        <div class="seats-row seats-row--total">
+          <div class="seats-label">Coût mensuel total</div>
+          <div class="seats-value seats-value--total">{{ seatsCostEuros(s) }} €</div>
+        </div>
+        <a mat-stroked-button color="primary" routerLink="/workspace/members" class="seats-cta">
+          <mat-icon>group</mat-icon>
+          Gérer les membres
+        </a>
+      </div>
+    </div>
+  }
+
   <div class="topup-section">
     <h2 class="topup-title">Acheter des pages OCR supplémentaires</h2>
     <p class="topup-subtitle">Les pages OCR achetées s'ajoutent à votre quota mensuel et permettent d'analyser des PDF scannés au-delà de votre forfait.</p>

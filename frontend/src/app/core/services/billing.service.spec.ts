@@ -60,4 +60,19 @@ describe('BillingService', () => {
   it('shouldShowTrialBanner — plan STARTER → false', () => {
     expect(service.shouldShowTrialBanner(starterWorkspace)).toBe(false);
   });
+
+  // SF-123-03 : résumé seats
+  it('getSeatsSummary — GET /api/v1/billing/seats-summary', () => {
+    const mockResponse = {
+      planCode: 'TEAM', seatCount: 4, includedSeats: 3, maxSeats: 6,
+      extraSeatPriceCents: 5900, baseMonthlyCostCents: 21900, totalMonthlyCostCents: 27800
+    };
+    service.getSeatsSummary().subscribe(res => {
+      expect(res.planCode).toBe('TEAM');
+      expect(res.totalMonthlyCostCents).toBe(27800);
+    });
+    const req = http.expectOne('/api/v1/billing/seats-summary');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockResponse);
+  });
 });
