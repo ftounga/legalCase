@@ -63,6 +63,11 @@ jobs:
           sed -i "s|IRSA_ROLE_ARN_PLACEHOLDER|${{ secrets.IRSA_BACKEND_ROLE_ARN }}|g" \
             k8s/base/backend/deployment.yaml
 
+          # SF-123-05 : recalculer le hash du secret pour préserver le placeholder
+          SECRETS_HASH=$(kubectl -n staging get secret backend-secrets -o yaml \
+            | sha256sum | cut -d' ' -f1 | head -c 16)
+          sed -i "s|SECRETS_HASH_PLACEHOLDER|$SECRETS_HASH|g" k8s/base/backend/deployment.yaml
+
           kubectl apply -k k8s/overlays/staging/
           kubectl rollout status deployment/legalcase-backend -n staging --timeout=120s
           kubectl rollout status deployment/legalcase-frontend -n staging --timeout=60s

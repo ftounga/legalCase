@@ -11,6 +11,12 @@ spec:
     metadata:
       labels:
         app: legalcase-backend
+      annotations:
+        # SF-123-05 : hash des secrets K8s injecté par le workflow CI/CD.
+        # Change à chaque fois que `backend-secrets` change, ce qui force
+        # K8s à redémarrer le pod (sinon `kubectl apply` sans changement
+        # d'image ne déclenche aucun rollout).
+        secrets-hash: SECRETS_HASH_PLACEHOLDER
     spec:
       serviceAccountName: legalcase-backend
       containers:
