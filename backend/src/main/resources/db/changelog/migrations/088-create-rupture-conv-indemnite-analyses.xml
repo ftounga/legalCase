@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="088-create-rupture-conv-indemnite-analyses" author="legalcase">
+        <comment>
+            SF-132-01 : table dédiée à l'outil décisionnel "Indemnité rupture
+            conventionnelle" (F-132). Extraction de la branche RUPTURE_CONVENTIONNELLE
+            de IndemniteComparatifCalculator en outil indépendant, pattern F-DT-10.
+        </comment>
+
+        <createTable tableName="rupture_conv_indemnite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rupture_conv_indemnite_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="anciennete_annees" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rupture_conv_indemnite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rupture_conv_indemnite_analyses_case_file"/>
+
+        <createIndex tableName="rupture_conv_indemnite_analyses"
+                     indexName="idx_rupture_conv_indemnite_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
