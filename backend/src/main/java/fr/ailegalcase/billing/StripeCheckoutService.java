@@ -28,14 +28,9 @@ public class StripeCheckoutService {
 
     private final boolean stripeEnabled;
     private final String secretKey;
-    // SF-123-01 : V1 price IDs conservés pour rétrocompat webhook (clients existants grandfather).
-    private final String priceIdSoloV1;
-    private final String priceIdTeamV1;
-    private final String priceIdProV1;
-    // SF-123-01 : V2 price IDs utilisés pour tous les nouveaux checkouts.
-    private final String priceIdSoloV2;
-    private final String priceIdTeamV2;
-    private final String priceIdProV2;
+    private final String priceIdSolo;
+    private final String priceIdTeam;
+    private final String priceIdPro;
     private final String frontendUrl;
     private final SubscriptionRepository subscriptionRepository;
     private final StripeCustomerService stripeCustomerService;
@@ -45,12 +40,9 @@ public class StripeCheckoutService {
     public StripeCheckoutService(
             @Value("${app.stripe.enabled:false}") boolean stripeEnabled,
             @Value("${app.stripe.secret-key:}") String secretKey,
-            @Value("${app.stripe.price-id-solo:}") String priceIdSoloV1,
-            @Value("${app.stripe.price-id-team:}") String priceIdTeamV1,
-            @Value("${app.stripe.price-id-pro:}") String priceIdProV1,
-            @Value("${app.stripe.price-id-solo-v2:}") String priceIdSoloV2,
-            @Value("${app.stripe.price-id-team-v2:}") String priceIdTeamV2,
-            @Value("${app.stripe.price-id-pro-v2:}") String priceIdProV2,
+            @Value("${app.stripe.price-id-solo:}") String priceIdSolo,
+            @Value("${app.stripe.price-id-team:}") String priceIdTeam,
+            @Value("${app.stripe.price-id-pro:}") String priceIdPro,
             @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
             SubscriptionRepository subscriptionRepository,
             StripeCustomerService stripeCustomerService,
@@ -58,12 +50,9 @@ public class StripeCheckoutService {
             WorkspaceMemberRepository workspaceMemberRepository) {
         this.stripeEnabled = stripeEnabled;
         this.secretKey = secretKey;
-        this.priceIdSoloV1 = priceIdSoloV1;
-        this.priceIdTeamV1 = priceIdTeamV1;
-        this.priceIdProV1 = priceIdProV1;
-        this.priceIdSoloV2 = priceIdSoloV2;
-        this.priceIdTeamV2 = priceIdTeamV2;
-        this.priceIdProV2 = priceIdProV2;
+        this.priceIdSolo = priceIdSolo;
+        this.priceIdTeam = priceIdTeam;
+        this.priceIdPro = priceIdPro;
         this.frontendUrl = frontendUrl;
         this.subscriptionRepository = subscriptionRepository;
         this.stripeCustomerService = stripeCustomerService;
@@ -100,13 +89,11 @@ public class StripeCheckoutService {
                     });
         }
 
-        // SF-123-01 : nouveaux checkouts utilisent la grille V2 (99/219/429 €).
-        // Les subscriptions V1 existantes gardent leur price_id Stripe — grandfather natif.
-        String priceId = resolveV2PriceId(planCode);
+        String priceId = resolvePriceId(planCode);
         if (priceId == null || priceId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Price ID V2 non configuré pour le plan " + planCode
-                    + " (variable d'environnement STRIPE_PRICE_ID_" + planCode + "_V2 manquante)");
+                    "Price ID non configuré pour le plan " + planCode
+                    + " (variable d'environnement STRIPE_PRICE_ID_" + planCode + " manquante)");
         }
 
         try {
@@ -134,12 +121,11 @@ public class StripeCheckoutService {
         }
     }
 
-    /** SF-123-01 : retourne le price ID V2 pour un plan (ou null si non configuré). */
-    String resolveV2PriceId(String planCode) {
+    String resolvePriceId(String planCode) {
         return switch (planCode) {
-            case "PRO"  -> priceIdProV2;
-            case "TEAM" -> priceIdTeamV2;
-            case "SOLO" -> priceIdSoloV2;
+            case "PRO"  -> priceIdPro;
+            case "TEAM" -> priceIdTeam;
+            case "SOLO" -> priceIdSolo;
             default     -> null;
         };
     }
