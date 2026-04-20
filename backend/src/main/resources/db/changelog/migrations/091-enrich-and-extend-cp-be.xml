@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="091-enrich-cp-be-existing" author="legalcase">
+        <comment>
+            SF-136-03 partie 1 : enrichissement des CP BE existantes identifiées
+            par l'audit F-136 SF-136-01 comme "légères" (CP 200, CP 302) ou sans
+            congés supp documentés (CP 118, CP 220).
+        </comment>
+
+        <sql splitStatements="true">
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3},{"min":20,"jours":4}],"primes":[{"min":5,"pct":2},{"min":10,"pct":4},{"min":15,"pct":5},{"min":20,"pct":7}]}', source_ref = 'Loi 28/06/1971 ; CCT CP 200 — barème indicatif étendu (4 niveaux ancienneté), variantes selon sous-secteur tertiaire', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'CP200';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3},{"min":20,"jours":4}],"primes":[{"min":3,"pct":1},{"min":5,"pct":1.5},{"min":10,"pct":3},{"min":15,"pct":5},{"min":20,"pct":7}]}', source_ref = 'Loi 28/06/1971 ; CCT CP 302 Horeca — barème indicatif étendu (variations selon accord sectoriel)', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'CP302';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":20,"jours":3}],"primes":[]}', source_ref = 'Loi 28/06/1971 ; CP 118 Industries alimentaires (ouvriers) — congés supplémentaires selon CCT sectorielles', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'CP118';
+
+UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":20,"jours":3}],"primes":[]}', source_ref = 'Loi 28/06/1971 ; CP 220 Industrie alimentaire (employés) — congés supplémentaires selon CCT sectorielles', updated_at = NOW() WHERE referential_type = 'CONVENTION_BAREMES' AND entry_key = 'CP220';
+        </sql>
+
+        <rollback>
+            UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3}],"primes":[{"min":5,"pct":2},{"min":10,"pct":4},{"min":20,"pct":7}]}' WHERE entry_key = 'CP200';
+            UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[{"min":5,"pct":1.5},{"min":10,"pct":3},{"min":15,"pct":5}]}' WHERE entry_key = 'CP302';
+            UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}' WHERE entry_key = 'CP118';
+            UPDATE legal_referentials SET value_json = '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}' WHERE entry_key = 'CP220';
+        </rollback>
+    </changeSet>
+
+    <changeSet id="091-seed-new-cp-be-wave-2" author="legalcase">
+        <comment>
+            SF-136-03 partie 2 : ajout de 7 CP BE supplémentaires au-delà des 10
+            déjà présentes après SF-129-04. Priorité aux CP à fort volume non
+            couvertes (nettoyage, commerce, chimie, commerce international,
+            assurances, intérim, non-marchand).
+
+            UUIDs bf-c5 pour éviter collision avec plages 067-090 (067 jusqu'à 099,
+            b1-be).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000bf', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP121', '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":20,"jours":3}],"primes":[]}', 'CP 121 — Nettoyage', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 121 — valeurs indicatives', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c0', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP201', '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2}],"primes":[]}', 'CP 201 — Commerce de détail indépendant', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 201 — valeurs indicatives', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c1', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP207', '{"congesLegauxJours":20,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[]}', 'CP 207 — Industrie chimique (employés)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 207 — valeurs indicatives', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c2', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP226', '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3}],"primes":[]}', 'CP 226 — Employés du commerce international, du transport et de la logistique', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 226 — valeurs indicatives', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c3', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP306', '{"congesLegauxJours":20,"congesSupp":[{"min":10,"jours":1},{"min":20,"jours":2}],"primes":[]}', 'CP 306 — Entreprises d''assurances (employés)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 306 — valeurs indicatives', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c4', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP322', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 322 — Entreprises de travail intérimaire', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 322 — statut intérim spécifique (pas de congés supp standardisés)', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000000c5', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP337', '{"congesLegauxJours":20,"congesSupp":[{"min":5,"jours":1},{"min":10,"jours":2},{"min":15,"jours":3},{"min":20,"jours":4}],"primes":[]}', 'CP 337 — Secteur non marchand auxiliaire', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CCT CP 337 — valeurs indicatives secteur non marchand', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            DELETE FROM legal_referentials WHERE id IN (
+                'f1100001-0000-0000-0000-0000000000bf',
+                'f1100001-0000-0000-0000-0000000000c0',
+                'f1100001-0000-0000-0000-0000000000c1',
+                'f1100001-0000-0000-0000-0000000000c2',
+                'f1100001-0000-0000-0000-0000000000c3',
+                'f1100001-0000-0000-0000-0000000000c4',
+                'f1100001-0000-0000-0000-0000000000c5'
+            );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
