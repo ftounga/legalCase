@@ -36,4 +36,10 @@ public class Subscription {
 
     @Column(length = 255)
     private String stripeSubscriptionId;
+
+    // SF-123-02 : total de seats facturés (membres actifs du workspace).
+    // Synchronisé via StripeSeatService.syncSeatCount lors de
+    // acceptInvitation / removeMember / webhook customer.subscription.updated.
+    @Column(name = "seat_count", nullable = false)
+    private int seatCount = 1;
 }

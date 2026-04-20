@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="095-add-seat-count-to-subscriptions" author="legalcase">
+        <comment>
+            SF-123-02 : per-user billing. seat_count = total de seats (membres actifs)
+            du workspace. Synchronisé avec Stripe quantity sur le line item V2 lors
+            de acceptInvitation / removeMember / webhook customer.subscription.updated.
+            Plans TEAM/PRO seulement facturent les seats supp (Stripe tiered pricing
+            côté Dashboard). FREE/SOLO restent à 1 seat. Valeur par défaut 1 : le
+            owner lors de la création du workspace.
+        </comment>
+
+        <addColumn tableName="subscriptions">
+            <column name="seat_count" type="int" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="subscriptions" columnName="seat_count"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

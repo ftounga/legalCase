@@ -733,6 +733,46 @@ class PlanLimitServiceTest {
         assertThat(service.isOcrQuotaExceeded(wid, 1)).isTrue();
     }
 
+    // ── Seats par plan (SF-123-02) ────────────────────────────────────────
+
+    @Test void getIncludedSeats_free_returns1() { assertThat(service.getIncludedSeats("FREE")).isEqualTo(1); }
+    @Test void getIncludedSeats_solo_returns1() { assertThat(service.getIncludedSeats("SOLO")).isEqualTo(1); }
+    @Test void getIncludedSeats_team_returns3() { assertThat(service.getIncludedSeats("TEAM")).isEqualTo(3); }
+    @Test void getIncludedSeats_pro_returns5()  { assertThat(service.getIncludedSeats("PRO")).isEqualTo(5); }
+
+    @Test void getMaxSeats_free_returns1() { assertThat(service.getMaxSeats("FREE")).isEqualTo(1); }
+    @Test void getMaxSeats_solo_returns1() { assertThat(service.getMaxSeats("SOLO")).isEqualTo(1); }
+    @Test void getMaxSeats_team_returns6() { assertThat(service.getMaxSeats("TEAM")).isEqualTo(6); }
+    @Test void getMaxSeats_pro_returnsMax() { assertThat(service.getMaxSeats("PRO")).isEqualTo(Integer.MAX_VALUE); }
+
+    @Test
+    void getMaxSeatsForWorkspace_team_returns6() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("TEAM")));
+        assertThat(service.getMaxSeatsForWorkspace(wid)).isEqualTo(6);
+    }
+
+    @Test
+    void getMaxSeatsForWorkspace_noSubscription_returnsFreeDefault1() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.getMaxSeatsForWorkspace(wid)).isEqualTo(1);
+    }
+
+    @Test
+    void getPlanCodeForWorkspace_existingSubscription_returnsPlan() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("PRO")));
+        assertThat(service.getPlanCodeForWorkspace(wid)).isEqualTo("PRO");
+    }
+
+    @Test
+    void getPlanCodeForWorkspace_noSubscription_returnsFree() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.getPlanCodeForWorkspace(wid)).isEqualTo("FREE");
+    }
+
     private Workspace workspaceWithOcrUsage(UUID id, int monthlyPages, int dailyPages, LocalDate lastReset) {
         Workspace ws = new Workspace();
         ws.setId(id);

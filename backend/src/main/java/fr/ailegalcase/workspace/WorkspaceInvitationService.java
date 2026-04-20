@@ -1,6 +1,8 @@
 package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.PlanLimitService;
+import fr.ailegalcase.billing.StripeSeatService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -26,17 +28,23 @@ public class WorkspaceInvitationService {
     private final WorkspaceRepository workspaceRepository;
     private final CurrentUserResolver currentUserResolver;
     private final EmailService emailService;
+    private final PlanLimitService planLimitService;
+    private final StripeSeatService stripeSeatService;
 
     public WorkspaceInvitationService(WorkspaceInvitationRepository workspaceInvitationRepository,
                                       WorkspaceMemberRepository workspaceMemberRepository,
                                       WorkspaceRepository workspaceRepository,
                                       CurrentUserResolver currentUserResolver,
-                                      EmailService emailService) {
+                                      EmailService emailService,
+                                      PlanLimitService planLimitService,
+                                      StripeSeatService stripeSeatService) {
         this.workspaceInvitationRepository = workspaceInvitationRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.workspaceRepository = workspaceRepository;
         this.currentUserResolver = currentUserResolver;
         this.emailService = emailService;
+        this.planLimitService = planLimitService;
+        this.stripeSeatService = stripeSeatService;
     }
 
     @Transactional
@@ -57,6 +65,16 @@ public class WorkspaceInvitationService {
                 workspace.getId(), request.email(), STATUS_PENDING)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "A pending invitation already exists for this email");
+        }
+
+        // SF-123-02 : gate seat — seats actuels + pendantes + 1 ≤ max du plan
+        int currentMembers = workspaceMemberRepository.findByWorkspace_Id(workspace.getId()).size();
+        int currentPending = workspaceInvitationRepository
+                .findByWorkspaceIdAndStatus(workspace.getId(), STATUS_PENDING).size();
+        int maxSeats = planLimitService.getMaxSeatsForWorkspace(workspace.getId());
+        if (currentMembers + currentPending + 1 > maxSeats) {
+            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                    seatLimitMessage(workspace.getId()));
         }
 
         WorkspaceInvitation invitation = new WorkspaceInvitation();
@@ -158,6 +176,20 @@ public class WorkspaceInvitationService {
 
         invitation.setStatus(STATUS_ACCEPTED);
         workspaceInvitationRepository.save(invitation);
+
+        // SF-123-02 : sync Stripe quantity après ajout membre.
+        // Transactionnel : si Stripe refuse (402), rollback → membre non persisté.
+        stripeSeatService.syncSeatCount(targetWorkspace.getId());
+    }
+
+    private String seatLimitMessage(java.util.UUID workspaceId) {
+        String plan = planLimitService.getPlanCodeForWorkspace(workspaceId);
+        return switch (plan) {
+            case "SOLO" -> "Passez à TEAM pour inviter un collaborateur (jusqu'à 6 utilisateurs).";
+            case "TEAM" -> "Plan TEAM limité à 6 utilisateurs. Passez à PRO pour en ajouter davantage.";
+            case "FREE" -> "Le plan FREE ne permet pas d'inviter de collaborateur.";
+            default     -> "Limite d'utilisateurs atteinte pour votre plan.";
+        };
     }
 
     private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {

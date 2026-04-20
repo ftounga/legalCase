@@ -1,6 +1,7 @@
 package fr.ailegalcase.workspace;
 
 import fr.ailegalcase.auth.User;
+import fr.ailegalcase.billing.StripeSeatService;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -17,11 +18,14 @@ public class WorkspaceMemberService {
 
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final StripeSeatService stripeSeatService;
 
     public WorkspaceMemberService(WorkspaceMemberRepository workspaceMemberRepository,
-                                  CurrentUserResolver currentUserResolver) {
+                                  CurrentUserResolver currentUserResolver,
+                                  StripeSeatService stripeSeatService) {
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
+        this.stripeSeatService = stripeSeatService;
     }
 
     @Transactional(readOnly = true)
@@ -62,6 +66,9 @@ public class WorkspaceMemberService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
 
         workspaceMemberRepository.delete(targetMember);
+
+        // SF-123-02 : sync Stripe quantity après retrait (proration native via CREATE_PRORATIONS).
+        stripeSeatService.syncSeatCount(workspace.getId());
     }
 
     private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {
