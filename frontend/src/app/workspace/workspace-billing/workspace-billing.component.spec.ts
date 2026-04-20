@@ -52,21 +52,22 @@ describe('WorkspaceBillingComponent', () => {
     expect(component.plans.map(p => p.code)).toEqual(['FREE', 'SOLO', 'TEAM', 'PRO']);
   });
 
-  it('plan SOLO à 59 €', () => {
+  // SF-123-01 : grille V2 alignée marché (SOLO 99 / TEAM 219 / PRO 429)
+  it('plan SOLO à 99 €', () => {
     const solo = component.plans.find(p => p.code === 'SOLO')!;
-    expect(solo.price).toBe('59 €');
+    expect(solo.price).toBe('99 €');
     expect(solo.label).toBe('Solo');
   });
 
-  it('plan TEAM à 119 €', () => {
+  it('plan TEAM à 219 €', () => {
     const team = component.plans.find(p => p.code === 'TEAM')!;
-    expect(team.price).toBe('119 €');
+    expect(team.price).toBe('219 €');
     expect(team.label).toBe('Team');
   });
 
-  it('plan PRO à 249 €', () => {
+  it('plan PRO à 429 €', () => {
     const pro = component.plans.find(p => p.code === 'PRO')!;
-    expect(pro.price).toBe('249 €');
+    expect(pro.price).toBe('429 €');
   });
 
   it('chaque plan affiche son quota OCR mensuel', () => {

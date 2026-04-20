@@ -60,9 +60,11 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     {
       code: 'SOLO',
       label: 'Solo',
-      price: '59 €',
+      // SF-123-01 : grille V2 — +40 € pour aligner sur le marché (Jimini ~50-100 €, Doctrine/Predictice 100-200 €).
+      price: '99 €',
       period: '/ mois',
       features: [
+        { label: '1 utilisateur inclus',             included: true },
         { label: '15 dossiers actifs',               included: true },
         { label: '15 documents par dossier',         included: true },
         { label: '8 analyses de dossier',            included: true },
@@ -76,9 +78,11 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     {
       code: 'TEAM',
       label: 'Team',
-      price: '119 €',
+      // SF-123-01 : TEAM V2 — 3 users inclus, +59 €/user au-delà prévu en SF-123-02 (quota extensible jusqu'à 6).
+      price: '219 €',
       period: '/ mois',
       features: [
+        { label: '3 utilisateurs inclus (extensibles)', included: true },
         { label: '40 dossiers actifs',               included: true },
         { label: '30 documents par dossier',         included: true },
         { label: '15 analyses de dossier',           included: true },
@@ -92,9 +96,11 @@ export class WorkspaceBillingComponent implements OnInit, OnDestroy {
     {
       code: 'PRO',
       label: 'Pro',
-      price: '249 €',
+      // SF-123-01 : PRO V2 — 5 users inclus, +79 €/user supp prévu en SF-123-02.
+      price: '429 €',
       period: '/ mois',
       features: [
+        { label: '5 utilisateurs inclus (extensibles)', included: true },
         { label: 'Dossiers illimités',               included: true },
         { label: '50 documents par dossier',         included: true },
         { label: 'Analyses illimitées',              included: true },

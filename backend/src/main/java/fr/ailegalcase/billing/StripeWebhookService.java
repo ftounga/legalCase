@@ -19,26 +19,36 @@ public class StripeWebhookService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final CreditPurchaseService creditPurchaseService;
-    private final String priceIdSolo;
-    private final String priceIdTeam;
-    private final String priceIdPro;
+    // SF-123-01 : V1 + V2 price IDs — webhook reconnaît les deux, clients V1 sont grandfathered par Stripe.
+    private final String priceIdSoloV1;
+    private final String priceIdTeamV1;
+    private final String priceIdProV1;
+    private final String priceIdSoloV2;
+    private final String priceIdTeamV2;
+    private final String priceIdProV2;
     private final String priceIdTokens1m;
     private final String priceIdTokens5m;
     private final String priceIdTokens20m;
 
     public StripeWebhookService(SubscriptionRepository subscriptionRepository,
                                 CreditPurchaseService creditPurchaseService,
-                                @Value("${app.stripe.price-id-solo:}") String priceIdSolo,
-                                @Value("${app.stripe.price-id-team:}") String priceIdTeam,
-                                @Value("${app.stripe.price-id-pro:}") String priceIdPro,
+                                @Value("${app.stripe.price-id-solo:}") String priceIdSoloV1,
+                                @Value("${app.stripe.price-id-team:}") String priceIdTeamV1,
+                                @Value("${app.stripe.price-id-pro:}") String priceIdProV1,
+                                @Value("${app.stripe.price-id-solo-v2:}") String priceIdSoloV2,
+                                @Value("${app.stripe.price-id-team-v2:}") String priceIdTeamV2,
+                                @Value("${app.stripe.price-id-pro-v2:}") String priceIdProV2,
                                 @Value("${app.stripe.price-id-tokens-1m:}") String priceIdTokens1m,
                                 @Value("${app.stripe.price-id-tokens-5m:}") String priceIdTokens5m,
                                 @Value("${app.stripe.price-id-tokens-20m:}") String priceIdTokens20m) {
         this.subscriptionRepository = subscriptionRepository;
         this.creditPurchaseService = creditPurchaseService;
-        this.priceIdSolo = priceIdSolo;
-        this.priceIdTeam = priceIdTeam;
-        this.priceIdPro = priceIdPro;
+        this.priceIdSoloV1 = priceIdSoloV1;
+        this.priceIdTeamV1 = priceIdTeamV1;
+        this.priceIdProV1 = priceIdProV1;
+        this.priceIdSoloV2 = priceIdSoloV2;
+        this.priceIdTeamV2 = priceIdTeamV2;
+        this.priceIdProV2 = priceIdProV2;
         this.priceIdTokens1m = priceIdTokens1m;
         this.priceIdTokens5m = priceIdTokens5m;
         this.priceIdTokens20m = priceIdTokens20m;
@@ -179,12 +189,22 @@ public class StripeWebhookService {
         return "SOLO";
     }
 
+    /**
+     * SF-123-01 : résolution du planCode depuis un price ID Stripe.
+     * Reconnaît V1 (clients grandfathered) et V2 (nouveaux checkouts).
+     * Si un price ID est non configuré (chaîne vide), il ne match rien — cas
+     * normal en dev / test où seuls certains sont peuplés.
+     */
     String resolvePlanCodeFromPriceId(String priceId) {
         if (priceId == null) return "SOLO";
-        if (priceId.equals(priceIdPro))   return "PRO";
-        if (priceId.equals(priceIdTeam))  return "TEAM";
-        if (priceId.equals(priceIdSolo))  return "SOLO";
+        if (matches(priceId, priceIdProV2) || matches(priceId, priceIdProV1)) return "PRO";
+        if (matches(priceId, priceIdTeamV2) || matches(priceId, priceIdTeamV1)) return "TEAM";
+        if (matches(priceId, priceIdSoloV2) || matches(priceId, priceIdSoloV1)) return "SOLO";
         log.warn("Unknown Stripe price ID: {} — defaulting to SOLO", priceId);
         return "SOLO";
+    }
+
+    private static boolean matches(String priceId, String configured) {
+        return configured != null && !configured.isBlank() && configured.equals(priceId);
     }
 }
