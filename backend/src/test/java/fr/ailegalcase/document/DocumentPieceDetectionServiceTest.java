@@ -51,7 +51,7 @@ class DocumentPieceDetectionServiceTest {
                   {"type":"ATTESTATION","label":"Attestation collègue","pageStart":4,"pageEnd":4,"orderIndex":1}
                 ]
                 """;
-        when(anthropicService.analyzeFast(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult(haikuResponse, "haiku", 100, 50));
 
         service.detect(EXTRACTION_ID, "un long texte...");
@@ -72,7 +72,7 @@ class DocumentPieceDetectionServiceTest {
     @Test
     void detect_haikuException_fallbackToAutre() {
         mockExtraction();
-        when(anthropicService.analyzeFast(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
                 .thenThrow(new RuntimeException("haiku down"));
 
         service.detect(EXTRACTION_ID, "un long texte...");
@@ -87,7 +87,7 @@ class DocumentPieceDetectionServiceTest {
     @Test
     void detect_invalidJson_fallbackToAutre() {
         mockExtraction();
-        when(anthropicService.analyzeFast(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("pas du JSON du tout", "haiku", 10, 5));
 
         service.detect(EXTRACTION_ID, "un long texte...");
@@ -101,7 +101,7 @@ class DocumentPieceDetectionServiceTest {
     @Test
     void detect_existingPieces_deletedBeforeInsert() {
         mockExtraction();
-        when(anthropicService.analyzeFast(anyString(), anyString(), anyInt()))
+        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
                 .thenReturn(new AnthropicResult("[]", "haiku", 10, 5));
 
         service.detect(EXTRACTION_ID, "texte");
@@ -139,6 +139,32 @@ class DocumentPieceDetectionServiceTest {
         service.detect(EXTRACTION_ID, "texte");
 
         verify(pieceRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    // SF-145-03 U-08 : prompt contient les règles de regroupement et exemples few-shot
+    @Test
+    void systemPrompt_containsGroupingRulesAndExamples() {
+        String prompt = DocumentPieceDetectionService.SYSTEM_PROMPT;
+        assertThat(prompt).contains("regroupe les pages");
+        assertThat(prompt).contains("RÈGLE CENTRALE");
+        assertThat(prompt).contains("EXEMPLE 1");
+        assertThat(prompt).contains("EXEMPLE 2");
+        assertThat(prompt).contains("UNE SEULE entrée");
+        assertThat(prompt).contains("préfère regrouper");
+    }
+
+    // SF-145-03 U-09 : le service utilise Sonnet (analyze), pas Haiku (analyzeFast)
+    @Test
+    void detect_usesSonnetNotHaiku() {
+        mockExtraction();
+        when(anthropicService.analyze(anyString(), anyString(), anyInt()))
+                .thenReturn(new AnthropicResult("[]", "sonnet", 100, 50));
+
+        service.detect(EXTRACTION_ID, "texte");
+
+        verify(anthropicService).analyze(anyString(), anyString(), anyInt());
+        verify(anthropicService, org.mockito.Mockito.never())
+                .analyzeFast(anyString(), anyString(), anyInt());
     }
 
     private void mockExtraction() {

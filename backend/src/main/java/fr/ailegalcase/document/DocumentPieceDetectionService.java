@@ -39,17 +39,40 @@ public class DocumentPieceDetectionService {
     static final String SYSTEM_PROMPT = """
             Tu identifies les pièces juridiques distinctes présentes dans un document
             composite. Un document peut contenir plusieurs pièces scannées en une passe
-            (ex: contrat + CNI + SMS + attestation). Tu dois détecter les ruptures
-            logiques et lister chaque pièce avec son type parmi cette liste exacte :
-            - CONTRAT : contrat de travail, avenant, convention
-            - PIECE_IDENTITE : CNI, passeport, titre de séjour
-            - SMS : échanges SMS/messagerie
-            - EMAIL : emails imprimés
-            - ATTESTATION : attestation manuscrite, témoignage
-            - BULLETIN_PAIE : bulletins de paie
-            - LETTRE : courrier formel (licenciement, mise en demeure, convocation…)
-            - PHOTO : photos non-textuelles
-            - AUTRE : tout le reste
+            (ex: contrat de 5 pages + CNI recto-verso + échanges SMS imprimés).
+
+            RÈGLE CENTRALE : **regroupe les pages qui appartiennent à la même pièce**.
+            Une pièce unique peut s'étendre sur plusieurs pages — dans ce cas tu produis
+            UNE SEULE entrée avec pageStart et pageEnd couvrant toutes les pages concernées.
+            NE fragmente PAS un même document en autant de pièces qu'il a de pages.
+
+            Indices de continuité entre pages consécutives (= même pièce) :
+            - même en-tête, pied de page, numérotation « page X sur Y »
+            - même mise en page, police, structure
+            - phrase coupée par une rupture de page et qui reprend sur la suivante
+            - signature, paraphe, mention « suite » ou « à suivre »
+            - date identique, parties identiques, objet identique
+
+            Rupture détectable (= nouvelle pièce) :
+            - changement net de type de document (contrat → CNI, CNI → SMS)
+            - nouvelle en-tête officielle, nouveau logo, nouvelle mise en page
+            - nouvel émetteur/destinataire
+            - changement radical de contenu sémantique
+
+            Tailles typiques par type :
+            - CONTRAT : souvent 2 à 10 pages (regroupe-les)
+            - LETTRE formelle : 1 à 3 pages (licenciement, mise en demeure…)
+            - ATTESTATION : 1 à 2 pages
+            - BULLETIN_PAIE : 1 à 2 pages chacun (plusieurs bulletins = plusieurs pièces)
+            - EMAIL : 1 page par email généralement
+            - SMS : 1 à 2 pages
+            - PIECE_IDENTITE : 1 page (recto OU recto-verso sur une même page)
+            - PHOTO : 1 page
+
+            En cas de doute sur une rupture, **préfère regrouper** plutôt que fragmenter.
+
+            Types autorisés (liste exacte) :
+            CONTRAT, PIECE_IDENTITE, SMS, EMAIL, ATTESTATION, BULLETIN_PAIE, LETTRE, PHOTO, AUTRE
 
             Pour chaque pièce, fournir :
             - type : enum ci-dessus
@@ -58,7 +81,27 @@ public class DocumentPieceDetectionService {
             - pageStart, pageEnd : pages dans le document (1-indexed ; si inconnu, estime)
             - orderIndex : ordre séquentiel dans le document (0-indexed)
 
-            Si le document est unitaire (une seule pièce), retourner 1 entrée.
+            EXEMPLE 1 — document composite typique :
+            Entrée : PDF 9 pages contenant un contrat de travail (p. 1-5), une CNI
+            recto-verso sur une page (p. 6), puis 3 captures SMS sur 3 pages (p. 7-9).
+            Sortie attendue :
+            [
+              {"type":"CONTRAT","label":"Contrat de travail","pageStart":1,"pageEnd":5,"orderIndex":0},
+              {"type":"PIECE_IDENTITE","label":"CNI","pageStart":6,"pageEnd":6,"orderIndex":1},
+              {"type":"SMS","label":"Échanges SMS","pageStart":7,"pageEnd":9,"orderIndex":2}
+            ]
+
+            EXEMPLE 2 — document unitaire multi-pages :
+            Entrée : PDF 7 pages, uniquement un contrat de travail avec clauses étendues
+            et numérotation « page X sur 7 ».
+            Sortie attendue :
+            [
+              {"type":"CONTRAT","label":"Contrat de travail","pageStart":1,"pageEnd":7,"orderIndex":0}
+            ]
+            **Attention** : ne produit surtout PAS 7 entrées séparées — c'est UNE pièce.
+
+            Si le document est unitaire (une seule pièce), retourner 1 entrée couvrant
+            toutes les pages.
 
             Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après.
             Format : [{"type":"...","label":"...","pageStart":N,"pageEnd":N,"orderIndex":N}]
@@ -111,7 +154,10 @@ public class DocumentPieceDetectionService {
 
         List<ParsedPiece> parsed;
         try {
-            AnthropicResult result = anthropicService.analyzeFast(SYSTEM_PROMPT, truncated, 2048);
+            // SF-145-03 : Sonnet au lieu de Haiku — la détection de structure
+            // documentaire demande plus de raisonnement que Haiku n'en offre.
+            // Surcoût : ~0,002 € → ~0,01 €/doc. Qualité nettement supérieure.
+            AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, truncated, 2048);
             parsed = parseResponse(result.content());
             if (parsed.isEmpty()) {
                 log.info("Haiku returned empty piece list for document {} — fallback to AUTRE", documentId);
