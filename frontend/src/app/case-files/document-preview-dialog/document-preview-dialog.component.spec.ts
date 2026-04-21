@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { DocumentPreviewDialogComponent } from './document-preview-dialog.component';
 import { DocumentService } from '../../core/services/document.service';
 import { DocumentPreview } from '../../core/models/document-preview.model';
+import { DocumentPieceSummary } from '../../core/models/document.model';
 
 describe('DocumentPreviewDialogComponent', () => {
   let component: DocumentPreviewDialogComponent;
@@ -26,7 +27,8 @@ describe('DocumentPreviewDialogComponent', () => {
     failureReason: null,
   };
 
-  async function setup(preview: DocumentPreview) {
+  async function setup(preview: DocumentPreview, pieces: DocumentPieceSummary[] = [], initialPieceId?: string) {
+    TestBed.resetTestingModule();
     documentServiceSpy = {
       preview: jest.fn().mockReturnValue(of(preview))
     } as any;
@@ -35,7 +37,7 @@ describe('DocumentPreviewDialogComponent', () => {
       imports: [DocumentPreviewDialogComponent, NoopAnimationsModule],
       providers: [
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
-        { provide: MAT_DIALOG_DATA, useValue: { caseFileId: 'cf-1', documentId: 'd-1' } },
+        { provide: MAT_DIALOG_DATA, useValue: { caseFileId: 'cf-1', documentId: 'd-1', pieces, initialPieceId } },
         { provide: DocumentService, useValue: documentServiceSpy }
       ]
     }).compileComponents();
@@ -83,5 +85,56 @@ describe('DocumentPreviewDialogComponent', () => {
   it('isPdf false pour autre mimeType', async () => {
     await setup({ ...base, mimeType: 'text/plain' });
     expect(component.isPdf()).toBe(false);
+  });
+
+  // SF-145-02 : sidebar pièces + sélection
+  describe('SF-145-02 — sidebar pièces navigable', () => {
+    const pieces: DocumentPieceSummary[] = [
+      { id: 'p1', type: 'CONTRAT', label: 'Contrat Dupont', pageStart: 1, pageEnd: 3, orderIndex: 0 },
+      { id: 'p2', type: 'PIECE_IDENTITE', label: 'CNI Jean Dupont', pageStart: 4, pageEnd: 4, orderIndex: 1 },
+      { id: 'p3', type: 'ATTESTATION', label: 'Attestation collègue', pageStart: 5, pageEnd: 5, orderIndex: 2 },
+    ];
+
+    it('U-01 : 3 pièces → sidebar rendue, 1re sélectionnée par défaut', async () => {
+      await setup(base, pieces);
+      expect(component.hasMultiplePieces()).toBe(true);
+      expect(component.selectedPieceId()).toBe('p1');
+      const sidebar = fixture.nativeElement.querySelector('.pieces-sidebar');
+      expect(sidebar).toBeTruthy();
+      const items = fixture.nativeElement.querySelectorAll('.piece-item');
+      expect(items.length).toBe(3);
+    });
+
+    it('U-02 : initialPieceId respecté', async () => {
+      await setup(base, pieces, 'p2');
+      expect(component.selectedPieceId()).toBe('p2');
+    });
+
+    it('U-03 : selectPiece change la sélection', async () => {
+      await setup(base, pieces);
+      component.selectPiece('p3');
+      fixture.detectChanges();
+      expect(component.selectedPieceId()).toBe('p3');
+      expect(component.selectedPiece()?.label).toBe('Attestation collègue');
+    });
+
+    it('U-04 : 1 seule pièce → pas de sidebar', async () => {
+      await setup(base, [pieces[0]]);
+      expect(component.hasMultiplePieces()).toBe(false);
+      const sidebar = fixture.nativeElement.querySelector('.pieces-sidebar');
+      expect(sidebar).toBeFalsy();
+    });
+
+    it('U-05 : aucune pièce → pas de sidebar (comportement legacy docs pré-F-145)', async () => {
+      await setup(base, []);
+      expect(component.hasMultiplePieces()).toBe(false);
+      expect(component.selectedPieceId()).toBeNull();
+    });
+
+    it('U-06 : pieceHeaderLabel formate correctement "label · p. X-Y"', async () => {
+      await setup(base, pieces);
+      expect(component.pieceHeaderLabel(pieces[0])).toBe('Contrat Dupont · p. 1–3');
+      expect(component.pieceHeaderLabel(pieces[1])).toBe('CNI Jean Dupont · p. 4');
+    });
   });
 });

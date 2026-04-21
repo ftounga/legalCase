@@ -229,6 +229,21 @@
                     </span>
                   }
                 </span>
+                @if (doc.pieces && doc.pieces.length > 1) {
+                  <div class="piece-chips">
+                    @for (piece of doc.pieces; track piece.id) {
+                      <button type="button"
+                              class="piece-chip"
+                              [attr.data-type]="piece.type"
+                              [matTooltip]="(piece.label ?? documentPieceTypeLabel(piece.type)) + ' · p. ' + piece.pageStart + (piece.pageStart !== piece.pageEnd ? '-' + piece.pageEnd : '')"
+                              matTooltipPosition="above"
+                              (click)="openPreview(doc, piece.id); $event.stopPropagation()">
+                        <mat-icon class="piece-chip-icon">{{ documentPieceTypeIcon(piece.type) }}</mat-icon>
+                        <span class="piece-chip-label">{{ documentPieceTypeLabel(piece.type) }}</span>
+                      </button>
+                    }
+                  </div>
+                }
               </td>
             </ng-container>
 
