@@ -633,7 +633,9 @@
   line-height: 14px;
 }
 
-/* SF-144-01 : feedback UX live "OCR en cours" pendant l'appel Textract */
+/* SF-144-01 : feedback UX live "OCR en cours" pendant l'appel Textract
+   Palette navy cohérente avec le design system principal (plus visible et
+   moins proche du warning que la teinte gold initiale). */
 .badge-ocr-running {
   display: inline-flex;
   align-items: center;
@@ -642,9 +644,9 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(201, 151, 58, 0.12);
-  border: 1px solid rgba(201, 151, 58, 0.4);
-  color: #8B6B1F;
+  background: rgba(26, 58, 92, 0.10);
+  border: 1px solid rgba(26, 58, 92, 0.35);
+  color: #1A3A5C;
   white-space: nowrap;
   margin-left: 6px;
 }
