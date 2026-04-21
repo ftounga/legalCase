@@ -21,7 +21,7 @@ Votre workspace **{{workspace}}** est actif. Vous disposez de 14 jours pour expl
 
 **Par où commencer ?**
 
-La façon la plus rapide de voir la valeur d'AI LegalCase : prenez un vrai dossier en cours — même un petit — et laissez l'IA l'analyser.
+La façon la plus rapide de voir la valeur d'AI LegalCase : prenez un vrai dossier en cours — même un petit — et laissez LegalCase l'analyser.
 
 Voici comment :
 
@@ -52,7 +52,7 @@ Bonne analyse,
 **ID : M-21**
 
 **Objet :** 3 minutes pour analyser un dossier complet — avez-vous essayé ?
-**Pré-header :** Ce que l'IA trouve en 3 min vous aurait pris 3 heures.
+**Pré-header :** Ce que LegalCase trouve en 3 min vous aurait pris 3 heures.
 
 ---
 
@@ -60,19 +60,19 @@ Bonjour {{prenom}},
 
 Il y a deux jours, vous avez créé votre compte AI LegalCase. Si vous n'avez pas encore lancé d'analyse, voici ce que vous manquez.
 
-**Ce que produit l'IA sur un dossier de droit du travail :**
+**Ce que produit LegalCase sur un dossier de droit du travail :**
 
 - Une **timeline chronologique** de tous les événements (embauche, incidents, lettres, entretiens)
 - Les **faits clés** extraits de l'ensemble de vos pièces
 - Les **risques juridiques** identifiés avec leur niveau de gravité
 - Les **points de droit** applicables (articles L., jurisprudence)
-- Des **questions ouvertes** ciblées que l'IA vous pose pour affiner l'analyse
+- Des **questions ouvertes** ciblées que LegalCase vous pose pour affiner l'analyse
 
 Tout ça, en croisant automatiquement tous vos documents — pas seulement le dernier uploadé.
 
 **La re-synthèse enrichie**
 
-Une fois la première analyse faite, répondez aux questions de l'IA. Elle relance une analyse plus profonde, intégrant votre expertise. Le résultat est nettement plus précis — et vous avez contribué en 10 minutes.
+Une fois la première analyse faite, répondez aux questions de LegalCase. Une nouvelle analyse plus profonde est relancée, intégrant votre expertise. Le résultat est nettement plus précis — et vous avez contribué en 10 minutes.
 
 **[Lancer ma première analyse →]**
 `https://app.legalcase.fr/case-files`

@@ -64,7 +64,7 @@ Cette contrainte s'applique à chaque message, sans exception.
 >
 > [Ligne de personnalisation : ex. "J'ai vu que votre cabinet est spécialisé en rupture conventionnelle et contentieux employeurs."]
 >
-> Je développe **AI LegalCase**, un outil d'assistance IA pour avocats : il analyse un dossier complet (PDFs inclus) et produit en quelques minutes une synthèse juridique — timeline, risques, points de droit.
+> Je développe **AI LegalCase**, un outil d'assistance pour avocats : il analyse un dossier complet (PDFs inclus) et produit en quelques minutes une synthèse juridique — timeline, risques, points de droit.
 >
 > Les cabinets qui testent l'outil réduisent de façon significative le temps passé sur la préparation documentaire des dossiers.
 >
@@ -126,7 +126,7 @@ Cette contrainte s'applique à chaque message, sans exception.
 >
 > Votre article sur [sujet du post] était très intéressant.
 >
-> Je développe justement un outil IA pour les avocats du travail : analyse automatique de dossiers, synthèse structurée, délais légaux. Si ça peut vous aider à gagner du temps sur la préparation documentaire, une démo de 20 min peut en valoir la peine.
+> Je développe justement un outil pour les avocats du travail : analyse automatique de dossiers, synthèse structurée, délais légaux. Si ça peut vous aider à gagner du temps sur la préparation documentaire, une démo de 20 min peut en valoir la peine.
 >
 > Bonne continuation,
 > [Votre prénom]

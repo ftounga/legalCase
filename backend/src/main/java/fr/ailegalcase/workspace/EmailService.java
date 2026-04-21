@@ -165,7 +165,7 @@ public class EmailService {
         try {
             StringBuilder body = new StringBuilder();
             body.append("Bonjour,\n\n")
-                .append("L'IA a réévalué ")
+                .append("LegalCase a réévalué ")
                 .append(checks.size() == 1 ? "un point procédural" : checks.size() + " points procéduraux")
                 .append(" sur le dossier \"").append(caseFileTitle).append("\" :\n\n");
             for (ProcedureCheckRequalifiedEvent.RequalifiedCheck check : checks) {
@@ -231,7 +231,7 @@ public class EmailService {
                 "En quelques minutes, vous pouvez :\n" +
                 "• Créer votre premier dossier\n" +
                 "• Déposer vos documents (contrat, courrier, jugement)\n" +
-                "• Lancer l'analyse IA et obtenir une synthèse complète\n\n" +
+                "• Lancer l'analyse et obtenir une synthèse complète\n\n" +
                 "Accédez à votre espace ici :\n" +
                 frontendUrl + "\n\n" +
                 "L'équipe AI LegalCase"
@@ -247,7 +247,7 @@ public class EmailService {
                 "1. Créez un dossier (Nouveau dossier)\n" +
                 "2. Déposez vos PDFs (contrat, courriers, jugements)\n" +
                 "3. Cliquez sur « Analyser le dossier »\n\n" +
-                "L'IA lit l'intégralité de vos documents et génère une synthèse structurée : " +
+                "LegalCase lit l'intégralité de vos documents et génère une synthèse structurée : " +
                 "faits clés, risques juridiques, timeline, points de droit.\n\n" +
                 "Essayez maintenant :\n" +
                 frontendUrl + "\n\n" +
@@ -443,7 +443,7 @@ public class EmailService {
             message.setSubject("Mise à jour requise — Guides & barèmes — AI LegalCase");
             message.setText(
                     "Bonjour,\n\n" +
-                    "L'IA a détecté que certaines valeurs de vos référentiels métier (barèmes, délais légaux) " +
+                    "LegalCase a détecté que certaines valeurs de vos référentiels métier (barèmes, délais légaux) " +
                     "pourraient ne plus être à jour par rapport aux textes officiels en vigueur.\n\n" +
                     "Veuillez consulter l'écran Guides & barèmes pour valider ou appliquer les valeurs suggérées :\n" +
                     frontendUrl + "/referentials\n\n" +
