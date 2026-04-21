@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="098-cascade-delete-document-pieces" author="legalcase">
+        <comment>
+            SF-145-04 hotfix : la FK fk_document_pieces_document (migration 097)
+            a été créée sans ON DELETE CASCADE. Conséquence : supprimer un document
+            échoue avec une violation de contrainte si des pièces existent.
+            Reconstruction de la FK avec CASCADE pour nettoyer automatiquement les
+            pièces quand le document parent est supprimé.
+        </comment>
+
+        <dropForeignKeyConstraint
+                baseTableName="document_pieces"
+                constraintName="fk_document_pieces_document"/>
+
+        <addForeignKeyConstraint
+                baseTableName="document_pieces"
+                baseColumnNames="document_id"
+                referencedTableName="documents"
+                referencedColumnNames="id"
+                constraintName="fk_document_pieces_document"
+                onDelete="CASCADE"/>
+
+        <rollback>
+            <dropForeignKeyConstraint
+                    baseTableName="document_pieces"
+                    constraintName="fk_document_pieces_document"/>
+            <addForeignKeyConstraint
+                    baseTableName="document_pieces"
+                    baseColumnNames="document_id"
+                    referencedTableName="documents"
+                    referencedColumnNames="id"
+                    constraintName="fk_document_pieces_document"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
