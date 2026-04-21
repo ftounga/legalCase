@@ -20,6 +20,10 @@ export interface Document {
   extractionStatus?: ExtractionStatus | null;
   /** SF-121-01 : motif d'échec si extractionStatus === 'FAILED'. */
   failureReason?: ExtractionFailureReason | null;
+  /** SF-144-01 : true pendant l'appel synchrone à Textract (feedback polling). */
+  ocrRunning?: boolean;
+  /** SF-144-01 : true si l'extraction a été produite via Textract (affiche chip `OCR`). */
+  ocrExtracted?: boolean;
 }
 
 /** SF-121-02 + SF-122-01 : libellé humain court pour le badge UI. */

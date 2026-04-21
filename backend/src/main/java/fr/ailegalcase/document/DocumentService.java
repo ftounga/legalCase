@@ -228,7 +228,17 @@ public class DocumentService {
                 extraction != null && extraction.getExtractionStatus() != null
                         ? extraction.getExtractionStatus().name() : null,
                 extraction != null && extraction.getFailureReason() != null
-                        ? extraction.getFailureReason().name() : null
+                        ? extraction.getFailureReason().name() : null,
+                extraction != null && extraction.isOcrRunning(),
+                extraction != null && isOcrExtracted(extraction.getExtractionMetadata())
         );
+    }
+
+    /** SF-144-01 : détecte si l'extraction a été produite via Textract (chip `OCR`).
+     *  Package-private pour testabilité directe. */
+    static boolean isOcrExtracted(String metadata) {
+        if (metadata == null) return false;
+        return metadata.contains("\"extractor\":\"textract\"")
+                || metadata.contains("\"extractor\":\"textract-rasterized\"");
     }
 }

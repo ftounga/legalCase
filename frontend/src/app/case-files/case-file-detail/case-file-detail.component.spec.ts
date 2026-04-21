@@ -1139,4 +1139,54 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // SF-144-01 : feedback UX OCR (ocrRunning + ocrExtracted)
+  describe('SF-144-01 — feedback OCR', () => {
+    const baseDoc = (overrides: Partial<Document> = {}): Document => ({
+      ...mockDocument, id: 'd1', ...overrides,
+    });
+
+    // U-03 : documentsContentEqual détecte un changement de ocrRunning → refresh
+    it('U-03 : change ocrRunning → documentsContentEqual retourne false', () => {
+      const before = [baseDoc({ ocrRunning: false })];
+      const after = [baseDoc({ ocrRunning: true })];
+      expect((component as any).documentsContentEqual(before, after)).toBe(false);
+    });
+
+    // U-04 : documentsContentEqual détecte un changement de ocrExtracted → refresh
+    it('U-04 : change ocrExtracted → documentsContentEqual retourne false', () => {
+      const before = [baseDoc({ ocrExtracted: false })];
+      const after = [baseDoc({ ocrExtracted: true })];
+      expect((component as any).documentsContentEqual(before, after)).toBe(false);
+    });
+
+    // U-05 : badge "OCR en cours" rendu quand ocrRunning === true
+    it('U-05 : badge .badge-ocr-running rendu quand ocrRunning', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([baseDoc({ extractionStatus: 'PROCESSING', ocrRunning: true })]);
+      fixture.detectChanges();
+      const badge = fixture.nativeElement.querySelector('.badge-ocr-running');
+      expect(badge).toBeTruthy();
+      expect(badge.textContent).toContain('OCR en cours');
+    });
+
+    // U-06 : chip .chip-ocr rendu quand ocrExtracted === true (sans ocrRunning)
+    it('U-06 : chip .chip-ocr rendu quand ocrExtracted et pas ocrRunning', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([baseDoc({ extractionStatus: 'DONE', ocrExtracted: true, ocrRunning: false })]);
+      fixture.detectChanges();
+      const chip = fixture.nativeElement.querySelector('.chip-ocr');
+      expect(chip).toBeTruthy();
+      expect(chip.textContent.trim()).toBe('OCR');
+    });
+
+    // U-07 : aucun chip OCR si extraction normale (ocrExtracted=false)
+    it('U-07 : pas de chip OCR si ocrExtracted false', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([baseDoc({ extractionStatus: 'DONE', ocrExtracted: false })]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.chip-ocr')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('.badge-ocr-running')).toBeFalsy();
+    });
+  });
+
 });

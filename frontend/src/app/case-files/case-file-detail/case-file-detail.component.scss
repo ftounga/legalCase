@@ -633,6 +633,55 @@
   line-height: 14px;
 }
 
+/* SF-144-01 : feedback UX live "OCR en cours" pendant l'appel Textract */
+.badge-ocr-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(201, 151, 58, 0.12);
+  border: 1px solid rgba(201, 151, 58, 0.4);
+  color: #8B6B1F;
+  white-space: nowrap;
+  margin-left: 6px;
+}
+
+.badge-ocr-running .badge-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+}
+
+.badge-icon--spinning {
+  animation: ocr-spin 1.4s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes ocr-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* SF-144-01 : chip discret "OCR" post-extraction (document analysé via Textract) */
+.chip-ocr {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(26, 58, 92, 0.08);
+  color: #1A3A5C;
+  border: 1px solid rgba(26, 58, 92, 0.2);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 .global-analysis-spinner {
   display: flex;
   align-items: center;

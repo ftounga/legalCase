@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="096-add-ocr-running-to-extractions" author="legalcase">
+        <comment>
+            SF-144-01 : flag intermédiaire indiquant qu'un OCR Textract est en cours
+            sur ce document. Mis à true juste avant l'appel OcrService.tryOcr (via
+            une transaction séparée REQUIRES_NEW pour être visible côté polling),
+            remis à false après.
+        </comment>
+
+        <addColumn tableName="document_extractions">
+            <column name="ocr_running" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="document_extractions" columnName="ocr_running"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

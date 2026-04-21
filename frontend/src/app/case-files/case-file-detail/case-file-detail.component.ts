@@ -673,7 +673,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       const x = a[i], y = b[i];
       if (x.id !== y.id
           || x.extractionStatus !== y.extractionStatus
-          || x.failureReason !== y.failureReason) {
+          || x.failureReason !== y.failureReason
+          || x.ocrRunning !== y.ocrRunning
+          || x.ocrExtracted !== y.ocrExtracted) {
         return false;
       }
     }

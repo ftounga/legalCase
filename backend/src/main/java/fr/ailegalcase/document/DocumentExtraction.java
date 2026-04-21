@@ -33,6 +33,14 @@ public class DocumentExtraction {
     @Column(name = "failure_reason", length = 50)
     private ExtractionFailureReason failureReason;
 
+    /**
+     * SF-144-01 : flag intermédiaire "OCR Textract en cours". Commité dans une
+     * transaction séparée juste avant OcrService.tryOcr, remis à false après.
+     * Lu par le polling frontend pour afficher un feedback contextuel.
+     */
+    @Column(name = "ocr_running", nullable = false)
+    private boolean ocrRunning = false;
+
     @Column(name = "extracted_text", length = Integer.MAX_VALUE)
     private String extractedText;
 
