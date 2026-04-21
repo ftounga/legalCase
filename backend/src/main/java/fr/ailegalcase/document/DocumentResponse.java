@@ -1,6 +1,7 @@
 package fr.ailegalcase.document;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record DocumentResponse(
@@ -32,12 +33,20 @@ public record DocumentResponse(
          * "extractor":"textract-rasterized"). Utilisé pour afficher le chip `OCR`
          * dans la liste des docs.
          */
-        boolean ocrExtracted
+        boolean ocrExtracted,
+        /**
+         * SF-145-01 : pièces juridiques identifiées dans le document composite
+         * (ex: un PDF contenant contrat + CNI + SMS = 3 entrées). Toujours au
+         * moins 1 entrée en fallback `AUTRE` après extraction DONE. Vide si
+         * l'extraction n'est pas encore DONE ou si la détection n'a pas tourné
+         * (documents antérieurs à F-145).
+         */
+        List<DocumentPieceSummary> pieces
 ) {
     /** Constructeur rétrocompat 6 champs (avant SF-121-01). */
     public DocumentResponse(UUID id, UUID caseFileId, String originalFilename,
                              String contentType, long fileSize, Instant createdAt) {
-        this(id, caseFileId, originalFilename, contentType, fileSize, createdAt, null, null, false, false);
+        this(id, caseFileId, originalFilename, contentType, fileSize, createdAt, null, null, false, false, List.of());
     }
 
     /** Constructeur rétrocompat 8 champs (SF-121-01, avant SF-144-01). */
@@ -45,6 +54,15 @@ public record DocumentResponse(
                              String contentType, long fileSize, Instant createdAt,
                              String extractionStatus, String failureReason) {
         this(id, caseFileId, originalFilename, contentType, fileSize, createdAt,
-                extractionStatus, failureReason, false, false);
+                extractionStatus, failureReason, false, false, List.of());
+    }
+
+    /** Constructeur rétrocompat 10 champs (SF-144-01, avant SF-145-01). */
+    public DocumentResponse(UUID id, UUID caseFileId, String originalFilename,
+                             String contentType, long fileSize, Instant createdAt,
+                             String extractionStatus, String failureReason,
+                             boolean ocrRunning, boolean ocrExtracted) {
+        this(id, caseFileId, originalFilename, contentType, fileSize, createdAt,
+                extractionStatus, failureReason, ocrRunning, ocrExtracted, List.of());
     }
 }

@@ -41,6 +41,7 @@ class DocumentServiceTest {
     @Mock private fr.ailegalcase.storage.StorageService storageService;
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private PlanLimitService planLimitService;
+    @Mock private DocumentPieceRepository documentPieceRepository;
     @Mock private OidcUser oidcUser;
 
     private DocumentService service;
@@ -52,7 +53,7 @@ class DocumentServiceTest {
     void setUp() {
         service = new DocumentService(documentRepository, extractionRepository, caseFileRepository,
                 currentUserResolver, workspaceMemberRepository,
-                storageService, eventPublisher, planLimitService);
+                storageService, eventPublisher, planLimitService, documentPieceRepository);
     }
 
     private void mockUserWorkspaceAndCaseFile() throws IOException {
