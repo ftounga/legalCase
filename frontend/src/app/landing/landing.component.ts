@@ -25,8 +25,8 @@ export const DEMO_VIDEOS: DemoVideo[] = [
   },
   {
     videoId: 'HVGXeUnrbks',
-    title: 'Comparateur d\'indemnités',
-    subtitle: 'Barème Macron vs conventionnel en un clic',
+    title: 'Validité prud\'homale — pièces, délais, score',
+    subtitle: 'Pièces manquantes identifiées, délais légaux vérifiés, score calculé',
   },
   {
     videoId: 'rKJXppVe2SA',
