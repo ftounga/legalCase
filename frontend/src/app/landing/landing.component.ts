@@ -28,6 +28,11 @@ export const DEMO_VIDEOS: DemoVideo[] = [
     title: 'Comparateur d\'indemnités',
     subtitle: 'Barème Macron vs conventionnel en un clic',
   },
+  {
+    videoId: 'rKJXppVe2SA',
+    title: 'Démo droit du travail',
+    subtitle: 'Un dossier analysé de bout en bout : synthèse, procédure, indemnités',
+  },
 ];
 
 @Component({
