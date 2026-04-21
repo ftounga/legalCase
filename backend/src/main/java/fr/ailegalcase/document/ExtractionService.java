@@ -38,6 +38,7 @@ public class ExtractionService {
     private final ApplicationEventPublisher eventPublisher;
     private final OcrService ocrService;
     private final WorkspaceRepository workspaceRepository;
+    private final OcrRunningFlagService ocrRunningFlagService;
 
     @Lazy @Autowired
     private ExtractionService self;
@@ -47,13 +48,15 @@ public class ExtractionService {
                              StorageService storageService,
                              ApplicationEventPublisher eventPublisher,
                              OcrService ocrService,
-                             WorkspaceRepository workspaceRepository) {
+                             WorkspaceRepository workspaceRepository,
+                             OcrRunningFlagService ocrRunningFlagService) {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
         this.storageService = storageService;
         this.eventPublisher = eventPublisher;
         this.ocrService = ocrService;
         this.workspaceRepository = workspaceRepository;
+        this.ocrRunningFlagService = ocrRunningFlagService;
     }
 
     @Async
@@ -86,7 +89,15 @@ public class ExtractionService {
                 if ("application/pdf".equals(contentType) && docRef.isOcrEnabled()) {
                     UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
                     boolean formsMode = docRef.isOcrFormsMode(); // SF-122-03
-                    OcrResult ocr = ocrService.tryOcr(fileBytes, workspaceId, formsMode);
+                    // SF-144-01 : flag intermédiaire lu par le polling frontend.
+                    // REQUIRES_NEW → commité même si la transaction courante n'a pas flushé.
+                    ocrRunningFlagService.markOcrRunning(extraction.getId(), true);
+                    OcrResult ocr;
+                    try {
+                        ocr = ocrService.tryOcr(fileBytes, workspaceId, formsMode);
+                    } finally {
+                        ocrRunningFlagService.markOcrRunning(extraction.getId(), false);
+                    }
                     if (ocr.success()) {
                         extraction.setExtractedText(ocr.text());
                         int quotaPages = formsMode ? ocr.pageCount() * OcrService.FORMS_QUOTA_MULTIPLIER : ocr.pageCount();

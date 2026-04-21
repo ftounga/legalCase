@@ -214,6 +214,20 @@
                       Non analysable
                     </span>
                   }
+                  @if (doc.ocrRunning) {
+                    <span class="badge-ocr-running"
+                          matTooltip="Document scanné détecté — reconnaissance de texte en cours (AWS Textract)"
+                          matTooltipPosition="above">
+                      <mat-icon class="badge-icon badge-icon--spinning">sync</mat-icon>
+                      OCR en cours
+                    </span>
+                  } @else if (doc.ocrExtracted) {
+                    <span class="chip-ocr"
+                          matTooltip="Texte reconnu par OCR (document scanné)"
+                          matTooltipPosition="above">
+                      OCR
+                    </span>
+                  }
                 </span>
               </td>
             </ng-container>

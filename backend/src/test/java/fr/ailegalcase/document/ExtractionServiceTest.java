@@ -44,6 +44,7 @@ class ExtractionServiceTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private OcrService ocrService;
     @Mock private WorkspaceRepository workspaceRepository;
+    @Mock private OcrRunningFlagService ocrRunningFlagService;
 
     private ExtractionService service;
 
@@ -53,7 +54,8 @@ class ExtractionServiceTest {
     @BeforeEach
     void setUp() {
         service = new ExtractionService(documentRepository, extractionRepository,
-                storageService, eventPublisher, ocrService, workspaceRepository);
+                storageService, eventPublisher, ocrService, workspaceRepository,
+                ocrRunningFlagService);
         // SF-122-01 : par défaut, OCR indisponible — les tests existants SF-121-01
         // continuent de valider le comportement "texte vide → FAILED EMPTY_TEXT" sur non-PDF
         // (pour PDF, le fallback OCR est testé séparément dans OcrServiceTest + I-ES-OCR-*).
@@ -307,5 +309,34 @@ class ExtractionServiceTest {
         ArgumentCaptor<DocumentExtraction> captor = ArgumentCaptor.forClass(DocumentExtraction.class);
         verify(extractionRepository, org.mockito.Mockito.atLeastOnce()).save(captor.capture());
         return captor.getAllValues().get(captor.getAllValues().size() - 1);
+    }
+
+    // SF-144-01 U-01 : flag ocr_running commité via OcrRunningFlagService avant ET après tryOcr
+    @Test
+    void extract_emptyPdf_setsOcrRunningTrueBeforeAndFalseAfter() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("ocr text", 2));
+
+        service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
+
+        org.mockito.InOrder inOrder = org.mockito.Mockito.inOrder(ocrRunningFlagService, ocrService);
+        inOrder.verify(ocrRunningFlagService).markOcrRunning(any(), eq(true));
+        inOrder.verify(ocrService).tryOcr(any(), any(), anyBoolean());
+        inOrder.verify(ocrRunningFlagService).markOcrRunning(any(), eq(false));
+    }
+
+    // SF-144-01 U-01b : flag reset à false même si tryOcr jette une exception
+    // (try/finally interne à ExtractionService — l'exception est ensuite attrapée
+    // par le try/catch général qui marque FAILED EXTRACTION_EXCEPTION)
+    @Test
+    void extract_emptyPdf_ocrException_resetsOcrRunningFlag() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn(emptyPdfBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenThrow(new RuntimeException("textract down"));
+
+        service.extract(DOC_ID, STORAGE_KEY, "application/pdf");
+
+        verify(ocrRunningFlagService).markOcrRunning(any(), eq(true));
+        verify(ocrRunningFlagService).markOcrRunning(any(), eq(false));
     }
 }

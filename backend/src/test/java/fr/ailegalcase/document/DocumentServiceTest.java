@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -120,5 +121,20 @@ class DocumentServiceTest {
         service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE", null);
 
         verify(storageService).upload(anyString(), any(), anyString(), anyLong());
+    }
+
+    // SF-144-01 U-02 : isOcrExtracted reconnaît "textract" et "textract-rasterized"
+    @Test
+    void isOcrExtracted_textractMetadata_returnsTrue() {
+        assertThat(DocumentService.isOcrExtracted("{\"extractor\":\"textract\",\"pageCount\":3}")).isTrue();
+        assertThat(DocumentService.isOcrExtracted("{\"extractor\":\"textract-rasterized\",\"pageCount\":5}")).isTrue();
+    }
+
+    @Test
+    void isOcrExtracted_internalOrNull_returnsFalse() {
+        assertThat(DocumentService.isOcrExtracted("{\"extractor\":\"internal\",\"charCount\":1000}")).isFalse();
+        assertThat(DocumentService.isOcrExtracted("{\"extractor\":\"internal+textract\",\"reason\":\"OCR_FAILED\"}")).isFalse();
+        assertThat(DocumentService.isOcrExtracted(null)).isFalse();
+        assertThat(DocumentService.isOcrExtracted("")).isFalse();
     }
 }
