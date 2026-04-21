@@ -295,10 +295,10 @@ nav a:hover { color: var(--navy); }
 
 /* SF-126-01 — galerie miniatures sous le player */
 .video-thumbnails {
-  max-width: 840px;
+  max-width: 1120px;
   margin: 32px auto 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 .video-thumb {
@@ -347,7 +347,10 @@ nav a:hover { color: var(--navy); }
 .video-thumb-text { padding: 14px 16px 16px; }
 .video-thumb-title { font-size: 0.98rem; font-weight: 600; color: var(--navy-deep); margin-bottom: 4px; line-height: 1.3; }
 .video-thumb-subtitle { font-size: 0.82rem; color: #6b7a8a; line-height: 1.4; }
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .video-thumbnails { grid-template-columns: repeat(2, 1fr); max-width: 720px; }
+}
+@media (max-width: 560px) {
   .video-thumbnails { grid-template-columns: 1fr; gap: 12px; }
 }
 
