@@ -20,8 +20,8 @@ export const DEMO_VIDEOS: DemoVideo[] = [
   },
   {
     videoId: 'I5EemkFR8NE',
-    title: 'Checklist prud\'homale automatique',
-    subtitle: 'Pièces manquantes + vices de procédure détectés',
+    title: 'Synthèse enrichie et diff sourcé',
+    subtitle: 'Comparez les versions d\'analyse, chaque point relié à sa pièce',
   },
   {
     videoId: 'HVGXeUnrbks',
