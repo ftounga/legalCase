@@ -296,7 +296,8 @@ workspace_members
 case_files  
 documents  
 document_extractions  
-document_chunks
+document_chunks  
+document_pieces
 
 ## Analyse IA
 
@@ -534,6 +535,33 @@ created_at
 
 Paramètres V1 : taille 1000 caractères, overlap 200 caractères
 token_count : approximation chunk_text.length() / 4
+
+---
+
+## document_pieces
+
+Pièces juridiques identifiées à l'intérieur d'un document composite (F-145).
+Détection automatique via Haiku après extraction DONE, fail-open sur une entrée
+AUTRE si l'IA échoue. Consommée par la popup aperçu navigable et future F-146
+(source précise universelle).
+
+Champs :
+
+id
+document_id
+type
+label
+page_start
+page_end
+order_index
+created_at
+updated_at
+
+Valeurs type (enum fermé) : CONTRAT, PIECE_IDENTITE, SMS, EMAIL, ATTESTATION,
+BULLETIN_PAIE, LETTRE, PHOTO, AUTRE
+
+Invariant : au moins 1 entrée par document après extraction DONE (fallback AUTRE
+couvrant tout le document si la détection échoue).
 
 ---
 
