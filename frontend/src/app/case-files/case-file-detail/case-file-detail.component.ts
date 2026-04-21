@@ -38,7 +38,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { AnalyticsService } from '../../core/services/analytics.service';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
-import { Document, extractionFailureLabel } from '../../core/models/document.model';
+import { Document, extractionFailureLabel, documentPieceTypeIcon, documentPieceTypeLabel } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
 import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
 import { CaseFileStats } from '../../core/models/case-file-stats.model';
@@ -129,6 +129,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   // SF-121-02 : exposé au template pour le tooltip du badge "Non analysable"
   readonly extractionFailureLabel = extractionFailureLabel;
+  readonly documentPieceTypeIcon = documentPieceTypeIcon;
+  readonly documentPieceTypeLabel = documentPieceTypeLabel;
 
   // SF-125-01 : bouton contextuel — ENRICHED si analyse DONE + au moins 1 input avocat
   // (réponse Q&A OU check procédural validé). Le chat n'est pas chargé côté case-file-detail,
@@ -1083,16 +1085,18 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     return status === 'DONE' || status === 'FAILED';
   }
 
-  openPreview(doc: Document): void {
+  openPreview(doc: Document, initialPieceId?: string): void {
     if (!this.canPreviewDocument(doc)) return;
     const data: DocumentPreviewDialogData = {
       caseFileId: this.caseFile()!.id,
       documentId: doc.id,
+      pieces: doc.pieces ?? [],
+      initialPieceId,
     };
     this.dialog.open(DocumentPreviewDialogComponent, {
       data,
-      width: '720px',
-      maxWidth: '90vw',
+      width: (doc.pieces?.length ?? 0) > 1 ? '960px' : '720px',
+      maxWidth: '95vw',
     });
   }
 

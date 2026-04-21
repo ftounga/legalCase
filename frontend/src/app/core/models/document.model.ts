@@ -9,6 +9,27 @@ export type ExtractionFailureReason =
   | 'OCR_UNSUPPORTED_SIZE'
   | 'OCR_QUOTA_EXCEEDED';
 
+export type DocumentPieceType =
+  | 'CONTRAT'
+  | 'PIECE_IDENTITE'
+  | 'SMS'
+  | 'EMAIL'
+  | 'ATTESTATION'
+  | 'BULLETIN_PAIE'
+  | 'LETTRE'
+  | 'PHOTO'
+  | 'AUTRE';
+
+/** SF-145-01 : résumé d'une pièce identifiée dans un document composite. */
+export interface DocumentPieceSummary {
+  id: string;
+  type: DocumentPieceType;
+  label: string | null;
+  pageStart: number;
+  pageEnd: number;
+  orderIndex: number;
+}
+
 export interface Document {
   id: string;
   caseFileId: string;
@@ -24,6 +45,40 @@ export interface Document {
   ocrRunning?: boolean;
   /** SF-144-01 : true si l'extraction a été produite via Textract (affiche chip `OCR`). */
   ocrExtracted?: boolean;
+  /** SF-145-01 : pièces identifiées dans le document composite. */
+  pieces?: DocumentPieceSummary[];
+}
+
+/** SF-145-02 : libellé court par type pour les chips + sidebar. */
+export function documentPieceTypeLabel(type: DocumentPieceType): string {
+  switch (type) {
+    case 'CONTRAT':        return 'Contrat';
+    case 'PIECE_IDENTITE': return 'Identité';
+    case 'SMS':            return 'SMS';
+    case 'EMAIL':          return 'Email';
+    case 'ATTESTATION':    return 'Attestation';
+    case 'BULLETIN_PAIE':  return 'Bulletin de paie';
+    case 'LETTRE':         return 'Lettre';
+    case 'PHOTO':          return 'Photo';
+    case 'AUTRE':          return 'Pièce';
+    default:               return 'Pièce';
+  }
+}
+
+/** SF-145-02 : icône Material par type. */
+export function documentPieceTypeIcon(type: DocumentPieceType): string {
+  switch (type) {
+    case 'CONTRAT':        return 'description';
+    case 'PIECE_IDENTITE': return 'badge';
+    case 'SMS':            return 'chat';
+    case 'EMAIL':          return 'email';
+    case 'ATTESTATION':    return 'edit_note';
+    case 'BULLETIN_PAIE':  return 'receipt_long';
+    case 'LETTRE':         return 'mail';
+    case 'PHOTO':          return 'image';
+    case 'AUTRE':          return 'description';
+    default:               return 'description';
+  }
 }
 
 /** SF-121-02 + SF-122-01 : libellé humain court pour le badge UI. */

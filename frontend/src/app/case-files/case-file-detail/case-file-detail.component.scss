@@ -684,6 +684,63 @@
   vertical-align: middle;
 }
 
+/* SF-145-02 : chips pièces identifiées dans un document composite.
+   Affichées sous le nom du doc uniquement si plusieurs pièces détectées. */
+.piece-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.piece-chip {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #1A3A5C;
+  background: rgba(26, 58, 92, 0.06);
+  border: 1px solid rgba(26, 58, 92, 0.18);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.piece-chip:hover {
+  background: rgba(26, 58, 92, 0.12);
+  border-color: rgba(26, 58, 92, 0.35);
+}
+
+.piece-chip:focus-visible {
+  outline: 2px solid var(--gold, #C9973A);
+  outline-offset: 1px;
+}
+
+.piece-chip-icon {
+  font-size: 13px;
+  width: 13px;
+  height: 13px;
+  line-height: 13px;
+}
+
+.piece-chip-label {
+  line-height: 1.2;
+}
+
+/* Variantes subtiles par type (teintes légères, toujours lisibles sur fond blanc) */
+.piece-chip[data-type="CONTRAT"]        { background: rgba(26, 58, 92, 0.08); }
+.piece-chip[data-type="PIECE_IDENTITE"] { background: rgba(39, 174, 96, 0.08); color: #1E6640; border-color: rgba(39, 174, 96, 0.25); }
+.piece-chip[data-type="SMS"]            { background: rgba(52, 152, 219, 0.08); color: #1F5F88; border-color: rgba(52, 152, 219, 0.25); }
+.piece-chip[data-type="EMAIL"]          { background: rgba(155, 89, 182, 0.08); color: #5B3878; border-color: rgba(155, 89, 182, 0.25); }
+.piece-chip[data-type="ATTESTATION"]    { background: rgba(201, 151, 58, 0.10); color: #8B6B1F; border-color: rgba(201, 151, 58, 0.30); }
+.piece-chip[data-type="BULLETIN_PAIE"]  { background: rgba(22, 160, 133, 0.08); color: #0E5F4F; border-color: rgba(22, 160, 133, 0.25); }
+.piece-chip[data-type="LETTRE"]         { background: rgba(192, 57, 43, 0.06); color: #7F2A20; border-color: rgba(192, 57, 43, 0.22); }
+.piece-chip[data-type="PHOTO"]          { background: rgba(127, 140, 141, 0.10); color: #3D4A4A; border-color: rgba(127, 140, 141, 0.30); }
+
 .global-analysis-spinner {
   display: flex;
   align-items: center;

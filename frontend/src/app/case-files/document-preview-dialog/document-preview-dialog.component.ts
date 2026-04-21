@@ -5,18 +5,30 @@ import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/materia
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocumentService } from '../../core/services/document.service';
 import { DocumentPreview } from '../../core/models/document-preview.model';
+import {
+  DocumentPieceSummary, documentPieceTypeIcon, documentPieceTypeLabel
+} from '../../core/models/document.model';
 
 export interface DocumentPreviewDialogData {
   caseFileId: string;
   documentId: string;
+  /** SF-145-02 : pièces identifiées dans le document (vide si SF-145-01 n'a pas tourné). */
+  pieces?: DocumentPieceSummary[];
+  /** SF-145-02 : pièce à sélectionner à l'ouverture (sinon la 1ère). */
+  initialPieceId?: string;
 }
 
 @Component({
   selector: 'app-document-preview-dialog',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, MatButtonModule, MatDialogModule, MatIconModule, MatTabsModule, MatProgressSpinnerModule],
+  imports: [
+    DatePipe, DecimalPipe,
+    MatButtonModule, MatDialogModule, MatIconModule,
+    MatTabsModule, MatProgressSpinnerModule, MatTooltipModule
+  ],
   templateUrl: './document-preview-dialog.component.html',
   styleUrl: './document-preview-dialog.component.scss',
 })
@@ -28,17 +40,36 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
   activeTab = signal<number>(0);
   pdfRendering = signal(false);
   pdfError = signal<string | null>(null);
-  pdfRendered = signal(false);
+  /** Page actuellement rendue dans le canvas (pour éviter re-render si inchangé). */
+  pdfRenderedPage = signal<number | null>(null);
+
+  readonly pieces = signal<DocumentPieceSummary[]>([]);
+  readonly selectedPieceId = signal<string | null>(null);
+
+  readonly selectedPiece = computed<DocumentPieceSummary | null>(() => {
+    const id = this.selectedPieceId();
+    return this.pieces().find(p => p.id === id) ?? null;
+  });
+
+  readonly hasMultiplePieces = computed(() => this.pieces().length > 1);
 
   @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;
 
   readonly isPdf = computed(() => this.preview()?.mimeType === 'application/pdf');
+
+  readonly pieceTypeIcon = documentPieceTypeIcon;
+  readonly pieceTypeLabel = documentPieceTypeLabel;
 
   constructor(
     public dialogRef: MatDialogRef<DocumentPreviewDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DocumentPreviewDialogData,
     private documentService: DocumentService
   ) {
+    this.pieces.set(data.pieces ?? []);
+    // Sélection initiale : pieceId explicite > 1ère pièce > rien.
+    const initial = data.initialPieceId ?? this.pieces()[0]?.id ?? null;
+    this.selectedPieceId.set(initial);
+
     this.documentService.preview(data.caseFileId, data.documentId).subscribe({
       next: p => {
         this.preview.set(p);
@@ -57,9 +88,17 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
 
   onTabChange(index: number): void {
     this.activeTab.set(index);
-    if (index === 1 && !this.pdfRendered() && this.isPdf()) {
-      // Laisse le temps au template de rendre le canvas avant de dessiner
-      setTimeout(() => this.renderPdfFirstPage(), 50);
+    if (index === 1 && this.isPdf()) {
+      setTimeout(() => this.renderPdfForSelectedPiece(), 50);
+    }
+  }
+
+  selectPiece(pieceId: string): void {
+    if (this.selectedPieceId() === pieceId) return;
+    this.selectedPieceId.set(pieceId);
+    // Re-rend la page si on est sur l'onglet Aperçu
+    if (this.activeTab() === 1 && this.isPdf()) {
+      setTimeout(() => this.renderPdfForSelectedPiece(), 50);
     }
   }
 
@@ -93,27 +132,33 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
     return !p.extractedText || p.extractedText.trim().length === 0;
   }
 
-  private async renderPdfFirstPage(): Promise<void> {
-    if (!this.pdfCanvas || this.pdfRendered()) return;
+  pieceHeaderLabel(piece: DocumentPieceSummary): string {
+    const base = piece.label ?? documentPieceTypeLabel(piece.type);
+    const pages = piece.pageStart === piece.pageEnd
+      ? `p. ${piece.pageStart}`
+      : `p. ${piece.pageStart}–${piece.pageEnd}`;
+    return `${base} · ${pages}`;
+  }
+
+  private renderPdfForSelectedPiece(): void {
+    const piece = this.selectedPiece();
+    const pageIndex = piece ? piece.pageStart : 1;
+    if (this.pdfRenderedPage() === pageIndex) return; // évite re-render inutile
+    this.renderPdfPage(pageIndex);
+  }
+
+  private async renderPdfPage(pageIndex: number): Promise<void> {
+    if (!this.pdfCanvas) return;
     this.pdfRendering.set(true);
     this.pdfError.set(null);
     try {
-      // Import dynamique : évite de gonfler le bundle initial.
       const pdfjs = await import('pdfjs-dist');
-      // Worker servi localement depuis /public — évite la latence CDN (jsdelivr
-      // mettait parfois 20-30s à répondre au premier appel → "Aperçu indisponible"
-      // alors que le PDF était parfaitement valide).
-      // Cache-bust sur la version pdfjs — force les navigateurs à re-fetcher
-      // quand on bump pdfjs-dist (et contourne le Cache-Control immutable qui
-      // gardait un vieux worker avec MIME type incorrect avant PR #406).
       pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${pdfjs.version}`;
-
-      // Fix CORS : on utilise /content qui stream les bytes en same-origin
-      // plutôt que /download qui redirige 302 vers S3 (cross-origin bloqué avec credentials).
       const pdfUrl = `/api/v1/case-files/${this.data.caseFileId}/documents/${this.data.documentId}/content`;
       const loadingTask = pdfjs.getDocument({ url: pdfUrl });
       const pdf = await loadingTask.promise;
-      const page = await pdf.getPage(1);
+      const safePageIndex = Math.min(Math.max(1, pageIndex), pdf.numPages);
+      const page = await pdf.getPage(safePageIndex);
       const viewport = page.getViewport({ scale: 1 });
       const canvas = this.pdfCanvas.nativeElement;
       const ctx = canvas.getContext('2d');
@@ -126,10 +171,11 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
       canvas.height = scaledViewport.height;
 
       await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-      this.pdfRendered.set(true);
+      this.pdfRenderedPage.set(pageIndex);
     } catch (err) {
       console.error('PDF render failed', err);
       this.pdfError.set('Aperçu visuel indisponible pour ce document.');
+      this.pdfRenderedPage.set(null);
     } finally {
       this.pdfRendering.set(false);
     }

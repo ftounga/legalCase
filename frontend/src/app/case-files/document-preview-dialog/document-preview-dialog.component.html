@@ -36,63 +36,109 @@
     </div>
   </div>
 
-  <mat-dialog-content class="preview-content">
-    @if (p.extractionStatus === 'FAILED') {
-      <div class="alert alert-error">
-        <mat-icon>error</mat-icon>
-        <div>
-          <div class="alert-title">Extraction échouée</div>
-          <div class="alert-body">
-            Ce document ne sera pas pris en compte par l'IA.
-            @if (p.failureReason) {
-              Motif : {{ p.failureReason }}.
-            }
+  <mat-dialog-content class="preview-content" [class.preview-content--with-sidebar]="hasMultiplePieces()">
+    @if (hasMultiplePieces()) {
+      <aside class="pieces-sidebar">
+        <div class="pieces-sidebar-header">
+          Pièces identifiées ({{ pieces().length }})
+        </div>
+        <ul class="pieces-list">
+          @for (piece of pieces(); track piece.id) {
+            <li>
+              <button type="button"
+                      class="piece-item"
+                      [class.piece-item--active]="selectedPieceId() === piece.id"
+                      (click)="selectPiece(piece.id)">
+                <mat-icon class="piece-item-icon">{{ pieceTypeIcon(piece.type) }}</mat-icon>
+                <div class="piece-item-body">
+                  <div class="piece-item-type">{{ pieceTypeLabel(piece.type) }}</div>
+                  <div class="piece-item-label">{{ piece.label ?? '—' }}</div>
+                  <div class="piece-item-pages">
+                    @if (piece.pageStart === piece.pageEnd) {
+                      p. {{ piece.pageStart }}
+                    } @else {
+                      p. {{ piece.pageStart }}–{{ piece.pageEnd }}
+                    }
+                  </div>
+                </div>
+              </button>
+            </li>
+          }
+        </ul>
+      </aside>
+    }
+
+    <div class="preview-main">
+      @if (hasMultiplePieces() && selectedPiece(); as sp) {
+        <div class="selected-piece-banner">
+          <mat-icon class="selected-piece-icon">{{ pieceTypeIcon(sp.type) }}</mat-icon>
+          <span class="selected-piece-title">{{ pieceHeaderLabel(sp) }}</span>
+        </div>
+      }
+
+      @if (p.extractionStatus === 'FAILED') {
+        <div class="alert alert-error">
+          <mat-icon>error</mat-icon>
+          <div>
+            <div class="alert-title">Extraction échouée</div>
+            <div class="alert-body">
+              Ce document ne sera pas pris en compte par l'IA.
+              @if (p.failureReason) {
+                Motif : {{ p.failureReason }}.
+              }
+            </div>
           </div>
         </div>
-      </div>
-    } @else if (p.extractionStatus !== 'DONE') {
-      <div class="alert alert-info">
-        <mat-icon>hourglass_empty</mat-icon>
-        <div class="alert-body">Extraction en cours — revenez dans quelques instants.</div>
-      </div>
-    } @else {
-      <mat-tab-group [selectedIndex]="activeTab()" (selectedIndexChange)="onTabChange($event)" animationDuration="200ms">
-        <mat-tab label="Texte extrait">
-          @if (isTextEmpty()) {
-            <div class="alert alert-error">
-              <mat-icon>warning</mat-icon>
-              <div>
-                <div class="alert-title">Aucun texte extrait</div>
-                <div class="alert-body">Ce document ne sera pas pris en compte par l'IA.</div>
+      } @else if (p.extractionStatus !== 'DONE') {
+        <div class="alert alert-info">
+          <mat-icon>hourglass_empty</mat-icon>
+          <div class="alert-body">Extraction en cours — revenez dans quelques instants.</div>
+        </div>
+      } @else {
+        <mat-tab-group [selectedIndex]="activeTab()" (selectedIndexChange)="onTabChange($event)" animationDuration="200ms">
+          <mat-tab label="Texte extrait">
+            @if (isTextEmpty()) {
+              <div class="alert alert-error">
+                <mat-icon>warning</mat-icon>
+                <div>
+                  <div class="alert-title">Aucun texte extrait</div>
+                  <div class="alert-body">Ce document ne sera pas pris en compte par l'IA.</div>
+                </div>
               </div>
-            </div>
-          } @else {
-            <pre class="extracted-text">{{ p.extractedText }}</pre>
-            @if (p.textTruncated) {
-              <p class="truncate-note">
-                Texte tronqué à 200 000 caractères pour l'affichage (le document complet est bien traité par l'IA).
-              </p>
-            }
-          }
-        </mat-tab>
-        @if (isPdf()) {
-          <mat-tab label="Aperçu 1re page">
-            <div class="pdf-wrapper">
-              @if (pdfRendering()) {
-                <mat-spinner diameter="36" />
-              }
-              @if (pdfError()) {
-                <div class="alert alert-info">
+            } @else {
+              @if (hasMultiplePieces()) {
+                <div class="pieces-info-banner">
                   <mat-icon>info</mat-icon>
-                  <div class="alert-body">{{ pdfError() }}</div>
+                  <span>Texte complet du document. Segmentation fine par pièce à venir.</span>
                 </div>
               }
-              <canvas #pdfCanvas class="pdf-canvas" [class.pdf-canvas--hidden]="pdfRendering() || pdfError()"></canvas>
-            </div>
+              <pre class="extracted-text">{{ p.extractedText }}</pre>
+              @if (p.textTruncated) {
+                <p class="truncate-note">
+                  Texte tronqué à 200 000 caractères pour l'affichage (le document complet est bien traité par l'IA).
+                </p>
+              }
+            }
           </mat-tab>
-        }
-      </mat-tab-group>
-    }
+          @if (isPdf()) {
+            <mat-tab [label]="hasMultiplePieces() ? 'Aperçu' : 'Aperçu 1re page'">
+              <div class="pdf-wrapper">
+                @if (pdfRendering()) {
+                  <mat-spinner diameter="36" />
+                }
+                @if (pdfError()) {
+                  <div class="alert alert-info">
+                    <mat-icon>info</mat-icon>
+                    <div class="alert-body">{{ pdfError() }}</div>
+                  </div>
+                }
+                <canvas #pdfCanvas class="pdf-canvas" [class.pdf-canvas--hidden]="pdfRendering() || pdfError()"></canvas>
+              </div>
+            </mat-tab>
+          }
+        </mat-tab-group>
+      }
+    </div>
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

@@ -1139,6 +1139,36 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // SF-145-02 : chips pièces dans la table des docs
+  describe('SF-145-02 — chips pièces', () => {
+    const pieces = [
+      { id: 'p1', type: 'CONTRAT' as const, label: 'CDI', pageStart: 1, pageEnd: 2, orderIndex: 0 },
+      { id: 'p2', type: 'PIECE_IDENTITE' as const, label: 'CNI', pageStart: 3, pageEnd: 3, orderIndex: 1 },
+    ];
+
+    it('U-01 : 2 pièces → 2 chips rendus sous le nom du doc', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([{ ...mockDocument, extractionStatus: 'DONE', pieces }]);
+      fixture.detectChanges();
+      const chips = fixture.nativeElement.querySelectorAll('.piece-chip');
+      expect(chips.length).toBe(2);
+    });
+
+    it('U-02 : 1 seule pièce → pas de chips (évite le bruit visuel)', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([{ ...mockDocument, extractionStatus: 'DONE', pieces: [pieces[0]] }]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.piece-chip')).toBeFalsy();
+    });
+
+    it('U-03 : pas de pieces (legacy) → pas de chips', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([{ ...mockDocument, extractionStatus: 'DONE' }]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.piece-chip')).toBeFalsy();
+    });
+  });
+
   // SF-144-01 : feedback UX OCR (ocrRunning + ocrExtracted)
   describe('SF-144-01 — feedback OCR', () => {
     const baseDoc = (overrides: Partial<Document> = {}): Document => ({
