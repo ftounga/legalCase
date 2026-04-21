@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="097-create-document-pieces" author="legalcase">
+        <comment>
+            SF-145-01 : pièces identifiées à l'intérieur d'un document composite
+            (ex: un PDF contenant contrat + CNI + SMS + attestation). Détecté
+            automatiquement par Haiku après extraction DONE. Débloque la
+            popup aperçu navigable (SF-145-02) et la source précise (F-146).
+        </comment>
+
+        <createTable tableName="document_pieces">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="document_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_document_pieces_document"
+                             referencedTableName="documents"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="type" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="label" type="varchar(500)"/>
+            <column name="page_start" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="page_end" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="order_index" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="document_pieces" indexName="idx_document_pieces_document_id">
+            <column name="document_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="document_pieces"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

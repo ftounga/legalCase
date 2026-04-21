@@ -44,6 +44,7 @@ public class DocumentService {
     private final StorageService storageService;
     private final ApplicationEventPublisher eventPublisher;
     private final PlanLimitService planLimitService;
+    private final DocumentPieceRepository documentPieceRepository;
 
     public DocumentService(DocumentRepository documentRepository,
                            DocumentExtractionRepository extractionRepository,
@@ -52,7 +53,8 @@ public class DocumentService {
                            WorkspaceMemberRepository workspaceMemberRepository,
                            StorageService storageService,
                            ApplicationEventPublisher eventPublisher,
-                           PlanLimitService planLimitService) {
+                           PlanLimitService planLimitService,
+                           DocumentPieceRepository documentPieceRepository) {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
         this.caseFileRepository = caseFileRepository;
@@ -61,6 +63,7 @@ public class DocumentService {
         this.storageService = storageService;
         this.eventPublisher = eventPublisher;
         this.planLimitService = planLimitService;
+        this.documentPieceRepository = documentPieceRepository;
     }
 
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 15;
@@ -218,6 +221,11 @@ public class DocumentService {
     }
 
     private DocumentResponse toResponse(Document document, DocumentExtraction extraction) {
+        java.util.List<DocumentPieceSummary> pieces = documentPieceRepository
+                .findByDocument_IdOrderByOrderIndexAsc(document.getId())
+                .stream()
+                .map(DocumentPieceSummary::from)
+                .toList();
         return new DocumentResponse(
                 document.getId(),
                 document.getCaseFile().getId(),
@@ -230,7 +238,8 @@ public class DocumentService {
                 extraction != null && extraction.getFailureReason() != null
                         ? extraction.getFailureReason().name() : null,
                 extraction != null && extraction.isOcrRunning(),
-                extraction != null && isOcrExtracted(extraction.getExtractionMetadata())
+                extraction != null && isOcrExtracted(extraction.getExtractionMetadata()),
+                pieces
         );
     }
 
