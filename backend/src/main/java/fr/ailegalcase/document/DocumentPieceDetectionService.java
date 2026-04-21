@@ -158,9 +158,16 @@ public class DocumentPieceDetectionService {
             // documentaire demande plus de raisonnement que Haiku n'en offre.
             // Surcoût : ~0,002 € → ~0,01 €/doc. Qualité nettement supérieure.
             AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, truncated, 2048);
-            parsed = parseResponse(result.content());
+            // SF-145-05 : log diagnostic de la réponse brute (tronquée 400 chars)
+            // pour identifier les cas où Sonnet sur-segmente ou mal classifie.
+            String rawContent = result.content();
+            String preview = rawContent == null ? "<null>"
+                    : rawContent.length() > 400 ? rawContent.substring(0, 400) + "…[truncated]" : rawContent;
+            log.info("Sonnet response for document {} (input {} chars) :\n{}",
+                    documentId, truncated.length(), preview);
+            parsed = parseResponse(rawContent);
             if (parsed.isEmpty()) {
-                log.info("Haiku returned empty piece list for document {} — fallback to AUTRE", documentId);
+                log.info("Sonnet returned empty piece list for document {} — fallback to AUTRE", documentId);
                 parsed = fallback();
             }
         } catch (Exception e) {
@@ -170,6 +177,11 @@ public class DocumentPieceDetectionService {
         }
 
         persistAll(extraction.getDocument(), parsed);
+        // SF-145-05 : log détaillé des pièces persistées pour diagnostic
+        for (ParsedPiece p : parsed) {
+            log.info("  piece[{}] type={} pages={}-{} label=\"{}\"",
+                    p.orderIndex, p.type, p.pageStart, p.pageEnd, p.label);
+        }
         log.info("Piece detection done for document {} — {} piece(s) persisted", documentId, parsed.size());
     }
 
