@@ -41,6 +41,12 @@ public class DocumentPieceDetectionService {
             composite. Un document peut contenir plusieurs pièces scannées en une passe
             (ex: contrat de 5 pages + CNI recto-verso + échanges SMS imprimés).
 
+            STRUCTURE DE L'INPUT : le texte est découpé en pages délimitées par des
+            marqueurs "=== PAGE N ===" où N est le numéro de page (1-indexed). **Utilise
+            EXCLUSIVEMENT ces marqueurs** pour déterminer les pageStart et pageEnd de
+            chaque pièce. Ne devine jamais les numéros de pages — ils sont explicites
+            dans le texte.
+
             RÈGLE CENTRALE : **regroupe les pages qui appartiennent à la même pièce**.
             Une pièce unique peut s'étendre sur plusieurs pages — dans ce cas tu produis
             UNE SEULE entrée avec pageStart et pageEnd couvrant toutes les pages concernées.

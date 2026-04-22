@@ -239,7 +239,8 @@ class OcrServiceTest {
 
         assertThat(result.success()).isTrue();
         assertThat(result.rasterized()).isTrue();
-        assertThat(result.text()).isEqualTo("Bonjour");
+        // SF-145-07 : marqueur de page "=== PAGE N ===" préfixé au texte de chaque page
+        assertThat(result.text()).isEqualTo("=== PAGE 1 ===\nBonjour");
         // 1 call direct échoué + 1 call rasterized par page = 2 calls totaux sur 1 page
         verify(client, times(2)).analyzeDocument(any(AnalyzeDocumentRequest.class));
     }
@@ -264,7 +265,9 @@ class OcrServiceTest {
 
         assertThat(result.success()).isTrue();
         assertThat(result.rasterized()).isTrue();
-        assertThat(result.text()).isEqualTo("Page 1\n\nPage 2\n\nPage 3");
+        // SF-145-07 : chaque page préfixée par son marqueur "=== PAGE N ==="
+        assertThat(result.text()).isEqualTo(
+                "=== PAGE 1 ===\nPage 1\n\n=== PAGE 2 ===\nPage 2\n\n=== PAGE 3 ===\nPage 3");
         assertThat(result.pageCount()).isEqualTo(3);
     }
 
