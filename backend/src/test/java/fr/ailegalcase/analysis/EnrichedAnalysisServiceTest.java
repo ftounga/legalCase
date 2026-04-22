@@ -47,6 +47,7 @@ class EnrichedAnalysisServiceTest {
             mock(fr.ailegalcase.document.DocumentRepository.class);
     private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository =
             mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
+    private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
@@ -54,7 +55,7 @@ class EnrichedAnalysisServiceTest {
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
             chatMessageRepository, procedureCheckService, statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
-            documentRepository, documentExtractionRepository);
+            documentRepository, documentExtractionRepository, piecesPromptContext);
 
     @BeforeEach
     void setUp() {

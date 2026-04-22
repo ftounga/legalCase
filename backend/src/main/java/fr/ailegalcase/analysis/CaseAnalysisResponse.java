@@ -452,9 +452,12 @@ public record CaseAnalysisResponse(
 
     /**
      * Parse un array JSON en List<AnalysisItem>. Fail-open :
-     * - item string → AnalysisItem(texte, null, null)
-     * - item objet {texte, source?, extrait?} → AnalysisItem complet
+     * - item string → AnalysisItem(texte, null, null, null)
+     * - item objet {texte, source?, extrait?, sourceRef?} → AnalysisItem complet
      * - item malformé → ignoré
+     *
+     * <p>F-146 SF-146-01 : support du champ {@code sourceRef} produit par le
+     * pipeline IA enrichi. Rétrocompat totale avec items pré-F-146.
      */
     static List<AnalysisItem> extractItemList(JsonNode root, String field) {
         JsonNode node = root.get(field);
@@ -469,10 +472,37 @@ public record CaseAnalysisResponse(
                         ? item.get("source").asText() : null;
                 String extrait = item.has("extrait") && !item.get("extrait").isNull()
                         ? item.get("extrait").asText() : null;
-                result.add(new AnalysisItem(texte, source, extrait));
+                SourceRef sourceRef = extractSourceRef(item.get("sourceRef"));
+                result.add(new AnalysisItem(texte, source, extrait, sourceRef));
             }
         }
         return List.copyOf(result);
+    }
+
+    /**
+     * F-146 SF-146-01 : parse le sous-objet {@code sourceRef}. Fail-open sur
+     * champs manquants ou types erronés (retourne null pour le field concerné).
+     */
+    static SourceRef extractSourceRef(JsonNode ref) {
+        if (ref == null || !ref.isObject()) return null;
+        String documentName = textOrNullSr(ref.get("documentName"));
+        String pieceType = textOrNullSr(ref.get("pieceType"));
+        String pieceLabel = textOrNullSr(ref.get("pieceLabel"));
+        Integer pageStart = intOrNullSr(ref.get("pageStart"));
+        Integer pageEnd = intOrNullSr(ref.get("pageEnd"));
+        if (documentName == null && pieceType == null && pieceLabel == null
+                && pageStart == null && pageEnd == null) {
+            return null;
+        }
+        return new SourceRef(documentName, pieceType, pieceLabel, pageStart, pageEnd);
+    }
+
+    private static String textOrNullSr(JsonNode n) {
+        return n != null && !n.isNull() && n.isTextual() ? n.asText() : null;
+    }
+
+    private static Integer intOrNullSr(JsonNode n) {
+        return n != null && !n.isNull() && n.isNumber() ? n.asInt() : null;
     }
 
     private static List<String> extractStringList(JsonNode root, String field) {

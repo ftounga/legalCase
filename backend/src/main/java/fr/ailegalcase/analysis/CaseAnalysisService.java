@@ -43,6 +43,7 @@ public class CaseAnalysisService {
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "delais_detectes": [{"label": "...", "date_detectee": "YYYY-MM-DD", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>"}]}
             Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus) et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
+            F-146 : ajoute AUSSI à chaque item un champ "sourceRef" précisant la pièce juridique exacte, au format {"documentName": "<nom fichier>", "pieceType": "<type pièce parmi la liste du contexte>", "pieceLabel": "<label de la pièce tel qu'indiqué dans la section PIÈCES IDENTIFIÉES>", "pageStart": <page début>, "pageEnd": <page fin>}. Utilise les informations de la section "=== PIÈCES IDENTIFIÉES DANS LES DOCUMENTS ===" fournie dans le prompt utilisateur. Si la pièce n'est pas identifiable ou si le dossier n'a pas de pièces détectées (dossier pré-F-145), utilise "sourceRef": null. Ne jamais inventer un label de pièce qui n'apparaît pas dans la section PIÈCES IDENTIFIÉES.
             La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis. Chaque élément est un objet {"texte": "<description de la pièce>", "critere_code": "<code ou null>"}. "critere_code" est rempli UNIQUEMENT si l'absence de cette pièce correspond à un des codes surveillés :
             - Critères F-DT-08 Validité licenciement (droit du travail) : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION, FR_MOTIVATION, FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT, BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION, BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE, BE_INDEMNITE_MANIFESTE.
@@ -104,6 +105,7 @@ public class CaseAnalysisService {
     private final CaseDeadlineService caseDeadlineService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
     private final SourceExplanationService sourceExplanationService;
+    private final PiecesPromptContext piecesPromptContext;
 
     @Lazy @Autowired
     private CaseAnalysisService self;
@@ -122,7 +124,8 @@ public class CaseAnalysisService {
                                ProcedureCheckService procedureCheckService,
                                CaseDeadlineService caseDeadlineService,
                                SourceExplanationGenerator sourceExplanationGenerator,
-                               SourceExplanationService sourceExplanationService) {
+                               SourceExplanationService sourceExplanationService,
+                               PiecesPromptContext piecesPromptContext) {
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.documentExtractionRepository = documentExtractionRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
@@ -138,6 +141,7 @@ public class CaseAnalysisService {
         this.caseDeadlineService = caseDeadlineService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
         this.sourceExplanationService = sourceExplanationService;
+        this.piecesPromptContext = piecesPromptContext;
     }
 
     @RabbitListener(queues = RabbitMQConfig.CASE_ANALYSIS_QUEUE, concurrency = "3")
@@ -215,7 +219,13 @@ public class CaseAnalysisService {
         String country     = ws != null ? ws.getCountry()     : "FRANCE";
         AnalysisLimitsProperties.LevelLimits limits = analysisLimitsProperties.forDomain(legalDomain).getDossier();
         String systemPrompt = buildSystemPrompt(legalDomain, country, limits);
-        return new PreparedCaseAnalysis(analysis.getId(), buildAggregatedPrompt(documentAnalyses), systemPrompt, caseFileId, limits);
+        // F-146 SF-146-01 : préfixe le prompt utilisateur avec la liste des pièces
+        // identifiées (F-145) pour que l'IA puisse produire des `sourceRef` précis.
+        String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
+        String userPrompt = (piecesContext == null || piecesContext.isEmpty())
+                ? buildAggregatedPrompt(documentAnalyses)
+                : piecesContext + "\n" + buildAggregatedPrompt(documentAnalyses);
+        return new PreparedCaseAnalysis(analysis.getId(), userPrompt, systemPrompt, caseFileId, limits);
     }
 
     @Transactional

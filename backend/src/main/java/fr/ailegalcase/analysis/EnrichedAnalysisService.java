@@ -39,6 +39,7 @@ public class EnrichedAnalysisService {
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
             Format attendu (inclure tous les champs) : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "checks_a_requalifier": [{"description": "...", "nouveau_statut": "NON_COMPLIANT"|"TO_CHECK", "raison": "..."}], "type_litige_detecte": "LICENCIEMENT_SANS_CAUSE_REELLE"|"LICENCIEMENT_ECONOMIQUE"|"PRISE_ACTE_RUPTURE"|"HARCELEMENT_MORAL"|"DISCRIMINATION"|"HEURES_SUPPLEMENTAIRES"|"RAPPEL_SALAIRE"|null, "date_reference_prescription": "YYYY-MM-DD"|null, "compensation_data": {"type_rupture": "LICENCIEMENT"|"LICENCIEMENT_ECONOMIQUE"|"RUPTURE_CONVENTIONNELLE"|"DEMISSION"|"PRISE_ACTE"|"RESILIATION_JUDICIAIRE"|"LICENCIEMENT_ORDINAIRE"|"RUPTURE_AMIABLE", "anciennete_annees": <entier>|null, "anciennete_mois": <entier>|null, "salaire_reference_mensuel": <décimal>|null}|null}
             Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (nom exact du fichier tel qu'il apparaît dans la synthèse précédente) et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
+            F-146 : ajoute AUSSI à chaque item un champ "sourceRef" précisant la pièce juridique exacte : {"documentName": "<nom fichier>", "pieceType": "<type>", "pieceLabel": "<label de la pièce>", "pageStart": <début>, "pageEnd": <fin>}. Utilise la section "=== PIÈCES IDENTIFIÉES DANS LES DOCUMENTS ===" fournie dans le prompt utilisateur. "sourceRef": null si non identifiable. Ne jamais inventer un label absent de cette section.
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis. Chaque élément est un objet {"texte": "<description de la pièce>", "critere_code": "<code ou null>"}. "critere_code" est rempli UNIQUEMENT si l'absence de cette pièce correspond à un code surveillé :
             - Critères F-DT-08 Validité licenciement : FR_CONVOCATION, FR_ENTRETIEN, FR_DELAI_NOTIFICATION, FR_MOTIVATION, FR_MOTIF_REEL, FR_PROCEDURE_DISCIPLINAIRE, FR_ORDRE_LICENCIEMENT, BE_NOTIFICATION, BE_PREAVIS, BE_MOTIVATION, BE_AUDITION, BE_NON_DISCRIMINATION, BE_PROTECTION_SPECIALE, BE_INDEMNITE_MANIFESTE.
             - Critères F-DT-10 Validité rupture conventionnelle (France, art. L1237-11 s.) : RC_CONSENTEMENT, RC_DELAI_RETRACTATION, RC_HOMOLOGATION, RC_ASSISTANCE, RC_INDEMNITE, RC_ENTRETIENS.
@@ -133,6 +134,7 @@ public class EnrichedAnalysisService {
     private final SourceExplanationService sourceExplanationService;
     private final fr.ailegalcase.document.DocumentRepository documentRepository;
     private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository;
+    private final PiecesPromptContext piecesPromptContext;
 
     /** SF-35-03-bis : budget pour les extraits bruts injectés dans l'enrichie —
      *  identique à CaseAnalysisService pour cohérence. Permet à l'IA de voir
@@ -161,7 +163,8 @@ public class EnrichedAnalysisService {
                                    SourceExplanationGenerator sourceExplanationGenerator,
                                    SourceExplanationService sourceExplanationService,
                                    fr.ailegalcase.document.DocumentRepository documentRepository,
-                                   fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository) {
+                                   fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository,
+                                   PiecesPromptContext piecesPromptContext) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
@@ -181,6 +184,7 @@ public class EnrichedAnalysisService {
         this.sourceExplanationService = sourceExplanationService;
         this.documentRepository = documentRepository;
         this.documentExtractionRepository = documentExtractionRepository;
+        this.piecesPromptContext = piecesPromptContext;
     }
 
     @RabbitListener(queues = RabbitMQConfig.RE_ANALYSIS_QUEUE, concurrency = "3")
@@ -294,8 +298,14 @@ public class EnrichedAnalysisService {
             log.warn("listVerified failed for caseFile {} — enriched analysis will proceed without it", caseFileId, e);
             verifiedChecks = List.of();
         }
-        String prompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
+        String basePrompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
                 nonCompliantChecks, toCheckChecks, verifiedChecks);
+        // F-146 SF-146-01 : préfixe le prompt avec la liste des pièces pour que
+        // la re-synthèse enrichie produise aussi des sourceRef précis.
+        String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
+        String prompt = (piecesContext == null || piecesContext.isEmpty())
+                ? basePrompt
+                : piecesContext + "\n" + basePrompt;
         return new PreparedEnrichedAnalysis(enrichedAnalysis.getId(), prompt, systemPrompt, caseFileId, limits,
                 previousAnalysis.getId());
     }
