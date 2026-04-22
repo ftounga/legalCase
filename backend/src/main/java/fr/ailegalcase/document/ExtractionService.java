@@ -230,7 +230,27 @@ public class ExtractionService {
 
     private String extractFromPdf(byte[] fileBytes) throws Exception {
         try (PDDocument doc = Loader.loadPDF(fileBytes)) {
-            return new PDFTextStripper().getText(doc);
+            // SF-145-07 : extraction page par page avec marqueurs explicites
+            // "=== PAGE N ===" pour que DocumentPieceDetectionService puisse
+            // déterminer précisément pageStart/pageEnd de chaque pièce.
+            // Aussi utile pour le pipeline IA principal (structure plus claire).
+            // On n'ajoute un marqueur QUE si la page contient du texte non-blank —
+            // sinon un PDF scanné sans couche texte produirait faussement un texte
+            // non-vide (juste les marqueurs), ce qui masquerait le déclenchement
+            // du fallback OCR Textract.
+            PDFTextStripper stripper = new PDFTextStripper();
+            int pageCount = doc.getNumberOfPages();
+            StringBuilder full = new StringBuilder();
+            for (int pageIdx = 1; pageIdx <= pageCount; pageIdx++) {
+                stripper.setStartPage(pageIdx);
+                stripper.setEndPage(pageIdx);
+                String pageText = stripper.getText(doc);
+                if (pageText == null || pageText.isBlank()) continue;
+                if (full.length() > 0) full.append("\n\n");
+                full.append("=== PAGE ").append(pageIdx).append(" ===\n");
+                full.append(pageText);
+            }
+            return full.toString();
         }
     }
 

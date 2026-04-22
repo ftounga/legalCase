@@ -210,6 +210,10 @@ public class OcrService {
 
                     if (!pageText.isBlank()) {
                         if (fullText.length() > 0) fullText.append("\n\n");
+                        // SF-145-07 : marqueur de page pour que DocumentPieceDetectionService
+                        // puisse déterminer précisément pageStart/pageEnd de chaque pièce.
+                        // Aussi utile pour le pipeline IA principal (structure plus claire).
+                        fullText.append("=== PAGE ").append(pageIdx + 1).append(" ===\n");
                         fullText.append(pageText);
                         successfulPages++;
                     }
