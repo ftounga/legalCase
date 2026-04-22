@@ -68,6 +68,24 @@ class PiecesPromptContextTest {
         assertThat(out).contains("(p. 2-7)");
     }
 
+    // SF-148-01 U-06 : pièce avec visualDescription → ligne appendée [Vision : …]
+    @Test
+    void buildFromPieces_withVisualDescription_appendsVisionBlock() {
+        DocumentPiece p = piece(DocumentPieceType.SMS, "Échanges Anne", 3, 3);
+        p.setVisualDescription("Conversation entre deux numéros,\nmessages à gauche en vert.");
+        String out = PiecesPromptContext.buildFromPieces("doc.pdf", List.of(p));
+        assertThat(out).contains("- SMS « Échanges Anne » (p. 3) — [Vision : Conversation entre deux numéros, messages à gauche en vert.]");
+    }
+
+    // SF-148-01 U-07 : pièce sans visualDescription → format F-146 inchangé (rétrocompat)
+    @Test
+    void buildFromPieces_withoutVisualDescription_keepsF146Format() {
+        List<DocumentPiece> pieces = List.of(piece(DocumentPieceType.SMS, "A", 1, 1));
+        String out = PiecesPromptContext.buildFromPieces("doc.pdf", pieces);
+        assertThat(out).contains("- SMS « A » (p. 1)\n");
+        assertThat(out).doesNotContain("Vision");
+    }
+
     private static DocumentPiece piece(DocumentPieceType type, String label, int start, int end) {
         DocumentPiece p = new DocumentPiece();
         p.setType(type);

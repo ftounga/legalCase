@@ -88,6 +88,48 @@ app:
           timeline: 5
           pieces-manquantes: 5
           points-procedure: 8
+  # SF-148-01 : enrichissement visuel Claude Vision — stratégie hybride signaux + config.
+  # Désactivé par défaut. Activer progressivement via VISION_ENABLED=true par environnement.
+  # Signal 1 (OCR pauvre < min-ocr-chars-per-page) : prioritaire — force vision même sur blacklist.
+  # Signal 2 (whitelist domaine) : déclenche vision quand OCR est correct mais la pièce a de la valeur visuelle.
+  # Blacklist : désactive vision quand OCR suffit (sauf signal 1).
+  vision:
+    enabled: ${VISION_ENABLED:false}
+    min-ocr-chars-per-page: 40
+    model: ${VISION_MODEL:claude-haiku-4-5-20251001}
+    max-tokens: 600
+    render-dpi: 150
+    trigger-types-by-domain:
+      DROIT_DU_TRAVAIL:
+        - SMS
+        - ATTESTATION
+        - PHOTO
+      DROIT_IMMIGRATION:
+        - PHOTO
+        - PIECE_IDENTITE
+        - TITRE_DE_SEJOUR
+        - PASSEPORT
+        - VISA
+        - RECEPISSE_PREFECTURE
+      DROIT_FAMILLE:
+        - PHOTO
+        - SMS
+        - ATTESTATION
+        - ACTE_MARIAGE
+    skip-types-by-domain:
+      DROIT_DU_TRAVAIL:
+        - CONTRAT
+        - LETTRE
+        - BULLETIN_PAIE
+      DROIT_IMMIGRATION:
+        - AVIS_IMPOSITION
+        - QUITTANCE_LOYER
+        - ATTESTATION_HEBERGEMENT
+      DROIT_FAMILLE:
+        - JUGEMENT_DIVORCE
+        - LIVRET_FAMILLE
+        - JUSTIFICATIF_REVENUS
+
   stripe:
     enabled: false
     secret-key: ${STRIPE_SECRET_KEY:}

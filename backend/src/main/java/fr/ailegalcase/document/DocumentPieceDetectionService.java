@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
+import fr.ailegalcase.document.vision.PiecesPersistedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
@@ -136,6 +138,7 @@ public class DocumentPieceDetectionService {
     private final DocumentPieceRepository pieceRepository;
     private final AnthropicService anthropicService;
     private final TaskExecutor taskExecutor;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Lazy @Autowired
     private DocumentPieceDetectionService self;
@@ -143,11 +146,13 @@ public class DocumentPieceDetectionService {
     public DocumentPieceDetectionService(DocumentExtractionRepository extractionRepository,
                                          DocumentPieceRepository pieceRepository,
                                          AnthropicService anthropicService,
-                                         @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
+                                         @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor,
+                                         ApplicationEventPublisher eventPublisher) {
         this.extractionRepository = extractionRepository;
         this.pieceRepository = pieceRepository;
         this.anthropicService = anthropicService;
         this.taskExecutor = taskExecutor;
+        this.eventPublisher = eventPublisher;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -220,6 +225,9 @@ public class DocumentPieceDetectionService {
                     p.orderIndex, p.type, p.pageStart, p.pageEnd, p.label);
         }
         log.info("Piece detection done for document {} — {} piece(s) persisted", documentId, parsed.size());
+
+        // SF-148-01 : déclenche l'enrichissement visuel hors transaction (fail-open si désactivé).
+        eventPublisher.publishEvent(new PiecesPersistedEvent(documentId, legalDomain));
     }
 
     private void persistAll(Document document, List<ParsedPiece> parsed) {

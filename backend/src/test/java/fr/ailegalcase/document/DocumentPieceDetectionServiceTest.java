@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.SyncTaskExecutor;
 
 import java.util.List;
@@ -29,6 +30,7 @@ class DocumentPieceDetectionServiceTest {
     @Mock private DocumentExtractionRepository extractionRepository;
     @Mock private DocumentPieceRepository pieceRepository;
     @Mock private AnthropicService anthropicService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     private DocumentPieceDetectionService service;
 
@@ -38,7 +40,7 @@ class DocumentPieceDetectionServiceTest {
     @BeforeEach
     void setUp() {
         service = new DocumentPieceDetectionService(
-                extractionRepository, pieceRepository, anthropicService, new SyncTaskExecutor());
+                extractionRepository, pieceRepository, anthropicService, new SyncTaskExecutor(), eventPublisher);
     }
 
     // U-01 : Haiku retourne 2 pièces → 2 entrées persistées dans le bon ordre
