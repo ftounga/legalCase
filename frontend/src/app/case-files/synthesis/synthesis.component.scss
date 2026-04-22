@@ -265,30 +265,6 @@
   }
 }
 
-.source-badge {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-top: 3px;
-  font-family: Inter, sans-serif;
-  font-size: 11px;
-  color: #6B7A8D;
-
-  em {
-    font-style: italic;
-    color: #8895A7;
-  }
-}
-
-.source-icon {
-  font-size: 12px;
-  width: 12px;
-  height: 12px;
-  vertical-align: middle;
-  flex-shrink: 0;
-}
-
-
 .questions-list {
   display: flex;
   flex-direction: column;

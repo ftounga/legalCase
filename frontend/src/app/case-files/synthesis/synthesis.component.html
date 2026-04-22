@@ -122,11 +122,12 @@
             @for (item of synthesis()!.faits; track $index) {
               <li @fadeInUp>
                 {{ item.texte }}
-                @if (item.source) {
-                  <span class="source-badge">
-                    <mat-icon class="source-icon">description</mat-icon>
-                    {{ resolveSource(item.source) }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
-                  </span>
+                @if (item.sourceRef || item.source) {
+                  <app-source-ref
+                    [sourceRef]="item.sourceRef"
+                    [legacySource]="resolveSource(item.source)"
+                    [extrait]="item.extrait"
+                    [caseFileId]="caseFile()!.id" />
                 }
               </li>
             }
@@ -147,11 +148,12 @@
             @for (item of synthesis()!.pointsJuridiques; track $index) {
               <li @fadeInUp>
                 {{ item.texte }}
-                @if (item.source) {
-                  <span class="source-badge">
-                    <mat-icon class="source-icon">description</mat-icon>
-                    {{ resolveSource(item.source) }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
-                  </span>
+                @if (item.sourceRef || item.source) {
+                  <app-source-ref
+                    [sourceRef]="item.sourceRef"
+                    [legacySource]="resolveSource(item.source)"
+                    [extrait]="item.extrait"
+                    [caseFileId]="caseFile()!.id" />
                 }
               </li>
             }
@@ -172,11 +174,12 @@
             @for (item of synthesis()!.risques; track $index) {
               <li @fadeInUp>
                 {{ item.texte }}
-                @if (item.source) {
-                  <span class="source-badge">
-                    <mat-icon class="source-icon">description</mat-icon>
-                    {{ resolveSource(item.source) }}@if (item.extrait) { — <em>« {{ item.extrait }} »</em> }
-                  </span>
+                @if (item.sourceRef || item.source) {
+                  <app-source-ref
+                    [sourceRef]="item.sourceRef"
+                    [legacySource]="resolveSource(item.source)"
+                    [extrait]="item.extrait"
+                    [caseFileId]="caseFile()!.id" />
                 }
               </li>
             }

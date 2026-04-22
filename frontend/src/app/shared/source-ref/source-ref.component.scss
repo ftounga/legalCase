@@ -1,0 +1,71 @@
+:host {
+  display: inline-flex;
+  margin-top: 3px;
+}
+
+.source-ref {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: Inter, sans-serif;
+  font-size: 11px;
+  color: #6B7A8D;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+
+  em {
+    font-style: italic;
+    color: #8895A7;
+  }
+}
+
+.source-ref--precise {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(43, 84, 148, 0.08);
+    color: #2B5494;
+
+    .source-ref__piece,
+    .source-ref__doc {
+      text-decoration: underline;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2B5494;
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+}
+
+.source-ref__icon {
+  font-size: 12px;
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.source-ref__piece {
+  font-weight: 500;
+  color: #2B5494;
+}
+
+.source-ref__sep {
+  color: #B0BBC8;
+}
+
+.source-ref__pages {
+  font-variant-numeric: tabular-nums;
+}
