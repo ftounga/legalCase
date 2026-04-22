@@ -106,13 +106,7 @@
                 </div>
               </div>
             } @else {
-              @if (hasMultiplePieces()) {
-                <div class="pieces-info-banner">
-                  <mat-icon>info</mat-icon>
-                  <span>Texte complet du document. Segmentation fine par pièce à venir.</span>
-                </div>
-              }
-              <pre class="extracted-text">{{ p.extractedText }}</pre>
+              <pre class="extracted-text">{{ displayedExtractedText() }}</pre>
               @if (p.textTruncated) {
                 <p class="truncate-note">
                   Texte tronqué à 200 000 caractères pour l'affichage (le document complet est bien traité par l'IA).

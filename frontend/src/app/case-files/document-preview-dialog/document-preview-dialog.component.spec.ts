@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { of } from 'rxjs';
-import { DocumentPreviewDialogComponent } from './document-preview-dialog.component';
+import { DocumentPreviewDialogComponent, extractPagesRange } from './document-preview-dialog.component';
 import { DocumentService } from '../../core/services/document.service';
 import { DocumentPreview } from '../../core/models/document-preview.model';
 import { DocumentPieceSummary } from '../../core/models/document.model';
@@ -135,6 +135,51 @@ describe('DocumentPreviewDialogComponent', () => {
       await setup(base, pieces);
       expect(component.pieceHeaderLabel(pieces[0])).toBe('Contrat Dupont · p. 1–3');
       expect(component.pieceHeaderLabel(pieces[1])).toBe('CNI Jean Dupont · p. 4');
+    });
+
+    // SF-145-08 : displayedExtractedText filtre par pièce sélectionnée via marqueurs
+    it('U-07 : displayedExtractedText renvoie seulement les pages de la pièce sélectionnée', async () => {
+      const textWithMarkers =
+        '=== PAGE 1 ===\nContrat page 1\n\n=== PAGE 2 ===\nContrat page 2\n\n=== PAGE 3 ===\nSMS Anne';
+      const localPieces: DocumentPieceSummary[] = [
+        { id: 'c', type: 'CONTRAT', label: 'Contrat', pageStart: 1, pageEnd: 2, orderIndex: 0 },
+        { id: 's', type: 'SMS', label: 'SMS Anne', pageStart: 3, pageEnd: 3, orderIndex: 1 },
+      ];
+      await setup({ ...base, extractedText: textWithMarkers }, localPieces, 's');
+
+      const displayed = component.displayedExtractedText();
+      expect(displayed).toContain('SMS Anne');
+      expect(displayed).not.toContain('Contrat page 1');
+      expect(displayed).not.toContain('Contrat page 2');
+    });
+  });
+
+  // SF-145-08 : extractPagesRange unit tests (export pur)
+  describe('SF-145-08 — extractPagesRange', () => {
+    const text =
+      '=== PAGE 1 ===\nPage 1 content\n\n=== PAGE 2 ===\nPage 2 content\n\n=== PAGE 3 ===\nPage 3 content';
+
+    it('retourne une seule page quand pageStart === pageEnd', () => {
+      const result = extractPagesRange(text, 2, 2);
+      expect(result).toContain('Page 2 content');
+      expect(result).not.toContain('Page 1 content');
+      expect(result).not.toContain('Page 3 content');
+    });
+
+    it('retourne plusieurs pages contiguës', () => {
+      const result = extractPagesRange(text, 1, 2);
+      expect(result).toContain('Page 1 content');
+      expect(result).toContain('Page 2 content');
+      expect(result).not.toContain('Page 3 content');
+    });
+
+    it('texte sans marqueurs → fallback texte complet (docs pré-SF-145-07)', () => {
+      const legacy = 'Ancien texte sans marqueurs de page';
+      expect(extractPagesRange(legacy, 1, 1)).toBe(legacy);
+    });
+
+    it('aucune page dans la plage → chaîne vide', () => {
+      expect(extractPagesRange(text, 99, 99)).toBe('');
     });
   });
 });
