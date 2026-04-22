@@ -12,6 +12,29 @@ import {
   DocumentPieceSummary, documentPieceTypeIcon, documentPieceTypeLabel
 } from '../../core/models/document.model';
 
+/**
+ * SF-145-08 : extrait les sections "=== PAGE N ===" pour les pages [start, end].
+ * Si aucun marqueur trouvé (texte pré-SF-145-07), retourne le texte complet.
+ * Exporté pour permettre les tests unitaires.
+ */
+export function extractPagesRange(text: string, pageStart: number, pageEnd: number): string {
+  const marker = /^=== PAGE (\d+) ===$/gm;
+  const matches: { page: number; offset: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = marker.exec(text)) !== null) {
+    matches.push({ page: parseInt(m[1], 10), offset: m.index });
+  }
+  if (matches.length === 0) return text; // fallback : pas de marqueurs
+  const out: string[] = [];
+  for (let i = 0; i < matches.length; i++) {
+    const { page, offset } = matches[i];
+    if (page < pageStart || page > pageEnd) continue;
+    const endOffset = i + 1 < matches.length ? matches[i + 1].offset : text.length;
+    out.push(text.substring(offset, endOffset).trim());
+  }
+  return out.length > 0 ? out.join('\n\n') : '';
+}
+
 export interface DocumentPreviewDialogData {
   caseFileId: string;
   documentId: string;
@@ -52,6 +75,20 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
   });
 
   readonly hasMultiplePieces = computed(() => this.pieces().length > 1);
+
+  /**
+   * SF-145-08 : extrait du texte uniquement les sections "=== PAGE N ===" qui
+   * correspondent aux pages de la pièce sélectionnée (injectées par SF-145-07).
+   * Fallback sur le texte complet si aucun marqueur trouvé (documents anciens
+   * extraits avant SF-145-07).
+   */
+  readonly displayedExtractedText = computed<string>(() => {
+    const p = this.preview();
+    const piece = this.selectedPiece();
+    if (!p?.extractedText) return '';
+    if (!piece) return p.extractedText;
+    return extractPagesRange(p.extractedText, piece.pageStart, piece.pageEnd);
+  });
 
   @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;
 
