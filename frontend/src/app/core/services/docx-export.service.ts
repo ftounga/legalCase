@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { CaseAnalysisResult } from '../models/case-analysis.model';
+import { AnalysisItem, CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
+import { formatSourceRef } from '../utils/format-source-ref';
 
 @Injectable({ providedIn: 'root' })
 export class DocxExportService {
@@ -45,17 +46,20 @@ export class DocxExportService {
         }
       }
 
+      const buildItemRuns = (item: AnalysisItem) => {
+        const runs = [new TextRun({ text: item.texte })];
+        const src = formatSourceRef(item);
+        if (src) runs.push(new TextRun({ text: ` [Source : ${src}]`, italics: true }));
+        return runs;
+      };
+
       // Faits établis
       if (synthesis.faits.length > 0) {
         children.push(
           new Paragraph({ text: 'Faits établis', heading: HeadingLevel.HEADING_1 })
         );
         for (const item of synthesis.faits) {
-          const runs = [new TextRun({ text: item.texte })];
-          if (item.source) {
-            runs.push(new TextRun({ text: ` [Source : ${item.source}` + (item.extrait ? ` — « ${item.extrait} »` : '') + ']', italics: true }));
-          }
-          children.push(new Paragraph({ children: runs, bullet: { level: 0 } }));
+          children.push(new Paragraph({ children: buildItemRuns(item), bullet: { level: 0 } }));
         }
       }
 
@@ -65,11 +69,7 @@ export class DocxExportService {
           new Paragraph({ text: 'Points juridiques', heading: HeadingLevel.HEADING_1 })
         );
         for (const item of synthesis.pointsJuridiques) {
-          const runs = [new TextRun({ text: item.texte })];
-          if (item.source) {
-            runs.push(new TextRun({ text: ` [Source : ${item.source}` + (item.extrait ? ` — « ${item.extrait} »` : '') + ']', italics: true }));
-          }
-          children.push(new Paragraph({ children: runs, bullet: { level: 0 } }));
+          children.push(new Paragraph({ children: buildItemRuns(item), bullet: { level: 0 } }));
         }
       }
 
@@ -79,11 +79,7 @@ export class DocxExportService {
           new Paragraph({ text: 'Risques', heading: HeadingLevel.HEADING_1 })
         );
         for (const item of synthesis.risques) {
-          const runs = [new TextRun({ text: item.texte })];
-          if (item.source) {
-            runs.push(new TextRun({ text: ` [Source : ${item.source}` + (item.extrait ? ` — « ${item.extrait} »` : '') + ']', italics: true }));
-          }
-          children.push(new Paragraph({ children: runs, bullet: { level: 0 } }));
+          children.push(new Paragraph({ children: buildItemRuns(item), bullet: { level: 0 } }));
         }
       }
 

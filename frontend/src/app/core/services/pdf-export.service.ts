@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { TDocumentDefinitions } from 'pdfmake/interfaces';
-import { CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../models/case-analysis.model';
+import { AnalysisItem, CaseAnalysisResult, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../models/case-analysis.model';
+import { formatSourceRef } from '../utils/format-source-ref';
 import { CaseFile } from '../models/case-file.model';
 import { ProcedureCheck } from '../models/procedure-check.model';
 import { PrudhomeFiche } from '../models/prudhome-fiche.model';
@@ -151,7 +152,7 @@ export class PdfExportService {
     if (synthesis.faits.length > 0) {
       sections.push(
         this.buildSectionHeader('Faits', 'faits', synthesis.faits.length, 'fait'),
-        ...this.buildNumberedList(synthesis.faits.map(i => i.texte), ACCENT),
+        ...this.buildNumberedListFromItems(synthesis.faits, ACCENT),
         { text: '', margin: [0, 0, 0, 16] }
       );
     }
@@ -159,7 +160,7 @@ export class PdfExportService {
     if (synthesis.pointsJuridiques.length > 0) {
       sections.push(
         this.buildSectionHeader('Points juridiques', 'juridique', synthesis.pointsJuridiques.length, 'point'),
-        ...this.buildNumberedList(synthesis.pointsJuridiques.map(i => i.texte), PRIMARY),
+        ...this.buildNumberedListFromItems(synthesis.pointsJuridiques, PRIMARY),
         { text: '', margin: [0, 0, 0, 16] }
       );
     }
@@ -167,7 +168,7 @@ export class PdfExportService {
     if (synthesis.risques.length > 0) {
       sections.push(
         this.buildSectionHeader('Risques', 'risques', synthesis.risques.length, 'risque'),
-        ...this.buildRisquesList(synthesis.risques.map(i => i.texte)),
+        ...this.buildRisquesListFromItems(synthesis.risques),
         { text: '', margin: [0, 0, 0, 16] }
       );
     }
@@ -539,32 +540,40 @@ export class PdfExportService {
     }));
   }
 
-  private buildRisquesList(risques: string[]): object[] {
-    return risques.map(risque => ({
-      table: {
-        widths: [16, '*'],
-        body: [[
-          {
-            text: '▲',
-            color: ERROR,
-            bold: true,
-            fontSize: 10,
-            fillColor: ERROR_BG,
-            margin: [8, 5, 4, 5],
-            border: [false, false, false, false],
-          },
-          {
-            text: risque,
-            fontSize: 10,
-            fillColor: ERROR_BG,
-            margin: [4, 5, 8, 5],
-            border: [false, false, false, false],
-          }
-        ]]
-      },
-      layout: 'noBorders',
-      margin: [0, 0, 0, 4],
-    }));
+  /** F-146 SF-146-03 : variante qui expose la source (sourceRef ou legacy) en ligne secondaire. */
+  private buildNumberedListFromItems(items: AnalysisItem[], bulletColor: string): object[] {
+    return items.map((item, i) => {
+      const src = formatSourceRef(item);
+      const textStack: object[] = [{ text: item.texte, fontSize: 10 }];
+      if (src) textStack.push({ text: src, fontSize: 8, italics: true, color: TEXT_SECONDARY, margin: [0, 2, 0, 0] });
+      return {
+        columns: [
+          { text: `${i + 1}.`, width: 24, bold: true, color: bulletColor, fontSize: 10, margin: [0, 3, 0, 3] },
+          { stack: textStack, margin: [0, 3, 0, 3] }
+        ],
+        margin: [8, 0, 0, 4],
+      };
+    });
+  }
+
+  /** F-146 SF-146-03 : rend la liste de risques avec source optionnelle en ligne secondaire. */
+  private buildRisquesListFromItems(items: AnalysisItem[]): object[] {
+    return items.map(item => {
+      const src = formatSourceRef(item);
+      const stack: object[] = [{ text: item.texte, fontSize: 10, fillColor: ERROR_BG }];
+      if (src) stack.push({ text: src, fontSize: 8, italics: true, color: TEXT_SECONDARY, fillColor: ERROR_BG, margin: [0, 2, 0, 0] });
+      return {
+        table: {
+          widths: [16, '*'],
+          body: [[
+            { text: '▲', color: ERROR, bold: true, fontSize: 10, fillColor: ERROR_BG, margin: [8, 5, 4, 5], border: [false, false, false, false] },
+            { stack, margin: [4, 5, 8, 5], border: [false, false, false, false] }
+          ]]
+        },
+        layout: 'noBorders',
+        margin: [0, 0, 0, 4],
+      };
+    });
   }
 
   private buildFooter(currentPage: number, pageCount: number): object {
