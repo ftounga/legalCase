@@ -144,7 +144,7 @@ class DocumentPieceDetectionServiceTest {
     // SF-145-03 U-08 : prompt contient les règles de regroupement et exemples few-shot
     @Test
     void systemPrompt_containsGroupingRulesAndExamples() {
-        String prompt = DocumentPieceDetectionService.SYSTEM_PROMPT;
+        String prompt = DocumentPieceDetectionService.SYSTEM_PROMPT_TEMPLATE;
         assertThat(prompt).contains("regroupe les pages");
         assertThat(prompt).contains("RÈGLE CENTRALE");
         assertThat(prompt).contains("EXEMPLE 1");
@@ -180,5 +180,78 @@ class DocumentPieceDetectionServiceTest {
         extraction.setId(EXTRACTION_ID);
         extraction.setDocument(doc);
         when(extractionRepository.findById(EXTRACTION_ID)).thenReturn(Optional.of(extraction));
+    }
+
+    // SF-145-09 U-10 : applicableFor(DROIT_DU_TRAVAIL) = commons + types travail
+    @Test
+    void applicableFor_droitDuTravail_containsContratAndBulletinPaie() {
+        java.util.Set<DocumentPieceType> types =
+                DocumentPieceType.applicableFor("DROIT_DU_TRAVAIL");
+        assertThat(types).contains(DocumentPieceType.CONTRAT, DocumentPieceType.BULLETIN_PAIE);
+        assertThat(types).contains(DocumentPieceType.PHOTO, DocumentPieceType.SMS); // commons
+        assertThat(types).doesNotContain(DocumentPieceType.TITRE_DE_SEJOUR);
+        assertThat(types).doesNotContain(DocumentPieceType.JUGEMENT_DIVORCE);
+    }
+
+    // SF-145-09 U-11 : applicableFor(DROIT_IMMIGRATION) = commons + types immigration
+    @Test
+    void applicableFor_immigration_containsTitreDeSejour() {
+        java.util.Set<DocumentPieceType> types =
+                DocumentPieceType.applicableFor("DROIT_IMMIGRATION");
+        assertThat(types).contains(DocumentPieceType.TITRE_DE_SEJOUR,
+                DocumentPieceType.PASSEPORT, DocumentPieceType.RECEPISSE_PREFECTURE,
+                DocumentPieceType.DECISION_OQTF);
+        assertThat(types).contains(DocumentPieceType.ATTESTATION); // common
+        assertThat(types).doesNotContain(DocumentPieceType.BULLETIN_PAIE);
+        assertThat(types).doesNotContain(DocumentPieceType.JUGEMENT_DIVORCE);
+    }
+
+    // SF-145-09 U-12 : applicableFor(DROIT_FAMILLE)
+    @Test
+    void applicableFor_famille_containsJugementDivorce() {
+        java.util.Set<DocumentPieceType> types =
+                DocumentPieceType.applicableFor("DROIT_FAMILLE");
+        assertThat(types).contains(DocumentPieceType.JUGEMENT_DIVORCE,
+                DocumentPieceType.ACTE_MARIAGE, DocumentPieceType.LIVRET_FAMILLE);
+        assertThat(types).contains(DocumentPieceType.PIECE_IDENTITE); // common
+        assertThat(types).doesNotContain(DocumentPieceType.BULLETIN_PAIE);
+        assertThat(types).doesNotContain(DocumentPieceType.TITRE_DE_SEJOUR);
+    }
+
+    // SF-145-09 U-13 : legalDomain null ou inconnu → tous les types (fallback permissif)
+    @Test
+    void applicableFor_nullOrUnknown_returnsAllTypes() {
+        assertThat(DocumentPieceType.applicableFor(null))
+                .hasSameSizeAs(java.util.EnumSet.allOf(DocumentPieceType.class));
+        assertThat(DocumentPieceType.applicableFor("UNKNOWN_DOMAIN"))
+                .hasSameSizeAs(java.util.EnumSet.allOf(DocumentPieceType.class));
+    }
+
+    // SF-145-09 U-14 : buildSystemPrompt injecte la liste filtrée
+    @Test
+    void buildSystemPrompt_immigration_containsTitreSejourNotBulletin() {
+        String prompt = DocumentPieceDetectionService.buildSystemPrompt("DROIT_IMMIGRATION");
+        // La section "Types autorisés (liste exacte)" doit mentionner les types immigration
+        assertThat(prompt).contains("TITRE_DE_SEJOUR");
+        assertThat(prompt).contains("RECEPISSE_PREFECTURE");
+        assertThat(prompt).contains("DECISION_OQTF");
+        // Placeholder bien substitué
+        assertThat(prompt).doesNotContain("{{TYPES_LIST}}");
+        // La ligne dédiée "Types autorisés" ne mentionne PAS les types hors-domaine.
+        // Remarque : BULLETIN_PAIE peut apparaître dans la section statique "Tailles
+        // typiques" qui sert d'indication générale — on teste donc la ligne précise.
+        String typesLine = extractTypesLine(prompt);
+        assertThat(typesLine).doesNotContain("BULLETIN_PAIE");
+        assertThat(typesLine).doesNotContain("JUGEMENT_DIVORCE");
+        assertThat(typesLine).contains("TITRE_DE_SEJOUR");
+    }
+
+    private static String extractTypesLine(String prompt) {
+        int i = prompt.indexOf("Types autorisés (liste exacte)");
+        assertThat(i).isGreaterThanOrEqualTo(0);
+        // Récupère les 2 lignes suivantes (label + liste)
+        String rest = prompt.substring(i);
+        int end = rest.indexOf("\n\n");
+        return end > 0 ? rest.substring(0, end) : rest;
     }
 }

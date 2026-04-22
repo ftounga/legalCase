@@ -36,7 +36,12 @@ public class DocumentPieceDetectionService {
     /** Budget tokens input Haiku — texte tronqué à ~50k chars (≈ 12k tokens). */
     static final int MAX_TEXT_CHARS_FOR_PROMPT = 50_000;
 
-    static final String SYSTEM_PROMPT = """
+    /**
+     * SF-145-09 : template avec placeholder {{TYPES_LIST}} remplacé au runtime
+     * par la liste de types applicables au domaine du workspace concerné.
+     * Exposé package-private pour tests.
+     */
+    static final String SYSTEM_PROMPT_TEMPLATE = """
             Tu identifies les pièces juridiques distinctes présentes dans un document
             composite. Un document peut contenir plusieurs pièces scannées en une passe
             (ex: contrat de 5 pages + CNI recto-verso + échanges SMS imprimés).
@@ -77,8 +82,8 @@ public class DocumentPieceDetectionService {
 
             En cas de doute sur une rupture, **préfère regrouper** plutôt que fragmenter.
 
-            Types autorisés (liste exacte) :
-            CONTRAT, PIECE_IDENTITE, SMS, EMAIL, ATTESTATION, BULLETIN_PAIE, LETTRE, PHOTO, AUTRE
+            Types autorisés (liste exacte) pour ce dossier :
+            {{TYPES_LIST}}
 
             Pour chaque pièce, fournir :
             - type : enum ci-dessus
@@ -112,6 +117,20 @@ public class DocumentPieceDetectionService {
             Réponds UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après.
             Format : [{"type":"...","label":"...","pageStart":N,"pageEnd":N,"orderIndex":N}]
             """;
+
+    /**
+     * SF-145-09 : construit le prompt final en injectant la liste des types
+     * applicables au domaine du workspace. Un workspace immigration ne se verra
+     * pas proposer BULLETIN_PAIE ou CONTRAT ; un workspace famille ne se verra
+     * pas proposer TITRE_DE_SEJOUR.
+     */
+    static String buildSystemPrompt(String legalDomain) {
+        String typesList = DocumentPieceType.applicableFor(legalDomain).stream()
+                .map(Enum::name)
+                .sorted()
+                .collect(java.util.stream.Collectors.joining(", "));
+        return SYSTEM_PROMPT_TEMPLATE.replace("{{TYPES_LIST}}", typesList);
+    }
 
     private final DocumentExtractionRepository extractionRepository;
     private final DocumentPieceRepository pieceRepository;
@@ -151,6 +170,15 @@ public class DocumentPieceDetectionService {
 
         UUID documentId = extraction.getDocument().getId();
 
+        // SF-145-09 : résout le legalDomain du workspace pour filtrer les types
+        // proposés à Sonnet (pas de BULLETIN_PAIE pour immigration, etc.).
+        String legalDomain = null;
+        try {
+            legalDomain = extraction.getDocument().getCaseFile().getWorkspace().getLegalDomain();
+        } catch (Exception e) {
+            log.warn("Cannot resolve legalDomain for extraction {} — using all types", extractionId);
+        }
+
         // Idempotence : delete before insert (SF-145-01 critère U-04).
         pieceRepository.deleteByDocumentId(documentId);
 
@@ -163,7 +191,10 @@ public class DocumentPieceDetectionService {
             // SF-145-03 : Sonnet au lieu de Haiku — la détection de structure
             // documentaire demande plus de raisonnement que Haiku n'en offre.
             // Surcoût : ~0,002 € → ~0,01 €/doc. Qualité nettement supérieure.
-            AnthropicResult result = anthropicService.analyze(SYSTEM_PROMPT, truncated, 2048);
+            // SF-145-09 : prompt construit dynamiquement avec les types applicables
+            // au domaine du workspace.
+            String systemPrompt = buildSystemPrompt(legalDomain);
+            AnthropicResult result = anthropicService.analyze(systemPrompt, truncated, 2048);
             // SF-145-05 : log diagnostic de la réponse brute (tronquée 400 chars)
             // pour identifier les cas où Sonnet sur-segmente ou mal classifie.
             String rawContent = result.content();
