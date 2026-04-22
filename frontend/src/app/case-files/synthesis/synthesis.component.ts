@@ -23,6 +23,7 @@ import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
+import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
@@ -37,7 +38,8 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
     RouterLink, DatePipe, LowerCasePipe, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatExpansionModule,
-    MatCheckboxModule, MatTooltipModule
+    MatCheckboxModule, MatTooltipModule,
+    SourceRefComponent
   ],
   templateUrl: './synthesis.component.html',
   styleUrl: './synthesis.component.scss',

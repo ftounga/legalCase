@@ -1,12 +1,29 @@
+import { DocumentPieceType } from './document.model';
+
 export interface TimelineEntry {
   date: string;
   evenement: string;
+}
+
+/**
+ * F-146 SF-146-01 : référence précise d'une citation — document + pièce + pages.
+ * Tous les champs sauf `documentName` sont nullable (pièce non identifiable ou
+ * analyse pré-F-146).
+ */
+export interface SourceRef {
+  documentName: string | null;
+  pieceType: DocumentPieceType | null;
+  pieceLabel: string | null;
+  pageStart: number | null;
+  pageEnd: number | null;
 }
 
 export interface AnalysisItem {
   texte: string;
   source: string | null;
   extrait: string | null;
+  /** F-146 SF-146-01 : référence précise (null pour les analyses legacy). */
+  sourceRef?: SourceRef | null;
 }
 
 export interface CompensationEstimate {

@@ -21,6 +21,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TimeService } from '../../core/services/time.service';
 import { TimeEntryResponse } from '../../core/models/time-tracking.models';
 import { signal } from '@angular/core';
+import { DocumentService } from '../../core/services/document.service';
 
 const CASE_FILE_ID = 'cf-1';
 
@@ -104,6 +105,7 @@ describe('SynthesisComponent', () => {
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: TimeService, useValue: timeServiceMock },
+        { provide: DocumentService, useValue: { list: jest.fn().mockReturnValue(of([])) } },
       ]
     }).compileComponents();
 
@@ -395,7 +397,7 @@ describe('SynthesisComponent', () => {
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).toContain('Fait sans source');
-    expect(el.querySelectorAll('.source-badge').length).toBe(0);
+    expect(el.querySelectorAll('app-source-ref').length).toBe(0);
   });
 
   // TC-05 : updateCheckStatus erreur → snackbar, statut non modifié
@@ -543,7 +545,7 @@ describe('SynthesisComponent', () => {
     fixture.detectChanges();
 
     const el: HTMLElement = fixture.nativeElement;
-    const badge = el.querySelector('.source-badge');
+    const badge = el.querySelector('app-source-ref');
     expect(badge).not.toBeNull();
     expect(badge!.textContent).toContain('lettre.pdf');
     expect(badge!.textContent).not.toContain('Document 0');

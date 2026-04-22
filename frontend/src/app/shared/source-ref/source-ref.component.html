@@ -1,0 +1,29 @@
+@if (hasPreciseRef()) {
+  <button type="button"
+          class="source-ref source-ref--precise"
+          (click)="openPreview()"
+          [disabled]="opening()"
+          [matTooltip]="'Ouvrir la pièce dans le document'">
+    <mat-icon class="source-ref__icon">{{ pieceTypeIconName() }}</mat-icon>
+    @if (pieceLabelText()) {
+      <span class="source-ref__piece">{{ pieceLabelText() }}</span>
+    }
+    <span class="source-ref__sep">·</span>
+    <span class="source-ref__doc">{{ docName() }}</span>
+    @if (pageRange()) {
+      <span class="source-ref__sep">·</span>
+      <span class="source-ref__pages">{{ pageRange() }}</span>
+    }
+    @if (extrait) {
+      <span class="source-ref__extrait"> — <em>« {{ extrait }} »</em></span>
+    }
+  </button>
+} @else if (docName()) {
+  <span class="source-ref source-ref--legacy">
+    <mat-icon class="source-ref__icon">description</mat-icon>
+    <span class="source-ref__doc">{{ docName() }}</span>
+    @if (extrait) {
+      <span class="source-ref__extrait"> — <em>« {{ extrait }} »</em></span>
+    }
+  </span>
+}
