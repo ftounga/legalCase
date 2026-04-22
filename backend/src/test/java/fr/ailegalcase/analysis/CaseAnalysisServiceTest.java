@@ -40,12 +40,13 @@ class CaseAnalysisServiceTest {
     private final CaseDeadlineService caseDeadlineService = mock(CaseDeadlineService.class);
     private final SourceExplanationGenerator sourceExplanationGenerator = mock(SourceExplanationGenerator.class);
     private final SourceExplanationService sourceExplanationService = mock(SourceExplanationService.class);
+    private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, documentExtractionRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, caseDeadlineService,
-            sourceExplanationGenerator, sourceExplanationService);
+            sourceExplanationGenerator, sourceExplanationService, piecesPromptContext);
 
     @BeforeEach
     void setUp() {
