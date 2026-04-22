@@ -173,6 +173,12 @@ public class ChunkAnalysisService {
 
         analysisRepository.save(analysis);
 
+        // F-147 SF-147-01 : si l'analyse chunk a échoué, marquer aussi le job
+        // CHUNK_ANALYSIS en FAILED. Sinon il reste en PROCESSING à l'infini.
+        if (analysis.getAnalysisStatus() == AnalysisStatus.FAILED && caseFileId != null) {
+            markChunkJobFailed(caseFileId);
+        }
+
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
             UUID extractionId = chunk.getExtraction().getId();
             updateChunkJob(extractionId, caseFileId);
@@ -192,6 +198,19 @@ public class ChunkAnalysisService {
                                 promptTokens, completionTokens)));
             }
         }
+    }
+
+    /**
+     * F-147 SF-147-01 : marque le job CHUNK_ANALYSIS en FAILED quand un chunk
+     * échoue (Anthropic down, rate limit, 400…). Sans ce correctif le job
+     * reste en PROCESSING et bloque la suppression du case file.
+     */
+    private void markChunkJobFailed(UUID caseFileId) {
+        analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CHUNK_ANALYSIS).ifPresent(job -> {
+            job.setStatus(AnalysisStatus.FAILED);
+            job.setErrorMessage("Chunk analysis failed");
+            analysisJobRepository.save(job);
+        });
     }
 
     private void updateChunkJob(UUID extractionId, UUID caseFileId) {

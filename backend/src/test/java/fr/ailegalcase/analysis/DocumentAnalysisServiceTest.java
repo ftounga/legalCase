@@ -123,9 +123,9 @@ class DocumentAnalysisServiceTest {
         verify(usageEventService).record(caseFileId, userId, JobType.DOCUMENT_ANALYSIS, 200, 100);
     }
 
-    // U-02 : erreur Anthropic → DocumentAnalysis FAILED (pas de trigger)
+    // U-02 : erreur Anthropic → DocumentAnalysis FAILED + job FAILED (F-147-01)
     @Test
-    void consumeDocumentAnalysis_anthropicError_persistsFailedAnalysis() {
+    void consumeDocumentAnalysis_anthropicError_persistsFailedAnalysisAndMarksJobFailed() {
         UUID extractionId = UUID.randomUUID();
         UUID caseFileId = UUID.randomUUID();
 
@@ -140,13 +140,20 @@ class DocumentAnalysisServiceTest {
         DocumentExtraction extraction = new DocumentExtraction();
         extraction.setDocument(document);
 
+        // F-147-01 : le job doit exister pour que markDocumentAnalysisJobFailed le trouve
+        AnalysisJob existingJob = new AnalysisJob();
+        existingJob.setCaseFileId(caseFileId);
+        existingJob.setJobType(JobType.DOCUMENT_ANALYSIS);
+        existingJob.setStatus(AnalysisStatus.PROCESSING);
+        existingJob.setTotalItems(1);
+
         when(chunkAnalysisRepository.findByChunkExtractionIdAndAnalysisStatus(extractionId, AnalysisStatus.DONE))
                 .thenReturn(List.of(ca));
         when(extractionRepository.findById(extractionId)).thenReturn(Optional.of(extraction));
         when(extractionRepository.findCaseFileIdById(extractionId)).thenReturn(Optional.of(caseFileId));
         when(documentRepository.countByCaseFileId(caseFileId)).thenReturn(1L);
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
-                .thenReturn(Optional.empty());
+                .thenReturn(Optional.of(existingJob));
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(documentAnalysisRepository.findById(any())).thenAnswer(inv -> {
@@ -158,9 +165,13 @@ class DocumentAnalysisServiceTest {
 
         service.consumeDocumentAnalysis(new DocumentAnalysisMessage(extractionId, false));
 
-        ArgumentCaptor<DocumentAnalysis> captor = ArgumentCaptor.forClass(DocumentAnalysis.class);
-        verify(documentAnalysisRepository, atLeast(3)).save(captor.capture());
-        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
+        ArgumentCaptor<DocumentAnalysis> analysisCaptor = ArgumentCaptor.forClass(DocumentAnalysis.class);
+        verify(documentAnalysisRepository, atLeast(3)).save(analysisCaptor.capture());
+        assertThat(analysisCaptor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.FAILED);
+
+        // F-147-01 : le job DOCUMENT_ANALYSIS doit aussi être FAILED
+        assertThat(existingJob.getStatus()).isEqualTo(AnalysisStatus.FAILED);
+        assertThat(existingJob.getErrorMessage()).isNotBlank();
     }
 
     // U-03 : aucune chunk_analysis DONE → aucune DocumentAnalysis créée

@@ -172,6 +172,13 @@ public class DocumentAnalysisService {
         }
         documentAnalysisRepository.save(analysis);
 
+        // F-147 SF-147-01 : si l'analyse a échoué, marquer aussi le job FAILED
+        // sinon il reste en PROCESSING à l'infini et bloque la suppression du
+        // case file (cf. CaseFileStatusService.isPipelineActive).
+        if (failure != null && caseFileId != null) {
+            markDocumentAnalysisJobFailed(caseFileId, failure);
+        }
+
         if (analysis.getAnalysisStatus() == AnalysisStatus.DONE) {
             updateDocumentAnalysisJob(caseFileId);
             if (caseFileId != null) {
@@ -200,6 +207,21 @@ public class DocumentAnalysisService {
         if (caseFileId == null) return;
         long totalDocs = documentRepository.countByCaseFileId(caseFileId);
         analysisJobRepository.upsertDocumentAnalysisJob(caseFileId, (int) totalDocs);
+    }
+
+    /**
+     * F-147 SF-147-01 : marque le job DOCUMENT_ANALYSIS en FAILED quand une
+     * analyse individuelle échoue (Anthropic 400/429/5xx, timeout…). Sans ce
+     * correctif, le job reste en PROCESSING à l'infini et bloque la
+     * suppression du case file via {@code isPipelineActive}.
+     */
+    private void markDocumentAnalysisJobFailed(UUID caseFileId, Exception failure) {
+        analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS).ifPresent(job -> {
+            job.setStatus(AnalysisStatus.FAILED);
+            String msg = failure.getMessage() != null ? failure.getMessage() : failure.getClass().getSimpleName();
+            job.setErrorMessage(msg.length() > 500 ? msg.substring(0, 500) : msg);
+            analysisJobRepository.save(job);
+        });
     }
 
     private void updateDocumentAnalysisJob(UUID caseFileId) {

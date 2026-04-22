@@ -106,6 +106,22 @@ public class SuperAdminService {
         this.analysisJobRepository = analysisJobRepository;
     }
 
+    /**
+     * F-147 SF-147-02 : force FAILED sur tous les jobs PENDING/PROCESSING d'un
+     * case file. Utilisé pour débloquer un dossier coincé après un incident IA
+     * qui n'aurait pas été proprement finalizé (ex: 400/429/5xx Anthropic avec
+     * ancien code pré-SF-147-01). Retourne le nombre de jobs modifiés.
+     */
+    @Transactional
+    public int resetCaseFilePipeline(OidcUser oidcUser, String provider, UUID caseFileId) {
+        assertSuperAdmin(oidcUser, provider);
+        int updated = analysisJobRepository.forceFailActiveJobsForCaseFile(
+                caseFileId, "Super-admin force reset (F-147-02)", Instant.now());
+        log.warn("Super-admin reset pipeline for case file {} — {} job(s) forced to FAILED",
+                caseFileId, updated);
+        return updated;
+    }
+
     /** Resolves the caller and throws 403 if not super-admin. Reusable by controller-level guards. */
     public User assertSuperAdmin(OidcUser oidcUser, String provider) {
         User user = authAccountRepository

@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -87,4 +88,22 @@ public class SuperAdminController {
         superAdminService.assertSuperAdmin(oidcUser, OAuthProviderResolver.resolve(principal));
         return pipelineHealthService.getHealth();
     }
+
+    /**
+     * F-147 SF-147-02 : force FAILED sur tous les jobs PENDING/PROCESSING d'un
+     * case file. Utile pour débloquer un dossier dont un job est resté coincé
+     * (ex: panne API Anthropic sans récupération propre). Retourne le nombre
+     * de jobs modifiés.
+     */
+    @PostMapping("/case-files/{id}/reset-pipeline")
+    public ResetPipelineResponse resetPipeline(
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal,
+            @PathVariable UUID id) {
+        int updated = superAdminService.resetCaseFilePipeline(
+                oidcUser, OAuthProviderResolver.resolve(principal), id);
+        return new ResetPipelineResponse(id, updated);
+    }
+
+    public record ResetPipelineResponse(UUID caseFileId, int jobsForcedFailed) {}
 }
