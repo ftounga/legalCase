@@ -60,15 +60,7 @@ public class PiecesPromptContext {
             hasAnyPiece = true;
             body.append("Document : ").append(doc.getOriginalFilename()).append("\n");
             for (DocumentPiece p : pieces) {
-                body.append("  - ").append(p.getType().name());
-                if (p.getLabel() != null && !p.getLabel().isBlank()) {
-                    body.append(" « ").append(p.getLabel()).append(" »");
-                }
-                body.append(" (p. ").append(p.getPageStart());
-                if (p.getPageEnd() != p.getPageStart()) {
-                    body.append("-").append(p.getPageEnd());
-                }
-                body.append(")\n");
+                appendPieceLine(body, p);
             }
             body.append("\n");
         }
@@ -87,17 +79,32 @@ public class PiecesPromptContext {
         sb.append("=== PIÈCES IDENTIFIÉES DANS LES DOCUMENTS ===\n");
         sb.append("Document : ").append(documentName).append("\n");
         for (DocumentPiece p : pieces) {
-            sb.append("  - ").append(p.getType().name());
-            if (p.getLabel() != null && !p.getLabel().isBlank()) {
-                sb.append(" « ").append(p.getLabel()).append(" »");
-            }
-            sb.append(" (p. ").append(p.getPageStart());
-            if (p.getPageEnd() != p.getPageStart()) {
-                sb.append("-").append(p.getPageEnd());
-            }
-            sb.append(")\n");
+            appendPieceLine(sb, p);
         }
         sb.append("===\n");
         return sb.toString();
+    }
+
+    /**
+     * SF-148-01 : append la ligne d'une pièce, incluant la description visuelle
+     * {@link DocumentPiece#getVisualDescription()} si présente — format :
+     * <pre>  - TYPE « label » (p. X[-Y]) — [Vision : …]</pre>
+     */
+    private static void appendPieceLine(StringBuilder sb, DocumentPiece p) {
+        sb.append("  - ").append(p.getType().name());
+        if (p.getLabel() != null && !p.getLabel().isBlank()) {
+            sb.append(" « ").append(p.getLabel()).append(" »");
+        }
+        sb.append(" (p. ").append(p.getPageStart());
+        if (p.getPageEnd() != p.getPageStart()) {
+            sb.append("-").append(p.getPageEnd());
+        }
+        sb.append(")");
+        String vis = p.getVisualDescription();
+        if (vis != null && !vis.isBlank()) {
+            String oneLine = vis.replaceAll("\\s+", " ").trim();
+            sb.append(" — [Vision : ").append(oneLine).append("]");
+        }
+        sb.append("\n");
     }
 }

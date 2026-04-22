@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -65,6 +66,65 @@ public class AnthropicService {
 
     public AnthropicResult analyze(String systemPrompt, String userMessage, int maxTokens) {
         return doAnalyze(model, systemPrompt, userMessage, maxTokens);
+    }
+
+    /**
+     * SF-148-01 : appel multimodal (images + texte) à Claude Vision.
+     * Chaque image est encodée base64 PNG. L'ordre des images est préservé,
+     * le {@code userText} est appendu en bloc texte final.
+     *
+     * @param modelId      identifiant du modèle (ex: {@code claude-haiku-4-5-20251001})
+     * @param images       liste de bytes PNG (ordre préservé)
+     * @param mediaType    MIME type des images (ex: {@code image/png})
+     * @param maxTokens    budget de tokens de sortie
+     */
+    public AnthropicResult analyzeWithImages(String modelId,
+                                             String systemPrompt,
+                                             List<byte[]> images,
+                                             String mediaType,
+                                             String userText,
+                                             int maxTokens) {
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("images must not be empty");
+        }
+
+        List<Map<String, Object>> content = new ArrayList<>(images.size() + 1);
+        for (byte[] img : images) {
+            String b64 = java.util.Base64.getEncoder().encodeToString(img);
+            content.add(Map.of(
+                    "type", "image",
+                    "source", Map.of(
+                            "type", "base64",
+                            "media_type", mediaType,
+                            "data", b64)
+            ));
+        }
+        if (userText != null && !userText.isBlank()) {
+            content.add(Map.of("type", "text", "text", userText));
+        }
+
+        Map<String, Object> body = Map.of(
+                "model", modelId,
+                "max_tokens", maxTokens,
+                "temperature", 0,
+                "system", systemPrompt,
+                "messages", List.of(Map.of("role", "user", "content", content))
+        );
+
+        log.debug("Sending vision request to {} with {} image(s)", modelId, images.size());
+        AnthropicResponse response = restClient.post()
+                .uri("/v1/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(AnthropicResponse.class);
+
+        String contentText = response.content().get(0).text();
+        log.debug("Vision response received ({} chars, {} input tokens, {} output tokens)",
+                contentText.length(), response.usage().inputTokens(), response.usage().outputTokens());
+
+        return new AnthropicResult(contentText, response.model(),
+                response.usage().inputTokens(), response.usage().outputTokens(), response.stopReason());
     }
 
     private AnthropicResult doAnalyze(String modelId, String systemPrompt, String userMessage, int maxTokens) {

@@ -47,6 +47,18 @@ public class DocumentPiece {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** SF-148-01 : description visuelle Claude Vision (null si non enrichi). */
+    @Column(name = "visual_description", columnDefinition = "text")
+    private String visualDescription;
+
+    /** SF-148-01 : horodatage de l'enrichissement vision. */
+    @Column(name = "vision_enriched_at")
+    private Instant visionEnrichedAt;
+
+    /** SF-148-01 : identifiant du modèle vision utilisé (ex: claude-haiku-4-5-20251001). */
+    @Column(name = "vision_model", length = 80)
+    private String visionModel;
+
     @PrePersist
     void onPrePersist() {
         this.createdAt = Instant.now();

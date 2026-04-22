@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="099-add-vision-to-document-pieces" author="legalcase">
+        <comment>
+            SF-148-01 : enrichissement visuel Claude Vision multimodale.
+            Colonnes nullable — rétrocompat totale, les pièces existantes
+            restent valides sans description visuelle.
+        </comment>
+
+        <addColumn tableName="document_pieces">
+            <column name="visual_description" type="text"/>
+            <column name="vision_enriched_at" type="timestamp with time zone"/>
+            <column name="vision_model" type="varchar(80)"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="document_pieces" columnName="visual_description"/>
+            <dropColumn tableName="document_pieces" columnName="vision_enriched_at"/>
+            <dropColumn tableName="document_pieces" columnName="vision_model"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
