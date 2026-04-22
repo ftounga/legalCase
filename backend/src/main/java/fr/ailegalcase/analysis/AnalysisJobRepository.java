@@ -32,4 +32,36 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, UUID> 
               SET status = 'PENDING', total_items = :totalItems, processed_items = 0, updated_at = NOW()
             """, nativeQuery = true)
     void upsertDocumentAnalysisJob(@Param("caseFileId") UUID caseFileId, @Param("totalItems") int totalItems);
+
+    /**
+     * F-147 SF-147-02 : force tous les jobs d'un case file en FAILED (reset manuel
+     * super-admin). Ne touche pas les jobs déjà en DONE ou FAILED.
+     */
+    @Modifying
+    @Query("""
+            UPDATE AnalysisJob j SET j.status = fr.ailegalcase.analysis.AnalysisStatus.FAILED,
+                                     j.errorMessage = :errorMessage, j.updatedAt = :now
+            WHERE j.caseFileId = :caseFileId
+              AND j.status IN (fr.ailegalcase.analysis.AnalysisStatus.PENDING,
+                               fr.ailegalcase.analysis.AnalysisStatus.PROCESSING)
+            """)
+    int forceFailActiveJobsForCaseFile(@Param("caseFileId") UUID caseFileId,
+                                        @Param("errorMessage") String errorMessage,
+                                        @Param("now") Instant now);
+
+    /**
+     * F-147 SF-147-03 : reset zombies — marque FAILED les jobs PROCESSING/PENDING
+     * dont updated_at est plus vieux que le seuil. Tourne via scheduled task.
+     */
+    @Modifying
+    @Query("""
+            UPDATE AnalysisJob j SET j.status = fr.ailegalcase.analysis.AnalysisStatus.FAILED,
+                                     j.errorMessage = :errorMessage, j.updatedAt = :now
+            WHERE j.status IN (fr.ailegalcase.analysis.AnalysisStatus.PENDING,
+                               fr.ailegalcase.analysis.AnalysisStatus.PROCESSING)
+              AND j.updatedAt < :staleBefore
+            """)
+    int forceFailZombieJobs(@Param("staleBefore") Instant staleBefore,
+                             @Param("errorMessage") String errorMessage,
+                             @Param("now") Instant now);
 }
