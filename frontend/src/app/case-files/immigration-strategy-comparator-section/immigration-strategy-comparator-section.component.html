@@ -1,0 +1,86 @@
+@if (scenarios.length >= 2) {
+  <mat-expansion-panel expanded class="strategies-panel" id="section-immigration-strategies">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon class="panel-icon panel-icon--strategies">compare_arrows</mat-icon>
+        Stratégies possibles
+      </mat-panel-title>
+      <mat-panel-description>
+        {{ scenarios.length }} options comparées
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    <div class="strategies-grid">
+      @for (s of scenarios; track s.scenarioLabel) {
+        <article class="strategy-card">
+          <header class="strategy-card-head">
+            <h3 class="strategy-card-title">{{ s.scenarioLabel }}</h3>
+            @if (s.riskLevel) {
+              <span [class]="riskClass(s.riskLevel)" [matTooltip]="s.riskJustification ?? ''">
+                {{ riskLabel(s.riskLevel) }}
+              </span>
+            }
+          </header>
+
+          <p class="strategy-card-description">{{ s.scenarioDescription }}</p>
+
+          @if (s.baseLegale) {
+            <div class="strategy-card-row">
+              <span class="strategy-card-label">Base légale</span>
+              <span class="strategy-card-value">{{ s.baseLegale }}</span>
+            </div>
+          }
+
+          @if (s.targetTitleLabel) {
+            <div class="strategy-card-row strategy-card-row--accent">
+              <span class="strategy-card-label">Titre cible</span>
+              <span class="strategy-card-value strategy-card-value--accent">
+                {{ s.targetTitleLabel }}
+              </span>
+            </div>
+          }
+
+          @if (s.delayDaysEstimate) {
+            <div class="strategy-card-row">
+              <span class="strategy-card-label">Délai observé</span>
+              <span class="strategy-card-value">{{ s.delayDaysEstimate }} jours</span>
+            </div>
+          }
+
+          @if (s.requiredAdditionalPieces.length > 0) {
+            <div class="strategy-card-section">
+              <h4 class="strategy-card-section-title">Pièces additionnelles</h4>
+              <ul class="strategy-card-list">
+                @for (p of s.requiredAdditionalPieces; track p) {
+                  <li>{{ p }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (s.advantages.length > 0) {
+            <div class="strategy-card-section">
+              <h4 class="strategy-card-section-title strategy-card-section-title--plus">Avantages</h4>
+              <ul class="strategy-card-list">
+                @for (a of s.advantages; track a) {
+                  <li class="pro"><mat-icon>check_circle</mat-icon>{{ a }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (s.drawbacks.length > 0) {
+            <div class="strategy-card-section">
+              <h4 class="strategy-card-section-title strategy-card-section-title--minus">Inconvénients</h4>
+              <ul class="strategy-card-list">
+                @for (d of s.drawbacks; track d) {
+                  <li class="con"><mat-icon>remove_circle_outline</mat-icon>{{ d }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  </mat-expansion-panel>
+}

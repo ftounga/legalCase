@@ -1,0 +1,162 @@
+.strategies-panel {
+  margin-top: 16px;
+}
+
+.panel-icon--strategies {
+  color: #2B5494;
+  margin-right: 8px;
+}
+
+.strategies-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.strategy-card {
+  border: 1px solid rgba(26, 58, 92, 0.15);
+  border-radius: 8px;
+  padding: 16px 20px;
+  background: #fff;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.strategy-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.strategy-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1A3A5C;
+  line-height: 1.35;
+  flex: 1;
+}
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.risk-badge--faible {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.risk-badge--moyen {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
+.risk-badge--eleve {
+  background: #FFEBEE;
+  color: #C62828;
+}
+
+.risk-badge--unknown {
+  background: #ECEFF1;
+  color: #6B7A8D;
+}
+
+.strategy-card-description {
+  margin: 0;
+  font-size: 13px;
+  color: #1C2B3A;
+  line-height: 1.5;
+}
+
+.strategy-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px dashed rgba(107, 122, 141, 0.2);
+  font-size: 12px;
+}
+
+.strategy-card-row--accent {
+  .strategy-card-value--accent {
+    color: #C9973A;
+    font-weight: 600;
+  }
+}
+
+.strategy-card-label {
+  color: #6B7A8D;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.strategy-card-value {
+  color: #1C2B3A;
+  text-align: right;
+}
+
+.strategy-card-section {
+  margin-top: 8px;
+}
+
+.strategy-card-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6B7A8D;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0 0 4px;
+}
+
+.strategy-card-section-title--plus {
+  color: #2E7D32;
+}
+
+.strategy-card-section-title--minus {
+  color: #C62828;
+}
+
+.strategy-card-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #1C2B3A;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    &.pro mat-icon { color: #2E7D32; }
+    &.con mat-icon { color: #C62828; }
+  }
+}
