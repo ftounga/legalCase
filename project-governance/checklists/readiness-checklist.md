@@ -64,6 +64,13 @@ Si un item est rouge → résoudre avant de commencer.
 - [ ] Le nommage de la migration est conforme : `{NNN}-{description}.xml`
 - [ ] La migration est réversible ou un plan de rollback est documenté
 
+## Référentiel métier (legal_referentials)
+
+- [ ] Si la SF crée ou modifie un référentiel métier (classe `*Referentiel.java` ou enum de codes) : **migration Liquibase d'INSERT/UPDATE dans `legal_referentials` existe** (source de vérité DB, Java = fallback)
+- [ ] **DB alignée sur Java** : chaque entrée Java ajoutée a son entry correspondante en DB avec le même `entry_key`, `country`, `value_json`
+- [ ] **`description` remplie** en langage avocat pour chaque INSERT `is_system=true` — sauf pour les 7 types exemptés à description native (`LICENCIEMENT_CRITERES`, `RUPTURE_CONV_CRITERES`, `IMMIGRATION_TITLES`, `IMMIGRATION_RECOURS`, `IMMIGRATION_WORK_RIGHTS`, `DIVORCE_ETAPES`, `DIVORCE_PIECES`)
+- [ ] Pas de collision d'UUID avec les migrations existantes (vérifier la plage utilisée)
+
 ## Branche Git
 
 - [ ] La branche de travail est créée depuis `main` à jour
