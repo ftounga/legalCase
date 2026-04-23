@@ -93,6 +93,19 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
     return extractPagesRange(p.extractedText, piece.pageStart, piece.pageEnd);
   });
 
+  /**
+   * SF-145 hotfix : le document a du texte global mais la pièce sélectionnée
+   * n'a aucun texte OCR (page photo pure, scan illisible, OCR raté pour ces
+   * pages). On affiche un message explicite au lieu d'un `<pre>` vide.
+   */
+  readonly pieceTextEmpty = computed<boolean>(() => {
+    const p = this.preview();
+    const piece = this.selectedPiece();
+    if (!p?.extractedText) return false;
+    if (!piece) return false;
+    return this.displayedExtractedText().trim().length === 0;
+  });
+
   @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;
 
   readonly isPdf = computed(() => this.preview()?.mimeType === 'application/pdf');

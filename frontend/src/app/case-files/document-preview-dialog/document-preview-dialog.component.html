@@ -146,6 +146,21 @@
                   <div class="alert-body">Ce document ne sera pas pris en compte par l'IA.</div>
                 </div>
               </div>
+            } @else if (pieceTextEmpty()) {
+              <div class="alert alert-info">
+                <mat-icon>info</mat-icon>
+                <div>
+                  <div class="alert-title">Aucun texte OCR sur cette pièce</div>
+                  <div class="alert-body">
+                    La pièce <strong>{{ pieceHeaderLabel(selectedPiece()!) }}</strong> ne contient pas de texte extractible — probablement une page image (photo, scan dégradé). Bascule sur l'onglet <em>Aperçu</em> pour voir la page
+                    @if (selectedPiece()?.visualDescription) {
+                      ou consulte la description <strong>LegalCase Vision</strong> affichée ci-dessus.
+                    } @else {
+                      .
+                    }
+                  </div>
+                </div>
+              </div>
             } @else {
               <pre class="extracted-text">{{ displayedExtractedText() }}</pre>
               @if (p.textTruncated) {

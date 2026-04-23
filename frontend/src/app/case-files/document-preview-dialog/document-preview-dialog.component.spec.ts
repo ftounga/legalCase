@@ -190,6 +190,26 @@ describe('DocumentPreviewDialogComponent', () => {
       expect(visionIcons.length).toBe(1);
     });
 
+    it('U-06 — hotfix : piece dont les pages n\'ont pas de texte OCR → message explicite au lieu de <pre> vide', async () => {
+      const mixed: DocumentPieceSummary[] = [
+        // page 1 existe dans le texte, page 2 n\'existe pas
+        { id: 'p1', type: 'CONTRAT', label: 'Contrat p1', pageStart: 1, pageEnd: 1, orderIndex: 0 },
+        // page 99 absente du texte OCR (photo pure, OCR raté)
+        { id: 'p2', type: 'PHOTO', label: 'Photo', pageStart: 99, pageEnd: 99, orderIndex: 1,
+          visualDescription: 'Photo d\'un lieu de travail.' }
+      ];
+      const previewWithPageMarkers: DocumentPreview = {
+        ...base,
+        extractedText: '=== PAGE 1 ===\nTexte du contrat page 1\n'
+      };
+      await setup(previewWithPageMarkers, mixed, 'p2');
+      expect(component.pieceTextEmpty()).toBe(true);
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.textContent).toContain('Aucun texte OCR sur cette pièce');
+      expect(el.textContent).toContain('LegalCase Vision'); // mention description visuelle disponible
+    });
+
     it('U-05 — SF-148-03 : piece PENDING affiche un spinner dans la sidebar + encart "en cours"', async () => {
       const pending: DocumentPieceSummary[] = [
         { id: 'p1', type: 'SMS', label: 'En attente', pageStart: 1, pageEnd: 1, orderIndex: 0,
