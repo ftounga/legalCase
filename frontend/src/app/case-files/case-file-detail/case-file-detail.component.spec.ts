@@ -1220,4 +1220,107 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // SF-148-04 : indicateurs vision globaux (badge par doc + bandeau + polling)
+  describe('SF-148-04 — indicateurs vision', () => {
+    const baseDoc = (overrides: Partial<Document> = {}): Document => ({
+      ...mockDocument, id: 'd1', extractionStatus: 'DONE', ...overrides,
+    });
+
+    it('U-01 : change visionStatus d\'une pièce → documentsContentEqual retourne false', () => {
+      const before = [baseDoc({ pieces: [{ id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'PENDING' }] })];
+      const after = [baseDoc({ pieces: [{ id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'DONE' }] })];
+      expect((component as any).documentsContentEqual(before, after)).toBe(false);
+    });
+
+    it('U-02 : ajout d\'une pièce (async pipeline) → documentsContentEqual retourne false', () => {
+      const before = [baseDoc({ pieces: [] })];
+      const after = [baseDoc({ pieces: [{ id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'NOT_APPLICABLE' }] })];
+      expect((component as any).documentsContentEqual(before, after)).toBe(false);
+    });
+
+    it('U-03 : pièces identiques → documentsContentEqual retourne true (pas de re-render inutile)', () => {
+      const piece = { id: 'p1', type: 'CONTRAT' as const, label: 'CDI', pageStart: 1, pageEnd: 2, orderIndex: 0, visionStatus: 'DONE' as const, visualDescription: 'desc' };
+      const before = [baseDoc({ pieces: [piece] })];
+      const after = [baseDoc({ pieces: [{ ...piece }] })];
+      expect((component as any).documentsContentEqual(before, after)).toBe(true);
+    });
+
+    it('U-04 : visionPendingCount compte toutes les pièces PENDING du dossier', () => {
+      component.documents.set([
+        baseDoc({ id: 'd1', pieces: [
+          { id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'PENDING' },
+          { id: 'p2', type: 'ATTESTATION', label: null, pageStart: 2, pageEnd: 2, orderIndex: 1, visionStatus: 'DONE' },
+        ]}),
+        baseDoc({ id: 'd2', pieces: [
+          { id: 'p3', type: 'PASSEPORT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'PENDING' },
+        ]}),
+      ]);
+      expect(component.visionPendingCount()).toBe(2);
+      expect(component.visionDoneCount()).toBe(1);
+    });
+
+    it('U-05 : documentVisionState retourne PENDING dès qu\'une pièce est en cours', () => {
+      const doc = baseDoc({ pieces: [
+        { id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'DONE' },
+        { id: 'p2', type: 'ATTESTATION', label: null, pageStart: 2, pageEnd: 2, orderIndex: 1, visionStatus: 'PENDING' },
+      ]});
+      expect(component.documentVisionState(doc)).toBe('PENDING');
+    });
+
+    it('U-06 : documentVisionState DONE si ≥1 DONE et aucune PENDING', () => {
+      const doc = baseDoc({ pieces: [
+        { id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'DONE' },
+        { id: 'p2', type: 'ATTESTATION', label: null, pageStart: 2, pageEnd: 2, orderIndex: 1, visionStatus: 'NOT_APPLICABLE' },
+      ]});
+      expect(component.documentVisionState(doc)).toBe('DONE');
+    });
+
+    it('U-07 : documentVisionState NONE si rien d\'éligible à vision', () => {
+      const doc = baseDoc({ pieces: [
+        { id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'NOT_APPLICABLE' },
+      ]});
+      expect(component.documentVisionState(doc)).toBe('NONE');
+      expect(component.documentVisionState(baseDoc({ pieces: [] }))).toBe('NONE');
+      expect(component.documentVisionState(baseDoc())).toBe('NONE');
+    });
+
+    it('U-08 : bandeau global rendu quand visionPendingCount > 0', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([
+        baseDoc({ pieces: [{ id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'PENDING' }] }),
+      ]);
+      fixture.detectChanges();
+      const banner = fixture.nativeElement.querySelector('.vision-banner');
+      expect(banner).toBeTruthy();
+      expect(banner.textContent).toContain('Analyse visuelle en cours');
+    });
+
+    it('U-09 : pas de bandeau si aucune pièce PENDING', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([baseDoc()]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.vision-banner')).toBeFalsy();
+    });
+
+    it('U-10 : badge --pending rendu sur le doc avec pièce PENDING', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([
+        baseDoc({ pieces: [{ id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'PENDING' }] }),
+      ]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.badge-vision--pending')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.badge-vision--done')).toBeFalsy();
+    });
+
+    it('U-11 : badge --done rendu sur le doc avec pièce DONE (aucune PENDING)', () => {
+      component.caseFile.set(mockCaseFile);
+      component.documents.set([
+        baseDoc({ pieces: [{ id: 'p1', type: 'CONTRAT', label: null, pageStart: 1, pageEnd: 1, orderIndex: 0, visionStatus: 'DONE' }] }),
+      ]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.badge-vision--done')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.badge-vision--pending')).toBeFalsy();
+    });
+  });
+
 });

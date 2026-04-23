@@ -202,6 +202,41 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     return this.documents().filter(d => new Date(d.createdAt) > synDate);
   });
 
+  /** SF-148-04 : total pièces en enrichissement vision sur le dossier. */
+  readonly visionPendingCount = computed(() => {
+    let n = 0;
+    for (const doc of this.documents()) {
+      for (const p of doc.pieces ?? []) {
+        if (p.visionStatus === 'PENDING') n++;
+      }
+    }
+    return n;
+  });
+
+  /** SF-148-04 : total pièces déjà enrichies (visionStatus DONE) sur le dossier. */
+  readonly visionDoneCount = computed(() => {
+    let n = 0;
+    for (const doc of this.documents()) {
+      for (const p of doc.pieces ?? []) {
+        if (p.visionStatus === 'DONE') n++;
+      }
+    }
+    return n;
+  });
+
+  /**
+   * SF-148-04 : état vision agrégé par document.
+   * - `PENDING` : au moins une pièce en cours → badge "Vision ⏳"
+   * - `DONE`    : au moins une pièce enrichie, aucune PENDING → badge "Vision ✓"
+   * - `NONE`    : rien à afficher
+   */
+  documentVisionState(doc: Document): 'PENDING' | 'DONE' | 'NONE' {
+    const pieces = doc.pieces ?? [];
+    if (pieces.some(p => p.visionStatus === 'PENDING')) return 'PENDING';
+    if (pieces.some(p => p.visionStatus === 'DONE')) return 'DONE';
+    return 'NONE';
+  }
+
   // true if a document was deleted after the last synthesis
   readonly deletedSinceLastAnalysis = computed(() => {
     const deletedAt = this.caseFile()?.lastDocumentDeletedAt;
@@ -443,6 +478,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         } else {
           this.ocrRetryPreview.set(null);
         }
+        // SF-148-04 : si l'utilisateur ouvre le dossier alors que l'enrichissement
+        // vision est encore en cours (async), démarrer le polling pour rafraîchir
+        // les pièces et basculer les badges PENDING → DONE sans recharger la page.
+        if (this.visionPendingCount() > 0) {
+          this.managePolling(caseFileId, this.analysisJobs(), true);
+        }
       },
       error: () => this.snackBar.open('Erreur lors du chargement des documents', 'Fermer', {
         duration: 4000, panelClass: ['snack-error']
@@ -547,8 +588,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const hasPendingOrProcessing = jobs.some(
       j => j.status === 'PENDING' || j.status === 'PROCESSING'
     );
+    const visionPending = this.visionPendingCount() > 0;
 
-    if ((hasPendingOrProcessing || forceStart || this.docAnalysisPending() || this.caseAnalysisPending()) && !this.pollingInterval) {
+    if ((hasPendingOrProcessing || forceStart || this.docAnalysisPending() || this.caseAnalysisPending() || visionPending) && !this.pollingInterval) {
       this.pollingInterval = setInterval(() => {
         // SF-121-04 : re-fetch docs pour détecter l'état d'extraction courant,
         // puis re-applique l'override FAILED si ≥ 1 doc FAILED.
@@ -585,13 +627,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
             const caseAnalysisDone = updated.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE');
             const questionsDone = updated.some(j => j.jobType === 'QUESTION_GENERATION' && (j.status === 'DONE' || j.status === 'FAILED'));
             const waitingForQuestions = caseAnalysisDone && !questionsDone;
-            if (!stillRunning && !waitingForQuestions) {
+            // SF-148-04 : continuer le polling tant qu'au moins une pièce est
+            // en enrichissement visuel (LegalCase Vision, async post-pipeline).
+            const stillVision = this.visionPendingCount() > 0;
+            if (!stillRunning && !waitingForQuestions && !stillVision) {
               this.stopPolling();
             }
           }
         });
       }, 3000);
-    } else if (!hasPendingOrProcessing && !forceStart && !this.docAnalysisPending() && !this.caseAnalysisPending()) {
+    } else if (!hasPendingOrProcessing && !forceStart && !this.docAnalysisPending() && !this.caseAnalysisPending() && !visionPending) {
       this.stopPolling();
     }
   }
@@ -678,6 +723,30 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           || x.failureReason !== y.failureReason
           || x.ocrRunning !== y.ocrRunning
           || x.ocrExtracted !== y.ocrExtracted) {
+        return false;
+      }
+      // SF-148-04 : les pièces (F-145) et leur statut vision (F-148) sont
+      // produits de façon asynchrone après l'upload. Si ce diff les ignore,
+      // les chips et badges Vision ne se rafraîchissent pas pendant le polling.
+      if (!this.piecesEqual(x.pieces, y.pieces)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private piecesEqual(a?: Document['pieces'], b?: Document['pieces']): boolean {
+    const la = a?.length ?? 0;
+    const lb = b?.length ?? 0;
+    if (la !== lb) return false;
+    if (la === 0) return true;
+    for (let i = 0; i < la; i++) {
+      const p = a![i], q = b![i];
+      if (p.id !== q.id
+          || p.type !== q.type
+          || p.label !== q.label
+          || p.visionStatus !== q.visionStatus
+          || (p.visualDescription ?? null) !== (q.visualDescription ?? null)) {
         return false;
       }
     }
