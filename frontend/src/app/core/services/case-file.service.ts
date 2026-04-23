@@ -30,4 +30,14 @@ export class CaseFileService {
   exportZip(id: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/${id}/export`, { responseType: 'blob' });
   }
+
+  getDecisionToolsVisibility(id: string): Observable<VisibleToolSet> {
+    return this.http.get<VisibleToolSet>(`${this.apiUrl}/${id}/decision-tools-visibility`);
+  }
+}
+
+export interface VisibleToolSet {
+  alwaysOn: string[];
+  contextual: string[];
+  catalog: string[];
 }

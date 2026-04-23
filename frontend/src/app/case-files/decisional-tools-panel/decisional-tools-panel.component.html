@@ -1,0 +1,63 @@
+<div class="decisional-tools-panel">
+  @if (loading()) {
+    <div class="loading">
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  } @else if (visibility()) {
+    @if (isEmpty()) {
+      <mat-card class="empty-state">
+        <mat-card-content>
+          <mat-icon>info_outline</mat-icon>
+          <p>Aucun outil disponible pour ce dossier.</p>
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      @if (resolvedAlwaysOn().length > 0) {
+        <section class="tool-section">
+          <h2 class="section-title">Outils principaux</h2>
+          @for (item of resolvedAlwaysOn(); track item.toolId) {
+            <ng-container
+              *ngComponentOutlet="
+                item.component;
+                inputs: componentInputs()
+              ">
+            </ng-container>
+          }
+        </section>
+      }
+
+      @if (resolvedContextual().length > 0) {
+        <section class="tool-section">
+          <h2 class="section-title">Outils contextuels</h2>
+          @for (item of resolvedContextual(); track item.toolId) {
+            <ng-container
+              *ngComponentOutlet="
+                item.component;
+                inputs: componentInputs()
+              ">
+            </ng-container>
+          }
+        </section>
+      }
+
+      @if (visibility()!.catalog.length > 0) {
+        <section class="tool-section catalog-section">
+          <h2 class="section-title">Catalogue</h2>
+          <p class="catalog-description">
+            Outils disponibles selon la situation détectée. L'activation manuelle sera disponible prochainement.
+          </p>
+          <div class="catalog-chips">
+            @for (toolId of visibility()!.catalog; track toolId) {
+              <div
+                class="catalog-chip"
+                matTooltip="Activation manuelle bientôt disponible">
+                <mat-icon>extension</mat-icon>
+                <span>{{ toolId }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+</div>
