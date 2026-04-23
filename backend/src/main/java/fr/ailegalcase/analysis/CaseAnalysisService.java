@@ -157,7 +157,12 @@ public class CaseAnalysisService {
         try {
             log.info("Case analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 8192);
+            // F-146/F-148 : l'injection de PiecesPromptContext + descriptions Vision
+            // fait gonfler la sortie attendue (11 pièces × sourceRef + éventuelles
+            // visual_description → facilement 8 000+ tokens de JSON). On aligne sur
+            // EnrichedAnalysisService (16384) pour éviter la troncature silencieuse
+            // constatée en staging 2026-04-23 (dossier E-35).
+            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 16384);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Case analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
