@@ -1,0 +1,140 @@
+UNIVERSITÉ PARIS-SACLAY
+ÉCOLE DOCTORALE SCIENCES ET TECHNOLOGIES
+DE L'INFORMATION ET DE LA COMMUNICATION (STIC — ED 580)
+
+Bâtiment 650 Ada Lovelace
+Rue Raimond Castaing
+91190 Gif-sur-Yvette
+
+---
+
+ATTESTATION D'INSCRIPTION EN DOCTORAT
+ET CALENDRIER DE SOUTENANCE
+
+---
+
+Je soussignée, Professeure Claire HUDELOT, Directrice de
+l'École Doctorale STIC (ED 580) de l'Université Paris-Saclay,
+
+atteste par la présente que :
+
+Monsieur CHEN Wei
+Né le 22 avril 1995 à Shanghai (Chine)
+Nationalité : Chinoise
+Numéro étudiant : 22104587
+Adresse : 8, allée des Cerisiers, 91400 Orsay
+
+est régulièrement inscrit en 3ème année de doctorat au sein
+du Laboratoire Interdisciplinaire des Sciences du Numérique
+(LISN — UMR 9015), Université Paris-Saclay, depuis le 1er
+septembre 2023.
+
+---
+
+PARCOURS DOCTORAL
+
+Année universitaire 2023-2024 : 1ère année de doctorat (inscrite)
+Année universitaire 2024-2025 : 2ème année de doctorat (inscrite)
+Année universitaire 2025-2026 : 3ème année de doctorat (inscription
+                                 en cours de validation)
+
+---
+
+INFORMATIONS SUR LA THÈSE
+
+Sujet : « Apprentissage par renforcement multi-agent pour
+         l'optimisation de systèmes distribués »
+
+Directeur de thèse :
+Professeure Marie-Claire DUPONT
+Laboratoire LISN — Équipe A&O (Algorithmes et Optimisation)
+Université Paris-Saclay
+
+Co-encadrant :
+Docteur Julien MARTINEAU
+Maître de Conférences, LISN
+
+Financement : Contrat doctoral de 3 ans
+(01/09/2023 — 31/08/2026) — 2 083 € brut/mois
+Versé par l'Université Paris-Saclay sur fonds ministère
+(Allocation de recherche doctorale).
+
+---
+
+CALENDRIER PRÉVISIONNEL DE SOUTENANCE
+
+Comité de suivi individuel (CSI) validé le : 14 avril 2026
+Dépôt du manuscrit prévu : 30 juin 2026
+Pré-rapport des rapporteurs : 15 septembre 2026
+Autorisation de soutenance (Conseil ED) : 01 octobre 2026
+
+**SOUTENANCE DE THÈSE PRÉVUE : 15 OCTOBRE 2026**
+
+Lieu : Amphithéâtre Henri Lebesgue, Bâtiment 307
+       Université Paris-Saclay — Orsay (91)
+
+Jury pressenti (composition en cours de validation) :
+- Prof. Marie-Claire DUPONT (Paris-Saclay) — Directrice
+- Prof. François LEMAIRE (Sorbonne Université) — Rapporteur
+- Prof. Anna KIRCHHOFF (ETH Zürich) — Rapportrice
+- Prof. Sébastien DESTERCKE (Université de Technologie de
+  Compiègne) — Examinateur
+- Dr. Julien MARTINEAU (Paris-Saclay) — Co-encadrant
+
+---
+
+INSERTION PROFESSIONNELLE POST-DOCTORAT
+
+M. CHEN Wei a manifesté le souhait d'exercer comme chercheur
+en France à l'issue de sa thèse. Trois pistes identifiées :
+
+1. Poste de chargé de recherche — Laboratoire LISN
+   (candidature en cours d'examen)
+2. Post-doctorat INRIA Saclay (sujet identifié, contact établi
+   avec l'équipe Panama)
+3. Offre d'emploi ingénieur recherche — société Mistral AI
+   (entretien prévu 05/06/2026)
+
+Le doctorat en informatique délivré par l'Université Paris-Saclay,
+établissement de recherche public, permettra à M. CHEN Wei de
+solliciter un changement de statut vers la carte pluriannuelle
+mention « Passeport talent — Chercheur » (article L. 421-14 du
+CESEDA) à l'issue de la soutenance.
+
+---
+
+OBSERVATIONS IMPORTANTES POUR LE DROIT DES ÉTRANGERS
+
+**Titre actuel** : Carte pluriannuelle « Étudiant — Recherche »
+valable jusqu'au 31 août 2026.
+
+**Échéance critique** : la soutenance est prévue le 15 octobre
+2026, soit **après l'expiration du titre actuel** (31 août 2026).
+
+Deux options se présentent à l'étudiant :
+- Demander un renouvellement temporaire du titre étudiant pour
+  la période 01/09/2026 — 31/12/2026 (couvrir la soutenance et
+  la délivrance du diplôme), puis solliciter un changement de
+  statut « Passeport talent — Chercheur » dès l'obtention du
+  doctorat.
+- En cas de mariage avec un ressortissant français (cas du
+  dossier présent), solliciter immédiatement un changement de
+  statut vers « Vie privée et familiale » (art. L. 423-1 CESEDA),
+  qui dissocie la situation de séjour de l'obtention du doctorat.
+
+Le deuxième scénario offre une sécurité juridique supérieure
+(droit au travail plein, durée pluriannuelle) mais implique la
+perte du statut « Recherche » qui peut présenter un intérêt en
+cas de poursuite en post-doctorat à l'étranger.
+
+---
+
+Cette attestation est délivrée à l'intéressé pour valoir ce
+que de droit.
+
+Fait à Gif-sur-Yvette, le 10 avril 2026.
+
+La Directrice de l'École Doctorale STIC,
+Pr. Claire HUDELOT
+
+[Signature et cachet de l'École Doctorale]

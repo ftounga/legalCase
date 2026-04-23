@@ -210,7 +210,7 @@
 
 ## Test 7 — Chen (regroupement familial FR)
 
-**Dossier :** `dossier-regroupement-familial-chen/` (3 fichiers)
+**Dossier :** `dossier-regroupement-familial-chen/` (5 fichiers — enrichi 2026-04-23 avec attestation thèse Paris-Saclay + bail commun Orsay pour matérialiser les scenarii F-150 événements / F-151 stratégies : soutenance octobre 2026 postérieure à l'expiration titre août 2026, communauté de vie documentée 19 mois)
 **Workspace :** DROIT_IMMIGRATION / FRANCE
 
 | Étape | Action | Vérification |
