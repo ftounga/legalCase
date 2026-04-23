@@ -1,0 +1,125 @@
+.dc-panel {
+  margin-top: 16px;
+}
+
+.panel-icon--dc {
+  color: #2B5494;
+  margin-right: 8px;
+}
+
+.dc-body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  align-items: start;
+  padding: 4px 0;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}
+
+.dc-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  svg { overflow: visible; }
+
+  .dc-gauge-score {
+    font-family: 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    fill: #1A3A5C;
+  }
+
+  .dc-gauge-unit {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    fill: #6B7A8D;
+  }
+}
+
+.verdict-badge {
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.verdict-badge--ok {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.verdict-badge--warn {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
+.verdict-badge--error {
+  background: #FFEBEE;
+  color: #C62828;
+}
+
+.dc-criteres {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.critere {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(26, 58, 92, 0.03);
+  border-radius: 6px;
+}
+
+.critere-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.critere-icon--ok    { color: #2E7D32; }
+.critere-icon--ko    { color: #C62828; }
+.critere-icon--inconnu { color: #6B7A8D; }
+
+.critere-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.critere-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1C2B3A;
+}
+
+.critere-just {
+  font-size: 12px;
+  color: #6B7A8D;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.dc-disclaimer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(107, 122, 141, 0.3);
+  font-size: 11px;
+  color: #6B7A8D;
+  font-style: italic;
+}

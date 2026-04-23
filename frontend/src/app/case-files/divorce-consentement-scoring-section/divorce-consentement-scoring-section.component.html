@@ -1,0 +1,52 @@
+@if (scoringSignal() && detectionSignal()) {
+  @let s = scoringSignal()!;
+  <mat-expansion-panel expanded class="dc-panel" id="section-divorce-consentement-scoring">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon class="panel-icon panel-icon--dc">rule</mat-icon>
+        Validité du divorce par consentement mutuel
+      </mat-panel-title>
+      <mat-panel-description>
+        Score {{ s.score }}/100 · {{ verdictLabel(s.verdict) }}
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    <div class="dc-body">
+      <div class="dc-gauge">
+        <svg viewBox="0 0 120 120" width="120" height="120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#E0E4E9" stroke-width="10"/>
+          <circle cx="60" cy="60" r="50" fill="none"
+                  [attr.stroke]="s.verdict === 'VALIDE' ? '#2E7D32' : s.verdict === 'RISQUE_MOYEN' ? '#E65100' : '#C62828'"
+                  stroke-width="10" stroke-linecap="round"
+                  [attr.stroke-dasharray]="gaugeCircumference"
+                  [attr.stroke-dashoffset]="gaugeOffset(s.score)"
+                  transform="rotate(-90 60 60)"/>
+          <text x="60" y="60" text-anchor="middle" dominant-baseline="central"
+                class="dc-gauge-score">{{ s.score }}</text>
+          <text x="60" y="80" text-anchor="middle" class="dc-gauge-unit">/100</text>
+        </svg>
+        <span [class]="verdictClass(s.verdict)">{{ verdictLabel(s.verdict) }}</span>
+      </div>
+
+      <ul class="dc-criteres">
+        @for (c of critereEntries(); track c.code) {
+          <li class="critere">
+            <mat-icon [class]="iconClass(c.answer?.reponse)" [matTooltip]="c.answer?.justification ?? ''">
+              {{ iconFor(c.answer?.reponse) }}
+            </mat-icon>
+            <div class="critere-body">
+              <div class="critere-label">{{ c.label }}</div>
+              @if (c.answer?.justification) {
+                <div class="critere-just">{{ c.answer!.justification }}</div>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <p class="dc-disclaimer">
+      Évaluation indicative basée sur les pièces du dossier — ne dispense pas d'une vérification manuelle.
+    </p>
+  </mat-expansion-panel>
+}

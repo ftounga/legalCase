@@ -118,6 +118,26 @@ export interface CaseAnalysisResult {
   immigrationTriggerEvents?: ImmigrationTriggerEvent[] | null;
   /** F-151 : scenarii stratégiques immigration comparés (liste vide si aucun choix stratégique ouvert). */
   immigrationStrategyScenarios?: ImmigrationStrategyScenario[] | null;
+  /** F-152 : détection validité divorce par consentement mutuel (famille, null hors domaine famille). */
+  divorceConsentementValidityDetection?: DivorceConsentementValidityDetection | null;
+  /** F-152 : scoring calculé (null si détection absente). */
+  divorceConsentementScoring?: DivorceConsentementScoring | null;
+}
+
+/** F-152 SF-152-01 : détection validité divorce consentement mutuel. */
+export interface DivorceConsentementValidityDetection {
+  detections: { [critereCode: string]: DetectedAnswer };
+}
+
+/** F-152 SF-152-01 : scoring 0-100 + verdict. */
+export type DivorceConsentementVerdict = 'VALIDE' | 'RISQUE_MOYEN' | 'RISQUE_ELEVE_NULLITE';
+
+export interface DivorceConsentementScoring {
+  score: number;
+  verdict: DivorceConsentementVerdict;
+  criteresValides: string[];
+  criteresNonValides: string[];
+  criteresInconnus: string[];
 }
 
 /** F-150 SF-150-01 : événement déclencheur immigration détecté dans le dossier. */
