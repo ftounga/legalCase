@@ -668,6 +668,39 @@ class CaseAnalysisResponseTest {
         assertThat(response.ruptureConvValidityDetection()).isNull();
     }
 
+    /**
+     * SF-IM-01-06 : régression — un dossier immigration avec trigger_event
+     * MARIAGE_RESSORTISSANT_FR doit voir sa checklist inférée à
+     * CST_VPF_CONJOINT_FR, pas à VISA_ETUDIANT (fallback titre actuel).
+     * Cas paradigmatique Chen Wei : pluriannuelle Étudiant-Recherche +
+     * mariage avec Française → passage L.423-1.
+     */
+    @Test
+    void from_immigrationWithMariageTrigger_inferChecklistCSTVPFConjointFR() {
+        CaseAnalysis a = analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE",
+                  "trigger_events": [
+                    {
+                      "event_code": "MARIAGE_RESSORTISSANT_FR",
+                      "event_date": "2025-03-15",
+                      "source_document": "03-acte-mariage.pdf",
+                      "justification": "Mariage célébré le 15/03/2025 en mairie du 5ème arrondissement de Paris"
+                    }
+                  ]
+                }
+                """);
+
+        CaseAnalysisResponse response = CaseAnalysisResponse.from(a);
+
+        assertThat(response.immigrationExtractedData()).isNotNull();
+        assertThat(response.immigrationExtractedData().inferredChecklistType())
+                .isEqualTo("CST_VPF_CONJOINT_FR");
+        assertThat(response.immigrationTriggerEvents()).hasSize(1);
+        assertThat(response.immigrationTriggerEvents().get(0).eventCode())
+                .isEqualTo("MARIAGE_RESSORTISSANT_FR");
+    }
+
     private CaseAnalysis analysis(String result) {
         CaseAnalysis a = new CaseAnalysis();
         a.setAnalysisStatus(AnalysisStatus.DONE);
