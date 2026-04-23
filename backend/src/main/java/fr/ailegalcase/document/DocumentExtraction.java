@@ -44,6 +44,21 @@ public class DocumentExtraction {
     @Column(name = "extracted_text", length = Integer.MAX_VALUE)
     private String extractedText;
 
+    /**
+     * SF-149-01 : sauvegarde de la version OCR d'origine, prise au 1er edit
+     * manuel. Permet le "Réinitialiser à l'original". Null tant qu'aucune
+     * édition manuelle n'a eu lieu.
+     */
+    @Column(name = "extracted_text_original", length = Integer.MAX_VALUE)
+    private String extractedTextOriginal;
+
+    /**
+     * SF-149-01 : timestamp de la dernière édition manuelle par l'avocat.
+     * Null si jamais édité. Sert au badge "Modifié le X" côté UI.
+     */
+    @Column(name = "text_edited_at")
+    private Instant textEditedAt;
+
     @Column(name = "extraction_metadata", length = Integer.MAX_VALUE)
     private String extractionMetadata;
 

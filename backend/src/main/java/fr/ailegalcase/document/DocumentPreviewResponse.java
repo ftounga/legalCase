@@ -24,7 +24,9 @@ public record DocumentPreviewResponse(
         int charCount,
         boolean textTruncated,
         int ocrPagesUsed,
-        ExtractionFailureReason failureReason
+        ExtractionFailureReason failureReason,
+        /** SF-149-01 : timestamp de la dernière édition manuelle, null si jamais édité. */
+        Instant textEditedAt
 ) {
     public enum ExtractionMethod { CLASSIC, OCR, NONE }
 

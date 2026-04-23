@@ -168,11 +168,63 @@
                 </div>
               </div>
             } @else {
-              <pre class="extracted-text">{{ displayedExtractedText() }}</pre>
-              @if (p.textTruncated) {
-                <p class="truncate-note">
-                  Texte tronqué à 200 000 caractères pour l'affichage (le document complet est bien traité par l'IA).
+              <div class="extract-toolbar">
+                @if (p.textEditedAt) {
+                  <span class="extract-edited-badge" matTooltip="Extrait modifié manuellement par l'avocat">
+                    <mat-icon>edit_note</mat-icon>
+                    Modifié le {{ p.textEditedAt | date:'dd/MM/yyyy HH:mm' }}
+                  </span>
+                }
+                <span class="extract-toolbar-spacer"></span>
+                @if (!editing()) {
+                  <button mat-stroked-button type="button" (click)="startEdit()"
+                          matTooltip="Corriger manuellement le texte extrait (OCR imparfait, écriture manuscrite, scan dégradé).">
+                    <mat-icon>edit</mat-icon> Modifier l'extrait
+                  </button>
+                  @if (p.textEditedAt) {
+                    <button mat-stroked-button type="button" (click)="resetToOriginal()"
+                            [disabled]="editSaving()"
+                            matTooltip="Réinitialiser à la version OCR d'origine">
+                      <mat-icon>restart_alt</mat-icon> Réinitialiser
+                    </button>
+                  }
+                } @else {
+                  <button mat-stroked-button type="button" (click)="cancelEdit()" [disabled]="editSaving()">
+                    Annuler
+                  </button>
+                  <button mat-flat-button color="primary" type="button" (click)="saveEdit()" [disabled]="editSaving()">
+                    @if (editSaving()) {
+                      <mat-spinner diameter="16"></mat-spinner>
+                    } @else {
+                      <mat-icon>save</mat-icon>
+                    }
+                    Enregistrer
+                  </button>
+                }
+              </div>
+              @if (editError()) {
+                <div class="alert alert-error">
+                  <mat-icon>error</mat-icon>
+                  <div class="alert-body">{{ editError() }}</div>
+                </div>
+              }
+              @if (editing()) {
+                <textarea class="extracted-text-editor"
+                          [ngModel]="editedText()"
+                          (ngModelChange)="editedText.set($event)"
+                          [disabled]="editSaving()"
+                          placeholder="Texte extrait…"
+                          rows="20"></textarea>
+                <p class="edit-note">
+                  Vous modifiez le texte complet du document. Le pipeline IA utilisera cette version à la prochaine analyse.
                 </p>
+              } @else {
+                <pre class="extracted-text">{{ displayedExtractedText() }}</pre>
+                @if (p.textTruncated) {
+                  <p class="truncate-note">
+                    Texte tronqué à 200 000 caractères pour l'affichage (le document complet est bien traité par l'IA).
+                  </p>
+                }
               }
             }
           </mat-tab>

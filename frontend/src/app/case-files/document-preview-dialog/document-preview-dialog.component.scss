@@ -123,6 +123,61 @@
   font-style: italic;
 }
 
+/* SF-149-01 : édition manuelle de l'extrait OCR */
+.extract-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.extract-toolbar-spacer { flex: 1; }
+
+.extract-edited-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #fff4dc;
+  color: #8a5a00;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #f1c98a;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.extracted-text-editor {
+  display: block;
+  width: 100%;
+  margin: 16px 0 0;
+  padding: 16px;
+  background: #fffdf6;
+  border: 1px solid #f1c98a;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #1f2a3a;
+  min-height: 300px;
+  max-height: 50vh;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.edit-note {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #8a5a00;
+  font-style: italic;
+}
+
 .pdf-wrapper {
   display: flex;
   flex-direction: column;
