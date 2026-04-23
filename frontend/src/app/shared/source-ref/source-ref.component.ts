@@ -72,22 +72,23 @@ export class SourceRefComponent {
     private documentService: DocumentService
   ) {}
 
-  /** Clic : résout documentName → documentId puis ouvre DocumentPreviewDialog. */
+  /** Clic : résout la cible via documentName + piece match, puis ouvre DocumentPreviewDialog. */
   openPreview(): void {
     if (!this.hasPreciseRef() || !this.caseFileId || this.opening()) return;
-    const docName = this.sourceRef!.documentName!;
     this.opening.set(true);
     this.documentService.list(this.caseFileId).subscribe({
       next: (docs: Document[]) => {
         this.opening.set(false);
-        const match = docs.find(d => d.originalFilename === docName);
-        if (!match) return; // silencieux : doc supprimé ou analyse obsolète
-        const initialPieceId = this.resolvePieceId(match);
+        const target = this.resolveTarget(docs);
+        if (!target) {
+          console.warn('[source-ref] Aucun document correspondant à', this.sourceRef);
+          return;
+        }
         const data: DocumentPreviewDialogData = {
           caseFileId: this.caseFileId!,
-          documentId: match.id,
-          pieces: match.pieces ?? [],
-          initialPieceId: initialPieceId ?? undefined,
+          documentId: target.doc.id,
+          pieces: target.doc.pieces ?? [],
+          initialPieceId: target.pieceId ?? undefined,
         };
         this.dialog.open(DocumentPreviewDialogComponent, { data, width: '900px', maxWidth: '95vw' });
       },
@@ -98,26 +99,85 @@ export class SourceRefComponent {
   }
 
   /**
-   * Matche la pièce dans le document par (pieceType, pieceLabel, pageStart).
-   * Retourne null si aucun match — le dialog s'ouvrira sur la 1ère pièce du doc.
+   * Résout ({@link Document}, pieceId) cibles en 3 niveaux de fallback :
+   * 1. filename strict → pieceId via match pièce
+   * 2. filename normalisé (trim/lowercase/sans accents) → pieceId via match pièce
+   * 3. global : la pièce (type + label + pageStart) dans n'importe quel doc
+   *    — couvre le cas où l'IA produit un documentName invalide
    */
-  private resolvePieceId(doc: Document): string | null {
+  private resolveTarget(docs: Document[]): { doc: Document; pieceId: string | null } | null {
+    const ref = this.sourceRef!;
+    const docName = ref.documentName ?? '';
+
+    // Niveau 1 — filename strict
+    let doc = docs.find(d => d.originalFilename === docName);
+
+    // Niveau 2 — filename normalisé
+    if (!doc && docName) {
+      const normRef = normalize(docName);
+      doc = docs.find(d => normalize(d.originalFilename) === normRef);
+    }
+
+    if (doc) {
+      return { doc, pieceId: this.resolvePieceIdInDoc(doc) };
+    }
+
+    // Niveau 3 — recherche globale par pièce (type + label + pageStart)
+    for (const d of docs) {
+      const pieceId = this.resolvePieceIdInDoc(d);
+      if (pieceId) return { doc: d, pieceId };
+    }
+    return null;
+  }
+
+  /**
+   * Matche la pièce dans un document donné par (pieceType, pieceLabel, pageStart).
+   * Retourne null si aucun critère ne fait match.
+   */
+  private resolvePieceIdInDoc(doc: Document): string | null {
     const ref = this.sourceRef!;
     const pieces = doc.pieces ?? [];
     if (pieces.length === 0) return null;
 
+    const refLabel = (ref.pieceLabel ?? '').trim();
+    const refType = ref.pieceType;
+    const refPage = ref.pageStart;
+
+    // Match exact : type + label + page
     const exact = pieces.find(p =>
-      p.type === ref.pieceType &&
-      (p.label ?? '') === (ref.pieceLabel ?? '') &&
-      p.pageStart === ref.pageStart
+      p.type === refType &&
+      (p.label ?? '').trim() === refLabel &&
+      p.pageStart === refPage
     );
     if (exact) return exact.id;
 
-    const byTypeAndPage = pieces.find(p => p.type === ref.pieceType && p.pageStart === ref.pageStart);
+    // Match normalisé : type + label normalisé + page
+    if (refLabel) {
+      const normRefLabel = normalize(refLabel);
+      const normMatch = pieces.find(p =>
+        p.type === refType &&
+        normalize(p.label ?? '') === normRefLabel &&
+        p.pageStart === refPage
+      );
+      if (normMatch) return normMatch.id;
+    }
+
+    // type + page
+    const byTypeAndPage = pieces.find(p => p.type === refType && p.pageStart === refPage);
     if (byTypeAndPage) return byTypeAndPage.id;
 
-    const byPageOnly = pieces.find(p => ref.pageStart != null
-      && p.pageStart <= ref.pageStart && p.pageEnd >= ref.pageStart);
+    // page incluse dans la plage de la pièce
+    const byPageOnly = pieces.find(p => refPage != null
+      && p.pageStart <= refPage && p.pageEnd >= refPage);
     return byPageOnly?.id ?? null;
   }
+}
+
+/** Normalise pour comparaisons tolérantes : lowercase, trim, sans accents. */
+function normalize(s: string): string {
+  return (s ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // retire les diacritiques
+    .toLowerCase()
+    .trim();
 }
