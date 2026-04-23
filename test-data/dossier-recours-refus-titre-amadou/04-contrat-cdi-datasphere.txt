@@ -1,0 +1,125 @@
+DATASPHERE INGENIERIE SARL
+28 boulevard Haussmann — 75009 Paris
+SIREN 842 351 729 — RCS Paris B 842 351 729
+NAF 6201Z — Programmation informatique
+
+---
+
+CONTRAT DE TRAVAIL À DURÉE INDÉTERMINÉE
+(Convention collective Syntec — IDCC 1486)
+
+---
+
+ENTRE LES SOUSSIGNÉS :
+
+LA SOCIÉTÉ :
+DATASPHERE INGENIERIE SARL, société à responsabilité limitée au
+capital de 100 000 €, inscrite au RCS de Paris sous le n° 842 351
+729, ayant son siège social au 28 boulevard Haussmann, 75009 Paris,
+représentée par Madame Claire MORIN, gérante, dûment habilitée,
+
+ci-après dénommée « l'Employeur »,
+
+D'UNE PART,
+
+ET
+
+LE SALARIÉ :
+Monsieur DIALLO Amadou Mamadou
+Né le 3 novembre 1988 à Dakar (Sénégal)
+Nationalité : sénégalaise
+Demeurant : 14 rue de la Roquette, apt 305, 75011 Paris
+N° de sécurité sociale : 1 88 11 75 056 784 23
+Titre de séjour : Carte de séjour temporaire « Salarié »
+                  n° FRADIAL8811030274, valable du 01/05/2023 au 30/04/2025
+
+ci-après dénommé « le Salarié »,
+
+D'AUTRE PART.
+
+---
+
+IL A ÉTÉ CONVENU CE QUI SUIT :
+
+---
+
+ARTICLE 1 — ENGAGEMENT
+
+Le Salarié est engagé à compter du 6 mars 2023 en qualité
+d'Ingénieur de Développement Logiciel, statut Cadre (position
+2.1 de la Convention collective Syntec).
+
+L'engagement est conclu pour une durée indéterminée sans période
+d'essai compte tenu de l'expérience professionnelle reconnue du
+Salarié (5 années chez INNOVTECH SAS, poste similaire).
+
+---
+
+ARTICLE 2 — FONCTIONS
+
+Le Salarié exerce les missions suivantes :
+- Conception et développement de logiciels backend (Java, Python)
+- Architecture d'applications distribuées (microservices, cloud)
+- Revues de code et encadrement technique junior
+- Participation aux choix d'architecture produit
+
+Lieu d'exercice : 28 boulevard Haussmann, 75009 Paris,
+                  avec possibilité de télétravail partiel (2 j/semaine).
+
+---
+
+ARTICLE 3 — RÉMUNÉRATION
+
+Salaire brut annuel : 57 600 € (cinquante-sept mille six cents euros)
+payable en douze mensualités de 4 500 € brut, soit environ 3 510 €
+net avant impôt sur le revenu.
+
+La rémunération est complétée par :
+- Tickets restaurant 11 €/jour travaillé (60 % employeur)
+- Mutuelle d'entreprise Alan (100 % employeur)
+- Plan épargne entreprise avec abondement
+- Prime annuelle objectif, plafonnée à 1 mois de salaire
+
+---
+
+ARTICLE 4 — DURÉE DU TRAVAIL
+
+Forfait annuel en jours : 218 jours travaillés par année de référence.
+Astreintes possibles selon planning rotatif (indemnisées).
+
+---
+
+ARTICLE 5 — MENTIONS OBLIGATOIRES LIÉES AU DROIT AU SÉJOUR
+
+L'Employeur reconnaît avoir vérifié la validité du titre de séjour
+du Salarié auprès de la Préfecture de Police de Paris le 03/03/2023
+(procédure dématérialisée de vérification en ligne).
+
+Le Salarié s'engage à communiquer à l'Employeur toute évolution
+de son titre de séjour (renouvellement, changement de catégorie,
+obtention d'un titre pluriannuel).
+
+L'Employeur prendra en charge la mise à jour de la Déclaration
+Préalable à l'Embauche (DPAE) auprès de l'URSSAF conformément
+aux articles L. 1221-10 et suivants du Code du travail.
+
+NOTE : Le présent contrat ne saurait dispenser le Salarié de
+sollicitions une autorisation de travail auprès de la DREETS
+en cas de changement d'employeur si son titre de séjour comporte
+une mention d'employeur spécifique. Le Salarié déclare être
+titulaire d'une carte de séjour « Salarié » l'autorisant à
+exercer la profession visée au présent contrat auprès de
+l'Employeur.
+
+---
+
+Fait à Paris, le 6 mars 2023, en deux exemplaires originaux
+dont un remis à chaque partie.
+
+L'EMPLOYEUR                        LE SALARIÉ
+
+Claire MORIN                       Amadou DIALLO
+Gérante                            (signature manuscrite)
+DATASPHERE INGENIERIE SARL
+
+[Cachet entreprise]                Lu et approuvé

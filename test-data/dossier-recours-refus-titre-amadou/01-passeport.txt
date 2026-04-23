@@ -1,0 +1,79 @@
+RÉPUBLIQUE DU SÉNÉGAL
+PASSEPORT / PASSPORT
+
+Type : P
+Country code / Code pays : SEN
+
+Nom / Surname : DIALLO
+Prénoms / Given names : Amadou Mamadou
+Date de naissance / Date of birth : 03/11/1988
+Lieu de naissance / Place of birth : Dakar, Sénégal
+Sexe / Sex : M
+Nationalité / Nationality : Sénégalaise
+
+Numéro de passeport / Passport No. : A07654321
+Date de délivrance / Date of issue : 18/02/2023
+Date d'expiration / Date of expiry : 17/02/2033
+Autorité de délivrance / Issuing authority : Direction de la Police des Étrangers
+                                              et des Titres de Voyage, Dakar
+
+MACHINE READABLE ZONE
+P<SENDIALLO<<AMADOU<MAMADOU<<<<<<<<<<<<<<<<<<<
+A076543219SEN8811035M3302177<<<<<<<<<<<<<<<<<02
+
+---
+
+VISAS ET CACHETS / ENTRY STAMPS
+
+[Visa] RÉPUBLIQUE FRANÇAISE — CONSULAT GÉNÉRAL DE FRANCE À DAKAR
+Type : VLS-TS Salarié
+Date de délivrance : 05/04/2018
+Validité : 01/05/2018 — 30/04/2019
+Motif : Contrat de travail ingénieur informatique — société INNOVTECH SAS
+Référence : DAKAR-2018-VLS-05891
+
+[Cachet] POLICE AUX FRONTIÈRES
+Aéroport Paris-CDG — Terminal 2F
+Date d'entrée : 15/05/2018
+Tampon n° : CDG-2018-41523
+
+[Cachet] PRÉFECTURE DE POLICE DE PARIS
+Renouvellement titre salarié
+Date : 22/04/2019
+Réf. : PP75-2019-SAL-08432
+
+[Cachet] PRÉFECTURE DE POLICE DE PARIS
+Renouvellement titre salarié
+Date : 15/04/2021
+Réf. : PP75-2021-SAL-11295
+
+[Cachet] PRÉFECTURE DE POLICE DE PARIS
+Renouvellement titre salarié (dernier renouvellement obtenu)
+Date : 10/05/2023
+Réf. : PP75-2023-SAL-14763
+Valable jusqu'au 30/04/2025
+
+---
+
+ADRESSE EN FRANCE
+
+14 rue de la Roquette, appartement 305
+75011 Paris
+(Mêmes coordonnées depuis 2020)
+
+---
+
+PARCOURS PROFESSIONNEL EN FRANCE
+
+- 2018-2022 : INNOVTECH SAS, ingénieur informatique (CDI)
+  Adresse employeur : 42 rue Paradis, 75010 Paris
+  Motif de fin : licenciement économique validé le 15/11/2022
+  (restructuration de la société suite au rachat par fonds américain)
+
+- 01/12/2022 — 05/03/2023 : période de chômage indemnisé Pôle Emploi
+  Indemnisation ARE : 1 852 € net/mois
+
+- 06/03/2023 — présent : DATASPHERE INGENIERIE SARL, ingénieur de
+  développement logiciel (CDI)
+  Adresse employeur : 28 boulevard Haussmann, 75009 Paris
+  Salaire brut mensuel : 4 500 € (57 600 € annuel)
