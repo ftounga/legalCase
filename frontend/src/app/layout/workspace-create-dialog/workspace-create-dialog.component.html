@@ -1,0 +1,76 @@
+<h2 mat-dialog-title class="wcd-title">
+  <mat-icon>add_business</mat-icon>
+  Créer un nouveau workspace
+</h2>
+
+<mat-dialog-content class="wcd-content">
+  <p class="wcd-intro">
+    Chaque workspace est isolé : ses dossiers, pièces, analyses et membres sont
+    séparés. Créez un workspace par cabinet, pays ou domaine juridique distinct.
+  </p>
+
+  <div class="wcd-section">
+    <label class="wcd-label" for="wcd-name">Nom du cabinet</label>
+    <mat-form-field appearance="outline" class="wcd-name-field">
+      <input matInput id="wcd-name"
+             type="text"
+             [(ngModel)]="name"
+             name="wsName"
+             maxlength="80"
+             placeholder="Ex. Cabinet Martin — Immigration France"
+             [disabled]="submitting()"
+             autofocus />
+      <mat-hint align="end">{{ name.length }} / 80</mat-hint>
+    </mat-form-field>
+  </div>
+
+  <div class="wcd-section">
+    <span class="wcd-label">Domaine juridique</span>
+    <div class="wcd-domain-grid">
+      @for (d of domains; track d.key) {
+        <button type="button"
+                class="wcd-domain-tile"
+                [class.wcd-domain-tile--active]="selectedDomain === d.key"
+                [style.borderColor]="selectedDomain === d.key ? d.color : '#D9DEE4'"
+                [style.backgroundColor]="selectedDomain === d.key ? d.bgColor : '#FFFFFF'"
+                [disabled]="submitting()"
+                (click)="selectDomain(d.key)">
+          <mat-icon [style.color]="d.color" class="wcd-domain-icon">{{ d.icon }}</mat-icon>
+          <span class="wcd-domain-label">{{ d.label }}</span>
+          <span class="wcd-domain-subtitle">{{ d.subtitle }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="wcd-section">
+    <span class="wcd-label">Pays</span>
+    <div class="wcd-country-row">
+      @for (c of countries; track c.key) {
+        <button type="button"
+                class="wcd-country-chip"
+                [class.wcd-country-chip--active]="selectedCountry === c.key"
+                [disabled]="submitting()"
+                (click)="selectedCountry = c.key">
+          {{ c.label }}
+        </button>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="wcd-actions">
+  <button mat-button type="button" (click)="cancel()" [disabled]="submitting()">
+    Annuler
+  </button>
+  <button mat-flat-button color="primary" type="button"
+          (click)="submit()"
+          [disabled]="!canSubmit">
+    @if (submitting()) {
+      <mat-spinner diameter="18" class="wcd-btn-spinner"></mat-spinner>
+    } @else {
+      <mat-icon>check</mat-icon>
+    }
+    Créer
+  </button>
+</mat-dialog-actions>

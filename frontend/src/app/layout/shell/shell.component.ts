@@ -10,6 +10,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
@@ -19,6 +20,7 @@ import { Workspace } from '../../core/models/workspace.model';
 import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.component';
 import { TrialBannerComponent } from '../trial-banner/trial-banner.component';
 import { NotificationCenterComponent } from '../notification-center/notification-center.component';
+import { WorkspaceCreateDialogComponent } from '../workspace-create-dialog/workspace-create-dialog.component';
 
 @Component({
   selector: 'app-shell',
@@ -59,7 +61,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     private referentialService: ReferentialService,
     private snackBar: MatSnackBar,
     private router: Router,
-    private breakpointObserver: BreakpointObserver
+    private breakpointObserver: BreakpointObserver,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -129,6 +132,38 @@ export class ShellComponent implements OnInit, OnDestroy {
       error: () => this.snackBar.open('Erreur lors du changement de workspace.', 'Fermer', {
         duration: 4000, panelClass: ['snack-error']
       })
+    });
+  }
+
+  /**
+   * F-154 SF-154-01 : ouvre le dialog de création d'un nouveau workspace,
+   * puis bascule automatiquement dessus à la création réussie.
+   */
+  openCreateWorkspaceDialog(): void {
+    const ref = this.dialog.open(WorkspaceCreateDialogComponent, {
+      width: '620px',
+      maxWidth: '95vw',
+      autoFocus: false,
+      disableClose: false,
+    });
+    ref.afterClosed().subscribe((created: Workspace | null | undefined) => {
+      if (!created) return;
+      this.workspaceService.switchWorkspace(created.id).subscribe({
+        next: active => {
+          this.workspace.set(active);
+          this.loadWorkspaceList();
+          this.workspaceService.notifyWorkspaceSwitched();
+          this.snackBar.open(`Workspace « ${active.name} » créé`, 'Fermer', {
+            duration: 4000, panelClass: ['snack-success']
+          });
+          this.router.navigate(['/case-files']);
+        },
+        error: () => this.snackBar.open(
+          'Workspace créé, mais basculement impossible. Rafraîchissez la page.',
+          'Fermer',
+          { duration: 6000, panelClass: ['snack-error'] }
+        )
+      });
     });
   }
 

@@ -7,29 +7,28 @@
     }
     <img src="/legalcase-logo.png" alt="AI LegalCase" class="logo" />
     @if (workspace()) {
-      @if (workspaces().length > 1) {
-        <button mat-button [matMenuTriggerFor]="wsMenu" class="workspace-switcher">
-          <mat-icon [style.color]="domainColor(workspace()!.legalDomain)">domain</mat-icon>
-          <span>{{ workspace()!.name }}</span>
-          <mat-icon>arrow_drop_down</mat-icon>
+      <button mat-button [matMenuTriggerFor]="wsMenu" class="workspace-switcher">
+        <mat-icon [style.color]="domainColor(workspace()!.legalDomain)">domain</mat-icon>
+        <span>{{ workspace()!.name }}</span>
+        <mat-icon>arrow_drop_down</mat-icon>
+      </button>
+      <mat-menu #wsMenu="matMenu">
+        @for (ws of workspaces(); track ws.id) {
+          <button mat-menu-item (click)="switchTo(ws)" [class.ws-active]="ws.primary">
+            @if (ws.primary) {
+              <mat-icon>check</mat-icon>
+            } @else {
+              <mat-icon></mat-icon>
+            }
+            {{ ws.name }}
+          </button>
+        }
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="openCreateWorkspaceDialog()" class="ws-create-action">
+          <mat-icon class="ws-create-icon">add_business</mat-icon>
+          Créer un nouveau workspace
         </button>
-        <mat-menu #wsMenu="matMenu">
-          @for (ws of workspaces(); track ws.id) {
-            <button mat-menu-item (click)="switchTo(ws)" [class.ws-active]="ws.primary">
-              @if (ws.primary) {
-                <mat-icon>check</mat-icon>
-              } @else {
-                <mat-icon></mat-icon>
-              }
-              {{ ws.name }}
-            </button>
-          }
-        </mat-menu>
-      } @else {
-        <span class="workspace-name">
-          <mat-icon [style.color]="domainColor(workspace()!.legalDomain)" style="font-size:16px;width:16px;height:16px;vertical-align:middle;margin-right:6px">domain</mat-icon>{{ workspace()!.name }}
-        </span>
-      }
+      </mat-menu>
     }
     <span class="header-spacer"></span>
     <app-notification-center></app-notification-center>
