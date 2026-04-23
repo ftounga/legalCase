@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="101-seed-immigration-pieces-regimes-complets" author="legalcase">
+        <comment>
+            SF-IM-01-04 : seeds legal_referentials pour les 9 nouveaux régimes
+            d'admission au séjour France introduits dans ImmigrationPieceReferentiel.
+            Alignement DB / Java fallback : la source de vérité est la DB
+            (legal_referentials), le Java ne sert qu'en fallback.
+
+            Types ajoutés (France uniquement — BE traité en V2 si feedback) :
+            - APS_POST_ETUDES (art. L.422-14 CESEDA)
+            - PASSEPORT_TALENT (art. L.421-9 à L.421-14)
+            - CST_VPF_CONJOINT_FR (art. L.423-1) — distinct de L.434
+            - CST_VPF_PARENT_ENFANT_FR (art. L.423-7)
+            - CST_VPF_LIENS_PERSONNELS (art. L.423-23)
+            - ADMISSION_EXCEPTIONNELLE_AES (art. L.435-1)
+            - ASILE_OFPRA (L.711-*)
+            - PROTECTION_SUBSIDIAIRE (L.712-*)
+            - CARTE_RESIDENT_10ANS (art. L.426-1)
+
+            Chaque entrée a une description en langage avocat (règle SF-140-03).
+        </comment>
+
+        <sql splitStatements="true">
+<![CDATA[
+-- APS post-études (L.422-14)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000201', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'APS_POST_ETUDES', '["Passeport en cours de validité","Titre de séjour étudiant en cours de validité","Diplôme au minimum de niveau master (ou équivalent)","Justificatif de recherche d''emploi OU projet de création d''entreprise","Justificatif de ressources (épargne, APL, aide parentale, etc.)","Justificatif de domicile < 3 mois","Photo d''identité (norme ANTS)","Formulaire CERFA 15186 (APS post-master)"]', 'APS post-études', 'FRANCE', true, true, 'Art. L.422-14 CESEDA', 'Autorisation provisoire de séjour délivrée après obtention d''un diplôme de niveau master. Durée 12 mois non renouvelable. Utilisé par F-IM-01 checklist pour les diplômés récents en phase de recherche d''emploi. Pour ajuster les 8 pièces, modifier la colonne value_json.', NOW(), NULL);
+
+-- Passeport talent (L.421-9 à L.421-14, tous sous-régimes regroupés)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000202', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'PASSEPORT_TALENT', '["Passeport en cours de validité","Justificatif du régime visé (convention d''accueil chercheur OU contrat salarié qualifié ≥ 2× SMIC OU projet entrepreneurial)","Diplôme de niveau master minimum (ou équivalent expérience)","Justificatif de ressources stables (≥ salaire minimum au titre concerné)","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA adapté (passeport talent)"]', 'Passeport talent', 'FRANCE', true, true, 'Art. L.421-9 à L.421-14 CESEDA', 'Carte pluriannuelle talent regroupant chercheur (L.421-14), salarié qualifié (L.421-9), entrepreneur (L.421-5). V1 regroupe les 3 sous-régimes car les pièces se chevauchent. Découpage en types distincts envisageable si feedback terrain.', NOW(), NULL);
+
+-- CST VPF Conjoint de Français (L.423-1) — distinct de REGROUPEMENT_FAMILIAL
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000203', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'CST_VPF_CONJOINT_FR', '["Passeport en cours de validité du demandeur","Justificatif du séjour régulier au moment de la demande (visa, titre en cours)","Acte de mariage intégral (copie < 3 mois)","Justificatif de nationalité française du conjoint (CNI, passeport, certificat de nationalité française)","Justificatif de communauté de vie effective (domicile commun, attestations, documents communs)","Justificatif de domicile du couple < 3 mois","Photo d''identité récente (norme ANTS)","Formulaire CERFA 15187 (demande carte VPF conjoint)"]', 'Carte VPF — Conjoint de Français', 'FRANCE', true, true, 'Art. L.423-1 et R.423-1 à R.423-3 CESEDA', 'Titre délivré au conjoint étranger d''un ressortissant français sur le fondement du mariage. Juridiquement DISTINCT du regroupement familial (L.434-*) : pas de ressources minimum exigées, pas de logement aux normes, mais communauté de vie effective. Pour adapter les pièces selon usage cabinet, modifier value_json.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000204', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'CST_VPF_CONJOINT_FR', '["Passeport en cours de validité","Acte de mariage légalisé ou apostillé","Preuve de nationalité belge du conjoint","Preuve de cohabitation (composition de ménage récente)","Justificatif de séjour régulier en Belgique","Assurance maladie","Photo d''identité récente"]', 'Carte VPF — Conjoint de Belge', 'BELGIQUE', true, true, 'Loi belge du 15/12/1980 art. 40ter', 'Équivalent belge du régime conjoint. Les règles exactes dépendent de la Région — à affiner avec un cabinet belge.', NOW(), NULL);
+
+-- CST VPF Parent d'enfant français (L.423-7)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000205', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'CST_VPF_PARENT_ENFANT_FR', '["Passeport en cours de validité du demandeur","Justificatif du séjour régulier au moment de la demande","Acte de naissance intégral de l''enfant français (copie < 3 mois)","Justificatif de nationalité française de l''enfant (certificat de nationalité ou CNI)","Justificatif de la contribution effective à l''entretien et à l''éducation de l''enfant (attestations, versements, factures, relevés bancaires)","Justificatif de domicile < 3 mois","Photo d''identité récente (norme ANTS)","Formulaire CERFA adapté (parent d''enfant français)"]', 'Carte VPF — Parent d''enfant français', 'FRANCE', true, true, 'Art. L.423-7 CESEDA', 'Titre délivré au parent étranger d''un enfant français mineur, sous condition de contribution effective à l''entretien et à l''éducation depuis au moins 2 ans. Régime autonome de L.423-1 et L.434-*. Conditions strictes sur la preuve de la contribution effective — pièces à adapter selon jurisprudence locale.', NOW(), NULL);
+
+-- CST VPF Liens personnels et familiaux (L.423-23)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000206', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'CST_VPF_LIENS_PERSONNELS', '["Passeport en cours de validité","Justificatif de séjour en France (durée, dates, preuves)","Justificatifs de liens personnels et familiaux en France (attestations de proches, preuves d''intégration)","Justificatif de l''intensité des attaches (scolarité enfants, activité associative, relations durables)","Justificatifs d''absence de liens avec le pays d''origine (peu de famille, pas de résidence récente)","Justificatif de domicile < 3 mois","Photo d''identité (norme ANTS)","Formulaire CERFA adapté (VPF liens personnels)"]', 'Carte VPF — Liens personnels et familiaux', 'FRANCE', true, true, 'Art. L.423-23 CESEDA', 'Titre délivré quand les attaches en France du demandeur sont telles qu''un refus porterait une atteinte disproportionnée à sa vie privée et familiale (CEDH art. 8). Usage fréquent pour régularisations anciennes, enfants devenus adultes, longue présence sans titre. La force du dossier dépend de la qualité des justificatifs d''attaches.', NOW(), NULL);
+
+-- Admission exceptionnelle au séjour (L.435-1) — régularisation
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000207', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'ADMISSION_EXCEPTIONNELLE_AES', '["Passeport OU pièce d''identité d''origine","Justificatifs de présence continue en France (≥ 3 ans selon circulaire Valls)","Justificatifs d''intégration (bulletins scolaires enfants, engagement associatif, niveau français)","Justificatifs professionnels (fiches de paie, contrats, attestations employeur) si AES travail","Justificatif de domicile < 3 mois","Casier judiciaire vierge / attestations bonne moralité","Photo d''identité","Lettre motivée de demande d''admission exceptionnelle au séjour"]', 'Admission exceptionnelle au séjour (AES)', 'FRANCE', true, true, 'Art. L.435-1 CESEDA + circulaire Valls 28/11/2012', 'Régularisation à titre exceptionnel pour étranger en situation irrégulière justifiant d''une intégration sur le territoire. Pouvoir discrétionnaire du Préfet — la qualité du dossier et des justificatifs est déterminante. Les critères pratiques varient selon les préfectures.', NOW(), NULL);
+
+-- Asile OFPRA (L.711-*)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000208', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'ASILE_OFPRA', '["Passeport OU pièce d''identité d''origine (si disponible)","Attestation de demandeur d''asile (ADA) délivrée par la préfecture","Récit des persécutions craintes (rédigé en français)","Pièces justifiant les persécutions (presse, attestations témoins, documents officiels)","Fiche familiale d''état civil","Photo d''identité (norme OFPRA)","Formulaire OFPRA dûment complété et signé"]', 'Demande d''asile (OFPRA)', 'FRANCE', true, true, 'L.711-* CESEDA / Convention Genève 1951', 'Demande de protection internationale au titre du statut de réfugié (Convention de Genève). Procédure devant l''OFPRA, puis recours CNDA en cas de rejet. Le récit est la pièce maîtresse — rédaction précise, chronologique, étayée par des preuves.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000209', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'ASILE_OFPRA', '["Passeport OU pièce d''identité d''origine (si disponible)","Annexe 26 remise à l''Office des étrangers","Récit de protection internationale","Pièces justifiant les persécutions","Photo d''identité","Formulaire de demande CGRA"]', 'Demande d''asile (CGRA)', 'BELGIQUE', true, true, 'Loi belge 15/12/1980 art. 48-49', 'Équivalent belge de la demande d''asile. Procédure devant le Commissariat général aux réfugiés et apatrides (CGRA).', NOW(), NULL);
+
+-- Protection subsidiaire (L.712-*)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000210', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'PROTECTION_SUBSIDIAIRE', '["Pièces identiques à ASILE_OFPRA","Éléments démontrant le risque de peine de mort OU de traitements inhumains OU de violence aveugle (conflit armé)","Rapports pays d''origine (Amnesty International, ONU, HCR)","Attestations de proches restés au pays","Toute autre pièce pertinente au regard de L.712-*"]', 'Protection subsidiaire', 'FRANCE', true, true, 'L.712-* CESEDA', 'Régime de protection subsidiaire accordé quand les conditions de la Convention de Genève ne sont pas remplies mais qu''un risque sérieux existe. Reprend le socle ASILE_OFPRA et y ajoute des pièces spécifiques au motif de protection.', NOW(), NULL);
+
+-- Carte de résident 10 ans (L.426-1)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000211', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'CARTE_RESIDENT_10ANS', '["Passeport en cours de validité","Titres de séjour couvrant les 10 dernières années (pluriannuelle, salarié, VPF, etc.)","Justificatif de résidence habituelle et continue en France sur 10 ans (quittances, impôts, factures)","Justificatif d''intégration républicaine (niveau A2 minimum, valeurs République)","Justificatif de ressources stables et suffisantes","Casier judiciaire","Justificatif de domicile < 3 mois","Photo d''identité","Formulaire CERFA carte résident 10 ans"]', 'Carte de résident (10 ans)', 'FRANCE', true, true, 'Art. L.426-1 CESEDA', 'Titre de résidence longue durée accordé après 10 ans de séjour régulier en France. Conditions cumulatives : résidence habituelle, intégration républicaine, ressources stables. Titre très stable (10 ans renouvelable), précurseur de la naturalisation.', NOW(), NULL);
+]]>
+        </sql>
+
+        <rollback>
+<![CDATA[
+DELETE FROM legal_referentials
+ WHERE referential_type = 'IMMIGRATION_PIECES'
+   AND entry_key IN (
+       'APS_POST_ETUDES', 'PASSEPORT_TALENT', 'CST_VPF_CONJOINT_FR',
+       'CST_VPF_PARENT_ENFANT_FR', 'CST_VPF_LIENS_PERSONNELS',
+       'ADMISSION_EXCEPTIONNELLE_AES', 'ASILE_OFPRA',
+       'PROTECTION_SUBSIDIAIRE', 'CARTE_RESIDENT_10ANS'
+   );
+]]>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

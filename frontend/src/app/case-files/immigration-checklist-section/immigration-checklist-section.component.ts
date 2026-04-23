@@ -32,22 +32,45 @@ export class ImmigrationChecklistSectionComponent implements OnInit {
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
 
+  /** SF-IM-01-04 : type pré-sélectionné via analyse IA (F-IM-01 auto-prefill). */
+  private _inferredChecklistType: string | null = null;
+  @Input() set inferredChecklistType(v: string | null | undefined) {
+    this._inferredChecklistType = v ?? null;
+    if (v && this.titreTypes.some(t => t.value === v)) {
+      this.titreType.set(v);
+      this.aiPreselected.set(true);
+    }
+  }
+  get inferredChecklistType(): string | null { return this._inferredChecklistType; }
+
   collapsed = signal(true);
   saving = signal(false);
   checklist = signal<ImmigrationChecklist | null>(null);
 
   titreType = signal('VISA_ETUDIANT');
   country = signal('FRANCE');
+  /** SF-IM-01-04 : true si le type courant provient de l'analyse IA. */
+  aiPreselected = signal(false);
 
   presentCount = computed(() =>
     this.checklist()?.pieces.filter(p => p.statut === 'PRESENT').length ?? 0
   );
 
+  /** SF-IM-01-04 : liste exhaustive des 13 régimes juridiques (art. CESEDA). */
   readonly titreTypes = [
-    { value: 'VISA_ETUDIANT',          label: 'Visa étudiant' },
-    { value: 'TITRE_SALARIE',          label: 'Titre salarié' },
-    { value: 'REGROUPEMENT_FAMILIAL',  label: 'Regroupement familial' },
-    { value: 'NATURALISATION',         label: 'Naturalisation' },
+    { value: 'VISA_ETUDIANT',                 label: 'Visa étudiant (L.422-1)' },
+    { value: 'APS_POST_ETUDES',               label: 'APS post-études (L.422-14)' },
+    { value: 'TITRE_SALARIE',                 label: 'Titre salarié (L.421-1)' },
+    { value: 'PASSEPORT_TALENT',              label: 'Passeport talent (L.421-9 à L.421-14)' },
+    { value: 'CST_VPF_CONJOINT_FR',           label: 'VPF — Conjoint de Français (L.423-1)' },
+    { value: 'CST_VPF_PARENT_ENFANT_FR',      label: 'VPF — Parent d\'enfant français (L.423-7)' },
+    { value: 'CST_VPF_LIENS_PERSONNELS',      label: 'VPF — Liens personnels et familiaux (L.423-23)' },
+    { value: 'REGROUPEMENT_FAMILIAL',         label: 'Regroupement familial (L.434-*)' },
+    { value: 'ADMISSION_EXCEPTIONNELLE_AES',  label: 'Admission exceptionnelle au séjour (L.435-1)' },
+    { value: 'ASILE_OFPRA',                   label: 'Demande d\'asile (OFPRA / CGRA)' },
+    { value: 'PROTECTION_SUBSIDIAIRE',        label: 'Protection subsidiaire (L.712-*)' },
+    { value: 'CARTE_RESIDENT_10ANS',          label: 'Carte de résident 10 ans (L.426-1)' },
+    { value: 'NATURALISATION',                label: 'Naturalisation (art. 21-15 Cciv)' },
   ];
 
   readonly countries = [
@@ -70,6 +93,8 @@ export class ImmigrationChecklistSectionComponent implements OnInit {
   }
 
   onSelectorChange(): void {
+    // L'utilisateur modifie manuellement → on retire le flag de pré-sélection IA.
+    this.aiPreselected.set(false);
     this.load();
   }
 

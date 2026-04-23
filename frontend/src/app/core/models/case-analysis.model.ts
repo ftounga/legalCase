@@ -223,6 +223,8 @@ export interface ImmigrationExtractedData {
   nationaliteUe?: boolean | null;
   typeRecoursCode?: string | null;
   dateNotificationDecisionContestee?: string | null;
+  /** SF-IM-01-04 : type de checklist inféré pour F-IM-01 (13 régimes V1). */
+  inferredChecklistType?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {
