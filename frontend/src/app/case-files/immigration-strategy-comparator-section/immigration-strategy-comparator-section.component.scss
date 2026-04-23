@@ -62,23 +62,27 @@
 }
 
 .risk-badge--faible {
-  background: #E8F5E9;
-  color: #2E7D32;
+  background: #C8E6C9;
+  color: #1B5E20;
+  border: 1px solid #81C784;
 }
 
 .risk-badge--moyen {
-  background: #FFF3E0;
-  color: #E65100;
+  background: #FFD180;
+  color: #BF360C;
+  border: 1px solid #FFA726;
 }
 
 .risk-badge--eleve {
-  background: #FFEBEE;
-  color: #C62828;
+  background: #EF9A9A;
+  color: #B71C1C;
+  border: 1px solid #E57373;
 }
 
 .risk-badge--unknown {
-  background: #ECEFF1;
-  color: #6B7A8D;
+  background: #CFD8DC;
+  color: #263238;
+  border: 1px solid #90A4AE;
 }
 
 .strategy-card-description {
