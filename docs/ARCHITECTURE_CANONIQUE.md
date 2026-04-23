@@ -1478,6 +1478,33 @@ Règles :
 - Endpoints publics sans auth (whitelistés dans `SecurityConfig`).
 - Migration : 079-create-blog-article.xml
 
+## decision_tool_visibility_rules
+
+Configuration déclarative du moteur F-IA-04 d'affichage conditionnel des outils décisionnels sur le dashboard dossier. Alimentée exclusivement par migrations Liquibase (pas d'endpoint d'écriture en V1).
+
+id (UUID PK)
+legal_domain (VARCHAR(50), non nullable — DROIT_DU_TRAVAIL / DROIT_IMMIGRATION / DROIT_FAMILLE)
+country (VARCHAR(20), nullable — FRANCE / BELGIQUE / NULL = règle transversale au domaine)
+tool_id (VARCHAR(100), non nullable — identifiant stable de l'outil, ex. "F-DT-10-rupture-conv-validity")
+layer (VARCHAR(20), non nullable — ALWAYS_ON / CONTEXTUAL)
+trigger_field (VARCHAR(100), nullable — nom du champ IA à matcher, ex. "type_rupture")
+trigger_value (VARCHAR(100), nullable — valeur du champ IA qui active la règle, ex. "RUPTURE_CONVENTIONNELLE")
+priority (INTEGER, non nullable, défaut 0 — ordre d'affichage dans la couche)
+created_at (TIMESTAMP WITH TIME ZONE, non nullable)
+
+Index :
+idx_dtvr_domain_country (legal_domain, country) — requête principale du service
+
+Contrainte CHECK ck_dtvr_layer_trigger :
+- Si layer = ALWAYS_ON → trigger_field IS NULL AND trigger_value IS NULL
+- Si layer = CONTEXTUAL → trigger_field IS NOT NULL AND trigger_value IS NOT NULL
+
+Règles :
+- Un `tool_id` peut apparaître dans plusieurs règles (un outil activé par plusieurs valeurs enum différentes).
+- Aucune FK vers case_files ou workspaces : cette table est une configuration domaine, pas une donnée par dossier.
+- `DecisionToolVisibilityService.resolveVisibleTools(caseFileId, user)` lit les règles du couple `(legalDomain, country)` + les règles `country IS NULL` du même domaine, puis croise avec les codes de situation extraits de `case_analyses.analysis_result` (dernière analyse DONE) pour produire 3 listes : `alwaysOn` / `contextual` / `catalog`.
+- Seedée initialement par migration 105 avec 53 règles couvrant les 23 outils décisionnels existants.
+
 ---
 
 # 26 — Principe directeur
