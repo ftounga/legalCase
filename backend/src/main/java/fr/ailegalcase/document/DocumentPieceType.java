@@ -47,10 +47,17 @@ public enum DocumentPieceType {
     ACTE_NAISSANCE_ENFANT,
     JUGEMENT_DIVORCE,
     LIVRET_FAMILLE,
-    JUSTIFICATIF_REVENUS;
+    JUSTIFICATIF_REVENUS,
+
+    // ── Commun 3 domaines (SF-145-10) ───────────────────────────────────
+    /** Contrat de bail de location (distinct de QUITTANCE_LOYER qui prouve le paiement). */
+    BAIL_LOCATION;
 
     private static final Set<DocumentPieceType> COMMON = EnumSet.of(
-            PHOTO, LETTRE, EMAIL, SMS, ATTESTATION, PIECE_IDENTITE, CERTIFICAT_MEDICAL, AUTRE);
+            PHOTO, LETTRE, EMAIL, SMS, ATTESTATION, PIECE_IDENTITE, CERTIFICAT_MEDICAL, AUTRE,
+            // SF-145-10 : BAIL_LOCATION commun aux 3 domaines (justif domicile travail,
+            // communauté de vie immigration L.423-1, logement familial famille).
+            BAIL_LOCATION);
 
     private static final Set<DocumentPieceType> DROIT_DU_TRAVAIL_TYPES = EnumSet.of(
             CONTRAT, BULLETIN_PAIE, JUSTIFICATIF_REVENUS);
@@ -58,7 +65,11 @@ public enum DocumentPieceType {
     private static final Set<DocumentPieceType> IMMIGRATION_TYPES = EnumSet.of(
             TITRE_DE_SEJOUR, PASSEPORT, VISA, ACTE_NAISSANCE, AVIS_IMPOSITION,
             QUITTANCE_LOYER, PROMESSE_EMBAUCHE, RECEPISSE_PREFECTURE, DECISION_OQTF,
-            RECOURS_CONTENTIEUX, ATTESTATION_HEBERGEMENT);
+            RECOURS_CONTENTIEUX, ATTESTATION_HEBERGEMENT,
+            // SF-145-10 : ACTE_MARIAGE pertinent en immigration pour L.423-1
+            // (conjoint de Français) et L.434-7 (regroupement familial) — auparavant
+            // seul ACTE_NAISSANCE était proposé à Sonnet, d'où la confusion IA.
+            ACTE_MARIAGE);
 
     private static final Set<DocumentPieceType> FAMILLE_TYPES = EnumSet.of(
             ACTE_MARIAGE, ACTE_NAISSANCE_ENFANT, JUGEMENT_DIVORCE, LIVRET_FAMILLE,
