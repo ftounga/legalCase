@@ -181,16 +181,27 @@ public record CaseAnalysisResponse(
             String dateExpirationTitre, String typeTitreSejour,
             String typeProcedureDetectee, String dateDepotProcedure,
             String typeTitreSejourCode, Boolean nationaliteUe,
-            String typeRecoursCode, String dateNotificationDecisionContestee) {
+            String typeRecoursCode, String dateNotificationDecisionContestee,
+            /** SF-IM-01-04 : type de checklist pré-sélectionné (F-IM-01). */
+            String inferredChecklistType) {
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure) {
-            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure, null, null, null, null);
+            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
+                    null, null, null, null, null);
         }
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure,
                                          String typeTitreSejourCode, Boolean nationaliteUe) {
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, null, null);
+                    typeTitreSejourCode, nationaliteUe, null, null, null);
+        }
+        /** Rétrocompat 8-args pré-SF-IM-01-04. */
+        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
+                                         String typeProcedureDetectee, String dateDepotProcedure,
+                                         String typeTitreSejourCode, Boolean nationaliteUe,
+                                         String typeRecoursCode, String dateNotificationDecisionContestee) {
+            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
+                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee, null);
         }
     }
 
@@ -319,6 +330,30 @@ public record CaseAnalysisResponse(
                 immigrationStrategyScenarios = extractImmigrationStrategyScenarios(root);
                 divorceConsentementValidityDetection = extractDivorceConsentementValidityDetection(root);
                 divorceConsentementScoring = computeDivorceConsentementScoring(divorceConsentementValidityDetection);
+
+                // SF-IM-01-04 : enrichit ImmigrationExtractedData avec le type de
+                // checklist inféré (combine titre actuel + titre cible suggéré par
+                // le 1er événement déclencheur F-150 le cas échéant).
+                if (immigrationExtractedData != null) {
+                    String targetTitleCode = immigrationTriggerEvents.isEmpty()
+                            ? null
+                            : immigrationTriggerEvents.get(0).suggestedTitleCode();
+                    String inferred = fr.ailegalcase.casefile.ImmigrationPieceReferentiel
+                            .inferChecklistType(immigrationExtractedData.typeTitreSejourCode(), targetTitleCode);
+                    if (inferred != null) {
+                        immigrationExtractedData = new ImmigrationExtractedData(
+                                immigrationExtractedData.dateExpirationTitre(),
+                                immigrationExtractedData.typeTitreSejour(),
+                                immigrationExtractedData.typeProcedureDetectee(),
+                                immigrationExtractedData.dateDepotProcedure(),
+                                immigrationExtractedData.typeTitreSejourCode(),
+                                immigrationExtractedData.nationaliteUe(),
+                                immigrationExtractedData.typeRecoursCode(),
+                                immigrationExtractedData.dateNotificationDecisionContestee(),
+                                inferred
+                        );
+                    }
+                }
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }

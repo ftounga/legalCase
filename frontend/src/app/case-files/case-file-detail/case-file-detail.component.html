@@ -538,7 +538,8 @@
 
       <app-immigration-checklist-section
         [caseFileId]="caseFile()!.id"
-        [caseFileTitle]="caseFile()!.title">
+        [caseFileTitle]="caseFile()!.title"
+        [inferredChecklistType]="synthesis()?.immigrationExtractedData?.inferredChecklistType ?? null">
       </app-immigration-checklist-section>
     }
 
