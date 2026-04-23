@@ -45,23 +45,9 @@ import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
 import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
-import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
-import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
-import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
-import { ImmigrationTitleDecisionSectionComponent } from '../immigration-title-decision-section/immigration-title-decision-section.component';
-import { ImmigrationRecoursSectionComponent } from '../immigration-recours-section/immigration-recours-section.component';
-import { ImmigrationWorkRightSectionComponent } from '../immigration-work-right-section/immigration-work-right-section.component';
-import { AncienneteSectionComponent } from '../anciennete-section/anciennete-section.component';
-import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
-import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
-import { PartageImmobilierSectionComponent } from '../partage-immobilier-section/partage-immobilier-section.component';
-import { CalendrierGardeSectionComponent } from '../calendrier-garde-section/calendrier-garde-section.component';
-import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/divorce-checklist-section.component';
 import { CaseDashboardComponent } from '../case-dashboard/case-dashboard.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
-import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
-import { RuptureConvIndemniteSectionComponent } from '../rupture-conv-indemnite-section/rupture-conv-indemnite-section.component';
-import { RuptureAmiableInfoSectionComponent } from '../rupture-amiable-info-section/rupture-amiable-info-section.component';
+import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { CaseDashboardStepperComponent, DashboardStep } from '../case-dashboard-stepper/case-dashboard-stepper.component';
 import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipeline.component';
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
@@ -79,13 +65,9 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     MatTableModule, MatProgressSpinnerModule, MatProgressBarModule,
     MatDialogModule, MatMenuModule, MatTooltipModule, ShareDialogComponent, CaseNotesSectionComponent,
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
-    TimerWidgetComponent, PrudhomeFicheSectionComponent, TribunalTravailFicheSectionComponent,
-    ImmigrationChecklistSectionComponent, ImmigrationTitleDecisionSectionComponent,
-    ImmigrationRecoursSectionComponent, ImmigrationWorkRightSectionComponent,
-    AncienneteSectionComponent, LicenciementSectionComponent,
-    IndemniteComparatifSectionComponent, PartageImmobilierSectionComponent, CalendrierGardeSectionComponent, DivorceChecklistSectionComponent,
-    RuptureConvSectionComponent, RuptureConvIndemniteSectionComponent, RuptureAmiableInfoSectionComponent,
-    CaseDashboardComponent, AnalysisPipelineComponent
+    TimerWidgetComponent,
+    CaseDashboardComponent, AnalysisPipelineComponent,
+    DecisionToolsPanelComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',
@@ -153,43 +135,6 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   });
 
   readonly canDelete = computed(() => this.currentMemberRole() === 'OWNER');
-
-  // F-DT-10 / SF-DT-10-04 — orchestration UX bloc validité selon type_rupture IA
-  private static readonly LICENCIEMENT_TYPES = new Set([
-    'LICENCIEMENT', 'LICENCIEMENT_ECONOMIQUE',
-    'LICENCIEMENT_ORDINAIRE', 'LICENCIEMENT_MANIFESTEMENT_DERAISONNABLE',
-  ]);
-
-  readonly showValiditeLicenciement = computed(() => {
-    const type = this.synthesis()?.compensationEstimate?.typeRupture;
-    // Defaut permissif : si l'IA n'a pas identifié le type (dossier legacy
-    // ou analyse non encore lancee), on garde F-DT-08 visible par retrocompat.
-    if (!type) return true;
-    return CaseFileDetailComponent.LICENCIEMENT_TYPES.has(type);
-  });
-
-  readonly showValiditeRuptureConv = computed(() => {
-    const type = this.synthesis()?.compensationEstimate?.typeRupture;
-    return type === 'RUPTURE_CONVENTIONNELLE' && this.workspaceCountry() === 'FRANCE';
-  });
-
-  // SF-132-02 : outil dédié "Indemnité rupture conventionnelle" (F-132).
-  // Remplace la branche RUPTURE_CONVENTIONNELLE de F-DT-09 quand applicable.
-  readonly showRuptureConvIndemnite = computed(() => {
-    const type = this.synthesis()?.compensationEstimate?.typeRupture;
-    return type === 'RUPTURE_CONVENTIONNELLE'
-        && this.workspaceCountry() === 'FRANCE'
-        && this.caseFile()?.legalDomain === 'DROIT_DU_TRAVAIL';
-  });
-
-  // SF-132-03 : outil informationnel "Rupture amiable" Belgique (F-132).
-  // Remplace la branche RUPTURE_AMIABLE/NEGOCIATION_LIBRE de F-DT-09.
-  readonly showRuptureAmiableInfo = computed(() => {
-    const type = this.synthesis()?.compensationEstimate?.typeRupture;
-    return type === 'RUPTURE_AMIABLE'
-        && this.workspaceCountry() === 'BELGIQUE'
-        && this.caseFile()?.legalDomain === 'DROIT_DU_TRAVAIL';
-  });
 
   readonly docColumns = ['name', 'type', 'size', 'date', 'preview', 'actions'];
   readonly visibleJobs = computed(() => this.analysisJobs().filter(j => j.jobType !== 'CHUNK_ANALYSIS'));

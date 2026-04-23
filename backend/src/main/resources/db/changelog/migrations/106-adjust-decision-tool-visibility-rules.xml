@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="106-adjust-decision-tool-visibility-rules" author="legalcase">
+        <comment>
+            SF-IA-04-03 : ajustement des règles d'affichage pour préserver la
+            rétrocompatibilité UX avant l'intégration du panel dans case-file-detail.
+
+            Principe : les outils livrés AVANT F-IA-04 étaient toujours affichés dans
+            le template (éventuellement avec un fallback permissif). On les passe en
+            ALWAYS_ON. Les outils spécialistes livrés PAR F-IA-04 (F-DT-10, F-132)
+            restent CONTEXTUAL — ils complètent un ALWAYS_ON parent (F-DT-08) au lieu
+            de le remplacer.
+
+            Change résumé :
+              - F-DT-08 : 3 CONTEXTUAL → 2 ALWAYS_ON (FR + BE)
+              - F-DT-09 : 3 CONTEXTUAL → 2 ALWAYS_ON (FR + BE)
+              - F-IM-01 : 16 CONTEXTUAL → 1 ALWAYS_ON transversal
+              - F-IM-06 : 6 CONTEXTUAL → 1 ALWAYS_ON transversal
+              - F-FA-05 : 2 CONTEXTUAL → 1 ALWAYS_ON transversal
+              - F-FA-06 : 6 CONTEXTUAL → 1 ALWAYS_ON transversal
+              - F-FA-07 : 1 CONTEXTUAL → 1 ALWAYS_ON transversal
+              - NEW F-132-rupture-amiable-info : 1 CONTEXTUAL BE
+
+            Net : 53 − 37 + 9 + 1 = 26 règles après migration.
+
+            UUIDs suivent la convention f1a04001-...aa/bb/cc/dd du seed 105 et
+            utilisent le suffixe _v2 implicite via la plage 20-99 (les 01-20 sont
+            la seed initiale 105).
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE des règles CONTEXTUAL obsolètes
+-- =========================================================================
+
+-- F-DT-08 licenciement (3 règles)
+DELETE FROM decision_tool_visibility_rules
+ WHERE tool_id = 'F-DT-08-licenciement-validity' AND layer = 'CONTEXTUAL';
+
+-- F-DT-09 comparateur (3 règles)
+DELETE FROM decision_tool_visibility_rules
+ WHERE tool_id = 'F-DT-09-comparateur-indemnites' AND layer = 'CONTEXTUAL';
+
+-- F-IM-01 checklist-pieces (16 règles)
+DELETE FROM decision_tool_visibility_rules
+ WHERE tool_id = 'F-IM-01-checklist-pieces' AND layer = 'CONTEXTUAL';
+
+-- F-IM-06 recours (6 règles)
+DELETE FROM decision_tool_visibility_rules
+ WHERE tool_id = 'F-IM-06-recours' AND layer = 'CONTEXTUAL';
+
+-- F-FA-05 partage-immobilier (2 règles)
+DELETE FROM decision_tool_visibility_rules
+ WHERE tool_id = 'F-FA-05-partage-immobilier' AND layer = 'CONTEXTUAL';
+
+-- F-FA-06 calendrier-garde (6 règles)
+DELETE FROM decision_tool_visibility_rules
+ WHERE tool_id = 'F-FA-06-calendrier-garde' AND layer = 'CONTEXTUAL';
+
+-- F-FA-07 checklist-divorce (1 règle)
+DELETE FROM decision_tool_visibility_rules
+ WHERE tool_id = 'F-FA-07-checklist-divorce' AND layer = 'CONTEXTUAL';
+
+-- =========================================================================
+-- INSERT des règles ALWAYS_ON (rétrocompat)
+-- =========================================================================
+
+-- F-DT-08 licenciement : ALWAYS_ON FR + BE
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa21', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'ALWAYS_ON', NULL, NULL, 50);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-bbbbbbbbbb21', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-08-licenciement-validity', 'ALWAYS_ON', NULL, NULL, 50);
+
+-- F-DT-09 comparateur : ALWAYS_ON FR + BE
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa22', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'ALWAYS_ON', NULL, NULL, 60);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-bbbbbbbbbb22', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-09-comparateur-indemnites', 'ALWAYS_ON', NULL, NULL, 60);
+
+-- F-IM-01 checklist-pieces : ALWAYS_ON transversal
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc25', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'ALWAYS_ON', NULL, NULL, 30);
+
+-- F-IM-06 recours : ALWAYS_ON transversal
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc26', 'DROIT_IMMIGRATION', NULL, 'F-IM-06-recours', 'ALWAYS_ON', NULL, NULL, 40);
+
+-- F-FA-05 partage-immobilier : ALWAYS_ON transversal
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd21', 'DROIT_FAMILLE', NULL, 'F-FA-05-partage-immobilier', 'ALWAYS_ON', NULL, NULL, 50);
+
+-- F-FA-06 calendrier-garde : ALWAYS_ON transversal
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd22', 'DROIT_FAMILLE', NULL, 'F-FA-06-calendrier-garde', 'ALWAYS_ON', NULL, NULL, 60);
+
+-- F-FA-07 checklist-divorce : ALWAYS_ON transversal
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd23', 'DROIT_FAMILLE', NULL, 'F-FA-07-checklist-divorce', 'ALWAYS_ON', NULL, NULL, 70);
+
+-- =========================================================================
+-- INSERT du nouveau tool F-132-rupture-amiable-info
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-bbbbbbbbbb23', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-132-rupture-amiable-info', 'CONTEXTUAL', 'type_rupture', 'RUPTURE_AMIABLE', 30);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+-- Rollback : retire les règles ajoutées par cette migration + restaure les CONTEXTUAL du seed 105
+
+DELETE FROM decision_tool_visibility_rules
+ WHERE id IN (
+    'f1a04001-0000-0000-0000-aaaaaaaaaa21',
+    'f1a04001-0000-0000-0000-bbbbbbbbbb21',
+    'f1a04001-0000-0000-0000-aaaaaaaaaa22',
+    'f1a04001-0000-0000-0000-bbbbbbbbbb22',
+    'f1a04001-0000-0000-0000-cccccccccc25',
+    'f1a04001-0000-0000-0000-cccccccccc26',
+    'f1a04001-0000-0000-0000-dddddddddd21',
+    'f1a04001-0000-0000-0000-dddddddddd22',
+    'f1a04001-0000-0000-0000-dddddddddd23',
+    'f1a04001-0000-0000-0000-bbbbbbbbbb23'
+ );
+
+-- Restaurer F-DT-08 FR + BE CONTEXTUAL
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa05', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa06', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-bbbbbbbbbb04', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-08-licenciement-validity', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ORDINAIRE', 10);
+
+-- Restaurer F-DT-09 FR + BE CONTEXTUAL
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa07', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa08', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-bbbbbbbbbb05', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ORDINAIRE', 20);
+
+-- Restaurer F-IM-01 : 16 règles
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc03', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'VLS_TS_ETUDIANT', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc04', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'VLS_TS_SALARIE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc05', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CST_SALARIE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc06', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CARTE_PLURIANNUELLE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc07', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CARTE_RESIDENT', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc08', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'APS', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc09', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CST_VPF', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc10', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'RECEPISSE_ASILE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc11', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CARTE_A_TRAVAIL', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc12', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CARTE_A_ETUDES', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc13', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CARTE_A_FAMILLE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc14', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CARTE_B', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc15', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'CARTE_C', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc16', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'PERMIS_UNIQUE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc17', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'ANNEXE_15', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc18', 'DROIT_IMMIGRATION', NULL, 'F-IM-01-checklist-pieces', 'CONTEXTUAL', 'type_titre_sejour_code', 'ATTESTATION_IMMATRICULATION', 10);
+
+-- Restaurer F-IM-06 : 6 règles
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc19', 'DROIT_IMMIGRATION', NULL, 'F-IM-06-recours', 'CONTEXTUAL', 'type_recours_code', 'RECOURS_GRACIEUX_PREFET', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc20', 'DROIT_IMMIGRATION', NULL, 'F-IM-06-recours', 'CONTEXTUAL', 'type_recours_code', 'RECOURS_CONTENTIEUX_TA', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc21', 'DROIT_IMMIGRATION', NULL, 'F-IM-06-recours', 'CONTEXTUAL', 'type_recours_code', 'RECOURS_CNDA', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc22', 'DROIT_IMMIGRATION', NULL, 'F-IM-06-recours', 'CONTEXTUAL', 'type_recours_code', 'RECOURS_CGRA', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc23', 'DROIT_IMMIGRATION', NULL, 'F-IM-06-recours', 'CONTEXTUAL', 'type_recours_code', 'RECOURS_CCE', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-cccccccccc24', 'DROIT_IMMIGRATION', NULL, 'F-IM-06-recours', 'CONTEXTUAL', 'type_recours_code', 'RECOURS_CE_BELGIQUE', 20);
+
+-- Restaurer F-FA-05 : 2 règles
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd05', 'DROIT_FAMILLE', NULL, 'F-FA-05-partage-immobilier', 'CONTEXTUAL', 'regime_matrimonial', 'COMMUNAUTE_LEGALE', 10);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd06', 'DROIT_FAMILLE', NULL, 'F-FA-05-partage-immobilier', 'CONTEXTUAL', 'regime_matrimonial', 'PARTICIPATION_ACQUETS', 10);
+
+-- Restaurer F-FA-06 : 6 règles
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd07', 'DROIT_FAMILLE', NULL, 'F-FA-06-calendrier-garde', 'CONTEXTUAL', 'mode_garde_detaille', 'ALTERNEE_FR', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd08', 'DROIT_FAMILLE', NULL, 'F-FA-06-calendrier-garde', 'CONTEXTUAL', 'mode_garde_detaille', 'DVH_CLASSIQUE_FR', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd09', 'DROIT_FAMILLE', NULL, 'F-FA-06-calendrier-garde', 'CONTEXTUAL', 'mode_garde_detaille', 'DVH_ELARGI_FR', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd10', 'DROIT_FAMILLE', NULL, 'F-FA-06-calendrier-garde', 'CONTEXTUAL', 'mode_garde_detaille', 'ALTERNEE_BE', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd11', 'DROIT_FAMILLE', NULL, 'F-FA-06-calendrier-garde', 'CONTEXTUAL', 'mode_garde_detaille', 'SECONDAIRE_BE', 20);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd12', 'DROIT_FAMILLE', NULL, 'F-FA-06-calendrier-garde', 'CONTEXTUAL', 'mode_garde_detaille', 'SECONDAIRE_ELARGI_BE', 20);
+
+-- Restaurer F-FA-07 : 1 règle
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-dddddddddd13', 'DROIT_FAMILLE', NULL, 'F-FA-07-checklist-divorce', 'CONTEXTUAL', 'type_procedure_detectee', 'DIVORCE_CONSENTEMENT_MUTUEL', 30);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

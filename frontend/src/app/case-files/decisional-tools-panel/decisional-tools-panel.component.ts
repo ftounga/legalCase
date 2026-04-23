@@ -20,6 +20,7 @@ import { AncienneteSectionComponent } from '../anciennete-section/anciennete-sec
 import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
 import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
 import { RuptureConvIndemniteSectionComponent } from '../rupture-conv-indemnite-section/rupture-conv-indemnite-section.component';
+import { RuptureAmiableInfoSectionComponent } from '../rupture-amiable-info-section/rupture-amiable-info-section.component';
 import { IndemniteComparatifSectionComponent } from '../indemnite-comparatif-section/indemnite-comparatif-section.component';
 import { PrudhomeFicheSectionComponent } from '../prudhome-fiche-section/prudhome-fiche-section.component';
 import { TribunalTravailFicheSectionComponent } from '../tribunal-travail-fiche-section/tribunal-travail-fiche-section.component';
@@ -31,15 +32,20 @@ import { ImmigrationRecoursSectionComponent } from '../immigration-recours-secti
 import { ImmigrationWorkRightSectionComponent } from '../immigration-work-right-section/immigration-work-right-section.component';
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 
-/**
- * SF-IA-04-02 : panel conteneur qui consomme le moteur d'affichage
- * conditionnel F-IA-04 et rend les outils décisionnels d'un dossier en
- * trois couches (always-on / contextual / catalog).
- *
- * Ce composant est isolé dans cette SF : il n'est intégré dans
- * `case-file-detail` qu'en SF-IA-04-03, et dans le dashboard F-IA-02
- * qu'en SF-IA-04-04.
- */
+export interface DecisionToolContext {
+  caseFileId: string;
+  synthesis: any | null;
+  workspaceCountry: string;
+  caseFileTitle: string;
+  procedureChecks: any[];
+  aiQuestions: any[];
+}
+
+export interface DecisionToolRegistryEntry {
+  component: Type<unknown>;
+  inputs: (ctx: DecisionToolContext) => Record<string, unknown>;
+}
+
 @Component({
   selector: 'app-decisional-tools-panel',
   standalone: true,
@@ -59,32 +65,162 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly snackBar = inject(MatSnackBar);
 
   @Input({ required: true }) caseFileId!: string;
-  @Input() synthesis: unknown = null;
+  @Input() synthesis: any | null = null;
+  @Input() workspaceCountry = 'FRANCE';
+  @Input() caseFileTitle = '';
+  @Input() procedureChecks: any[] = [];
+  @Input() aiQuestions: any[] = [];
 
   readonly loading = signal(false);
   readonly visibility = signal<VisibleToolSet | null>(null);
 
   /**
-   * Registre statique `tool_id -> ComponentType`. Un nouvel outil décisionnel
-   * se branche en ajoutant une ligne ici (et dans la seed migration côté
-   * backend). Les tool_id non mappés sont skippés avec warning.
+   * Registre des outils décisionnels. Chaque entrée déclare son composant
+   * Angular et une closure qui mappe le contexte du dossier vers les inputs
+   * exacts que ce composant attend. Les tool_id non présents ici sont
+   * skippés avec un warning (forward-compat SF-IA-04-02).
    */
-  static readonly TOOL_REGISTRY: ReadonlyMap<string, Type<unknown>> = new Map<string, Type<unknown>>([
-    ['F-DT-04-fiche-prudhomale', PrudhomeFicheSectionComponent],
-    ['F-DT-06-requete-tribunal-travail', TribunalTravailFicheSectionComponent],
-    ['F-DT-07-anciennete-conges-prime', AncienneteSectionComponent],
-    ['F-DT-08-licenciement-validity', LicenciementSectionComponent],
-    ['F-DT-09-comparateur-indemnites', IndemniteComparatifSectionComponent],
-    ['F-DT-10-rupture-conv-validity', RuptureConvSectionComponent],
-    ['F-132-rupture-conv-indemnite', RuptureConvIndemniteSectionComponent],
-    ['F-FA-05-partage-immobilier', PartageImmobilierSectionComponent],
-    ['F-FA-06-calendrier-garde', CalendrierGardeSectionComponent],
-    ['F-FA-07-checklist-divorce', DivorceChecklistSectionComponent],
-    ['F-IM-01-checklist-pieces', ImmigrationChecklistSectionComponent],
-    ['F-IM-05-arbre-decisionnel-titre', ImmigrationTitleDecisionSectionComponent],
-    ['F-IM-06-recours', ImmigrationRecoursSectionComponent],
-    ['F-IM-07-droit-au-travail', ImmigrationWorkRightSectionComponent],
-  ]);
+  static readonly TOOL_REGISTRY: ReadonlyMap<string, DecisionToolRegistryEntry> =
+    new Map<string, DecisionToolRegistryEntry>([
+      ['F-DT-04-fiche-prudhomale', {
+        component: PrudhomeFicheSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          caseFileTitle: ctx.caseFileTitle,
+        }),
+      }],
+      ['F-DT-06-requete-tribunal-travail', {
+        component: TribunalTravailFicheSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          caseFileTitle: ctx.caseFileTitle,
+        }),
+      }],
+      ['F-DT-07-anciennete-conges-prime', {
+        component: AncienneteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          aiData: ctx.synthesis?.travailExtractedData,
+        }),
+      }],
+      ['F-DT-08-licenciement-validity', {
+        component: LicenciementSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.licenciementValidityDetection,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-09-comparateur-indemnites', {
+        component: IndemniteComparatifSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          synthesis: ctx.synthesis,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+        }),
+      }],
+      ['F-DT-10-rupture-conv-validity', {
+        component: RuptureConvSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          aiData: ctx.synthesis?.ruptureConvValidityDetection,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-132-rupture-conv-indemnite', {
+        component: RuptureConvIndemniteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          synthesis: ctx.synthesis,
+        }),
+      }],
+      ['F-132-rupture-amiable-info', {
+        component: RuptureAmiableInfoSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      ['F-FA-05-partage-immobilier', {
+        component: PartageImmobilierSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          liquidationCommunaute: ctx.synthesis?.liquidationCommunaute,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-06-calendrier-garde', {
+        component: CalendrierGardeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiModeGardeDetaille: ctx.synthesis?.pensionAlimentaireEstimate?.modeGardeDetaille,
+          synthesis: ctx.synthesis,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-07-checklist-divorce', {
+        component: DivorceChecklistSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-01-checklist-pieces', {
+        component: ImmigrationChecklistSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          caseFileTitle: ctx.caseFileTitle,
+          inferredChecklistType: ctx.synthesis?.immigrationExtractedData?.inferredChecklistType ?? null,
+        }),
+      }],
+      ['F-IM-05-arbre-decisionnel-titre', {
+        component: ImmigrationTitleDecisionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          triggerEvents: ctx.synthesis?.immigrationTriggerEvents,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-06-recours', {
+        component: ImmigrationRecoursSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          caseFileTitle: ctx.caseFileTitle,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-07-droit-au-travail', {
+        component: ImmigrationWorkRightSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+    ]);
 
   ngOnInit(): void {
     if (this.caseFileId) {
@@ -117,30 +253,30 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     });
   }
 
-  resolveComponent(toolId: string): Type<unknown> | null {
-    const component = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
-    if (!component) {
+  resolveEntry(toolId: string): DecisionToolRegistryEntry | null {
+    const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
+    if (!entry) {
       // eslint-disable-next-line no-console
       console.warn(`[decisional-tools-panel] Unknown toolId: ${toolId}`);
       return null;
     }
-    return component;
+    return entry;
   }
 
-  resolvedAlwaysOn(): { toolId: string; component: Type<unknown> }[] {
+  resolvedAlwaysOn(): { toolId: string; entry: DecisionToolRegistryEntry }[] {
     const v = this.visibility();
     if (!v) return [];
     return v.alwaysOn
-      .map((toolId) => ({ toolId, component: this.resolveComponent(toolId) }))
-      .filter((x): x is { toolId: string; component: Type<unknown> } => x.component !== null);
+      .map((toolId) => ({ toolId, entry: this.resolveEntry(toolId) }))
+      .filter((x): x is { toolId: string; entry: DecisionToolRegistryEntry } => x.entry !== null);
   }
 
-  resolvedContextual(): { toolId: string; component: Type<unknown> }[] {
+  resolvedContextual(): { toolId: string; entry: DecisionToolRegistryEntry }[] {
     const v = this.visibility();
     if (!v) return [];
     return v.contextual
-      .map((toolId) => ({ toolId, component: this.resolveComponent(toolId) }))
-      .filter((x): x is { toolId: string; component: Type<unknown> } => x.component !== null);
+      .map((toolId) => ({ toolId, entry: this.resolveEntry(toolId) }))
+      .filter((x): x is { toolId: string; entry: DecisionToolRegistryEntry } => x.entry !== null);
   }
 
   isEmpty(): boolean {
@@ -149,10 +285,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     return v.alwaysOn.length === 0 && v.contextual.length === 0;
   }
 
-  componentInputs(): Record<string, unknown> {
-    return {
+  componentInputsFor(entry: DecisionToolRegistryEntry): Record<string, unknown> {
+    return entry.inputs({
       caseFileId: this.caseFileId,
       synthesis: this.synthesis,
-    };
+      workspaceCountry: this.workspaceCountry,
+      caseFileTitle: this.caseFileTitle,
+      procedureChecks: this.procedureChecks,
+      aiQuestions: this.aiQuestions,
+    });
   }
 }
