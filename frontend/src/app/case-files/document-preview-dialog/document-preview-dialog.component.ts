@@ -74,7 +74,10 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
     return this.pieces().find(p => p.id === id) ?? null;
   });
 
-  readonly hasMultiplePieces = computed(() => this.pieces().length > 1);
+  /** SF-145 hotfix : sidebar affichée dès 1 pièce (avant : ≥ 2). Cohérence avec la liste documents. */
+  readonly hasPieces = computed(() => this.pieces().length > 0);
+  /** @deprecated SF-145 hotfix — utilisez {@link hasPieces}. Conservé pour rétrocompat tests. */
+  readonly hasMultiplePieces = this.hasPieces;
 
   /**
    * SF-145-08 : extrait du texte uniquement les sections "=== PAGE N ===" qui

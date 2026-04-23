@@ -36,8 +36,8 @@
     </div>
   </div>
 
-  <mat-dialog-content class="preview-content" [class.preview-content--with-sidebar]="hasMultiplePieces()">
-    @if (hasMultiplePieces()) {
+  <mat-dialog-content class="preview-content" [class.preview-content--with-sidebar]="hasPieces()">
+    @if (hasPieces()) {
       <aside class="pieces-sidebar">
         <div class="pieces-sidebar-header">
           Pièces identifiées ({{ pieces().length }})
@@ -78,7 +78,7 @@
     }
 
     <div class="preview-main">
-      @if (hasMultiplePieces() && selectedPiece(); as sp) {
+      @if (hasPieces() && selectedPiece(); as sp) {
         <div class="selected-piece-banner">
           <mat-icon class="selected-piece-icon">{{ pieceTypeIcon(sp.type) }}</mat-icon>
           <span class="selected-piece-title">{{ pieceHeaderLabel(sp) }}</span>
@@ -156,7 +156,7 @@
             }
           </mat-tab>
           @if (isPdf()) {
-            <mat-tab [label]="hasMultiplePieces() ? 'Aperçu' : 'Aperçu 1re page'">
+            <mat-tab [label]="hasPieces() ? 'Aperçu' : 'Aperçu 1re page'">
               <div class="pdf-wrapper">
                 @if (pdfRendering()) {
                   <mat-spinner diameter="36" />

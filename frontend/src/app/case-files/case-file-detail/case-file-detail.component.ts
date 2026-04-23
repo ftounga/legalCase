@@ -1095,7 +1095,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     };
     this.dialog.open(DocumentPreviewDialogComponent, {
       data,
-      width: (doc.pieces?.length ?? 0) > 1 ? '960px' : '720px',
+      width: (doc.pieces?.length ?? 0) > 0 ? '960px' : '720px',
       maxWidth: '95vw',
     });
   }
