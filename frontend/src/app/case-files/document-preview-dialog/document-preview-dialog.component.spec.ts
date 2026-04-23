@@ -118,16 +118,18 @@ describe('DocumentPreviewDialogComponent', () => {
       expect(component.selectedPiece()?.label).toBe('Attestation collègue');
     });
 
-    it('U-04 : 1 seule pièce → pas de sidebar', async () => {
+    it('U-04 : 1 seule pièce → sidebar rendue (hotfix SF-145 2026-04-23)', async () => {
       await setup(base, [pieces[0]]);
-      expect(component.hasMultiplePieces()).toBe(false);
+      expect(component.hasPieces()).toBe(true);
       const sidebar = fixture.nativeElement.querySelector('.pieces-sidebar');
-      expect(sidebar).toBeFalsy();
+      expect(sidebar).toBeTruthy();
+      const items = fixture.nativeElement.querySelectorAll('.piece-item');
+      expect(items.length).toBe(1);
     });
 
     it('U-05 : aucune pièce → pas de sidebar (comportement legacy docs pré-F-145)', async () => {
       await setup(base, []);
-      expect(component.hasMultiplePieces()).toBe(false);
+      expect(component.hasPieces()).toBe(false);
       expect(component.selectedPieceId()).toBeNull();
     });
 

@@ -229,7 +229,7 @@
                     </span>
                   }
                 </span>
-                @if (doc.pieces && doc.pieces.length > 1) {
+                @if (doc.pieces && doc.pieces.length > 0) {
                   <div class="piece-chips">
                     @for (piece of doc.pieces; track piece.id) {
                       <button type="button"

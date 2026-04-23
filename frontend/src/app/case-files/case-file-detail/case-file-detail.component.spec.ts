@@ -1154,11 +1154,12 @@ describe('CaseFileDetailComponent', () => {
       expect(chips.length).toBe(2);
     });
 
-    it('U-02 : 1 seule pièce → pas de chips (évite le bruit visuel)', () => {
+    it('U-02 : 1 seule pièce → 1 chip affiché (hotfix 2026-04-23 : cohérence avec ≥2 pièces)', () => {
       component.caseFile.set(mockCaseFile);
       component.documents.set([{ ...mockDocument, extractionStatus: 'DONE', pieces: [pieces[0]] }]);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.piece-chip')).toBeFalsy();
+      const chips = fixture.nativeElement.querySelectorAll('.piece-chip');
+      expect(chips.length).toBe(1);
     });
 
     it('U-03 : pas de pieces (legacy) → pas de chips', () => {
