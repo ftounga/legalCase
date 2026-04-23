@@ -218,6 +218,11 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    // SF-IM-07-05 : garde-fou — si aiData est présent au mount sans qu'un
+    // ngOnChanges supplémentaire ne se déclenche (pipeline déjà tourné),
+    // pré-remplit le sélecteur depuis la détection IA. ngOnChanges fait le
+    // même travail pour les mises à jour ultérieures (nouvelle analyse).
+    this.prefillFromAi();
     this.loadSourceExplanations();
     this.loadExisting();
   }
