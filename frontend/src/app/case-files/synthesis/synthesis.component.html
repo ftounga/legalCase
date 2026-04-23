@@ -356,6 +356,17 @@
                 <span class="compensation-label">Barème</span>
                 <span class="compensation-value">{{ pensionAlimentaireEstimate.pays === 'BELGIQUE' ? 'CGKR Belgique' : 'UNAF France' }}</span>
               </div>
+              @if (pensionAlimentaireEstimate.jurisprudenceRange; as r) {
+                <div class="compensation-row compensation-row--separator"></div>
+                <div class="compensation-row compensation-row--detail" [matTooltip]="r.sourceRef">
+                  <span class="compensation-label">{{ r.label }}</span>
+                  <span class="compensation-value">
+                    {{ formatEuros(r.p25) }} <em>(p25)</em>
+                    — {{ formatEuros(r.p50) }} <em>(médiane)</em>
+                    — {{ formatEuros(r.p75) }} <em>(p75)</em>
+                  </span>
+                </div>
+              }
             </div>
             <p class="compensation-disclaimer">Estimation indicative — ne constitue pas un avis juridique</p>
           </div>
@@ -391,6 +402,17 @@
                 <span class="compensation-label">Barème</span>
                 <span class="compensation-value">{{ prestationCompensatoireEstimate.pays === 'BELGIQUE' ? 'Belgique (coeff. 0.25)' : 'France art. 271 Cciv (coeff. 0.30)' }}</span>
               </div>
+              @if (prestationCompensatoireEstimate.jurisprudenceRange; as r) {
+                <div class="compensation-row compensation-row--separator"></div>
+                <div class="compensation-row compensation-row--detail" [matTooltip]="r.sourceRef">
+                  <span class="compensation-label">{{ r.label }}</span>
+                  <span class="compensation-value">
+                    {{ formatEuros(r.p25) }} <em>(p25)</em>
+                    — {{ formatEuros(r.p50) }} <em>(médiane)</em>
+                    — {{ formatEuros(r.p75) }} <em>(p75)</em>
+                  </span>
+                </div>
+              }
             </div>
             <p class="compensation-disclaimer">Estimation indicative — fixée discrétionnairement par le juge (art. 271 Cciv)</p>
           </div>

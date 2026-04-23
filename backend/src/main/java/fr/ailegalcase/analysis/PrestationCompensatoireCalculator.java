@@ -24,8 +24,16 @@ public final class PrestationCompensatoireCalculator {
             double ecartRevenus,
             int dureeMarriage,
             String pays,
-            boolean donneesPartielles
-    ) {}
+            boolean donneesPartielles,
+            JurisprudenceRange jurisprudenceRange
+    ) {
+        /** Rétrocompat sans fourchette JAF (pré-F-153). */
+        public PrestationCompensatoireEstimate(double montantMin, double montantMax,
+                                                double ecartRevenus, int dureeMarriage,
+                                                String pays, boolean donneesPartielles) {
+            this(montantMin, montantMax, ecartRevenus, dureeMarriage, pays, donneesPartielles, null);
+        }
+    }
 
     private static final double COEFF_FRANCE   = 0.30;
     private static final double COEFF_BELGIQUE = 0.25;
@@ -54,13 +62,20 @@ public final class PrestationCompensatoireCalculator {
         double montantMin = Math.round(montant * 0.85 * 100.0) / 100.0;
         double montantMax = Math.round(montant * 1.15 * 100.0) / 100.0;
 
+        // F-153 SF-153-01 : fourchette jurisprudentielle (dispersion ± 50 %
+        // car art. 271 Cciv laisse le JAF entièrement libre).
+        JurisprudenceRange jafRange = donneesPartielles
+                ? null
+                : JafReferenceTable.prestationCompensatoireRange(montant, safePays);
+
         return Optional.of(new PrestationCompensatoireEstimate(
                 montantMin,
                 montantMax,
                 Math.round(ecart * 100.0) / 100.0,
                 safeDuree,
                 safePays,
-                donneesPartielles
+                donneesPartielles,
+                jafRange
         ));
     }
 }

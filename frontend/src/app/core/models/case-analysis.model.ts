@@ -50,6 +50,8 @@ export interface PensionAlimentaireEstimate {
   pays: 'FRANCE' | 'BELGIQUE';
   donneesPartielles: boolean;
   modeGardeDetaille?: ModeGardeDetaille | null;
+  /** F-153 SF-153-01 : fourchette jurisprudentielle JAF (null si données partielles). */
+  jurisprudenceRange?: JurisprudenceRange | null;
 }
 
 export interface PrestationCompensatoireEstimate {
@@ -59,6 +61,17 @@ export interface PrestationCompensatoireEstimate {
   dureeMarriage: number;
   pays: 'FRANCE' | 'BELGIQUE';
   donneesPartielles: boolean;
+  /** F-153 SF-153-01 : fourchette jurisprudentielle JAF (null si données partielles). */
+  jurisprudenceRange?: JurisprudenceRange | null;
+}
+
+/** F-153 SF-153-01 : fourchette p25/p50/p75 observée en jurisprudence. */
+export interface JurisprudenceRange {
+  p25: number;
+  p50: number;
+  p75: number;
+  label: string;
+  sourceRef: string;
 }
 
 export interface BienItem {
