@@ -1,7 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { ImmigrationStrategyScenario, StrategyRiskLevel } from '../../core/models/case-analysis.model';
 
 /**
@@ -11,7 +10,7 @@ import { ImmigrationStrategyScenario, StrategyRiskLevel } from '../../core/model
 @Component({
   selector: 'app-immigration-strategy-comparator-section',
   standalone: true,
-  imports: [MatIconModule, MatExpansionModule, MatTooltipModule],
+  imports: [MatIconModule, MatExpansionModule],
   templateUrl: './immigration-strategy-comparator-section.component.html',
   styleUrl: './immigration-strategy-comparator-section.component.scss',
 })
