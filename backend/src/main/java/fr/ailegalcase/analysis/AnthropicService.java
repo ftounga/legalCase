@@ -65,7 +65,20 @@ public class AnthropicService {
     }
 
     public AnthropicResult analyze(String systemPrompt, String userMessage, int maxTokens) {
-        return doAnalyze(model, systemPrompt, userMessage, maxTokens);
+        return doAnalyze(model, systemPrompt, userMessage, maxTokens, false);
+    }
+
+    /**
+     * F-142-04 : variante avec prompt caching Anthropic (cache_control ephemeral).
+     * Le system prompt est mis en cache pour 5 min — latence prefill réduite de
+     * ~85 % sur les appels suivants avec le même prompt système. Gain important
+     * sur les services à gros system prompt (CaseAnalysis, EnrichedAnalysis).
+     *
+     * <p>Éligibilité : minimum 1024 tokens dans le bloc caché (Sonnet) ou 2048
+     * (Haiku). Au-dessous, Anthropic ignore silencieusement le cache_control.
+     */
+    public AnthropicResult analyzeWithSystemCache(String systemPrompt, String userMessage, int maxTokens) {
+        return doAnalyze(model, systemPrompt, userMessage, maxTokens, true);
     }
 
     /**
@@ -128,17 +141,32 @@ public class AnthropicService {
     }
 
     private AnthropicResult doAnalyze(String modelId, String systemPrompt, String userMessage, int maxTokens) {
+        return doAnalyze(modelId, systemPrompt, userMessage, maxTokens, false);
+    }
+
+    private AnthropicResult doAnalyze(String modelId, String systemPrompt, String userMessage,
+                                      int maxTokens, boolean cacheSystem) {
         if (userMessage == null || userMessage.isBlank()) {
             throw new IllegalArgumentException("userMessage must not be empty");
         }
 
-        log.debug("Sending chunk ({} chars) to Anthropic model {}", userMessage.length(), modelId);
+        log.debug("Sending chunk ({} chars) to Anthropic model {} (cacheSystem={})",
+                userMessage.length(), modelId, cacheSystem);
+
+        // F-142-04 : prompt caching — le system prompt peut être envoyé sous forme
+        // de tableau avec cache_control: ephemeral pour réutilisation sur 5 min.
+        Object systemPayload = cacheSystem
+                ? List.of(Map.of(
+                        "type", "text",
+                        "text", systemPrompt,
+                        "cache_control", Map.of("type", "ephemeral")))
+                : systemPrompt;
 
         Map<String, Object> body = Map.of(
                 "model", modelId,
                 "max_tokens", maxTokens,
                 "temperature", 0,
-                "system", systemPrompt,
+                "system", systemPayload,
                 "messages", List.of(Map.of("role", "user", "content", userMessage))
         );
 

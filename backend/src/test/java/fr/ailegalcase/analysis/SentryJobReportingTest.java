@@ -175,7 +175,7 @@ class SentryJobReportingTest {
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(new CaseFile()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
         when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -187,7 +187,7 @@ class SentryJobReportingTest {
                 .thenReturn(List.of(da));
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(new CaseFile()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(anthropicService.analyze(any(), any(), anyInt()))
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt()))
                 .thenReturn(new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
         when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
                 .thenReturn(Optional.empty());
@@ -206,7 +206,7 @@ class SentryJobReportingTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(new CaseFile()));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
     }
 
     private DocumentAnalysis documentAnalysis(String result, Instant createdAt) {

@@ -93,7 +93,9 @@ public class AiQuestionService {
             // Aligne avec CaseAnalysisService et EnrichedAnalysisService. Historique :
             // 1024 → 4096 (2026-04-19 PR #386) → 8192 (cette PR, demande user pour
             // éliminer définitivement le risque de troncature silencieuse).
-            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 8192);
+            // F-142-04 : prompt caching ephemeral (5 min TTL) — gain de latence sur
+            // les appels successifs avec le même system prompt dans la même session.
+            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 8192);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Question generation DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,

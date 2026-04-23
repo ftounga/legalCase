@@ -105,7 +105,7 @@ class EnrichedAnalysisServiceTest {
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of(q));
         when(aiQuestionAnswerRepository.findFirstByAiQuestionIdOrderByCreatedAtDesc(q.getId()))
                 .thenReturn(Optional.of(answer));
-        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{\"faits\":[\"enrichi\"]}", "claude-sonnet-4-6", 400, 200));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
@@ -141,7 +141,7 @@ class EnrichedAnalysisServiceTest {
         when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
         when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
-        when(anthropicService.analyze(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
 
@@ -277,7 +277,7 @@ class EnrichedAnalysisServiceTest {
         when(procedureCheckService.listNonCompliant(any())).thenReturn(List.of());
         when(procedureCheckService.listToCheck(any())).thenReturn(List.of());
         when(procedureCheckService.listVerified(any())).thenReturn(List.of());
-        when(anthropicService.analyze(any(), any(), anyInt())).thenReturn(
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
                 new AnthropicResult("{}", "claude-sonnet-4-6", 10, 5));
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
