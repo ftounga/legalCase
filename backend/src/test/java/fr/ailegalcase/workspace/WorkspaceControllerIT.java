@@ -112,7 +112,8 @@ class WorkspaceControllerIT {
                         .content("{\"name\": \"Cabinet Martin\", \"legalDomain\": \"DROIT_DU_TRAVAIL\", \"country\": \"FRANCE\"}")
                         .with(authentication(auth)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Cabinet Martin"))
+                // SF-60-01 : nom workspace normalisé en majuscules côté backend
+                .andExpect(jsonPath("$.name").value("CABINET MARTIN"))
                 .andExpect(jsonPath("$.planCode").value("FREE"))
                 .andExpect(jsonPath("$.id").isNotEmpty());
     }
@@ -164,9 +165,11 @@ class WorkspaceControllerIT {
                 .andExpect(status().isBadRequest());
     }
 
-    // I-06 : POST /api/v1/workspaces → 409 si workspace déjà existant
+    // F-154 / I-06 : POST /api/v1/workspaces → création d'un 2e workspace par le
+    // même user doit réussir (201) avec primary=false. Le switch (POST /:id/switch)
+    // est ce qui pilote l'unicité du primary désormais.
     @Test
-    void createWorkspace_whenAlreadyExists_returns409() throws Exception {
+    void createWorkspace_whenUserAlreadyHasOne_returns201AndNotPrimary() throws Exception {
         User user = new User();
         user.setEmail("existing@example.com");
         user.setStatus("ACTIVE");
@@ -178,19 +181,18 @@ class WorkspaceControllerIT {
         account.setProviderUserId("google-existing-sub");
         authAccountRepository.save(account);
 
-        Workspace workspace = new Workspace();
-        workspace.setName("Existing Workspace");
-        workspace.setSlug("existing-slug-" + System.currentTimeMillis());
-        workspace.setOwner(user);
-        workspace.setPlanCode("FREE");
-        workspace.setStatus("ACTIVE");
-        workspace.setLegalDomain("DROIT_DU_TRAVAIL");
-        workspace.setCountry("FRANCE");
-
-        workspaceRepository.save(workspace);
+        Workspace existing = new Workspace();
+        existing.setName("Existing Workspace");
+        existing.setSlug("existing-slug-" + System.currentTimeMillis());
+        existing.setOwner(user);
+        existing.setPlanCode("FREE");
+        existing.setStatus("ACTIVE");
+        existing.setLegalDomain("DROIT_DU_TRAVAIL");
+        existing.setCountry("FRANCE");
+        workspaceRepository.save(existing);
 
         WorkspaceMember member = new WorkspaceMember();
-        member.setWorkspace(workspace);
+        member.setWorkspace(existing);
         member.setUser(user);
         member.setMemberRole("OWNER");
         member.setPrimary(true);
@@ -200,9 +202,12 @@ class WorkspaceControllerIT {
 
         mockMvc.perform(post("/api/v1/workspaces")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\": \"Nouveau Workspace\", \"legalDomain\": \"DROIT_DU_TRAVAIL\", \"country\": \"FRANCE\"}")
+                        .content("{\"name\": \"Nouveau Workspace\", \"legalDomain\": \"DROIT_IMMIGRATION\", \"country\": \"FRANCE\"}")
                         .with(authentication(auth)))
-                .andExpect(status().isConflict());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("NOUVEAU WORKSPACE"))
+                .andExpect(jsonPath("$.legalDomain").value("DROIT_IMMIGRATION"))
+                .andExpect(jsonPath("$.primary").value(false));
     }
 
     // I-07 : GET /api/v1/workspaces → liste les workspaces de l'utilisateur avec primary correct
