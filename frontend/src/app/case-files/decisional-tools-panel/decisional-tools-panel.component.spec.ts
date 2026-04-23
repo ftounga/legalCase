@@ -1,9 +1,10 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DecisionToolsPanelComponent } from './decisional-tools-panel.component';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 
 describe('DecisionToolsPanelComponent', () => {
   let component: DecisionToolsPanelComponent;
@@ -146,4 +147,52 @@ describe('DecisionToolsPanelComponent', () => {
     expect(component.resolveEntry('F-IM-05-arbre-decisionnel-titre')).not.toBeNull();
     expect(component.resolveEntry('F-132-rupture-conv-indemnite')).not.toBeNull();
   });
+});
+
+describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRefreshService', () => {
+  let component: DecisionToolsPanelComponent;
+  let fixture: ComponentFixture<DecisionToolsPanelComponent>;
+  let httpMock: HttpTestingController;
+  let refreshService: CaseDashboardRefreshService;
+
+  const CASE_FILE_ID = '55555555-5555-5555-5555-555555555555';
+  const API_URL = `/api/v1/case-files/${CASE_FILE_ID}/decision-tools-visibility`;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DecisionToolsPanelComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideAnimationsAsync(),
+        { provide: MatSnackBar, useValue: { open: jest.fn() } },
+        CaseDashboardRefreshService,
+      ],
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+    refreshService = TestBed.inject(CaseDashboardRefreshService);
+    fixture = TestBed.createComponent(DecisionToolsPanelComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = CASE_FILE_ID;
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('reloads visibility silently when refresh service emits', fakeAsync(() => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({ alwaysOn: [], contextual: [], catalog: [] });
+    expect(component.loading()).toBe(false);
+
+    refreshService.triggerRefresh();
+    tick(300);
+
+    const reloadReq = httpMock.expectOne(API_URL);
+    expect(component.loading()).toBe(false);
+    reloadReq.flush({ alwaysOn: ['F-DT-08-licenciement-validity'], contextual: [], catalog: [] });
+
+    expect(component.visibility()!.alwaysOn).toEqual(['F-DT-08-licenciement-validity']);
+  }));
 });

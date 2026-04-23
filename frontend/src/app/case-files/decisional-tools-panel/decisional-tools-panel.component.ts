@@ -1,13 +1,16 @@
 import {
   Component,
+  DestroyRef,
   Input,
   OnChanges,
   OnInit,
+  Optional,
   SimpleChanges,
   Type,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -15,7 +18,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { debounceTime } from 'rxjs';
 import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.service';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { AncienneteSectionComponent } from '../anciennete-section/anciennete-section.component';
 import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
 import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
@@ -63,6 +68,8 @@ export interface DecisionToolRegistryEntry {
 export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly caseFileService = inject(CaseFileService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
 
   @Input({ required: true }) caseFileId!: string;
   @Input() synthesis: any | null = null;
@@ -224,18 +231,27 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     if (this.caseFileId) {
-      this.loadVisibility();
+      this.loadVisibility(true);
+    }
+    if (this.refreshService) {
+      this.refreshService.refresh$
+        .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => {
+          if (this.caseFileId) {
+            this.loadVisibility(false);
+          }
+        });
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['caseFileId'] && !changes['caseFileId'].firstChange && this.caseFileId) {
-      this.loadVisibility();
+      this.loadVisibility(true);
     }
   }
 
-  private loadVisibility(): void {
-    this.loading.set(true);
+  private loadVisibility(showSpinner: boolean): void {
+    if (showSpinner) this.loading.set(true);
     this.caseFileService.getDecisionToolsVisibility(this.caseFileId).subscribe({
       next: (result) => {
         this.visibility.set(result);
