@@ -49,9 +49,11 @@ public class WorkspaceService {
     public WorkspaceResponse createWorkspace(OidcUser oidcUser, String provider, String name, String legalDomain, String country, Principal principal) {
         User user = resolveUser(oidcUser, provider, principal);
 
-        if (workspaceMemberRepository.existsByUser(user)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "User already has a workspace");
-        }
+        // F-154 : un même user peut désormais avoir plusieurs workspaces (onboarding,
+        // puis switcher toolbar). Le 1er workspace devient primary par défaut ; les
+        // suivants sont créés non-primary (c'est `switchWorkspace` qui pilote
+        // l'unicité du primary ensuite).
+        boolean isFirstWorkspace = !workspaceMemberRepository.existsByUser(user);
 
         Workspace workspace = new Workspace();
         workspace.setName(name.strip().toUpperCase());
@@ -67,7 +69,7 @@ public class WorkspaceService {
         member.setWorkspace(workspace);
         member.setUser(user);
         member.setMemberRole("OWNER");
-        member.setPrimary(true);
+        member.setPrimary(isFirstWorkspace);
         workspaceMemberRepository.save(member);
 
         Instant now = Instant.now();
@@ -85,14 +87,19 @@ public class WorkspaceService {
                     subscriptionRepository.save(subscription);
                 });
 
-        try {
-            emailService.sendOnboardingWelcome(user);
-        } catch (Exception e) {
-            log.warn("Failed to send onboarding welcome to {} — {}", user.getEmail(), e.getMessage());
+        // F-154 : l'email "bienvenue onboarding" ne part qu'à la création du 1er
+        // workspace (inscription). Un user qui ajoute un 2e/3e workspace depuis la
+        // toolbar ne reçoit pas de mail pour éviter le spam.
+        if (isFirstWorkspace) {
+            try {
+                emailService.sendOnboardingWelcome(user);
+            } catch (Exception e) {
+                log.warn("Failed to send onboarding welcome to {} — {}", user.getEmail(), e.getMessage());
+            }
         }
 
         return new WorkspaceResponse(workspace.getId(), workspace.getName(), workspace.getSlug(),
-                workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt(), true,
+                workspace.getPlanCode(), workspace.getStatus(), subscription.getExpiresAt(), isFirstWorkspace,
                 workspace.getLegalDomain(), workspace.getCountry());
     }
 
