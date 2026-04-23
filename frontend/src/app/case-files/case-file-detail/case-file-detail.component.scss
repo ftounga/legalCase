@@ -668,6 +668,60 @@
   to   { transform: rotate(360deg); }
 }
 
+/* SF-148-04 : badge Vision par document (liste du dossier).
+   --pending : même teinte navy animée que OCR en cours.
+   --done : teinte violette discrète (cohérente avec l'icône Vision du dialog). */
+.badge-vision {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  margin-left: 6px;
+
+  .badge-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+  }
+}
+
+.badge-vision--pending {
+  background: rgba(26, 58, 92, 0.10);
+  border: 1px solid rgba(26, 58, 92, 0.35);
+  color: #1A3A5C;
+}
+
+.badge-vision--done {
+  background: rgba(108, 77, 163, 0.10);
+  border: 1px solid rgba(108, 77, 163, 0.35);
+  color: #6c4da3;
+}
+
+/* SF-148-04 : bandeau global vision en cours (affiché au-dessus de la liste docs). */
+.vision-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: #f4efff;
+  border: 1px solid #d7c6f0;
+  border-radius: 8px;
+  color: #4a3574;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.vision-banner-body strong {
+  color: #3d2a64;
+  margin-right: 4px;
+}
+
 /* SF-144-01 : chip discret "OCR" post-extraction (document analysé via Textract) */
 .chip-ocr {
   display: inline-block;

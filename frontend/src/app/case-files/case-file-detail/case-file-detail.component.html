@@ -190,6 +190,17 @@
         </div>
       }
 
+      @if (visionPendingCount() > 0) {
+        <div class="vision-banner" role="status" aria-live="polite">
+          <mat-spinner diameter="18"></mat-spinner>
+          <div class="vision-banner-body">
+            <strong>Analyse visuelle en cours</strong>
+            sur {{ visionPendingCount() }} pièce{{ visionPendingCount() > 1 ? 's' : '' }}…
+            LegalCase Vision complète les descriptions en arrière-plan. Vous pouvez continuer à travailler.
+          </div>
+        </div>
+      }
+
       @if (documents().length === 0) {
         <div class="empty-docs">
           <mat-icon class="empty-icon">folder_open</mat-icon>
@@ -227,6 +238,24 @@
                           matTooltipPosition="above">
                       OCR
                     </span>
+                  }
+                  @switch (documentVisionState(doc)) {
+                    @case ('PENDING') {
+                      <span class="badge-vision badge-vision--pending"
+                            matTooltip="LegalCase Vision analyse les pièces visuelles en arrière-plan"
+                            matTooltipPosition="above">
+                        <mat-icon class="badge-icon badge-icon--spinning">sync</mat-icon>
+                        Vision…
+                      </span>
+                    }
+                    @case ('DONE') {
+                      <span class="badge-vision badge-vision--done"
+                            matTooltip="Les pièces visuelles ont été enrichies par LegalCase Vision"
+                            matTooltipPosition="above">
+                        <mat-icon class="badge-icon">visibility</mat-icon>
+                        Vision
+                      </span>
+                    }
                   }
                 </span>
                 @if (doc.pieces && doc.pieces.length > 0) {
