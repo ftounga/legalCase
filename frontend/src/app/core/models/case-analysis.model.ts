@@ -114,6 +114,20 @@ export interface CaseAnalysisResult {
   licenciementValidityDetection?: LicenciementValidityDetection | null;
   ruptureConvValidityDetection?: RuptureConvValidityDetection | null;
   piecesManquantesDetails?: PieceManquanteEntry[] | null;
+  /** F-150 : événements factuels détectés qui ouvrent un nouveau droit de séjour (liste vide hors immigration). */
+  immigrationTriggerEvents?: ImmigrationTriggerEvent[] | null;
+}
+
+/** F-150 SF-150-01 : événement déclencheur immigration détecté dans le dossier. */
+export interface ImmigrationTriggerEvent {
+  eventCode: string;
+  eventLabel: string;
+  eventDate: string | null;
+  sourceDocument: string | null;
+  justification: string | null;
+  baseLegale: string;
+  suggestedTitleCode: string;
+  suggestedTitleLabel: string;
 }
 
 export interface PieceManquanteEntry {
