@@ -273,6 +273,71 @@
   line-height: 16px;
 }
 
+.selected-piece-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 8px;
+  background: #C9973A;
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+  }
+}
+
+/* SF-148-02 : panneau description visuelle sous le banner de pièce. */
+.vision-panel {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: rgba(201, 151, 58, 0.07);
+  border-left: 3px solid #C9973A;
+  border-radius: 4px;
+}
+
+.vision-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8C6820;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.vision-panel-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.vision-panel-body {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #1C2B3A;
+  white-space: pre-wrap;
+}
+
+/* SF-148-02 : icône vision à côté du type dans la sidebar. */
+.piece-item-vision {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  color: #C9973A;
+  vertical-align: middle;
+}
+
 .pieces-info-banner {
   display: flex;
   align-items: center;
