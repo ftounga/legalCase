@@ -45,6 +45,7 @@ class ChatServiceTest {
     @Mock private AnthropicService anthropicService;
     @Mock private UsageEventService usageEventService;
     @Mock private PlanLimitService planLimitService;
+    @Mock private fr.ailegalcase.analysis.PiecesPromptContext piecesPromptContext;
 
     private ChatService service;
 
@@ -57,7 +58,10 @@ class ChatServiceTest {
         service = new ChatService(chatMessageRepository, caseFileRepository, caseAnalysisRepository,
                 documentRepository, documentExtractionRepository,
                 workspaceMemberRepository, currentUserResolver, anthropicService,
-                usageEventService, planLimitService);
+                usageEventService, planLimitService, piecesPromptContext);
+        // Default : no pieces context injected (tests legacy restent valides).
+        org.mockito.Mockito.lenient().when(piecesPromptContext.buildContextForCaseFile(org.mockito.ArgumentMatchers.any()))
+                .thenReturn("");
     }
 
     private void mockContext(boolean budgetExceeded, boolean hasSynthesis) {
@@ -197,6 +201,30 @@ class ChatServiceTest {
         String result = service.buildUserMessage("La synthèse", CASE_FILE_ID, "Ma question");
 
         assertThat(result).isEqualTo("Dossier :\nLa synthèse\n\nQuestion : Ma question");
+    }
+
+    // F-148 hotfix : buildUserMessage inclut la section PIÈCES IDENTIFIÉES (+ Vision)
+    @Test
+    void buildUserMessage_injectsPiecesPromptContext_includingVisionDescriptions() {
+        fr.ailegalcase.document.Document doc = buildDoc(UUID.randomUUID(), "dossier.pdf");
+        fr.ailegalcase.document.DocumentExtraction ex = buildExtraction(doc,
+                fr.ailegalcase.document.ExtractionStatus.DONE, "Contenu OCR.",
+                "{\"extractor\":\"TEXTRACT\",\"pageCount\":3}");
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(CASE_FILE_ID))
+                .thenReturn(java.util.List.of(doc));
+        when(documentExtractionRepository.findByDocumentIdIn(java.util.List.of(doc.getId())))
+                .thenReturn(java.util.List.of(ex));
+        when(piecesPromptContext.buildContextForCaseFile(CASE_FILE_ID))
+                .thenReturn("=== PIÈCES IDENTIFIÉES DANS LES DOCUMENTS ===\n"
+                        + "Document : dossier.pdf\n"
+                        + "  - SMS « Échanges Fatma/Anne » (p. 8) — [Vision : Bulles vertes à gauche.]\n"
+                        + "===\n");
+
+        String result = service.buildUserMessage("Synth", CASE_FILE_ID, "Qui parle dans les SMS ?");
+
+        assertThat(result).contains("PIÈCES IDENTIFIÉES DANS LES DOCUMENTS");
+        assertThat(result).contains("SMS « Échanges Fatma/Anne » (p. 8)");
+        assertThat(result).contains("[Vision : Bulles vertes à gauche.]");
     }
 
     @Test
