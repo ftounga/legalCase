@@ -22,7 +22,9 @@ export type DocumentPieceType =
   | 'ATTESTATION_HEBERGEMENT'
   // Famille (SF-145-09)
   | 'ACTE_MARIAGE' | 'ACTE_NAISSANCE_ENFANT' | 'JUGEMENT_DIVORCE'
-  | 'LIVRET_FAMILLE' | 'JUSTIFICATIF_REVENUS';
+  | 'LIVRET_FAMILLE' | 'JUSTIFICATIF_REVENUS'
+  // Commun 3 domaines (SF-145-10)
+  | 'BAIL_LOCATION';
 
 /** SF-145-01 : résumé d'une pièce identifiée dans un document composite. */
 export interface DocumentPieceSummary {
@@ -92,6 +94,8 @@ export function documentPieceTypeLabel(type: DocumentPieceType): string {
     case 'JUGEMENT_DIVORCE': return 'Jugement de divorce';
     case 'LIVRET_FAMILLE': return 'Livret de famille';
     case 'JUSTIFICATIF_REVENUS': return 'Justificatif de revenus';
+    // Commun 3 domaines (SF-145-10)
+    case 'BAIL_LOCATION':  return 'Bail de location';
     default:               return 'Pièce';
   }
 }
@@ -129,6 +133,8 @@ export function documentPieceTypeIcon(type: DocumentPieceType): string {
     case 'JUGEMENT_DIVORCE': return 'gavel';
     case 'LIVRET_FAMILLE': return 'menu_book';
     case 'JUSTIFICATIF_REVENUS': return 'euro';
+    // Commun 3 domaines (SF-145-10)
+    case 'BAIL_LOCATION':  return 'apartment';
     default:               return 'description';
   }
 }

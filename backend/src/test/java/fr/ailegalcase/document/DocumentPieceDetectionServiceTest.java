@@ -206,6 +206,11 @@ class DocumentPieceDetectionServiceTest {
         assertThat(types).contains(DocumentPieceType.ATTESTATION); // common
         assertThat(types).doesNotContain(DocumentPieceType.BULLETIN_PAIE);
         assertThat(types).doesNotContain(DocumentPieceType.JUGEMENT_DIVORCE);
+        // SF-145-10 : ACTE_MARIAGE désormais disponible en immigration
+        // (L.423-1 conjoint de Français, L.434-7 regroupement familial).
+        assertThat(types).contains(DocumentPieceType.ACTE_MARIAGE);
+        // SF-145-10 : BAIL_LOCATION commun aux 3 domaines
+        assertThat(types).contains(DocumentPieceType.BAIL_LOCATION);
     }
 
     // SF-145-09 U-12 : applicableFor(DROIT_FAMILLE)
@@ -218,6 +223,8 @@ class DocumentPieceDetectionServiceTest {
         assertThat(types).contains(DocumentPieceType.PIECE_IDENTITE); // common
         assertThat(types).doesNotContain(DocumentPieceType.BULLETIN_PAIE);
         assertThat(types).doesNotContain(DocumentPieceType.TITRE_DE_SEJOUR);
+        // SF-145-10 : BAIL_LOCATION commun
+        assertThat(types).contains(DocumentPieceType.BAIL_LOCATION);
     }
 
     // SF-145-09 U-13 : legalDomain null ou inconnu → tous les types (fallback permissif)
