@@ -26,7 +26,8 @@ import { fadeInUp, listStagger } from '../../shared/animations';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
 import { ImmigrationEventsSectionComponent } from '../immigration-events-section/immigration-events-section.component';
 import { ImmigrationStrategyComparatorSectionComponent } from '../immigration-strategy-comparator-section/immigration-strategy-comparator-section.component';
-import { ImmigrationStrategyScenario, ImmigrationTriggerEvent } from '../../core/models/case-analysis.model';
+import { DivorceConsentementScoringSectionComponent } from '../divorce-consentement-scoring-section/divorce-consentement-scoring-section.component';
+import { DivorceConsentementScoring, DivorceConsentementValidityDetection, ImmigrationStrategyScenario, ImmigrationTriggerEvent } from '../../core/models/case-analysis.model';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
@@ -44,7 +45,8 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
     MatCheckboxModule, MatTooltipModule,
     SourceRefComponent,
     ImmigrationEventsSectionComponent,
-    ImmigrationStrategyComparatorSectionComponent
+    ImmigrationStrategyComparatorSectionComponent,
+    DivorceConsentementScoringSectionComponent
   ],
   templateUrl: './synthesis.component.html',
   styleUrl: './synthesis.component.scss',
@@ -358,6 +360,16 @@ export class SynthesisComponent implements OnInit {
   /** F-151 : scenarii stratégiques immigration comparés. Liste vide si aucun choix stratégique ouvert. */
   get immigrationStrategyScenarios(): ImmigrationStrategyScenario[] {
     return this.synthesis()?.immigrationStrategyScenarios ?? [];
+  }
+
+  /** F-152 : détection validité divorce consentement mutuel. Null hors famille. */
+  get divorceConsentementValidityDetection(): DivorceConsentementValidityDetection | null {
+    return this.synthesis()?.divorceConsentementValidityDetection ?? null;
+  }
+
+  /** F-152 : scoring divorce consentement mutuel. Null si détection absente. */
+  get divorceConsentementScoring(): DivorceConsentementScoring | null {
+    return this.synthesis()?.divorceConsentementScoring ?? null;
   }
 
   get prestationCompensatoireEstimate(): PrestationCompensatoireEstimate | null {

@@ -41,7 +41,10 @@ public record CaseAnalysisResponse(
         // F-150 : événements factuels immigration détectés (liste vide hors domaine immigration).
         List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents,
         // F-151 : scenarii stratégiques immigration (liste vide si aucun choix stratégique ouvert).
-        List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios
+        List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios,
+        // F-152 : validité divorce consentement mutuel (famille, null hors domaine famille).
+        DivorceConsentementValidityDetection divorceConsentementValidityDetection,
+        DivorceConsentementScoring divorceConsentementScoring
 ) {
 
     /** Constructeur rétrocompat sans trigger events (pré-F-150). */
@@ -67,7 +70,8 @@ public record CaseAnalysisResponse(
                 updatedAt, analysisDocuments, compensationEstimate, belgianCompensationEstimate,
                 pensionAlimentaireEstimate, prestationCompensatoireEstimate, liquidationCommunaute,
                 travailExtractedData, immigrationExtractedData, licenciementValidityDetection,
-                ruptureConvValidityDetection, piecesManquantesDetails, List.of(), List.of());
+                ruptureConvValidityDetection, piecesManquantesDetails, List.of(), List.of(),
+                null, null);
     }
 
     public record PieceManquanteEntry(String texte, String critereCode) {}
@@ -127,6 +131,37 @@ public record CaseAnalysisResponse(
             detections = detections == null ? Map.of() : Map.copyOf(detections);
         }
     }
+
+    /**
+     * F-152 SF-152-01 : détection IA des critères de validité du divorce par
+     * consentement mutuel (art. 229 Cciv, 7 critères).
+     */
+    public record DivorceConsentementValidityDetection(Map<String, DetectedAnswer> detections) {
+        public DivorceConsentementValidityDetection {
+            detections = detections == null ? Map.of() : Map.copyOf(detections);
+        }
+    }
+
+    /** F-152 SF-152-01 : scoring calculé 0-100 + verdict risque annulation. */
+    public record DivorceConsentementScoring(
+            int score,
+            String verdict,
+            List<String> criteresValides,
+            List<String> criteresNonValides,
+            List<String> criteresInconnus
+    ) {
+        public DivorceConsentementScoring {
+            criteresValides = criteresValides == null ? List.of() : List.copyOf(criteresValides);
+            criteresNonValides = criteresNonValides == null ? List.of() : List.copyOf(criteresNonValides);
+            criteresInconnus = criteresInconnus == null ? List.of() : List.copyOf(criteresInconnus);
+        }
+    }
+
+    static final Set<String> DIVORCE_CONSENTEMENT_CRITERE_CODES = Set.of(
+            "DC_MAJORITE", "DC_CONSENTEMENT_LIBRE", "DC_CONVENTION_EQUITABLE",
+            "DC_ENFANT_MINEUR_ENTENDU", "DC_DELAI_REFLEXION_15J",
+            "DC_NOTAIRE_DEPOT", "DC_INDEPENDANCE_AVOCATS"
+    );
 
     static final Set<String> RUPTURE_CONV_CRITERE_CODES = Set.of(
             "RC_CONSENTEMENT", "RC_DELAI_RETRACTATION", "RC_HOMOLOGATION",
@@ -257,6 +292,8 @@ public record CaseAnalysisResponse(
         List<PieceManquanteEntry> piecesManquantesDetails = List.of();
         List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents = List.of();
         List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios = List.of();
+        DivorceConsentementValidityDetection divorceConsentementValidityDetection = null;
+        DivorceConsentementScoring divorceConsentementScoring = null;
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -280,6 +317,8 @@ public record CaseAnalysisResponse(
                 ruptureConvValidityDetection = extractRuptureConvValidityDetection(root);
                 immigrationTriggerEvents = extractImmigrationTriggerEvents(root);
                 immigrationStrategyScenarios = extractImmigrationStrategyScenarios(root);
+                divorceConsentementValidityDetection = extractDivorceConsentementValidityDetection(root);
+                divorceConsentementScoring = computeDivorceConsentementScoring(divorceConsentementValidityDetection);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -315,7 +354,9 @@ public record CaseAnalysisResponse(
                 ruptureConvValidityDetection,
                 piecesManquantesDetails,
                 immigrationTriggerEvents,
-                immigrationStrategyScenarios
+                immigrationStrategyScenarios,
+                divorceConsentementValidityDetection,
+                divorceConsentementScoring
         );
     }
 
@@ -835,6 +876,60 @@ public record CaseAnalysisResponse(
             detections.put(code, new DetectedAnswer(reponse, justification));
         });
         return detections.isEmpty() ? null : new LicenciementValidityDetection(detections);
+    }
+
+    /** F-152 SF-152-01 : parseur détection validité divorce consentement mutuel. */
+    static DivorceConsentementValidityDetection extractDivorceConsentementValidityDetection(JsonNode root) {
+        JsonNode node = root.get("divorce_consentement_validity_detection");
+        if (node == null || !node.isObject() || node.size() == 0) return null;
+        Map<String, DetectedAnswer> detections = new LinkedHashMap<>();
+        node.fields().forEachRemaining(entry -> {
+            String code = entry.getKey() == null ? null : entry.getKey().toUpperCase();
+            if (code == null || !DIVORCE_CONSENTEMENT_CRITERE_CODES.contains(code)) return;
+            JsonNode value = entry.getValue();
+            if (value == null || !value.isObject()) return;
+            String reponse = normalizeReponse(textOrNull(value, "reponse"));
+            String justification = textOrNull(value, "justification");
+            if (justification != null && justification.length() > MAX_JUSTIFICATION_LENGTH) {
+                justification = justification.substring(0, MAX_JUSTIFICATION_LENGTH);
+            }
+            detections.put(code, new DetectedAnswer(reponse, justification));
+        });
+        return detections.isEmpty() ? null : new DivorceConsentementValidityDetection(detections);
+    }
+
+    /**
+     * F-152 SF-152-01 : calcul du scoring à partir de la détection.
+     * Score = (nombre de OUI / 7) × 100, arrondi. INCONNU compte comme manquant.
+     * Verdict : VALIDE (≥ 85), RISQUE_MOYEN (50-84), RISQUE_ELEVE_NULLITE (< 50).
+     */
+    static DivorceConsentementScoring computeDivorceConsentementScoring(
+            DivorceConsentementValidityDetection detection) {
+        if (detection == null || detection.detections().isEmpty()) return null;
+
+        List<String> oui = new ArrayList<>();
+        List<String> non = new ArrayList<>();
+        List<String> inconnu = new ArrayList<>();
+
+        for (String code : DIVORCE_CONSENTEMENT_CRITERE_CODES) {
+            DetectedAnswer answer = detection.detections().get(code);
+            if (answer == null) {
+                inconnu.add(code);
+            } else if ("OUI".equals(answer.reponse())) {
+                oui.add(code);
+            } else if ("NON".equals(answer.reponse())) {
+                non.add(code);
+            } else {
+                inconnu.add(code);
+            }
+        }
+
+        int total = DIVORCE_CONSENTEMENT_CRITERE_CODES.size();
+        int score = (int) Math.round(oui.size() * 100.0 / total);
+        String verdict = score >= 85 ? "VALIDE"
+                : score >= 50 ? "RISQUE_MOYEN"
+                : "RISQUE_ELEVE_NULLITE";
+        return new DivorceConsentementScoring(score, verdict, oui, non, inconnu);
     }
 
     static RuptureConvValidityDetection extractRuptureConvValidityDetection(JsonNode root) {

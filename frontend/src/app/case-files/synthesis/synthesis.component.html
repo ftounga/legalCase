@@ -195,6 +195,12 @@
         <app-immigration-strategy-comparator-section [scenarios]="immigrationStrategyScenarios" />
       }
 
+      @if (divorceConsentementScoring && divorceConsentementValidityDetection) {
+        <app-divorce-consentement-scoring-section
+          [detection]="divorceConsentementValidityDetection"
+          [scoring]="divorceConsentementScoring" />
+      }
+
       @if (synthesis()!.questionsOuvertes.length > 0) {
         <mat-expansion-panel expanded>
           <mat-expansion-panel-header>
