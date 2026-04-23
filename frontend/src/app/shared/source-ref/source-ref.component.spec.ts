@@ -90,14 +90,37 @@ describe('SourceRefComponent', () => {
     expect(cfg.data.initialPieceId).toBe('p-1');
   });
 
-  it('U-06 — clic sans match documentName : no-op, pas de dialog ouvert', async () => {
+  it('U-06 — filename erroné mais pièce match globalement → ouvre sur la bonne pièce (fallback niveau 3)', async () => {
     await setup({
       caseFileId: 'cf-1',
-      sourceRef: { documentName: 'fichier-introuvable.pdf', pieceType: 'CONTRAT', pieceLabel: 'x', pageStart: 1, pageEnd: 1 }
+      sourceRef: { documentName: 'fichier-introuvable.pdf', pieceType: 'CONTRAT', pieceLabel: 'Contrat Dupont', pageStart: 1, pageEnd: 2 }
     });
     component.openPreview();
     expect(documentServiceSpy.list).toHaveBeenCalled();
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    const [, cfg] = dialogSpy.open.mock.calls[0];
+    expect(cfg.data.documentId).toBe('doc-1');
+    expect(cfg.data.initialPieceId).toBe('p-1'); // trouvé dans doc-1 par pièce
+  });
+
+  it('U-06b — filename erroné ET pièce introuvable → no-op silencieux', async () => {
+    await setup({
+      caseFileId: 'cf-1',
+      sourceRef: { documentName: 'fichier-introuvable.pdf', pieceType: 'PHOTO', pieceLabel: 'inexistant', pageStart: 99, pageEnd: 99 }
+    });
+    component.openPreview();
     expect(dialogSpy.open).not.toHaveBeenCalled();
+  });
+
+  it('U-06c — filename normalisé (casse/accents) → match niveau 2', async () => {
+    await setup({
+      caseFileId: 'cf-1',
+      sourceRef: { documentName: 'DOSSIER.PDF', pieceType: 'CONTRAT', pieceLabel: 'Contrat Dupont', pageStart: 1, pageEnd: 2 }
+    });
+    component.openPreview();
+    expect(dialogSpy.open).toHaveBeenCalledTimes(1);
+    const [, cfg] = dialogSpy.open.mock.calls[0];
+    expect(cfg.data.documentId).toBe('doc-1');
   });
 
   it('U-07 — fallback par page quand pieceType/pieceLabel ne matchent pas', async () => {
