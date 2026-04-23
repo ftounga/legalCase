@@ -207,7 +207,14 @@ public record CaseAnalysisResponse(
 
     static final Set<String> IMMIGRATION_TITLE_CODES = Set.of(
             "VLS_TS_ETUDIANT", "VLS_TS_SALARIE", "CST_SALARIE", "CARTE_PLURIANNUELLE",
-            "CARTE_RESIDENT", "APS", "CST_VPF", "RECEPISSE_ASILE",
+            // SF-IM-07-04 : sous-types explicites de la carte pluriannuelle (droit
+            // au travail différent selon le motif).
+            "CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE", "CARTE_PLURIANNUELLE_SALARIE",
+            "CARTE_PLURIANNUELLE_PASSEPORT_TALENT", "CARTE_PLURIANNUELLE_VPF",
+            "CARTE_RESIDENT", "APS", "CST_VPF",
+            // SF-IM-07-04 : code parallèle à CST_VPF pour conjoint de Français (L.423-1).
+            "CST_VPF_CONJOINT_FR",
+            "RECEPISSE_ASILE",
             "CARTE_A_TRAVAIL", "CARTE_A_ETUDES", "CARTE_A_FAMILLE",
             "CARTE_B", "CARTE_C", "PERMIS_UNIQUE", "ANNEXE_15", "ATTESTATION_IMMATRICULATION"
     );
@@ -334,12 +341,20 @@ public record CaseAnalysisResponse(
                 // SF-IM-01-04 : enrichit ImmigrationExtractedData avec le type de
                 // checklist inféré (combine titre actuel + titre cible suggéré par
                 // le 1er événement déclencheur F-150 le cas échéant).
+                // SF-IM-01-06 : passe aussi l'event_code du 1er trigger à l'inférence
+                // — ImmigrationPieceReferentiel priorise l'événement (étape 1 du
+                // switch) sur le titre cible. Sans ça, MARIAGE_RESSORTISSANT_FR
+                // était détecté mais silencieusement ignoré → checklist retombait
+                // sur VISA_ETUDIANT au lieu de CST_VPF_CONJOINT_FR.
                 if (immigrationExtractedData != null) {
+                    String firstEventCode = immigrationTriggerEvents.isEmpty()
+                            ? null
+                            : immigrationTriggerEvents.get(0).eventCode();
                     String targetTitleCode = immigrationTriggerEvents.isEmpty()
                             ? null
                             : immigrationTriggerEvents.get(0).suggestedTitleCode();
                     String inferred = fr.ailegalcase.casefile.ImmigrationPieceReferentiel
-                            .inferChecklistType(immigrationExtractedData.typeTitreSejourCode(), targetTitleCode);
+                            .inferChecklistType(immigrationExtractedData.typeTitreSejourCode(), targetTitleCode, firstEventCode);
                     if (inferred != null) {
                         immigrationExtractedData = new ImmigrationExtractedData(
                                 immigrationExtractedData.dateExpirationTitre(),
