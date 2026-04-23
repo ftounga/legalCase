@@ -165,6 +165,83 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     expect(component.motif()).toBe('TRAVAIL');
   });
 
+  // SF-IM-05-04 : trigger_events prennent priorité sur le code titre courant
+  // pour déduire le motif de la VOIE JURIDIQUE CIBLE (ex: Chen, pluriannuelle
+  // Étudiant-Recherche + mariage avec Française → motif FAMILLE, pas ETUDES).
+  describe('SF-IM-05-04 — prefill from trigger_events', () => {
+    it('MARIAGE_RESSORTISSANT_FR → motif FAMILLE + situation MARIE (cas Chen)', () => {
+      component.aiData = { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' } as any;
+      component.triggerEvents = [{ eventCode: 'MARIAGE_RESSORTISSANT_FR', eventDate: '2025-03-15' } as any];
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('FAMILLE');
+      expect(component.situationFamiliale()).toBe('MARIE');
+      expect(component.provenanceMotif()).toBe('IA');
+      expect(component.provenanceSituationFamiliale()).toBe('IA');
+    });
+
+    it('PACS_RESSORTISSANT_FR → FAMILLE + PACS_COHABITATION', () => {
+      component.triggerEvents = [{ eventCode: 'PACS_RESSORTISSANT_FR' } as any];
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('FAMILLE');
+      expect(component.situationFamiliale()).toBe('PACS_COHABITATION');
+    });
+
+    it('NAISSANCE_ENFANT_FR → FAMILLE (pas de situation spécifique)', () => {
+      component.triggerEvents = [{ eventCode: 'NAISSANCE_ENFANT_FR' } as any];
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('FAMILLE');
+      expect(component.situationFamiliale()).toBeNull();
+    });
+
+    it('CDI_OBTENU_SALARIE → motif TRAVAIL', () => {
+      component.triggerEvents = [{ eventCode: 'CDI_OBTENU_SALARIE' } as any];
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('TRAVAIL');
+    });
+
+    it('trigger prioritaire sur le code titre courant (Chen : titre étudiant mais mariage)', () => {
+      // Sans trigger, CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE → ETUDES
+      // Avec trigger MARIAGE, la voie cible est FAMILLE → doit l'emporter
+      component.aiData = { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' } as any;
+      component.triggerEvents = [{ eventCode: 'MARIAGE_RESSORTISSANT_FR' } as any];
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('FAMILLE');
+      expect(component.provenanceMotif()).toBe('IA');
+    });
+
+    it('pas de trigger → fallback sur code titre (comportement legacy)', () => {
+      component.aiData = { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' } as any;
+      component.triggerEvents = [];
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('ETUDES');
+    });
+
+    it('onMotifChange clears provenance badge', () => {
+      component.aiData = { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' } as any;
+      component.triggerEvents = [{ eventCode: 'MARIAGE_RESSORTISSANT_FR' } as any];
+      initWithNoExistingDecision();
+      expect(component.provenanceMotif()).toBe('IA');
+      component.motif.set('TRAVAIL');
+      component.onMotifChange();
+      expect(component.provenanceMotif()).toBeNull();
+      // Quitter FAMILLE efface aussi la situation familiale
+      expect(component.situationFamiliale()).toBeNull();
+      expect(component.provenanceSituationFamiliale()).toBeNull();
+    });
+
+    it('nouveaux codes sous-types mappés : CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE → ETUDES', () => {
+      component.aiData = { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' } as any;
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('ETUDES');
+    });
+
+    it('CST_VPF_CONJOINT_FR → FAMILLE', () => {
+      component.aiData = { typeTitreSejourCode: 'CST_VPF_CONJOINT_FR' } as any;
+      initWithNoExistingDecision();
+      expect(component.motif()).toBe('FAMILLE');
+    });
+  });
+
   it('should do nothing when both aiData fields absent', () => {
     initWithNoExistingDecision();
     expect(component.motif()).toBe('TRAVAIL'); // default unchanged

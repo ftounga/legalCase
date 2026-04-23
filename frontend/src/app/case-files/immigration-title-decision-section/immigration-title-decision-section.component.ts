@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
-import { ImmigrationExtractedData, PieceManquanteEntry } from '../../core/models/case-analysis.model';
+import { ImmigrationExtractedData, ImmigrationTriggerEvent, PieceManquanteEntry } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -35,18 +35,42 @@ export interface IM05CoherenceAlert {
 const CODE_TO_MOTIF: Record<string, string> = {
   VLS_TS_ETUDIANT: 'ETUDES',
   CARTE_A_ETUDES: 'ETUDES',
+  CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE: 'ETUDES',
   VLS_TS_SALARIE: 'TRAVAIL',
   CST_SALARIE: 'TRAVAIL',
   CARTE_PLURIANNUELLE: 'TRAVAIL',
+  CARTE_PLURIANNUELLE_SALARIE: 'TRAVAIL',
+  CARTE_PLURIANNUELLE_PASSEPORT_TALENT: 'TRAVAIL',
   APS: 'TRAVAIL',
   CARTE_A_TRAVAIL: 'TRAVAIL',
   PERMIS_UNIQUE: 'TRAVAIL',
   CST_VPF: 'FAMILLE',
+  CST_VPF_CONJOINT_FR: 'FAMILLE',
+  CARTE_PLURIANNUELLE_VPF: 'FAMILLE',
   CARTE_A_FAMILLE: 'FAMILLE',
   RECEPISSE_ASILE: 'ASILE',
   ATTESTATION_IMMATRICULATION: 'ASILE',
   ANNEXE_15: 'ASILE',
   // CARTE_RESIDENT, CARTE_B, CARTE_C : titres génériques stables, pas de mapping motif
+};
+
+/**
+ * SF-IM-05-04 : mapping trigger_event → (motif, situationFamiliale).
+ * Prioritaire sur CODE_TO_MOTIF car décrit la voie JURIDIQUE CIBLE (ex: mariage
+ * avec Français → FAMILLE/MARIE), tandis que le code titre reflète la situation
+ * actuelle (ex: pluriannuelle Étudiant-Recherche → ETUDES).
+ */
+const TRIGGER_TO_CRITERIA: Record<string, { motif: string; situationFamiliale?: string }> = {
+  MARIAGE_RESSORTISSANT_FR: { motif: 'FAMILLE', situationFamiliale: 'MARIE' },
+  PACS_RESSORTISSANT_FR: { motif: 'FAMILLE', situationFamiliale: 'PACS_COHABITATION' },
+  NAISSANCE_ENFANT_FR: { motif: 'FAMILLE' },
+  REGROUPEMENT_FAMILIAL_AUTORISE: { motif: 'FAMILLE' },
+  VIOLENCES_CONJUGALES_CONSTATEES: { motif: 'FAMILLE' },
+  CDI_OBTENU_SALARIE: { motif: 'TRAVAIL' },
+  DOCTORAT_OBTENU: { motif: 'TRAVAIL' }, // chercheur/post-doc → Passeport Talent
+  DEMANDE_ASILE_ACCORDEE_OFPRA: { motif: 'ASILE' },
+  ENFANT_NE_FR_13ANS_PRESENCE: { motif: 'FAMILLE' },
+  // ENTREE_LEGALE_10ANS : pas de motif unique, peut être TRAVAIL ou FAMILLE → pas de mapping
 };
 
 @Component({
@@ -66,6 +90,8 @@ const CODE_TO_MOTIF: Record<string, string> = {
 export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
+  /** SF-IM-05-04 : événements déclencheurs F-150 — priorité sur aiData pour déduire motif+situation. */
+  @Input() triggerEvents?: ImmigrationTriggerEvent[] | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
@@ -86,6 +112,12 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   motif = signal('TRAVAIL');
   duree = signal('LONG_SEJOUR');
   situationFamiliale = signal<string | null>(null);
+
+  // SF-IM-05-04 : provenance IA par champ (badge "Pré-rempli depuis l'analyse").
+  // Effacé dès que l'avocat modifie manuellement un champ (onXxxChange).
+  provenanceMotif = signal<'IA' | null>(null);
+  provenanceSituationFamiliale = signal<'IA' | null>(null);
+  provenanceNationaliteUe = signal<'IA' | null>(null);
 
   readonly countries = [
     { value: 'FRANCE', label: 'France' },
@@ -155,6 +187,9 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    // SF-IM-05-04 : garde-fou — pré-remplit au mount si aiData/triggerEvents
+    // sont déjà disponibles (cas : pipeline déjà tourné avant ouverture du dossier).
+    this.prefillFromAi();
     this.loadExisting();
     this.loadSourceExplanations();
   }
@@ -164,7 +199,9 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
-    if (changes['aiData'] && this.showForm() && !this.decision()) {
+    // SF-IM-05-04 : ré-applique le prefill dès que aiData OU triggerEvents change
+    // (les 2 sont maintenant pris en compte — les triggers sont prioritaires).
+    if ((changes['aiData'] || changes['triggerEvents']) && this.showForm() && !this.decision()) {
       this.prefillFromAi();
     }
   }
@@ -292,8 +329,10 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   }
 
   onMotifChange(): void {
+    this.provenanceMotif.set(null);
     if (this.motif() !== 'FAMILLE') {
       this.situationFamiliale.set(null);
+      this.provenanceSituationFamiliale.set(null);
     }
   }
 
@@ -315,28 +354,60 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   }
 
   private prefillFromAi(): void {
-    if (!this.aiData) return;
+    if (!this.aiData && !this.triggerEvents?.length) return;
 
     // 1. Nationalité UE depuis l'IA
-    if (typeof this.aiData.nationaliteUe === 'boolean') {
+    if (this.aiData && typeof this.aiData.nationaliteUe === 'boolean') {
       this.nationaliteUe.set(this.aiData.nationaliteUe);
+      this.provenanceNationaliteUe.set('IA');
     }
 
-    // 2. Motif : priorité au code normalisé, fallback heuristique texte libre
+    // 2. Motif + situationFamiliale : SF-IM-05-04 — priorité aux trigger_events
+    //    (décrivent la voie juridique cible : mariage → FAMILLE/MARIE), puis
+    //    fallback sur le code titre actuel, puis heuristique texte libre.
+    const firstTrigger = this.triggerEvents?.[0]?.eventCode;
+    if (firstTrigger && TRIGGER_TO_CRITERIA[firstTrigger]) {
+      const criteria = TRIGGER_TO_CRITERIA[firstTrigger];
+      this.motif.set(criteria.motif);
+      this.provenanceMotif.set('IA');
+      if (criteria.situationFamiliale) {
+        this.situationFamiliale.set(criteria.situationFamiliale);
+        this.provenanceSituationFamiliale.set('IA');
+      }
+      return;
+    }
+
+    if (!this.aiData) return;
+
     const code = this.aiData.typeTitreSejourCode?.toUpperCase();
     if (code && CODE_TO_MOTIF[code]) {
       this.motif.set(CODE_TO_MOTIF[code]);
+      this.provenanceMotif.set('IA');
       return;
     }
     if (this.aiData.typeTitreSejour) {
       const type = this.aiData.typeTitreSejour
         .toUpperCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // strip accents
-      if (type.includes('ETUDIANT') || type.includes('STUDENT')) this.motif.set('ETUDES');
-      else if (type.includes('SALARIE') || type.includes('TRAVAIL')) this.motif.set('TRAVAIL');
-      else if (type.includes('FAMILLE') || type.includes('VPF')) this.motif.set('FAMILLE');
-      else if (type.includes('ASILE') || type.includes('REFUGIE')) this.motif.set('ASILE');
+      let detected: string | null = null;
+      if (type.includes('ETUDIANT') || type.includes('STUDENT')) detected = 'ETUDES';
+      else if (type.includes('SALARIE') || type.includes('TRAVAIL')) detected = 'TRAVAIL';
+      else if (type.includes('FAMILLE') || type.includes('VPF')) detected = 'FAMILLE';
+      else if (type.includes('ASILE') || type.includes('REFUGIE')) detected = 'ASILE';
+      if (detected) {
+        this.motif.set(detected);
+        this.provenanceMotif.set('IA');
+      }
     }
+  }
+
+  /** SF-IM-05-04 : effacer les badges IA quand l'avocat modifie manuellement. */
+  onSituationFamilialeChange(): void {
+    this.provenanceSituationFamiliale.set(null);
+  }
+
+  onNationaliteUeChange(): void {
+    this.provenanceNationaliteUe.set(null);
   }
 
   resolve(): void {

@@ -45,6 +45,9 @@
                   }
                 </mat-select>
               </mat-form-field>
+              @if (provenanceMotif() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().MOTIF; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('MOTIF')"
@@ -67,9 +70,12 @@
 
           <div class="form-row">
             <div class="field-with-alert toggle-field">
-              <mat-slide-toggle [(ngModel)]="nationaliteUe" color="primary">
+              <mat-slide-toggle [(ngModel)]="nationaliteUe" (ngModelChange)="onNationaliteUeChange()" color="primary">
                 Ressortissant UE / EEE / Suisse
               </mat-slide-toggle>
+              @if (provenanceNationaliteUe() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().NATIONALITE_UE; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('NATIONALITE_UE')"
@@ -81,14 +87,19 @@
             </div>
 
             @if (motif() === 'FAMILLE') {
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Situation familiale</mat-label>
-                <mat-select [(ngModel)]="situationFamiliale">
-                  @for (s of situations; track s.value) {
-                    <mat-option [value]="s.value">{{ s.label }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <div class="field-with-alert">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Situation familiale</mat-label>
+                  <mat-select [(ngModel)]="situationFamiliale" (ngModelChange)="onSituationFamilialeChange()">
+                    @for (s of situations; track s.value) {
+                      <mat-option [value]="s.value">{{ s.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceSituationFamiliale() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
             }
           </div>
 

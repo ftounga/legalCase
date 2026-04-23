@@ -542,6 +542,7 @@
       <app-immigration-title-decision-section
         [caseFileId]="caseFile()!.id"
         [aiData]="synthesis()?.immigrationExtractedData"
+        [triggerEvents]="synthesis()?.immigrationTriggerEvents"
         [procedureChecks]="procedureChecks()"
         [aiQuestions]="questions()"
         [piecesManquantes]="synthesis()?.piecesManquantesDetails">
