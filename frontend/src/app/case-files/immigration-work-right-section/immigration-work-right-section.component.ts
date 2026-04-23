@@ -20,7 +20,11 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 
 const FR_TITRE_CODES = new Set([
   'VLS_TS_ETUDIANT', 'VLS_TS_SALARIE', 'CST_SALARIE', 'CARTE_PLURIANNUELLE',
-  'CARTE_RESIDENT', 'APS', 'CST_VPF', 'RECEPISSE_ASILE',
+  // SF-IM-07-04 : sous-types explicites de la carte pluriannuelle (droit au
+  // travail différent selon le motif) + code conjoint de Français L.423-1.
+  'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE', 'CARTE_PLURIANNUELLE_SALARIE',
+  'CARTE_PLURIANNUELLE_PASSEPORT_TALENT', 'CARTE_PLURIANNUELLE_VPF',
+  'CARTE_RESIDENT', 'APS', 'CST_VPF', 'CST_VPF_CONJOINT_FR', 'RECEPISSE_ASILE',
 ]);
 const BE_TITRE_CODES = new Set([
   'CARTE_A_TRAVAIL', 'CARTE_A_ETUDES', 'CARTE_A_FAMILLE', 'CARTE_B', 'CARTE_C',
@@ -79,10 +83,17 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     { value: 'VLS_TS_ETUDIANT', label: 'VLS-TS Étudiant' },
     { value: 'VLS_TS_SALARIE', label: 'VLS-TS Salarié' },
     { value: 'CST_SALARIE', label: 'CST Salarié' },
-    { value: 'CARTE_PLURIANNUELLE', label: 'Carte pluriannuelle' },
+    // SF-IM-07-04 : le générique reste pour rétro-compat mais renvoie un
+    // message CONDITIONNEL invitant à choisir un sous-type.
+    { value: 'CARTE_PLURIANNUELLE', label: 'Carte pluriannuelle (générique — préciser le motif)' },
+    { value: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE', label: 'Carte pluriannuelle — Étudiant / Étudiant-Recherche' },
+    { value: 'CARTE_PLURIANNUELLE_SALARIE', label: 'Carte pluriannuelle — Salarié' },
+    { value: 'CARTE_PLURIANNUELLE_PASSEPORT_TALENT', label: 'Carte pluriannuelle — Passeport Talent' },
+    { value: 'CARTE_PLURIANNUELLE_VPF', label: 'Carte pluriannuelle — Vie privée et familiale' },
     { value: 'CARTE_RESIDENT', label: 'Carte de résident' },
     { value: 'APS', label: 'APS' },
-    { value: 'CST_VPF', label: 'Carte vie privée et familiale' },
+    { value: 'CST_VPF', label: 'Carte vie privée et familiale (générique)' },
+    { value: 'CST_VPF_CONJOINT_FR', label: 'CST VPF — Conjoint de Français (L.423-1)' },
     { value: 'RECEPISSE_ASILE', label: 'Récépissé demande d\'asile' },
   ];
 

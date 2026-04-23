@@ -44,14 +44,53 @@ public final class ImmigrationWorkRightReferentiel {
                     ),
                     "Articles L. 421-1 et L. 421-3 du CESEDA"),
 
-            new WorkRightResult("CARTE_PLURIANNUELLE", "Carte pluriannuelle", "FRANCE", OUI,
-                    "Droit au travail inclus. Dispense de demander une autorisation de travail pour tout employeur.",
+            // SF-IM-07-04 : CARTE_PLURIANNUELLE est un conteneur juridique couvrant
+            // 4 régimes à droit au travail DIFFÉRENT. Générique → CONDITIONNEL avec
+            // invitation à utiliser les sous-types. Les 4 sous-types suivent.
+            new WorkRightResult("CARTE_PLURIANNUELLE", "Carte pluriannuelle (sélectionner le motif)", "FRANCE", CONDITIONNEL,
+                    "Le droit au travail dépend du motif mentionné sur la carte pluriannuelle. Sélectionnez le sous-type précis : Étudiant-Recherche (964 h/an soit 60 %), Salarié (plein droit), Passeport Talent (plein droit), VPF (plein droit).",
                     List.of(
-                            "Vérification de la validité du titre",
+                            "Identifier le motif exact sur la carte (mention Étudiant / Salarié / Passeport Talent / Vie privée et familiale)",
+                            "Utiliser la variante précise du titre pour connaître le régime applicable",
+                            "Déclaration d'embauche (DPAE)"
+                    ),
+                    "Article L. 421-9 du CESEDA"),
+
+            new WorkRightResult("CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE", "Carte pluriannuelle — Étudiant / Étudiant-Recherche", "FRANCE", CONDITIONNEL,
+                    "Autorisé à travailler 964 heures par an (60 % de la durée annuelle légale). Pas d'autorisation de travail préalable requise. Identique au régime VLS-TS Étudiant.",
+                    List.of(
+                            "Vérifier la mention Étudiant ou Étudiant-Recherche sur le titre",
+                            "S'assurer du respect du plafond de 964 heures/an",
+                            "Conserver une copie du titre de séjour",
+                            "Sanctions : amende de 15 000 € par salarié étranger en situation irrégulière (art. L. 8256-2 Code du travail)"
+                    ),
+                    "CESEDA L. 421-9 et L. 422-1 ; R. 5221-26 ; Code du travail L. 8251-1"),
+
+            new WorkRightResult("CARTE_PLURIANNUELLE_SALARIE", "Carte pluriannuelle — Salarié", "FRANCE", OUI,
+                    "Droit au travail plein et entier pour tout employeur. Dispense d'autorisation de travail préalable. Changement d'employeur libre (contrairement à la CST Salarié 1 an).",
+                    List.of(
+                            "Vérifier la validité du titre",
                             "Déclaration d'embauche (DPAE)",
                             "Conserver une copie du titre"
                     ),
                     "Article L. 421-9 du CESEDA"),
+
+            new WorkRightResult("CARTE_PLURIANNUELLE_PASSEPORT_TALENT", "Carte pluriannuelle — Passeport Talent", "FRANCE", OUI,
+                    "Droit au travail plein et entier dans l'activité mentionnée sur le titre (chercheur, cadre supérieur, créateur d'entreprise, artiste, etc.). Dispense d'autorisation de travail préalable. Durée 4 ans renouvelable.",
+                    List.of(
+                            "Vérifier l'activité mentionnée sur le titre (doit couvrir le poste)",
+                            "Déclaration d'embauche (DPAE)",
+                            "Conserver une copie du titre"
+                    ),
+                    "CESEDA L. 421-9 à L. 421-22"),
+
+            new WorkRightResult("CARTE_PLURIANNUELLE_VPF", "Carte pluriannuelle — Vie privée et familiale", "FRANCE", OUI,
+                    "Droit au travail plein et entier. Aucune restriction de métier, secteur ou employeur. Identique au régime de la CST Vie privée et familiale 1 an.",
+                    List.of(
+                            "Vérifier la validité du titre",
+                            "Déclaration d'embauche (DPAE)"
+                    ),
+                    "CESEDA L. 421-9 et L. 423-1 s."),
 
             new WorkRightResult("CARTE_RESIDENT", "Carte de résident (10 ans)", "FRANCE", OUI,
                     "Droit au travail plein et entier. Aucune restriction de métier, secteur ou employeur.",
@@ -77,6 +116,18 @@ public final class ImmigrationWorkRightReferentiel {
                             "Déclaration d'embauche (DPAE)"
                     ),
                     "Article L. 423-1 du CESEDA"),
+
+            // SF-IM-07-04 : code parallèle à CST_VPF_CONJOINT_FR de F-IM-01 (checklist).
+            // Nécessaire pour que l'outil droit au travail reconnaisse ce code quand
+            // inferChecklistType renvoie CST_VPF_CONJOINT_FR (mariage avec Français).
+            new WorkRightResult("CST_VPF_CONJOINT_FR", "CST Vie privée et familiale — Conjoint de Français (L.423-1)", "FRANCE", OUI,
+                    "Droit au travail plein et entier dès délivrance du titre. Aucune restriction de métier, secteur ou employeur. Pas d'autorisation de travail requise.",
+                    List.of(
+                            "Vérifier la validité du titre",
+                            "Déclaration d'embauche (DPAE)",
+                            "Conserver une copie du titre"
+                    ),
+                    "CESEDA L. 423-1 ; L. 421-1 du Code du travail"),
 
             new WorkRightResult("RECEPISSE_ASILE", "Récépissé de demande d'asile", "FRANCE", CONDITIONNEL,
                     "Pas de droit au travail pendant les 6 premiers mois. Après 6 mois sans décision de l'OFPRA, le demandeur peut demander une autorisation provisoire de travail (APT).",

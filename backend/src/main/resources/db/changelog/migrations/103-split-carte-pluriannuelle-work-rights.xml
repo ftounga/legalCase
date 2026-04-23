@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        SF-IM-07-04 : F-IM-07 droit au travail — la "Carte pluriannuelle" générique
+        répond "OUI" (plein droit) sans distinguer les sous-motifs. Or c'est un
+        conteneur juridique regroupant 4 régimes à droit au travail DIFFÉRENT :
+          - Étudiant-Recherche → 964 h/an (60 %)
+          - Salarié → plein droit
+          - Passeport Talent → plein droit
+          - VPF (famille) → plein droit
+        De plus, le code CST_VPF_CONJOINT_FR (L.423-1), utilisé par F-IM-01 checklist,
+        n'avait pas d'équivalent work rights → incohérence entre les 2 outils.
+
+        Migration :
+          1. Requalifie CARTE_PLURIANNUELLE FR en CONDITIONNEL avec message clair
+          2. Ajoute 4 sous-types explicites de pluriannuelle
+          3. Ajoute CST_VPF_CONJOINT_FR (L.423-1)
+
+        Respecte l'invariant "outil décisionnel = une situation métier"
+        (feedback_decision_tools_one_per_situation).
+    -->
+
+    <changeSet id="103-update-carte-pluriannuelle-generic" author="legalcase">
+        <comment>
+            SF-IM-07-04 : requalifie le code générique CARTE_PLURIANNUELLE FR en CONDITIONNEL
+            avec message explicite invitant à sélectionner le sous-type précis.
+        </comment>
+
+        <sql>
+<![CDATA[
+UPDATE legal_referentials
+SET value_json = '{"droitTravail":"CONDITIONNEL","conditions":"Le droit au travail dépend du motif mentionné sur la carte pluriannuelle. Sélectionnez le sous-type précis : Étudiant-Recherche (964 h/an soit 60 %), Salarié (plein droit), Passeport Talent (plein droit), VPF (plein droit).","obligationsEmployeur":["Identifier le motif exact sur la carte (mention Étudiant / Salarié / Passeport Talent / Vie privée et familiale)","Utiliser la variante précise du titre pour connaître le régime applicable","Déclaration d''embauche (DPAE)"]}',
+    label = 'Carte pluriannuelle (sélectionner le motif)',
+    updated_at = NOW()
+WHERE id = 'f1100001-0000-0000-0000-000000000054';
+]]>
+        </sql>
+    </changeSet>
+
+    <changeSet id="103-insert-carte-pluriannuelle-sous-types" author="legalcase">
+        <comment>
+            SF-IM-07-04 : ajoute les 4 sous-types de carte pluriannuelle FR en tant
+            qu'entrées IMMIGRATION_WORK_RIGHTS distinctes, chacune avec son régime
+            de travail propre (CESEDA L.421-9 + motif spécifique).
+        </comment>
+
+        <sql>
+<![CDATA[
+INSERT INTO legal_referentials
+(id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_active, is_system, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000301', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_WORK_RIGHTS', 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE',
+'{"droitTravail":"CONDITIONNEL","conditions":"Autorisé à travailler 964 heures par an (60 % de la durée annuelle légale). Pas d''autorisation de travail préalable requise. Identique au régime VLS-TS Étudiant.","obligationsEmployeur":["Vérifier la mention Étudiant ou Étudiant-Recherche sur le titre","S''assurer du respect du plafond de 964 heures/an","Conserver une copie du titre de séjour","Sanctions : amende de 15 000 € par salarié étranger en situation irrégulière (art. L. 8256-2 Code du travail)"]}',
+'Carte pluriannuelle — Étudiant / Étudiant-Recherche',
+'FRANCE', true, true,
+'CESEDA L. 421-9 et L. 422-1 ; R. 5221-26 ; Code du travail L. 8251-1',
+'Sous-motif Étudiant / Étudiant-Recherche de la carte pluriannuelle. Régime de travail restreint à 964 h/an (60 %) identique au VLS-TS Étudiant. Pour passer au plein temps, envisager un changement de statut (CDI + autorisation de travail, ou mariage avec Français → L.423-1).',
+NOW(), NULL);
+]]>
+        </sql>
+
+        <sql>
+<![CDATA[
+INSERT INTO legal_referentials
+(id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_active, is_system, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000302', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_WORK_RIGHTS', 'CARTE_PLURIANNUELLE_SALARIE',
+'{"droitTravail":"OUI","conditions":"Droit au travail plein et entier pour tout employeur. Dispense d''autorisation de travail préalable. Changement d''employeur libre (contrairement à la CST Salarié 1 an).","obligationsEmployeur":["Vérifier la validité du titre","Déclaration d''embauche (DPAE)","Conserver une copie du titre"]}',
+'Carte pluriannuelle — Salarié',
+'FRANCE', true, true,
+'CESEDA L. 421-9',
+'Sous-motif Salarié de la carte pluriannuelle (généralement délivrée après 1 an de CST Salarié). Plein droit au travail, tous employeurs, toutes fonctions — sans nouvelle autorisation en cas de changement d''employeur.',
+NOW(), NULL);
+]]>
+        </sql>
+
+        <sql>
+<![CDATA[
+INSERT INTO legal_referentials
+(id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_active, is_system, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000303', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_WORK_RIGHTS', 'CARTE_PLURIANNUELLE_PASSEPORT_TALENT',
+'{"droitTravail":"OUI","conditions":"Droit au travail plein et entier dans l''activité mentionnée sur le titre (chercheur, cadre supérieur, créateur d''entreprise, artiste, etc.). Dispense d''autorisation de travail préalable. Durée 4 ans renouvelable.","obligationsEmployeur":["Vérifier l''activité mentionnée sur le titre (doit couvrir le poste)","Déclaration d''embauche (DPAE)","Conserver une copie du titre"]}',
+'Carte pluriannuelle — Passeport Talent',
+'FRANCE', true, true,
+'CESEDA L. 421-9 à L. 421-22',
+'Sous-motif Passeport Talent de la carte pluriannuelle (4 ans). Cible les profils qualifiés : chercheurs, cadres supérieurs rémunérés, créateurs d''entreprise, artistes, sportifs. Plein droit au travail dans l''activité mentionnée.',
+NOW(), NULL);
+]]>
+        </sql>
+
+        <sql>
+<![CDATA[
+INSERT INTO legal_referentials
+(id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_active, is_system, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000304', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_WORK_RIGHTS', 'CARTE_PLURIANNUELLE_VPF',
+'{"droitTravail":"OUI","conditions":"Droit au travail plein et entier. Aucune restriction de métier, secteur ou employeur. Identique au régime de la CST Vie privée et familiale 1 an.","obligationsEmployeur":["Vérifier la validité du titre","Déclaration d''embauche (DPAE)"]}',
+'Carte pluriannuelle — Vie privée et familiale',
+'FRANCE', true, true,
+'CESEDA L. 421-9 et L. 423-1 s.',
+'Sous-motif Vie privée et familiale de la carte pluriannuelle (généralement délivrée après 1 an de CST VPF). Plein droit au travail sans restriction. Distinct de CST_VPF_CONJOINT_FR qui est le code du titre 1 an initial pour conjoint de Français.',
+NOW(), NULL);
+]]>
+        </sql>
+    </changeSet>
+
+    <changeSet id="103-insert-cst-vpf-conjoint-fr-work-right" author="legalcase">
+        <comment>
+            SF-IM-07-04 : ajoute l'entrée work rights pour CST_VPF_CONJOINT_FR
+            (L.423-1), manquante jusqu'ici. Code utilisé par F-IM-01 checklist pour
+            les situations "mariage avec ressortissant français" → doit exister
+            aussi côté F-IM-07 pour cohérence entre les 2 outils.
+        </comment>
+
+        <sql>
+<![CDATA[
+INSERT INTO legal_referentials
+(id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_active, is_system, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000305', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_WORK_RIGHTS', 'CST_VPF_CONJOINT_FR',
+'{"droitTravail":"OUI","conditions":"Droit au travail plein et entier dès délivrance du titre. Aucune restriction de métier, secteur ou employeur. Pas d''autorisation de travail requise.","obligationsEmployeur":["Vérifier la validité du titre","Déclaration d''embauche (DPAE)","Conserver une copie du titre"]}',
+'CST Vie privée et familiale — Conjoint de Français (L.423-1)',
+'FRANCE', true, true,
+'CESEDA L. 423-1 ; L. 421-1 du Code du travail',
+'Carte de séjour temporaire 1 an délivrée au conjoint étranger d''un ressortissant français (art. L.423-1 CESEDA). Juridiquement distincte du regroupement familial (L.434-*). Plein droit au travail dès délivrance, sans restriction. Code parallèle à CST_VPF_CONJOINT_FR côté F-IM-01 checklist pour cohérence inter-outils.',
+NOW(), NULL);
+]]>
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
