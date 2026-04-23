@@ -1092,6 +1092,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       documentId: doc.id,
       pieces: doc.pieces ?? [],
       initialPieceId,
+      // SF-145-11 : permet au dialog de filtrer les types autorisés dans le
+      // dialog de reclassification selon le domaine du dossier.
+      legalDomain: this.caseFile()?.legalDomain ?? undefined,
     };
     this.dialog.open(DocumentPreviewDialogComponent, {
       data,

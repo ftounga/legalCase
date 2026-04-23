@@ -1,7 +1,7 @@
 import { Component, Inject, ViewChild, ElementRef, signal, computed, AfterViewInit } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -9,8 +9,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocumentService } from '../../core/services/document.service';
 import { DocumentPreview } from '../../core/models/document-preview.model';
 import {
-  DocumentPieceSummary, documentPieceTypeIcon, documentPieceTypeLabel
+  DocumentPieceSummary, documentPieceTypeIcon, documentPieceTypeLabel,
+  applicableForDomain,
 } from '../../core/models/document.model';
+import { PieceEditDialogComponent, PieceEditDialogData } from '../piece-edit-dialog/piece-edit-dialog.component';
 
 /**
  * SF-145-08 : extrait les sections "=== PAGE N ===" pour les pages [start, end].
@@ -42,6 +44,8 @@ export interface DocumentPreviewDialogData {
   pieces?: DocumentPieceSummary[];
   /** SF-145-02 : pièce à sélectionner à l'ouverture (sinon la 1ère). */
   initialPieceId?: string;
+  /** SF-145-11 : domaine du workspace courant pour filtrer les types autorisés lors de la reclassification. */
+  legalDomain?: string;
 }
 
 @Component({
@@ -116,7 +120,8 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
   constructor(
     public dialogRef: MatDialogRef<DocumentPreviewDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DocumentPreviewDialogData,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private dialog: MatDialog
   ) {
     this.pieces.set(data.pieces ?? []);
     // Sélection initiale : pieceId explicite > 1ère pièce > rien.
@@ -183,6 +188,24 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
     const p = this.preview();
     if (!p || p.extractionStatus !== 'DONE') return false;
     return !p.extractedText || p.extractedText.trim().length === 0;
+  }
+
+  /** SF-145-11 : ouvre le dialog de reclassification pour la pièce sélectionnée. */
+  openEditPiece(): void {
+    const piece = this.selectedPiece();
+    if (!piece) return;
+    const allowedTypes = applicableForDomain(this.data.legalDomain);
+    const data: PieceEditDialogData = {
+      caseFileId: this.data.caseFileId,
+      documentId: this.data.documentId,
+      piece,
+      allowedTypes,
+    };
+    const ref = this.dialog.open(PieceEditDialogComponent, { data, width: '480px', maxWidth: '95vw' });
+    ref.afterClosed().subscribe((updated: DocumentPieceSummary | null | undefined) => {
+      if (!updated) return;
+      this.pieces.update(list => list.map(p => p.id === updated.id ? updated : p));
+    });
   }
 
   pieceHeaderLabel(piece: DocumentPieceSummary): string {

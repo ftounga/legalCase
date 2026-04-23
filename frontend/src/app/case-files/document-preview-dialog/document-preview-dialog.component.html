@@ -82,6 +82,12 @@
         <div class="selected-piece-banner">
           <mat-icon class="selected-piece-icon">{{ pieceTypeIcon(sp.type) }}</mat-icon>
           <span class="selected-piece-title">{{ pieceHeaderLabel(sp) }}</span>
+          <button mat-icon-button type="button"
+                  class="selected-piece-edit-btn"
+                  matTooltip="Reclassifier (corriger le type ou le libellé)"
+                  (click)="openEditPiece()">
+            <mat-icon>edit</mat-icon>
+          </button>
           @if (sp.visionStatus === 'PENDING') {
             <span class="selected-piece-badge selected-piece-badge--pending"
                   matTooltip="LegalCase Vision analyse cette pièce en arrière-plan">

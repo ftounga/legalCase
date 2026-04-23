@@ -273,6 +273,25 @@
   line-height: 16px;
 }
 
+/* SF-145-11 : bouton reclassifier en tête de pièce sélectionnée. */
+.selected-piece-edit-btn {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  margin-left: 4px;
+  color: #6B7A8D;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    color: #C9973A;
+  }
+}
+
 .selected-piece-badge {
   display: inline-flex;
   align-items: center;
