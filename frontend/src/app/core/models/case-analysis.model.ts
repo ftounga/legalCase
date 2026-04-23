@@ -116,6 +116,8 @@ export interface CaseAnalysisResult {
   piecesManquantesDetails?: PieceManquanteEntry[] | null;
   /** F-150 : événements factuels détectés qui ouvrent un nouveau droit de séjour (liste vide hors immigration). */
   immigrationTriggerEvents?: ImmigrationTriggerEvent[] | null;
+  /** F-151 : scenarii stratégiques immigration comparés (liste vide si aucun choix stratégique ouvert). */
+  immigrationStrategyScenarios?: ImmigrationStrategyScenario[] | null;
 }
 
 /** F-150 SF-150-01 : événement déclencheur immigration détecté dans le dossier. */
@@ -128,6 +130,23 @@ export interface ImmigrationTriggerEvent {
   baseLegale: string;
   suggestedTitleCode: string;
   suggestedTitleLabel: string;
+}
+
+/** F-151 SF-151-01 : scénario stratégique immigration. */
+export type StrategyRiskLevel = 'FAIBLE' | 'MOYEN' | 'ELEVE';
+
+export interface ImmigrationStrategyScenario {
+  scenarioLabel: string;
+  scenarioDescription: string;
+  baseLegale: string | null;
+  targetTitleCode: string | null;
+  targetTitleLabel: string | null;
+  delayDaysEstimate: string | null;
+  riskLevel: StrategyRiskLevel | null;
+  riskJustification: string | null;
+  requiredAdditionalPieces: string[];
+  advantages: string[];
+  drawbacks: string[];
 }
 
 export interface PieceManquanteEntry {

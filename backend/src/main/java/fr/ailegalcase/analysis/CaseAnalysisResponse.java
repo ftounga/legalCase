@@ -39,7 +39,9 @@ public record CaseAnalysisResponse(
         RuptureConvValidityDetection ruptureConvValidityDetection,
         List<PieceManquanteEntry> piecesManquantesDetails,
         // F-150 : événements factuels immigration détectés (liste vide hors domaine immigration).
-        List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents
+        List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents,
+        // F-151 : scenarii stratégiques immigration (liste vide si aucun choix stratégique ouvert).
+        List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios
 ) {
 
     /** Constructeur rétrocompat sans trigger events (pré-F-150). */
@@ -65,7 +67,7 @@ public record CaseAnalysisResponse(
                 updatedAt, analysisDocuments, compensationEstimate, belgianCompensationEstimate,
                 pensionAlimentaireEstimate, prestationCompensatoireEstimate, liquidationCommunaute,
                 travailExtractedData, immigrationExtractedData, licenciementValidityDetection,
-                ruptureConvValidityDetection, piecesManquantesDetails, List.of());
+                ruptureConvValidityDetection, piecesManquantesDetails, List.of(), List.of());
     }
 
     public record PieceManquanteEntry(String texte, String critereCode) {}
@@ -254,6 +256,7 @@ public record CaseAnalysisResponse(
         RuptureConvValidityDetection ruptureConvValidityDetection = null;
         List<PieceManquanteEntry> piecesManquantesDetails = List.of();
         List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents = List.of();
+        List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios = List.of();
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -276,6 +279,7 @@ public record CaseAnalysisResponse(
                 licenciementValidityDetection = extractLicenciementValidityDetection(root);
                 ruptureConvValidityDetection = extractRuptureConvValidityDetection(root);
                 immigrationTriggerEvents = extractImmigrationTriggerEvents(root);
+                immigrationStrategyScenarios = extractImmigrationStrategyScenarios(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -310,7 +314,8 @@ public record CaseAnalysisResponse(
                 licenciementValidityDetection,
                 ruptureConvValidityDetection,
                 piecesManquantesDetails,
-                immigrationTriggerEvents
+                immigrationTriggerEvents,
+                immigrationStrategyScenarios
         );
     }
 
@@ -596,6 +601,55 @@ public record CaseAnalysisResponse(
         if (n == null || n.isNull() || !n.isTextual()) return null;
         String v = n.asText().trim();
         return v.isEmpty() ? null : v;
+    }
+
+    /** F-151 SF-151-01 : parse les scenarii stratégiques immigration. Fail-open. */
+    static List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> extractImmigrationStrategyScenarios(JsonNode root) {
+        JsonNode node = root.get("strategy_scenarios");
+        if (node == null || !node.isArray() || node.isEmpty()) return List.of();
+
+        Set<String> VALID_RISK = Set.of("FAIBLE", "MOYEN", "ELEVE");
+        List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (!item.isObject()) continue;
+
+            String label = textOrNull(item.get("scenario_label"));
+            String description = textOrNull(item.get("scenario_description"));
+            if (label == null || description == null) continue;
+
+            String riskLevel = textOrNull(item.get("risk_level"));
+            if (riskLevel != null) {
+                String upper = riskLevel.toUpperCase();
+                riskLevel = VALID_RISK.contains(upper) ? upper : null;
+            }
+
+            result.add(new fr.ailegalcase.immigration.ImmigrationStrategyScenario(
+                    label,
+                    description,
+                    textOrNull(item.get("base_legale")),
+                    textOrNull(item.get("target_title_code")),
+                    textOrNull(item.get("target_title_label")),
+                    textOrNull(item.get("delay_days_estimate")),
+                    riskLevel,
+                    textOrNull(item.get("risk_justification")),
+                    extractStringArray(item.get("required_additional_pieces")),
+                    extractStringArray(item.get("advantages")),
+                    extractStringArray(item.get("drawbacks"))
+            ));
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<String> extractStringArray(JsonNode n) {
+        if (n == null || !n.isArray()) return List.of();
+        List<String> out = new ArrayList<>();
+        for (JsonNode item : n) {
+            if (item.isTextual()) {
+                String v = item.asText().trim();
+                if (!v.isEmpty()) out.add(v);
+            }
+        }
+        return out;
     }
 
     static List<PieceManquanteEntry> extractPiecesManquantesDetails(JsonNode root) {

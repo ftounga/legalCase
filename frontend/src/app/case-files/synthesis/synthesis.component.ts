@@ -25,7 +25,8 @@ import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
 import { ImmigrationEventsSectionComponent } from '../immigration-events-section/immigration-events-section.component';
-import { ImmigrationTriggerEvent } from '../../core/models/case-analysis.model';
+import { ImmigrationStrategyComparatorSectionComponent } from '../immigration-strategy-comparator-section/immigration-strategy-comparator-section.component';
+import { ImmigrationStrategyScenario, ImmigrationTriggerEvent } from '../../core/models/case-analysis.model';
 import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
@@ -42,7 +43,8 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
     MatProgressSpinnerModule, MatExpansionModule,
     MatCheckboxModule, MatTooltipModule,
     SourceRefComponent,
-    ImmigrationEventsSectionComponent
+    ImmigrationEventsSectionComponent,
+    ImmigrationStrategyComparatorSectionComponent
   ],
   templateUrl: './synthesis.component.html',
   styleUrl: './synthesis.component.scss',
@@ -351,6 +353,11 @@ export class SynthesisComponent implements OnInit {
   /** F-150 : événements déclencheurs immigration détectés. Liste vide hors immigration. */
   get immigrationTriggerEvents(): ImmigrationTriggerEvent[] {
     return this.synthesis()?.immigrationTriggerEvents ?? [];
+  }
+
+  /** F-151 : scenarii stratégiques immigration comparés. Liste vide si aucun choix stratégique ouvert. */
+  get immigrationStrategyScenarios(): ImmigrationStrategyScenario[] {
+    return this.synthesis()?.immigrationStrategyScenarios ?? [];
   }
 
   get prestationCompensatoireEstimate(): PrestationCompensatoireEstimate | null {
