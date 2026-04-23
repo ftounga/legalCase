@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="100-add-vision-status-to-document-pieces" author="legalcase">
+        <comment>
+            SF-148-03 : colonne `vision_status` pour tracker l'avancement de
+            l'enrichissement visuel par pièce (NOT_APPLICABLE / PENDING / DONE /
+            FAILED). Permet d'afficher un spinner côté frontend pendant l'appel
+            Anthropic async.
+        </comment>
+
+        <addColumn tableName="document_pieces">
+            <column name="vision_status" type="varchar(20)" defaultValue="NOT_APPLICABLE">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <!-- Bootstrap : les pièces pré-SF-148 ayant déjà une description sont marquées DONE. -->
+        <sql>
+            UPDATE document_pieces
+               SET vision_status = 'DONE'
+             WHERE visual_description IS NOT NULL AND visual_description &lt;&gt; '';
+        </sql>
+
+        <rollback>
+            <dropColumn tableName="document_pieces" columnName="vision_status"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

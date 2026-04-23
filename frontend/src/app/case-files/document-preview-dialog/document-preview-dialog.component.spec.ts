@@ -188,6 +188,21 @@ describe('DocumentPreviewDialogComponent', () => {
       expect(visionIcons.length).toBe(1);
     });
 
+    it('U-05 — SF-148-03 : piece PENDING affiche un spinner dans la sidebar + encart "en cours"', async () => {
+      const pending: DocumentPieceSummary[] = [
+        { id: 'p1', type: 'SMS', label: 'En attente', pageStart: 1, pageEnd: 1, orderIndex: 0,
+          visionStatus: 'PENDING' },
+        { id: 'p2', type: 'CONTRAT', label: 'CDI', pageStart: 2, pageEnd: 3, orderIndex: 1,
+          visionStatus: 'NOT_APPLICABLE' },
+      ];
+      await setup(base, pending);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelectorAll('.piece-item-vision-spinner').length).toBe(1);
+      expect(el.querySelector('.selected-piece-badge--pending')).not.toBeNull();
+      expect(el.querySelector('.vision-panel--pending')).not.toBeNull();
+      expect(el.querySelector('.vision-panel--pending')?.textContent).toContain('LegalCase Vision');
+    });
+
     it('U-04 — aucune pièce enrichie → pas de badge/panel/icône dans la sidebar', async () => {
       const plain: DocumentPieceSummary[] = [
         { id: 'p1', type: 'CONTRAT', label: 'CDI', pageStart: 1, pageEnd: 2, orderIndex: 0 },
