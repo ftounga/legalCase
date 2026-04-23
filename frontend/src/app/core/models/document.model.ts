@@ -32,6 +32,8 @@ export interface DocumentPieceSummary {
   pageStart: number;
   pageEnd: number;
   orderIndex: number;
+  /** SF-148-01 : description visuelle produite par Claude Vision (null si non enrichi). */
+  visualDescription?: string | null;
 }
 
 export interface Document {

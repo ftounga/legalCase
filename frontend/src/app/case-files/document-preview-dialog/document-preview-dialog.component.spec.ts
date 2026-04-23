@@ -154,6 +154,53 @@ describe('DocumentPreviewDialogComponent', () => {
     });
   });
 
+  // SF-148-02 : affichage description visuelle Claude Vision
+  describe('SF-148-02 — vision description display', () => {
+    const pieces: DocumentPieceSummary[] = [
+      { id: 'p1', type: 'SMS', label: 'Échanges Anne', pageStart: 1, pageEnd: 1, orderIndex: 0,
+        visualDescription: 'Conversation entre deux numéros, à gauche en vert Fatima, à droite en gris Anne.' },
+      { id: 'p2', type: 'CONTRAT', label: 'CDI Dupont', pageStart: 2, pageEnd: 4, orderIndex: 1 },
+    ];
+
+    it('U-01 — piece enrichie visible → badge Vision + panneau description affichés', async () => {
+      await setup(base, pieces);
+      const el: HTMLElement = fixture.nativeElement;
+      const badges = el.querySelectorAll('.selected-piece-badge');
+      expect(badges.length).toBe(1);
+      const panel = el.querySelector('.vision-panel-body');
+      expect(panel).not.toBeNull();
+      expect(panel!.textContent).toContain('Fatima');
+    });
+
+    it('U-02 — selection bascule vers piece non enrichie → badge et panneau disparaissent', async () => {
+      await setup(base, pieces);
+      component.selectPiece('p2');
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.selected-piece-badge')).toBeNull();
+      expect(el.querySelector('.vision-panel-body')).toBeNull();
+    });
+
+    it('U-03 — sidebar : pièce enrichie a l\'icône visibility', async () => {
+      await setup(base, pieces);
+      const el: HTMLElement = fixture.nativeElement;
+      const visionIcons = el.querySelectorAll('.piece-item-vision');
+      expect(visionIcons.length).toBe(1);
+    });
+
+    it('U-04 — aucune pièce enrichie → pas de badge/panel/icône dans la sidebar', async () => {
+      const plain: DocumentPieceSummary[] = [
+        { id: 'p1', type: 'CONTRAT', label: 'CDI', pageStart: 1, pageEnd: 2, orderIndex: 0 },
+        { id: 'p2', type: 'LETTRE', label: 'Licenciement', pageStart: 3, pageEnd: 3, orderIndex: 1 },
+      ];
+      await setup(base, plain);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.selected-piece-badge')).toBeNull();
+      expect(el.querySelector('.vision-panel-body')).toBeNull();
+      expect(el.querySelectorAll('.piece-item-vision').length).toBe(0);
+    });
+  });
+
   // SF-145-08 : extractPagesRange unit tests (export pur)
   describe('SF-145-08 — extractPagesRange', () => {
     const text =

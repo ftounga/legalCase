@@ -51,7 +51,13 @@
                       (click)="selectPiece(piece.id)">
                 <mat-icon class="piece-item-icon">{{ pieceTypeIcon(piece.type) }}</mat-icon>
                 <div class="piece-item-body">
-                  <div class="piece-item-type">{{ pieceTypeLabel(piece.type) }}</div>
+                  <div class="piece-item-type">
+                    {{ pieceTypeLabel(piece.type) }}
+                    @if (piece.visualDescription) {
+                      <mat-icon class="piece-item-vision"
+                                matTooltip="Description visuelle Claude Vision disponible">visibility</mat-icon>
+                    }
+                  </div>
                   <div class="piece-item-label">{{ piece.label ?? '—' }}</div>
                   <div class="piece-item-pages">
                     @if (piece.pageStart === piece.pageEnd) {
@@ -73,6 +79,22 @@
         <div class="selected-piece-banner">
           <mat-icon class="selected-piece-icon">{{ pieceTypeIcon(sp.type) }}</mat-icon>
           <span class="selected-piece-title">{{ pieceHeaderLabel(sp) }}</span>
+          @if (sp.visualDescription) {
+            <span class="selected-piece-badge" matTooltip="Claude Vision a analysé cette pièce">
+              <mat-icon>visibility</mat-icon>
+              Vision
+            </span>
+          }
+        </div>
+      }
+
+      @if (selectedPiece()?.visualDescription) {
+        <div class="vision-panel">
+          <div class="vision-panel-header">
+            <mat-icon class="vision-panel-icon">visibility</mat-icon>
+            <span class="vision-panel-title">Description visuelle (Claude Vision)</span>
+          </div>
+          <div class="vision-panel-body">{{ selectedPiece()!.visualDescription }}</div>
         </div>
       }
 
