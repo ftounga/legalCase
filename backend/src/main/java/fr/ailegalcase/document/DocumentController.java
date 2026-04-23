@@ -24,15 +24,18 @@ public class DocumentController {
     private final DocumentDeleteService documentDeleteService;
     private final DocumentPreviewService documentPreviewService;
     private final DocumentPieceUpdateService pieceUpdateService;
+    private final DocumentExtractionEditService extractionEditService;
 
     public DocumentController(DocumentService documentService,
                               DocumentDeleteService documentDeleteService,
                               DocumentPreviewService documentPreviewService,
-                              DocumentPieceUpdateService pieceUpdateService) {
+                              DocumentPieceUpdateService pieceUpdateService,
+                              DocumentExtractionEditService extractionEditService) {
         this.documentService = documentService;
         this.documentDeleteService = documentDeleteService;
         this.documentPreviewService = documentPreviewService;
         this.pieceUpdateService = pieceUpdateService;
+        this.extractionEditService = extractionEditService;
     }
 
     @GetMapping
@@ -113,6 +116,37 @@ public class DocumentController {
             Principal principal) {
         return pieceUpdateService.update(caseFileId, documentId, pieceId,
                 request.type(), request.label(),
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    /**
+     * SF-149-01 : édition manuelle de l'extrait OCR par l'avocat.
+     * Au 1er edit, la version d'origine est sauvegardée et peut être restaurée
+     * via {@link #resetExtraction}.
+     */
+    @PutMapping("/{documentId}/extraction")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void editExtraction(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @Valid @RequestBody EditExtractionRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        extractionEditService.editText(caseFileId, documentId, request.extractedText(),
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    /**
+     * SF-149-01 : réinitialise l'extrait à la version OCR d'origine.
+     */
+    @PostMapping("/{documentId}/extraction/reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetExtraction(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        extractionEditService.resetToOriginal(caseFileId, documentId,
                 oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 

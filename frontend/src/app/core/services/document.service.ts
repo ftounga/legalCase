@@ -53,4 +53,20 @@ export class DocumentService {
       { type, label }
     );
   }
+
+  /** SF-149-01 : édition manuelle de l'extrait OCR. */
+  editExtraction(caseFileId: string, documentId: string, extractedText: string): Observable<void> {
+    return this.http.put<void>(
+      `${this.apiUrl(caseFileId)}/${documentId}/extraction`,
+      { extractedText }
+    );
+  }
+
+  /** SF-149-01 : réinitialise l'extrait à la version OCR d'origine. */
+  resetExtraction(caseFileId: string, documentId: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl(caseFileId)}/${documentId}/extraction/reset`,
+      {}
+    );
+  }
 }

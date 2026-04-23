@@ -124,7 +124,8 @@ public class DocumentPreviewService {
                 charCount,
                 truncated,
                 ocrPagesUsed,
-                failureReason
+                failureReason,
+                extraction != null ? extraction.getTextEditedAt() : null
         );
     }
 }

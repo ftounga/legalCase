@@ -15,4 +15,6 @@ export interface DocumentPreview {
   textTruncated: boolean;
   ocrPagesUsed: number;
   failureReason: string | null;
+  /** SF-149-01 : timestamp ISO de la dernière édition manuelle, null si jamais édité */
+  textEditedAt: string | null;
 }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="102-add-manual-edit-to-extractions" author="legalcase">
+        <comment>
+            SF-149-01 : édition manuelle des extraits OCR par l'avocat.
+            extracted_text_original conserve la version OCR d'origine (backup pris
+            au 1er edit), text_edited_at timestamp de la dernière édition manuelle.
+            Les deux colonnes sont nullables — null = aucune édition manuelle.
+        </comment>
+
+        <addColumn tableName="document_extractions">
+            <column name="extracted_text_original" type="text"/>
+            <column name="text_edited_at" type="timestamp"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="document_extractions" columnName="extracted_text_original"/>
+            <dropColumn tableName="document_extractions" columnName="text_edited_at"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

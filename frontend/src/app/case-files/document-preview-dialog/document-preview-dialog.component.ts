@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { FormsModule } from '@angular/forms';
 import { DocumentService } from '../../core/services/document.service';
 import { DocumentPreview } from '../../core/models/document-preview.model';
 import {
@@ -52,7 +53,7 @@ export interface DocumentPreviewDialogData {
   selector: 'app-document-preview-dialog',
   standalone: true,
   imports: [
-    DatePipe, DecimalPipe,
+    DatePipe, DecimalPipe, FormsModule,
     MatButtonModule, MatDialogModule, MatIconModule,
     MatTabsModule, MatProgressSpinnerModule, MatTooltipModule
   ],
@@ -188,6 +189,76 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
     const p = this.preview();
     if (!p || p.extractionStatus !== 'DONE') return false;
     return !p.extractedText || p.extractedText.trim().length === 0;
+  }
+
+  /** SF-149-01 : mode édition manuelle de l'extrait. */
+  readonly editing = signal(false);
+  readonly editedText = signal('');
+  readonly editSaving = signal(false);
+  readonly editError = signal<string | null>(null);
+
+  startEdit(): void {
+    const p = this.preview();
+    if (!p?.extractedText) return;
+    this.editedText.set(p.extractedText);
+    this.editError.set(null);
+    this.editing.set(true);
+  }
+
+  cancelEdit(): void {
+    this.editing.set(false);
+    this.editError.set(null);
+  }
+
+  saveEdit(): void {
+    const text = this.editedText();
+    if (text === null || text === undefined) return;
+    this.editSaving.set(true);
+    this.editError.set(null);
+    this.documentService.editExtraction(this.data.caseFileId, this.data.documentId, text).subscribe({
+      next: () => {
+        // Refresh preview pour récupérer textEditedAt + nouveau extractedText
+        this.documentService.preview(this.data.caseFileId, this.data.documentId).subscribe({
+          next: p => {
+            this.preview.set(p);
+            this.editing.set(false);
+            this.editSaving.set(false);
+          },
+          error: () => {
+            this.editError.set('Extrait enregistré mais rechargement impossible.');
+            this.editSaving.set(false);
+          }
+        });
+      },
+      error: () => {
+        this.editError.set('Impossible d\'enregistrer les modifications.');
+        this.editSaving.set(false);
+      }
+    });
+  }
+
+  resetToOriginal(): void {
+    if (!confirm('Réinitialiser à la version OCR d\'origine ? Vos modifications seront perdues.')) return;
+    this.editSaving.set(true);
+    this.documentService.resetExtraction(this.data.caseFileId, this.data.documentId).subscribe({
+      next: () => {
+        this.documentService.preview(this.data.caseFileId, this.data.documentId).subscribe({
+          next: p => {
+            this.preview.set(p);
+            this.editing.set(false);
+            this.editSaving.set(false);
+          },
+          error: () => {
+            this.editError.set('Extrait réinitialisé mais rechargement impossible.');
+            this.editSaving.set(false);
+          }
+        });
+      },
+      error: () => {
+        this.editError.set('Impossible de réinitialiser l\'extrait.');
+        this.editSaving.set(false);
+      }
+    });
   }
 
   /** SF-145-11 : ouvre le dialog de reclassification pour la pièce sélectionnée. */
