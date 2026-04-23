@@ -37,8 +37,36 @@ public record CaseAnalysisResponse(
         ImmigrationExtractedData immigrationExtractedData,
         LicenciementValidityDetection licenciementValidityDetection,
         RuptureConvValidityDetection ruptureConvValidityDetection,
-        List<PieceManquanteEntry> piecesManquantesDetails
+        List<PieceManquanteEntry> piecesManquantesDetails,
+        // F-150 : événements factuels immigration détectés (liste vide hors domaine immigration).
+        List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents
 ) {
+
+    /** Constructeur rétrocompat sans trigger events (pré-F-150). */
+    public CaseAnalysisResponse(UUID id, int version, String analysisType, String status,
+                                List<TimelineEntry> timeline,
+                                List<AnalysisItem> faits, List<AnalysisItem> pointsJuridiques,
+                                List<AnalysisItem> risques, List<String> questionsOuvertes,
+                                List<String> piecesManquantes, List<String> pointsProcedure,
+                                String riskLevel, Integer riskScore, String modelUsed,
+                                Instant updatedAt, List<AnalysisDocumentEntry> analysisDocuments,
+                                CompensationCalculator.CompensationEstimate compensationEstimate,
+                                BelgianCompensationCalculator.BelgianCompensationEstimate belgianCompensationEstimate,
+                                PensionAlimentaireCalculator.PensionAlimentaireEstimate pensionAlimentaireEstimate,
+                                PrestationCompensatoireCalculator.PrestationCompensatoireEstimate prestationCompensatoireEstimate,
+                                LiquidationCommunauteResult liquidationCommunaute,
+                                TravailExtractedData travailExtractedData,
+                                ImmigrationExtractedData immigrationExtractedData,
+                                LicenciementValidityDetection licenciementValidityDetection,
+                                RuptureConvValidityDetection ruptureConvValidityDetection,
+                                List<PieceManquanteEntry> piecesManquantesDetails) {
+        this(id, version, analysisType, status, timeline, faits, pointsJuridiques, risques,
+                questionsOuvertes, piecesManquantes, pointsProcedure, riskLevel, riskScore, modelUsed,
+                updatedAt, analysisDocuments, compensationEstimate, belgianCompensationEstimate,
+                pensionAlimentaireEstimate, prestationCompensatoireEstimate, liquidationCommunaute,
+                travailExtractedData, immigrationExtractedData, licenciementValidityDetection,
+                ruptureConvValidityDetection, piecesManquantesDetails, List.of());
+    }
 
     public record PieceManquanteEntry(String texte, String critereCode) {}
 
@@ -225,6 +253,7 @@ public record CaseAnalysisResponse(
         LicenciementValidityDetection licenciementValidityDetection = null;
         RuptureConvValidityDetection ruptureConvValidityDetection = null;
         List<PieceManquanteEntry> piecesManquantesDetails = List.of();
+        List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> immigrationTriggerEvents = List.of();
 
         String raw = stripMarkdownCodeBlock(analysis.getAnalysisResult());
         if (raw != null && !raw.isBlank()) {
@@ -246,6 +275,7 @@ public record CaseAnalysisResponse(
                 immigrationExtractedData = extractImmigrationData(root);
                 licenciementValidityDetection = extractLicenciementValidityDetection(root);
                 ruptureConvValidityDetection = extractRuptureConvValidityDetection(root);
+                immigrationTriggerEvents = extractImmigrationTriggerEvents(root);
             } catch (Exception ignored) {
                 // JSON malformé — on retourne les listes vides
             }
@@ -279,7 +309,8 @@ public record CaseAnalysisResponse(
                 immigrationExtractedData,
                 licenciementValidityDetection,
                 ruptureConvValidityDetection,
-                piecesManquantesDetails
+                piecesManquantesDetails,
+                immigrationTriggerEvents
         );
     }
 
@@ -520,6 +551,53 @@ public record CaseAnalysisResponse(
      * - legacy : array de strings
      * - nouveau : array d'objets {texte, critere_code?}
      */
+    /**
+     * F-150 SF-150-01 : parse le tableau {@code trigger_events} produit par l'IA
+     * pour les dossiers immigration. Fail-open : codes inconnus / dates invalides
+     * skippés silencieusement.
+     */
+    static List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> extractImmigrationTriggerEvents(JsonNode root) {
+        JsonNode node = root.get("trigger_events");
+        if (node == null || !node.isArray() || node.isEmpty()) return List.of();
+
+        List<fr.ailegalcase.immigration.ImmigrationTriggerEvent> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            if (!item.isObject()) continue;
+
+            JsonNode codeNode = item.get("event_code");
+            if (codeNode == null || !codeNode.isTextual()) continue;
+            var codeOpt = fr.ailegalcase.immigration.ImmigrationTriggerEventReferential
+                    .parseCode(codeNode.asText());
+            if (codeOpt.isEmpty()) continue; // code inconnu
+
+            var defOpt = fr.ailegalcase.immigration.ImmigrationTriggerEventReferential.resolve(codeOpt.get());
+            if (defOpt.isEmpty()) continue;
+            var def = defOpt.get();
+
+            String eventDate = textOrNull(item.get("event_date"));
+            String sourceDocument = textOrNull(item.get("source_document"));
+            String justification = textOrNull(item.get("justification"));
+
+            result.add(new fr.ailegalcase.immigration.ImmigrationTriggerEvent(
+                    codeOpt.get().name(),
+                    def.eventLabel(),
+                    eventDate,
+                    sourceDocument,
+                    justification,
+                    def.baseLegale(),
+                    def.suggestedTitleCode(),
+                    def.suggestedTitleLabel()
+            ));
+        }
+        return List.copyOf(result);
+    }
+
+    private static String textOrNull(JsonNode n) {
+        if (n == null || n.isNull() || !n.isTextual()) return null;
+        String v = n.asText().trim();
+        return v.isEmpty() ? null : v;
+    }
+
     static List<PieceManquanteEntry> extractPiecesManquantesDetails(JsonNode root) {
         JsonNode node = root.get("pieces_manquantes");
         if (node == null || !node.isArray()) return List.of();
