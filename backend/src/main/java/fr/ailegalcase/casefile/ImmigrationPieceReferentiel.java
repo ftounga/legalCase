@@ -117,6 +117,132 @@ public final class ImmigrationPieceReferentiel {
                     )
             )),
 
+            // SF-IM-10-01 : 9 sous-catégories CESEDA du Passeport Talent
+            // Conservation de PASSEPORT_TALENT comme alias générique (ci-dessus).
+            Map.entry("TALENT_CHERCHEUR", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Convention d'accueil signée par un organisme public ou privé de recherche (visée par la DGRI)",
+                            "Doctorat OU master avec perspective de recherche OU justificatif d'équivalence",
+                            "Justificatif de ressources (contrat de travail recherche, bourse, financement)",
+                            "Justificatif de domicile < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent chercheur"
+                    )
+            )),
+
+            Map.entry("TALENT_SALARIE_QUALIFIE", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Contrat de travail d'une durée ≥ 3 mois prévoyant une rémunération brute annuelle ≥ 2× SMIC",
+                            "Diplôme de niveau master (Bac+5) OU justificatif d'expérience professionnelle équivalente",
+                            "Fiches de paie antérieures (si emploi précédent équivalent)",
+                            "Justificatif de domicile < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent salarié qualifié"
+                    )
+            )),
+
+            Map.entry("TALENT_ENTREPRENEUR", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Projet de création d'entreprise en France détaillé (étude de marché, prévisionnel à 3 ans)",
+                            "Justificatif d'investissement personnel ≥ 30 000 € dans le capital",
+                            "Justificatif de diplôme ou d'expérience dans le domaine du projet (≥ 5 ans)",
+                            "Extrait Kbis si société déjà immatriculée",
+                            "Justificatif de domicile < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent créateur d'entreprise"
+                    )
+            )),
+
+            Map.entry("TALENT_INNOVANT", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Attestation de reconnaissance du caractère innovant du projet délivrée par le Ministère de l'Économie (ou avis favorable d'un incubateur agréé French Tech)",
+                            "Business plan détaillant l'innovation (technologique, industrielle, de service)",
+                            "Justificatif de financement (levée de fonds, prêt, capital propre ≥ 30 000 €)",
+                            "Diplôme ou expérience dans le domaine",
+                            "Justificatif de domicile < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent innovant"
+                    )
+            )),
+
+            Map.entry("TALENT_INVESTISSEUR", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Justificatif d'investissement direct en France ≥ 300 000 € (immobilisations corporelles ou incorporelles)",
+                            "Justificatif de création ou de sauvegarde d'au moins 1 emploi en France",
+                            "Extraits de compte / attestations bancaires prouvant l'origine et la disponibilité des fonds",
+                            "Extrait Kbis de la société support de l'investissement",
+                            "Justificatif de domicile < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent investisseur"
+                    )
+            )),
+
+            Map.entry("TALENT_PROFESSION_ARTISTIQUE", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Justificatif d'activité artistique ou culturelle (contrats, engagements, expositions, éditions)",
+                            "Justificatif de revenus issus de l'activité artistique ≥ 70 % du SMIC sur 12 mois",
+                            "Portfolio / book artistique (photos, enregistrements, publications)",
+                            "Attestations d'institutions culturelles ou de pairs reconnus",
+                            "Justificatif de domicile < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent profession artistique et culturelle"
+                    )
+            )),
+
+            Map.entry("TALENT_RENOMMEE_INTERNATIONALE", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Justificatifs attestant de la renommée nationale ou internationale du demandeur (prix, distinctions, publications presse, palmarès sportifs, grands concours, JO, Coupe du monde)",
+                            "Projet de séjour en France en lien avec la renommée (résidence, création, enseignement, représentation)",
+                            "Lettres de soutien d'institutions ou d'organismes reconnus",
+                            "Justificatif de ressources (honoraires, contrats, sponsoring, revenus propres)",
+                            "Justificatif de domicile < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent renommée nationale ou internationale"
+                    )
+            )),
+
+            Map.entry("TALENT_SALARIE_EN_MISSION", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité",
+                            "Attestation d'ancienneté ≥ 3 mois dans le groupe international",
+                            "Lettre de mission signée par l'employeur d'origine ET l'entité française du groupe",
+                            "Justificatif de la rémunération brute annuelle ≥ 1,8× SMIC pendant la mission",
+                            "Justificatif du lien capitalistique entre l'entité d'origine et l'entité française (organigramme groupe, Kbis)",
+                            "Contrat de travail initial",
+                            "Justificatif de domicile en France < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent salarié en mission"
+                    )
+            )),
+
+            Map.entry("TALENT_FAMILLE", Map.of(
+                    "FRANCE", List.of(
+                            "Passeport en cours de validité du demandeur",
+                            "Copie du titre de séjour Passeport Talent du bénéficiaire principal (conjoint/parent)",
+                            "Acte de mariage OU acte de naissance prouvant le lien familial (< 3 mois, légalisé/apostillé si étranger)",
+                            "Justificatif de communauté de vie ou de charge effective de l'enfant",
+                            "Justificatif de domicile commun < 3 mois",
+                            "Justificatif d'assurance maladie",
+                            "Photo d'identité (norme ANTS)",
+                            "Formulaire CERFA passeport talent famille"
+                    )
+            )),
+
             // ================================================================
             // FAMILLE — régimes distincts à ne pas confondre
             // ================================================================

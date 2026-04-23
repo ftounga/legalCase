@@ -59,4 +59,43 @@ class ImmigrationPieceReferentielTest {
         assertThat(ImmigrationPieceReferentiel.isCountryValid("BELGIQUE")).isTrue();
         assertThat(ImmigrationPieceReferentiel.isCountryValid("ALLEMAGNE")).isFalse();
     }
+
+    // SF-IM-10-01 — 9 sous-catégories Passeport Talent CESEDA
+    @Test
+    void passeportTalent_9sousCategories_france_returnsNonEmptyList() {
+        String[] codes = {
+                "TALENT_CHERCHEUR",
+                "TALENT_SALARIE_QUALIFIE",
+                "TALENT_ENTREPRENEUR",
+                "TALENT_INNOVANT",
+                "TALENT_INVESTISSEUR",
+                "TALENT_PROFESSION_ARTISTIQUE",
+                "TALENT_RENOMMEE_INTERNATIONALE",
+                "TALENT_SALARIE_EN_MISSION",
+                "TALENT_FAMILLE",
+        };
+        for (String code : codes) {
+            var pieces = ImmigrationPieceReferentiel.getPieces(code, "FRANCE");
+            assertThat(pieces)
+                    .as("Code %s doit avoir au moins 5 pièces en FRANCE", code)
+                    .hasSizeGreaterThanOrEqualTo(5);
+            assertThat(pieces)
+                    .as("Code %s doit inclure le passeport", code)
+                    .anyMatch(p -> p.toLowerCase().contains("passeport"));
+        }
+    }
+
+    @Test
+    void passeportTalent_aliasGenerique_conserve() {
+        // Rétrocompat : PASSEPORT_TALENT historique reste dispo comme fallback.
+        var pieces = ImmigrationPieceReferentiel.getPieces("PASSEPORT_TALENT", "FRANCE");
+        assertThat(pieces).isNotEmpty();
+    }
+
+    @Test
+    void passeportTalent_sousCategories_belgique_returnsEmptyList() {
+        // BE : aucune extension Passeport Talent en V1 (F-IM-14 backlog).
+        assertThat(ImmigrationPieceReferentiel.getPieces("TALENT_CHERCHEUR", "BELGIQUE")).isEmpty();
+        assertThat(ImmigrationPieceReferentiel.getPieces("TALENT_FAMILLE", "BELGIQUE")).isEmpty();
+    }
 }

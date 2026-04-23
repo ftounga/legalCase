@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="107-seed-passeport-talent-sous-categories" author="legalcase">
+        <comment>
+            SF-IM-10-01 : découpage du régime PASSEPORT_TALENT historique en 9 sous-catégories
+            CESEDA distinctes, chacune avec sa propre liste de pièces.
+
+            Les 9 codes ajoutés (FRANCE uniquement) :
+              - TALENT_CHERCHEUR                 (L.421-14)
+              - TALENT_SALARIE_QUALIFIE          (L.421-9)
+              - TALENT_ENTREPRENEUR              (L.421-10)
+              - TALENT_INNOVANT                  (L.421-11)
+              - TALENT_INVESTISSEUR              (L.421-12)
+              - TALENT_PROFESSION_ARTISTIQUE     (L.421-13)
+              - TALENT_RENOMMEE_INTERNATIONALE   (L.421-13 al. 3 — inclut grands concours, JO)
+              - TALENT_SALARIE_EN_MISSION        (L.421-15)
+              - TALENT_FAMILLE                   (L.421-22)
+
+            PASSEPORT_TALENT historique (ligne f1100001-...0202) conservé comme alias
+            générique de repli quand l'IA ne peut pas identifier la sous-catégorie.
+
+            BELGIQUE : aucun équivalent pertinent en V1 (permis unique + carte bleue UE
+            couvrent partiellement). Extension BE traitée dans F-IM-14.
+
+            Règle SF-140-03 : chaque INSERT inclut description en langage avocat.
+        </comment>
+
+        <sql splitStatements="true"><![CDATA[
+-- TALENT_CHERCHEUR (L.421-14)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000401', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_CHERCHEUR', '["Passeport en cours de validité","Convention d''accueil signée par un organisme public ou privé de recherche (visée par la DGRI)","Doctorat OU master avec perspective de recherche OU justificatif d''équivalence","Justificatif de ressources (contrat de travail recherche, bourse, financement)","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent chercheur"]', 'Passeport Talent — Chercheur', 'FRANCE', true, true, 'Art. L.421-14 CESEDA', 'Titre délivré au chercheur accueilli par un organisme de recherche français public ou privé, sur la base d''une convention d''accueil visée par la DGRI. Durée jusqu''à 4 ans renouvelable. Pièce maîtresse : la convention d''accueil — sans elle, le dossier n''est pas recevable. Niveau de diplôme généralement doctorat, master acceptable si perspective de recherche claire.', NOW(), NULL);
+
+-- TALENT_SALARIE_QUALIFIE (L.421-9)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000402', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_SALARIE_QUALIFIE', '["Passeport en cours de validité","Contrat de travail d''une durée ≥ 3 mois prévoyant une rémunération brute annuelle ≥ 2× SMIC","Diplôme de niveau master (Bac+5) OU justificatif d''expérience professionnelle équivalente","Fiches de paie antérieures (si emploi précédent équivalent)","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent salarié qualifié"]', 'Passeport Talent — Salarié qualifié', 'FRANCE', true, true, 'Art. L.421-9 CESEDA', 'Titre délivré au salarié en emploi hautement qualifié en France. Seuil de rémunération critique : ≥ 2× SMIC annuel brut (≈ 42 000 € brut/an en 2025). Le diplôme master est requis ; une équivalence par expérience (≥ 5 ans) est acceptable mais doit être justifiée. Durée jusqu''à 4 ans renouvelable.', NOW(), NULL);
+
+-- TALENT_ENTREPRENEUR (L.421-10)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000403', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_ENTREPRENEUR', '["Passeport en cours de validité","Projet de création d''entreprise en France détaillé (étude de marché, prévisionnel à 3 ans)","Justificatif d''investissement personnel ≥ 30 000 € dans le capital","Justificatif de diplôme ou d''expérience dans le domaine du projet (≥ 5 ans)","Extrait Kbis si société déjà immatriculée","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent créateur d''entreprise"]', 'Passeport Talent — Créateur d''entreprise', 'FRANCE', true, true, 'Art. L.421-10 CESEDA', 'Titre délivré au créateur d''entreprise en France. Condition cumulative : investissement personnel ≥ 30 000 € ET diplôme master / 5 ans d''expérience dans le secteur. Le projet doit être viable et crédible — étude de marché et prévisionnel à 3 ans indispensables. Durée jusqu''à 4 ans renouvelable.', NOW(), NULL);
+
+-- TALENT_INNOVANT (L.421-11)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000404', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_INNOVANT', '["Passeport en cours de validité","Attestation de reconnaissance du caractère innovant du projet délivrée par le Ministère de l''Économie (ou avis favorable d''un incubateur agréé French Tech)","Business plan détaillant l''innovation (technologique, industrielle, de service)","Justificatif de financement (levée de fonds, prêt, capital propre ≥ 30 000 €)","Diplôme ou expérience dans le domaine","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent innovant"]', 'Passeport Talent — Projet économique innovant', 'FRANCE', true, true, 'Art. L.421-11 CESEDA', 'Titre délivré au porteur d''un projet économique innovant reconnu par le Ministère de l''Économie (attestation DGE) ou par un incubateur French Tech agréé. Distinct de L.421-10 : la reconnaissance du caractère innovant est la clé. Les projets tech/deeptech/biotech passent par ce régime plutôt que par le régime entrepreneur standard. Durée jusqu''à 4 ans renouvelable.', NOW(), NULL);
+
+-- TALENT_INVESTISSEUR (L.421-12)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000405', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_INVESTISSEUR', '["Passeport en cours de validité","Justificatif d''investissement direct en France ≥ 300 000 € (immobilisations corporelles ou incorporelles)","Justificatif de création ou de sauvegarde d''au moins 1 emploi en France","Extraits de compte / attestations bancaires prouvant l''origine et la disponibilité des fonds","Extrait Kbis de la société support de l''investissement","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent investisseur"]', 'Passeport Talent — Investisseur', 'FRANCE', true, true, 'Art. L.421-12 CESEDA', 'Titre délivré à l''investisseur étranger effectuant un investissement direct en France ≥ 300 000 € ET créant/sauvegardant au moins 1 emploi. La traçabilité des fonds est critique — origine et légalité doivent être documentées. Pas de condition de diplôme mais la société support de l''investissement doit être réelle et opérationnelle. Durée jusqu''à 4 ans renouvelable.', NOW(), NULL);
+
+-- TALENT_PROFESSION_ARTISTIQUE (L.421-13)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000406', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_PROFESSION_ARTISTIQUE', '["Passeport en cours de validité","Justificatif d''activité artistique ou culturelle (contrats, engagements, expositions, éditions)","Justificatif de revenus issus de l''activité artistique ≥ 70 % du SMIC sur 12 mois","Portfolio / book artistique (photos, enregistrements, publications)","Attestations d''institutions culturelles ou de pairs reconnus","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent profession artistique et culturelle"]', 'Passeport Talent — Profession artistique et culturelle', 'FRANCE', true, true, 'Art. L.421-13 CESEDA', 'Titre délivré à l''étranger exerçant une profession artistique ou culturelle (artiste plasticien, interprète, auteur, réalisateur, curator, éditeur). Seuil de revenus ≥ 70 % du SMIC sur 12 mois, mais la qualité du portfolio et les attestations institutionnelles pèsent plus que le montant. Durée jusqu''à 4 ans renouvelable.', NOW(), NULL);
+
+-- TALENT_RENOMMEE_INTERNATIONALE (L.421-13 al. 3)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000407', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_RENOMMEE_INTERNATIONALE', '["Passeport en cours de validité","Justificatifs attestant de la renommée nationale ou internationale du demandeur (prix, distinctions, publications presse, palmarès sportifs, grands concours, JO, Coupe du monde)","Projet de séjour en France en lien avec la renommée (résidence, création, enseignement, représentation)","Lettres de soutien d''institutions ou d''organismes reconnus","Justificatif de ressources (honoraires, contrats, sponsoring, revenus propres)","Justificatif de domicile < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent renommée nationale ou internationale"]', 'Passeport Talent — Renommée nationale ou internationale', 'FRANCE', true, true, 'Art. L.421-13 al. 3 CESEDA', 'Titre délivré à l''étranger bénéficiant d''une renommée nationale ou internationale reconnue (scientifiques primés, sportifs de haut niveau JO/Coupe du monde, artistes distingués, lauréats grands concours). Pas de seuil de revenus — la renommée est la condition principale. Documentation de la notoriété cruciale : presse internationale, palmarès officiels, lettres d''institutions. Durée jusqu''à 4 ans renouvelable.', NOW(), NULL);
+
+-- TALENT_SALARIE_EN_MISSION (L.421-15)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000408', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_SALARIE_EN_MISSION', '["Passeport en cours de validité","Attestation d''ancienneté ≥ 3 mois dans le groupe international","Lettre de mission signée par l''employeur d''origine ET l''entité française du groupe","Justificatif de la rémunération brute annuelle ≥ 1,8× SMIC pendant la mission","Justificatif du lien capitalistique entre l''entité d''origine et l''entité française (organigramme groupe, Kbis)","Contrat de travail initial","Justificatif de domicile en France < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent salarié en mission"]', 'Passeport Talent — Salarié en mission (ICT)', 'FRANCE', true, true, 'Art. L.421-15 CESEDA (directive ICT 2014/66/UE)', 'Titre délivré au salarié envoyé en mission intra-groupe en France par son employeur étranger. Conditions cumulatives : ancienneté ≥ 3 mois dans le groupe, lien capitalistique entre entités prouvé, rémunération ≥ 1,8× SMIC. Mission courte 3 ans max (non renouvelable dans ce régime). Différent du L.421-9 qui concerne une embauche locale. Transpose la directive ICT (Intra-Corporate Transfer).', NOW(), NULL);
+
+-- TALENT_FAMILLE (L.421-22)
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-000000000409', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_PIECES', 'TALENT_FAMILLE', '["Passeport en cours de validité du demandeur","Copie du titre de séjour Passeport Talent du bénéficiaire principal (conjoint/parent)","Acte de mariage OU acte de naissance prouvant le lien familial (< 3 mois, légalisé/apostillé si étranger)","Justificatif de communauté de vie ou de charge effective de l''enfant","Justificatif de domicile commun < 3 mois","Justificatif d''assurance maladie","Photo d''identité (norme ANTS)","Formulaire CERFA passeport talent famille"]', 'Passeport Talent — Famille', 'FRANCE', true, true, 'Art. L.421-22 CESEDA', 'Titre délivré au conjoint et aux enfants mineurs du titulaire d''un Passeport Talent principal. Avantage : pas de condition de regroupement familial classique (pas de délai 18 mois, pas de ressources minimum du principal). Dispense de visa long séjour si entrée régulière. Durée alignée sur celle du titre du bénéficiaire principal. Distinct du regroupement familial L.434-* plus contraignant.', NOW(), NULL);
+]]></sql>
+
+        <rollback>
+            <sql splitStatements="true"><![CDATA[
+DELETE FROM legal_referentials
+ WHERE referential_type = 'IMMIGRATION_PIECES'
+   AND country = 'FRANCE'
+   AND entry_key IN (
+       'TALENT_CHERCHEUR',
+       'TALENT_SALARIE_QUALIFIE',
+       'TALENT_ENTREPRENEUR',
+       'TALENT_INNOVANT',
+       'TALENT_INVESTISSEUR',
+       'TALENT_PROFESSION_ARTISTIQUE',
+       'TALENT_RENOMMEE_INTERNATIONALE',
+       'TALENT_SALARIE_EN_MISSION',
+       'TALENT_FAMILLE'
+   );
+]]></sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
