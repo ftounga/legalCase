@@ -11,72 +11,88 @@
     </mat-expansion-panel-header>
 
     <div class="strategies-grid">
-      @for (s of scenarios; track s.scenarioLabel) {
-        <article class="strategy-card">
+      @for (s of scenarios; track s.scenarioLabel; let idx = $index) {
+        <article class="strategy-card" [attr.data-risk]="s.riskLevel ?? 'UNKNOWN'">
           <header class="strategy-card-head">
-            <h3 class="strategy-card-title">{{ s.scenarioLabel }}</h3>
-            @if (s.riskLevel) {
-              <span [class]="riskClass(s.riskLevel)" [matTooltip]="s.riskJustification ?? ''">
-                {{ riskLabel(s.riskLevel) }}
-              </span>
-            }
+            <div class="strategy-card-title-block">
+              <span class="strategy-card-badge-number">Option {{ idx + 1 }}</span>
+              <h3 class="strategy-card-title">{{ s.scenarioLabel }}</h3>
+            </div>
+            <span [class]="riskClass(s.riskLevel)" [matTooltip]="s.riskJustification ?? ''">
+              <mat-icon class="strategy-risk-icon">{{ riskIcon(s.riskLevel) }}</mat-icon>
+              {{ riskLabel(s.riskLevel) }}
+            </span>
           </header>
 
           <p class="strategy-card-description">{{ s.scenarioDescription }}</p>
 
-          @if (s.baseLegale) {
-            <div class="strategy-card-row">
-              <span class="strategy-card-label">Base légale</span>
-              <span class="strategy-card-value">{{ s.baseLegale }}</span>
-            </div>
-          }
-
           @if (s.targetTitleLabel) {
-            <div class="strategy-card-row strategy-card-row--accent">
-              <span class="strategy-card-label">Titre cible</span>
-              <span class="strategy-card-value strategy-card-value--accent">
-                {{ s.targetTitleLabel }}
-              </span>
+            <div class="strategy-target">
+              <mat-icon class="strategy-target-icon">arrow_forward</mat-icon>
+              <div class="strategy-target-body">
+                <span class="strategy-target-label">Titre cible</span>
+                <span class="strategy-target-value">{{ s.targetTitleLabel }}</span>
+              </div>
             </div>
           }
 
-          @if (s.delayDaysEstimate) {
-            <div class="strategy-card-row">
-              <span class="strategy-card-label">Délai observé</span>
-              <span class="strategy-card-value">{{ s.delayDaysEstimate }} jours</span>
-            </div>
-          }
+          <div class="strategy-meta">
+            @if (s.baseLegale) {
+              <div class="strategy-meta-row">
+                <mat-icon class="strategy-meta-icon">gavel</mat-icon>
+                <span class="strategy-meta-label">Base légale</span>
+                <span class="strategy-meta-value">{{ s.baseLegale }}</span>
+              </div>
+            }
+            @if (s.delayDaysEstimate) {
+              <div class="strategy-meta-row">
+                <mat-icon class="strategy-meta-icon">schedule</mat-icon>
+                <span class="strategy-meta-label">Délai observé</span>
+                <span class="strategy-meta-value">{{ s.delayDaysEstimate }} jours</span>
+              </div>
+            }
+          </div>
 
-          @if (s.requiredAdditionalPieces.length > 0) {
-            <div class="strategy-card-section">
-              <h4 class="strategy-card-section-title">Pièces additionnelles</h4>
-              <ul class="strategy-card-list">
-                @for (p of s.requiredAdditionalPieces; track p) {
-                  <li>{{ p }}</li>
-                }
-              </ul>
-            </div>
-          }
+          @if (s.advantages.length > 0 || s.drawbacks.length > 0 || s.requiredAdditionalPieces.length > 0) {
+            <div class="strategy-lists">
+              @if (s.advantages.length > 0) {
+                <section class="strategy-list">
+                  <h4 class="strategy-list-title strategy-list-title--plus">
+                    <mat-icon>thumb_up</mat-icon> Avantages
+                  </h4>
+                  <ul>
+                    @for (a of s.advantages; track a) {
+                      <li class="pro"><mat-icon>check_circle</mat-icon>{{ a }}</li>
+                    }
+                  </ul>
+                </section>
+              }
 
-          @if (s.advantages.length > 0) {
-            <div class="strategy-card-section">
-              <h4 class="strategy-card-section-title strategy-card-section-title--plus">Avantages</h4>
-              <ul class="strategy-card-list">
-                @for (a of s.advantages; track a) {
-                  <li class="pro"><mat-icon>check_circle</mat-icon>{{ a }}</li>
-                }
-              </ul>
-            </div>
-          }
+              @if (s.drawbacks.length > 0) {
+                <section class="strategy-list">
+                  <h4 class="strategy-list-title strategy-list-title--minus">
+                    <mat-icon>thumb_down</mat-icon> Inconvénients
+                  </h4>
+                  <ul>
+                    @for (d of s.drawbacks; track d) {
+                      <li class="con"><mat-icon>remove_circle_outline</mat-icon>{{ d }}</li>
+                    }
+                  </ul>
+                </section>
+              }
 
-          @if (s.drawbacks.length > 0) {
-            <div class="strategy-card-section">
-              <h4 class="strategy-card-section-title strategy-card-section-title--minus">Inconvénients</h4>
-              <ul class="strategy-card-list">
-                @for (d of s.drawbacks; track d) {
-                  <li class="con"><mat-icon>remove_circle_outline</mat-icon>{{ d }}</li>
-                }
-              </ul>
+              @if (s.requiredAdditionalPieces.length > 0) {
+                <section class="strategy-list">
+                  <h4 class="strategy-list-title strategy-list-title--pieces">
+                    <mat-icon>folder_open</mat-icon> Pièces additionnelles
+                  </h4>
+                  <ul>
+                    @for (p of s.requiredAdditionalPieces; track p) {
+                      <li class="piece"><mat-icon>description</mat-icon>{{ p }}</li>
+                    }
+                  </ul>
+                </section>
+              }
             </div>
           }
         </article>
