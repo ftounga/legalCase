@@ -18,8 +18,8 @@
           @for (item of resolvedAlwaysOn(); track item.toolId) {
             <ng-container
               *ngComponentOutlet="
-                item.component;
-                inputs: componentInputs()
+                item.entry.component;
+                inputs: componentInputsFor(item.entry)
               ">
             </ng-container>
           }
@@ -32,8 +32,8 @@
           @for (item of resolvedContextual(); track item.toolId) {
             <ng-container
               *ngComponentOutlet="
-                item.component;
-                inputs: componentInputs()
+                item.entry.component;
+                inputs: componentInputsFor(item.entry)
               ">
             </ng-container>
           }

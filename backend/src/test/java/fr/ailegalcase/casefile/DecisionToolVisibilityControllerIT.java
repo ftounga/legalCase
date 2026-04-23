@@ -56,10 +56,12 @@ class DecisionToolVisibilityControllerIT {
     private OAuth2AuthenticationToken authTravailFr;
     private OAuth2AuthenticationToken authOtherWs;
     private OAuth2AuthenticationToken authImmFr;
+    private OAuth2AuthenticationToken authTravailBe;
     private CaseFile travailCf;
     private CaseFile otherCf;
     private CaseFile immCf;
     private CaseFile deletedCf;
+    private CaseFile travailBeCf;
 
     @BeforeEach
     void setUp() {
@@ -144,20 +146,58 @@ class DecisionToolVisibilityControllerIT {
         otherCf = immCf;
         authImmFr = buildAuth("g-dtv-o-" + ts, "dtv-o-" + ts + "@ex.com");
         authOtherWs = authImmFr;
+
+        // Workspace 3 : DROIT_DU_TRAVAIL / BELGIQUE (for SF-IA-04-03 RUPTURE_AMIABLE test)
+        User u3 = new User();
+        u3.setEmail("dtv-be-" + ts + "@ex.com");
+        u3.setStatus("ACTIVE");
+        u3 = userRepository.save(u3);
+        AuthAccount a3 = new AuthAccount();
+        a3.setUser(u3);
+        a3.setProvider("GOOGLE");
+        a3.setProviderUserId("g-dtv-be-" + ts);
+        authAccountRepository.save(a3);
+        Workspace ws3 = new Workspace();
+        ws3.setName("DTV BE " + ts);
+        ws3.setSlug("ws-dtv-be-" + ts);
+        ws3.setOwner(u3);
+        ws3.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws3.setCountry("BELGIQUE");
+        ws3.setPlanCode("STARTER");
+        ws3.setStatus("ACTIVE");
+        ws3 = workspaceRepository.save(ws3);
+        WorkspaceMember m3 = new WorkspaceMember();
+        m3.setWorkspace(ws3);
+        m3.setUser(u3);
+        m3.setMemberRole("OWNER");
+        m3.setPrimary(true);
+        workspaceMemberRepository.save(m3);
+        travailBeCf = new CaseFile();
+        travailBeCf.setTitle("DTV BE " + ts);
+        travailBeCf.setWorkspace(ws3);
+        travailBeCf.setCreatedBy(u3);
+        travailBeCf.setLegalDomain("DROIT_DU_TRAVAIL");
+        travailBeCf.setStatus("OPEN");
+        travailBeCf = caseFileRepository.save(travailBeCf);
+        authTravailBe = buildAuth("g-dtv-be-" + ts, "dtv-be-" + ts + "@ex.com");
     }
 
     // ──────────────────────────── Nominal ───────────────────────────────────
 
     @Test
-    void GET_travailFr_sansAnalyse_returns200_avecAlwaysOnEtCatalog() throws Exception {
+    void GET_travailFr_sansAnalyse_returns200_avecAlwaysOn_et_catalog() throws Exception {
+        // Après SF-IA-04-03 migration 106 : F-DT-08, F-DT-09 sont ALWAYS_ON (rétrocompat).
+        // F-DT-10, F-132 restent CONTEXTUAL → visibles dans catalog sans analyse.
         mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
                         .with(authentication(authTravailFr)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.alwaysOn").isArray())
-                .andExpect(jsonPath("$.alwaysOn[0]").value("F-DT-03-prescription-litige"))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-03-prescription-litige")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")))
                 .andExpect(jsonPath("$.contextual").isEmpty())
-                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
-                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-10-rupture-conv-validity")));
+                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-10-rupture-conv-validity")))
+                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-132-rupture-conv-indemnite")));
     }
 
     @Test
@@ -171,12 +211,13 @@ class DecisionToolVisibilityControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-10-rupture-conv-validity")))
                 .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-132-rupture-conv-indemnite")))
-                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
-                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")));
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")));
     }
 
     @Test
-    void GET_travailFr_avecAnalyseLicenciement_returns200_contextualContains_FDT08_FDT09() throws Exception {
+    void GET_travailFr_avecAnalyseLicenciement_returns200_FDT08_FDT09_alwaysOn() throws Exception {
+        // Après migration 106 : F-DT-08 et F-DT-09 sont ALWAYS_ON, pas CONTEXTUAL.
         persistAnalysis(travailCf, """
                 { "compensation_data": { "type_rupture": "LICENCIEMENT" } }
                 """);
@@ -184,21 +225,80 @@ class DecisionToolVisibilityControllerIT {
         mockMvc.perform(get("/api/v1/case-files/" + travailCf.getId() + "/decision-tools-visibility")
                         .with(authentication(authTravailFr)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
-                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-08-licenciement-validity")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-DT-09-comparateur-indemnites")))
                 .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-DT-10-rupture-conv-validity")))
                 .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-132-rupture-conv-indemnite")));
     }
 
     @Test
-    void GET_immigrationFr_sansAnalyse_returns200_alwaysOnContient_FIM05_FIM07() throws Exception {
+    void GET_immigrationFr_sansAnalyse_returns200_alwaysOnContientToutLesOutilsImm() throws Exception {
+        // Après migration 106 : F-IM-01 et F-IM-06 sont ALWAYS_ON (rétrocompat), plus dans catalog.
         mockMvc.perform(get("/api/v1/case-files/" + immCf.getId() + "/decision-tools-visibility")
                         .with(authentication(authImmFr)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-IM-01-checklist-pieces")))
                 .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-IM-05-arbre-decisionnel-titre")))
-                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-IM-07-droit-au-travail")))
-                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-IM-06-recours")))
-                .andExpect(jsonPath("$.catalog", org.hamcrest.Matchers.hasItem("F-IM-01-checklist-pieces")));
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-IM-06-recours")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-IM-07-droit-au-travail")));
+    }
+
+    @Test
+    void SF_IA_04_03_travailBe_avecAnalyseRuptureAmiable_returns200_contextualContains_F132_rupture_amiable_info() throws Exception {
+        persistAnalysis(travailBeCf, """
+                { "compensation_data": { "type_rupture": "RUPTURE_AMIABLE" } }
+                """);
+
+        mockMvc.perform(get("/api/v1/case-files/" + travailBeCf.getId() + "/decision-tools-visibility")
+                        .with(authentication(authTravailBe)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contextual", org.hamcrest.Matchers.hasItem("F-132-rupture-amiable-info")));
+    }
+
+    @Test
+    void SF_IA_04_03_familleFr_sansAnalyse_returns200_outilsFamilleAlwaysOn() throws Exception {
+        // F-FA-05, F-FA-06, F-FA-07 passent ALWAYS_ON par migration 106 — rétrocompat.
+        // Utilise immCf workspace DROIT_IMMIGRATION pour créer un nouveau ws DROIT_FAMILLE.
+        long ts = System.nanoTime();
+        User u4 = new User();
+        u4.setEmail("dtv-fa-" + ts + "@ex.com");
+        u4.setStatus("ACTIVE");
+        u4 = userRepository.save(u4);
+        AuthAccount a4 = new AuthAccount();
+        a4.setUser(u4);
+        a4.setProvider("GOOGLE");
+        a4.setProviderUserId("g-dtv-fa-" + ts);
+        authAccountRepository.save(a4);
+        Workspace wsF = new Workspace();
+        wsF.setName("DTV FA " + ts);
+        wsF.setSlug("ws-dtv-fa-" + ts);
+        wsF.setOwner(u4);
+        wsF.setLegalDomain("DROIT_FAMILLE");
+        wsF.setCountry("FRANCE");
+        wsF.setPlanCode("STARTER");
+        wsF.setStatus("ACTIVE");
+        wsF = workspaceRepository.save(wsF);
+        WorkspaceMember mF = new WorkspaceMember();
+        mF.setWorkspace(wsF);
+        mF.setUser(u4);
+        mF.setMemberRole("OWNER");
+        mF.setPrimary(true);
+        workspaceMemberRepository.save(mF);
+        CaseFile famCf = new CaseFile();
+        famCf.setTitle("FA " + ts);
+        famCf.setWorkspace(wsF);
+        famCf.setCreatedBy(u4);
+        famCf.setLegalDomain("DROIT_FAMILLE");
+        famCf.setStatus("OPEN");
+        famCf = caseFileRepository.save(famCf);
+        OAuth2AuthenticationToken authFaFr = buildAuth("g-dtv-fa-" + ts, "dtv-fa-" + ts + "@ex.com");
+
+        mockMvc.perform(get("/api/v1/case-files/" + famCf.getId() + "/decision-tools-visibility")
+                        .with(authentication(authFaFr)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-FA-05-partage-immobilier")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-FA-06-calendrier-garde")))
+                .andExpect(jsonPath("$.alwaysOn", org.hamcrest.Matchers.hasItem("F-FA-07-checklist-divorce")));
     }
 
     // ────────────────────────────── Erreurs ─────────────────────────────────

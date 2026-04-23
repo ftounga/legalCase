@@ -89,19 +89,61 @@ describe('DecisionToolsPanelComponent', () => {
     expect(component.visibility()).toEqual({ alwaysOn: [], contextual: [], catalog: [] });
   });
 
-  it('exposes caseFileId and synthesis as component inputs for dynamic rendering', () => {
-    component.caseFileId = CASE_FILE_ID;
-    component.synthesis = { foo: 'bar' };
-    const inputs = component.componentInputs();
-    expect(inputs).toEqual({ caseFileId: CASE_FILE_ID, synthesis: { foo: 'bar' } });
+  it('forwards tool-specific inputs for F-DT-08 licenciement (workspaceCountry + aiData + procedureChecks)', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-08-licenciement-validity'],
+      contextual: [],
+      catalog: [],
+    });
+
+    component.workspaceCountry = 'BELGIQUE';
+    component.synthesis = {
+      licenciementValidityDetection: { foo: 'bar' },
+      piecesManquantesDetails: { any: 'thing' },
+    };
+    component.procedureChecks = [{ id: 'c1' }];
+    component.aiQuestions = [{ id: 'q1' }];
+
+    const entry = component.resolveEntry('F-DT-08-licenciement-validity')!;
+    const inputs = component.componentInputsFor(entry);
+
+    expect(inputs).toEqual({
+      caseFileId: CASE_FILE_ID,
+      workspaceCountry: 'BELGIQUE',
+      aiData: { foo: 'bar' },
+      procedureChecks: [{ id: 'c1' }],
+      aiQuestions: [{ id: 'q1' }],
+      piecesManquantes: { any: 'thing' },
+    });
+  });
+
+  it('forwards F-IM-05 inputs including triggerEvents and piecesManquantes', () => {
+    component.synthesis = {
+      immigrationExtractedData: { inferredChecklistType: 'X' },
+      immigrationTriggerEvents: [{ e: 1 }],
+      piecesManquantesDetails: { p: 1 },
+    };
+    component.procedureChecks = [];
+    component.aiQuestions = [];
+
+    const entry = component.resolveEntry('F-IM-05-arbre-decisionnel-titre')!;
+    const inputs = component.componentInputsFor(entry);
+
+    expect(inputs['aiData']).toEqual({ inferredChecklistType: 'X' });
+    expect(inputs['triggerEvents']).toEqual([{ e: 1 }]);
+    expect(inputs['piecesManquantes']).toEqual({ p: 1 });
+  });
+
+  it('resolves F-132-rupture-amiable-info to RuptureAmiableInfoSectionComponent', () => {
+    const entry = component.resolveEntry('F-132-rupture-amiable-info');
+    expect(entry).not.toBeNull();
+    expect(entry!.component.name).toBe('RuptureAmiableInfoSectionComponent');
   });
 
   it('resolves registered tool IDs to their Angular component types', () => {
-    const c1 = component.resolveComponent('F-DT-07-anciennete-conges-prime');
-    const c2 = component.resolveComponent('F-IM-05-arbre-decisionnel-titre');
-    const c3 = component.resolveComponent('F-132-rupture-conv-indemnite');
-    expect(c1).not.toBeNull();
-    expect(c2).not.toBeNull();
-    expect(c3).not.toBeNull();
+    expect(component.resolveEntry('F-DT-07-anciennete-conges-prime')).not.toBeNull();
+    expect(component.resolveEntry('F-IM-05-arbre-decisionnel-titre')).not.toBeNull();
+    expect(component.resolveEntry('F-132-rupture-conv-indemnite')).not.toBeNull();
   });
 });

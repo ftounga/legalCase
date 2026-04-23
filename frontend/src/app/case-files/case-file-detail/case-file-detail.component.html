@@ -476,129 +476,14 @@
 
     <app-case-dashboard [caseFileId]="caseFile()!.id"></app-case-dashboard>
 
-    @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL') {
-      @if (showValiditeLicenciement()) {
-        <app-licenciement-section
-          [caseFileId]="caseFile()!.id"
-          [workspaceCountry]="workspaceCountry()"
-          [aiData]="synthesis()?.licenciementValidityDetection"
-          [procedureChecks]="procedureChecks()"
-          [aiQuestions]="questions()"
-          [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-        </app-licenciement-section>
-      }
-
-      @if (showValiditeRuptureConv()) {
-        <app-rupture-conv-section
-          [caseFileId]="caseFile()!.id"
-          [aiData]="synthesis()?.ruptureConvValidityDetection"
-          [procedureChecks]="procedureChecks()"
-          [aiQuestions]="questions()"
-          [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-        </app-rupture-conv-section>
-      }
-
-      <app-anciennete-section
-        [caseFileId]="caseFile()!.id"
-        [aiData]="synthesis()?.travailExtractedData">
-      </app-anciennete-section>
-
-      @if (showRuptureConvIndemnite()) {
-        <app-rupture-conv-indemnite-section
-          [caseFileId]="caseFile()!.id"
-          [synthesis]="synthesis()">
-        </app-rupture-conv-indemnite-section>
-      } @else if (showRuptureAmiableInfo()) {
-        <app-rupture-amiable-info-section
-          [caseFileId]="caseFile()!.id">
-        </app-rupture-amiable-info-section>
-      } @else {
-        <app-indemnite-comparatif-section
-          [caseFileId]="caseFile()!.id"
-          [workspaceCountry]="workspaceCountry()"
-          [aiData]="synthesis()?.travailExtractedData"
-          [synthesis]="synthesis()"
-          [procedureChecks]="procedureChecks()"
-          [aiQuestions]="questions()">
-        </app-indemnite-comparatif-section>
-      }
-    }
-
-    @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'FRANCE') {
-      <app-prudhome-fiche-section
-        [caseFileId]="caseFile()!.id"
-        [caseFileTitle]="caseFile()!.title">
-      </app-prudhome-fiche-section>
-    }
-
-    @if (caseFile()!.legalDomain === 'DROIT_DU_TRAVAIL' && workspaceCountry() === 'BELGIQUE') {
-      <app-tribunal-travail-fiche-section
-        [caseFileId]="caseFile()!.id"
-        [caseFileTitle]="caseFile()!.title">
-      </app-tribunal-travail-fiche-section>
-    }
-
-    @if (caseFile()!.legalDomain === 'DROIT_IMMIGRATION') {
-      <app-immigration-title-decision-section
-        [caseFileId]="caseFile()!.id"
-        [aiData]="synthesis()?.immigrationExtractedData"
-        [triggerEvents]="synthesis()?.immigrationTriggerEvents"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-      </app-immigration-title-decision-section>
-
-      <app-immigration-recours-section
-        [caseFileId]="caseFile()!.id"
-        [caseFileTitle]="caseFile()!.title"
-        [aiData]="synthesis()?.immigrationExtractedData"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-      </app-immigration-recours-section>
-
-      <app-immigration-work-right-section
-        [caseFileId]="caseFile()!.id"
-        [workspaceCountry]="workspaceCountry()"
-        [aiData]="synthesis()?.immigrationExtractedData"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-      </app-immigration-work-right-section>
-
-      <app-immigration-checklist-section
-        [caseFileId]="caseFile()!.id"
-        [caseFileTitle]="caseFile()!.title"
-        [inferredChecklistType]="synthesis()?.immigrationExtractedData?.inferredChecklistType ?? null">
-      </app-immigration-checklist-section>
-    }
-
-    @if (caseFile()!.legalDomain === 'DROIT_FAMILLE') {
-      <app-partage-immobilier-section
-        [caseFileId]="caseFile()!.id"
-        [liquidationCommunaute]="synthesis()?.liquidationCommunaute"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-      </app-partage-immobilier-section>
-
-      <app-calendrier-garde-section
-        [caseFileId]="caseFile()!.id"
-        [workspaceCountry]="workspaceCountry()"
-        [aiModeGardeDetaille]="synthesis()?.pensionAlimentaireEstimate?.modeGardeDetaille"
-        [synthesis]="synthesis()"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-      </app-calendrier-garde-section>
-
-      <app-divorce-checklist-section
-        [caseFileId]="caseFile()!.id"
-        [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()"
-        [piecesManquantes]="synthesis()?.piecesManquantesDetails">
-      </app-divorce-checklist-section>
-    }
+    <app-decisional-tools-panel
+      [caseFileId]="caseFile()!.id"
+      [synthesis]="synthesis()"
+      [workspaceCountry]="workspaceCountry()"
+      [caseFileTitle]="caseFile()!.title"
+      [procedureChecks]="procedureChecks()"
+      [aiQuestions]="questions()">
+    </app-decisional-tools-panel>
   </div>
 } @else {
   <p class="no-data">Dossier introuvable.</p>
