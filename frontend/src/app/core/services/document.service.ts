@@ -44,4 +44,13 @@ export class DocumentService {
   preview(caseFileId: string, documentId: string): Observable<DocumentPreview> {
     return this.http.get<DocumentPreview>(`${this.apiUrl(caseFileId)}/${documentId}/preview`);
   }
+
+  /** SF-145-11 : reclassification manuelle d'une pièce (type + label). */
+  updatePiece(caseFileId: string, documentId: string, pieceId: string,
+              type: string, label: string | null): Observable<import('../models/document.model').DocumentPieceSummary> {
+    return this.http.put<import('../models/document.model').DocumentPieceSummary>(
+      `${this.apiUrl(caseFileId)}/${documentId}/pieces/${pieceId}`,
+      { type, label }
+    );
+  }
 }

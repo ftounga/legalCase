@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.Valid;
 
 import java.net.URI;
 import java.security.Principal;
@@ -22,13 +23,16 @@ public class DocumentController {
     private final DocumentService documentService;
     private final DocumentDeleteService documentDeleteService;
     private final DocumentPreviewService documentPreviewService;
+    private final DocumentPieceUpdateService pieceUpdateService;
 
     public DocumentController(DocumentService documentService,
                               DocumentDeleteService documentDeleteService,
-                              DocumentPreviewService documentPreviewService) {
+                              DocumentPreviewService documentPreviewService,
+                              DocumentPieceUpdateService pieceUpdateService) {
         this.documentService = documentService;
         this.documentDeleteService = documentDeleteService;
         this.documentPreviewService = documentPreviewService;
+        this.pieceUpdateService = pieceUpdateService;
     }
 
     @GetMapping
@@ -92,6 +96,24 @@ public class DocumentController {
             Principal principal) {
         documentDeleteService.delete(caseFileId, documentId, oidcUser,
                 OAuthProviderResolver.resolve(principal), principal);
+    }
+
+    /**
+     * SF-145-11 : permet à l'avocat de reclassifier manuellement une pièce
+     * quand Sonnet a produit un type ou un label incorrect (ex. un bail
+     * classé AUTRE, un acte de mariage classé ACTE_NAISSANCE).
+     */
+    @PutMapping("/{documentId}/pieces/{pieceId}")
+    public DocumentPieceSummary updatePiece(
+            @PathVariable UUID caseFileId,
+            @PathVariable UUID documentId,
+            @PathVariable UUID pieceId,
+            @Valid @RequestBody UpdatePieceRequest request,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return pieceUpdateService.update(caseFileId, documentId, pieceId,
+                request.type(), request.label(),
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 
     @PostMapping(consumes = "multipart/form-data")

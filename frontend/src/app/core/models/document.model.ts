@@ -61,6 +61,36 @@ export interface Document {
   pieces?: DocumentPieceSummary[];
 }
 
+/**
+ * SF-145-11 : retourne les types de pièces applicables à un domaine juridique
+ * (miroir de DocumentPieceType.applicableFor côté backend). Si legalDomain
+ * null/inconnu, retourne tous les types (fallback permissif).
+ */
+export function applicableForDomain(legalDomain: string | null | undefined): DocumentPieceType[] {
+  const common: DocumentPieceType[] = [
+    'PHOTO', 'LETTRE', 'EMAIL', 'SMS', 'ATTESTATION',
+    'PIECE_IDENTITE', 'CERTIFICAT_MEDICAL', 'AUTRE',
+    'BAIL_LOCATION',
+  ];
+  const travail: DocumentPieceType[] = ['CONTRAT', 'BULLETIN_PAIE', 'JUSTIFICATIF_REVENUS'];
+  const immigration: DocumentPieceType[] = [
+    'TITRE_DE_SEJOUR', 'PASSEPORT', 'VISA', 'ACTE_NAISSANCE',
+    'AVIS_IMPOSITION', 'QUITTANCE_LOYER', 'PROMESSE_EMBAUCHE',
+    'RECEPISSE_PREFECTURE', 'DECISION_OQTF', 'RECOURS_CONTENTIEUX',
+    'ATTESTATION_HEBERGEMENT', 'ACTE_MARIAGE',
+  ];
+  const famille: DocumentPieceType[] = [
+    'ACTE_MARIAGE', 'ACTE_NAISSANCE_ENFANT', 'JUGEMENT_DIVORCE',
+    'LIVRET_FAMILLE', 'JUSTIFICATIF_REVENUS', 'ACTE_NAISSANCE',
+  ];
+  switch (legalDomain) {
+    case 'DROIT_DU_TRAVAIL':  return [...common, ...travail];
+    case 'DROIT_IMMIGRATION': return [...common, ...immigration];
+    case 'DROIT_FAMILLE':     return [...common, ...famille];
+    default: return Array.from(new Set([...common, ...travail, ...immigration, ...famille]));
+  }
+}
+
 /** SF-145-02 + SF-145-09 : libellé court par type pour les chips + sidebar. */
 export function documentPieceTypeLabel(type: DocumentPieceType): string {
   switch (type) {

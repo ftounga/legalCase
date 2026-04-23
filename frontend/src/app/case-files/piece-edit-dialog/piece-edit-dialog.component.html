@@ -1,0 +1,54 @@
+<h2 mat-dialog-title class="ped-title">
+  <mat-icon>edit</mat-icon>
+  Reclassifier la pièce
+</h2>
+
+<mat-dialog-content class="ped-content">
+  <p class="ped-hint">
+    Corrigez le type ou le libellé si la détection automatique s'est trompée.
+  </p>
+
+  <div class="ped-section">
+    <label class="ped-label" for="ped-type">Type de pièce</label>
+    <mat-form-field appearance="outline" class="ped-field">
+      <mat-select id="ped-type" [(value)]="type" [disabled]="submitting()">
+        @for (t of sortedTypes; track t) {
+          <mat-option [value]="t">
+            <mat-icon class="ped-option-icon">{{ pieceIcon(t) }}</mat-icon>
+            {{ pieceLabel(t) }}
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="ped-section">
+    <label class="ped-label" for="ped-label">Libellé (optionnel)</label>
+    <mat-form-field appearance="outline" class="ped-field">
+      <input matInput id="ped-label"
+             type="text"
+             [(ngModel)]="label"
+             name="pieceLabel"
+             maxlength="500"
+             placeholder="Ex. Acte de mariage n°127 Mairie du 5ème"
+             [disabled]="submitting()" />
+      <mat-hint align="end">{{ label.length }} / 500</mat-hint>
+    </mat-form-field>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="ped-actions">
+  <button mat-button type="button" (click)="cancel()" [disabled]="submitting()">
+    Annuler
+  </button>
+  <button mat-flat-button color="primary" type="button"
+          (click)="save()"
+          [disabled]="!hasChanges || submitting()">
+    @if (submitting()) {
+      <mat-spinner diameter="18" class="ped-btn-spinner"></mat-spinner>
+    } @else {
+      <mat-icon>check</mat-icon>
+    }
+    Enregistrer
+  </button>
+</mat-dialog-actions>
