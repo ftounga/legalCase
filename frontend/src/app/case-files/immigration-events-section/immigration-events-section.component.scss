@@ -1,0 +1,123 @@
+.events-panel {
+  margin-top: 16px;
+}
+
+.panel-icon--events {
+  color: #C9973A;
+  margin-right: 8px;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.event-card {
+  border: 1px solid rgba(26, 58, 92, 0.15);
+  border-left: 4px solid #C9973A;
+  border-radius: 6px;
+  padding: 16px 20px;
+  background: #fff;
+  font-family: 'Inter', sans-serif;
+}
+
+.event-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.event-card-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  color: #C9973A;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.event-card-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.event-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1A3A5C;
+  line-height: 1.35;
+}
+
+.event-card-date {
+  font-size: 12px;
+  color: #6B7A8D;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-card-justification {
+  margin: 8px 0 10px;
+  font-size: 13px;
+  color: #1C2B3A;
+  line-height: 1.5;
+}
+
+.event-card-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  margin-bottom: 10px;
+  background: rgba(43, 84, 148, 0.06);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #2B5494;
+
+  .event-card-source-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+  }
+}
+
+.event-card-legal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(107, 122, 141, 0.25);
+}
+
+.event-card-legal-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.event-card-legal-label {
+  color: #6B7A8D;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.event-card-legal-value {
+  color: #1C2B3A;
+  text-align: right;
+}
+
+.event-card-legal-line--accent {
+  margin-top: 2px;
+
+  .event-card-legal-value--accent {
+    color: #C9973A;
+    font-weight: 600;
+  }
+}

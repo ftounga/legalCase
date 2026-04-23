@@ -187,6 +187,10 @@
         </mat-expansion-panel>
       }
 
+      @if (immigrationTriggerEvents.length > 0) {
+        <app-immigration-events-section [events]="immigrationTriggerEvents" />
+      }
+
       @if (synthesis()!.questionsOuvertes.length > 0) {
         <mat-expansion-panel expanded>
           <mat-expansion-panel-header>
