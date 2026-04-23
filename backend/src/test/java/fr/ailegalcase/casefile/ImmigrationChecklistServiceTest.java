@@ -26,10 +26,12 @@ class ImmigrationChecklistServiceTest {
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
     private final WorkspaceMemberRepository workspaceMemberRepository = mock(WorkspaceMemberRepository.class);
     private final CurrentUserResolver currentUserResolver = mock(CurrentUserResolver.class);
+    private final ImmigrationPieceAutoFillService autoFillService = mock(ImmigrationPieceAutoFillService.class);
     private final OidcUser oidcUser = mock(OidcUser.class);
 
     private final ImmigrationChecklistService service = new ImmigrationChecklistService(
-            pieceCheckRepository, caseFileRepository, workspaceMemberRepository, currentUserResolver);
+            pieceCheckRepository, caseFileRepository, workspaceMemberRepository, currentUserResolver,
+            autoFillService);
 
     // U-IM01-01 : GET dossier sans historique → toutes pièces INCONNU
     @Test
