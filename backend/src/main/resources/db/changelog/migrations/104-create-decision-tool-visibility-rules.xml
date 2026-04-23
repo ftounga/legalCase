@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="104-create-decision-tool-visibility-rules" author="legalcase">
+        <comment>
+            SF-IA-04-01 : table de configuration déclarative pour le moteur
+            d'affichage conditionnel des outils décisionnels (F-IA-04). Chaque
+            ligne mappe (legal_domain, country, situation détectée) vers un
+            tool_id, dans l'une des couches ALWAYS_ON ou CONTEXTUAL. Le seed
+            arrive en migration 105 pour les 23 outils existants.
+        </comment>
+
+        <createTable tableName="decision_tool_visibility_rules">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="legal_domain" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="tool_id" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="layer" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="trigger_field" type="varchar(100)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="trigger_value" type="varchar(100)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="priority" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql dbms="postgresql,h2">
+            ALTER TABLE decision_tool_visibility_rules
+            ADD CONSTRAINT ck_dtvr_layer_trigger
+            CHECK (
+                (layer = 'ALWAYS_ON' AND trigger_field IS NULL AND trigger_value IS NULL)
+                OR
+                (layer = 'CONTEXTUAL' AND trigger_field IS NOT NULL AND trigger_value IS NOT NULL)
+            )
+        </sql>
+
+        <createIndex tableName="decision_tool_visibility_rules"
+                     indexName="idx_dtvr_domain_country">
+            <column name="legal_domain"/>
+            <column name="country"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
