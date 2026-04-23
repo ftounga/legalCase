@@ -204,7 +204,8 @@ public class EnrichedAnalysisService {
             // volumineux + full aggregation) dépassait 8192 tokens → troncature silencieuse
             // observée sur E27 (JSON coupé en pleine phrase → compensationEstimate=null
              // → UI fallback permissif = "Validité licenciement" s'affichait à tort).
-            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 16384);
+            // F-142-04 : prompt caching ephemeral (cf. CaseAnalysisService).
+            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 16384);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Enriched analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,

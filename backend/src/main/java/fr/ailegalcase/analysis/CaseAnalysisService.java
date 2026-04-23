@@ -162,7 +162,11 @@ public class CaseAnalysisService {
             // visual_description → facilement 8 000+ tokens de JSON). On aligne sur
             // EnrichedAnalysisService (16384) pour éviter la troncature silencieuse
             // constatée en staging 2026-04-23 (dossier E-35).
-            result = anthropicService.analyze(prepared.systemPrompt(), prepared.prompt(), 16384);
+            // F-142-04 : prompt caching ephemeral — le system prompt (plusieurs milliers
+            // de tokens : domaine, limites, instruction, PiecesPromptContext) est
+            // réutilisé entre appels successifs (re-analyse, question chat). Gain ~85 %
+            // de latence prefill sur les appels dans la fenêtre de 5 min.
+            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 16384);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Case analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
