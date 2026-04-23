@@ -5,6 +5,7 @@ import fr.ailegalcase.analysis.AnthropicResult;
 import fr.ailegalcase.analysis.AnthropicService;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.JobType;
+import fr.ailegalcase.analysis.PiecesPromptContext;
 import fr.ailegalcase.analysis.UsageEventService;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
@@ -54,6 +55,7 @@ public class ChatService {
     private final AnthropicService anthropicService;
     private final UsageEventService usageEventService;
     private final PlanLimitService planLimitService;
+    private final PiecesPromptContext piecesPromptContext;
 
     public ChatService(ChatMessageRepository chatMessageRepository,
                        CaseFileRepository caseFileRepository,
@@ -64,7 +66,8 @@ public class ChatService {
                        CurrentUserResolver currentUserResolver,
                        AnthropicService anthropicService,
                        UsageEventService usageEventService,
-                       PlanLimitService planLimitService) {
+                       PlanLimitService planLimitService,
+                       PiecesPromptContext piecesPromptContext) {
         this.chatMessageRepository = chatMessageRepository;
         this.caseFileRepository = caseFileRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
@@ -75,6 +78,7 @@ public class ChatService {
         this.anthropicService = anthropicService;
         this.usageEventService = usageEventService;
         this.planLimitService = planLimitService;
+        this.piecesPromptContext = piecesPromptContext;
     }
 
     @Transactional
@@ -191,6 +195,16 @@ public class ChatService {
 
         StringBuilder prompt = new StringBuilder()
                 .append("Synthèse du dossier :\n").append(synthesis);
+
+        // F-146 / F-148 : injecte la liste des pièces identifiées + descriptions
+        // visuelles LegalCase Vision disponibles. Permet au chat de répondre sur
+        // des éléments visuels que l'OCR ne capture pas (position/couleur des
+        // messages SMS, tampons, signatures manuscrites, etc.).
+        String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
+        if (piecesContext != null && !piecesContext.isEmpty()) {
+            prompt.append("\n\n").append(piecesContext);
+        }
+
         if (included > 0) {
             prompt.append("\n\nDocuments du dossier (").append(included).append(" inclus");
             if (excluded > 0) {
