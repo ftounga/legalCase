@@ -8,6 +8,7 @@ import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentPiece;
 import fr.ailegalcase.document.DocumentPieceRepository;
 import fr.ailegalcase.document.DocumentRepository;
+import fr.ailegalcase.document.VisionStatus;
 import fr.ailegalcase.storage.StorageService;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -15,7 +16,9 @@ import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,6 +81,9 @@ public class VisionEnrichmentService {
     private final VisionProperties props;
     private final TaskExecutor taskExecutor;
 
+    @Lazy @Autowired
+    private VisionEnrichmentService self;
+
     public VisionEnrichmentService(DocumentRepository documentRepository,
                                    DocumentExtractionRepository extractionRepository,
                                    DocumentPieceRepository pieceRepository,
@@ -111,7 +117,16 @@ public class VisionEnrichmentService {
         }
     }
 
-    @Transactional
+    /**
+     * Deux phases :
+     * 1. <b>Phase PENDING</b> (courte, dédiée transaction) — marque toutes les pièces
+     *    éligibles comme {@link VisionStatus#PENDING}, commit immédiat. Le frontend
+     *    affiche le spinner.
+     * 2. <b>Phase enrichissement</b> — pour chaque pièce PENDING, appel Anthropic
+     *    puis update status {@code DONE}/{@code FAILED} dans une transaction dédiée
+     *    (self-proxy) afin que le frontend voie chaque pièce basculer
+     *    individuellement.
+     */
     public void enrichDocument(UUID documentId, String legalDomain) {
         Document document = documentRepository.findById(documentId).orElse(null);
         if (document == null) {
@@ -124,20 +139,61 @@ public class VisionEnrichmentService {
             return;
         }
 
-        List<DocumentPiece> pieces = pieceRepository.findByDocument_IdOrderByOrderIndexAsc(documentId);
-        if (pieces.isEmpty()) return;
+        Map<Integer, String> textByPage = self.loadTextByPage(documentId);
 
-        Map<Integer, String> textByPage = extractTextByPage(document);
+        // Phase 1 — marque PENDING (commit immédiat).
+        List<UUID> pendingPieceIds = self.markEligibleAsPending(documentId, legalDomain, textByPage);
+        if (pendingPieceIds.isEmpty()) return;
 
-        byte[] pdfBytes = null;
-        for (DocumentPiece piece : pieces) {
-            if (piece.getVisualDescription() != null) continue; // idempotence
-            if (!shouldEnrichPiece(piece, legalDomain, textByPage)) continue;
-            if (pdfBytes == null) {
-                pdfBytes = storageService.download(document.getStorageKey());
-            }
-            enrichPieceSafely(piece, pdfBytes);
+        byte[] pdfBytes = storageService.download(document.getStorageKey());
+
+        // Phase 2 — enrichissement pièce par pièce.
+        for (UUID pieceId : pendingPieceIds) {
+            self.enrichPendingPiece(pieceId, pdfBytes);
         }
+    }
+
+    /**
+     * Phase 1 : pour chaque pièce éligible et non encore DONE, marque PENDING.
+     * Retourne les IDs à enrichir dans la phase 2.
+     */
+    @Transactional
+    public List<UUID> markEligibleAsPending(UUID documentId, String legalDomain,
+                                            Map<Integer, String> textByPage) {
+        List<DocumentPiece> pieces = pieceRepository.findByDocument_IdOrderByOrderIndexAsc(documentId);
+        List<UUID> pendingIds = new ArrayList<>();
+        for (DocumentPiece piece : pieces) {
+            if (piece.getVisionStatus() == VisionStatus.DONE) continue; // idempotence
+            if (!shouldEnrichPiece(piece, legalDomain, textByPage)) continue;
+            piece.setVisionStatus(VisionStatus.PENDING);
+            pieceRepository.save(piece);
+            pendingIds.add(piece.getId());
+        }
+        log.info("Marked {} piece(s) PENDING for vision enrichment on document {}",
+                pendingIds.size(), documentId);
+        return pendingIds;
+    }
+
+    /**
+     * Phase 2 : appelle Anthropic + update status. Transaction dédiée pour que
+     * chaque pièce bascule individuellement visible côté frontend.
+     */
+    @Transactional
+    public void enrichPendingPiece(UUID pieceId, byte[] pdfBytes) {
+        DocumentPiece piece = pieceRepository.findById(pieceId).orElse(null);
+        if (piece == null || piece.getVisionStatus() != VisionStatus.PENDING) return;
+        enrichPieceSafely(piece, pdfBytes);
+    }
+
+    /**
+     * Charge le texte par page en transaction dédiée (pour éviter de garder la
+     * connection hibernate ouverte pendant les appels Anthropic de phase 2).
+     */
+    @Transactional(readOnly = true)
+    public Map<Integer, String> loadTextByPage(UUID documentId) {
+        Document document = documentRepository.findById(documentId).orElse(null);
+        if (document == null) return Map.of();
+        return extractTextByPage(document);
     }
 
     /**
@@ -179,7 +235,11 @@ public class VisionEnrichmentService {
     private void enrichPieceSafely(DocumentPiece piece, byte[] pdfBytes) {
         try {
             List<byte[]> pagePngs = renderPagesAsPng(pdfBytes, piece.getPageStart(), piece.getPageEnd());
-            if (pagePngs.isEmpty()) return;
+            if (pagePngs.isEmpty()) {
+                piece.setVisionStatus(VisionStatus.FAILED);
+                pieceRepository.save(piece);
+                return;
+            }
 
             String userText = buildUserText(piece);
             AnthropicResult result = anthropicService.analyzeWithImages(
@@ -193,20 +253,28 @@ public class VisionEnrichmentService {
 
             String description = result.content() == null ? null : result.content().trim();
             if (description == null || description.isBlank()) {
-                log.warn("Vision returned empty description for piece {} — skipping persistence",
-                        piece.getId());
+                log.warn("Vision returned empty description for piece {} — marking FAILED", piece.getId());
+                piece.setVisionStatus(VisionStatus.FAILED);
+                pieceRepository.save(piece);
                 return;
             }
 
             piece.setVisualDescription(description);
             piece.setVisionEnrichedAt(Instant.now());
             piece.setVisionModel(props.getModel());
+            piece.setVisionStatus(VisionStatus.DONE);
             pieceRepository.save(piece);
             log.info("Vision enriched piece {} (type={}, pages={}-{}, {} chars)",
                     piece.getId(), piece.getType(), piece.getPageStart(), piece.getPageEnd(),
                     description.length());
         } catch (Exception e) {
             log.warn("Vision enrichment failed for piece {} — {}", piece.getId(), e.getMessage());
+            try {
+                piece.setVisionStatus(VisionStatus.FAILED);
+                pieceRepository.save(piece);
+            } catch (Exception persistFail) {
+                log.warn("Could not persist FAILED status for piece {}", piece.getId());
+            }
         }
     }
 

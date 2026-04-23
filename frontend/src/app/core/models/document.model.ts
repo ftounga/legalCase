@@ -32,9 +32,13 @@ export interface DocumentPieceSummary {
   pageStart: number;
   pageEnd: number;
   orderIndex: number;
-  /** SF-148-01 : description visuelle produite par Claude Vision (null si non enrichi). */
+  /** SF-148-01 : description visuelle produite par LegalCase Vision (null si non enrichi). */
   visualDescription?: string | null;
+  /** SF-148-03 : statut de l'enrichissement visuel (NOT_APPLICABLE / PENDING / DONE / FAILED). */
+  visionStatus?: VisionStatus;
 }
+
+export type VisionStatus = 'NOT_APPLICABLE' | 'PENDING' | 'DONE' | 'FAILED';
 
 export interface Document {
   id: string;

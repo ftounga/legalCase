@@ -53,9 +53,12 @@
                 <div class="piece-item-body">
                   <div class="piece-item-type">
                     {{ pieceTypeLabel(piece.type) }}
-                    @if (piece.visualDescription) {
+                    @if (piece.visionStatus === 'PENDING') {
+                      <mat-spinner diameter="12" class="piece-item-vision-spinner"
+                                   matTooltip="Analyse visuelle en cours…"></mat-spinner>
+                    } @else if (piece.visualDescription) {
                       <mat-icon class="piece-item-vision"
-                                matTooltip="Description visuelle Claude Vision disponible">visibility</mat-icon>
+                                matTooltip="Description visuelle LegalCase Vision disponible">visibility</mat-icon>
                     }
                   </div>
                   <div class="piece-item-label">{{ piece.label ?? '—' }}</div>
@@ -79,8 +82,14 @@
         <div class="selected-piece-banner">
           <mat-icon class="selected-piece-icon">{{ pieceTypeIcon(sp.type) }}</mat-icon>
           <span class="selected-piece-title">{{ pieceHeaderLabel(sp) }}</span>
-          @if (sp.visualDescription) {
-            <span class="selected-piece-badge" matTooltip="Claude Vision a analysé cette pièce">
+          @if (sp.visionStatus === 'PENDING') {
+            <span class="selected-piece-badge selected-piece-badge--pending"
+                  matTooltip="LegalCase Vision analyse cette pièce en arrière-plan">
+              <mat-spinner diameter="14"></mat-spinner>
+              Analyse en cours…
+            </span>
+          } @else if (sp.visualDescription) {
+            <span class="selected-piece-badge" matTooltip="LegalCase Vision a analysé cette pièce">
               <mat-icon>visibility</mat-icon>
               Vision
             </span>
@@ -88,11 +97,21 @@
         </div>
       }
 
-      @if (selectedPiece()?.visualDescription) {
+      @if (selectedPiece()?.visionStatus === 'PENDING' && !selectedPiece()?.visualDescription) {
+        <div class="vision-panel vision-panel--pending">
+          <div class="vision-panel-header">
+            <mat-spinner diameter="14"></mat-spinner>
+            <span class="vision-panel-title">Analyse visuelle en cours…</span>
+          </div>
+          <div class="vision-panel-body">
+            LegalCase Vision inspecte cette pièce pour compléter le texte OCR. Rouvrez cette fenêtre dans quelques instants pour voir la description.
+          </div>
+        </div>
+      } @else if (selectedPiece()?.visualDescription) {
         <div class="vision-panel">
           <div class="vision-panel-header">
             <mat-icon class="vision-panel-icon">visibility</mat-icon>
-            <span class="vision-panel-title">Description visuelle (Claude Vision)</span>
+            <span class="vision-panel-title">Description visuelle (LegalCase Vision)</span>
           </div>
           <div class="vision-panel-body">{{ selectedPiece()!.visualDescription }}</div>
         </div>

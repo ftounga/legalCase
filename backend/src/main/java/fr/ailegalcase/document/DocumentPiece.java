@@ -59,6 +59,11 @@ public class DocumentPiece {
     @Column(name = "vision_model", length = 80)
     private String visionModel;
 
+    /** SF-148-03 : état de l'enrichissement visuel (pour spinner frontend). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vision_status", nullable = false, length = 20)
+    private VisionStatus visionStatus = VisionStatus.NOT_APPLICABLE;
+
     @PrePersist
     void onPrePersist() {
         this.createdAt = Instant.now();

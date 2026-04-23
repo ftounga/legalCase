@@ -292,6 +292,32 @@
   }
 }
 
+.selected-piece-badge--pending {
+  background: #6B7A8D;
+  color: white;
+
+  ::ng-deep .mat-mdc-progress-spinner circle {
+    stroke: white;
+  }
+}
+
+.vision-panel--pending {
+  background: rgba(107, 122, 141, 0.08);
+  border-left-color: #6B7A8D;
+
+  .vision-panel-header {
+    color: #4A5868;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+}
+
+.piece-item-vision-spinner {
+  margin-left: 4px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
 /* SF-148-02 : panneau description visuelle sous le banner de pièce. */
 .vision-panel {
   margin-bottom: 12px;
