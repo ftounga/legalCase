@@ -85,6 +85,6 @@ describe('ImmigrationStrategyComparatorSectionComponent', () => {
     expect(c.riskLabel('FAIBLE')).toBe('Risque faible');
     expect(c.riskLabel('MOYEN')).toBe('Risque moyen');
     expect(c.riskLabel('ELEVE')).toBe('Risque élevé');
-    expect(c.riskLabel(null)).toContain('non qualifié');
+    expect(c.riskLabel(null)).toContain('qualifier');
   });
 });

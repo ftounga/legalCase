@@ -18,21 +18,30 @@ import { ImmigrationStrategyScenario, StrategyRiskLevel } from '../../core/model
 export class ImmigrationStrategyComparatorSectionComponent {
   @Input() scenarios: ImmigrationStrategyScenario[] = [];
 
-  riskLabel(risk: StrategyRiskLevel | null): string {
+  riskLabel(risk: StrategyRiskLevel | null | undefined): string {
     switch (risk) {
       case 'FAIBLE': return 'Risque faible';
       case 'MOYEN':  return 'Risque moyen';
       case 'ELEVE':  return 'Risque élevé';
-      default:        return 'Risque non qualifié';
+      default:        return 'Risque à qualifier';
     }
   }
 
-  riskClass(risk: StrategyRiskLevel | null): string {
+  riskClass(risk: StrategyRiskLevel | null | undefined): string {
     switch (risk) {
       case 'FAIBLE': return 'risk-badge risk-badge--faible';
       case 'MOYEN':  return 'risk-badge risk-badge--moyen';
       case 'ELEVE':  return 'risk-badge risk-badge--eleve';
       default:        return 'risk-badge risk-badge--unknown';
+    }
+  }
+
+  riskIcon(risk: StrategyRiskLevel | null | undefined): string {
+    switch (risk) {
+      case 'FAIBLE': return 'shield';
+      case 'MOYEN':  return 'warning_amber';
+      case 'ELEVE':  return 'priority_high';
+      default:        return 'help_outline';
     }
   }
 }
