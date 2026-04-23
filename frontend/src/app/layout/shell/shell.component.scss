@@ -137,6 +137,15 @@
   color: var(--color-primary);
 }
 
+.ws-create-action {
+  color: #1A3A5C;
+  font-weight: 500;
+
+  .ws-create-icon {
+    color: #C9973A;
+  }
+}
+
 .shell-loading {
   display: flex;
   justify-content: center;

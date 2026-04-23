@@ -5,6 +5,7 @@ import { WorkspaceService } from '../../core/services/workspace.service';
 import { WorkspaceInvitationService } from '../../core/services/workspace-invitation.service';
 import { ReferentialService } from '../../core/services/referential.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { PENDING_INVITATION_TOKEN_KEY } from '../../invite-accept/invite-accept.component';
 import { of, throwError } from 'rxjs';
 import { signal } from '@angular/core';
@@ -207,6 +208,54 @@ describe('ShellComponent — workspace switcher', () => {
       expect.stringContaining('Erreur'), expect.any(String), expect.any(Object)
     );
     expect(component.workspace()).toEqual(ws1);
+  }));
+
+  // F-154 SF-154-01 — T-09 : openCreateWorkspaceDialog → switch + reload + navigate /case-files
+  it('openCreateWorkspaceDialog → succès création → switch vers nouveau workspace + navigate', fakeAsync(() => {
+    const navigateSpy = spyOn(router, 'navigate');
+    const newWs: any = { id: 'ws-new', name: 'Cabinet Immigration FR',
+      legalDomain: 'DROIT_IMMIGRATION', country: 'FRANCE', primary: true };
+    const afterClosedSubject = new (require('rxjs').Subject)();
+    const dialog = TestBed.inject(MatDialog);
+    jest.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => afterClosedSubject.asObservable() } as any);
+
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+    workspaceService.switchWorkspace.mockReturnValue(of(newWs));
+
+    fixture.detectChanges();
+    tick();
+
+    component.openCreateWorkspaceDialog();
+    afterClosedSubject.next(newWs);
+    afterClosedSubject.complete();
+    tick();
+
+    expect(workspaceService.switchWorkspace).toHaveBeenCalledWith('ws-new');
+    expect(component.workspace()).toEqual(newWs);
+    expect(navigateSpy).toHaveBeenCalledWith(['/case-files']);
+  }));
+
+  // T-10 : dialog fermé sans résultat (annulation) → pas de switch
+  it('openCreateWorkspaceDialog → dialog annulé (null) → pas de switch ni navigate', fakeAsync(() => {
+    const navigateSpy = spyOn(router, 'navigate');
+    const afterClosedSubject = new (require('rxjs').Subject)();
+    const dialog = TestBed.inject(MatDialog);
+    jest.spyOn(dialog, 'open').mockReturnValue({ afterClosed: () => afterClosedSubject.asObservable() } as any);
+
+    workspaceService.getCurrentWorkspace.mockReturnValue(of(ws1));
+    workspaceService.listWorkspaces.mockReturnValue(of([ws1]));
+
+    fixture.detectChanges();
+    tick();
+
+    component.openCreateWorkspaceDialog();
+    afterClosedSubject.next(null);
+    afterClosedSubject.complete();
+    tick();
+
+    expect(workspaceService.switchWorkspace).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
   }));
 });
 
