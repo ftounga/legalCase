@@ -1,0 +1,107 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { DecisionToolsPanelComponent } from './decisional-tools-panel.component';
+
+describe('DecisionToolsPanelComponent', () => {
+  let component: DecisionToolsPanelComponent;
+  let fixture: ComponentFixture<DecisionToolsPanelComponent>;
+  let httpMock: HttpTestingController;
+  let snackBar: jest.Mocked<MatSnackBar>;
+
+  const CASE_FILE_ID = '55555555-5555-5555-5555-555555555555';
+  const API_URL = `/api/v1/case-files/${CASE_FILE_ID}/decision-tools-visibility`;
+
+  beforeEach(async () => {
+    snackBar = { open: jest.fn() } as unknown as jest.Mocked<MatSnackBar>;
+
+    await TestBed.configureTestingModule({
+      imports: [DecisionToolsPanelComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideAnimationsAsync(),
+        { provide: MatSnackBar, useValue: snackBar },
+      ],
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(DecisionToolsPanelComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = CASE_FILE_ID;
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('renders both always-on and contextual groups, keeps catalog chips', () => {
+    fixture.detectChanges();
+    const req = httpMock.expectOne(API_URL);
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      alwaysOn: ['F-DT-07-anciennete-conges-prime', 'F-DT-04-fiche-prudhomale'],
+      contextual: ['F-DT-08-licenciement-validity'],
+      catalog: ['F-DT-10-rupture-conv-validity', 'F-132-rupture-conv-indemnite'],
+    });
+
+    expect(component.resolvedAlwaysOn().map((x) => x.toolId))
+      .toEqual(['F-DT-07-anciennete-conges-prime', 'F-DT-04-fiche-prudhomale']);
+    expect(component.resolvedContextual().map((x) => x.toolId))
+      .toEqual(['F-DT-08-licenciement-validity']);
+    expect(component.visibility()!.catalog).toHaveLength(2);
+    expect(component.isEmpty()).toBe(false);
+  });
+
+  it('shows empty state when alwaysOn and contextual are both empty', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({ alwaysOn: [], contextual: [], catalog: [] });
+
+    expect(component.isEmpty()).toBe(true);
+  });
+
+  it('skips unknown tool_id with a console warning', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-07-anciennete-conges-prime', 'F-XX-999-unknown'],
+      contextual: [],
+      catalog: [],
+    });
+
+    const resolved = component.resolvedAlwaysOn().map((x) => x.toolId);
+    expect(resolved).toEqual(['F-DT-07-anciennete-conges-prime']);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('F-XX-999-unknown'));
+    warnSpy.mockRestore();
+  });
+
+  it('shows snackbar on HTTP error and leaves lists empty', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush('err', { status: 500, statusText: 'Server Error' });
+
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('Impossible de charger'),
+      'Fermer',
+      expect.any(Object)
+    );
+    expect(component.visibility()).toEqual({ alwaysOn: [], contextual: [], catalog: [] });
+  });
+
+  it('exposes caseFileId and synthesis as component inputs for dynamic rendering', () => {
+    component.caseFileId = CASE_FILE_ID;
+    component.synthesis = { foo: 'bar' };
+    const inputs = component.componentInputs();
+    expect(inputs).toEqual({ caseFileId: CASE_FILE_ID, synthesis: { foo: 'bar' } });
+  });
+
+  it('resolves registered tool IDs to their Angular component types', () => {
+    const c1 = component.resolveComponent('F-DT-07-anciennete-conges-prime');
+    const c2 = component.resolveComponent('F-IM-05-arbre-decisionnel-titre');
+    const c3 = component.resolveComponent('F-132-rupture-conv-indemnite');
+    expect(c1).not.toBeNull();
+    expect(c2).not.toBeNull();
+    expect(c3).not.toBeNull();
+  });
+});
