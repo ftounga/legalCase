@@ -26,23 +26,30 @@ public class ImmigrationChecklistService {
     private final CaseFileRepository caseFileRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final ImmigrationPieceAutoFillService autoFillService;
 
     public ImmigrationChecklistService(ImmigrationPieceCheckRepository pieceCheckRepository,
                                        CaseFileRepository caseFileRepository,
                                        WorkspaceMemberRepository workspaceMemberRepository,
-                                       CurrentUserResolver currentUserResolver) {
+                                       CurrentUserResolver currentUserResolver,
+                                       ImmigrationPieceAutoFillService autoFillService) {
         this.pieceCheckRepository = pieceCheckRepository;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
         this.currentUserResolver = currentUserResolver;
+        this.autoFillService = autoFillService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ImmigrationChecklistResponse get(UUID caseFileId, String titreType, String country,
                                             OidcUser oidcUser, Principal principal) {
         validateParams(titreType, country);
         User user = resolveUser(oidcUser, principal);
         CaseFile caseFile = resolveCaseFileForUser(caseFileId, user);
+
+        // SF-IM-01-05 : auto-pré-remplit les statuts PRESENT à partir des pièces
+        // détectées (F-145) si aucun check n'existe encore. Idempotent.
+        autoFillService.autoFillIfEmpty(caseFile, titreType, country);
 
         List<String> referentielPieces = ImmigrationPieceReferentiel.getPieces(titreType, country);
         Map<String, String> existingStatuts = pieceCheckRepository
