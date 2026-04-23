@@ -133,6 +133,29 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     expect(component.titreType()).toBe('VLS_TS_SALARIE');
   });
 
+  // SF-IM-07-05 : les nouveaux sous-types de CARTE_PLURIANNUELLE et CST_VPF_CONJOINT_FR
+  // produits par le prompt IA SF-IM-07-04 doivent pré-remplir correctement.
+  it('SF-IM-07-05 : prefill CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE (cas Chen)', () => {
+    component.aiData = { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' } as any;
+    initNoExisting();
+    expect(component.titreType()).toBe('CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE');
+    expect(component.provenanceTitreType()).toBe('IA');
+  });
+
+  it('SF-IM-07-05 : prefill CST_VPF_CONJOINT_FR (mariage avec Français)', () => {
+    component.aiData = { typeTitreSejourCode: 'CST_VPF_CONJOINT_FR' } as any;
+    initNoExisting();
+    expect(component.titreType()).toBe('CST_VPF_CONJOINT_FR');
+    expect(component.provenanceTitreType()).toBe('IA');
+  });
+
+  it('SF-IM-07-05 : prefill fires at mount (ngOnInit garde-fou)', () => {
+    component.aiData = { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_SALARIE' } as any;
+    initNoExisting();
+    expect(component.titreType()).toBe('CARTE_PLURIANNUELLE_SALARIE');
+    expect(component.provenanceTitreType()).toBe('IA');
+  });
+
   it('should NOT prefill when result already exists', () => {
     component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
     initWithExisting();
