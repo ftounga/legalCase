@@ -33,13 +33,21 @@ public final class PensionAlimentaireCalculator {
             String modeGarde,
             String pays,
             boolean donneesPartielles,
-            String modeGardeDetaille
+            String modeGardeDetaille,
+            JurisprudenceRange jurisprudenceRange
     ) {
-        /** Rétrocompat pour les appels historiques sans mode détaillé (tests, calculator). */
+        /** Rétrocompat pour les appels historiques sans mode détaillé. */
         public PensionAlimentaireEstimate(double montantMin, double montantMax, double revenus,
                                            int nbEnfants, String modeGarde, String pays,
                                            boolean donneesPartielles) {
-            this(montantMin, montantMax, revenus, nbEnfants, modeGarde, pays, donneesPartielles, null);
+            this(montantMin, montantMax, revenus, nbEnfants, modeGarde, pays, donneesPartielles, null, null);
+        }
+        /** Rétrocompat constructeur 8-args sans fourchette JAF. */
+        public PensionAlimentaireEstimate(double montantMin, double montantMax, double revenus,
+                                           int nbEnfants, String modeGarde, String pays,
+                                           boolean donneesPartielles, String modeGardeDetaille) {
+            this(montantMin, montantMax, revenus, nbEnfants, modeGarde, pays, donneesPartielles,
+                    modeGardeDetaille, null);
         }
     }
 
@@ -82,6 +90,11 @@ public final class PensionAlimentaireCalculator {
         double montantMin = Math.round(montant * 0.90 * 100.0) / 100.0;
         double montantMax = Math.round(montant * 1.10 * 100.0) / 100.0;
 
+        // F-153 SF-153-01 : fourchette jurisprudentielle autour du montant médian calculé.
+        JurisprudenceRange jafRange = donneesPartielles
+                ? null
+                : JafReferenceTable.pensionAlimentaireRange(montant, safePays);
+
         return Optional.of(new PensionAlimentaireEstimate(
                 montantMin,
                 montantMax,
@@ -89,7 +102,9 @@ public final class PensionAlimentaireCalculator {
                 safeNbEnfants,
                 alternee ? "ALTERNEE" : "EXCLUSIVE",
                 safePays,
-                donneesPartielles
+                donneesPartielles,
+                null,
+                jafRange
         ));
     }
 }
