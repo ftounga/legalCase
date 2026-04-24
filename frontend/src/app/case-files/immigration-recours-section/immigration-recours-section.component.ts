@@ -18,6 +18,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 const VALID_RECOURS_CODES = new Set([
   'RECOURS_GRACIEUX_PREFET', 'RECOURS_CONTENTIEUX_TA', 'RECOURS_CNDA',
@@ -25,16 +27,9 @@ const VALID_RECOURS_CODES = new Set([
 ]);
 
 export type IM06AlertField = 'RECOURS_TYPE' | 'DATE_NOTIFICATION';
-export type IM06AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'PIECE_MANQUANTE' | 'MULTI';
-
-export interface IM06CoherenceAlert {
-  field: IM06AlertField;
-  source: IM06AlertSource;
-  contributors: IM06AlertSource[];
-  expectedDisplay: string;
-  reason: string;
-  pieceTexte?: string | null;
-}
+// SF-155-13 : alias rétro-compat — utilise l'interface générique partagée.
+export type IM06AlertSource = CoherenceAlertSource;
+export type IM06CoherenceAlert = CoherenceAlert<IM06AlertField>;
 
 @Component({
   selector: 'app-immigration-recours-section',
@@ -182,14 +177,19 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     return `${prefix} (${alert.expectedDisplay})`;
   }
 
+  /**
+   * SF-155-13 : migration vers CoherenceAlertBuilder partagé.
+   * Logique métier inchangée : scan F96 → QUESTION_IA → IA, la 1re source fixe
+   * `expectedDisplay`, les suivantes consolident en `MULTI` si même valeur ;
+   * la pièce manquante éventuelle est attachée en contributor additionnel.
+   */
   private buildRecoursTypeAlert(): IM06CoherenceAlert | null {
     const user = this.recoursType();
     if (!user) return null;
     const piecesIndex = this.buildPiecesIndex(this.piecesManquantesSignal());
     const pieceTexte = piecesIndex['IM06_RECOURS_TYPE'] ?? null;
-    const contributors: IM06AlertSource[] = [];
-    const reasons: string[] = [];
-    let expected: string | null = null;
+
+    const builder = CoherenceAlertBuilder.forField<IM06AlertField>('RECOURS_TYPE');
 
     // F-96 VERIFIED
     for (const chk of this.procedureChecksSignal()) {
@@ -197,10 +197,11 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
       if (chk.statut !== 'VERIFIED') continue;
       const ev = chk.expectedValue?.toUpperCase();
       if (!ev || !VALID_RECOURS_CODES.has(ev)) continue;
-      if (ev !== user && !expected) {
-        expected = ev;
-        contributors.push('F96');
-        reasons.push(`Checklist procédurale : ${ev}${chk.raison ? ' (' + chk.raison + ')' : ''}`);
+      if (ev !== user) {
+        builder.addSource('F96', {
+          expectedDisplay: ev,
+          reason: `Checklist procédurale : ${ev}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+        });
       }
       break;
     }
@@ -215,45 +216,33 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
       const ev = q.expectedValue?.toUpperCase();
       if (!ev || !VALID_RECOURS_CODES.has(ev)) continue;
       if (ev === user) continue;
-      if (!expected) {
-        expected = ev;
-        contributors.push('QUESTION_IA');
-        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
-      } else if (ev === expected) {
-        contributors.push('QUESTION_IA');
-        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
-      }
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: ev,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
       break;
     }
 
     // IA typeRecoursCode
     const iaCode = this.aiDataSignal()?.typeRecoursCode?.toUpperCase();
     if (iaCode && VALID_RECOURS_CODES.has(iaCode) && iaCode !== user) {
-      if (!expected) {
-        expected = iaCode;
-        contributors.push('IA');
-        reasons.push(`Analyse du dossier : ${iaCode}`);
-      } else if (iaCode === expected) {
-        contributors.push('IA');
-        reasons.push(`Analyse du dossier : ${iaCode}`);
-      }
+      builder.addSource('IA', {
+        expectedDisplay: iaCode,
+        reason: `Analyse du dossier : ${iaCode}`,
+      });
     }
 
-    if (!expected) return null;
-    if (pieceTexte) {
-      contributors.push('PIECE_MANQUANTE');
-      reasons.push(`Pièce manquante : ${pieceTexte}`);
-    }
-    return {
-      field: 'RECOURS_TYPE',
-      source: contributors.length > 1 ? 'MULTI' : contributors[0],
-      contributors,
-      expectedDisplay: expected,
-      reason: reasons.join(' ET '),
-      pieceTexte,
-    };
+    // PIECE_MANQUANTE — contributor uniquement si alerte déjà initiée.
+    if (pieceTexte) builder.addPieceManquante(pieceTexte);
+
+    return builder.build();
   }
 
+  /**
+   * SF-155-13 : migration vers CoherenceAlertBuilder partagé.
+   * Logique métier inchangée : alerte IA si écart > 7 jours entre date saisie
+   * et date IA. Source unique `IA` — pas de consolidation multi-sources ici.
+   */
   private buildDateAlert(): IM06CoherenceAlert | null {
     const userDate = this.dateNotification();
     const iaDate = this.aiDataSignal()?.dateNotificationDecisionContestee;
@@ -263,13 +252,12 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     if (Number.isNaN(tUser) || Number.isNaN(tIa)) return null;
     const diffDays = Math.abs(tUser - tIa) / 86400000;
     if (diffDays <= 7) return null;
-    return {
-      field: 'DATE_NOTIFICATION',
-      source: 'IA',
-      contributors: ['IA'],
-      expectedDisplay: iaDate,
-      reason: `Analyse du dossier : date de notification détectée le ${iaDate} (écart de ${Math.round(diffDays)} jours)`,
-    };
+    return CoherenceAlertBuilder.forField<IM06AlertField>('DATE_NOTIFICATION')
+      .addSource('IA', {
+        expectedDisplay: iaDate,
+        reason: `Analyse du dossier : date de notification détectée le ${iaDate} (écart de ${Math.round(diffDays)} jours)`,
+      })
+      .build();
   }
 
   toggleCollapsed(): void {
