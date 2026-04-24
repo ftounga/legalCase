@@ -439,4 +439,31 @@ describe('InaptitudeSectionComponent', () => {
     component.onOrigineChange('PROFESSIONNELLE_BE');
     expect(component.coherenceAlerts().ORIGINE).toBeUndefined();
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-05 — interface `CoherenceAlert<InaptitudeAlertField>` partagée
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-05 : alerte SALAIRE expose contract CoherenceAlert — contributors=[IA], severity=WARNING', () => {
+    component.aiData = { salaireBrutMensuel: 3000 };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.onSalaireChange(5000); // 66 % d'écart
+    const alert = component.coherenceAlerts().SALAIRE;
+    expect(alert).toBeDefined();
+    expect(alert!.field).toBe('SALAIRE');
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+    expect(alert!.severity).toBe('WARNING');
+  });
+
+  it('SF-155-05 : alertBadgeLabel + alertTooltip fonctionnent avec la nouvelle interface', () => {
+    component.aiData = { salaireBrutMensuel: 3000 };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.onSalaireChange(5000);
+    const alert = component.coherenceAlerts().SALAIRE!;
+    expect(component.alertBadgeLabel(alert)).toContain('Incohérence');
+    expect(component.alertTooltip(alert)).toBeTruthy();
+  });
 });

@@ -562,6 +562,8 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     it('alertBadgeLabel : CRITICAL → "Risque d\'irrecevabilité"', () => {
       const label = component.alertBadgeLabel({
         field: 'RECOURS_FORME',
+        source: 'IA',
+        contributors: ['IA'],
         severity: 'CRITICAL',
         expectedDisplay: 'Recours déjà formé détecté',
         reason: 'test',
@@ -572,11 +574,44 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     it('alertBadgeLabel : WARNING → "Incohérence détectée"', () => {
       const label = component.alertBadgeLabel({
         field: 'MOTIF_OQTF',
+        source: 'IA',
+        contributors: ['IA'],
         severity: 'WARNING',
         expectedDisplay: 'Refus de titre',
         reason: 'test',
       });
       expect(label).toContain('Incohérence détectée');
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-05 — interface `CoherenceAlert<OqtfAlertField>` partagée
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-05 : alerte MOTIF_OQTF expose contract CoherenceAlert — contributors=[IA], severity=WARNING', () => {
+    component.aiData = { motifOqtfCode: 'REFUS_TITRE' };
+    component.ngOnInit();
+    flush404();
+    component.onMotifOqtfChange('EXPIRATION_TITRE');
+    component.onDateNotificationChange('2026-04-02');
+    const alert = component.coherenceAlerts().MOTIF_OQTF;
+    expect(alert).toBeDefined();
+    expect(alert!.field).toBe('MOTIF_OQTF');
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+    expect(alert!.severity).toBe('WARNING');
+  });
+
+  it('SF-155-05 : alerte RECOURS_FORME expose severity=CRITICAL', () => {
+    component.aiData = { recoursFormeDetected: { reponse: 'OUI', justification: 'recours dans le dossier' } };
+    component.ngOnInit();
+    flush404();
+    component.onRecoursFormeChange(false);
+    component.onDateNotificationChange('2026-04-02');
+    component.onMotifOqtfChange('REFUS_TITRE');
+    const alert = component.coherenceAlerts().RECOURS_FORME;
+    expect(alert).toBeDefined();
+    expect(alert!.severity).toBe('CRITICAL');
+    expect(alert!.contributors).toEqual(['IA']);
   });
 });

@@ -37,6 +37,8 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSeverity } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 /**
  * SF-IM-08-04 : outil décisionnel dédié "OQTF SANS délai de départ
@@ -50,6 +52,7 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
  * SF-155-04-B2 : pré-fill IA depuis `ImmigrationExtractedData` + alertes
  * cohérence F-IA-03 critiques (délai 48h dépassé, placement CRA détecté,
  * divergence date/heure, contradiction recours).
+ * SF-155-05 : interfaces factorisées via `CoherenceAlert<F>` partagée.
  */
 export type OqtfSdAlertField =
   | 'DATE_HEURE_NOTIFICATION'
@@ -57,14 +60,8 @@ export type OqtfSdAlertField =
   | 'RECOURS_FORME'
   | 'MOTIF_SANS_DELAI';
 
-export type OqtfSdAlertSeverity = 'CRITICAL' | 'WARNING';
-
-export interface OqtfSdCoherenceAlert {
-  field: OqtfSdAlertField;
-  severity: OqtfSdAlertSeverity;
-  reason: string;
-  expectedDisplay: string;
-}
+export type OqtfSdAlertSeverity = CoherenceAlertSeverity;
+export type OqtfSdCoherenceAlert = CoherenceAlert<OqtfSdAlertField>;
 
 const ALLOWED_MOTIFS_SANS_DELAI: ReadonlySet<string> = new Set<string>(
   MOTIFS_SANS_DELAI.map((m) => m.code),
@@ -358,12 +355,13 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     const deltaMs = this.nowMs() - notifMs;
     if (deltaMs <= MS_48H) return null;
     const hours = Math.round(deltaMs / MS_ONE_HOUR);
-    return {
-      field: 'RECOURS_FORME',
-      severity: 'CRITICAL',
-      reason: `Notification OQTF il y a environ ${hours} h (IA : ${iso}). Délai 48h probablement dépassé — aucun recours formé dans le dossier.`,
-      expectedDisplay: 'Recours hors délai probable',
-    };
+    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('RECOURS_FORME')
+      .withSeverity('CRITICAL')
+      .addSource('IA', {
+        expectedDisplay: 'Recours hors délai probable',
+        reason: `Notification OQTF il y a environ ${hours} h (IA : ${iso}). Délai 48h probablement dépassé — aucun recours formé dans le dossier.`,
+      })
+      .build();
   }
 
   /**
@@ -378,24 +376,26 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     if (iaRecours === this.recoursForme()) return null;
     const just = ai.recoursFormeDetected?.justification;
     const justSuffix = just ? ` (${just})` : '';
-    return {
-      field: 'RECOURS_FORME',
-      severity: 'WARNING',
-      reason: `Analyse du dossier : recours ${iaRecours ? 'déjà formé' : 'non formé'}${justSuffix}`,
-      expectedDisplay: iaRecours ? 'Recours déjà formé' : 'Aucun recours formé',
-    };
+    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('RECOURS_FORME')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: iaRecours ? 'Recours déjà formé' : 'Aucun recours formé',
+        reason: `Analyse du dossier : recours ${iaRecours ? 'déjà formé' : 'non formé'}${justSuffix}`,
+      })
+      .build();
   }
 
   /** SF-155-04-B2 : alerte critique CRA détecté par IA, avocat coche non. */
   private buildCraAlert(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
     if (ai.placementCraDetected !== true) return null;
     if (this.placementCra() === true) return null;
-    return {
-      field: 'PLACEMENT_CRA',
-      severity: 'CRITICAL',
-      reason: 'L\'analyse du dossier a détecté une mention de placement en CRA — vérifier les pièces.',
-      expectedDisplay: 'Placement CRA détecté',
-    };
+    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('PLACEMENT_CRA')
+      .withSeverity('CRITICAL')
+      .addSource('IA', {
+        expectedDisplay: 'Placement CRA détecté',
+        reason: 'L\'analyse du dossier a détecté une mention de placement en CRA — vérifier les pièces.',
+      })
+      .build();
   }
 
   /** Divergence date/heure saisie vs IA > 1h — alerte warning. */
@@ -408,12 +408,13 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     const saisieMs = this.parseIsoToMs(saisie);
     if (iaMs === null || saisieMs === null) return null;
     if (Math.abs(iaMs - saisieMs) <= MS_ONE_HOUR) return null;
-    return {
-      field: 'DATE_HEURE_NOTIFICATION',
-      severity: 'WARNING',
-      reason: `Analyse du dossier : ${iso} — écart > 1 h avec la saisie (${saisie}).`,
-      expectedDisplay: 'Date IA divergente',
-    };
+    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('DATE_HEURE_NOTIFICATION')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: 'Date IA divergente',
+        reason: `Analyse du dossier : ${iso} — écart > 1 h avec la saisie (${saisie}).`,
+      })
+      .build();
   }
 
   /**

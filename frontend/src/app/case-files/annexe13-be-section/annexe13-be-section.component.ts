@@ -30,6 +30,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 /** SF-155-04-C : whitelist stricte alignée sur Annexe13BeCalculator.MOTIFS_VALIDES (4 codes). */
 const MOTIFS_OQT_WHITELIST = new Set<MotifOqt>(
@@ -43,15 +45,10 @@ export type IM08AnnexeBeAlertField =
   | 'DELAI_DEPART'
   | 'MOTIF_OQT';
 
-export type IM08AnnexeBeAlertSource = 'IA';
-
-export interface IM08AnnexeBeCoherenceAlert {
-  field: IM08AnnexeBeAlertField;
-  source: IM08AnnexeBeAlertSource;
-  expectedDisplay: string;
-  reason: string;
-  blocker: boolean;
-}
+// SF-155-05 : alias rétro-compat — `CoherenceAlert<F>` partagée.
+// Le champ `blocker: boolean` legacy est dérivé de `severity === 'CRITICAL'`.
+export type IM08AnnexeBeAlertSource = CoherenceAlertSource;
+export type IM08AnnexeBeCoherenceAlert = CoherenceAlert<IM08AnnexeBeAlertField>;
 
 /**
  * SF-IM-08-06 : outil décisionnel dédié "Annexe 13 — OQT belge"
@@ -137,55 +134,59 @@ export class Annexe13BeSectionComponent implements OnInit, OnChanges {
     if (!ai) return {};
     const alerts: Partial<Record<IM08AnnexeBeAlertField, IM08AnnexeBeCoherenceAlert>> = {};
 
-    // 1. TRANSFERT_IMMINENT — alerte critique (blocker=true, rouge)
+    // 1. TRANSFERT_IMMINENT — alerte critique (severity CRITICAL)
     if (ai.transfertImminentDetected === true && this.transfertImminent() === false) {
-      alerts.TRANSFERT_IMMINENT = {
-        field: 'TRANSFERT_IMMINENT',
-        source: 'IA',
-        expectedDisplay: 'Transfert imminent détecté',
-        reason: 'L\'IA a détecté un risque de transfert imminent (centre fermé, escorte, vol programmé) — à vérifier',
-        blocker: true,
-      };
+      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('TRANSFERT_IMMINENT')
+        .withSeverity('CRITICAL')
+        .addSource('IA', {
+          expectedDisplay: 'Transfert imminent détecté',
+          reason: 'L\'IA a détecté un risque de transfert imminent (centre fermé, escorte, vol programmé) — à vérifier',
+        })
+        .build();
+      if (built) alerts.TRANSFERT_IMMINENT = built;
     }
 
-    // 2. DATE_NOTIFICATION — divergence non nulle
+    // 2. DATE_NOTIFICATION — divergence non nulle (WARNING)
     const aiDate = typeof ai.dateNotificationAnnexe13 === 'string' ? ai.dateNotificationAnnexe13 : null;
     const userDate = this.dateNotificationAnnexe13();
     if (aiDate && userDate && aiDate !== userDate) {
-      alerts.DATE_NOTIFICATION = {
-        field: 'DATE_NOTIFICATION',
-        source: 'IA',
-        expectedDisplay: aiDate,
-        reason: `Analyse du dossier : date de notification ${aiDate}`,
-        blocker: false,
-      };
+      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('DATE_NOTIFICATION')
+        .withSeverity('WARNING')
+        .addSource('IA', {
+          expectedDisplay: aiDate,
+          reason: `Analyse du dossier : date de notification ${aiDate}`,
+        })
+        .build();
+      if (built) alerts.DATE_NOTIFICATION = built;
     }
 
-    // 3. DELAI_DEPART — divergence entière
+    // 3. DELAI_DEPART — divergence entière (WARNING)
     const aiDelai = ai.delaiDepartImposeJours;
     if (typeof aiDelai === 'number' && Number.isInteger(aiDelai) && aiDelai >= 0
         && aiDelai !== this.delaiDepartImposeJours()) {
-      alerts.DELAI_DEPART = {
-        field: 'DELAI_DEPART',
-        source: 'IA',
-        expectedDisplay: `${aiDelai} jour(s)`,
-        reason: `Analyse du dossier : délai de départ imposé = ${aiDelai} jour(s)`,
-        blocker: false,
-      };
+      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('DELAI_DEPART')
+        .withSeverity('WARNING')
+        .addSource('IA', {
+          expectedDisplay: `${aiDelai} jour(s)`,
+          reason: `Analyse du dossier : délai de départ imposé = ${aiDelai} jour(s)`,
+        })
+        .build();
+      if (built) alerts.DELAI_DEPART = built;
     }
 
-    // 4. MOTIF_OQT — divergence whitelisted
+    // 4. MOTIF_OQT — divergence whitelisted (WARNING)
     const aiMotif = ai.motifOqtCodeBe as MotifOqt | null | undefined;
     const userMotif = this.motifOqt();
     if (aiMotif && MOTIFS_OQT_WHITELIST.has(aiMotif) && userMotif && aiMotif !== userMotif) {
       const label = MOTIFS_OQT.find(m => m.code === aiMotif)?.label ?? aiMotif;
-      alerts.MOTIF_OQT = {
-        field: 'MOTIF_OQT',
-        source: 'IA',
-        expectedDisplay: label,
-        reason: `Analyse du dossier : motif ${label}`,
-        blocker: false,
-      };
+      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('MOTIF_OQT')
+        .withSeverity('WARNING')
+        .addSource('IA', {
+          expectedDisplay: label,
+          reason: `Analyse du dossier : motif ${label}`,
+        })
+        .build();
+      if (built) alerts.MOTIF_OQT = built;
     }
 
     return alerts;
@@ -193,7 +194,8 @@ export class Annexe13BeSectionComponent implements OnInit, OnChanges {
 
   alertsSummary = computed(() => {
     const values = Object.values(this.coherenceAlerts());
-    const blockers = values.filter(a => a.blocker).length;
+    // SF-155-05 : blockers dérivés de severity === 'CRITICAL' (ancien champ `blocker: boolean`).
+    const blockers = values.filter(a => a.severity === 'CRITICAL').length;
     return { total: values.length, blockers };
   });
 
@@ -255,7 +257,8 @@ export class Annexe13BeSectionComponent implements OnInit, OnChanges {
   }
 
   alertBadgeLabel(alert: IM08AnnexeBeCoherenceAlert): string {
-    if (alert.blocker) return `Alerte critique (${alert.expectedDisplay})`;
+    // SF-155-05 : `blocker` legacy → `severity === 'CRITICAL'`.
+    if (alert.severity === 'CRITICAL') return `Alerte critique (${alert.expectedDisplay})`;
     return `Incohérence détectée (${alert.expectedDisplay})`;
   }
 

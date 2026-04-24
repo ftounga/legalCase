@@ -35,6 +35,8 @@ import {
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
@@ -44,22 +46,9 @@ import { SourceExplanationService } from '../../core/services/source-explanation
  */
 export type HLNAlertField = 'SALAIRE' | 'MOTIF_NULLITE';
 
-/**
- * SF-155-04-A1 : source d'une alerte de cohérence (aligné sur le pattern
- * `immigration-title-decision-section`). Pour l'instant seul `IA` est
- * réellement produit — les autres sources (F96, QUESTION_IA, PIECE_MANQUANTE)
- * sont prévues mais exploitées par les SFs jumelles A2/A3/B1/B2/C si
- * pertinent pour leur métier.
- */
-export type HLNAlertSource = 'IA' | 'F96' | 'QUESTION_IA' | 'PIECE_MANQUANTE' | 'MULTI';
-
-export interface HLNCoherenceAlert {
-  field: HLNAlertField;
-  source: HLNAlertSource;
-  contributors: HLNAlertSource[];
-  expectedDisplay: string;
-  reason: string;
-}
+// SF-155-05 : alias locaux rétro-compat — utilise l'interface générique partagée.
+export type HLNAlertSource = CoherenceAlertSource;
+export type HLNCoherenceAlert = CoherenceAlert<HLNAlertField>;
 
 /**
  * SF-155-04-A1 : mapping IA (`motifNullitePressenti`) → UI (`MotifNulliteFr`).
@@ -261,6 +250,7 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   /**
    * SF-155-04-A1 : divergence salaire — écart relatif > 10 %
    * (SALAIRE_DIVERGENCE_RATIO) entre valeur IA et saisie avocat.
+   * SF-155-05 : via CoherenceAlertBuilder partagé.
    */
   private buildSalaireAlert(): HLNCoherenceAlert | null {
     const aiSalaire = this.aiDataSignal()?.salaireBrutMensuel;
@@ -269,18 +259,18 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
     if (typeof userSalaire !== 'number' || userSalaire <= 0) return null;
     const ratio = Math.abs(userSalaire - aiSalaire) / aiSalaire;
     if (ratio <= SALAIRE_DIVERGENCE_RATIO) return null;
-    return {
-      field: 'SALAIRE',
-      source: 'IA',
-      contributors: ['IA'],
-      expectedDisplay: `${aiSalaire.toLocaleString('fr-FR')} €`,
-      reason: `Analyse du dossier : salaire brut mensuel ~${aiSalaire.toLocaleString('fr-FR')} €`,
-    };
+    return CoherenceAlertBuilder.forField<HLNAlertField>('SALAIRE')
+      .addSource('IA', {
+        expectedDisplay: `${aiSalaire.toLocaleString('fr-FR')} €`,
+        reason: `Analyse du dossier : salaire brut mensuel ~${aiSalaire.toLocaleString('fr-FR')} €`,
+      })
+      .build();
   }
 
   /**
    * SF-155-04-A1 : divergence motif — mapping IA vs saisie avocat.
    * Gate FR uniquement (cf. prefillFromAi — même invariant côté backend).
+   * SF-155-05 : via CoherenceAlertBuilder partagé.
    */
   private buildMotifNulliteAlert(): HLNCoherenceAlert | null {
     if (this.workspaceCountry !== 'FRANCE') return null;
@@ -291,13 +281,12 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
     const userMotif = this.motifNullite();
     if (!userMotif || userMotif === mapped) return null;
     const mappedLabel = MOTIFS_FR.find((m) => m.code === mapped)?.label ?? mapped;
-    return {
-      field: 'MOTIF_NULLITE',
-      source: 'IA',
-      contributors: ['IA'],
-      expectedDisplay: mappedLabel,
-      reason: `Analyse du dossier : motif de nullité pressenti "${mappedLabel}"`,
-    };
+    return CoherenceAlertBuilder.forField<HLNAlertField>('MOTIF_NULLITE')
+      .addSource('IA', {
+        expectedDisplay: mappedLabel,
+        reason: `Analyse du dossier : motif de nullité pressenti "${mappedLabel}"`,
+      })
+      .build();
   }
 
   toggleCollapse(): void {

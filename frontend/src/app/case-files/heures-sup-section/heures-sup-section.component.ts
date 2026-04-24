@@ -24,6 +24,8 @@ import {
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 /** Durée légale française mensualisée (35 h × 52 semaines / 12). */
 const HEURES_MOIS_FR = 151.67;
@@ -36,13 +38,16 @@ const SEUIL_HEURES_REL = 0.50;
 
 export type HsAlertField = 'TAUX_HORAIRE' | 'HEURES_SUP' | 'SALAIRE_DEDUIT';
 
-export interface HsCoherenceAlert {
-  field: HsAlertField;
-  /** Texte descriptif de la valeur IA ou du motif de l'alerte. */
-  iaValue: string;
-  /** Niveau : warning (divergence) ou info (note non bloquante). */
-  level: 'warning' | 'info';
-}
+/**
+ * SF-155-05 : alerte F-IA-03 de l'outil heures sup, factorisée via
+ * `CoherenceAlert<HsAlertField>`. Ancien contrat (`iaValue`, `level`)
+ * remplacé par (`expectedDisplay`, `severity`) pour cohérence cross-component.
+ *
+ * Getter de compatibilité : `alert.iaValue` est le `expectedDisplay`
+ * (même sémantique — texte descriptif de la valeur IA ou du motif).
+ * `level` est dérivé de `severity` (`'warning'` ↔ `WARNING`, `'info'` ↔ `INFO`).
+ */
+export type HsCoherenceAlert = CoherenceAlert<HsAlertField>;
 
 /**
  * SF-DT-19-02 : outil décisionnel dédié "Calculateur heures supplémentaires"
@@ -330,11 +335,11 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     const derived = ai.salaireBrutMensuel / HEURES_MOIS_FR;
     const rel = Math.abs(taux - derived) / Math.max(derived, 1);
     if (rel < SEUIL_TAUX_HORAIRE_REL) return null;
-    return {
-      field: 'TAUX_HORAIRE',
-      iaValue: `${derived.toFixed(2)} €/h (dérivé de ${ai.salaireBrutMensuel} € brut / ${HEURES_MOIS_FR} h)`,
-      level: 'warning',
-    };
+    const text = `${derived.toFixed(2)} €/h (dérivé de ${ai.salaireBrutMensuel} € brut / ${HEURES_MOIS_FR} h)`;
+    return CoherenceAlertBuilder.forField<HsAlertField>('TAUX_HORAIRE')
+      .withSeverity('WARNING')
+      .addSource('IA', { expectedDisplay: text, reason: text })
+      .build();
   }
 
   private buildHeuresSupAlert(ai: TravailExtractedData): HsCoherenceAlert | null {
@@ -353,11 +358,11 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     const ecartAbs = userTotal - iaTotal;
     const ecartRel = ecartAbs / Math.max(iaTotal, 1);
     if (ecartAbs < SEUIL_HEURES_ABS || ecartRel < SEUIL_HEURES_REL) return null;
-    return {
-      field: 'HEURES_SUP',
-      iaValue: `${iaTotal} h détectées dans l'analyse, ${userTotal} h saisies`,
-      level: 'warning',
-    };
+    const text = `${iaTotal} h détectées dans l'analyse, ${userTotal} h saisies`;
+    return CoherenceAlertBuilder.forField<HsAlertField>('HEURES_SUP')
+      .withSeverity('WARNING')
+      .addSource('IA', { expectedDisplay: text, reason: text })
+      .build();
   }
 
   private buildSalaireDeduitNote(ai: TravailExtractedData): HsCoherenceAlert | null {
@@ -365,20 +370,20 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     if (typeof ai.salaireBrutMensuel !== 'number' || ai.salaireBrutMensuel <= 0) return null;
     const taux = this.tauxHoraireBrut();
     if (taux === null || taux <= 0) return null;
-    return {
-      field: 'SALAIRE_DEDUIT',
-      iaValue: `Le salaire brut a été déduit d'un net (×1,30) — le taux horaire dérivé est indicatif`,
-      level: 'info',
-    };
+    const text = `Le salaire brut a été déduit d'un net (×1,30) — le taux horaire dérivé est indicatif`;
+    return CoherenceAlertBuilder.forField<HsAlertField>('SALAIRE_DEDUIT')
+      .withSeverity('INFO')
+      .addSource('IA', { expectedDisplay: text, reason: text })
+      .build();
   }
 
   alertTooltip(alert: HsCoherenceAlert): string {
-    return alert.iaValue;
+    return alert.reason;
   }
 
   alertBadgeLabel(alert: HsCoherenceAlert): string {
     switch (alert.field) {
-      case 'TAUX_HORAIRE': return `Incohérence taux horaire (${alert.iaValue.split(' ')[0]})`;
+      case 'TAUX_HORAIRE': return `Incohérence taux horaire (${alert.expectedDisplay.split(' ')[0]})`;
       case 'HEURES_SUP': return 'Incohérence heures sup';
       case 'SALAIRE_DEDUIT': return 'Salaire brut déduit';
     }

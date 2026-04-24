@@ -527,7 +527,7 @@ describe('Annexe13BeSectionComponent', () => {
       component.showForm.set(true);
     });
 
-    it('alerte CRITIQUE TRANSFERT_IMMINENT : IA=true + avocat=false → blocker=true', () => {
+    it('alerte CRITIQUE TRANSFERT_IMMINENT : IA=true + avocat=false → severity=CRITICAL', () => {
       component.aiData = { transfertImminentDetected: true };
       component.ngOnChanges({
         aiData: new SimpleChange(undefined, component.aiData, true),
@@ -535,7 +535,8 @@ describe('Annexe13BeSectionComponent', () => {
       component.transfertImminent.set(false);
       const alerts = component.coherenceAlerts();
       expect(alerts.TRANSFERT_IMMINENT).toBeDefined();
-      expect(alerts.TRANSFERT_IMMINENT!.blocker).toBe(true);
+      // SF-155-05 : `blocker: true` legacy → `severity: 'CRITICAL'`.
+      expect(alerts.TRANSFERT_IMMINENT!.severity).toBe('CRITICAL');
       expect(alerts.TRANSFERT_IMMINENT!.source).toBe('IA');
       expect(component.alertsSummary().blockers).toBe(1);
     });
@@ -549,7 +550,7 @@ describe('Annexe13BeSectionComponent', () => {
       expect(component.coherenceAlerts().TRANSFERT_IMMINENT).toBeUndefined();
     });
 
-    it('alerte DELAI_DEPART : IA=30 + avocat=7 → warning (blocker false)', () => {
+    it('alerte DELAI_DEPART : IA=30 + avocat=7 → severity=WARNING', () => {
       component.aiData = { delaiDepartImposeJours: 30 };
       component.ngOnChanges({
         aiData: new SimpleChange(undefined, component.aiData, true),
@@ -557,11 +558,12 @@ describe('Annexe13BeSectionComponent', () => {
       component.delaiDepartImposeJours.set(7);
       const alert = component.coherenceAlerts().DELAI_DEPART;
       expect(alert).toBeDefined();
-      expect(alert!.blocker).toBe(false);
+      // SF-155-05 : `blocker: false` legacy → `severity: 'WARNING'`.
+      expect(alert!.severity).toBe('WARNING');
       expect(alert!.expectedDisplay).toBe('30 jour(s)');
     });
 
-    it('alerte MOTIF_OQT : IA=SEJOUR_IRREGULIER_ART_7 + avocat=AUTRE → warning', () => {
+    it('alerte MOTIF_OQT : IA=SEJOUR_IRREGULIER_ART_7 + avocat=AUTRE → severity=WARNING', () => {
       component.aiData = { motifOqtCodeBe: 'SEJOUR_IRREGULIER_ART_7' };
       component.ngOnChanges({
         aiData: new SimpleChange(undefined, component.aiData, true),
@@ -569,7 +571,7 @@ describe('Annexe13BeSectionComponent', () => {
       component.motifOqt.set('AUTRE');
       const alert = component.coherenceAlerts().MOTIF_OQT;
       expect(alert).toBeDefined();
-      expect(alert!.blocker).toBe(false);
+      expect(alert!.severity).toBe('WARNING');
       expect(alert!.expectedDisplay).toContain('Séjour irrégulier');
     });
 
@@ -619,16 +621,18 @@ describe('Annexe13BeSectionComponent', () => {
       expect(component.coherenceAlerts()).toEqual({});
     });
 
-    it('alertBadgeLabel — blocker=true → "Alerte critique (...)"', () => {
+    it('alertBadgeLabel — severity=CRITICAL → "Alerte critique (...)"', () => {
       expect(component.alertBadgeLabel({
-        field: 'TRANSFERT_IMMINENT', source: 'IA', blocker: true,
+        field: 'TRANSFERT_IMMINENT', source: 'IA', severity: 'CRITICAL',
+        contributors: ['IA'],
         expectedDisplay: 'X', reason: 'Y',
       })).toContain('Alerte critique');
     });
 
-    it('alertBadgeLabel — blocker=false → "Incohérence détectée (...)"', () => {
+    it('alertBadgeLabel — severity=WARNING → "Incohérence détectée (...)"', () => {
       expect(component.alertBadgeLabel({
-        field: 'DELAI_DEPART', source: 'IA', blocker: false,
+        field: 'DELAI_DEPART', source: 'IA', severity: 'WARNING',
+        contributors: ['IA'],
         expectedDisplay: 'X', reason: 'Y',
       })).toContain('Incohérence');
     });
@@ -704,6 +708,43 @@ describe('Annexe13BeSectionComponent', () => {
       expect(component.explanationFor('DATE_NOTIFICATION')).toEqual([]);
       expect(component.explanationFor('DELAI_DEPART')).toEqual([]);
       expect(component.explanationFor('MOTIF_OQT')).toEqual([]);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-05 — interface `CoherenceAlert<IM08AnnexeBeAlertField>` partagée
+  // ---------------------------------------------------------------------------
+
+  describe('SF-155-05 — interface partagée', () => {
+    beforeEach(() => {
+      component.showForm.set(true);
+    });
+
+    it('SF-155-05 : alerte TRANSFERT_IMMINENT contract CoherenceAlert — severity=CRITICAL, contributors=[IA]', () => {
+      component.aiData = { transfertImminentDetected: true };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.transfertImminent.set(false);
+      const alert = component.coherenceAlerts().TRANSFERT_IMMINENT;
+      expect(alert).toBeDefined();
+      expect(alert!.field).toBe('TRANSFERT_IMMINENT');
+      expect(alert!.source).toBe('IA');
+      expect(alert!.contributors).toEqual(['IA']);
+      expect(alert!.severity).toBe('CRITICAL');
+    });
+
+    it('SF-155-05 : alerte DELAI_DEPART contract CoherenceAlert — severity=WARNING, contributors=[IA]', () => {
+      component.aiData = { delaiDepartImposeJours: 30 };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.delaiDepartImposeJours.set(7);
+      const alert = component.coherenceAlerts().DELAI_DEPART;
+      expect(alert).toBeDefined();
+      expect(alert!.source).toBe('IA');
+      expect(alert!.contributors).toEqual(['IA']);
+      expect(alert!.severity).toBe('WARNING');
     });
   });
 });
