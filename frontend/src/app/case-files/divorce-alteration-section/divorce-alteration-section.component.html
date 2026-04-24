@@ -1,0 +1,282 @@
+<section class="da-section">
+  <header class="da-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button" [attr.aria-expanded]="!collapsed()" aria-controls="da-body">
+    <mat-icon class="da-icon">balance</mat-icon>
+    <span class="da-title">DIVORCE — ALTÉRATION DÉFINITIVE LIEN CONJUGAL</span>
+    @if (result()) {
+      <span class="da-chip">{{ result()!.verdictProbabilite }} ({{ result()!.scoreGlobal }}/100)</span>
+    }
+    <mat-icon class="da-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="da-body" class="da-body">
+
+      @if (!isFranceGate()) {
+        <!-- Gate workspaceCountry BE : bannière info redirigeant vers F-FA-11. -->
+        <div class="da-info-banner">
+          <mat-icon>info</mat-icon>
+          <div>
+            <strong>Outil disponible uniquement pour les dossiers FR.</strong>
+            <p>
+              En droit belge, la procédure équivalente est la <em>désunion irrémédiable</em>
+              (art. 229 CC). L'outil correspondant (F-FA-11) sera disponible prochainement.
+            </p>
+          </div>
+        </div>
+      } @else {
+
+        @if (loading()) {
+          <div class="da-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+
+          @if (showForm()) {
+            <!-- Résumé incohérences détectées. -->
+            @if (alertsSummary().total > 0) {
+              <div class="da-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="da-form" (ngSubmit)="calculate()">
+              <!-- Date cessation vie commune -->
+              <div class="da-field-with-alert">
+                <label class="da-field-label" for="da-date-cessation">
+                  Date de cessation de la vie commune <span class="da-required">*</span>
+                </label>
+                <input id="da-date-cessation" class="da-date-input" type="date"
+                       [ngModel]="dateCessationVieCommune()"
+                       (ngModelChange)="onDateCessationChange($event)"
+                       name="dateCessationVieCommune" required />
+                @if (provenanceDateCessation() === 'IA') {
+                  <span class="da-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- Date assignation (optionnelle) -->
+              <div class="da-field-with-alert">
+                <label class="da-field-label" for="da-date-assignation">
+                  Date d'assignation (optionnelle)
+                </label>
+                <input id="da-date-assignation" class="da-date-input" type="date"
+                       [ngModel]="dateAssignation()"
+                       (ngModelChange)="onDateAssignationChange($event)"
+                       name="dateAssignation" />
+                <span class="da-hint-note">
+                  <mat-icon>info_outline</mat-icon>
+                  Si absente, le délai est apprécié à la date du jour
+                </span>
+              </div>
+
+              <!-- Durée mariage -->
+              <div class="da-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée du mariage (années)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="dureeMariageAnnees()"
+                         (ngModelChange)="onDureeMariageChange($event)"
+                         name="dureeMariageAnnees" required />
+                </mat-form-field>
+                @if (provenanceDureeMariage() === 'IA') {
+                  <span class="da-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DUREE_MARIAGE; as alert) {
+                  <span class="da-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Revenus époux 1 -->
+              <div class="da-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Revenus annuels époux 1 (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01"
+                         [ngModel]="revenusAnnuelsEpoux1Eur()"
+                         (ngModelChange)="onRevenus1Change($event)"
+                         name="revenusAnnuelsEpoux1Eur" required />
+                </mat-form-field>
+                @if (provenanceRevenus1() === 'IA') {
+                  <span class="da-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REVENUS_EPOUX1; as alert) {
+                  <span class="da-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Revenus époux 2 -->
+              <div class="da-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Revenus annuels époux 2 (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01"
+                         [ngModel]="revenusAnnuelsEpoux2Eur()"
+                         (ngModelChange)="onRevenus2Change($event)"
+                         name="revenusAnnuelsEpoux2Eur" required />
+                </mat-form-field>
+                @if (provenanceRevenus2() === 'IA') {
+                  <span class="da-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REVENUS_EPOUX2; as alert) {
+                  <span class="da-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Toggles -->
+              <div class="da-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="preuvesSeparationDocumentaires()"
+                    (ngModelChange)="onPreuvesChange($event)"
+                    name="preuvesSeparationDocumentaires"
+                    color="primary">
+                  Preuves documentaires de séparation disponibles
+                </mat-slide-toggle>
+              </div>
+
+              <div class="da-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="tentativesReconciliation()"
+                    (ngModelChange)="onReconciliationChange($event)"
+                    name="tentativesReconciliation"
+                    color="primary">
+                  Tentatives de réconciliation signalées
+                </mat-slide-toggle>
+              </div>
+
+              <div class="da-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="patrimoineCommunSignificatif()"
+                    (ngModelChange)="onPatrimoineChange($event)"
+                    name="patrimoineCommunSignificatif"
+                    color="primary">
+                  Patrimoine commun significatif
+                </mat-slide-toggle>
+                @if (provenancePatrimoine() === 'IA') {
+                  <span class="da-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="da-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="da-result">
+              <!-- Bannière verdict (palette navy/or/rouge-classique selon ELEVEE/MOYENNE/FAIBLE). -->
+              <div [class]="verdictClass(result()!.verdictProbabilite)">
+                <mat-icon class="verdict-icon">
+                  @switch (result()!.verdictProbabilite) {
+                    @case ('ELEVEE') { check_circle }
+                    @case ('MOYENNE') { warning }
+                    @case ('FAIBLE') { error_outline }
+                  }
+                </mat-icon>
+                <div class="verdict-text">
+                  <span class="verdict-label">{{ verdictLabel(result()!.verdictProbabilite) }}</span>
+                  <span class="verdict-score">Score {{ result()!.scoreGlobal }}/100</span>
+                </div>
+              </div>
+
+              <!-- Carte délai 1 an. -->
+              <div class="da-card da-card--delai">
+                <div class="da-card-header">
+                  <span class="da-card-label">Délai objectif : 1 an de séparation</span>
+                  <mat-icon [class.da-check-ok]="result()!.delaiObjectifOk"
+                            [class.da-check-ko]="!result()!.delaiObjectifOk">
+                    {{ result()!.delaiObjectifOk ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </div>
+                <span class="da-card-value">
+                  {{ result()!.dureeSeparationAnnees | number:'1.2-2' }} année(s) écoulée(s)
+                </span>
+                <span class="da-card-note">
+                  Art. 238 Cciv (loi 23/03/2019)
+                </span>
+              </div>
+
+              <!-- Carte prestation compensatoire. -->
+              <div class="da-card da-card--prestation">
+                <div class="da-card-header">
+                  <span class="da-card-label">Prestation compensatoire indicative (art. 270 Cciv)</span>
+                </div>
+                <span class="da-card-value da-prestation-range">
+                  {{ result()!.prestationCompensatoireFourchetteMin | number:'1.0-0' }} € —
+                  {{ result()!.prestationCompensatoireFourchetteMax | number:'1.0-0' }} €
+                </span>
+                <span class="da-card-note">
+                  Estimation indicative basée sur le différentiel de revenus et la durée du mariage
+                </span>
+              </div>
+
+              <!-- Critères non remplis. -->
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="da-criteres">
+                  <span class="da-criteres-label">Critères non remplis</span>
+                  <ul>
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <!-- Meta : base juridique + bouton modifier. -->
+              <div class="da-meta">
+                <span class="da-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+
+              <!-- Formule détaillée. -->
+              <pre class="da-formule">{{ result()!.formule }}</pre>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="da-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+
+        }
+      }
+    </div>
+  }
+</section>
