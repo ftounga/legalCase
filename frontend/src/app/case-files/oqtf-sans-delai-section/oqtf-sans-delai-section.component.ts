@@ -90,7 +90,16 @@ const MS_48H = 48 * MS_ONE_HOUR;
 })
 export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
-  @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
+
+  // SF-155-04-B2 fix : setter-backed signal pour que `isFrance` (computed)
+  // réagisse aux assignations @Input de workspaceCountry, y compris quand
+  // les tests le changent via `component.workspaceCountry = 'BELGIQUE';`
+  // sans passer par le cycle fixture/ngOnChanges.
+  private readonly _workspaceCountry = signal<'FRANCE' | 'BELGIQUE'>('FRANCE');
+  @Input()
+  set workspaceCountry(v: 'FRANCE' | 'BELGIQUE') { this._workspaceCountry.set(v); }
+  get workspaceCountry(): 'FRANCE' | 'BELGIQUE' { return this._workspaceCountry(); }
+
   // SF-155-04-B2 : Inputs IA (synthèse dossier + checklist F-96 + questions F-IA-02 + pièces F-145).
   @Input() aiData?: ImmigrationExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
@@ -125,7 +134,7 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   /** Maintenant au format ISO local (YYYY-MM-DDTHH:mm) pour `max` des inputs datetime-local. */
   readonly nowLocalIso: string = this.buildNowLocalIso();
 
-  isFrance = computed<boolean>(() => this.workspaceCountry === 'FRANCE');
+  isFrance = computed<boolean>(() => this._workspaceCountry() === 'FRANCE');
 
   // SF-155-04-B2 : alertes cohérence F-IA-03. Gate strict : uniquement
   // quand le formulaire est affiché (règle SF-IA-03-12 : ne pas réafficher
