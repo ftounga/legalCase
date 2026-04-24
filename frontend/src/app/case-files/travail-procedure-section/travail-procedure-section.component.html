@@ -1,0 +1,103 @@
+<section class="tps-section">
+  <header class="tps-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="tps-body">
+    <mat-icon class="tps-icon">event</mat-icon>
+    <span class="tps-title">CALENDRIER PROCÉDURAL — DROIT DU TRAVAIL</span>
+    @if (jalons().length > 0) {
+      <span class="tps-chip">{{ jalons().length }} jalon{{ jalons().length > 1 ? 's' : '' }}</span>
+    }
+    <mat-icon class="tps-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="tps-body" class="tps-body">
+      <!-- Bannière info pays — pas un masquage. -->
+      <div class="tps-country-banner" role="note">
+        <mat-icon>info_outline</mat-icon>
+        <span>{{ countryBannerLabel() }}</span>
+      </div>
+
+      <!-- Résumé incohérences (si applicable). -->
+      @if (alertsSummary().total > 0) {
+        <div class="tps-coherence-summary">
+          <mat-icon>warning</mat-icon>
+          <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+        </div>
+      }
+
+      <form class="tps-form" (ngSubmit)="calculate()">
+        <div class="tps-field-with-alert">
+          <mat-form-field appearance="outline">
+            <mat-label>Type de procédure</mat-label>
+            <mat-select
+                [ngModel]="typeProcedure()"
+                (ngModelChange)="onTypeProcedureChange($event)"
+                name="typeProcedure" required>
+              @for (opt of options(); track opt.code) {
+                <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          @if (provenanceTypeProcedure() === 'IA') {
+            <span class="tps-provenance-note">
+              <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+            </span>
+          }
+          @if (coherenceAlerts().TYPE_PROCEDURE; as alert) {
+            <span class="tps-coherence-badge"
+                  [appCoherencePopover]="[]"
+                  [appCoherencePopoverReason]="alert.reason"
+                  [appCoherencePopoverCaseFileId]="caseFileId">
+              <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+            </span>
+          }
+        </div>
+
+        <mat-form-field appearance="outline" class="tps-date-field">
+          <mat-label>Date déclencheur (optionnelle)</mat-label>
+          <input matInput type="date"
+                 [ngModel]="dateDeclencheur()"
+                 (ngModelChange)="onDateDeclencheurChange($event)"
+                 name="dateDeclencheur" />
+        </mat-form-field>
+
+        <div class="tps-actions">
+          <button mat-flat-button color="primary" type="submit"
+                  [disabled]="!formValid() || loading()">
+            @if (loading()) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <span>Calculer le calendrier</span>
+            }
+          </button>
+        </div>
+      </form>
+
+      @if (hasResult() && jalons().length === 0) {
+        <p class="tps-empty">Aucun jalon disponible pour cette procédure.</p>
+      }
+
+      @if (jalons().length > 0) {
+        <ul class="tps-timeline">
+          @for (j of jalons(); track $index) {
+            <li class="tps-timeline-item">
+              <div class="tps-timeline-marker">
+                <span class="tps-offset-chip">{{ offsetLabel(j) }}</span>
+              </div>
+              <div class="tps-timeline-content">
+                <div class="tps-jalon-label">{{ j.label }}</div>
+                @if (j.dateCible) {
+                  <div class="tps-jalon-date">
+                    <mat-icon>event</mat-icon>
+                    <span>{{ j.dateCible | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                }
+                <div class="tps-jalon-article" [innerHTML]="j.articleRef | legalCitations"></div>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>
