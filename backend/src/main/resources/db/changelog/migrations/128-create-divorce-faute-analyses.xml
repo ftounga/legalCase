@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="128-create-divorce-faute-analyses" author="legalcase">
+        <comment>
+            SF-FA-09-01 : table dédiée à l'outil décisionnel "Divorce pour faute FR"
+            (art. 242-246, 266, 270 Cciv). ~10-15 % des divorces — suppose de prouver
+            une violation grave ou renouvelée des devoirs du mariage rendant
+            intolérable le maintien de la vie commune. 8 types de fautes recevables
+            (adultère, violences, abandon, outrages, devoir d'assistance / fidélité /
+            communauté de vie, autre). Scoring pondéré 0-100 avec verdicts
+            ELEVEE/MOYENNE/FAIBLE. Estimation torts (EXCLUSIF_DEFENDEUR / PARTAGES /
+            IMPREDICTIBLE), fourchette DI art. 266 Cciv (1 000 - 10 000 € par chef),
+            prestation compensatoire indicative art. 270 Cciv.
+            Outil single-country FRANCE — régime BE (désunion irrémédiable art. 229
+            Cc BE) hors scope de cette SF.
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 71) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="divorce_faute_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_divorce_faute_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="fautes_invoquees" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_documentaires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="torts_adverse_invoques" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_mariage_annees" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revenus_annuels_demandeur_eur" type="decimal(15,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="revenus_annuels_defendeur_eur" type="decimal(15,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="date_depot_assignation" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="divorce_faute_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_divorce_faute_analyses_case_file"/>
+
+        <createIndex tableName="divorce_faute_analyses"
+                     indexName="idx_divorce_faute_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa091', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-09-divorce-faute', 'ALWAYS_ON', NULL, NULL, 71);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa091';
+            </sql>
+            <dropTable tableName="divorce_faute_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
