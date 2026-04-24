@@ -1,0 +1,153 @@
+<section class="hs-section">
+  <header class="hs-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="hs-body">
+    <mat-icon class="hs-icon">schedule</mat-icon>
+    <span class="hs-title">RAPPEL HEURES SUPPLÉMENTAIRES</span>
+    @if (result()) {
+      <span class="hs-chip">{{ result()!.rappelTotal | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="hs-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="hs-body" class="hs-body">
+      @if (loading()) {
+        <div class="hs-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="hs-form" (ngSubmit)="calculate()">
+            <mat-form-field appearance="outline" class="hs-full">
+              <mat-label>Taux horaire brut (€/h)</mat-label>
+              <input matInput type="number" min="0.01" step="0.01"
+                     [ngModel]="tauxHoraireBrut()"
+                     (ngModelChange)="tauxHoraireBrut.set($event)"
+                     name="tauxHoraireBrut" required />
+            </mat-form-field>
+
+            @if (workspaceCountry === 'FRANCE') {
+              <mat-form-field appearance="outline">
+                <mat-label>Heures sup à 25 % (8 premières/semaine)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="heuresSupDeclarees25pct()"
+                       (ngModelChange)="heuresSupDeclarees25pct.set($event)"
+                       name="heuresSupDeclarees25pct" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Heures sup à 50 % (au-delà)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="heuresSupDeclarees50pct()"
+                       (ngModelChange)="heuresSupDeclarees50pct.set($event)"
+                       name="heuresSupDeclarees50pct" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Heures hors contingent (repos compensateur)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="heuresHorsContingent()"
+                       (ngModelChange)="heuresHorsContingent.set($event)"
+                       name="heuresHorsContingent" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Taux majoration 25 % (%)</mat-label>
+                <input matInput type="number" min="10" max="50" step="0.01"
+                       [ngModel]="tauxMajoration25()"
+                       (ngModelChange)="tauxMajoration25.set($event)"
+                       name="tauxMajoration25" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Taux majoration 50 % (%)</mat-label>
+                <input matInput type="number" min="10" max="50" step="0.01"
+                       [ngModel]="tauxMajoration50()"
+                       (ngModelChange)="tauxMajoration50.set($event)"
+                       name="tauxMajoration50" />
+              </mat-form-field>
+            } @else {
+              <mat-form-field appearance="outline">
+                <mat-label>Heures sup semaine (> 40h)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="heuresSupSemaine()"
+                       (ngModelChange)="heuresSupSemaine.set($event)"
+                       name="heuresSupSemaine" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Heures dimanche / jours fériés</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="heuresDimancheJoursFeries()"
+                       (ngModelChange)="heuresDimancheJoursFeries.set($event)"
+                       name="heuresDimancheJoursFeries" />
+              </mat-form-field>
+            }
+
+            <div class="hs-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="hs-result">
+            <div class="hs-amount-block">
+              <span class="hs-amount-label">Rappel total heures supplémentaires</span>
+              <span class="hs-amount">{{ result()!.rappelTotal | number:'1.0-2' }} €</span>
+              <span class="hs-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="hs-breakdown">
+              @if (result()!.rappelMajoration25pct > 0) {
+                <div class="hs-breakdown-line">
+                  <span>Majoration 25 %</span>
+                  <strong>{{ result()!.rappelMajoration25pct | number:'1.0-2' }} €</strong>
+                </div>
+              }
+              @if (result()!.rappelMajoration50pct > 0) {
+                <div class="hs-breakdown-line">
+                  <span>Majoration 50 %</span>
+                  <strong>{{ result()!.rappelMajoration50pct | number:'1.0-2' }} €</strong>
+                </div>
+              }
+              @if (result()!.rappelMajoration100pct > 0) {
+                <div class="hs-breakdown-line">
+                  <span>Majoration 100 %</span>
+                  <strong>{{ result()!.rappelMajoration100pct | number:'1.0-2' }} €</strong>
+                </div>
+              }
+              @if (result()!.reposCompensateurHeuresDues > 0) {
+                <div class="hs-breakdown-line hs-repos">
+                  <span>Repos compensateur dû</span>
+                  <strong>{{ result()!.reposCompensateurHeuresDues | number:'1.0-2' }} h</strong>
+                </div>
+              }
+            </div>
+
+            <div class="hs-meta">
+              <span class="hs-meta-base">{{ result()!.baseJuridique }}</span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="hs-messages">
+                @for (m of result()!.messages; track m) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

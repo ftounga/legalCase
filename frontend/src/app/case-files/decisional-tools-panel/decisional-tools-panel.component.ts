@@ -38,6 +38,7 @@ import { ImmigrationWorkRightSectionComponent } from '../immigration-work-right-
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
+import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -160,6 +161,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-DT-15-inaptitude', {
         component: InaptitudeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+        }),
+      }],
+      ['F-DT-19-heures-sup', {
+        component: HeuresSupSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
