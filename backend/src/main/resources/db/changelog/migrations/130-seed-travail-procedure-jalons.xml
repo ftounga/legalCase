@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="130-seed-travail-procedure-jalons" author="legalcase">
+        <comment>
+            F-136 SF-136-01 : seed du nouveau référentiel TRAVAIL_PROCEDURE_JALONS
+            (calendrier procédural prud'hommes FR + tribunal du travail BE).
+
+            Pattern symétrique à IMMIGRATION_JALONS (migrations 049 + 108) appliqué au droit
+            du travail pour les 6 procédures clés :
+              FR : PRUDHOMMES_FR (BCO + bureau de jugement),
+                   APPEL_CA_SOCIALE_FR (chambre sociale Cour d'appel),
+                   CASSATION_SOCIALE_FR (chambre sociale Cour de cassation).
+              BE : TRIBUNAL_TRAVAIL_BE (1ʳᵉ instance, art. 578 CJ),
+                   COUR_TRAVAIL_BE (appel, art. 1051 CJ),
+                   CASSATION_BE (pourvoi, art. 1073 CJ).
+
+            Chaque entrée porte une description avocat SF-140-03 obligatoire (langage métier).
+            UUID prefix f1130000-… pour éviter collisions avec migrations 049 / 108.
+
+            Hors scope : aucun endpoint ni UI (SF-136-02 / SF-136-03 à venir). Aucune génération
+            automatique de case_deadlines (date pivot ambiguë — décision produit reportée).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1130000-0000-0000-0000-000000000001', NULL, 'DROIT_DU_TRAVAIL', 'TRAVAIL_PROCEDURE_JALONS', 'PRUDHOMMES_FR', '[{"label":"Convocation au bureau de conciliation et d''orientation (BCO)","offsetDays":45,"articleRef":"Code travail Art. R.1452-3"},{"label":"Audience du bureau de conciliation et d''orientation (BCO)","offsetDays":90,"articleRef":"Code travail Art. L.1454-1"},{"label":"Renvoi au bureau de jugement (échec conciliation)","offsetDays":180,"articleRef":"Code travail Art. L.1454-1-2"},{"label":"Audience du bureau de jugement","offsetDays":270,"articleRef":"Code travail Art. R.1454-25"},{"label":"Délibéré et notification du jugement","offsetDays":330,"articleRef":"Code travail Art. R.1454-25"}]', 'Conseil de prud''hommes (procédure ordinaire)', 'FR', true, true, 'Code travail R.1452-1 à R.1454-26 + L.1454-1', 'Procédure ordinaire devant le Conseil de prud''hommes : saisine par requête (R.1452-1), convocation au bureau de conciliation et d''orientation (BCO) sous ~45 jours, audience BCO obligatoire (L.1454-1) — soit accord conciliatoire et clôture, soit échec et renvoi au bureau de jugement sous ~6 mois. Audience de jugement collégiale (~9 mois après saisine en moyenne nationale CSM 2023). Délibéré et notification ~11 mois. Délais stricts pour la convocation (article R.1452-3) ; les autres durées sont indicatives (charge greffe). Utilisé par F-136 (calendrier procédural travail) et les outils décisionnels de pilotage de dossier prud''hommes.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1130000-0000-0000-0000-000000000002', NULL, 'DROIT_DU_TRAVAIL', 'TRAVAIL_PROCEDURE_JALONS', 'APPEL_CA_SOCIALE_FR', '[{"label":"Délai d''appel — chambre sociale Cour d''appel","offsetDays":30,"articleRef":"Code travail Art. R.1461-1"},{"label":"Conclusions appelant (mise en état)","offsetDays":90,"articleRef":"CPC Art. 908"},{"label":"Audience chambre sociale Cour d''appel","offsetDays":270,"articleRef":"CPC Art. 779"},{"label":"Arrêt et notification","offsetDays":330,"articleRef":"CPC Art. 538"}]', 'Appel — chambre sociale Cour d''appel', 'FR', true, true, 'Code travail Art. R.1461-1 + CPC Art. 538', 'Appel d''un jugement prud''homal devant la chambre sociale de la Cour d''appel : délai d''appel impératif d''1 mois (R.1461-1) à compter de la notification du jugement. Procédure avec représentation obligatoire (avocat ou défenseur syndical). Conclusions appelant à déposer dans les 3 mois (CPC art. 908). Audience et arrêt sous ~9-11 mois en moyenne. Délai d''appel = strict ; autres délais indicatifs. Utilisé par F-136 (calendrier procédural).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1130000-0000-0000-0000-000000000003', NULL, 'DROIT_DU_TRAVAIL', 'TRAVAIL_PROCEDURE_JALONS', 'CASSATION_SOCIALE_FR', '[{"label":"Délai de pourvoi — chambre sociale Cour de cassation","offsetDays":60,"articleRef":"CPC Art. 612"},{"label":"Mémoire ampliatif (demandeur)","offsetDays":150,"articleRef":"CPC Art. 978"},{"label":"Audience chambre sociale Cour de cassation","offsetDays":540,"articleRef":"CPC Art. 1009"},{"label":"Arrêt et notification","offsetDays":630,"articleRef":"CPC Art. 1023"}]', 'Pourvoi en cassation — chambre sociale', 'FR', true, true, 'CPC Art. 612, 978, 1009', 'Pourvoi en cassation devant la chambre sociale de la Cour de cassation : délai impératif de 2 mois (art. 612 CPC) à dater de la signification de l''arrêt d''appel. Représentation obligatoire par un avocat aux Conseils. Mémoire ampliatif à déposer dans les 5 mois (art. 978). Audience et arrêt sous ~18-21 mois. Délai pourvoi strict ; durées d''instruction indicatives. Utilisé par F-136 (calendrier procédural travail).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1130000-0000-0000-0000-000000000004', NULL, 'DROIT_DU_TRAVAIL', 'TRAVAIL_PROCEDURE_JALONS', 'TRIBUNAL_TRAVAIL_BE', '[{"label":"Citation et audience d''introduction","offsetDays":30,"articleRef":"CJ Art. 700"},{"label":"Mise en état — échange de conclusions","offsetDays":120,"articleRef":"CJ Art. 747"},{"label":"Audience de plaidoiries","offsetDays":240,"articleRef":"CJ Art. 755"},{"label":"Jugement et notification","offsetDays":300,"articleRef":"CJ Art. 770"}]', 'Tribunal du travail (1ʳᵉ instance)', 'BE', true, true, 'CJ Art. 578, 700, 747, 770', 'Procédure devant le tribunal du travail belge — compétence générale en matière de litiges individuels du travail (art. 578 Code judiciaire). Citation par huissier ou requête contradictoire (art. 700 CJ), audience d''introduction sous ~30 jours, mise en état avec échange de conclusions (art. 747 CJ) sur ~3-4 mois, audience de plaidoiries puis jugement sous ~10 mois en moyenne. Délais d''ordre stricts pour les conclusions ; durées de fixation indicatives selon la chambre. Utilisé par F-136 (calendrier procédural travail BE).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1130000-0000-0000-0000-000000000005', NULL, 'DROIT_DU_TRAVAIL', 'TRAVAIL_PROCEDURE_JALONS', 'COUR_TRAVAIL_BE', '[{"label":"Délai d''appel — Cour du travail","offsetDays":30,"articleRef":"CJ Art. 1051"},{"label":"Mise en état appel — conclusions","offsetDays":150,"articleRef":"CJ Art. 747"},{"label":"Audience Cour du travail","offsetDays":300,"articleRef":"CJ Art. 1056"},{"label":"Arrêt et notification","offsetDays":360,"articleRef":"CJ Art. 770"}]', 'Cour du travail (appel)', 'BE', true, true, 'CJ Art. 1050, 1051, 1056', 'Appel d''un jugement du tribunal du travail devant la Cour du travail belge : délai d''appel impératif d''1 mois (art. 1051 CJ) à dater de la signification du jugement. Procédure avec représentation obligatoire. Mise en état avec conclusions sur ~5 mois. Audience et arrêt sous ~10-12 mois en moyenne. Délai d''appel = strict ; durées d''instruction indicatives. Utilisé par F-136 (calendrier procédural travail BE).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1130000-0000-0000-0000-000000000006', NULL, 'DROIT_DU_TRAVAIL', 'TRAVAIL_PROCEDURE_JALONS', 'CASSATION_BE', '[{"label":"Délai de pourvoi — Cour de cassation BE","offsetDays":90,"articleRef":"CJ Art. 1073"},{"label":"Mémoire en cassation","offsetDays":180,"articleRef":"CJ Art. 1080"},{"label":"Audience Cour de cassation BE","offsetDays":450,"articleRef":"CJ Art. 1095"},{"label":"Arrêt et notification","offsetDays":540,"articleRef":"CJ Art. 1109"}]', 'Pourvoi en cassation BE', 'BE', true, true, 'CJ Art. 1073, 1080, 1095', 'Pourvoi en cassation devant la Cour de cassation belge contre un arrêt de la Cour du travail : délai impératif de 3 mois (art. 1073 CJ) à dater de la signification. Représentation par avocat à la Cour de cassation obligatoire. Mémoire en cassation sous ~6 mois (art. 1080 CJ). Audience et arrêt sous ~15-18 mois. Délai de pourvoi strict ; durées d''instruction indicatives. Utilisé par F-136 (calendrier procédural travail BE).', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM legal_referentials WHERE id IN (
+                    'f1130000-0000-0000-0000-000000000001',
+                    'f1130000-0000-0000-0000-000000000002',
+                    'f1130000-0000-0000-0000-000000000003',
+                    'f1130000-0000-0000-0000-000000000004',
+                    'f1130000-0000-0000-0000-000000000005',
+                    'f1130000-0000-0000-0000-000000000006'
+                );
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
