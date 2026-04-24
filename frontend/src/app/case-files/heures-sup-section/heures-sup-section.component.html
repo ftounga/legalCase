@@ -18,39 +18,103 @@
         </div>
       } @else {
         @if (showForm()) {
+          @if (workspaceCountry === 'BELGIQUE') {
+            <div class="hs-country-note">
+              <mat-icon>info_outline</mat-icon>
+              <span>Pré-fill IA heures sup disponible uniquement pour la France (contingent annuel + majorations 25 % / 50 %).</span>
+            </div>
+          }
+          @if (alertsSummary().total > 0) {
+            <div class="hs-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
           <form class="hs-form" (ngSubmit)="calculate()">
-            <mat-form-field appearance="outline" class="hs-full">
-              <mat-label>Taux horaire brut (€/h)</mat-label>
-              <input matInput type="number" min="0.01" step="0.01"
-                     [ngModel]="tauxHoraireBrut()"
-                     (ngModelChange)="tauxHoraireBrut.set($event)"
-                     name="tauxHoraireBrut" required />
-            </mat-form-field>
+            <div class="hs-field-with-alert hs-full">
+              <mat-form-field appearance="outline">
+                <mat-label>Taux horaire brut (€/h)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="tauxHoraireBrut()"
+                       (ngModelChange)="tauxHoraireBrut.set($event); onTauxHoraireChange()"
+                       name="tauxHoraireBrut" required />
+              </mat-form-field>
+              @if (provenanceTauxHoraire() === 'IA') {
+                <span class="hs-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().TAUX_HORAIRE; as alert) {
+                <span class="hs-coherence-badge hs-coherence-warning"
+                      [appCoherencePopover]="[]"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE_DEDUIT; as note) {
+                <span class="hs-coherence-note"
+                      [appCoherencePopover]="[]"
+                      [appCoherencePopoverReason]="alertTooltip(note)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>info_outline</mat-icon> {{ alertBadgeLabel(note) }}
+                </span>
+              }
+            </div>
 
             @if (workspaceCountry === 'FRANCE') {
-              <mat-form-field appearance="outline">
-                <mat-label>Heures sup à 25 % (8 premières/semaine)</mat-label>
-                <input matInput type="number" min="0" step="1"
-                       [ngModel]="heuresSupDeclarees25pct()"
-                       (ngModelChange)="heuresSupDeclarees25pct.set($event)"
-                       name="heuresSupDeclarees25pct" />
-              </mat-form-field>
+              <div class="hs-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Heures sup à 25 % (8 premières/semaine)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="heuresSupDeclarees25pct()"
+                         (ngModelChange)="heuresSupDeclarees25pct.set($event); onHeures25Change()"
+                         name="heuresSupDeclarees25pct" />
+                </mat-form-field>
+                @if (provenanceHeures25() === 'IA') {
+                  <span class="hs-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Heures sup à 50 % (au-delà)</mat-label>
-                <input matInput type="number" min="0" step="1"
-                       [ngModel]="heuresSupDeclarees50pct()"
-                       (ngModelChange)="heuresSupDeclarees50pct.set($event)"
-                       name="heuresSupDeclarees50pct" />
-              </mat-form-field>
+              <div class="hs-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Heures sup à 50 % (au-delà)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="heuresSupDeclarees50pct()"
+                         (ngModelChange)="heuresSupDeclarees50pct.set($event); onHeures50Change()"
+                         name="heuresSupDeclarees50pct" />
+                </mat-form-field>
+                @if (provenanceHeures50() === 'IA') {
+                  <span class="hs-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Heures hors contingent (repos compensateur)</mat-label>
-                <input matInput type="number" min="0" step="1"
-                       [ngModel]="heuresHorsContingent()"
-                       (ngModelChange)="heuresHorsContingent.set($event)"
-                       name="heuresHorsContingent" />
-              </mat-form-field>
+              <div class="hs-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Heures hors contingent (repos compensateur)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="heuresHorsContingent()"
+                         (ngModelChange)="heuresHorsContingent.set($event); onHorsContingentChange()"
+                         name="heuresHorsContingent" />
+                </mat-form-field>
+                @if (provenanceHorsContingent() === 'IA') {
+                  <span class="hs-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().HEURES_SUP; as alert) {
+                  <span class="hs-coherence-badge hs-coherence-warning"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
 
               <mat-form-field appearance="outline">
                 <mat-label>Taux majoration 25 % (%)</mat-label>

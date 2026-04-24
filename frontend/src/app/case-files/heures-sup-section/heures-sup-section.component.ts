@@ -1,4 +1,7 @@
-import { Component, Input, OnInit, Optional, signal } from '@angular/core';
+import {
+  Component, Input, OnInit, OnChanges, SimpleChanges, Optional,
+  signal, computed,
+} from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,10 +17,44 @@ import {
 } from '../../core/models/heures-sup.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import {
+  TravailExtractedData,
+  PieceManquanteEntry,
+} from '../../core/models/case-analysis.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+
+/** Durée légale française mensualisée (35 h × 52 semaines / 12). */
+const HEURES_MOIS_FR = 151.67;
+/** Écart relatif toléré entre tauxHoraireBrut saisi et dérivé IA (10 %). */
+const SEUIL_TAUX_HORAIRE_REL = 0.10;
+/** Écart absolu minimum heures sup saisies vs détectées IA (5 h). */
+const SEUIL_HEURES_ABS = 5;
+/** Écart relatif minimum heures sup (50 %), combiné au seuil absolu. */
+const SEUIL_HEURES_REL = 0.50;
+
+export type HsAlertField = 'TAUX_HORAIRE' | 'HEURES_SUP' | 'SALAIRE_DEDUIT';
+
+export interface HsCoherenceAlert {
+  field: HsAlertField;
+  /** Texte descriptif de la valeur IA ou du motif de l'alerte. */
+  iaValue: string;
+  /** Niveau : warning (divergence) ou info (note non bloquante). */
+  level: 'warning' | 'info';
+}
 
 /**
  * SF-DT-19-02 : outil décisionnel dédié "Calculateur heures supplémentaires"
  * (F-DT-19). FR + BE. Consomme l'API SF-DT-19-01.
+ *
+ * SF-155-04-A3 (2026-04-24) : pré-remplissage IA + validation F-IA-03. Aligne
+ * le composant sur le pattern canonique `immigration-title-decision-section`.
+ * Les champs `salaireBrutMensuel` → `tauxHoraireBrut` et
+ * `heuresSupMentionneesDansDossier` sont pré-remplis depuis la synthèse IA.
+ * Les signaux `provenance<Field>` pilotent les badges "Pré-rempli depuis
+ * l'analyse" et sont effacés au changement manuel.
+ *
  * Affiché conditionnellement par le panel F-IA-04 (tool_id
  * 'F-DT-19-heures-sup').
  */
@@ -30,13 +67,22 @@ import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
     MatFormFieldModule, MatInputModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './heures-sup-section.component.html',
   styleUrl: './heures-sup-section.component.scss',
 })
-export class HeuresSupSectionComponent implements OnInit {
+export class HeuresSupSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
+  // SF-155-04-A3 : sources IA pour pré-fill + cohérence F-IA-03.
+  @Input() aiData?: TravailExtractedData | null;
+  @Input() procedureChecks?: ProcedureCheck[] | null;
+  @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+
+  // Signaux miroirs des inputs (déclenchent les computed coherenceAlerts).
+  private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -57,14 +103,66 @@ export class HeuresSupSectionComponent implements OnInit {
   heuresSupSemaine = signal<number | null>(null);
   heuresDimancheJoursFeries = signal<number | null>(null);
 
+  // SF-155-04-A3 : provenance IA par champ (badge "Pré-rempli depuis l'analyse").
+  // Effacé dès que l'avocat modifie manuellement un champ (onXxxChange).
+  provenanceTauxHoraire = signal<'IA' | null>(null);
+  provenanceHeures25 = signal<'IA' | null>(null);
+  provenanceHeures50 = signal<'IA' | null>(null);
+  provenanceHorsContingent = signal<'IA' | null>(null);
+
+  /**
+   * SF-155-04-A3 : alertes de cohérence F-IA-03.
+   * - TAUX_HORAIRE : écart ≥ 10 % entre taux saisi et dérivé IA.
+   * - HEURES_SUP   : somme saisie >> somme IA (5 h abs ET 50 % rel).
+   * - SALAIRE_DEDUIT : note info (pas warning) — taux horaire dérivé moins fiable.
+   * Gate `showForm()` seul (évite le bug SF-IA-03-12 : pas de `|| result()`).
+   * BE : pas d'alertes IA (concept FR-only).
+   */
+  coherenceAlerts = computed<Partial<Record<HsAlertField, HsCoherenceAlert>>>(() => {
+    if (!this.showForm()) return {};
+    if (this.workspaceCountry !== 'FRANCE') return {};
+    const ai = this.aiDataSignal();
+    if (!ai) return {};
+    const alerts: Partial<Record<HsAlertField, HsCoherenceAlert>> = {};
+
+    const tauxAlert = this.buildTauxHoraireAlert(ai);
+    if (tauxAlert) alerts.TAUX_HORAIRE = tauxAlert;
+
+    const heuresAlert = this.buildHeuresSupAlert(ai);
+    if (heuresAlert) alerts.HEURES_SUP = heuresAlert;
+
+    const salaireDeduit = this.buildSalaireDeduitNote(ai);
+    if (salaireDeduit) alerts.SALAIRE_DEDUIT = salaireDeduit;
+
+    return alerts;
+  });
+
+  alertsSummary = computed(() => {
+    const values = Object.values(this.coherenceAlerts());
+    return { total: values.length, blockers: 0 };
+  });
+
   constructor(
     private service: HeuresSupService,
     private snackBar: MatSnackBar,
-    @Optional() private dashboardRefresh: CaseDashboardRefreshService,
+    @Optional() private dashboardRefresh: CaseDashboardRefreshService | null,
   ) {}
 
   ngOnInit(): void {
+    this.aiDataSignal.set(this.aiData);
     this.load();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData']) {
+      this.aiDataSignal.set(this.aiData);
+      // Ré-applique le prefill quand `aiData` arrive après ngOnInit,
+      // mais uniquement si le form est en édition et aucune analyse persistée.
+      // Les champs déjà modifiés manuellement (provenance null) ne sont pas écrasés.
+      if (this.showForm() && !this.result()) {
+        this.prefillFromAi();
+      }
+    }
   }
 
   toggleCollapse(): void {
@@ -74,6 +172,12 @@ export class HeuresSupSectionComponent implements OnInit {
   editMode(): void {
     this.showForm.set(true);
   }
+
+  /** SF-155-04-A3 : handlers qui effacent la provenance au changement manuel. */
+  onTauxHoraireChange(): void { this.provenanceTauxHoraire.set(null); }
+  onHeures25Change(): void { this.provenanceHeures25.set(null); }
+  onHeures50Change(): void { this.provenanceHeures50.set(null); }
+  onHorsContingentChange(): void { this.provenanceHorsContingent.set(null); }
 
   formValid(): boolean {
     const taux = this.tauxHoraireBrut();
@@ -147,9 +251,136 @@ export class HeuresSupSectionComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // 404 attendu si aucune analyse — on reste en mode formulaire.
+        // 404 attendu si aucune analyse — on reste en mode formulaire + prefill IA.
+        this.prefillFromAi();
         this.loading.set(false);
       },
     });
+  }
+
+  /**
+   * SF-155-04-A3 : pré-remplit les champs depuis la synthèse IA
+   * `TravailExtractedData`. FR uniquement (le backend ne remplit pas
+   * `heuresSupMentionneesDansDossier` pour les dossiers BE).
+   *
+   * Chaque champ déjà modifié manuellement (provenance `null` préalable)
+   * n'est pas ré-écrasé lors d'un second appel (cf. `ngOnChanges`).
+   */
+  private prefillFromAi(): void {
+    if (this.workspaceCountry !== 'FRANCE') return;
+    const ai = this.aiData;
+    if (!ai) return;
+
+    // 1. tauxHoraireBrut dérivé depuis salaireBrutMensuel.
+    //    Pré-fill uniquement si le champ n'a pas encore de provenance IA
+    //    et n'a pas été modifié manuellement (tauxHoraireBrut() null ou IA).
+    if (
+      typeof ai.salaireBrutMensuel === 'number' &&
+      ai.salaireBrutMensuel > 0 &&
+      this.canPrefill('TAUX')
+    ) {
+      const derived = Math.round((ai.salaireBrutMensuel / HEURES_MOIS_FR) * 100) / 100;
+      this.tauxHoraireBrut.set(derived);
+      this.provenanceTauxHoraire.set('IA');
+    }
+
+    // 2. heuresSupMentionneesDansDossier — garde-fou typeof object.
+    const mentionnees = ai.heuresSupMentionneesDansDossier;
+    if (mentionnees && typeof mentionnees === 'object') {
+      if (typeof mentionnees.totalDeclarees25pct === 'number' && this.canPrefill('H25')) {
+        this.heuresSupDeclarees25pct.set(mentionnees.totalDeclarees25pct);
+        this.provenanceHeures25.set('IA');
+      }
+      if (typeof mentionnees.totalDeclarees50pct === 'number' && this.canPrefill('H50')) {
+        this.heuresSupDeclarees50pct.set(mentionnees.totalDeclarees50pct);
+        this.provenanceHeures50.set('IA');
+      }
+      if (typeof mentionnees.horsContingent === 'number' && this.canPrefill('HC')) {
+        this.heuresHorsContingent.set(mentionnees.horsContingent);
+        this.provenanceHorsContingent.set('IA');
+      }
+    }
+  }
+
+  /**
+   * Un champ peut être pré-rempli si :
+   *  - il est vide (signal null), OU
+   *  - sa provenance est déjà 'IA' (on rafraîchit depuis la nouvelle synthèse).
+   * Un champ avec valeur saisie manuellement (provenance null mais valeur non-null) est préservé.
+   */
+  private canPrefill(field: 'TAUX' | 'H25' | 'H50' | 'HC'): boolean {
+    switch (field) {
+      case 'TAUX':
+        return this.tauxHoraireBrut() === null || this.provenanceTauxHoraire() === 'IA';
+      case 'H25':
+        return this.heuresSupDeclarees25pct() === null || this.provenanceHeures25() === 'IA';
+      case 'H50':
+        return this.heuresSupDeclarees50pct() === null || this.provenanceHeures50() === 'IA';
+      case 'HC':
+        return this.heuresHorsContingent() === null || this.provenanceHorsContingent() === 'IA';
+    }
+  }
+
+  // --- Coherence alerts builders (SF-155-04-A3) ---
+
+  private buildTauxHoraireAlert(ai: TravailExtractedData): HsCoherenceAlert | null {
+    const taux = this.tauxHoraireBrut();
+    if (taux === null || taux <= 0) return null;
+    if (typeof ai.salaireBrutMensuel !== 'number' || ai.salaireBrutMensuel <= 0) return null;
+    const derived = ai.salaireBrutMensuel / HEURES_MOIS_FR;
+    const rel = Math.abs(taux - derived) / Math.max(derived, 1);
+    if (rel < SEUIL_TAUX_HORAIRE_REL) return null;
+    return {
+      field: 'TAUX_HORAIRE',
+      iaValue: `${derived.toFixed(2)} €/h (dérivé de ${ai.salaireBrutMensuel} € brut / ${HEURES_MOIS_FR} h)`,
+      level: 'warning',
+    };
+  }
+
+  private buildHeuresSupAlert(ai: TravailExtractedData): HsCoherenceAlert | null {
+    const m = ai.heuresSupMentionneesDansDossier;
+    if (!m || typeof m !== 'object') return null;
+    const iaTotal =
+      (typeof m.totalDeclarees25pct === 'number' ? m.totalDeclarees25pct : 0) +
+      (typeof m.totalDeclarees50pct === 'number' ? m.totalDeclarees50pct : 0) +
+      (typeof m.horsContingent === 'number' ? m.horsContingent : 0);
+    if (iaTotal <= 0) return null;
+    const userTotal =
+      (this.heuresSupDeclarees25pct() ?? 0) +
+      (this.heuresSupDeclarees50pct() ?? 0) +
+      (this.heuresHorsContingent() ?? 0);
+    if (userTotal <= iaTotal) return null;
+    const ecartAbs = userTotal - iaTotal;
+    const ecartRel = ecartAbs / Math.max(iaTotal, 1);
+    if (ecartAbs < SEUIL_HEURES_ABS || ecartRel < SEUIL_HEURES_REL) return null;
+    return {
+      field: 'HEURES_SUP',
+      iaValue: `${iaTotal} h détectées dans l'analyse, ${userTotal} h saisies`,
+      level: 'warning',
+    };
+  }
+
+  private buildSalaireDeduitNote(ai: TravailExtractedData): HsCoherenceAlert | null {
+    if (ai.salaireEstDeduit !== true) return null;
+    if (typeof ai.salaireBrutMensuel !== 'number' || ai.salaireBrutMensuel <= 0) return null;
+    const taux = this.tauxHoraireBrut();
+    if (taux === null || taux <= 0) return null;
+    return {
+      field: 'SALAIRE_DEDUIT',
+      iaValue: `Le salaire brut a été déduit d'un net (×1,30) — le taux horaire dérivé est indicatif`,
+      level: 'info',
+    };
+  }
+
+  alertTooltip(alert: HsCoherenceAlert): string {
+    return alert.iaValue;
+  }
+
+  alertBadgeLabel(alert: HsCoherenceAlert): string {
+    switch (alert.field) {
+      case 'TAUX_HORAIRE': return `Incohérence taux horaire (${alert.iaValue.split(' ')[0]})`;
+      case 'HEURES_SUP': return 'Incohérence heures sup';
+      case 'SALAIRE_DEDUIT': return 'Salaire brut déduit';
+    }
   }
 }
