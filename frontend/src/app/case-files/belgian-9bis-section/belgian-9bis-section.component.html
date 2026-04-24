@@ -1,0 +1,208 @@
+<section class="b9bis-section">
+  <header class="b9bis-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="b9bis-body">
+    <mat-icon class="b9bis-icon">gavel</mat-icon>
+    <span class="b9bis-title">9BIS HUMANITAIRE — RÉGULARISATION (BE)</span>
+    @if (result()) {
+      <span class="b9bis-chip"
+            [class.b9bis-chip--success]="result()!.verdictProbabilite === 'ELEVEE'"
+            [class.b9bis-chip--info]="result()!.verdictProbabilite === 'MOYENNE'"
+            [class.b9bis-chip--warning]="result()!.verdictProbabilite === 'FAIBLE'">
+        {{ verdictLabel(result()!.verdictProbabilite) }}
+      </span>
+    }
+    <mat-icon class="b9bis-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="b9bis-body" class="b9bis-body">
+      @if (!isBelgium()) {
+        <div class="b9bis-banner b9bis-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="b9bis-banner-content">
+            <div class="b9bis-banner-title">9bis humanitaire — procédure belge uniquement</div>
+            <div class="b9bis-banner-sub">
+              Cet outil s'applique à la Belgique uniquement. Pour les équivalents FR, voir F-IM-08 (OQTF) ou F-IM-09 (AES).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="b9bis-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="b9bis-form" (ngSubmit)="analyze()">
+              <div class="b9bis-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée en Belgique</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateEntreeBelgique()"
+                         (ngModelChange)="onDateEntreeChange($event)"
+                         name="dateEntreeBelgique" />
+                </mat-form-field>
+              </div>
+
+              <div class="b9bis-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée de présence (mois)</mat-label>
+                  <input matInput type="number" required min="0"
+                         [ngModel]="dureePresenceMois()"
+                         (ngModelChange)="onDureePresenceChange($event)"
+                         name="dureePresenceMois" />
+                </mat-form-field>
+              </div>
+
+              <div class="b9bis-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="circonstancesExceptionnelles()"
+                    (ngModelChange)="circonstancesExceptionnelles.set($event)"
+                    name="circonstancesExceptionnelles">
+                  Circonstances exceptionnelles empêchant le retour au pays d'origine
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b9bis-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="liensFamiliauxBe()"
+                    (ngModelChange)="liensFamiliauxBe.set($event)"
+                    name="liensFamiliauxBe">
+                  Liens familiaux constitués en Belgique
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b9bis-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="liensProfessionnels()"
+                    (ngModelChange)="liensProfessionnels.set($event)"
+                    name="liensProfessionnels">
+                  Liens professionnels (contrat, emploi)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b9bis-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="scolariteEnfantsBe()"
+                    (ngModelChange)="scolariteEnfantsBe.set($event)"
+                    name="scolariteEnfantsBe">
+                  Enfants scolarisés en Belgique
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b9bis-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="menaceOrdrePublic()"
+                    (ngModelChange)="menaceOrdrePublic.set($event)"
+                    name="menaceOrdrePublic">
+                  Menace réelle pour l'ordre public
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b9bis-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [min]="dateEntreeBelgique() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateDepotDemande()"
+                         (ngModelChange)="onDateDepotChange($event)"
+                         name="dateDepotDemande" />
+                </mat-form-field>
+                @if (provenanceDateDepot() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="b9bis-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="b9bis-result">
+              <div [class]="bannerClass(result()!.verdictProbabilite)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictProbabilite) }}</mat-icon>
+                <div class="b9bis-banner-content">
+                  <div class="b9bis-banner-title">{{ verdictLabel(result()!.verdictProbabilite) }}</div>
+                  <div class="b9bis-score-row">
+                    <span class="b9bis-score-big">{{ result()!.scoreGlobal }}</span>
+                    <span class="b9bis-score-label">/ 100 — score global</span>
+                  </div>
+                </div>
+              </div>
+
+              <ul class="b9bis-breakdown">
+                <li>
+                  <span class="b9bis-bd-label">Présence ≥ 3 ans</span>
+                  <span class="b9bis-bd-value">{{ result()!.presence3AnsOk ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="b9bis-bd-label">Liens constitutifs (famille / travail / scolarité)</span>
+                  <span class="b9bis-bd-value">{{ result()!.liensConstitutifsOk ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="b9bis-bd-label">Pas de menace ordre public</span>
+                  <span class="b9bis-bd-value">{{ result()!.pasMenace ? 'Oui' : 'Non' }}</span>
+                </li>
+                <li>
+                  <span class="b9bis-bd-label">Durée de présence</span>
+                  <span class="b9bis-bd-value">{{ result()!.dureePresenceMois }} mois</span>
+                </li>
+                @if (result()!.dateExpirationInstructionPrevisionnelle) {
+                  <li>
+                    <span class="b9bis-bd-label">Fin prévisionnelle d'instruction</span>
+                    <span class="b9bis-bd-value">{{ result()!.dateExpirationInstructionPrevisionnelle | date:'dd/MM/yyyy' }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="b9bis-criteres">
+                  <span class="b9bis-criteres-label">Critères non remplis :</span>
+                  <mat-chip-set>
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip>{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="b9bis-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="b9bis-formule-block">
+                  <span class="b9bis-formule-label">Formule</span>
+                  <span class="b9bis-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="b9bis-meta">
+                <span class="b9bis-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
