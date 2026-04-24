@@ -47,6 +47,15 @@ import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-s
 import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
 import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-grave-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
+import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
+import { Belgian9terSectionComponent } from '../belgian-9ter-section/belgian-9ter-section.component';
+import { BelgianCohabitantUeBeSectionComponent } from '../belgian-40bis-section/belgian-40bis-section.component';
+import { AesMetiersTensionSectionComponent } from '../aes-metiers-tension-section/aes-metiers-tension-section.component';
+import { AesFamilleSectionComponent } from '../aes-famille-section/aes-famille-section.component';
+import { DivorceAlterationSectionComponent } from '../divorce-alteration-section/divorce-alteration-section.component';
+import { DivorceFauteSectionComponent } from '../divorce-faute-section/divorce-faute-section.component';
+import { DivorceAccepteSectionComponent } from '../divorce-accepte-section/divorce-accepte-section.component';
+import { TravailProcedureSectionComponent } from '../travail-procedure-section/travail-procedure-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -368,6 +377,95 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // SF-IM-14-08 : pré-fill IA gracieux (lienFamilial, regroupantBelge,
           // revenusNetsMensuels, dateDepotDemande) + validation F-IA-03.
           aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+        }),
+      }],
+      ['F-IM-14-9bis-humanitaire-be', {
+        component: Belgian9bisSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+        }),
+      }],
+      ['F-IM-14-9ter-medical-be', {
+        component: Belgian9terSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+        }),
+      }],
+      ['F-IM-14-40bis-cohabitant-ue-be', {
+        component: BelgianCohabitantUeBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-09-aes-metiers-tension', {
+        component: AesMetiersTensionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-09-aes-famille', {
+        component: AesFamilleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-08-divorce-alteration', {
+        component: DivorceAlterationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-09-divorce-faute', {
+        component: DivorceFauteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+        }),
+      }],
+      ['F-FA-10-divorce-accepte', {
+        component: DivorceAccepteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-136-travail-procedure', {
+        component: TravailProcedureSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
         }),
