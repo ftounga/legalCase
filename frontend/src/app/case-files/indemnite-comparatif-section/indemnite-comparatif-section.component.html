@@ -40,12 +40,15 @@
             <div class="field-with-alert field-with-alert--wide">
               <mat-form-field appearance="outline" class="form-field form-field--wide">
                 <mat-label>Type de rupture</mat-label>
-                <mat-select [(ngModel)]="typeRupture">
+                <mat-select [(ngModel)]="typeRupture" (ngModelChange)="onTypeRuptureChange()">
                   @for (opt of typeRuptureOptions(); track opt.value) {
                     <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
                   }
                 </mat-select>
               </mat-form-field>
+              @if (provenanceTypeRupture() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().TYPE_RUPTURE; as alert) {
                 <span class="coherence-badge coherence-blocker"
                       [appCoherencePopover]="explanationFor('TYPE_RUPTURE')"
@@ -62,8 +65,11 @@
             <div class="field-with-alert">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Ancienneté (années)</mat-label>
-                <input matInput type="number" [(ngModel)]="ancienneteAnnees">
+                <input matInput type="number" [(ngModel)]="ancienneteAnnees" (ngModelChange)="onAncienneteAnneesChange()">
               </mat-form-field>
+              @if (provenanceAncienneteAnnees() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().ANCIENNETE; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('ANCIENNETE')"
@@ -73,10 +79,15 @@
                 </span>
               }
             </div>
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Ancienneté (mois)</mat-label>
-              <input matInput type="number" min="0" max="11" [(ngModel)]="ancienneteMois">
-            </mat-form-field>
+            <div class="field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Ancienneté (mois)</mat-label>
+                <input matInput type="number" min="0" max="11" [(ngModel)]="ancienneteMois" (ngModelChange)="onAncienneteMoisChange()">
+              </mat-form-field>
+              @if (provenanceAncienneteMois() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>Âge</mat-label>
               <input matInput type="number" [(ngModel)]="age">
@@ -84,8 +95,11 @@
             <div class="field-with-alert">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Salaire brut mensuel (€)</mat-label>
-                <input matInput type="number" [(ngModel)]="salaireMensuel">
+                <input matInput type="number" [(ngModel)]="salaireMensuel" (ngModelChange)="onSalaireChange()">
               </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().SALAIRE; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('SALAIRE')"

@@ -154,7 +154,7 @@ describe('IndemniteComparatifSectionComponent', () => {
     component.typeRupture.set('LICENCIEMENT');
     const alert = component.coherenceAlerts().TYPE_RUPTURE;
     expect(alert?.source).toBe('F96');
-    expect(alert?.level).toBe('blocker');
+    expect(alert?.severity).toBe('CRITICAL');
     expect(alert?.expectedDisplay).toBe('RUPTURE_CONVENTIONNELLE');
   });
 
@@ -207,7 +207,7 @@ describe('IndemniteComparatifSectionComponent', () => {
     component.typeRupture.set('LICENCIEMENT');
     const alert = component.coherenceAlerts().TYPE_RUPTURE;
     expect(alert?.source).toBe('IA');
-    expect(alert?.level).toBe('blocker');
+    expect(alert?.severity).toBe('CRITICAL');
   });
 
   it('should not alert when IA type is unknown enum value', () => {
@@ -232,7 +232,7 @@ describe('IndemniteComparatifSectionComponent', () => {
     component.ancienneteAnnees.set(11);
     component.ancienneteMois.set(0);
     const alert = component.coherenceAlerts().ANCIENNETE;
-    expect(alert?.level).toBe('warning');
+    expect(alert?.severity).toBe('WARNING');
     expect(alert?.source).toBe('IA');
   });
 
@@ -266,7 +266,7 @@ describe('IndemniteComparatifSectionComponent', () => {
     initNo();
     component.salaireMensuel.set(4300);
     const alert = component.coherenceAlerts().SALAIRE;
-    expect(alert?.level).toBe('warning');
+    expect(alert?.severity).toBe('WARNING');
   });
 
   // Summary
@@ -298,5 +298,105 @@ describe('IndemniteComparatifSectionComponent', () => {
     initWith();
     expect(component.showForm()).toBe(false);
     expect(component.coherenceAlerts().TYPE_RUPTURE).toBeUndefined();
+  });
+
+  // ---- SF-155-15 : pré-fill IA + provenance + handlers ----
+
+  it('SF-155-15: should mark provenanceSalaire IA when aiData.salaireBrutMensuel pré-fill', () => {
+    component.aiData = { salaireBrutMensuel: 4500 } as any;
+    initNo();
+    expect(component.salaireMensuel()).toBe(4500);
+    expect(component.provenanceSalaire()).toBe('IA');
+  });
+
+  it('SF-155-15: should mark provenanceAncienneteAnnees + Mois IA when synthesis pré-fill', () => {
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 12, ancienneteMois: 4 } } as any;
+    initNo();
+    expect(component.ancienneteAnnees()).toBe(12);
+    expect(component.ancienneteMois()).toBe(4);
+    expect(component.provenanceAncienneteAnnees()).toBe('IA');
+    expect(component.provenanceAncienneteMois()).toBe('IA');
+  });
+
+  it('SF-155-15: should mark provenanceTypeRupture IA when synthesis fournit un type supporté', () => {
+    component.synthesis = { compensationEstimate: { typeRupture: 'LICENCIEMENT_ECONOMIQUE' } } as any;
+    initNo();
+    expect(component.typeRupture()).toBe('LICENCIEMENT_ECONOMIQUE');
+    expect(component.provenanceTypeRupture()).toBe('IA');
+  });
+
+  it('SF-155-15: should NOT mark provenanceTypeRupture quand le type IA n\'est pas supporté', () => {
+    component.synthesis = { compensationEstimate: { typeRupture: 'DEMISSION' } } as any;
+    initNo();
+    expect(component.provenanceTypeRupture()).toBeNull();
+    expect(component.typeRuptureNote()).toContain('DEMISSION');
+  });
+
+  it('SF-155-15: onTypeRuptureChange efface le badge IA', () => {
+    component.synthesis = { compensationEstimate: { typeRupture: 'LICENCIEMENT_ECONOMIQUE' } } as any;
+    initNo();
+    expect(component.provenanceTypeRupture()).toBe('IA');
+    component.onTypeRuptureChange();
+    expect(component.provenanceTypeRupture()).toBeNull();
+  });
+
+  it('SF-155-15: onAncienneteAnneesChange efface le badge IA', () => {
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 10 } } as any;
+    initNo();
+    expect(component.provenanceAncienneteAnnees()).toBe('IA');
+    component.onAncienneteAnneesChange();
+    expect(component.provenanceAncienneteAnnees()).toBeNull();
+  });
+
+  it('SF-155-15: onAncienneteMoisChange efface le badge IA', () => {
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 10, ancienneteMois: 6 } } as any;
+    initNo();
+    expect(component.provenanceAncienneteMois()).toBe('IA');
+    component.onAncienneteMoisChange();
+    expect(component.provenanceAncienneteMois()).toBeNull();
+  });
+
+  it('SF-155-15: onSalaireChange efface le badge IA', () => {
+    component.aiData = { salaireBrutMensuel: 3500 } as any;
+    initNo();
+    expect(component.provenanceSalaire()).toBe('IA');
+    component.onSalaireChange();
+    expect(component.provenanceSalaire()).toBeNull();
+  });
+
+  it('SF-155-15: provenance toujours null après chargement d\'un résultat persisté (saisie avocat)', () => {
+    component.aiData = { salaireBrutMensuel: 9999 } as any;
+    component.synthesis = { compensationEstimate: { ancienneteAnnees: 7, typeRupture: 'LICENCIEMENT_ECONOMIQUE' } } as any;
+    initWith();
+    expect(component.provenanceSalaire()).toBeNull();
+    expect(component.provenanceAncienneteAnnees()).toBeNull();
+    expect(component.provenanceAncienneteMois()).toBeNull();
+    expect(component.provenanceTypeRupture()).toBeNull();
+  });
+
+  it('SF-155-15: alerte SALAIRE expose contract `CoherenceAlert<F>` — champs field/source/contributors/severity/expectedDisplay/reason', () => {
+    component.synthesis = { compensationEstimate: { salaireReference: 4000 } } as any;
+    initNo();
+    component.salaireMensuel.set(4500);
+    const alert = component.coherenceAlerts().SALAIRE;
+    expect(alert).toBeDefined();
+    expect(alert!.field).toBe('SALAIRE');
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+    expect(alert!.severity).toBe('WARNING');
+    expect(typeof alert!.expectedDisplay).toBe('string');
+    expect(typeof alert!.reason).toBe('string');
+  });
+
+  it('SF-155-15: alerte TYPE_RUPTURE MULTI agrège F96+QUESTION_IA+IA via le builder partagé', () => {
+    component.procedureChecks = [f96({ statut: 'VERIFIED', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE' })];
+    component.aiQuestions = [question({ answerText: 'oui', critereCode: 'DT09_TYPE_RUPTURE', expectedValue: 'RUPTURE_CONVENTIONNELLE' })];
+    component.synthesis = { compensationEstimate: { typeRupture: 'RUPTURE_CONVENTIONNELLE' } } as any;
+    initNo();
+    component.typeRupture.set('LICENCIEMENT');
+    const alert = component.coherenceAlerts().TYPE_RUPTURE;
+    expect(alert?.source).toBe('MULTI');
+    expect(alert?.severity).toBe('CRITICAL');
+    expect(alert?.reason).toContain(' ET ');
   });
 });

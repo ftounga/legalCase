@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, Optional, signal, computed } from '@angular/core';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
-import { CaseAnalysisResult, TravailExtractedData } from '../../core/models/case-analysis.model';
+import { CaseAnalysisResult, PieceManquanteEntry, TravailExtractedData } from '../../core/models/case-analysis.model';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
@@ -18,26 +18,23 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 interface TypeRuptureOption {
   value: string;
   label: string;
 }
 
+/**
+ * SF-155-15 : champs d'alerte de cohérence F-IA-03 exposés par F-DT-09
+ * (comparateur indemnités licenciement — FR / BE).
+ */
 export type IndemniteAlertField = 'TYPE_RUPTURE' | 'ANCIENNETE' | 'SALAIRE';
-export type IndemniteAlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'MULTI';
-export type IndemniteAlertLevel = 'blocker' | 'warning';
 
-export interface IndemniteCoherenceAlert {
-  field: IndemniteAlertField;
-  level: IndemniteAlertLevel;
-  source: IndemniteAlertSource;
-  expectedDisplay: string;
-  contributors: IndemniteAlertSource[];
-  f96Raison?: string | null;
-  questionText?: string | null;
-  questionAnswer?: string | null;
-}
+// SF-155-15 : alias locaux rétro-compat — utilise l'interface générique partagée.
+export type IndemniteAlertSource = CoherenceAlertSource;
+export type IndemniteCoherenceAlert = CoherenceAlert<IndemniteAlertField>;
 
 const KNOWN_TYPE_RUPTURE_VALUES = new Set([
   'LICENCIEMENT', 'LICENCIEMENT_ECONOMIQUE', 'RUPTURE_CONVENTIONNELLE',
@@ -75,10 +72,13 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   @Input() synthesis?: CaseAnalysisResult | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
   private synthesisSignal = signal<CaseAnalysisResult | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -93,6 +93,14 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   ancienneteMois = signal(0);
   age = signal(35);
   salaireMensuel = signal(3000);
+
+  // SF-155-15 : provenance IA par champ pré-rempli (badge "Pré-rempli depuis
+  // l'analyse"). Remise à null dès que l'avocat modifie manuellement le champ
+  // via les handlers onXxxChange() — pattern canonique immigration-title-decision-section.
+  provenanceTypeRupture = signal<'IA' | null>(null);
+  provenanceAncienneteAnnees = signal<'IA' | null>(null);
+  provenanceAncienneteMois = signal<'IA' | null>(null);
+  provenanceSalaire = signal<'IA' | null>(null);
 
   typeRuptureOptions = computed<TypeRuptureOption[]>(() =>
     this.country() === 'BELGIQUE' ? TYPES_BE : TYPES_FR
@@ -120,19 +128,24 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     const values = Object.values(this.coherenceAlerts());
     return {
       total: values.length,
-      blockers: values.filter(a => a.level === 'blocker').length,
+      blockers: values.filter(a => a.severity === 'CRITICAL').length,
     };
   });
 
+  /**
+   * SF-155-15 : divergence `TYPE_RUPTURE` — aggrégation F96 + QUESTION_IA + IA.
+   * `severity: CRITICAL` car une saisie de type de rupture divergente envoie
+   * l'avocat vers un barème incorrect (enjeu financier direct sur l'indemnité).
+   */
   private buildTypeRuptureAlert(): IndemniteCoherenceAlert | null {
     const userValue = this.typeRupture();
     if (!userValue) return null;
 
-    const contributors: IndemniteAlertSource[] = [];
-    let expectedValue: string | null = null;
-    let f96Raison: string | null = null;
-    let questionText: string | null = null;
-    let questionAnswer: string | null = null;
+    // Collecte des sources qui affirment une valeur attendue (même match ou divergence).
+    // Si au moins une source confirme la saisie avocat, pas d'alerte (pattern canonique :
+    // "la première source qui confirme gagne — les divergences ultérieures sont stales").
+    type Candidate = { source: Exclude<CoherenceAlertSource, 'MULTI'>; expected: string; reason: string };
+    const candidates: Candidate[] = [];
 
     // B — F-96 VERIFIED avec expected_value
     for (const chk of this.procedureChecksSignal()) {
@@ -140,11 +153,11 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
       if (chk.statut !== 'VERIFIED') continue;
       const ev = chk.expectedValue?.toUpperCase();
       if (!ev || !KNOWN_TYPE_RUPTURE_VALUES.has(ev)) continue;
-      if (!expectedValue) {
-        expectedValue = ev;
-        f96Raison = chk.raison ?? null;
-        contributors.push('F96');
-      }
+      candidates.push({
+        source: 'F96',
+        expected: ev,
+        reason: `Checklist procédurale : ${ev}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
       break;
     }
 
@@ -157,46 +170,42 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
       if (!isOui) continue;
       const ev = q.expectedValue?.toUpperCase();
       if (!ev || !KNOWN_TYPE_RUPTURE_VALUES.has(ev)) continue;
-      if (!expectedValue) {
-        expectedValue = ev;
-        questionText = q.questionText;
-        questionAnswer = q.answerText ?? null;
-        contributors.push('QUESTION_IA');
-      } else if (ev === expectedValue) {
-        questionText = q.questionText;
-        questionAnswer = q.answerText ?? null;
-        contributors.push('QUESTION_IA');
-      }
+      candidates.push({
+        source: 'QUESTION_IA',
+        expected: ev,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
       break;
     }
 
     // D — IA detection (compensationEstimate)
     const iaType = this.synthesisSignal()?.compensationEstimate?.typeRupture?.toUpperCase();
     if (iaType && KNOWN_TYPE_RUPTURE_VALUES.has(iaType)) {
-      if (!expectedValue) {
-        expectedValue = iaType;
-        contributors.push('IA');
-      } else if (iaType === expectedValue) {
-        contributors.push('IA');
-      }
+      candidates.push({ source: 'IA', expected: iaType, reason: `Analyse du dossier : ${iaType}` });
     }
 
-    if (!expectedValue) return null;
-    if (userValue === expectedValue) return null;
+    if (candidates.length === 0) return null;
+    // Si n'importe quelle source confirme la saisie avocat, pas d'alerte.
+    if (candidates.some(c => c.expected === userValue)) return null;
 
-    const primary: IndemniteAlertSource = contributors[0];
-    return {
-      field: 'TYPE_RUPTURE',
-      level: 'blocker',
-      source: contributors.length > 1 ? 'MULTI' : primary,
-      expectedDisplay: expectedValue,
-      contributors,
-      f96Raison,
-      questionText,
-      questionAnswer,
-    };
+    const builder = CoherenceAlertBuilder
+      .forField<IndemniteAlertField>('TYPE_RUPTURE')
+      .withSeverity('CRITICAL');
+    for (const c of candidates) {
+      builder.addSource(c.source, { expectedDisplay: c.expected, reason: c.reason });
+    }
+
+    // E — Pièce manquante (contributor additionnel si alerte déjà initiée)
+    const pieceTexte = this.findPieceManquante(['DT09_TYPE_RUPTURE']);
+    if (pieceTexte) builder.addPieceManquante(pieceTexte);
+
+    return builder.build();
   }
 
+  /**
+   * SF-155-15 : divergence `ANCIENNETE` — écart ≥ 1 mois total avec l'IA.
+   * `severity: WARNING` (impact graduel sur le barème, pas bloquant).
+   */
   private buildAncienneteAlert(): IndemniteCoherenceAlert | null {
     const ce = this.synthesisSignal()?.compensationEstimate;
     if (!ce) return null;
@@ -210,15 +219,19 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     const userTotalMois = userYears * 12 + userMois;
     // Seuil 1 mois pour éviter les faux positifs mais rester actionnable.
     if (Math.abs(userTotalMois - iaTotalMois) < 1) return null;
-    return {
-      field: 'ANCIENNETE',
-      level: 'warning',
-      source: 'IA',
-      contributors: ['IA'],
-      expectedDisplay: `${iaYears} ans ${iaMonths ? iaMonths + ' mois' : ''}`.trim(),
-    };
+    return CoherenceAlertBuilder
+      .forField<IndemniteAlertField>('ANCIENNETE')
+      .addSource('IA', {
+        expectedDisplay: `${iaYears} ans ${iaMonths ? iaMonths + ' mois' : ''}`.trim(),
+        reason: `Analyse du dossier : ${iaYears} ans ${iaMonths ? iaMonths + ' mois' : ''}`.trim(),
+      })
+      .build();
   }
 
+  /**
+   * SF-155-15 : divergence `SALAIRE` — écart relatif > 5 % avec l'IA.
+   * `severity: WARNING`.
+   */
   private buildSalaireAlert(): IndemniteCoherenceAlert | null {
     const ce = this.synthesisSignal()?.compensationEstimate;
     if (!ce || ce.salaireReference == null) return null;
@@ -227,27 +240,31 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     if (user <= 0) return null;
     const base = Math.max(Math.abs(ia), 1);
     if (Math.abs(user - ia) / base < 0.05) return null;
-    return {
-      field: 'SALAIRE',
-      level: 'warning',
-      source: 'IA',
-      contributors: ['IA'],
-      expectedDisplay: `${ia} €`,
-    };
+    return CoherenceAlertBuilder
+      .forField<IndemniteAlertField>('SALAIRE')
+      .addSource('IA', {
+        expectedDisplay: `${ia} €`,
+        reason: `Analyse du dossier : ${ia} €`,
+      })
+      .build();
+  }
+
+  /**
+   * SF-155-15 : recherche d'une pièce manquante F-145 sur un des codes
+   * critères acceptés ; renvoie le texte avocat ou null si aucune match.
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
   }
 
   alertTooltip(alert: IndemniteCoherenceAlert): string {
-    const parts: string[] = [];
-    for (const src of alert.contributors) {
-      if (src === 'F96') {
-        parts.push(`Checklist procédurale : ${alert.expectedDisplay}${alert.f96Raison ? ' (' + alert.f96Raison + ')' : ''}`);
-      } else if (src === 'QUESTION_IA') {
-        parts.push(`Question complémentaire : "${alert.questionText}" → "${alert.questionAnswer}"`);
-      } else if (src === 'IA') {
-        parts.push(`Analyse du dossier : ${alert.expectedDisplay}`);
-      }
-    }
-    return parts.length > 1 ? `Contredit ${parts.join(' ET ')}` : (parts[0] ?? `Détecté : ${alert.expectedDisplay}`);
+    return alert.contributors.length > 1 ? `Contredit ${alert.reason}` : alert.reason;
   }
 
   alertBadgeLabel(alert: IndemniteCoherenceAlert): string {
@@ -256,6 +273,7 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
         case 'F96': return 'Incohérence Checklist procédurale';
         case 'QUESTION_IA': return 'Incohérence Question complémentaire';
         case 'IA': return 'Incohérence détectée';
+        case 'PIECE_MANQUANTE': return 'Pièce manquante';
         case 'MULTI': return 'Incohérence multiple';
       }
     })();
@@ -267,7 +285,9 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
 
   constructor(
     private comparatifService: IndemniteComparatifService,
-    private sourceExplanationService: SourceExplanationService,
+    // SF-155-15 : @Optional() aligné sur le canonique pour fail-open si
+    // le service n'est pas dispo (tests DI minimaux).
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
@@ -276,15 +296,18 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     // SF-106-06 : initialiser le pays depuis le workspace (plus de FRANCE en dur).
     this.country.set(this.workspaceCountry);
     this.typeRupture.set(this.workspaceCountry === 'BELGIQUE' ? 'LICENCIEMENT_ORDINAIRE' : 'LICENCIEMENT');
+    // SF-155-15 : push inputs vers signals avant toute évaluation computed.
+    this.aiDataSignal.set(this.aiData);
     this.synthesisSignal.set(this.synthesis);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.loadExisting();
     this.loadSourceExplanations();
   }
 
   private loadSourceExplanations(): void {
-    if (!this.caseFileId) return;
+    if (!this.caseFileId || !this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
       next: map => this.sourceExplanations.set(map),
       error: () => { /* fail-open */ },
@@ -300,9 +323,11 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['synthesis']) this.synthesisSignal.set(this.synthesis);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if ((changes['aiData'] || changes['synthesis']) && this.showForm() && !this.result()) {
       this.prefillFromAi();
     }
@@ -376,20 +401,41 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
       // Legacy result sans type — fallback par défaut selon pays
       this.typeRupture.set(resp.country === 'BELGIQUE' ? 'LICENCIEMENT_ORDINAIRE' : 'LICENCIEMENT');
     }
+    // SF-155-15 : valeurs persistées = saisie avocat (jamais de badge IA).
+    this.provenanceTypeRupture.set(null);
+    this.provenanceAncienneteAnnees.set(null);
+    this.provenanceAncienneteMois.set(null);
+    this.provenanceSalaire.set(null);
   }
 
+  /**
+   * SF-155-15 : pré-remplit les champs depuis `aiData` + `synthesis` (IA).
+   * Signaux `provenance*` marqués 'IA' pour afficher un badge `auto_awesome`
+   * à côté de chaque champ. Pattern canonique immigration-title-decision-section.
+   */
   private prefillFromAi(): void {
-    if (this.aiData?.salaireBrutMensuel) {
-      this.salaireMensuel.set(this.aiData.salaireBrutMensuel);
+    // 1. Salaire brut mensuel depuis aiData.
+    const ai = this.aiDataSignal();
+    if (ai?.salaireBrutMensuel) {
+      this.salaireMensuel.set(ai.salaireBrutMensuel);
+      this.provenanceSalaire.set('IA');
     }
-    const ce = this.synthesis?.compensationEstimate;
-    if (ce?.ancienneteAnnees != null) this.ancienneteAnnees.set(ce.ancienneteAnnees);
-    if (ce?.ancienneteMois != null) this.ancienneteMois.set(ce.ancienneteMois);
+    // 2. Ancienneté (années + mois) depuis compensationEstimate.
+    const ce = this.synthesisSignal()?.compensationEstimate;
+    if (ce?.ancienneteAnnees != null) {
+      this.ancienneteAnnees.set(ce.ancienneteAnnees);
+      this.provenanceAncienneteAnnees.set('IA');
+    }
+    if (ce?.ancienneteMois != null) {
+      this.ancienneteMois.set(ce.ancienneteMois);
+      this.provenanceAncienneteMois.set('IA');
+    }
+    // 3. Type de rupture (logique dédiée : gate pays + note si non supporté).
     this.applyTypeRupturePrefill();
   }
 
   private applyTypeRupturePrefill(): void {
-    const iaType = this.synthesis?.compensationEstimate?.typeRupture;
+    const iaType = this.synthesisSignal()?.compensationEstimate?.typeRupture;
     if (!iaType) {
       this.typeRuptureNote.set(null);
       return;
@@ -397,13 +443,34 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
     const allowed = this.typeRuptureOptions().map(o => o.value);
     if (allowed.includes(iaType)) {
       this.typeRupture.set(iaType);
+      this.provenanceTypeRupture.set('IA');
       this.typeRuptureNote.set(null);
     } else {
       // IA détecte autre chose (démission, prise d'acte, ou type de l'autre pays)
       this.typeRupture.set(allowed[0]);
+      this.provenanceTypeRupture.set(null);
       this.typeRuptureNote.set(
         `Type détecté : "${iaType}" non couvert par cet outil. Vérifier que le comparateur est adapté.`
       );
     }
+  }
+
+  // SF-155-15 : handlers de changement manuel — effacent le badge "Pré-rempli
+  // depuis l'analyse" dès que l'avocat modifie la valeur (pattern canonique).
+
+  onTypeRuptureChange(): void {
+    this.provenanceTypeRupture.set(null);
+  }
+
+  onAncienneteAnneesChange(): void {
+    this.provenanceAncienneteAnnees.set(null);
+  }
+
+  onAncienneteMoisChange(): void {
+    this.provenanceAncienneteMois.set(null);
+  }
+
+  onSalaireChange(): void {
+    this.provenanceSalaire.set(null);
   }
 }
