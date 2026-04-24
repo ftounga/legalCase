@@ -1,0 +1,110 @@
+<section class="td-section">
+  <header class="td-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="td-body">
+    <mat-icon class="td-icon">work_off</mat-icon>
+    <span class="td-title">INDEMNITÉ TRAVAIL DISSIMULÉ — L.8223-1</span>
+    @if (result()) {
+      <span class="td-chip">{{ result()!.indemniteForfaitaire | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="td-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="td-body" class="td-body">
+      @if (isBelgium()) {
+        <!-- Gate pays : bannière info (pas de masquage silencieux — règle CLAUDE.md). -->
+        <div class="td-country-notice">
+          <mat-icon>info</mat-icon>
+          <span>
+            Outil applicable aux dossiers droit du travail France (art. L.8223-1
+            Code du travail). La sanction belge du travail non déclaré est pénale
+            ou administrative, sans indemnité forfaitaire civile équivalente.
+          </span>
+        </div>
+      } @else if (loading()) {
+        <div class="td-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <!-- Résumé des incohérences détectées. -->
+          @if (alertsSummary().total > 0) {
+            <div class="td-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="td-form" (ngSubmit)="calculate()">
+            <div class="td-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel de référence (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelReference()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelReference" required />
+                <mat-hint>
+                  Salaire moyen des 12 derniers mois, ou des 3 derniers mois si plus favorable.
+                </mat-hint>
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="td-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (salaireEstDeduit()) {
+                <span class="td-hint-note">
+                  <mat-icon>info_outline</mat-icon>
+                  Salaire déduit d'un montant net &times; 1,30
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="td-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="td-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="td-result">
+            <div class="td-amount-block">
+              <span class="td-amount-label">Indemnité forfaitaire (6 mois)</span>
+              <span class="td-amount">{{ result()!.indemniteForfaitaire | number:'1.0-2' }} €</span>
+              <span class="td-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="td-meta">
+              <span class="td-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="td-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
