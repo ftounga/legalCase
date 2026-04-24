@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="125-create-belgian-40bis-analyses" author="legalcase">
+        <comment>
+            SF-IM-14-03 : table dédiée à l'outil décisionnel "Regroupement familial 40bis BE —
+            cohabitant UE" (Loi 15/12/1980 art. 40bis + AR 08/10/1981 art. 52 — Directive
+            2004/38/CE). Le ressortissant d'un État membre UE (non-Belge) exerçant son droit
+            de libre circulation peut être rejoint par les membres de sa famille : conjoint,
+            partenaire enregistré, descendant (mineur ou majeur à charge), ascendant à charge.
+            6 conditions (lien familial, regroupant UE + catégorie d'activité, ressources,
+            assurance maladie, logement, pas de menace OP) scorées à ~15 points chacune +
+            bonus 10 points si catégorie d'activité solide → score plafonné à 100.
+            Verdicts : ELEVEE ≥ 75, MOYENNE 50-74, FAIBLE &lt; 50.
+            Carte F délivrée si acceptée (5 ans renouvelable). Recours CCE en annulation
+            30 jours en cas de refus.
+            Outil single-country BELGIQUE — équivalent FR = F-IM-03 / F-IM-12.
+            Distinct de l'art. 40ter (regroupant belge, règles plus strictes — F-IM-14-04).
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, BELGIQUE, priority 66).
+        </comment>
+
+        <createTable tableName="belgian_40bis_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_belgian_40bis_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="lien_familial" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="regroupant_citoyen_ue" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="regroupant_activite_categorie" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ressources_suffisantes" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assurance_maladie_ue" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="logement_suffisant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_depot_demande" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="belgian_40bis_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_belgian_40bis_analyses_case_file"/>
+
+        <createIndex tableName="belgian_40bis_analyses"
+                     indexName="idx_belgian_40bis_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000143', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-40bis-cohabitant-ue-be', 'ALWAYS_ON', NULL, NULL, 66);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000143';
+            </sql>
+            <dropTable tableName="belgian_40bis_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
