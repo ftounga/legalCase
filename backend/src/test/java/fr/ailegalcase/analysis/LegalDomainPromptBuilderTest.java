@@ -58,4 +58,21 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("MÉCANISME FACTUEL");
         assertThat(instruction).contains("regime_matrimonial");
     }
+
+    // SF-155-04-00-BE-travail : 5 nouveaux champs documentés dans le prompt travail
+    @Test
+    void domainSpecificInstruction_travail_mentionsNewPrefillIaFields() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("motif_nullite_pressenti");
+        assertThat(instruction).contains("origine_inaptitude_pressentie");
+        assertThat(instruction).contains("avis_medecin_travail_date");
+        assertThat(instruction).contains("reclassement_respecte_detected");
+        assertThat(instruction).contains("heures_sup_mentionnees");
+        // Les 7 valeurs autorisées de motif_nullite_pressenti doivent être listées
+        assertThat(instruction).contains("HARCELEMENT_MORAL");
+        assertThat(instruction).contains("DISCRIMINATION");
+        // Les 3 valeurs d'origine inaptitude doivent être listées
+        assertThat(instruction).contains("ACCIDENT_TRAVAIL");
+        assertThat(instruction).contains("MALADIE_PROFESSIONNELLE");
+    }
 }

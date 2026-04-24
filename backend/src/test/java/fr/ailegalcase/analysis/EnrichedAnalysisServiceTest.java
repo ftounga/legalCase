@@ -316,6 +316,22 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("mode_garde_detaille");
     }
 
+    // SF-155-04-00-BE-travail : la directive de préservation mentionne les 5 nouveaux champs IA
+    @Test
+    void systemPrompt_preservesNewPrefillIaTravailFields() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l,
+                java.util.List.of("LICENCIEMENT_SANS_CAUSE_REELLE"));
+        // La directive de préservation de travail_extracted_data doit lister les 5 nouveaux champs
+        assertThat(prompt).contains("travail_extracted_data");
+        assertThat(prompt).contains("motif_nullite_pressenti");
+        assertThat(prompt).contains("origine_inaptitude_pressentie");
+        assertThat(prompt).contains("avis_medecin_travail_date");
+        assertThat(prompt).contains("reclassement_respecte_detected");
+        assertThat(prompt).contains("heures_sup_mentionnees");
+    }
+
     // TC-01 : buildEnrichedPrompt avec checks NON_COMPLIANT → section injectée
     @Test
     void buildEnrichedPrompt_withNonCompliantChecks_injectsSection() {

@@ -212,6 +212,24 @@ export interface TravailExtractedData {
   primeAncienneteContractuelle?: number | null;
   /** SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via × 1,30 */
   salaireEstDeduit?: boolean | null;
+  /** SF-155-04 : motif de nullité pressenti pour pré-fill F-DT-11 harcèlement / discrimination (FR uniquement). */
+  motifNullitePressenti?: 'DISCRIMINATION' | 'HARCELEMENT_MORAL' | 'HARCELEMENT_SEXUEL'
+    | 'RETORSION' | 'SYNDICAL' | 'MATERNITE_PATERNITE' | 'ACCIDENT_MP' | null;
+  /** SF-155-04 : origine d'inaptitude pressentie pour pré-fill F-DT-15 (FR uniquement). */
+  origineInaptitudePressentie?: 'ACCIDENT_TRAVAIL' | 'MALADIE_PROFESSIONNELLE' | 'MALADIE_ORDINAIRE' | null;
+  /** SF-155-04 : date de l'avis d'inaptitude (YYYY-MM-DD) pour pré-fill F-DT-15. */
+  avisMedecinTravailDate?: string | null;
+  /** SF-155-04 : détection recherche de reclassement documentée pour pré-fill F-DT-15. */
+  reclassementRespecteDetected?: DetectedAnswer | null;
+  /** SF-155-04 : heures sup mentionnées dans le dossier pour pré-fill F-DT-19 (FR uniquement). */
+  heuresSupMentionneesDansDossier?: HeuresSupMentionnees | null;
+}
+
+/** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
+export interface HeuresSupMentionnees {
+  totalDeclarees25pct?: number | null;
+  totalDeclarees50pct?: number | null;
+  horsContingent?: number | null;
 }
 
 export interface ImmigrationExtractedData {
