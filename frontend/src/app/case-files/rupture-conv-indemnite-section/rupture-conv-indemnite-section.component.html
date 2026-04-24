@@ -18,22 +18,62 @@
         </div>
       } @else {
         @if (showForm()) {
-          <form class="rci-form" (ngSubmit)="calculate()">
-            <mat-form-field appearance="outline">
-              <mat-label>Ancienneté (années complètes)</mat-label>
-              <input matInput type="number" min="0" step="1"
-                     [ngModel]="ancienneteAnnees()"
-                     (ngModelChange)="ancienneteAnnees.set($event)"
-                     name="ancienneteAnnees" required />
-            </mat-form-field>
+          <!-- SF-155-12 : résumé des incohérences détectées. -->
+          @if (alertsSummary().total > 0) {
+            <div class="rci-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
 
-            <mat-form-field appearance="outline">
-              <mat-label>Salaire mensuel brut de référence (€)</mat-label>
-              <input matInput type="number" min="0.01" step="0.01"
-                     [ngModel]="salaireMensuel()"
-                     (ngModelChange)="salaireMensuel.set($event)"
-                     name="salaireMensuel" required />
-            </mat-form-field>
+          <form class="rci-form" (ngSubmit)="calculate()">
+            <!-- SF-155-12 : field ancienneté avec badge IA + coherence popover. -->
+            <div class="rci-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Ancienneté (années complètes)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="ancienneteAnnees()"
+                       (ngModelChange)="onAncienneteAnneesChange($event)"
+                       name="ancienneteAnnees" required />
+              </mat-form-field>
+              @if (provenanceAncienneteAnnees() === 'IA') {
+                <span class="rci-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().ANCIENNETE; as alert) {
+                <span class="rci-coherence-badge"
+                      [appCoherencePopover]="explanationFor('ANCIENNETE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- SF-155-12 : field salaire avec badge IA + coherence popover. -->
+            <div class="rci-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuel()"
+                       (ngModelChange)="onSalaireMensuelChange($event)"
+                       name="salaireMensuel" required />
+              </mat-form-field>
+              @if (provenanceSalaireMensuel() === 'IA') {
+                <span class="rci-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="rci-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
 
             <div class="rci-actions">
               <button mat-flat-button color="primary" type="submit"
