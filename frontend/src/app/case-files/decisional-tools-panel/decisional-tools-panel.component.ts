@@ -39,6 +39,7 @@ import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-s
 import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
+import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -249,6 +250,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-08-oqtf-avec-delai-fr', {
+        component: OqtfAvecDelaiSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
         }),
       }],
     ]);

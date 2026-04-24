@@ -1,0 +1,159 @@
+<section class="oqtf-section">
+  <header class="oqtf-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="oqtf-body">
+    <mat-icon class="oqtf-icon">gavel</mat-icon>
+    <span class="oqtf-title">OQTF AVEC DÉLAI DE DÉPART VOLONTAIRE (FR)</span>
+    @if (result()) {
+      <span class="oqtf-chip" [class.oqtf-chip--danger]="result()!.statutDelaiRecours === 'EXPIRE'"
+            [class.oqtf-chip--warning]="result()!.statutDelaiRecours === 'URGENT'"
+            [class.oqtf-chip--success]="result()!.statutDelaiRecours === 'RECOURS_FORME'">
+        {{ statutLabel(result()!.statutDelaiRecours) }}
+      </span>
+    }
+    <mat-icon class="oqtf-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="oqtf-body" class="oqtf-body">
+      @if (!isFrance()) {
+        <div class="oqtf-banner oqtf-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="oqtf-banner-content">
+            <div class="oqtf-banner-title">OQTF — procédure française uniquement</div>
+            <div class="oqtf-banner-sub">
+              Pour la Belgique, voir l'outil Annexe 13 (à venir — SF-IM-08-06).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="oqtf-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="oqtf-form" (ngSubmit)="analyze()">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de notification de l'OQTF</mat-label>
+                <input matInput type="date" required
+                       [max]="todayIso"
+                       [ngModel]="dateNotificationOqtf()"
+                       (ngModelChange)="dateNotificationOqtf.set($event || null)"
+                       name="dateNotificationOqtf" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Motif de l'OQTF</mat-label>
+                <mat-select
+                    [ngModel]="motifOqtf()"
+                    (ngModelChange)="motifOqtf.set($event)"
+                    name="motifOqtf" required>
+                  @for (m of motifs; track m.code) {
+                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <div class="oqtf-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="recoursForme.set($event)"
+                    name="recoursForme">
+                  Recours déjà formé devant le TA
+                </mat-slide-toggle>
+              </div>
+
+              @if (recoursForme()) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du recours</mat-label>
+                  <input matInput type="date" required
+                         [min]="dateNotificationOqtf() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateRecours()"
+                         (ngModelChange)="dateRecours.set($event || null)"
+                         name="dateRecours" />
+                </mat-form-field>
+              }
+
+              <div class="oqtf-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="oqtf-result">
+              <div [class]="bannerClass(result()!.statutDelaiRecours)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statutDelaiRecours) }}</mat-icon>
+                <div class="oqtf-banner-content">
+                  <div class="oqtf-banner-title">{{ statutLabel(result()!.statutDelaiRecours) }}</div>
+                  @if (showJoursRestants(result())) {
+                    <div class="oqtf-jours-restants">
+                      <span class="oqtf-jours-big">{{ result()!.joursRestantsAvantExpirationDelai }}</span>
+                      <span class="oqtf-jours-label">jour(s) restant(s) pour former un recours</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="oqtf-breakdown">
+                <li>
+                  <span class="oqtf-bd-label">Expiration du délai de départ volontaire</span>
+                  <span class="oqtf-bd-value">{{ result()!.dateExpirationDdv }}</span>
+                </li>
+                <li>
+                  <span class="oqtf-bd-label">Expiration du délai de recours TA</span>
+                  <span class="oqtf-bd-value">{{ result()!.dateExpirationDelaiRecours }}</span>
+                </li>
+                @if (result()!.recoursForme && result()!.dateAudiencePrevisionnelle) {
+                  <li>
+                    <span class="oqtf-bd-label">Audience TA prévisionnelle</span>
+                    <span class="oqtf-bd-value">{{ result()!.dateAudiencePrevisionnelle }}</span>
+                  </li>
+                }
+                @if (result()!.recoursForme && result()!.dateDecisionTaPrevisionnelle) {
+                  <li>
+                    <span class="oqtf-bd-label">Décision TA prévisionnelle</span>
+                    <span class="oqtf-bd-value">{{ result()!.dateDecisionTaPrevisionnelle }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.referedDisponibles?.length) {
+                <div class="oqtf-refered">
+                  <span class="oqtf-refered-label">Référés disponibles :</span>
+                  <mat-chip-set>
+                    @for (r of result()!.referedDisponibles; track r) {
+                      <mat-chip>{{ r }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="oqtf-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li>{{ m }}</li>
+                  }
+                </ul>
+              }
+
+              <div class="oqtf-meta">
+                <span class="oqtf-meta-base">{{ result()!.baseJuridique }}</span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
