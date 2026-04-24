@@ -265,4 +265,70 @@ Cet audit révèle une **dette de convergence critique** : 6 composants livrés 
 
 ---
 
+## 8. Addendum 2026-04-24 (post-readiness) — cause racine : dette backend IA, pas pattern frontend
+
+Lors de la readiness de SF-155-04, un fait structurant a été découvert qui modifie le plan de migration initialement proposé en section 5.
+
+### 8.1 Constat
+
+Les 6 composants ne peuvent pas être rendus IA-compliant par simple pattern frontend, parce que **les champs requis n'existent pas dans les DTOs backend `TravailExtractedData` et `ImmigrationExtractedData`** — donc le prompt système IA n'extrait pas ces champs, donc il n'y a rien à pré-remplir depuis l'analyse.
+
+**Champs requis absents des records Java** (fichier `backend/src/main/java/fr/ailegalcase/analysis/CaseAnalysisResponse.java`) :
+
+| Composant | Champs absents | Record concerné |
+|---|---|---|
+| harcèlement | `motifNullitePressenti` | `TravailExtractedData` |
+| inaptitude | `origineInaptitudePressentie`, `avisMedecinTravailDate`, `reclassementRespecteDetected` | `TravailExtractedData` |
+| heures sup | `heuresSupMentionneesDansDossier`, `tauxHoraireBrutDeduit` | `TravailExtractedData` |
+| oqtf-avec-délai | `dateNotificationOqtf`, `motifOqtfCode`, `placementCra` | `ImmigrationExtractedData` FR |
+| oqtf-sans-délai | `dateHeureNotificationOqtf`, `motifSansDelaiCode` | `ImmigrationExtractedData` FR |
+| annexe13-be | `dateNotificationAnnexe13`, `delaiDepartImposeJours`, `motifOqtCode`, `transfertImminent` | `ImmigrationExtractedData` BE |
+
+### 8.2 Pourquoi les outils décisionnels antérieurs n'ont pas ce problème
+
+Vérification dans `decisional-tools-panel.component.ts` ligne 96-278 : les outils livrés **avant** 2026-04-24 branchent bien `aiData` via `ctx.synthesis?.xxxExtractedData` (F-DT-07, F-DT-08, F-DT-09, F-DT-10, F-IM-05, F-IM-06, F-IM-07, F-FA-05, F-FA-06). Chacun, au moment de sa création, a étendu :
+- le record Java `TravailExtractedData` ou `ImmigrationExtractedData`,
+- le prompt système correspondant (`LegalDomainPromptBuilder.TRAVAIL_INSTRUCTION` / `IMMIGRATION_INSTRUCTION`),
+- la méthode de parsing JSON (`extractTravailData()` / `extractImmigrationData()`),
+- le DTO frontend (`case-analysis.model.ts`),
+- le binding `TOOL_REGISTRY.inputs(ctx)`.
+
+Références d'extensions historiques : SF-IM-01-04 (`inferredChecklistType`), SF-130-01 (`salaireEstDeduit`), SF-DT-04-04 (identités salarié/employeur).
+
+### 8.3 Cause racine — facteurs conjugués
+
+1. **Parallélisation agressive** — 6 agents autonomes en 1 journée, chacun focalisé sur son calculateur (pattern implicite = "un formulaire qui calcule").
+2. **Règle skill ajoutée APRÈS livraison** — commit `21e75ce docs(skill): add pre-fill IA + validation IA F-IA-03 rule` est postérieur aux 6 outils. Les agents n'avaient pas le rappel.
+3. **Template canonique dégradé** — les agents ont implicitement pris `harcelement-licenciement-nul-section` (1er du batch, lui-même non-IA) comme référence au lieu du canonique `immigration-title-decision-section`.
+4. **`subfeature-template.md` ne force pas la déclaration** — aucune section obligatoire "Champs IA à extraire — extensions record + prompt système requises".
+
+### 8.4 Plan de migration corrigé (remplace la section 5)
+
+**Abandon de la section 5** : le split A/B/C frontend-only ~5.25 j sous-estime la dette. Le vrai chantier est full-stack par domaine.
+
+**Nouveau découpage Option B respectant règle 2j** (9 sub-SFs) :
+
+| Palier | Sub-SF | Scope | Effort |
+|---|---|---|---|
+| 1 — Backend | SF-155-04-00-BE-travail | Extension `TravailExtractedData` + prompt travail + `extractTravailData()` → 5 champs harcèlement/inaptitude/heures-sup. Tests + fixtures. | ~1.5 j |
+| 1 — Backend | SF-155-04-00-BE-immig-FR | Extension `ImmigrationExtractedData` + prompt immigration FR + `extractImmigrationData()` → 5 champs OQTF avec/sans délai. Tests + fixtures. | ~1.5 j |
+| 1 — Backend | SF-155-04-00-BE-immig-BE | Extension même record + prompt immigration BE → 4 champs Annexe 13. Tests + fixtures. | ~1 j |
+| 2 — Frontend | SF-155-04-A1 | `harcelement-licenciement-nul-section` (template canonique) — dépend BE-travail | ~0.5 j |
+| 2 — Frontend | SF-155-04-A2 | `inaptitude-section` — dépend BE-travail | ~0.75 j |
+| 2 — Frontend | SF-155-04-A3 | `heures-sup-section` — dépend BE-travail | ~0.75 j |
+| 2 — Frontend | SF-155-04-B1 | `oqtf-avec-delai-section` — dépend BE-immig-FR | ~0.5 j |
+| 2 — Frontend | SF-155-04-B2 | `oqtf-sans-delai-section` (urgence 48h, priorité) — dépend BE-immig-FR | ~1 j |
+| 2 — Frontend | SF-155-04-C | `annexe13-be-section` — dépend BE-immig-BE | ~1 j |
+
+**Total réel** : ~4 j backend + ~4.5 j frontend = ~8.5 j (vs 5.25 j annoncés initialement). Avec parallélisation maximale (3 agents backend + 3-5 agents frontend par palier), étalé sur ~3-4 jours calendaires.
+
+### 8.5 Règle gouvernance à ajouter (préventive)
+
+Pour empêcher la récurrence :
+- **`subfeature-template.md`** — ajouter une section obligatoire "Champs IA à extraire" pour toute SF créant un outil décisionnel avec formulaire. Liste des champs requis + vérification de leur présence dans le record Java correspondant + extension prompt + parsing + DTO frontend.
+- **`readiness-checklist.md`** — item bloquant : "Si la SF frontend consomme `aiData`, tous les champs utilisés par le composant existent déjà dans le record Java concerné (sinon ouvrir une SF backend préalable)".
+- **`ai-skills/frontend-coherence-audit.md`** — la règle "Pré-fill IA + validation IA F-IA-03" est insuffisante seule ; elle doit renvoyer au prérequis backend (champs DTO).
+
+---
+
 **Document produit en READ-ONLY — aucune modification de code dans cet audit.**
