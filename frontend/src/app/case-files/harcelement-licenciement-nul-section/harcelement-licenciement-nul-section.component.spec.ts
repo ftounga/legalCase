@@ -462,4 +462,101 @@ describe('HarcelementLicenciementNulSectionComponent', () => {
     expect(component.alertBadgeLabel(alert)).toContain('Incohérence');
     expect(component.alertTooltip(alert)).toBeTruthy();
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-06 — enrichissement 4-sources (ferme DIV-2)
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-06 : F96 seul (sans IA) → alerte MOTIF_NULLITE avec source F96', () => {
+    component.procedureChecks = [
+      {
+        id: 'chk-1', ordre: 1, description: 'Motif de nullité du licenciement',
+        statut: 'NON_COMPLIANT',
+        critereCode: 'HLN_MOTIF_NULLITE',
+        expectedValue: 'DISCRIMINATION',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    component.onMotifNulliteChange('HARCELEMENT_MORAL');
+    const alert = component.coherenceAlerts().MOTIF_NULLITE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('F96');
+    expect(alert!.contributors).toEqual(['F96']);
+    expect(alert!.expectedDisplay).toContain('Discrimination');
+  });
+
+  it('SF-155-06 : QUESTION_IA seul (réponse "oui") → alerte MOTIF_NULLITE avec source QUESTION_IA', () => {
+    component.aiQuestions = [
+      {
+        id: 'q-1', orderIndex: 1,
+        questionText: 'Le licenciement fait-il suite à une grossesse ?',
+        answerText: 'oui, la salariée a informé l\'employeur',
+        critereCode: 'HLN_MOTIF_NULLITE',
+        expectedValue: 'GROSSESSE',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    component.onMotifNulliteChange('HARCELEMENT_MORAL');
+    const alert = component.coherenceAlerts().MOTIF_NULLITE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('QUESTION_IA');
+    expect(alert!.contributors).toEqual(['QUESTION_IA']);
+    expect(alert!.expectedDisplay).toContain('Grossesse');
+  });
+
+  it('SF-155-06 : IA + F96 convergents → alerte MULTI avec 2 contributors et reason joint par " ET "', () => {
+    component.aiData = { motifNullitePressenti: 'DISCRIMINATION' } as TravailExtractedData;
+    component.procedureChecks = [
+      {
+        id: 'chk-1', ordre: 1, description: 'Motif attendu',
+        statut: 'NON_COMPLIANT',
+        critereCode: 'HLN_MOTIF_NULLITE',
+        expectedValue: 'DISCRIMINATION',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    // Avocat change vers un motif différent → divergence IA + F96 sur DISCRIMINATION.
+    component.onMotifNulliteChange('HARCELEMENT_MORAL');
+    const alert = component.coherenceAlerts().MOTIF_NULLITE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('MULTI');
+    expect(alert!.contributors.length).toBe(2);
+    expect(alert!.contributors).toContain('F96');
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.reason).toContain(' ET ');
+  });
+
+  it('SF-155-06 : PIECE_MANQUANTE seule ne déclenche PAS d\'alerte (règle helper — pas accroché sans autre source)', () => {
+    component.piecesManquantes = [
+      { texte: 'Attestation du médecin du travail', critereCode: 'HLN_MOTIF_NULLITE' },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    component.onMotifNulliteChange('HARCELEMENT_MORAL');
+    // Aucune autre source → builder renvoie null, alerte absente.
+    expect(component.coherenceAlerts().MOTIF_NULLITE).toBeUndefined();
+  });
+
+  it('SF-155-06 : IA + PIECE_MANQUANTE → alerte avec pieceTexte rempli', () => {
+    component.aiData = { motifNullitePressenti: 'DISCRIMINATION' } as TravailExtractedData;
+    component.piecesManquantes = [
+      { texte: 'Témoignages collègues', critereCode: 'HLN_MOTIF_NULLITE' },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    component.onMotifNulliteChange('HARCELEMENT_MORAL');
+    const alert = component.coherenceAlerts().MOTIF_NULLITE;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Témoignages collègues');
+  });
 });

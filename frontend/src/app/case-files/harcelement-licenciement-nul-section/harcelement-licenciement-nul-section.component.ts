@@ -251,6 +251,9 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
    * SF-155-04-A1 : divergence salaire — écart relatif > 10 %
    * (SALAIRE_DIVERGENCE_RATIO) entre valeur IA et saisie avocat.
    * SF-155-05 : via CoherenceAlertBuilder partagé.
+   * SF-155-06 : enrichissement multi-sources — si l'IA détecte une divergence,
+   * on peut aussi attacher une `PIECE_MANQUANTE` (fiche de paie manquante par
+   * exemple, critereCode `salaire_brut_mensuel` ou `HLN_SALAIRE`).
    */
   private buildSalaireAlert(): HLNCoherenceAlert | null {
     const aiSalaire = this.aiDataSignal()?.salaireBrutMensuel;
@@ -259,34 +262,99 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
     if (typeof userSalaire !== 'number' || userSalaire <= 0) return null;
     const ratio = Math.abs(userSalaire - aiSalaire) / aiSalaire;
     if (ratio <= SALAIRE_DIVERGENCE_RATIO) return null;
-    return CoherenceAlertBuilder.forField<HLNAlertField>('SALAIRE')
+    const builder = CoherenceAlertBuilder.forField<HLNAlertField>('SALAIRE')
       .addSource('IA', {
         expectedDisplay: `${aiSalaire.toLocaleString('fr-FR')} €`,
         reason: `Analyse du dossier : salaire brut mensuel ~${aiSalaire.toLocaleString('fr-FR')} €`,
-      })
-      .build();
+      });
+    // SF-155-06 : pièce manquante salaire (fiche de paie) — contributor additionnel.
+    const salairePiece = this.findPieceManquante(['SALAIRE_BRUT_MENSUEL', 'HLN_SALAIRE']);
+    if (salairePiece) builder.addPieceManquante(salairePiece);
+    return builder.build();
   }
 
   /**
    * SF-155-04-A1 : divergence motif — mapping IA vs saisie avocat.
    * Gate FR uniquement (cf. prefillFromAi — même invariant côté backend).
    * SF-155-05 : via CoherenceAlertBuilder partagé.
+   * SF-155-06 : enrichissement multi-sources — scanne F96 (checklist
+   * procédurale `HLN_MOTIF_NULLITE`) + QUESTION_IA (question complémentaire
+   * sur motif) + PIECE_MANQUANTE (attestation discrimination / témoignages).
    */
   private buildMotifNulliteAlert(): HLNCoherenceAlert | null {
     if (this.workspaceCountry !== 'FRANCE') return null;
-    const iaMotif = this.aiDataSignal()?.motifNullitePressenti?.toUpperCase();
-    if (!iaMotif) return null;
-    const mapped = AI_MOTIF_TO_MOTIF_NULLITE_FR[iaMotif];
-    if (!mapped) return null;
     const userMotif = this.motifNullite();
-    if (!userMotif || userMotif === mapped) return null;
-    const mappedLabel = MOTIFS_FR.find((m) => m.code === mapped)?.label ?? mapped;
-    return CoherenceAlertBuilder.forField<HLNAlertField>('MOTIF_NULLITE')
-      .addSource('IA', {
-        expectedDisplay: mappedLabel,
-        reason: `Analyse du dossier : motif de nullité pressenti "${mappedLabel}"`,
-      })
-      .build();
+    if (!userMotif) return null;
+
+    const builder = CoherenceAlertBuilder.forField<HLNAlertField>('MOTIF_NULLITE');
+    const motifValueSet = new Set<string>(MOTIFS_FR.map((m) => m.code));
+
+    // 1. F-96 VERIFIED/NON_COMPLIANT — critereCode `HLN_MOTIF_NULLITE` ciblé.
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'HLN_MOTIF_NULLITE') continue;
+      const ev = chk.expectedValue?.toUpperCase();
+      if (!ev || !motifValueSet.has(ev)) continue;
+      if (ev === userMotif) continue;
+      const label = MOTIFS_FR.find((m) => m.code === ev)?.label ?? ev;
+      builder.addSource('F96', {
+        expectedDisplay: label,
+        reason: `Checklist procédurale : motif attendu ${label}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    // 2. QUESTION_IA — réponse "oui" sur `HLN_MOTIF_NULLITE` avec `expectedValue`.
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'HLN_MOTIF_NULLITE') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      const ev = q.expectedValue?.toUpperCase();
+      if (!ev || !motifValueSet.has(ev)) continue;
+      if (ev === userMotif) continue;
+      const label = MOTIFS_FR.find((m) => m.code === ev)?.label ?? ev;
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: label,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    // 3. IA — mapping motifNullitePressenti → enum front.
+    const iaMotif = this.aiDataSignal()?.motifNullitePressenti?.toUpperCase();
+    if (iaMotif) {
+      const mapped = AI_MOTIF_TO_MOTIF_NULLITE_FR[iaMotif];
+      if (mapped && mapped !== userMotif) {
+        const mappedLabel = MOTIFS_FR.find((m) => m.code === mapped)?.label ?? mapped;
+        builder.addSource('IA', {
+          expectedDisplay: mappedLabel,
+          reason: `Analyse du dossier : motif de nullité pressenti "${mappedLabel}"`,
+        });
+      }
+    }
+
+    // 4. PIECE_MANQUANTE (contributor si alerte déjà initiée).
+    const piece = this.findPieceManquante(['HLN_MOTIF_NULLITE', 'HLN_MOTIF']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-06 : renvoie le `texte` d'une `PieceManquanteEntry` dont
+   * `critereCode` (case-insensitive) appartient à la liste des codes acceptés,
+   * ou `null` si aucune pièce ne matche. La première pièce trouvée gagne.
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
   }
 
   toggleCollapse(): void {

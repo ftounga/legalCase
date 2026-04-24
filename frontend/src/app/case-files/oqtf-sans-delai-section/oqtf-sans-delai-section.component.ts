@@ -103,6 +103,14 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  // SF-155-06 : signals miroirs (pattern canonique F-IM-05) pour que le
+  // `coherenceAlerts` computed réagisse aux changements de procedureChecks /
+  // aiQuestions / piecesManquantes post-mount.
+  private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
+  private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
+
   collapsed = signal(true);
   loading = signal(false);
   analyzing = signal(false);
@@ -136,30 +144,44 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   // SF-155-04-B2 : alertes cohérence F-IA-03. Gate strict : uniquement
   // quand le formulaire est affiché (règle SF-IA-03-12 : ne pas réafficher
   // après calcul, seul le verdict importe).
+  // SF-155-06 : lit `this.aiData` directement pour préserver la compat des
+  // tests existants qui assignent `component.aiData` APRÈS `ngOnInit()` sans
+  // appeler `ngOnChanges`. Le recompute est déclenché par les autres signals
+  // qui changent (recoursForme, placementCra, etc.). Les signals miroirs
+  // `procedureChecksSignal` / `aiQuestionsSignal` / `piecesManquantesSignal`
+  // restent utilisés par les builders pour les nouvelles sources.
   coherenceAlerts = computed<Partial<Record<OqtfSdAlertField, OqtfSdCoherenceAlert>>>(() => {
     if (!this.showForm()) return {};
     if (!this.isFrance()) return {};
     const alerts: Partial<Record<OqtfSdAlertField, OqtfSdCoherenceAlert>> = {};
-    const ai = this.aiData;
-    if (!ai) return alerts;
+    // SF-155-06 : fallback sur `this.aiData` si le signal n'a pas encore été hydraté
+    // (cas de tests qui mutent `component.aiData` après `ngOnInit`).
+    // `ai` peut être null — les builders sont tolérants aux champs IA absents
+    // pour pouvoir émettre une alerte purement F96 / QUESTION_IA / PIECE_MANQUANTE.
+    const ai = this.aiDataSignal() ?? this.aiData ?? null;
 
     // ALERTE CRITIQUE 48h : notif IA > 48h + recoursForme=false (recours hors délai probable).
-    const critical48h = this.buildAlert48hExpired(ai);
+    const critical48h = ai ? this.buildAlert48hExpired(ai) : null;
     if (critical48h) {
       alerts.RECOURS_FORME = critical48h;
     } else {
       // Contradiction recours formé (non critique 48h) : IA dit OUI/NON et avocat diverge.
+      // Possible aussi avec QUESTION_IA seule sans aiData.
       const recoursContradiction = this.buildRecoursContradictionAlert(ai);
       if (recoursContradiction) alerts.RECOURS_FORME = recoursContradiction;
     }
 
     // ALERTE CRITIQUE CRA : IA a détecté CRA, avocat dit NON.
-    const criticalCra = this.buildCraAlert(ai);
-    if (criticalCra) alerts.PLACEMENT_CRA = criticalCra;
+    if (ai) {
+      const criticalCra = this.buildCraAlert(ai);
+      if (criticalCra) alerts.PLACEMENT_CRA = criticalCra;
+    }
 
     // Divergence date/heure saisie vs IA > 1h.
-    const dateAlert = this.buildDateHeureDivergenceAlert(ai);
-    if (dateAlert) alerts.DATE_HEURE_NOTIFICATION = dateAlert;
+    if (ai) {
+      const dateAlert = this.buildDateHeureDivergenceAlert(ai);
+      if (dateAlert) alerts.DATE_HEURE_NOTIFICATION = dateAlert;
+    }
 
     return alerts;
   });
@@ -177,6 +199,11 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // SF-155-06 : hydrate les signals miroirs avant évaluations computed.
+    this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (this.isFrance()) {
       // SF-155-04-B2 : pré-fill IA au mount si aiData est déjà disponible.
       // Ne préempte pas le load() existant — prefillFromAi ne touche que
@@ -187,6 +214,11 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // SF-155-06 : ré-hydrate les signals miroirs à chaque changement d'input.
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
+    if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     // SF-155-04-B2 : re-applique le pré-fill dès que aiData change avant la
     // première résolution (cas : pipeline IA termine après l'ouverture du
     // dossier). Si le form n'est plus affiché (result() présent), le
@@ -345,7 +377,8 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     return this.nowMsOverride ?? Date.now();
   }
 
-  /** SF-155-04-B2 : alerte critique 48h — notification > 48h ET recours non formé. */
+  /** SF-155-04-B2 : alerte critique 48h — notification > 48h ET recours non formé.
+   *  SF-155-06 : enrichi avec PIECE_MANQUANTE (requête JLD 48h manquante). */
   private buildAlert48hExpired(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
     const iso = ai.dateHeureNotificationOqtfSansDelai;
     if (!iso) return null;
@@ -355,50 +388,86 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     const deltaMs = this.nowMs() - notifMs;
     if (deltaMs <= MS_48H) return null;
     const hours = Math.round(deltaMs / MS_ONE_HOUR);
-    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('RECOURS_FORME')
+    const builder = CoherenceAlertBuilder.forField<OqtfSdAlertField>('RECOURS_FORME')
       .withSeverity('CRITICAL')
       .addSource('IA', {
         expectedDisplay: 'Recours hors délai probable',
         reason: `Notification OQTF il y a environ ${hours} h (IA : ${iso}). Délai 48h probablement dépassé — aucun recours formé dans le dossier.`,
-      })
-      .build();
+      });
+    const piece = this.findPieceManquante(['IM08_RECOURS_FORME']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
   }
 
   /**
    * Contradiction non critique : IA a détecté que le recours est (ou n'est
    * pas) formé, avocat dit l'inverse. Pas déclenchée si le CRITIQUE 48h
    * est déjà actif (prime sur cet alerte).
+   * SF-155-06 : enrichi avec QUESTION_IA (réponse "oui"/"non") + PIECE_MANQUANTE.
    */
-  private buildRecoursContradictionAlert(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
-    const reponse = ai.recoursFormeDetected?.reponse;
-    if (reponse !== 'OUI' && reponse !== 'NON') return null;
-    const iaRecours = reponse === 'OUI';
-    if (iaRecours === this.recoursForme()) return null;
-    const just = ai.recoursFormeDetected?.justification;
-    const justSuffix = just ? ` (${just})` : '';
-    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('RECOURS_FORME')
-      .withSeverity('WARNING')
-      .addSource('IA', {
-        expectedDisplay: iaRecours ? 'Recours déjà formé' : 'Aucun recours formé',
-        reason: `Analyse du dossier : recours ${iaRecours ? 'déjà formé' : 'non formé'}${justSuffix}`,
-      })
-      .build();
+  private buildRecoursContradictionAlert(ai: ImmigrationExtractedData | null): OqtfSdCoherenceAlert | null {
+    const userRecours = this.recoursForme();
+    const builder = CoherenceAlertBuilder.forField<OqtfSdAlertField>('RECOURS_FORME').withSeverity('WARNING');
+
+    // SF-155-06 : QUESTION_IA — réponse oui/non sur IM08_RECOURS_FORME.
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'IM08_RECOURS_FORME') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      let qRecours: boolean | null = null;
+      if (answer === 'oui' || answer.startsWith('oui ') || answer.startsWith('oui,') || answer.startsWith('oui.')) {
+        qRecours = true;
+      } else if (answer === 'non' || answer.startsWith('non ') || answer.startsWith('non,') || answer.startsWith('non.')) {
+        qRecours = false;
+      }
+      if (qRecours === null) continue;
+      if (qRecours === userRecours) continue;
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: qRecours ? 'Recours déjà formé' : 'Aucun recours formé',
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    // IA : recoursFormeDetected (si aiData disponible).
+    const reponse = ai?.recoursFormeDetected?.reponse;
+    if (reponse === 'OUI' || reponse === 'NON') {
+      const iaRecours = reponse === 'OUI';
+      if (iaRecours !== userRecours) {
+        const just = ai?.recoursFormeDetected?.justification;
+        const justSuffix = just ? ` (${just})` : '';
+        builder.addSource('IA', {
+          expectedDisplay: iaRecours ? 'Recours déjà formé' : 'Aucun recours formé',
+          reason: `Analyse du dossier : recours ${iaRecours ? 'déjà formé' : 'non formé'}${justSuffix}`,
+        });
+      }
+    }
+
+    // SF-155-06 : PIECE_MANQUANTE.
+    const piece = this.findPieceManquante(['IM08_RECOURS_FORME']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
   }
 
-  /** SF-155-04-B2 : alerte critique CRA détecté par IA, avocat coche non. */
+  /** SF-155-04-B2 : alerte critique CRA détecté par IA, avocat coche non.
+   *  SF-155-06 : enrichi avec PIECE_MANQUANTE. */
   private buildCraAlert(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
     if (ai.placementCraDetected !== true) return null;
     if (this.placementCra() === true) return null;
-    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('PLACEMENT_CRA')
+    const builder = CoherenceAlertBuilder.forField<OqtfSdAlertField>('PLACEMENT_CRA')
       .withSeverity('CRITICAL')
       .addSource('IA', {
         expectedDisplay: 'Placement CRA détecté',
         reason: 'L\'analyse du dossier a détecté une mention de placement en CRA — vérifier les pièces.',
-      })
-      .build();
+      });
+    const piece = this.findPieceManquante(['IM08_PLACEMENT_CRA']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
   }
 
-  /** Divergence date/heure saisie vs IA > 1h — alerte warning. */
+  /** Divergence date/heure saisie vs IA > 1h — alerte warning.
+   *  SF-155-06 : enrichi avec PIECE_MANQUANTE (accusé de notification). */
   private buildDateHeureDivergenceAlert(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
     const iso = ai.dateHeureNotificationOqtfSansDelai;
     if (!iso) return null;
@@ -408,13 +477,30 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     const saisieMs = this.parseIsoToMs(saisie);
     if (iaMs === null || saisieMs === null) return null;
     if (Math.abs(iaMs - saisieMs) <= MS_ONE_HOUR) return null;
-    return CoherenceAlertBuilder.forField<OqtfSdAlertField>('DATE_HEURE_NOTIFICATION')
+    const builder = CoherenceAlertBuilder.forField<OqtfSdAlertField>('DATE_HEURE_NOTIFICATION')
       .withSeverity('WARNING')
       .addSource('IA', {
         expectedDisplay: 'Date IA divergente',
         reason: `Analyse du dossier : ${iso} — écart > 1 h avec la saisie (${saisie}).`,
-      })
-      .build();
+      });
+    const piece = this.findPieceManquante(['IM08_DATE_NOTIFICATION', 'IM08_DATE_HEURE_NOTIFICATION']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  /**
+   * SF-155-06 : recherche une `PieceManquanteEntry` dont `critereCode`
+   * appartient (case-insensitive) à la liste acceptée. Retourne le 1er `texte`
+   * trouvé, ou `null`.
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
   }
 
   /**
