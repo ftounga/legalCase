@@ -345,7 +345,8 @@ describe('HeuresSupSectionComponent', () => {
     component.onTauxHoraireChange();
     component.tauxHoraireBrut.set(30);
     expect(component.coherenceAlerts().TAUX_HORAIRE).toBeDefined();
-    expect(component.coherenceAlerts().TAUX_HORAIRE!.level).toBe('warning');
+    // SF-155-05 : `level` legacy → `severity` partagé.
+    expect(component.coherenceAlerts().TAUX_HORAIRE!.severity).toBe('WARNING');
   });
 
   it('coherenceAlerts — pas d\'alerte taux horaire si écart < 10 %', () => {
@@ -377,7 +378,7 @@ describe('HeuresSupSectionComponent', () => {
     component.heuresSupDeclarees50pct.set(10);
     component.heuresHorsContingent.set(0);
     expect(component.coherenceAlerts().HEURES_SUP).toBeDefined();
-    expect(component.coherenceAlerts().HEURES_SUP!.level).toBe('warning');
+    expect(component.coherenceAlerts().HEURES_SUP!.severity).toBe('WARNING');
   });
 
   it('coherenceAlerts — pas d\'alerte heures sup si écart < 5 h', () => {
@@ -411,7 +412,7 @@ describe('HeuresSupSectionComponent', () => {
 
     const alert = component.coherenceAlerts().SALAIRE_DEDUIT;
     expect(alert).toBeDefined();
-    expect(alert!.level).toBe('info');
+    expect(alert!.severity).toBe('INFO');
   });
 
   it('coherenceAlerts vide en mode BE', () => {
@@ -516,5 +517,34 @@ describe('HeuresSupSectionComponent', () => {
     component.tauxHoraireBrut.set(30);
     expect(component.alertsSummary().total).toBe(2);
     expect(component.alertsSummary().blockers).toBe(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-05 — interface `CoherenceAlert<HsAlertField>` partagée
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-05 : alerte TAUX_HORAIRE expose contract CoherenceAlert — contributors=[IA], severity=WARNING', () => {
+    component.aiData = { salaireBrutMensuel: 3034 }; // dérive 20 €/h
+    component.ngOnInit();
+    flush404();
+    component.onTauxHoraireChange();
+    component.tauxHoraireBrut.set(30); // 50 % d'écart
+    const alert = component.coherenceAlerts().TAUX_HORAIRE;
+    expect(alert).toBeDefined();
+    expect(alert!.field).toBe('TAUX_HORAIRE');
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+    expect(alert!.severity).toBe('WARNING');
+    expect(alert!.expectedDisplay).toContain('€/h');
+  });
+
+  it('SF-155-05 : alerte SALAIRE_DEDUIT expose severity=INFO (pas WARNING)', () => {
+    component.aiData = { salaireBrutMensuel: 3034, salaireEstDeduit: true };
+    component.ngOnInit();
+    flush404();
+    const alert = component.coherenceAlerts().SALAIRE_DEDUIT;
+    expect(alert).toBeDefined();
+    expect(alert!.severity).toBe('INFO');
+    expect(alert!.contributors).toEqual(['IA']);
   });
 });

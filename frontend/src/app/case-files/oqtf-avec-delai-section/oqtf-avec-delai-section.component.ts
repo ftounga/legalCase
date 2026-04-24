@@ -24,6 +24,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSeverity } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 /** Enum valeurs valides pour pré-fill / alertes motif. */
 const MOTIFS_OQTF_SET: ReadonlySet<MotifOqtf> = new Set<MotifOqtf>([
@@ -34,14 +36,10 @@ const MOTIFS_OQTF_SET: ReadonlySet<MotifOqtf> = new Set<MotifOqtf>([
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export type OqtfAlertField = 'DATE_NOTIFICATION' | 'MOTIF_OQTF' | 'RECOURS_FORME';
-export type OqtfAlertSeverity = 'WARNING' | 'CRITICAL';
 
-export interface OqtfCoherenceAlert {
-  field: OqtfAlertField;
-  severity: OqtfAlertSeverity;
-  expectedDisplay: string;
-  reason: string;
-}
+// SF-155-05 : types factorisés — rétro-compat via aliases.
+export type OqtfAlertSeverity = CoherenceAlertSeverity;
+export type OqtfCoherenceAlert = CoherenceAlert<OqtfAlertField>;
 
 /**
  * SF-IM-08-02 : outil décisionnel dédié "OQTF avec délai de départ
@@ -310,12 +308,13 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
     if (!user) return null;
     if (typeof ai !== 'string' || !ISO_DATE_RE.test(ai)) return null;
     if (ai === user) return null;
-    return {
-      field: 'DATE_NOTIFICATION',
-      severity: 'WARNING',
-      expectedDisplay: ai,
-      reason: `L'analyse a détecté une date de notification différente : ${ai}`,
-    };
+    return CoherenceAlertBuilder.forField<OqtfAlertField>('DATE_NOTIFICATION')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: ai,
+        reason: `L'analyse a détecté une date de notification différente : ${ai}`,
+      })
+      .build();
   }
 
   private buildMotifOqtfAlert(): OqtfCoherenceAlert | null {
@@ -325,12 +324,13 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
     if (!aiCode || !MOTIFS_OQTF_SET.has(aiCode as MotifOqtf)) return null;
     if (aiCode === user) return null;
     const label = MOTIFS_OQTF.find(m => m.code === aiCode)?.label ?? aiCode;
-    return {
-      field: 'MOTIF_OQTF',
-      severity: 'WARNING',
-      expectedDisplay: label,
-      reason: `L'analyse a détecté un motif différent : ${label}`,
-    };
+    return CoherenceAlertBuilder.forField<OqtfAlertField>('MOTIF_OQTF')
+      .withSeverity('WARNING')
+      .addSource('IA', {
+        expectedDisplay: label,
+        reason: `L'analyse a détecté un motif différent : ${label}`,
+      })
+      .build();
   }
 
   /**
@@ -342,12 +342,13 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
     const detected = this.aiData?.recoursFormeDetected;
     if (!detected || detected.reponse !== 'OUI') return null;
     if (this.recoursForme()) return null; // avocat en phase avec la détection
-    return {
-      field: 'RECOURS_FORME',
-      severity: 'CRITICAL',
-      expectedDisplay: 'Recours déjà formé détecté',
-      reason: `L'analyse a détecté qu'un recours a déjà été formé${detected.justification ? ' — ' + detected.justification : ''}. Vérifiez avant d'introduire une nouvelle action (risque d'irrecevabilité).`,
-    };
+    return CoherenceAlertBuilder.forField<OqtfAlertField>('RECOURS_FORME')
+      .withSeverity('CRITICAL')
+      .addSource('IA', {
+        expectedDisplay: 'Recours déjà formé détecté',
+        reason: `L'analyse a détecté qu'un recours a déjà été formé${detected.justification ? ' — ' + detected.justification : ''}. Vérifiez avant d'introduire une nouvelle action (risque d'irrecevabilité).`,
+      })
+      .build();
   }
 
   private load(): void {

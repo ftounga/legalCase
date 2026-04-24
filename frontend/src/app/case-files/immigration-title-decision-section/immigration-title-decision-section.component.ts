@@ -17,20 +17,16 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 const MOTIFS_ENUM = new Set(['TRAVAIL', 'ETUDES', 'FAMILLE', 'ASILE', 'AUTRE']);
 
 export type IM05AlertField = 'MOTIF' | 'NATIONALITE_UE';
-export type IM05AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'PIECE_MANQUANTE' | 'MULTI';
 
-export interface IM05CoherenceAlert {
-  field: IM05AlertField;
-  source: IM05AlertSource;
-  contributors: IM05AlertSource[];
-  expectedDisplay: string;
-  reason: string;
-  pieceTexte?: string | null;
-}
+// SF-155-05 : alias local rétro-compat — utilise l'interface générique partagée.
+export type IM05AlertSource = CoherenceAlertSource;
+export type IM05CoherenceAlert = CoherenceAlert<IM05AlertField>;
 
 const CODE_TO_MOTIF: Record<string, string> = {
   VLS_TS_ETUDIANT: 'ETUDES',
@@ -241,9 +237,7 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
 
     const piecesIndex = this.buildPiecesIndex(this.piecesManquantesSignal());
     const pieceTexte = piecesIndex['IM05_MOTIF'] ?? null;
-    const contributors: IM05AlertSource[] = [];
-    const reasons: string[] = [];
-    let expected: string | null = null;
+    const builder = CoherenceAlertBuilder.forField<IM05AlertField>('MOTIF');
 
     // F-96 VERIFIED
     for (const chk of this.procedureChecksSignal()) {
@@ -251,10 +245,11 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
       if (chk.statut !== 'VERIFIED') continue;
       const ev = chk.expectedValue?.toUpperCase();
       if (!ev || !MOTIFS_ENUM.has(ev)) continue;
-      if (ev !== user && !expected) {
-        expected = ev;
-        contributors.push('F96');
-        reasons.push(`Checklist procédurale : motif ${ev}${chk.raison ? ' (' + chk.raison + ')' : ''}`);
+      if (ev !== user) {
+        builder.addSource('F96', {
+          expectedDisplay: ev,
+          reason: `Checklist procédurale : motif ${ev}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+        });
       }
       break;
     }
@@ -269,14 +264,10 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
       const ev = q.expectedValue?.toUpperCase();
       if (!ev || !MOTIFS_ENUM.has(ev)) continue;
       if (ev === user) continue;
-      if (!expected) {
-        expected = ev;
-        contributors.push('QUESTION_IA');
-        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
-      } else if (ev === expected) {
-        contributors.push('QUESTION_IA');
-        reasons.push(`Question complémentaire : "${q.questionText}" → "${q.answerText}"`);
-      }
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: ev,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
       break;
     }
 
@@ -285,43 +276,31 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     if (iaCode && CODE_TO_MOTIF[iaCode]) {
       const iaMotif = CODE_TO_MOTIF[iaCode];
       if (iaMotif !== user) {
-        if (!expected) {
-          expected = iaMotif;
-          contributors.push('IA');
-          reasons.push(`Analyse du dossier : code ${iaCode} → motif ${iaMotif}`);
-        } else if (iaMotif === expected) {
-          contributors.push('IA');
-          reasons.push(`Analyse du dossier : ${iaMotif}`);
-        }
+        builder.addSource('IA', {
+          expectedDisplay: iaMotif,
+          reason: `Analyse du dossier : code ${iaCode} → motif ${iaMotif}`,
+        });
       }
     }
 
-    if (!expected) return null;
+    // Pièce manquante (contributor additionnel si une alerte est déjà initiée).
     if (pieceTexte) {
-      contributors.push('PIECE_MANQUANTE');
-      reasons.push(`Pièce manquante : ${pieceTexte}`);
+      builder.addPieceManquante(pieceTexte);
     }
-    return {
-      field: 'MOTIF',
-      source: contributors.length > 1 ? 'MULTI' : contributors[0],
-      contributors,
-      expectedDisplay: expected,
-      reason: reasons.join(' ET '),
-      pieceTexte,
-    };
+
+    return builder.build();
   }
 
   private buildNationaliteAlert(): IM05CoherenceAlert | null {
     const iaNat = this.aiDataSignal()?.nationaliteUe;
     if (typeof iaNat !== 'boolean') return null;
     if (iaNat === this.nationaliteUe()) return null;
-    return {
-      field: 'NATIONALITE_UE',
-      source: 'IA',
-      contributors: ['IA'],
-      expectedDisplay: iaNat ? 'Ressortissant UE' : 'Pays tiers',
-      reason: `Analyse du dossier : ${iaNat ? 'nationalité UE/EEE/Suisse' : 'pays tiers'}`,
-    };
+    return CoherenceAlertBuilder.forField<IM05AlertField>('NATIONALITE_UE')
+      .addSource('IA', {
+        expectedDisplay: iaNat ? 'Ressortissant UE' : 'Pays tiers',
+        reason: `Analyse du dossier : ${iaNat ? 'nationalité UE/EEE/Suisse' : 'pays tiers'}`,
+      })
+      .build();
   }
 
   toggleCollapsed(): void {

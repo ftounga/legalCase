@@ -428,4 +428,38 @@ describe('HarcelementLicenciementNulSectionComponent', () => {
     component.editMode();
     expect(component.showForm()).toBe(true);
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-05 — validation interface `CoherenceAlert<HLNAlertField>` partagée
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-05 : alerte SALAIRE expose contract `CoherenceAlert<F>` — champs field/source/contributors/severity/expectedDisplay/reason', () => {
+    component.aiData = { salaireBrutMensuel: 3000 };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    // 50 % écart → divergence
+    component.onSalaireChange(4500);
+    const alert = component.coherenceAlerts().SALAIRE;
+    expect(alert).toBeDefined();
+    expect(alert!.field).toBe('SALAIRE');
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+    expect(alert!.severity).toBe('WARNING');
+    expect(alert!.expectedDisplay).toContain('€');
+    expect(alert!.reason).toContain('Analyse du dossier');
+  });
+
+  it('SF-155-05 : alertBadgeLabel et alertTooltip fonctionnent avec la nouvelle interface', () => {
+    // Construction d'une alerte via le builder public — valide que la forme est
+    // compatible avec les helpers du template.
+    component.aiData = { salaireBrutMensuel: 3000 };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    component.onSalaireChange(5000); // divergence
+    const alert = component.coherenceAlerts().SALAIRE!;
+    expect(component.alertBadgeLabel(alert)).toContain('Incohérence');
+    expect(component.alertTooltip(alert)).toBeTruthy();
+  });
 });

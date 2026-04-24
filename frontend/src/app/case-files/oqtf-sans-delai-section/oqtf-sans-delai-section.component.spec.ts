@@ -615,12 +615,16 @@ describe('OqtfSansDelaiSectionComponent', () => {
     it('alertBadgeLabel distingue CRITICAL vs WARNING', () => {
       const critical = {
         field: 'RECOURS_FORME' as const,
+        source: 'IA' as const,
+        contributors: ['IA' as const],
         severity: 'CRITICAL' as const,
         reason: 'r',
         expectedDisplay: 'Recours hors délai probable',
       };
       const warning = {
         field: 'DATE_HEURE_NOTIFICATION' as const,
+        source: 'IA' as const,
+        contributors: ['IA' as const],
         severity: 'WARNING' as const,
         reason: 'r',
         expectedDisplay: 'Date IA divergente',
@@ -632,11 +636,41 @@ describe('OqtfSansDelaiSectionComponent', () => {
     it('alertTooltip retourne la raison brute', () => {
       const a = {
         field: 'PLACEMENT_CRA' as const,
+        source: 'IA' as const,
+        contributors: ['IA' as const],
         severity: 'CRITICAL' as const,
         reason: 'raison explicative',
         expectedDisplay: 'Placement CRA détecté',
       };
       expect(component.alertTooltip(a)).toBe('raison explicative');
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-05 — interface `CoherenceAlert<OqtfSdAlertField>` partagée
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-05 : alerte PLACEMENT_CRA expose contract CoherenceAlert — severity=CRITICAL', () => {
+    component.aiData = { placementCraDetected: true };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.onPlacementCraChange(false);
+    const alert = component.coherenceAlerts().PLACEMENT_CRA;
+    expect(alert).toBeDefined();
+    expect(alert!.field).toBe('PLACEMENT_CRA');
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+    expect(alert!.severity).toBe('CRITICAL');
+  });
+
+  it('SF-155-05 : alerte DATE_HEURE_NOTIFICATION contract CoherenceAlert — severity=WARNING', () => {
+    component.aiData = { dateHeureNotificationOqtfSansDelai: '2026-04-23T10:00' };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.onDateHeureNotificationChange('2026-04-23T15:00'); // > 1h d'écart
+    const alert = component.coherenceAlerts().DATE_HEURE_NOTIFICATION;
+    expect(alert).toBeDefined();
+    expect(alert!.severity).toBe('WARNING');
+    expect(alert!.contributors).toEqual(['IA']);
   });
 });

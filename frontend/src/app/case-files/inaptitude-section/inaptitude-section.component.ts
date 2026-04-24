@@ -23,20 +23,17 @@ import { TravailExtractedData, PieceManquanteEntry } from '../../core/models/cas
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 /**
  * SF-155-04-A2 : types pour les alertes de cohérence IA (pattern F-IA-03 aligné
  * sur `immigration-title-decision-section`).
+ * SF-155-05 : interface factorisée via `CoherenceAlert<F>` shared.
  */
 export type InaptitudeAlertField = 'SALAIRE' | 'ORIGINE' | 'AVIS_DATE' | 'RECLASSEMENT';
-export type InaptitudeAlertSource = 'IA';
-
-export interface InaptitudeCoherenceAlert {
-  field: InaptitudeAlertField;
-  source: InaptitudeAlertSource;
-  expectedDisplay: string;
-  reason: string;
-}
+export type InaptitudeAlertSource = CoherenceAlertSource;
+export type InaptitudeCoherenceAlert = CoherenceAlert<InaptitudeAlertField>;
 
 /**
  * SF-155-04-A2 : mapping origine IA (enum tripartite AT/MP/MO) vers enum
@@ -332,12 +329,12 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
     if (user === null || user <= 0) return null;
     const ratio = Math.abs(user - iaVal) / iaVal;
     if (ratio <= SALAIRE_DIVERGENCE_THRESHOLD) return null;
-    return {
-      field: 'SALAIRE',
-      source: 'IA',
-      expectedDisplay: `${iaVal.toLocaleString('fr-FR')} €`,
-      reason: `Analyse du dossier : salaire ${iaVal.toLocaleString('fr-FR')} € (écart > 10 % avec la valeur saisie)`,
-    };
+    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('SALAIRE')
+      .addSource('IA', {
+        expectedDisplay: `${iaVal.toLocaleString('fr-FR')} €`,
+        reason: `Analyse du dossier : salaire ${iaVal.toLocaleString('fr-FR')} € (écart > 10 % avec la valeur saisie)`,
+      })
+      .build();
   }
 
   private buildOrigineAlert(): InaptitudeCoherenceAlert | null {
@@ -352,12 +349,12 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
     const label = mapped === 'PROFESSIONNELLE'
       ? 'Origine professionnelle'
       : 'Origine non professionnelle';
-    return {
-      field: 'ORIGINE',
-      source: 'IA',
-      expectedDisplay: label,
-      reason: `Analyse du dossier : origine ${iaCode} → ${label}`,
-    };
+    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('ORIGINE')
+      .addSource('IA', {
+        expectedDisplay: label,
+        reason: `Analyse du dossier : origine ${iaCode} → ${label}`,
+      })
+      .build();
   }
 
   private buildAvisDateAlert(): InaptitudeCoherenceAlert | null {
@@ -366,12 +363,12 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
     const user = this.avisMedecinTravailDate();
     if (!user) return null;
     if (user === iaDate) return null;
-    return {
-      field: 'AVIS_DATE',
-      source: 'IA',
-      expectedDisplay: iaDate,
-      reason: `Analyse du dossier : avis du ${iaDate}`,
-    };
+    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('AVIS_DATE')
+      .addSource('IA', {
+        expectedDisplay: iaDate,
+        reason: `Analyse du dossier : avis du ${iaDate}`,
+      })
+      .build();
   }
 
   private buildReclassementAlert(): InaptitudeCoherenceAlert | null {
@@ -379,13 +376,13 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
     if (!iaDetect || iaDetect.reponse === 'INCONNU' || !iaDetect.reponse) return null;
     const iaRespecte = iaDetect.reponse === 'OUI';
     if (iaRespecte === this.reclassementRespecte()) return null;
-    return {
-      field: 'RECLASSEMENT',
-      source: 'IA',
-      expectedDisplay: iaRespecte ? 'Reclassement respecté' : 'Reclassement NON respecté',
-      reason: iaDetect.justification
-        ? `Analyse du dossier : ${iaDetect.reponse} (${iaDetect.justification})`
-        : `Analyse du dossier : obligation ${iaRespecte ? 'respectée' : 'NON respectée'}`,
-    };
+    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('RECLASSEMENT')
+      .addSource('IA', {
+        expectedDisplay: iaRespecte ? 'Reclassement respecté' : 'Reclassement NON respecté',
+        reason: iaDetect.justification
+          ? `Analyse du dossier : ${iaDetect.reponse} (${iaDetect.justification})`
+          : `Analyse du dossier : obligation ${iaRespecte ? 'respectée' : 'NON respectée'}`,
+      })
+      .build();
   }
 }
