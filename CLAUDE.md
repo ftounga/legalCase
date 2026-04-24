@@ -93,6 +93,27 @@ Travailler sur une branche `feat/SF-XX-YY-nom-court` créée depuis `master` à 
 Respecter `project-governance/playbooks/coding-rules.md`.
 Toute décision technique non prévue dans la mini-spec est documentée dans la PR.
 
+#### Parallélisation backend / frontend (optionnelle)
+
+Quand une feature comporte une subfeature backend et une subfeature frontend indépendantes (le frontend consomme une API exposée par le backend), les deux SF peuvent être développées **en parallèle** à condition que :
+
+1. **Le contrat API est figé avant le dev dans la mini-spec** — chaque SF contient explicitement la section "Contrat API" avec :
+   - Méthode HTTP + URL exacte
+   - Schema du body de requête (champs, types, validation)
+   - Schema de la réponse (tous les champs retournés)
+   - Codes d'erreur et messages attendus
+   - Codes enum éventuels (valeurs exactes et cas d'emploi)
+2. **Chaque SF travaille sur sa propre branche** — `feat/SF-XX-YY-backend` et `feat/SF-XX-YY-frontend`, créées depuis `master` à jour.
+3. **Chaque SF produit une PR indépendante** — elles peuvent être mergées dans n'importe quel ordre, mais la frontend ne sera utilisable en production qu'après le merge du backend.
+4. **Les tests frontend utilisent un mock du service** — pas besoin d'attendre le backend mergé pour faire passer les tests unitaires Jest. L'intégration réelle (end-to-end) est validée après merge des deux PRs.
+5. **Les deux mini-specs se référencent mutuellement** — la SF frontend indique "contrat importé de SF-XX-YY-backend" pour traçabilité.
+
+**REFUS si** : deux SF sont lancées en parallèle sans que le contrat API soit présent explicitement dans la mini-spec backend — risque de divergence = dette de convergence immédiate.
+
+**REFUS si** : deux SF parallèles partagent la même branche Git — elles doivent être strictement isolées.
+
+Cette règle s'applique uniquement quand la parallélisation est **explicitement décidée**. Le mode sequentiel standard (SF backend mergée → SF frontend démarrée) reste le défaut.
+
 ---
 
 ### Étape 4 — Review checklist (ARTEFACT : checklist passée item par item)
