@@ -338,3 +338,84 @@
   color: var(--ds-text-primary, #1a2330);
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
+
+// SF-155-04-B2 — Pré-fill IA + alertes cohérence F-IA-03.
+// Badge provenance IA : navy + or (cohérent pattern canonique immigration-title-decision-section).
+// Palette volontairement DIFFÉRENTE du rouge urgence 48h — l'info IA (neutre)
+// ne doit pas se confondre avec l'alerte critique (rouge).
+.oqtf-sd-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.oqtf-sd-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C; // navy
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A; // or
+  }
+}
+
+// Badge cohérence — warning standard (or sur fond pâle).
+.oqtf-sd-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+// Variante critique — rouge urgence 48h (exception documentée design-system).
+.oqtf-sd-coherence-badge--critical {
+  background: #FEE2E2;
+  color: #7F1D1D;
+  border: 1px solid #c02424;
+  mat-icon {
+    color: #c02424;
+  }
+}
+
+// Bandeau résumé d'alertes en tête de formulaire.
+.oqtf-sd-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
