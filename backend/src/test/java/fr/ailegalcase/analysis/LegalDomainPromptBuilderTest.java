@@ -75,4 +75,25 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("ACCIDENT_TRAVAIL");
         assertThat(instruction).contains("MALADIE_PROFESSIONNELLE");
     }
+
+    // SF-155-04-00-BE-immig-FR : 5 nouveaux champs IA FR documentés dans le prompt immigration
+    @Test
+    void domainSpecificInstruction_immigration_mentionsNewPrefillIaFieldsFR() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        // Noms des 5 nouveaux champs (clés JSON attendues dans la réponse IA)
+        assertThat(instruction).contains("date_notification_oqtf");
+        assertThat(instruction).contains("motif_oqtf_code");
+        assertThat(instruction).contains("recours_forme_detected");
+        assertThat(instruction).contains("date_heure_notification_oqtf_sans_delai");
+        assertThat(instruction).contains("placement_cra_detected");
+        // Les 5 valeurs autorisées de motif_oqtf_code doivent être listées
+        assertThat(instruction).contains("REFUS_TITRE");
+        assertThat(instruction).contains("EXPIRATION_TITRE");
+        assertThat(instruction).contains("SEJOUR_IRREGULIER");
+        assertThat(instruction).contains("RETRAIT_TITRE");
+        // Règle explicite "null pour dossier belge"
+        assertThat(instruction).containsIgnoringCase("BELGIQUE");
+        // Ancrage sur l'identifiant SF
+        assertThat(instruction).contains("SF-155-04-00-BE-immig-FR");
+    }
 }

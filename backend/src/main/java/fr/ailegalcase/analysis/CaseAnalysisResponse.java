@@ -223,6 +223,22 @@ public record CaseAnalysisResponse(
             "ACCIDENT_TRAVAIL", "MALADIE_PROFESSIONNELLE", "MALADIE_ORDINAIRE"
     );
 
+    /**
+     * SF-155-04-00-BE-immig-FR : codes de motif OQTF FR pour pré-fill F-IM-08-02.
+     * Liste alignée sur l'enum {@code MotifOqtf} du front (oqtf-avec-delai.model.ts)
+     * pour un pré-fill direct sans mapping intermédiaire.
+     */
+    static final Set<String> MOTIFS_OQTF_FR_CODES = Set.of(
+            "REFUS_TITRE", "EXPIRATION_TITRE", "SEJOUR_IRREGULIER", "RETRAIT_TITRE", "AUTRE"
+    );
+
+    /**
+     * SF-155-04-00-BE-immig-FR : regex permissive pour valider l'horodatage de l'OQTF
+     * sans délai (format ISO partiel YYYY-MM-DDTHH:mm ou YYYY-MM-DDTHH:mm:ss).
+     */
+    private static final java.util.regex.Pattern OQTF_SANS_DELAI_DATETIME_PATTERN =
+            java.util.regex.Pattern.compile("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$");
+
     static final int MAX_JUSTIFICATION_LENGTH = 500;
 
     public record ImmigrationExtractedData(
@@ -231,17 +247,26 @@ public record CaseAnalysisResponse(
             String typeTitreSejourCode, Boolean nationaliteUe,
             String typeRecoursCode, String dateNotificationDecisionContestee,
             /** SF-IM-01-04 : type de checklist pré-sélectionné (F-IM-01). */
-            String inferredChecklistType) {
+            String inferredChecklistType,
+            // SF-155-04-00-BE-immig-FR : 5 champs IA pour pré-fill outils OQTF FR F-IM-08-02 / F-IM-08-04.
+            // Tous nullables — la plupart des dossiers immigration BE ne portent pas ces concepts FR.
+            String dateNotificationOqtf,
+            String motifOqtfCode,
+            DetectedAnswer recoursFormeDetected,
+            String dateHeureNotificationOqtfSansDelai,
+            Boolean placementCraDetected) {
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure) {
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
+                    null, null, null, null, null,
                     null, null, null, null, null);
         }
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
                                          String typeProcedureDetectee, String dateDepotProcedure,
                                          String typeTitreSejourCode, Boolean nationaliteUe) {
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, null, null, null);
+                    typeTitreSejourCode, nationaliteUe, null, null, null,
+                    null, null, null, null, null);
         }
         /** Rétrocompat 8-args pré-SF-IM-01-04. */
         public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
@@ -249,7 +274,18 @@ public record CaseAnalysisResponse(
                                          String typeTitreSejourCode, Boolean nationaliteUe,
                                          String typeRecoursCode, String dateNotificationDecisionContestee) {
             this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
-                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee, null);
+                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee, null,
+                    null, null, null, null, null);
+        }
+        /** Rétrocompat 9-args pré-SF-155-04-00-BE-immig-FR (signature SF-IM-01-04). */
+        public ImmigrationExtractedData(String dateExpirationTitre, String typeTitreSejour,
+                                         String typeProcedureDetectee, String dateDepotProcedure,
+                                         String typeTitreSejourCode, Boolean nationaliteUe,
+                                         String typeRecoursCode, String dateNotificationDecisionContestee,
+                                         String inferredChecklistType) {
+            this(dateExpirationTitre, typeTitreSejour, typeProcedureDetectee, dateDepotProcedure,
+                    typeTitreSejourCode, nationaliteUe, typeRecoursCode, dateNotificationDecisionContestee, inferredChecklistType,
+                    null, null, null, null, null);
         }
     }
 
@@ -413,7 +449,13 @@ public record CaseAnalysisResponse(
                                 immigrationExtractedData.nationaliteUe(),
                                 immigrationExtractedData.typeRecoursCode(),
                                 immigrationExtractedData.dateNotificationDecisionContestee(),
-                                inferred
+                                inferred,
+                                // SF-155-04-00-BE-immig-FR : préserver les 5 champs FR lors de la reconstruction
+                                immigrationExtractedData.dateNotificationOqtf(),
+                                immigrationExtractedData.motifOqtfCode(),
+                                immigrationExtractedData.recoursFormeDetected(),
+                                immigrationExtractedData.dateHeureNotificationOqtfSansDelai(),
+                                immigrationExtractedData.placementCraDetected()
                         );
                     }
                 }
@@ -1106,11 +1148,33 @@ public record CaseAnalysisResponse(
         Boolean nationaliteUe = normalizeNationaliteUe(root.get("nationalite_ue"));
         String recoursCode = normalizeRecoursCode(textOrNull(root, "type_recours_code"));
         String dateNotif = textOrNull(root, "date_notification_decision_contestee");
+        // SF-155-04-00-BE-immig-FR : 5 champs IA pour F-IM-08-02 / F-IM-08-04.
+        String dateNotifOqtf = textOrNull(root, "date_notification_oqtf");
+        String motifOqtfCode = normalizeEnumCode(textOrNull(root, "motif_oqtf_code"), MOTIFS_OQTF_FR_CODES);
+        DetectedAnswer recoursFormeDetected = extractDetectedAnswer(root.get("recours_forme_detected"));
+        String dateHeureNotifOqtfSansDelai = validateOqtfSansDelaiDateTime(textOrNull(root, "date_heure_notification_oqtf_sans_delai"));
+        Boolean placementCraDetected = booleanOrNull(root, "placement_cra_detected");
         if (dateExpiration == null && typeTitre == null && typeProcedure == null
                 && dateDepot == null && typeCode == null && nationaliteUe == null
-                && recoursCode == null && dateNotif == null) return null;
+                && recoursCode == null && dateNotif == null
+                && dateNotifOqtf == null && motifOqtfCode == null && recoursFormeDetected == null
+                && dateHeureNotifOqtfSansDelai == null && placementCraDetected == null) return null;
         return new ImmigrationExtractedData(dateExpiration, typeTitre, typeProcedure, dateDepot,
-                typeCode, nationaliteUe, recoursCode, dateNotif);
+                typeCode, nationaliteUe, recoursCode, dateNotif, null,
+                // SF-155-04-00-BE-immig-FR : 5 champs pour F-IM-08-02 / F-IM-08-04
+                dateNotifOqtf, motifOqtfCode, recoursFormeDetected,
+                dateHeureNotifOqtfSansDelai, placementCraDetected);
+    }
+
+    /**
+     * SF-155-04-00-BE-immig-FR : valide l'horodatage OQTF sans délai via regex permissive.
+     * Accepte {@code YYYY-MM-DDTHH:mm} et {@code YYYY-MM-DDTHH:mm:ss}. Retourne {@code null}
+     * pour tout autre format (fail-open).
+     */
+    private static String validateOqtfSansDelaiDateTime(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        return OQTF_SANS_DELAI_DATETIME_PATTERN.matcher(trimmed).matches() ? trimmed : null;
     }
 
     private static String normalizeRecoursCode(String raw) {

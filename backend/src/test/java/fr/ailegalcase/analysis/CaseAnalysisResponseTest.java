@@ -1060,4 +1060,241 @@ class CaseAnalysisResponseTest {
         assertThat(t).isNotNull();
         assertThat(t.heuresSupMentionneesDansDossier()).isNull();
     }
+
+    // ==================================================================================
+    // SF-155-04-00-BE-immig-FR : tests pré-fill IA France pour outils OQTF F-IM-08-02/04
+    // ==================================================================================
+
+    @Test
+    void from_immigration_oqtfAvecDelai_parsesNewFields() {
+        // Fixture OQTF avec délai : date + motif + recours déjà formé
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_notification_oqtf": "2026-03-15",
+                  "motif_oqtf_code": "SEJOUR_IRREGULIER",
+                  "recours_forme_detected": {
+                    "reponse": "NON",
+                    "justification": "Aucune requête TA trouvée dans les pièces."
+                  }
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateNotificationOqtf()).isEqualTo("2026-03-15");
+        assertThat(im.motifOqtfCode()).isEqualTo("SEJOUR_IRREGULIER");
+        assertThat(im.recoursFormeDetected()).isNotNull();
+        assertThat(im.recoursFormeDetected().reponse()).isEqualTo("NON");
+        assertThat(im.recoursFormeDetected().justification()).contains("Aucune requête TA");
+    }
+
+    @Test
+    void from_immigration_motifOqtfCode_upperCaseNormalization() {
+        // Normalisation lowercase → upper-case whitelist
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_notification_oqtf": "2026-03-15",
+                  "motif_oqtf_code": "refus_titre"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.motifOqtfCode()).isEqualTo("REFUS_TITRE");
+    }
+
+    @Test
+    void from_immigration_motifOqtfCode_invalide_renvoieNull() {
+        // Valeur hors whitelist → null (fail-open), autres champs préservés
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_notification_oqtf": "2026-03-15",
+                  "motif_oqtf_code": "MOTIF_INCONNU_XYZ"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.motifOqtfCode()).isNull();
+        assertThat(im.dateNotificationOqtf()).isEqualTo("2026-03-15");
+    }
+
+    @Test
+    void from_immigration_oqtfSansDelai_parsesNewFields() {
+        // Fixture OQTF sans délai : datetime ISO + placement CRA
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_heure_notification_oqtf_sans_delai": "2026-03-20T14:30",
+                  "placement_cra_detected": true
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateHeureNotificationOqtfSansDelai()).isEqualTo("2026-03-20T14:30");
+        assertThat(im.placementCraDetected()).isTrue();
+    }
+
+    @Test
+    void from_immigration_oqtfSansDelai_datetimeWithSeconds_accepted() {
+        // Format YYYY-MM-DDTHH:mm:ss également accepté par la regex permissive
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_heure_notification_oqtf_sans_delai": "2026-03-20T14:30:45"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateHeureNotificationOqtfSansDelai()).isEqualTo("2026-03-20T14:30:45");
+    }
+
+    @Test
+    void from_immigration_oqtfSansDelai_datetimeInvalide_renvoieNull() {
+        // Format français "15/03/2026 10:00" → null (non ISO)
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Arrêté OQTF sans délai",
+                  "date_heure_notification_oqtf_sans_delai": "15/03/2026 10:00"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateHeureNotificationOqtfSansDelai()).isNull();
+        // Les autres champs sont intacts
+        assertThat(im.typeTitreSejour()).isEqualTo("Arrêté OQTF sans délai");
+    }
+
+    @Test
+    void from_immigration_placementCra_stringCoerced_true() {
+        // booleanOrNull : accepte "true" / "false" (string) et les convertit
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_heure_notification_oqtf_sans_delai": "2026-03-20T14:30",
+                  "placement_cra_detected": "true"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.placementCraDetected()).isTrue();
+    }
+
+    @Test
+    void from_immigration_placementCra_stringCoerced_false() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_heure_notification_oqtf_sans_delai": "2026-03-20T14:30",
+                  "placement_cra_detected": "false"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.placementCraDetected()).isFalse();
+    }
+
+    @Test
+    void from_immigration_recoursFormeDetected_justificationTroncation500Chars() {
+        // Justification > 500 car → tronquée à 500 (règle MAX_JUSTIFICATION_LENGTH)
+        String longJustification = "B".repeat(600);
+        String json = """
+                {
+                  "recours_forme_detected": {
+                    "reponse": "OUI",
+                    "justification": "%s"
+                  }
+                }
+                """.formatted(longJustification);
+        CaseAnalysis analysis = analysis(json);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.recoursFormeDetected()).isNotNull();
+        assertThat(im.recoursFormeDetected().justification()).hasSize(500);
+    }
+
+    @Test
+    void from_immigration_recoursFormeDetected_reponseNormalisation() {
+        // Normalisation "oui" lowercase → "OUI" via normalizeReponse existant
+        CaseAnalysis analysis = analysis("""
+                {
+                  "recours_forme_detected": {
+                    "reponse": "oui",
+                    "justification": "Recours TA déposé le 10/03"
+                  }
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.recoursFormeDetected()).isNotNull();
+        assertThat(im.recoursFormeDetected().reponse()).isEqualTo("OUI");
+    }
+
+    @Test
+    void from_immigration_recoursFormeDetected_malformedNotObject_gracefulNull() {
+        // Payload malformé (nombre au lieu d'objet) → champ null, autres champs intacts
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Titre FR",
+                  "recours_forme_detected": 42
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.recoursFormeDetected()).isNull();
+        assertThat(im.typeTitreSejour()).isEqualTo("Titre FR");
+    }
+
+    @Test
+    void from_immigration_legacyFixture_allNewFieldsAreNull() {
+        // Rétrocompat — fixture SF-IM-01-04 ou antérieure sans les 5 champs FR
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Carte de séjour temporaire",
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "nationalite_ue": false,
+                  "type_procedure_detectee": "RENOUVELLEMENT_TITRE_SEJOUR",
+                  "date_depot_procedure": "2026-03-01"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        // Les champs historiques restent intacts
+        assertThat(im.typeTitreSejourCode()).isEqualTo("CST_SALARIE");
+        assertThat(im.typeProcedureDetectee()).isEqualTo("RENOUVELLEMENT_TITRE_SEJOUR");
+        // Les 5 nouveaux champs FR sont null
+        assertThat(im.dateNotificationOqtf()).isNull();
+        assertThat(im.motifOqtfCode()).isNull();
+        assertThat(im.recoursFormeDetected()).isNull();
+        assertThat(im.dateHeureNotificationOqtfSansDelai()).isNull();
+        assertThat(im.placementCraDetected()).isNull();
+    }
+
+    @Test
+    void from_immigration_newFieldsPreservedAfterInferredChecklistReconstruction() {
+        // Régression : la reconstruction post-inférence checklistType (ligne ~443 de
+        // CaseAnalysisResponse) doit transférer les 5 nouveaux champs FR.
+        // On simule un dossier avec type_titre_sejour_code valide → déclenche
+        // la reconstruction, puis on vérifie que dateNotificationOqtf survit.
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CST_SALARIE",
+                  "date_notification_oqtf": "2026-03-15",
+                  "motif_oqtf_code": "SEJOUR_IRREGULIER",
+                  "placement_cra_detected": true
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        // Les 5 champs FR sont préservés après reconstruction du record
+        assertThat(im.dateNotificationOqtf()).isEqualTo("2026-03-15");
+        assertThat(im.motifOqtfCode()).isEqualTo("SEJOUR_IRREGULIER");
+        assertThat(im.placementCraDetected()).isTrue();
+    }
 }
