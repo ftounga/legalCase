@@ -96,4 +96,21 @@ class LegalDomainPromptBuilderTest {
         // Ancrage sur l'identifiant SF
         assertThat(instruction).contains("SF-155-04-00-BE-immig-FR");
     }
+
+    // SF-155-04-00-BE-immig-BE : 4 champs Annexe 13 BE documentés + règle null pour dossiers FR
+    @Test
+    void domainSpecificInstruction_immigration_mentionsAnnexe13BeFields() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        // Les 4 noms de champs doivent figurer
+        assertThat(instruction).contains("date_notification_annexe13");
+        assertThat(instruction).contains("delai_depart_impose_jours");
+        assertThat(instruction).contains("motif_oqt_code_be");
+        assertThat(instruction).contains("transfert_imminent_detected");
+        // Les 4 valeurs enum BE alignées sur Annexe13BeCalculator.MOTIFS_VALIDES
+        assertThat(instruction).contains("SEJOUR_IRREGULIER_ART_7");
+        assertThat(instruction).contains("REFUS_SEJOUR_APRES_DEMANDE");
+        assertThat(instruction).contains("FIN_SEJOUR_REGULIER");
+        // Règle "null pour dossiers FR" doit être explicite
+        assertThat(instruction).contains("FR");
+    }
 }

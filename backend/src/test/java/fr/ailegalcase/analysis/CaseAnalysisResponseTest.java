@@ -1297,4 +1297,173 @@ class CaseAnalysisResponseTest {
         assertThat(im.motifOqtfCode()).isEqualTo("SEJOUR_IRREGULIER");
         assertThat(im.placementCraDetected()).isTrue();
     }
+
+    // =========================================================================
+    // SF-155-04-00-BE-immig-BE : pré-fill IA Annexe 13 BE (F-IM-08-06)
+    // =========================================================================
+
+    @Test
+    void from_immigrationExtractedData_annexe13Be_parsed() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "CARTE_B",
+                  "date_notification_annexe13": "2026-03-15",
+                  "delai_depart_impose_jours": 30,
+                  "motif_oqt_code_be": "SEJOUR_IRREGULIER_ART_7",
+                  "transfert_imminent_detected": false
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateNotificationAnnexe13()).isEqualTo("2026-03-15");
+        assertThat(im.delaiDepartImposeJours()).isEqualTo(30);
+        assertThat(im.motifOqtCodeBe()).isEqualTo("SEJOUR_IRREGULIER_ART_7");
+        assertThat(im.transfertImminentDetected()).isFalse();
+    }
+
+    @Test
+    void from_immigrationExtractedData_motifOqtBe_upperCase() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "motif_oqt_code_be": "fin_sejour_regulier"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.motifOqtCodeBe()).isEqualTo("FIN_SEJOUR_REGULIER");
+    }
+
+    @Test
+    void from_immigrationExtractedData_motifOqtBe_invalide_returnsNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Carte B",
+                  "motif_oqt_code_be": "MOTIF_INCONNU"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.motifOqtCodeBe()).isNull();
+        assertThat(im.typeTitreSejour()).isEqualTo("Carte B");
+    }
+
+    @Test
+    void from_immigrationExtractedData_delaiDepart_zero_kept() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "delai_depart_impose_jours": 0,
+                  "motif_oqt_code_be": "SEJOUR_IRREGULIER_ART_7"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.delaiDepartImposeJours()).isEqualTo(0);
+        assertThat(im.motifOqtCodeBe()).isEqualTo("SEJOUR_IRREGULIER_ART_7");
+    }
+
+    @Test
+    void from_immigrationExtractedData_delaiDepart_negative_null() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Carte B",
+                  "delai_depart_impose_jours": -5
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.delaiDepartImposeJours()).isNull();
+    }
+
+    @Test
+    void from_immigrationExtractedData_transfertImminent_stringTrue_parsed() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "transfert_imminent_detected": "true"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.transfertImminentDetected()).isTrue();
+    }
+
+    @Test
+    void from_immigrationExtractedData_annexe13Be_dateOnly_parsed() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "date_notification_annexe13": "2026-04-01"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.dateNotificationAnnexe13()).isEqualTo("2026-04-01");
+        assertThat(im.delaiDepartImposeJours()).isNull();
+        assertThat(im.motifOqtCodeBe()).isNull();
+        assertThat(im.transfertImminentDetected()).isNull();
+    }
+
+    @Test
+    void from_immigrationExtractedData_annexe13Be_malformedDelai_gracefulNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Carte B",
+                  "delai_depart_impose_jours": "trente",
+                  "motif_oqt_code_be": "AUTRE"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.typeTitreSejour()).isEqualTo("Carte B");
+        assertThat(im.delaiDepartImposeJours()).isNull();
+        assertThat(im.motifOqtCodeBe()).isEqualTo("AUTRE");
+    }
+
+    @Test
+    void from_immigrationExtractedData_annexe13Be_legacyFixture_retrocompat() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour": "Carte B",
+                  "type_titre_sejour_code": "CARTE_B",
+                  "type_recours_code": "RECOURS_CCE",
+                  "date_notification_decision_contestee": "2026-02-10"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.typeTitreSejourCode()).isEqualTo("CARTE_B");
+        assertThat(im.typeRecoursCode()).isEqualTo("RECOURS_CCE");
+        assertThat(im.dateNotificationDecisionContestee()).isEqualTo("2026-02-10");
+        assertThat(im.dateNotificationAnnexe13()).isNull();
+        assertThat(im.delaiDepartImposeJours()).isNull();
+        assertThat(im.motifOqtCodeBe()).isNull();
+        assertThat(im.transfertImminentDetected()).isNull();
+    }
+
+    @Test
+    void from_immigrationExtractedData_annexe13Be_allBeFieldsAbsentOnFrFixture_frOkBeNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "type_titre_sejour_code": "VLS_TS_ETUDIANT",
+                  "nationalite_ue": false,
+                  "type_procedure_detectee": "RENOUVELLEMENT_TITRE_SEJOUR"
+                }
+                """);
+
+        var im = CaseAnalysisResponse.from(analysis).immigrationExtractedData();
+        assertThat(im).isNotNull();
+        assertThat(im.typeTitreSejourCode()).isEqualTo("VLS_TS_ETUDIANT");
+        assertThat(im.nationaliteUe()).isFalse();
+        assertThat(im.dateNotificationAnnexe13()).isNull();
+        assertThat(im.delaiDepartImposeJours()).isNull();
+        assertThat(im.motifOqtCodeBe()).isNull();
+        assertThat(im.transfertImminentDetected()).isNull();
+    }
 }
