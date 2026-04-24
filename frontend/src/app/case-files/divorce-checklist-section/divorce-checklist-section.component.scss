@@ -70,3 +70,17 @@
 .checklist-item.has-alert {
   border-left: 3px solid #F59E0B;
 }
+
+// SF-155-19 : badge "Pré-rempli depuis l'analyse" (icône auto_awesome).
+// Aligné sur le pattern canonique (immigration-title-decision-section,
+// harcelement-licenciement-nul-section, divorce-accepte-section).
+.ai-prefill-badge {
+  display: inline-flex; align-items: center;
+  margin-left: 6px; padding: 1px 4px; border-radius: 4px;
+  background: #EBF4FF; color: #1A3A5C;
+  cursor: help;
+  mat-icon {
+    font-size: 14px; width: 14px; height: 14px;
+    color: #C9973A; // or LegalCase
+  }
+}
