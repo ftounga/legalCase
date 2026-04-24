@@ -28,6 +28,12 @@
 
       @if (!loading() && showForm()) {
         <div class="rc-form">
+          <!-- SF-155-17 : note explicative globale — icône auto_awesome cohérente avec
+               les badges IA affichés à côté des critères pré-remplis. -->
+          <div class="rc-prefill-hint">
+            <mat-icon>auto_awesome</mat-icon>
+            <span>Les critères marqués "Pré-rempli depuis l'analyse" reflètent la détection IA — l'avocat reste maître de la réponse finale.</span>
+          </div>
           @for (critere of criteres; track critere.code) {
             <div class="critere-row">
               <div class="critere-header">
@@ -41,20 +47,26 @@
               <p class="critere-description">{{ critere.description }}</p>
               <mat-radio-group class="critere-radios"
                                [value]="reponses()[critere.code]"
-                               (change)="setReponse(critere.code, $event.value)">
+                               (change)="onReponseChange(critere.code, $event.value)">
                 <mat-radio-button value="OUI">Oui</mat-radio-button>
                 <mat-radio-button value="NON">Non</mat-radio-button>
                 <mat-radio-button value="INCONNU">Inconnu</mat-radio-button>
               </mat-radio-group>
+              <!-- SF-155-17 : badge IA "Pré-rempli depuis l'analyse" — palette navy/or. -->
+              @if (provenanceReponses()[critere.code] === 'IA') {
+                <span class="rc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
               @if (coherenceAlerts()[critere.code]; as alert) {
                 <span class="coherence-badge"
-                      [class.coherence-blocker]="alert.level === 'blocker'"
-                      [class.coherence-warning]="alert.level === 'warning'"
+                      [class.coherence-blocker]="alertLevelClass(alert) === 'blocker'"
+                      [class.coherence-warning]="alertLevelClass(alert) === 'warning'"
                       [appCoherencePopover]="explanationFor(critere.code)"
                       [appCoherencePopoverReason]="alertTooltip(alert)"
                       [appCoherencePopoverCaseFileId]="caseFileId"
-                      [appCoherencePopoverBlocker]="alert.level === 'blocker'">
-                  <mat-icon>{{ alert.level === 'blocker' ? 'error' : 'warning' }}</mat-icon>
+                      [appCoherencePopoverBlocker]="alertLevelClass(alert) === 'blocker'">
+                  <mat-icon>{{ alertLevelClass(alert) === 'blocker' ? 'error' : 'warning' }}</mat-icon>
                   {{ alertBadgeLabel(alert) }}
                 </span>
               }
