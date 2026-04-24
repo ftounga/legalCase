@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="115-create-motif-grave-be-analyses" author="legalcase">
+        <comment>
+            SF-DT-27-01 : table dédiée à l'outil décisionnel "Motif grave BE — validité délais +
+            indemnisation" (art. 35 Loi 03/07/1978 + Loi 26/12/2013 + CCT 109). Outil single-country
+            BELGIQUE uniquement — l'équivalent FR (faute grave disciplinaire) est couvert par
+            F-DT-08 et F-DT-01.
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, BELGIQUE).
+        </comment>
+
+        <createTable tableName="motif_grave_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_motif_grave_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_connaissance_fait" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_notification_rupture" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_notification_motifs" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="anciennette_annees" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_reference" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="motif_grave_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_motif_grave_be_analyses_case_file"/>
+
+        <createIndex tableName="motif_grave_be_analyses"
+                     indexName="idx_motif_grave_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000271', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-27-motif-grave-be', 'ALWAYS_ON', NULL, NULL, 56);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000271';
+            </sql>
+            <dropTable tableName="motif_grave_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
