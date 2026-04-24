@@ -383,3 +383,50 @@
     color: var(--ds-accent-gold, #c9a54b);
   }
 }
+
+/* SF-155-09 : résumé des incohérences F-IA-03 en tête du formulaire. */
+.belgian-9ter-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  background: rgba(201, 165, 75, 0.10);
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  margin-bottom: 4px;
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    flex-shrink: 0;
+  }
+}
+
+/* SF-155-09 : wrapper + badge popover F-IA-03 inline sous chaque field. */
+.belgian-9ter-field-with-alert {
+  position: relative;
+}
+
+.belgian-9ter-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: help;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}

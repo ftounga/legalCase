@@ -33,8 +33,16 @@
           </div>
         } @else {
           @if (showForm()) {
+            <!-- SF-155-09 : résumé des incohérences F-IA-03 détectées. -->
+            @if (alertsSummary().total > 0) {
+              <div class="belgian-9ter-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
             <form class="belgian-9ter-form" (ngSubmit)="analyze()">
-              <div class="belgian-9ter-field-wrapper">
+              <div class="belgian-9ter-field-wrapper belgian-9ter-field-with-alert">
                 <mat-form-field appearance="outline">
                   <mat-label>Date de début des symptômes (optionnel)</mat-label>
                   <input matInput type="date"
@@ -46,9 +54,18 @@
                 @if (provenanceDateDebutSymptomes() === 'IA') {
                   <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
                 }
+                <!-- SF-155-09 : app-coherence-popover-trigger DATE_DEBUT_SYMPTOMES (F-IA-03-15b). -->
+                @if (coherenceAlerts().DATE_DEBUT_SYMPTOMES; as alert) {
+                  <span class="belgian-9ter-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_DEBUT_SYMPTOMES')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="belgian-9ter-field-wrapper">
+              <div class="belgian-9ter-field-wrapper belgian-9ter-field-with-alert">
                 <mat-form-field appearance="outline">
                   <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
                   <input matInput type="date"
@@ -61,9 +78,18 @@
                 @if (provenanceDateDepotDemande() === 'IA') {
                   <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
                 }
+                <!-- SF-155-09 : app-coherence-popover-trigger DATE_DEPOT_DEMANDE (F-IA-03-15b). -->
+                @if (coherenceAlerts().DATE_DEPOT_DEMANDE; as alert) {
+                  <span class="belgian-9ter-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_DEPOT_DEMANDE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper belgian-9ter-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="maladieGraveCertifiee()"
                     (ngModelChange)="onMaladieGraveChange($event)"
@@ -73,9 +99,18 @@
                 @if (provenanceMaladieGrave() === 'IA') {
                   <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
                 }
+                <!-- SF-155-09 : app-coherence-popover-trigger MALADIE_GRAVE (F-IA-03-15b). -->
+                @if (coherenceAlerts().MALADIE_GRAVE; as alert) {
+                  <span class="belgian-9ter-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MALADIE_GRAVE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper belgian-9ter-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="soinsNecessairesDisponiblesBe()"
                     (ngModelChange)="onSoinsBeChange($event)"
@@ -85,9 +120,18 @@
                 @if (provenanceSoinsBe() === 'IA') {
                   <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
                 }
+                <!-- SF-155-09 : app-coherence-popover-trigger SOINS_BE (F-IA-03-15b). -->
+                @if (coherenceAlerts().SOINS_BE; as alert) {
+                  <span class="belgian-9ter-coherence-badge"
+                        [appCoherencePopover]="explanationFor('SOINS_BE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper belgian-9ter-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="soinsInaccessiblesPaysOrigine()"
                     (ngModelChange)="onSoinsInaccessiblesChange($event)"
@@ -97,9 +141,18 @@
                 @if (provenanceSoinsInaccessibles() === 'IA') {
                   <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
                 }
+                <!-- SF-155-09 : app-coherence-popover-trigger SOINS_INACCESSIBLES (F-IA-03-15b). -->
+                @if (coherenceAlerts().SOINS_INACCESSIBLES; as alert) {
+                  <span class="belgian-9ter-coherence-badge"
+                        [appCoherencePopover]="explanationFor('SOINS_INACCESSIBLES')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper belgian-9ter-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="menaceOrdrePublic()"
                     (ngModelChange)="onMenaceChange($event)"
@@ -108,6 +161,15 @@
                 </mat-slide-toggle>
                 @if (provenanceMenace() === 'IA') {
                   <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                <!-- SF-155-09 : app-coherence-popover-trigger MENACE_ORDRE_PUBLIC (F-IA-03-15b). -->
+                @if (coherenceAlerts().MENACE_ORDRE_PUBLIC; as alert) {
+                  <span class="belgian-9ter-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MENACE_ORDRE_PUBLIC')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
                 }
               </div>
 

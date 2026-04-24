@@ -25,7 +25,35 @@ import {
 } from '../../core/models/belgian-9ter.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
-import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
+import {
+  ImmigrationExtractedData,
+  PieceManquanteEntry,
+} from '../../core/models/case-analysis.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
+
+/**
+ * SF-155-09 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
+ * F-IM-14 (régularisation 9ter médical BE). Un par field clé du form
+ * (4 dates/booléens médicaux qui peuvent diverger entre saisie avocat
+ * et sources IA / F-96 / question complémentaire / pièce manquante).
+ */
+export type Belgian9terAlertField =
+  | 'DATE_DEBUT_SYMPTOMES'
+  | 'MALADIE_GRAVE'
+  | 'SOINS_BE'
+  | 'SOINS_INACCESSIBLES'
+  | 'MENACE_ORDRE_PUBLIC'
+  | 'DATE_DEPOT_DEMANDE';
+
+// SF-155-09 : alias locaux — interface générique partagée.
+export type Belgian9terAlertSource = CoherenceAlertSource;
+export type Belgian9terCoherenceAlert = CoherenceAlert<Belgian9terAlertField>;
 
 /**
  * SF-IM-14-06 : outil décisionnel "Régularisation 9ter médical" (BE).
@@ -43,6 +71,13 @@ import { ImmigrationExtractedData } from '../../core/models/case-analysis.model'
  * champs médicaux ne sont pas (encore) exposés par
  * `ImmigrationExtractedData` — handler gracieux qui ignore les champs
  * absents (no-op si `aiData` ne fournit rien d'exploitable).
+ *
+ * SF-155-09 : ajout validation F-IA-03 — `coherenceAlerts` computed
+ * signal construit via `CoherenceAlertBuilder` + popover trigger
+ * (`[appCoherencePopover]`) sur les 4 fields médicaux clés
+ * (DATE_DEBUT_SYMPTOMES, MALADIE_GRAVE, SOINS_BE, SOINS_INACCESSIBLES).
+ * Pattern emprunté au template canonique
+ * `harcelement-licenciement-nul-section` (F-DT-11-02).
  */
 @Component({
   selector: 'app-belgian-9ter-section',
@@ -58,6 +93,7 @@ import { ImmigrationExtractedData } from '../../core/models/case-analysis.model'
     MatChipsModule,
     MatProgressSpinnerModule,
     LegalCitationsPipe,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './belgian-9ter-section.component.html',
   styleUrl: './belgian-9ter-section.component.scss',
@@ -71,6 +107,19 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
    * ignore gracieusement les champs absents (no-op).
    */
   @Input() aiData?: Partial<ImmigrationExtractedData> | null;
+
+  // SF-155-09 : inputs F-IA-03 (tous optionnels — null-safe partout).
+  @Input() procedureChecks?: ProcedureCheck[] | null;
+  @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+
+  // SF-155-09 : snapshots signal des inputs IA/F96/Q/Piece pour que
+  // `coherenceAlerts` (computed) réagisse. Même pattern que
+  // `harcelement-licenciement-nul-section`.
+  private aiDataSignal = signal<Partial<ImmigrationExtractedData> | null | undefined>(undefined);
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
+  private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -86,6 +135,16 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
   menaceOrdrePublic = signal<boolean>(false);
   dateDepotDemande = signal<string | null>(null);
 
+  // SF-155-09 : true quand l'avocat a touché un toggle booléen au moins
+  // une fois (onXxxChange appelé). Les toggles booléens démarrent à
+  // `false` par défaut ce qui empêcherait de distinguer "avocat n'a
+  // pas saisi" de "avocat dit non" pour déclencher les alertes.
+  // Sans touch, l'alerte IA vs booléen false est silencieuse.
+  maladieGraveTouched = signal<boolean>(false);
+  soinsBeTouched = signal<boolean>(false);
+  soinsInaccessiblesTouched = signal<boolean>(false);
+  menaceTouched = signal<boolean>(false);
+
   // Provenance IA par champ — effacée au 1er onChange manuel.
   // Reste null tant que `aiData` ne fournit pas de champ médical
   // exploitable (ImmigrationExtractedData ne les expose pas encore).
@@ -96,24 +155,70 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
   provenanceMenace = signal<'IA' | null>(null);
   provenanceDateDepotDemande = signal<'IA' | null>(null);
 
+  // SF-IA-03-15c : map {sourceKey → explanations} pour le popover.
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
+
   /** Aujourd'hui en YYYY-MM-DD pour l'attribut max des inputs date. */
   readonly todayIso: string = new Date().toISOString().slice(0, 10);
 
   isBelgium = computed<boolean>(() => this.workspaceCountry === 'BELGIQUE');
 
+  /**
+   * SF-155-09 : alertes de cohérence F-IA-03 calculées dynamiquement.
+   * Gate : uniquement en mode formulaire (pattern anti-bug SF-IA-03-12 —
+   * ne pas afficher d'alertes après que le résultat backend est rendu).
+   * Gate pays : BELGIQUE uniquement (outil BE-only).
+   */
+  coherenceAlerts = computed<Partial<Record<Belgian9terAlertField, Belgian9terCoherenceAlert>>>(() => {
+    if (!this.showForm()) return {};
+    if (!this.isBelgium()) return {};
+    const alerts: Partial<Record<Belgian9terAlertField, Belgian9terCoherenceAlert>> = {};
+    const dateDebutAlert = this.buildDateDebutSymptomesAlert();
+    if (dateDebutAlert) alerts.DATE_DEBUT_SYMPTOMES = dateDebutAlert;
+    const maladieAlert = this.buildMaladieGraveAlert();
+    if (maladieAlert) alerts.MALADIE_GRAVE = maladieAlert;
+    const soinsBeAlert = this.buildSoinsBeAlert();
+    if (soinsBeAlert) alerts.SOINS_BE = soinsBeAlert;
+    const soinsInaccAlert = this.buildSoinsInaccessiblesAlert();
+    if (soinsInaccAlert) alerts.SOINS_INACCESSIBLES = soinsInaccAlert;
+    const menaceAlert = this.buildMenaceOrdrePublicAlert();
+    if (menaceAlert) alerts.MENACE_ORDRE_PUBLIC = menaceAlert;
+    const dateDepotAlert = this.buildDateDepotDemandeAlert();
+    if (dateDepotAlert) alerts.DATE_DEPOT_DEMANDE = dateDepotAlert;
+    return alerts;
+  });
+
+  alertsSummary = computed(() => {
+    const values = Object.values(this.coherenceAlerts());
+    return { total: values.length, blockers: 0 };
+  });
+
   constructor(
     private service: Belgian9terService,
     private snackBar: MatSnackBar,
     @Optional() private dashboardRefresh: CaseDashboardRefreshService | null,
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
   ) {}
 
   ngOnInit(): void {
+    // SF-155-09 : push inputs vers signals avant toute évaluation computed.
+    this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (this.isBelgium()) {
       this.load();
+      this.loadSourceExplanations();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // SF-155-09 : ré-hydrater les signals à chaque changement d'input.
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
+    if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+
     // Re-prefill si aiData change après le ngOnInit, en mode formulaire,
     // sans résultat persisté (évite d'écraser saisie avocat ou résultat backend).
     if (changes['aiData'] && !changes['aiData'].firstChange
@@ -187,21 +292,25 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
   onMaladieGraveChange(value: boolean): void {
     this.maladieGraveCertifiee.set(value);
     this.provenanceMaladieGrave.set(null);
+    this.maladieGraveTouched.set(true);
   }
 
   onSoinsBeChange(value: boolean): void {
     this.soinsNecessairesDisponiblesBe.set(value);
     this.provenanceSoinsBe.set(null);
+    this.soinsBeTouched.set(true);
   }
 
   onSoinsInaccessiblesChange(value: boolean): void {
     this.soinsInaccessiblesPaysOrigine.set(value);
     this.provenanceSoinsInaccessibles.set(null);
+    this.soinsInaccessiblesTouched.set(true);
   }
 
   onMenaceChange(value: boolean): void {
     this.menaceOrdrePublic.set(value);
     this.provenanceMenace.set(null);
+    this.menaceTouched.set(true);
   }
 
   onDateDepotDemandeChange(value: string | null): void {
@@ -222,7 +331,7 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
    *   strict pour les toggles.
    */
   private prefillFromAi(): void {
-    const ai: any = this.aiData;
+    const ai: any = this.aiDataSignal();
     if (!ai) return;
 
     if (typeof ai.dateDebutSymptomes === 'string' && ai.dateDebutSymptomes.length > 0) {
@@ -253,6 +362,350 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
       this.dateDepotDemande.set(ai.dateDepotDemande);
       this.provenanceDateDepotDemande.set('IA');
     }
+  }
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId || !this.sourceExplanationService) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: (map) => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /**
+   * SF-IA-03-15c : mapping field → sourceKey pour le popover. Les clés
+   * suivent la convention (`critereCode` F-96 / QUESTION_IA / F-145 en
+   * minuscules pour les dates, majuscules pour les flags métier).
+   */
+  explanationFor(field: Belgian9terAlertField): SourceExplanation[] {
+    const key = (() => {
+      switch (field) {
+        case 'DATE_DEBUT_SYMPTOMES': return 'date_debut_symptomes';
+        case 'MALADIE_GRAVE':        return 'BE_9TER_MALADIE_GRAVE';
+        case 'SOINS_BE':             return 'BE_9TER_SOINS_BE';
+        case 'SOINS_INACCESSIBLES':  return 'BE_9TER_SOINS_INACCESSIBLES';
+        case 'MENACE_ORDRE_PUBLIC':  return 'BE_9TER_MENACE_ORDRE_PUBLIC';
+        case 'DATE_DEPOT_DEMANDE':   return 'date_depot_demande';
+      }
+    })();
+    return this.sourceExplanations().get(key) ?? [];
+  }
+
+  alertTooltip(alert: Belgian9terCoherenceAlert): string {
+    return alert.contributors.length > 1 ? `Contredit ${alert.reason}` : alert.reason;
+  }
+
+  alertBadgeLabel(alert: Belgian9terCoherenceAlert): string {
+    const prefix = (() => {
+      switch (alert.source) {
+        case 'F96': return 'Incohérence Checklist procédurale';
+        case 'QUESTION_IA': return 'Incohérence Question complémentaire';
+        case 'IA': return 'Incohérence détectée';
+        case 'PIECE_MANQUANTE': return 'Pièce manquante';
+        case 'MULTI': return 'Incohérence multiple';
+      }
+    })();
+    return `${prefix} (${alert.expectedDisplay})`;
+  }
+
+  /**
+   * SF-155-09 : divergence sur `dateDebutSymptomes` — si l'IA a extrait
+   * une date différente de celle saisie par l'avocat. Comparaison
+   * exacte (format ISO `YYYY-MM-DD` attendu des deux côtés).
+   */
+  private buildDateDebutSymptomesAlert(): Belgian9terCoherenceAlert | null {
+    const userDate = this.dateDebutSymptomes();
+    if (!userDate) return null;
+    const builder = CoherenceAlertBuilder.forField<Belgian9terAlertField>('DATE_DEBUT_SYMPTOMES');
+
+    const aiDate = (this.aiDataSignal() as any)?.dateDebutSymptomes;
+    if (typeof aiDate === 'string' && aiDate.length > 0 && aiDate !== userDate) {
+      builder.addSource('IA', {
+        expectedDisplay: aiDate,
+        reason: `Analyse du dossier : début des symptômes le ${aiDate}`,
+      });
+    }
+    const piece = this.findPieceManquante(['DATE_DEBUT_SYMPTOMES', 'BE_9TER_DATE_DEBUT_SYMPTOMES']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  /**
+   * SF-155-09 : divergence sur `maladieGraveCertifiee` — consolide
+   * IA + F-96 + QUESTION_IA + PIECE_MANQUANTE.
+   * Alertes émises uniquement après première interaction avocat
+   * (`maladieGraveTouched`) pour éviter de signaler "divergence"
+   * dès l'ouverture quand tous les toggles sont à false par défaut.
+   */
+  private buildMaladieGraveAlert(): Belgian9terCoherenceAlert | null {
+    if (!this.maladieGraveTouched()) return null;
+    const user = this.maladieGraveCertifiee();
+    const builder = CoherenceAlertBuilder.forField<Belgian9terAlertField>('MALADIE_GRAVE');
+
+    // 1. F-96 — critereCode `BE_9TER_MALADIE_GRAVE` ciblé.
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'BE_9TER_MALADIE_GRAVE') continue;
+      const ev = chk.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected ? 'Maladie grave certifiée' : 'Pas de maladie grave certifiée';
+      builder.addSource('F96', {
+        expectedDisplay: display,
+        reason: `Checklist procédurale : ${display.toLowerCase()}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    // 2. QUESTION_IA — réponse "oui" avec `expectedValue` TRUE/FALSE.
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'BE_9TER_MALADIE_GRAVE') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      const ev = q.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected ? 'Maladie grave certifiée' : 'Pas de maladie grave certifiée';
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: display,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    // 3. IA — `maladieGraveCertifiee` ou alias `maladieGrave`.
+    const ai = this.aiDataSignal() as any;
+    const aiVal: boolean | undefined = (typeof ai?.maladieGraveCertifiee === 'boolean')
+      ? ai.maladieGraveCertifiee
+      : (typeof ai?.maladieGrave === 'boolean' ? ai.maladieGrave : undefined);
+    if (typeof aiVal === 'boolean' && aiVal !== user) {
+      const display = aiVal ? 'Maladie grave certifiée' : 'Pas de maladie grave certifiée';
+      builder.addSource('IA', {
+        expectedDisplay: display,
+        reason: `Analyse du dossier : ${display.toLowerCase()}`,
+      });
+    }
+
+    // 4. PIECE_MANQUANTE (contributor additionnel — typ. certificat CM1/CM2).
+    const piece = this.findPieceManquante(['BE_9TER_MALADIE_GRAVE', 'BE_9TER_CERTIFICAT_MEDICAL']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-09 : divergence sur `soinsNecessairesDisponiblesBe` —
+   * booléen indiquant que les soins sont disponibles en Belgique.
+   */
+  private buildSoinsBeAlert(): Belgian9terCoherenceAlert | null {
+    if (!this.soinsBeTouched()) return null;
+    const user = this.soinsNecessairesDisponiblesBe();
+    const builder = CoherenceAlertBuilder.forField<Belgian9terAlertField>('SOINS_BE');
+
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'BE_9TER_SOINS_BE') continue;
+      const ev = chk.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected ? 'Soins disponibles en Belgique' : 'Soins indisponibles en Belgique';
+      builder.addSource('F96', {
+        expectedDisplay: display,
+        reason: `Checklist procédurale : ${display.toLowerCase()}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'BE_9TER_SOINS_BE') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      const ev = q.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected ? 'Soins disponibles en Belgique' : 'Soins indisponibles en Belgique';
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: display,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    const aiVal = (this.aiDataSignal() as any)?.soinsNecessairesDisponiblesBe;
+    if (typeof aiVal === 'boolean' && aiVal !== user) {
+      const display = aiVal ? 'Soins disponibles en Belgique' : 'Soins indisponibles en Belgique';
+      builder.addSource('IA', {
+        expectedDisplay: display,
+        reason: `Analyse du dossier : ${display.toLowerCase()}`,
+      });
+    }
+
+    const piece = this.findPieceManquante(['BE_9TER_SOINS_BE']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-09 : divergence sur `soinsInaccessiblesPaysOrigine` —
+   * booléen indiquant que les soins sont inaccessibles au pays d'origine.
+   */
+  private buildSoinsInaccessiblesAlert(): Belgian9terCoherenceAlert | null {
+    if (!this.soinsInaccessiblesTouched()) return null;
+    const user = this.soinsInaccessiblesPaysOrigine();
+    const builder = CoherenceAlertBuilder.forField<Belgian9terAlertField>('SOINS_INACCESSIBLES');
+
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'BE_9TER_SOINS_INACCESSIBLES') continue;
+      const ev = chk.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected
+        ? 'Soins inaccessibles au pays d\'origine'
+        : 'Soins accessibles au pays d\'origine';
+      builder.addSource('F96', {
+        expectedDisplay: display,
+        reason: `Checklist procédurale : ${display.toLowerCase()}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'BE_9TER_SOINS_INACCESSIBLES') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      const ev = q.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected
+        ? 'Soins inaccessibles au pays d\'origine'
+        : 'Soins accessibles au pays d\'origine';
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: display,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    const aiVal = (this.aiDataSignal() as any)?.soinsInaccessiblesPaysOrigine;
+    if (typeof aiVal === 'boolean' && aiVal !== user) {
+      const display = aiVal
+        ? 'Soins inaccessibles au pays d\'origine'
+        : 'Soins accessibles au pays d\'origine';
+      builder.addSource('IA', {
+        expectedDisplay: display,
+        reason: `Analyse du dossier : ${display.toLowerCase()}`,
+      });
+    }
+
+    const piece = this.findPieceManquante(['BE_9TER_SOINS_INACCESSIBLES']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-09 : divergence sur `menaceOrdrePublic`.
+   * Le critère est sensible : si l'IA suspecte une menace et que l'avocat
+   * coche "non", il faut alerter — et inversement.
+   */
+  private buildMenaceOrdrePublicAlert(): Belgian9terCoherenceAlert | null {
+    if (!this.menaceTouched()) return null;
+    const user = this.menaceOrdrePublic();
+    const builder = CoherenceAlertBuilder.forField<Belgian9terAlertField>('MENACE_ORDRE_PUBLIC');
+
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'BE_9TER_MENACE_ORDRE_PUBLIC') continue;
+      const ev = chk.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected ? 'Menace à l\'ordre public' : 'Pas de menace à l\'ordre public';
+      builder.addSource('F96', {
+        expectedDisplay: display,
+        reason: `Checklist procédurale : ${display.toLowerCase()}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'BE_9TER_MENACE_ORDRE_PUBLIC') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      const ev = q.expectedValue?.toUpperCase();
+      if (ev !== 'TRUE' && ev !== 'FALSE') continue;
+      const expected = ev === 'TRUE';
+      if (expected === user) continue;
+      const display = expected ? 'Menace à l\'ordre public' : 'Pas de menace à l\'ordre public';
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: display,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    const aiVal = (this.aiDataSignal() as any)?.menaceOrdrePublic;
+    if (typeof aiVal === 'boolean' && aiVal !== user) {
+      const display = aiVal ? 'Menace à l\'ordre public' : 'Pas de menace à l\'ordre public';
+      builder.addSource('IA', {
+        expectedDisplay: display,
+        reason: `Analyse du dossier : ${display.toLowerCase()}`,
+      });
+    }
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-09 : divergence sur `dateDepotDemande` (typ. divergence
+   * entre date saisie et extraction IA d'un accusé de dépôt).
+   */
+  private buildDateDepotDemandeAlert(): Belgian9terCoherenceAlert | null {
+    const userDate = this.dateDepotDemande();
+    if (!userDate) return null;
+    const builder = CoherenceAlertBuilder.forField<Belgian9terAlertField>('DATE_DEPOT_DEMANDE');
+
+    const aiDate = (this.aiDataSignal() as any)?.dateDepotDemande;
+    if (typeof aiDate === 'string' && aiDate.length > 0 && aiDate !== userDate) {
+      builder.addSource('IA', {
+        expectedDisplay: aiDate,
+        reason: `Analyse du dossier : dépôt de la demande le ${aiDate}`,
+      });
+    }
+    const piece = this.findPieceManquante(['DATE_DEPOT_DEMANDE', 'BE_9TER_DATE_DEPOT_DEMANDE']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  /**
+   * SF-155-09 : renvoie le `texte` d'une `PieceManquanteEntry` dont
+   * `critereCode` (case-insensitive) appartient à la liste des codes acceptés,
+   * ou `null` si aucune pièce ne matche. La première pièce trouvée gagne.
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
   }
 
   /**
