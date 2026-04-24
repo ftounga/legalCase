@@ -80,7 +80,9 @@ describe('LicenciementSectionComponent', () => {
     expect(component.showForm()).toBe(false);
   });
 
-  it('should pre-fill form from aiData when no saved result (FRANCE)', () => {
+  // ---- SF-155-16 : pré-remplissage IA + provenance ----
+
+  it('SF-155-16 : should pre-fill form from aiData when no saved result (FRANCE)', () => {
     component.aiData = {
       detections: {
         FR_CONVOCATION: { reponse: 'OUI', justification: 'LRAR trouvée' },
@@ -93,6 +95,30 @@ describe('LicenciementSectionComponent', () => {
     expect(form.find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('OUI');
     expect(form.find(c => c.code === 'FR_MOTIVATION')?.reponse).toBe('NON');
     expect(form.find(c => c.code === 'FR_ENTRETIEN')?.reponse).toBe('INCONNU');
+  });
+
+  it('SF-155-16 : should mark provenance IA on pre-filled critères', () => {
+    component.aiData = {
+      detections: {
+        FR_CONVOCATION: { reponse: 'OUI', justification: 'LRAR' },
+        FR_MOTIVATION: { reponse: 'NON', justification: 'Motif vague' },
+      },
+    };
+    initNoExisting();
+    expect(component.isPrefilledByAi('FR_CONVOCATION')).toBe(true);
+    expect(component.isPrefilledByAi('FR_MOTIVATION')).toBe(true);
+    // Critère sans détection → pas de badge IA
+    expect(component.isPrefilledByAi('FR_ENTRETIEN')).toBe(false);
+  });
+
+  it('SF-155-16 : should clear provenance IA when avocat manually changes', () => {
+    component.aiData = {
+      detections: { FR_CONVOCATION: { reponse: 'OUI', justification: 'LRAR' } },
+    };
+    initNoExisting();
+    expect(component.isPrefilledByAi('FR_CONVOCATION')).toBe(true);
+    component.onReponseChange('FR_CONVOCATION', 'NON');
+    expect(component.isPrefilledByAi('FR_CONVOCATION')).toBe(false);
   });
 
   it('should pre-fill from aiData for Belgique workspace', () => {
@@ -118,6 +144,8 @@ describe('LicenciementSectionComponent', () => {
     initWithExisting();
     const form = component.criteresForm();
     expect(form.find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('OUI');
+    // SF-155-16 : pas de provenance IA sur les valeurs persistées
+    expect(component.isPrefilledByAi('FR_CONVOCATION')).toBe(false);
   });
 
   it('should leave INCONNU when detection is INCONNU or absent', () => {
@@ -141,7 +169,7 @@ describe('LicenciementSectionComponent', () => {
     expect(component.criteresForm().find(c => c.code === 'FR_CONVOCATION')?.reponse).toBe('NON');
   });
 
-  // ---- Coherence alerts (SF-IA-03-01) ----
+  // ---- Coherence alerts (SF-IA-03-01) — refactor SF-155-16 vers CoherenceAlertBuilder ----
 
   it('should emit no alert when avocat answer matches AI detection', () => {
     component.aiData = {
@@ -152,7 +180,7 @@ describe('LicenciementSectionComponent', () => {
     expect(component.alertsSummary().total).toBe(0);
   });
 
-  it('should emit blocker alert on divergence for a blocking criterion (FR)', () => {
+  it('should emit CRITICAL alert on divergence for a blocking criterion (FR)', () => {
     component.aiData = {
       detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'Motif précis dans la lettre' } },
     };
@@ -160,20 +188,21 @@ describe('LicenciementSectionComponent', () => {
     component.onReponseChange('FR_MOTIVATION', 'NON');
     const alert = component.coherenceAlerts()['FR_MOTIVATION'];
     expect(alert).toBeDefined();
-    expect(alert.level).toBe('blocker');
-    expect(alert.aiReponse).toBe('OUI');
-    expect(alert.justification).toBe('Motif précis dans la lettre');
+    expect(alert.severity).toBe('CRITICAL');
+    expect(alert.source).toBe('IA');
+    expect(alert.expectedDisplay).toBe('OUI');
+    expect(alert.reason).toContain('Motif précis dans la lettre');
     expect(component.alertsSummary()).toEqual({ total: 1, blockers: 1 });
   });
 
-  it('should emit warning alert on divergence for a non-blocking criterion (FR)', () => {
+  it('should emit WARNING alert on divergence for a non-blocking criterion (FR)', () => {
     component.aiData = {
       detections: { FR_DELAI_NOTIFICATION: { reponse: 'OUI', justification: 'Notif J+3' } },
     };
     initNoExisting();
     component.onReponseChange('FR_DELAI_NOTIFICATION', 'NON');
     const alert = component.coherenceAlerts()['FR_DELAI_NOTIFICATION'];
-    expect(alert.level).toBe('warning');
+    expect(alert.severity).toBe('WARNING');
     expect(component.alertsSummary()).toEqual({ total: 1, blockers: 0 });
   });
 
@@ -228,7 +257,7 @@ describe('LicenciementSectionComponent', () => {
     expect(component.coherenceAlerts()['FR_MOTIVATION']).toBeUndefined();
   });
 
-  it('should handle BE criteria (blocker on BE_MOTIVATION, warning on BE_AUDITION)', () => {
+  it('should handle BE criteria (CRITICAL on BE_MOTIVATION, WARNING on BE_AUDITION)', () => {
     component.workspaceCountry = 'BELGIQUE';
     component.aiData = {
       detections: {
@@ -241,8 +270,8 @@ describe('LicenciementSectionComponent', () => {
     flushAnySourceExplanationsCalls();
     component.onReponseChange('BE_MOTIVATION', 'NON');
     component.onReponseChange('BE_AUDITION', 'NON');
-    expect(component.coherenceAlerts()['BE_MOTIVATION'].level).toBe('blocker');
-    expect(component.coherenceAlerts()['BE_AUDITION'].level).toBe('warning');
+    expect(component.coherenceAlerts()['BE_MOTIVATION'].severity).toBe('CRITICAL');
+    expect(component.coherenceAlerts()['BE_AUDITION'].severity).toBe('WARNING');
     expect(component.alertsSummary()).toEqual({ total: 2, blockers: 1 });
   });
 
@@ -252,7 +281,7 @@ describe('LicenciementSectionComponent', () => {
     };
     initNoExisting();
     component.onReponseChange('FR_MOTIVATION', 'NON');
-    expect(component.coherenceAlerts()['FR_MOTIVATION'].justification).toBe('Aucune justification fournie');
+    expect(component.coherenceAlerts()['FR_MOTIVATION'].reason).toContain('Aucune justification fournie');
   });
 
   // ---- F-96 procedure checks as source (SF-IA-03-02) ----
@@ -268,33 +297,33 @@ describe('LicenciementSectionComponent', () => {
     } as any;
   }
 
-  it('should emit F-96 blocker when VERIFIED point contradicts avocat NON', () => {
+  it('should emit F-96 CRITICAL when VERIFIED point contradicts avocat NON', () => {
     component.procedureChecks = [f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED', description: 'Lettre motivée' })];
     initNoExisting();
     component.onReponseChange('FR_MOTIVATION', 'NON');
     const alert = component.coherenceAlerts()['FR_MOTIVATION'];
     expect(alert.source).toBe('F96');
-    expect(alert.level).toBe('blocker');
-    expect(alert.expectedReponse).toBe('OUI');
-    expect(alert.f96Statut).toBe('VERIFIED');
+    expect(alert.severity).toBe('CRITICAL');
+    expect(alert.expectedDisplay).toBe('OUI');
+    expect(alert.reason).toContain('vérifié');
   });
 
-  it('should emit F-96 blocker when NON_COMPLIANT point contradicts avocat OUI', () => {
+  it('should emit F-96 CRITICAL when NON_COMPLIANT point contradicts avocat OUI', () => {
     component.procedureChecks = [f96({ critereCode: 'FR_CONVOCATION', statut: 'NON_COMPLIANT', raison: 'Pas de LRAR' })];
     initNoExisting();
     component.onReponseChange('FR_CONVOCATION', 'OUI');
     const alert = component.coherenceAlerts()['FR_CONVOCATION'];
     expect(alert.source).toBe('F96');
-    expect(alert.level).toBe('blocker');
-    expect(alert.expectedReponse).toBe('NON');
-    expect(alert.f96Raison).toBe('Pas de LRAR');
+    expect(alert.severity).toBe('CRITICAL');
+    expect(alert.expectedDisplay).toBe('NON');
+    expect(alert.reason).toContain('Pas de LRAR');
   });
 
-  it('should emit blocker (not warning) for F-96 even on non-blocking criterion', () => {
+  it('should emit CRITICAL (not WARNING) for F-96 even on non-blocking criterion', () => {
     component.procedureChecks = [f96({ critereCode: 'FR_DELAI_NOTIFICATION', statut: 'VERIFIED' })];
     initNoExisting();
     component.onReponseChange('FR_DELAI_NOTIFICATION', 'NON');
-    expect(component.coherenceAlerts()['FR_DELAI_NOTIFICATION'].level).toBe('blocker');
+    expect(component.coherenceAlerts()['FR_DELAI_NOTIFICATION'].severity).toBe('CRITICAL');
   });
 
   it('should NOT emit alert when F-96 VERIFIED matches avocat OUI', () => {
@@ -311,7 +340,7 @@ describe('LicenciementSectionComponent', () => {
     component.onReponseChange('FR_MOTIVATION', 'NON');
     const alert = component.coherenceAlerts()['FR_MOTIVATION'];
     expect(alert.source).toBe('IA');
-    expect(alert.level).toBe('blocker');
+    expect(alert.severity).toBe('CRITICAL');
   });
 
   it('should combine F96 and IA into source MULTI when both contradict avocat', () => {
@@ -323,9 +352,8 @@ describe('LicenciementSectionComponent', () => {
     expect(alert.source).toBe('MULTI');
     expect(alert.contributors).toContain('F96');
     expect(alert.contributors).toContain('IA');
-    expect(alert.level).toBe('blocker');
-    expect(alert.aiReponse).toBe('OUI');
-    expect(alert.f96Statut).toBe('VERIFIED');
+    expect(alert.severity).toBe('CRITICAL');
+    expect(alert.reason).toContain(' ET ');
   });
 
   it('should override IA with F-96 when they disagree', () => {
@@ -335,7 +363,7 @@ describe('LicenciementSectionComponent', () => {
     component.onReponseChange('FR_MOTIVATION', 'OUI');
     const alert = component.coherenceAlerts()['FR_MOTIVATION'];
     expect(alert.source).toBe('F96');
-    expect(alert.expectedReponse).toBe('NON');
+    expect(alert.expectedDisplay).toBe('NON');
   });
 
   it('should pick NON_COMPLIANT when multiple F-96 points collide on same critere', () => {
@@ -348,8 +376,8 @@ describe('LicenciementSectionComponent', () => {
     // NON_COMPLIANT expects NON, avocat says NON → no alert
     expect(component.coherenceAlerts()['FR_MOTIVATION']).toBeUndefined();
     component.onReponseChange('FR_MOTIVATION', 'OUI');
-    // NON_COMPLIANT expects NON, avocat says OUI → blocker
-    expect(component.coherenceAlerts()['FR_MOTIVATION']?.expectedReponse).toBe('NON');
+    // NON_COMPLIANT expects NON, avocat says OUI → CRITICAL
+    expect(component.coherenceAlerts()['FR_MOTIVATION']?.expectedDisplay).toBe('NON');
   });
 
   it('should ignore F-96 with unknown critereCode', () => {
@@ -369,7 +397,7 @@ describe('LicenciementSectionComponent', () => {
     expect(component.coherenceAlerts()['FR_MOTIVATION']?.source).toBe('IA');
   });
 
-  it('should count F-96 blockers in alertsSummary', () => {
+  it('should count F-96 CRITICAL in alertsSummary blockers', () => {
     component.procedureChecks = [
       f96({ critereCode: 'FR_MOTIVATION', statut: 'VERIFIED' }),
       f96({ critereCode: 'FR_DELAI_NOTIFICATION', statut: 'VERIFIED' }),
@@ -392,24 +420,24 @@ describe('LicenciementSectionComponent', () => {
     } as any;
   }
 
-  it('should emit QUESTION_IA blocker when answer "oui" contradicts avocat NON', () => {
+  it('should emit QUESTION_IA CRITICAL when answer "oui" contradicts avocat NON', () => {
     component.aiQuestions = [question({ critereCode: 'FR_MOTIVATION', questionText: 'Motif précis ?', answerText: 'oui' })];
     initNoExisting();
     component.onReponseChange('FR_MOTIVATION', 'NON');
     const alert = component.coherenceAlerts()['FR_MOTIVATION'];
     expect(alert.source).toBe('QUESTION_IA');
-    expect(alert.level).toBe('blocker');
-    expect(alert.expectedReponse).toBe('OUI');
-    expect(alert.questionText).toBe('Motif précis ?');
+    expect(alert.severity).toBe('CRITICAL');
+    expect(alert.expectedDisplay).toBe('OUI');
+    expect(alert.reason).toContain('Motif précis ?');
   });
 
-  it('should emit QUESTION_IA blocker when answer "non" contradicts avocat OUI', () => {
+  it('should emit QUESTION_IA CRITICAL when answer "non" contradicts avocat OUI', () => {
     component.aiQuestions = [question({ critereCode: 'FR_CONVOCATION', questionText: 'LRAR ?', answerText: 'Non, pas de preuve' })];
     initNoExisting();
     component.onReponseChange('FR_CONVOCATION', 'OUI');
     const alert = component.coherenceAlerts()['FR_CONVOCATION'];
     expect(alert.source).toBe('QUESTION_IA');
-    expect(alert.expectedReponse).toBe('NON');
+    expect(alert.expectedDisplay).toBe('NON');
   });
 
   it('should ignore ambiguous answer and fall back to IA', () => {
@@ -438,10 +466,10 @@ describe('LicenciementSectionComponent', () => {
     initNoExisting();
     component.onReponseChange('FR_MOTIVATION', 'OUI');
     // F-96 NON_COMPLIANT expects NON; question IA expects OUI (concorde avocat)
-    // F-96 wins priority → blocker F96, expected NON
+    // F-96 wins priority → CRITICAL F96, expected NON
     const alert = component.coherenceAlerts()['FR_MOTIVATION'];
     expect(alert.source).toBe('F96');
-    expect(alert.expectedReponse).toBe('NON');
+    expect(alert.expectedDisplay).toBe('NON');
   });
 
   it('should combine F-96 + QUESTION_IA into MULTI when they align against avocat', () => {
@@ -453,19 +481,19 @@ describe('LicenciementSectionComponent', () => {
     expect(alert.source).toBe('MULTI');
     expect(alert.contributors).toContain('F96');
     expect(alert.contributors).toContain('QUESTION_IA');
-    expect(alert.expectedReponse).toBe('OUI');
+    expect(alert.expectedDisplay).toBe('OUI');
   });
 
   // ---- Missing pieces as source (SF-IA-03-03) ----
 
-  it('should emit PIECE_MANQUANTE warning when piece missing and avocat coche OUI', () => {
+  it('should emit PIECE_MANQUANTE WARNING when piece missing and avocat coche OUI', () => {
     component.piecesManquantes = [{ texte: 'LRAR de convocation', critereCode: 'FR_CONVOCATION' }];
     initNoExisting();
     component.onReponseChange('FR_CONVOCATION', 'OUI');
     const alert = component.coherenceAlerts()['FR_CONVOCATION'];
     expect(alert.source).toBe('PIECE_MANQUANTE');
-    expect(alert.level).toBe('warning');
-    expect(alert.expectedReponse).toBe('NON');
+    expect(alert.severity).toBe('WARNING');
+    expect(alert.expectedDisplay).toBe('NON');
     expect(alert.pieceTexte).toBe('LRAR de convocation');
   });
 
@@ -476,16 +504,17 @@ describe('LicenciementSectionComponent', () => {
     expect(component.coherenceAlerts()['FR_CONVOCATION']).toBeUndefined();
   });
 
-  it('should upgrade IA alert with PIECE_MANQUANTE contributor when piece expects NON too', () => {
+  it('should upgrade IA alert with PIECE_MANQUANTE contributor when piece exists too', () => {
     component.piecesManquantes = [{ texte: 'LRAR', critereCode: 'FR_CONVOCATION' }];
     component.aiData = { detections: { FR_CONVOCATION: { reponse: 'NON', justification: 'pas détecté' } } };
     initNoExisting();
     component.onReponseChange('FR_CONVOCATION', 'OUI');
     const alert = component.coherenceAlerts()['FR_CONVOCATION'];
-    // IA primary (expected NON), PIECE supports (expects NON too) → MULTI
+    // IA primary (expected NON), PIECE supports → MULTI
     expect(alert.source).toBe('MULTI');
     expect(alert.contributors).toContain('IA');
     expect(alert.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert.pieceTexte).toBe('LRAR');
   });
 
   it('should ignore piece with unknown critereCode', () => {
@@ -523,5 +552,20 @@ describe('LicenciementSectionComponent', () => {
     expect(Object.keys(component.coherenceAlerts()).length).toBeGreaterThan(0);
     component.showForm.set(false);
     expect(component.coherenceAlerts()).toEqual({});
+  });
+
+  // ---- SF-155-16 : contrat CoherenceAlert<F> partagé ----
+
+  it('SF-155-16 : alert exposes contract `CoherenceAlert<F>` (field/source/contributors/severity/expectedDisplay/reason)', () => {
+    component.aiData = { detections: { FR_MOTIVATION: { reponse: 'OUI', justification: 'Motif précis' } } };
+    initNoExisting();
+    component.onReponseChange('FR_MOTIVATION', 'NON');
+    const alert = component.coherenceAlerts()['FR_MOTIVATION'];
+    expect(alert.field).toBe('FR_MOTIVATION');
+    expect(alert.source).toBe('IA');
+    expect(alert.contributors).toEqual(['IA']);
+    expect(alert.severity).toBe('CRITICAL');
+    expect(alert.expectedDisplay).toBe('OUI');
+    expect(alert.reason).toContain('Analyse du dossier');
   });
 });

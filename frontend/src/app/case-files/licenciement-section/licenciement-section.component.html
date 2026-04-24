@@ -7,6 +7,11 @@
         {{ result()!.verdict | titlecase }} — {{ result()!.scoreRisque }}%
       </span>
     }
+    @if (showForm() && prefillSummary().count > 0) {
+      <span class="section-prefill-badge">
+        <mat-icon>auto_awesome</mat-icon> {{ prefillSummary().count }} pré-rempli(s)
+      </span>
+    }
     <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
   </button>
 
@@ -29,6 +34,16 @@
             </mat-form-field>
           </div>
 
+          @if (prefillSummary().count > 0) {
+            <div class="prefill-summary">
+              <mat-icon>auto_awesome</mat-icon>
+              <span>
+                {{ prefillSummary().count }} critère(s) pré-rempli(s) depuis l'analyse —
+                vérifiez chaque réponse avant de lancer l'analyse.
+              </span>
+            </div>
+          }
+
           @if (alertsSummary().total > 0) {
             <div class="coherence-summary"
                  [class.has-blocker]="alertsSummary().blockers > 0">
@@ -48,15 +63,20 @@
                 <div class="critere-info">
                   <span class="critere-label">
                     {{ critere.label }}
+                    @if (isPrefilledByAi(critere.code)) {
+                      <span class="provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
                     @if (coherenceAlerts()[critere.code]; as alert) {
                       <span class="coherence-badge"
-                            [class.coherence-blocker]="alert.level === 'blocker'"
-                            [class.coherence-warning]="alert.level === 'warning'"
+                            [class.coherence-blocker]="alert.severity === 'CRITICAL'"
+                            [class.coherence-warning]="alert.severity !== 'CRITICAL'"
                             [appCoherencePopover]="explanationFor(critere.code)"
                             [appCoherencePopoverReason]="alertTooltip(alert)"
                             [appCoherencePopoverCaseFileId]="caseFileId"
-                            [appCoherencePopoverBlocker]="alert.level === 'blocker'">
-                        <mat-icon>{{ alert.level === 'blocker' ? 'error' : 'warning' }}</mat-icon>
+                            [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
+                        <mat-icon>{{ alert.severity === 'CRITICAL' ? 'error' : 'warning' }}</mat-icon>
                         {{ alertBadgeLabel(alert) }}
                       </span>
                     }

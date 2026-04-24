@@ -19,6 +19,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 interface CritereForm {
   code: string;
@@ -28,22 +30,19 @@ interface CritereForm {
   reponse: string;
 }
 
-type AlertLevel = 'blocker' | 'warning';
-export type AlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'PIECE_MANQUANTE' | 'MULTI';
+/**
+ * SF-155-16 : Alert field type pour F-DT-08 (validité licenciement).
+ *
+ * Le code critère est utilisé comme field (chaîne dynamique parmi
+ * `CRITERE_CODES`) — pattern similaire à celui des autres composants
+ * à N critères uniformes.
+ */
+export type LicenciementAlertField = string;
 
-export interface CoherenceAlert {
-  level: AlertLevel;
-  source: AlertSource;
-  expectedReponse: 'OUI' | 'NON';
-  contributors: AlertSource[];
-  aiReponse?: 'OUI' | 'NON' | null;
-  f96Statut?: 'VERIFIED' | 'NON_COMPLIANT' | null;
-  f96Raison?: string | null;
-  questionText?: string | null;
-  questionAnswer?: string | null;
-  pieceTexte?: string | null;
-  justification?: string | null;
-}
+// SF-155-16 : alias local — utilise l'interface générique partagée
+// (plus de définition locale d'`CoherenceAlert`).
+export type AlertSource = CoherenceAlertSource;
+export type LicenciementCoherenceAlert = CoherenceAlert<LicenciementAlertField>;
 
 const CRITERE_CODES = new Set([
   'FR_CONVOCATION', 'FR_ENTRETIEN', 'FR_DELAI_NOTIFICATION', 'FR_MOTIVATION',
@@ -89,6 +88,10 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   country = signal('FRANCE');
   criteresForm = signal<CritereForm[]>([]);
 
+  // SF-155-16 : provenance IA par critère pré-rempli (badge "auto_awesome").
+  // Effacé dès que l'avocat modifie manuellement (onReponseChange).
+  provenanceByCode = signal<Record<string, 'IA' | null>>({});
+
   readonly criteresReferentiel: Record<string, CritereForm[]> = {
     FRANCE: [
       { code: 'FR_CONVOCATION', label: 'Convocation entretien préalable', description: 'LRAR ou remise en main propre, 5 jours ouvrables', bloquant: true, reponse: 'INCONNU' },
@@ -119,169 +122,132 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     return '#C0392B';
   });
 
-  coherenceAlerts = computed<Record<string, CoherenceAlert>>(() => {
+  /**
+   * SF-155-16 : alertes de cohérence F-IA-03 calculées via `CoherenceAlertBuilder`.
+   * Hiérarchie préservée (F-96 > QUESTION_IA > IA > PIECE_MANQUANTE) :
+   *   - F-96 attendu fixe `expectedDisplay` → autres sources convergeant
+   *     sur la même valeur deviennent `contributors` additionnels (source `MULTI`).
+   *   - Pièce manquante seule sur critère OUI → alerte warning attendant NON.
+   * Gate anti-bug SF-IA-03-12 : aucune alerte si `showForm()=false`.
+   */
+  coherenceAlerts = computed<Record<string, LicenciementCoherenceAlert>>(() => {
     if (!this.showForm()) return {};
     const detections = this.aiDataSignal()?.detections;
     const f96Index = this.buildF96Index(this.procedureChecksSignal());
     const questionsIndex = this.buildQuestionsIndex(this.aiQuestionsSignal());
     const piecesIndex = this.buildPiecesIndex(this.piecesManquantesSignal());
 
-    const alerts: Record<string, CoherenceAlert> = {};
+    const alerts: Record<string, LicenciementCoherenceAlert> = {};
     for (const c of this.criteresForm()) {
       if (c.reponse === 'INCONNU') continue;
 
-      // B : F-96 validé
-      const f96 = f96Index[c.code];
-      if (f96) {
-        const expected: 'OUI' | 'NON' = f96.statut === 'VERIFIED' ? 'OUI' : 'NON';
-        if (c.reponse === expected) continue;
-        const extras = this.collectSupportingSources(c.code, expected, questionsIndex, detections, piecesIndex, 'F96');
-        alerts[c.code] = this.multiOrSingle({
-          level: 'blocker',
-          primary: 'F96',
-          expectedReponse: expected,
-          f96Statut: f96.statut,
-          f96Raison: f96.raison ?? null,
-          extraContributors: extras.extraContributors,
-          questionText: extras.questionText,
-          questionAnswer: extras.questionAnswer,
-          aiReponse: extras.aiReponse,
-          justification: extras.justification,
-          pieceTexte: extras.pieceTexte,
-        });
-        continue;
-      }
-
-      // C : question IA répondue interprétable
-      const q = questionsIndex[c.code];
-      if (q && q.expected) {
-        if (c.reponse === q.expected) continue;
-        const extras = this.collectSupportingSources(c.code, q.expected, null, detections, piecesIndex, 'QUESTION_IA');
-        alerts[c.code] = this.multiOrSingle({
-          level: 'blocker',
-          primary: 'QUESTION_IA',
-          expectedReponse: q.expected,
-          questionText: q.text,
-          questionAnswer: q.answer,
-          extraContributors: extras.extraContributors,
-          aiReponse: extras.aiReponse,
-          justification: extras.justification,
-          pieceTexte: extras.pieceTexte,
-        });
-        continue;
-      }
-
-      // D : détection IA
-      const detected = detections?.[c.code];
-      if (detected) {
-        const aiReponse = detected.reponse;
-        if (aiReponse === 'OUI' || aiReponse === 'NON') {
-          if (c.reponse !== aiReponse) {
-            const extras = this.collectSupportingSources(c.code, aiReponse, null, null, piecesIndex, 'IA');
-            alerts[c.code] = this.multiOrSingle({
-              level: c.bloquant ? 'blocker' : 'warning',
-              primary: 'IA',
-              expectedReponse: aiReponse,
-              aiReponse,
-              justification: detected.justification?.trim() || 'Aucune justification fournie',
-              extraContributors: extras.extraContributors,
-              pieceTexte: extras.pieceTexte,
-            });
-            continue;
-          }
-        }
-      }
-
-      // E : pièce manquante taggée — warning si avocat a coché OUI
-      const piece = piecesIndex[c.code];
-      if (piece && c.reponse === 'OUI') {
-        alerts[c.code] = {
-          level: 'warning',
-          source: 'PIECE_MANQUANTE',
-          expectedReponse: 'NON',
-          pieceTexte: piece,
-          contributors: ['PIECE_MANQUANTE'],
-        };
-      }
+      const alert = this.buildCritereAlert(c, f96Index, questionsIndex, detections, piecesIndex);
+      if (alert) alerts[c.code] = alert;
     }
     return alerts;
   });
 
-  private multiOrSingle(args: {
-    level: AlertLevel;
-    primary: AlertSource;
-    expectedReponse: 'OUI' | 'NON';
-    f96Statut?: 'VERIFIED' | 'NON_COMPLIANT' | null;
-    f96Raison?: string | null;
-    questionText?: string | null;
-    questionAnswer?: string | null;
-    aiReponse?: 'OUI' | 'NON' | null;
-    justification?: string | null;
-    pieceTexte?: string | null;
-    extraContributors?: AlertSource[];
-  }): CoherenceAlert {
-    const contributors: AlertSource[] = [args.primary, ...(args.extraContributors ?? [])];
-    const isMulti = contributors.length > 1;
-    return {
-      level: args.level,
-      source: isMulti ? 'MULTI' : args.primary,
-      expectedReponse: args.expectedReponse,
-      contributors,
-      f96Statut: args.f96Statut ?? null,
-      f96Raison: args.f96Raison ?? null,
-      questionText: args.questionText ?? null,
-      questionAnswer: args.questionAnswer ?? null,
-      aiReponse: args.aiReponse ?? null,
-      justification: args.justification ?? null,
-      pieceTexte: args.pieceTexte ?? null,
-    };
-  }
+  /**
+   * SF-155-16 : construit l'alerte F-IA-03 pour un critère donné via le
+   * builder partagé. Première source = F96 NON_COMPLIANT > F96 VERIFIED >
+   * QUESTION_IA "oui/non" interprétable > IA détection > PIECE_MANQUANTE
+   * (seule si avocat a coché OUI).
+   */
+  private buildCritereAlert(
+    c: CritereForm,
+    f96Index: Record<string, { statut: 'VERIFIED' | 'NON_COMPLIANT'; raison?: string | null }>,
+    questionsIndex: Record<string, { expected: 'OUI' | 'NON' | null; text: string; answer: string }>,
+    detections: Record<string, { reponse: string; justification?: string | null }> | undefined,
+    piecesIndex: Record<string, string>,
+  ): LicenciementCoherenceAlert | null {
+    const builder = CoherenceAlertBuilder.forField<string>(c.code);
+    let initiated = false;
 
-  private collectSupportingSources(
-    code: string,
-    expected: 'OUI' | 'NON',
-    questionsIndex: Record<string, { expected: 'OUI' | 'NON' | null; text: string; answer: string }> | null,
-    detections: Record<string, { reponse: string; justification?: string | null }> | null | undefined,
-    piecesIndex: Record<string, string> | null,
-    primary: AlertSource,
-  ): {
-    extraContributors: AlertSource[];
-    questionText?: string | null;
-    questionAnswer?: string | null;
-    aiReponse?: 'OUI' | 'NON' | null;
-    justification?: string | null;
-    pieceTexte?: string | null;
-  } {
-    const extras: AlertSource[] = [];
-    let questionText: string | null = null, questionAnswer: string | null = null;
-    let aiReponse: 'OUI' | 'NON' | null = null, justification: string | null = null;
-    let pieceTexte: string | null = null;
+    // 1. F-96 — priorité absolue. Si F-96 concorde avec l'avocat, aucune
+    //    alerte n'est levée même si IA/QUESTION_IA divergent (règle
+    //    historique : F-96 prime sur tout).
+    const f96 = f96Index[c.code];
+    if (f96) {
+      const f96Expected: 'OUI' | 'NON' = f96.statut === 'VERIFIED' ? 'OUI' : 'NON';
+      if (c.reponse === f96Expected) {
+        return null;
+      }
+      const statutLabel = f96.statut === 'VERIFIED' ? 'vérifié' : 'non respecté';
+      const detail = f96.raison ? ` (${f96.raison})` : '';
+      builder
+        .withSeverity('CRITICAL')
+        .addSource('F96', {
+          expectedDisplay: f96Expected,
+          reason: `Checklist procédurale : ${statutLabel}${detail}`,
+        });
+      initiated = true;
+    }
 
-    if (primary !== 'QUESTION_IA' && questionsIndex) {
-      const q = questionsIndex[code];
-      if (q && q.expected === expected) {
-        extras.push('QUESTION_IA');
-        questionText = q.text;
-        questionAnswer = q.answer;
-      }
-    }
-    if (primary !== 'IA' && detections) {
-      const d = detections[code];
-      if (d && (d.reponse === 'OUI' || d.reponse === 'NON') && d.reponse === expected) {
-        extras.push('IA');
-        aiReponse = d.reponse;
-        justification = d.justification?.trim() || null;
-      }
-    }
-    if (primary !== 'PIECE_MANQUANTE' && piecesIndex && expected === 'NON') {
-      const p = piecesIndex[code];
-      if (p) {
-        extras.push('PIECE_MANQUANTE');
-        pieceTexte = p;
+    // 2. QUESTION_IA — "oui"/"non" interprétable
+    const q = questionsIndex[c.code];
+    if (q && q.expected && c.reponse !== q.expected) {
+      if (initiated) {
+        // Contributor additionnel — consolidé seulement si même expected.
+        builder.addSource('QUESTION_IA', {
+          expectedDisplay: q.expected,
+          reason: `Question complémentaire : "${q.text}" → réponse "${q.answer}"`,
+        });
+      } else {
+        builder
+          .withSeverity('CRITICAL')
+          .addSource('QUESTION_IA', {
+            expectedDisplay: q.expected,
+            reason: `Question complémentaire : "${q.text}" → réponse "${q.answer}"`,
+          });
+        initiated = true;
       }
     }
 
-    return { extraContributors: extras, questionText, questionAnswer, aiReponse, justification, pieceTexte };
+    // 3. IA — détection dossier
+    const detected = detections?.[c.code];
+    if (detected && (detected.reponse === 'OUI' || detected.reponse === 'NON')) {
+      const iaExpected = detected.reponse;
+      if (c.reponse !== iaExpected) {
+        const justification = detected.justification?.trim() || 'Aucune justification fournie';
+        if (initiated) {
+          builder.addSource('IA', {
+            expectedDisplay: iaExpected,
+            reason: `Analyse du dossier : ${iaExpected} — ${justification}`,
+          });
+        } else {
+          // IA devient source primaire. Sévérité = CRITICAL si critère
+          // bloquant, WARNING sinon (l'IA seule fait varier la sévérité
+          // selon `bloquant` — F96 et QUESTION_IA sont toujours CRITICAL).
+          builder
+            .withSeverity(c.bloquant ? 'CRITICAL' : 'WARNING')
+            .addSource('IA', {
+              expectedDisplay: iaExpected,
+              reason: `Analyse du dossier : ${iaExpected} — ${justification}`,
+            });
+          initiated = true;
+        }
+      }
+    }
+
+    // 4. PIECE_MANQUANTE — contributor additionnel si alerte déjà initiée,
+    //    ou alerte seule (WARNING attendant NON) si avocat a coché OUI.
+    const piece = piecesIndex[c.code];
+    if (piece) {
+      if (initiated) {
+        builder.addPieceManquante(piece, `Pièce manquante : ${piece}`);
+      } else if (c.reponse === 'OUI') {
+        builder
+          .withSeverity('WARNING')
+          .addSource('PIECE_MANQUANTE', {
+            expectedDisplay: 'NON',
+            reason: `Pièce manquante : ${piece}`,
+            pieceTexte: piece,
+          });
+        initiated = true;
+      }
+    }
+
+    return builder.build();
   }
 
   private buildF96Index(checks: ProcedureCheck[]): Record<string, { statut: 'VERIFIED' | 'NON_COMPLIANT', raison?: string | null }> {
@@ -341,8 +307,22 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     const alerts = Object.values(this.coherenceAlerts());
     return {
       total: alerts.length,
-      blockers: alerts.filter(a => a.level === 'blocker').length,
+      // SF-155-16 : blocker = alerte CRITICAL (équivalent historique de
+      // `level === 'blocker'`) ; ce sont les divergences sur critères
+      // bloquants OU venant de F-96 / QUESTION_IA (toujours critiques).
+      blockers: alerts.filter(a => a.severity === 'CRITICAL').length,
     };
+  });
+
+  /**
+   * SF-155-16 : nombre de critères pré-remplis par l'IA (provenance `IA`
+   * encore active). Utilisé pour afficher un badge "Pré-remplissage IA"
+   * en haut du formulaire et un indicateur dans le header de section.
+   */
+  prefillSummary = computed(() => {
+    const map = this.provenanceByCode();
+    const count = Object.values(map).filter(v => v === 'IA').length;
+    return { count };
   });
 
   // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
@@ -383,7 +363,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     if (changes['aiData']) {
       this.aiDataSignal.set(this.aiData);
       if (!changes['aiData'].firstChange) {
-        this.applyAiPrefillIfPossible();
+        this.prefillFromAi();
       }
     }
     if (changes['procedureChecks']) {
@@ -401,26 +381,11 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
     this.collapsed.update(v => !v);
   }
 
-  alertTooltip(alert: CoherenceAlert): string {
-    const parts: string[] = [];
-    for (const src of alert.contributors) {
-      if (src === 'F96') {
-        const statut = alert.f96Statut === 'VERIFIED' ? 'vérifié' : 'non respecté';
-        const detail = alert.f96Raison ? ` (${alert.f96Raison})` : '';
-        parts.push(`Checklist procédurale : ${statut}${detail}`);
-      } else if (src === 'QUESTION_IA') {
-        parts.push(`Question complémentaire : "${alert.questionText}" → réponse "${alert.questionAnswer}"`);
-      } else if (src === 'IA') {
-        const just = alert.justification ? ` — ${alert.justification}` : '';
-        parts.push(`Analyse du dossier : ${alert.aiReponse}${just}`);
-      } else if (src === 'PIECE_MANQUANTE') {
-        parts.push(`Pièce manquante : ${alert.pieceTexte}`);
-      }
-    }
-    return parts.length > 1 ? `Contredit ${parts.join(' ET ')}` : parts[0] ?? '';
+  alertTooltip(alert: LicenciementCoherenceAlert): string {
+    return alert.contributors.length > 1 ? `Contredit ${alert.reason}` : alert.reason;
   }
 
-  alertBadgeLabel(alert: CoherenceAlert): string {
+  alertBadgeLabel(alert: LicenciementCoherenceAlert): string {
     const prefix = (() => {
       switch (alert.source) {
         case 'F96': return 'Incohérence Checklist procédurale';
@@ -430,13 +395,23 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
         case 'MULTI': return 'Incohérence multiple';
       }
     })();
-    return `${prefix} (${alert.expectedReponse})`;
+    return `${prefix} (${alert.expectedDisplay})`;
   }
 
+  /**
+   * SF-155-16 : handler change critère — efface le badge IA dès que
+   * l'avocat modifie manuellement (pattern canonique).
+   */
   onReponseChange(code: string, value: string): void {
     this.criteresForm.update(list =>
       list.map(c => c.code === code ? { ...c, reponse: value } : c)
     );
+    this.provenanceByCode.update(map => ({ ...map, [code]: null }));
+  }
+
+  /** SF-155-16 : helper template — true si critère pré-rempli par l'IA. */
+  isPrefilledByAi(code: string): boolean {
+    return this.provenanceByCode()[code] === 'IA';
   }
 
   loadExisting(): void {
@@ -454,7 +429,7 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
         this.hasSavedResult = false;
         this.showForm.set(true);
         this.loading.set(false);
-        this.applyAiPrefillIfPossible();
+        this.prefillFromAi();
       },
     });
   }
@@ -494,6 +469,8 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
       return { ...c, reponse: found ? found.reponse : 'INCONNU' };
     });
     this.criteresForm.set(form);
+    // SF-155-16 : valeurs persistées = saisie avocat — jamais de badge IA.
+    this.provenanceByCode.set({});
   }
 
   private buildInitialForm(country: string): CritereForm[] {
@@ -501,19 +478,36 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
       .map(c => ({ ...c, reponse: 'INCONNU' }));
   }
 
-  private applyAiPrefillIfPossible(): void {
+  /**
+   * SF-155-16 : pré-remplit les critères depuis l'analyse IA
+   * (`aiData.detections`). N'écrase jamais une saisie avocat existante
+   * (valeurs non-INCONNU déjà en place). Trace la provenance `IA` par
+   * critère pour affichage du badge "Pré-rempli depuis l'analyse".
+   *
+   * Appelé dans `ngOnInit()` (via `loadExisting` 404 fallback) ET dans
+   * `ngOnChanges()` si `aiData` change avant première résolution.
+   */
+  private prefillFromAi(): void {
     if (this.hasSavedResult) return;
     const detections = this.aiData?.detections;
     if (!detections) return;
     const current = this.criteresForm();
     if (current.length === 0) return;
+
+    const newProvenance: Record<string, 'IA' | null> = { ...this.provenanceByCode() };
     const next = current.map(c => {
       const detected = detections[c.code];
       if (detected && (detected.reponse === 'OUI' || detected.reponse === 'NON')) {
-        return { ...c, reponse: detected.reponse };
+        // Ne pré-rempli QUE si champ encore INCONNU OU déjà marqué IA
+        // (préserve les edits avocats faits après un premier pré-fill).
+        if (c.reponse === 'INCONNU' || this.provenanceByCode()[c.code] === 'IA') {
+          newProvenance[c.code] = 'IA';
+          return { ...c, reponse: detected.reponse };
+        }
       }
       return c;
     });
     this.criteresForm.set(next);
+    this.provenanceByCode.set(newProvenance);
   }
 }
