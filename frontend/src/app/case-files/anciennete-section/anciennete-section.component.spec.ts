@@ -156,7 +156,7 @@ describe('AncienneteSectionComponent', () => {
     setAi({ conventionCollective: 'SYNTEC' });
     initNoExisting();
     component.conventionCode.set('METALLURGIE');
-    expect(component.coherenceAlerts().CONVENTION?.iaValue).toBe('SYNTEC');
+    expect(component.coherenceAlerts().CONVENTION?.expectedDisplay).toBe('SYNTEC');
   });
 
   it('should NOT alert convention when case differs (normalized)', () => {
@@ -185,7 +185,7 @@ describe('AncienneteSectionComponent', () => {
     setAi({ dateEntree: '2018-01-01' });
     initNoExisting();
     component.dateEntree.set('2018-01-20');
-    expect(component.coherenceAlerts().DATE_ENTREE?.iaValue).toBe('2018-01-01');
+    expect(component.coherenceAlerts().DATE_ENTREE?.expectedDisplay).toBe('2018-01-01');
   });
 
   it('should NOT alert date when avocat empty', () => {
@@ -214,7 +214,7 @@ describe('AncienneteSectionComponent', () => {
     setAi({ salaireBrutMensuel: 4000 });
     initNoExisting();
     component.salaireBase.set(4300);
-    expect(component.coherenceAlerts().SALAIRE?.iaValue).toBe('4000 €');
+    expect(component.coherenceAlerts().SALAIRE?.expectedDisplay).toBe('4000 €');
   });
 
   it('should NOT alert salaire when avocat = 0', () => {
@@ -236,7 +236,7 @@ describe('AncienneteSectionComponent', () => {
     setAi({ congesContractuels: 25 });
     initNoExisting();
     component.congesContrat.set(27);
-    expect(component.coherenceAlerts().CONGES?.iaValue).toBe('25 j');
+    expect(component.coherenceAlerts().CONGES?.expectedDisplay).toBe('25 j');
   });
 
   it('should NOT alert conges when avocat = 0', () => {
@@ -258,7 +258,7 @@ describe('AncienneteSectionComponent', () => {
     setAi({ primeAncienneteContractuelle: 5 });
     initNoExisting();
     component.primeContrat.set(6);
-    expect(component.coherenceAlerts().PRIME?.iaValue).toBe('5 %');
+    expect(component.coherenceAlerts().PRIME?.expectedDisplay).toBe('5 %');
   });
 
   it('should NOT alert prime when AI null', () => {
@@ -292,7 +292,7 @@ describe('AncienneteSectionComponent', () => {
     initWithExisting();
     component.editForm();
     component.conventionCode.set('METALLURGIE');
-    expect(component.coherenceAlerts().CONVENTION?.iaValue).toBe('SYNTEC');
+    expect(component.coherenceAlerts().CONVENTION?.expectedDisplay).toBe('SYNTEC');
   });
 
   it('SF-IA-03-12: pas d\'alertes quand le bloc résultat est affiché (showForm=false)', () => {
@@ -369,7 +369,7 @@ describe('AncienneteSectionComponent', () => {
     initAndFlushBareme(404, MOCK_BAREME_BTP);
     // prefill a mis primeContrat=12. L'avocat le baisse à 5.
     component.primeContrat.set(5);
-    expect(component.coherenceAlerts().PRIME?.iaValue).toBe('12 % (convention)');
+    expect(component.coherenceAlerts().PRIME?.expectedDisplay).toBe('12 % (convention)');
   });
 
   it('SF-DT-07-05: pas d\'alerte PRIME vs bareme quand user = bareme', () => {
@@ -383,8 +383,10 @@ describe('AncienneteSectionComponent', () => {
     setAi({ conventionCollective: 'UNKNOWN', primeAncienneteContractuelle: null });
     fixture.detectChanges();
     httpMock.expectOne(API_URL).flush(null, { status: 404, statusText: 'Not Found' });
-    const req = httpMock.expectOne('/api/v1/anciennete/baremes/UNKNOWN');
-    req.flush(null, { status: 404, statusText: 'Not Found' });
+    // SF-155-14 : prefillFromAi() est appelé à la fois au ngOnInit ET dans loadExisting() error →
+    // 2 GET bareme peuvent être émis. On flush tous ceux en attente.
+    const baremeReqs = httpMock.match(r => r.url.startsWith('/api/v1/anciennete/baremes/UNKNOWN'));
+    baremeReqs.forEach(r => r.flush(null, { status: 404, statusText: 'Not Found' }));
     flushAnySourceExplanationsCalls();
     flushAnyConventionsCalls();
     expect(component.primeContrat()).toBe(0);
@@ -457,5 +459,157 @@ describe('AncienneteSectionComponent', () => {
     expect(component.salaireBase()).toBe(3500);
     expect(component.congesContrat()).toBe(27);
     expect(component.primeContrat()).toBe(3.5);
+  });
+
+  // ---- SF-155-14 : pré-remplissage IA + provenance ----
+
+  it('SF-155-14: prefillFromAi met provenanceConvention à IA quand IA fournit la convention', () => {
+    // Le service ConventionReferentialService normalise "METALLURGIE" → "IDCC_3248"
+    setAi({ conventionCollective: 'METALLURGIE' });
+    initNoExisting();
+    expect(component.conventionCode()).toBe('IDCC_3248');
+    expect(component.provenanceConvention()).toBe('IA');
+  });
+
+  it('SF-155-14: prefillFromAi met provenanceDateEntree à IA quand IA fournit la date', () => {
+    setAi({ dateEntree: '2019-04-15' });
+    initNoExisting();
+    expect(component.dateEntree()).toBe('2019-04-15');
+    expect(component.provenanceDateEntree()).toBe('IA');
+  });
+
+  it('SF-155-14: prefillFromAi met provenanceSalaire à IA quand IA fournit le salaire', () => {
+    setAi({ salaireBrutMensuel: 3200 });
+    initNoExisting();
+    expect(component.salaireBase()).toBe(3200);
+    expect(component.provenanceSalaire()).toBe('IA');
+  });
+
+  it('SF-155-14: prefillFromAi met provenanceConges à IA quand IA fournit les congés', () => {
+    setAi({ congesContractuels: 30 });
+    initNoExisting();
+    expect(component.congesContrat()).toBe(30);
+    expect(component.provenanceConges()).toBe('IA');
+  });
+
+  it('SF-155-14: prefillFromAi met provenancePrime à IA quand IA fournit la prime', () => {
+    setAi({ primeAncienneteContractuelle: 4 });
+    initNoExisting();
+    expect(component.primeContrat()).toBe(4);
+    expect(component.provenancePrime()).toBe('IA');
+  });
+
+  it('SF-155-14: provenances restent null si aiData absent', () => {
+    initNoExisting();
+    expect(component.provenanceConvention()).toBeNull();
+    expect(component.provenanceDateEntree()).toBeNull();
+    expect(component.provenanceSalaire()).toBeNull();
+    expect(component.provenanceConges()).toBeNull();
+    expect(component.provenancePrime()).toBeNull();
+  });
+
+  it('SF-155-14: onConventionChange efface provenanceConvention', () => {
+    setAi({ conventionCollective: 'METALLURGIE' });
+    initNoExisting();
+    expect(component.provenanceConvention()).toBe('IA');
+    component.onConventionChange();
+    expect(component.provenanceConvention()).toBeNull();
+  });
+
+  it('SF-155-14: onDateEntreeChange efface provenanceDateEntree', () => {
+    setAi({ dateEntree: '2019-04-15' });
+    initNoExisting();
+    expect(component.provenanceDateEntree()).toBe('IA');
+    component.onDateEntreeChange();
+    expect(component.provenanceDateEntree()).toBeNull();
+  });
+
+  it('SF-155-14: onSalaireChange efface provenanceSalaire', () => {
+    setAi({ salaireBrutMensuel: 3200 });
+    initNoExisting();
+    expect(component.provenanceSalaire()).toBe('IA');
+    component.onSalaireChange();
+    expect(component.provenanceSalaire()).toBeNull();
+  });
+
+  it('SF-155-14: onCongesChange efface provenanceConges', () => {
+    setAi({ congesContractuels: 30 });
+    initNoExisting();
+    expect(component.provenanceConges()).toBe('IA');
+    component.onCongesChange();
+    expect(component.provenanceConges()).toBeNull();
+  });
+
+  it('SF-155-14: onPrimeChange efface provenancePrime', () => {
+    setAi({ primeAncienneteContractuelle: 4 });
+    initNoExisting();
+    expect(component.provenancePrime()).toBe('IA');
+    component.onPrimeChange();
+    expect(component.provenancePrime()).toBeNull();
+  });
+
+  it('SF-155-14: ngOnChanges ré-applique prefillFromAi quand aiData change', () => {
+    initNoExisting();
+    expect(component.provenanceSalaire()).toBeNull();
+    component.aiData = {
+      conventionCollective: null, dateEntree: null, salaireBrutMensuel: 4500,
+      typeContrat: null, poste: null, motifLicenciement: null, dateLicenciement: null,
+      congesContractuels: null, primeAncienneteContractuelle: null,
+    } as any;
+    component.ngOnChanges({ aiData: { firstChange: false, currentValue: component.aiData, previousValue: null, isFirstChange: () => false } } as any);
+    flushAnyBaremeCalls();
+    flushAnySourceExplanationsCalls();
+    expect(component.salaireBase()).toBe(4500);
+    expect(component.provenanceSalaire()).toBe('IA');
+  });
+
+  it('SF-155-14: GET 200 (existing result) efface les badges IA', () => {
+    setAi({ conventionCollective: 'METALLURGIE', dateEntree: '2010-01-01', salaireBrutMensuel: 9999 });
+    initWithExisting();
+    // prefillForm a réinitialisé les provenances via prefillForm() — pas de badge "Pré-rempli depuis l'analyse"
+    expect(component.provenanceConvention()).toBeNull();
+    expect(component.provenanceDateEntree()).toBeNull();
+    expect(component.provenanceSalaire()).toBeNull();
+    expect(component.provenanceConges()).toBeNull();
+    expect(component.provenancePrime()).toBeNull();
+  });
+
+  // ---- SF-155-14 : non-régression CoherenceAlertBuilder ----
+
+  it('SF-155-14: alerte CONVENTION expose source=IA et contributors=[IA] (builder)', () => {
+    setAi({ conventionCollective: 'SYNTEC' });
+    initNoExisting();
+    component.conventionCode.set('METALLURGIE');
+    const alert = component.coherenceAlerts().CONVENTION!;
+    expect(alert).toBeTruthy();
+    expect(alert.source).toBe('IA');
+    expect(alert.contributors).toEqual(['IA']);
+    expect(alert.severity).toBe('WARNING');
+    expect(alert.expectedDisplay).toBe('SYNTEC');
+    expect(alert.field).toBe('CONVENTION');
+  });
+
+  it('SF-155-14: alerte SALAIRE expose champ field + reason via builder', () => {
+    setAi({ salaireBrutMensuel: 4000 });
+    initNoExisting();
+    component.salaireBase.set(5000);
+    const alert = component.coherenceAlerts().SALAIRE!;
+    expect(alert.field).toBe('SALAIRE');
+    expect(alert.reason).toContain('4000');
+  });
+
+  it('SF-155-14: alertTooltip utilise expectedDisplay (compat builder)', () => {
+    setAi({ conventionCollective: 'SYNTEC' });
+    initNoExisting();
+    component.conventionCode.set('METALLURGIE');
+    const alert = component.coherenceAlerts().CONVENTION!;
+    expect(component.alertTooltip(alert)).toBe('Détecté : SYNTEC');
+  });
+
+  it('SF-155-14: reasonFor utilise expectedDisplay (refactor builder)', () => {
+    setAi({ conventionCollective: 'SYNTEC' });
+    initNoExisting();
+    component.conventionCode.set('METALLURGIE');
+    expect(component.reasonFor('CONVENTION')).toBe('La convention attendue est SYNTEC.');
   });
 });

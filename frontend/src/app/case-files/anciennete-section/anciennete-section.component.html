@@ -31,7 +31,7 @@
             <div class="field-with-alert">
               <mat-form-field appearance="outline" class="form-field form-field--wide">
                 <mat-label>Convention collective</mat-label>
-                <mat-select [(ngModel)]="conventionCode">
+                <mat-select [(ngModel)]="conventionCode" (ngModelChange)="onConventionChange()">
                   @for (group of allConventions; track group.group) {
                     <mat-optgroup [label]="group.group">
                       @for (c of group.items; track c.value) {
@@ -41,6 +41,9 @@
                   }
                 </mat-select>
               </mat-form-field>
+              @if (provenanceConvention() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().CONVENTION; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('CONVENTION')"
@@ -61,8 +64,11 @@
             <div class="field-with-alert">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Date d'entrée</mat-label>
-                <input matInput type="date" [(ngModel)]="dateEntree">
+                <input matInput type="date" [(ngModel)]="dateEntree" (ngModelChange)="onDateEntreeChange()">
               </mat-form-field>
+              @if (provenanceDateEntree() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().DATE_ENTREE; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('DATE_ENTREE')"
@@ -78,8 +84,11 @@
             <div class="field-with-alert">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Salaire brut mensuel (€)</mat-label>
-                <input matInput type="number" [(ngModel)]="salaireBase">
+                <input matInput type="number" [(ngModel)]="salaireBase" (ngModelChange)="onSalaireChange()">
               </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().SALAIRE; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('SALAIRE')"
@@ -100,8 +109,11 @@
             <div class="field-with-alert">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Congés au contrat (jours)</mat-label>
-                <input matInput type="number" [(ngModel)]="congesContrat">
+                <input matInput type="number" [(ngModel)]="congesContrat" (ngModelChange)="onCongesChange()">
               </mat-form-field>
+              @if (provenanceConges() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().CONGES; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('CONGES')"
@@ -115,8 +127,11 @@
             <div class="field-with-alert">
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Prime ancienneté contrat (%)</mat-label>
-                <input matInput type="number" [(ngModel)]="primeContrat">
+                <input matInput type="number" [(ngModel)]="primeContrat" (ngModelChange)="onPrimeChange()">
               </mat-form-field>
+              @if (provenancePrime() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
               @if (coherenceAlerts().PRIME; as alert) {
                 <span class="coherence-badge coherence-warning"
                       [appCoherencePopover]="explanationFor('PRIME')"

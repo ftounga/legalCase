@@ -18,13 +18,14 @@ import { ConventionReferentialService, ConventionOption } from '../../core/servi
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 export type AncienneteAlertField = 'CONVENTION' | 'DATE_ENTREE' | 'SALAIRE' | 'CONGES' | 'PRIME';
 
-export interface AncienneteCoherenceAlert {
-  field: AncienneteAlertField;
-  iaValue: string;
-}
+// SF-155-14 : alias local rétro-compat — utilise l'interface générique partagée
+// (`CoherenceAlertBuilder` / `CoherenceAlert<F>` — pattern canonique F-IM-05).
+export type AncienneteCoherenceAlert = CoherenceAlert<AncienneteAlertField>;
 
 @Component({
   selector: 'app-anciennete-section',
@@ -58,6 +59,14 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   congesContrat = signal(25);
   primeContrat = signal(0);
 
+  // SF-155-14 : provenance IA par champ (badge "Pré-rempli depuis l'analyse").
+  // Effacé dès que l'avocat modifie manuellement un champ (onXxxChange).
+  provenanceConvention = signal<'IA' | null>(null);
+  provenanceDateEntree = signal<'IA' | null>(null);
+  provenanceSalaire = signal<'IA' | null>(null);
+  provenanceConges = signal<'IA' | null>(null);
+  provenancePrime = signal<'IA' | null>(null);
+
   coherenceAlerts = computed<Partial<Record<AncienneteAlertField, AncienneteCoherenceAlert>>>(() => {
     const ai = this.aiDataSignal();
     if (!this.showForm()) return {};
@@ -67,7 +76,13 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     // Convention — exact match upper-case (IA uniquement)
     if (ai?.conventionCollective && this.conventionCode()) {
       if (ai.conventionCollective.toUpperCase() !== this.conventionCode().toUpperCase()) {
-        alerts.CONVENTION = { field: 'CONVENTION', iaValue: ai.conventionCollective };
+        const a = CoherenceAlertBuilder.forField<AncienneteAlertField>('CONVENTION')
+          .addSource('IA', {
+            expectedDisplay: ai.conventionCollective,
+            reason: `Analyse du dossier : convention ${ai.conventionCollective}`,
+          })
+          .build();
+        if (a) alerts.CONVENTION = a;
       }
     }
 
@@ -75,7 +90,13 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     if (ai?.dateEntree && this.dateEntree()) {
       const diff = dateDaysDiff(ai.dateEntree, this.dateEntree());
       if (diff !== null && diff >= 15) {
-        alerts.DATE_ENTREE = { field: 'DATE_ENTREE', iaValue: ai.dateEntree };
+        const a = CoherenceAlertBuilder.forField<AncienneteAlertField>('DATE_ENTREE')
+          .addSource('IA', {
+            expectedDisplay: ai.dateEntree,
+            reason: `Analyse du dossier : date d'entrée ${ai.dateEntree}`,
+          })
+          .build();
+        if (a) alerts.DATE_ENTREE = a;
       }
     }
 
@@ -83,7 +104,14 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     if (ai?.salaireBrutMensuel != null && this.salaireBase() > 0) {
       const rel = percentDiff(ai.salaireBrutMensuel, this.salaireBase());
       if (rel >= 0.05) {
-        alerts.SALAIRE = { field: 'SALAIRE', iaValue: `${ai.salaireBrutMensuel} €` };
+        const display = `${ai.salaireBrutMensuel} €`;
+        const a = CoherenceAlertBuilder.forField<AncienneteAlertField>('SALAIRE')
+          .addSource('IA', {
+            expectedDisplay: display,
+            reason: `Analyse du dossier : salaire brut mensuel ${display}`,
+          })
+          .build();
+        if (a) alerts.SALAIRE = a;
       }
     }
 
@@ -91,12 +119,26 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     if (this.congesContrat() > 0) {
       if (ai?.congesContractuels != null) {
         if (Math.abs(ai.congesContractuels - this.congesContrat()) >= 1) {
-          alerts.CONGES = { field: 'CONGES', iaValue: `${ai.congesContractuels} j` };
+          const display = `${ai.congesContractuels} j`;
+          const a = CoherenceAlertBuilder.forField<AncienneteAlertField>('CONGES')
+            .addSource('IA', {
+              expectedDisplay: display,
+              reason: `Analyse du dossier : congés contractuels ${display}`,
+            })
+            .build();
+          if (a) alerts.CONGES = a;
         }
       } else if (bareme) {
         const total = BaremeService.totalConges(bareme, this.computeAnneesAnciennete());
         if (total > 0 && this.congesContrat() < total) {
-          alerts.CONGES = { field: 'CONGES', iaValue: `${total} j (convention)` };
+          const display = `${total} j (convention)`;
+          const a = CoherenceAlertBuilder.forField<AncienneteAlertField>('CONGES')
+            .addSource('IA', {
+              expectedDisplay: display,
+              reason: `Barème convention : ${display}`,
+            })
+            .build();
+          if (a) alerts.CONGES = a;
         }
       }
     }
@@ -105,12 +147,26 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     if (this.primeContrat() > 0) {
       if (ai?.primeAncienneteContractuelle != null) {
         if (Math.abs(ai.primeAncienneteContractuelle - this.primeContrat()) >= 0.5) {
-          alerts.PRIME = { field: 'PRIME', iaValue: `${ai.primeAncienneteContractuelle} %` };
+          const display = `${ai.primeAncienneteContractuelle} %`;
+          const a = CoherenceAlertBuilder.forField<AncienneteAlertField>('PRIME')
+            .addSource('IA', {
+              expectedDisplay: display,
+              reason: `Analyse du dossier : prime ancienneté ${display}`,
+            })
+            .build();
+          if (a) alerts.PRIME = a;
         }
       } else if (bareme) {
         const pct = BaremeService.maxPrimePourcentage(bareme, this.computeAnneesAnciennete());
         if (pct > 0 && this.primeContrat() + 0.5 <= pct) {
-          alerts.PRIME = { field: 'PRIME', iaValue: `${pct} % (convention)` };
+          const display = `${pct} % (convention)`;
+          const a = CoherenceAlertBuilder.forField<AncienneteAlertField>('PRIME')
+            .addSource('IA', {
+              expectedDisplay: display,
+              reason: `Barème convention : ${display}`,
+            })
+            .build();
+          if (a) alerts.PRIME = a;
         }
       }
     }
@@ -121,7 +177,7 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   alertsSummary = computed(() => ({ total: Object.keys(this.coherenceAlerts()).length }));
 
   alertTooltip(alert: AncienneteCoherenceAlert): string {
-    return `Détecté : ${alert.iaValue}`;
+    return `Détecté : ${alert.expectedDisplay}`;
   }
 
   // SF-129-01 : liste dynamique chargée depuis le backend (legal_referentials seedée
@@ -173,6 +229,10 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.aiDataSignal.set(this.aiData);
+    // SF-155-14 : garde-fou — pré-remplit au mount si aiData est déjà disponible
+    // (cas : pipeline déjà tourné avant ouverture du dossier). Aligné sur pattern
+    // canonique `immigration-title-decision-section` (F-IM-05).
+    this.prefillFromAi();
     this.loadConventions();
     this.loadExisting();
     this.loadSourceExplanations();
@@ -198,7 +258,10 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     if (!normalized) return;
     const all = [...this.conventionsFrance(), ...this.conventionsBelgique()];
     const match = all.find(o => o.value.toUpperCase() === normalized);
-    if (match) this.conventionCode.set(match.value);
+    if (match) {
+      this.conventionCode.set(match.value);
+      this.provenanceConvention.set('IA');
+    }
   }
 
   private loadSourceExplanations(): void {
@@ -232,13 +295,20 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
     const alert = this.coherenceAlerts()[field];
     if (!alert) return '';
     switch (field) {
-      case 'CONVENTION': return `La convention attendue est ${alert.iaValue}.`;
-      case 'DATE_ENTREE': return `La date d'entrée détectée est ${alert.iaValue}.`;
-      case 'SALAIRE': return `Le salaire brut mensuel détecté est ${alert.iaValue}.`;
-      case 'CONGES': return `Le nombre de jours de congés attendu est ${alert.iaValue}.`;
-      case 'PRIME': return `Le pourcentage de prime attendu est ${alert.iaValue}.`;
+      case 'CONVENTION': return `La convention attendue est ${alert.expectedDisplay}.`;
+      case 'DATE_ENTREE': return `La date d'entrée détectée est ${alert.expectedDisplay}.`;
+      case 'SALAIRE': return `Le salaire brut mensuel détecté est ${alert.expectedDisplay}.`;
+      case 'CONGES': return `Le nombre de jours de congés attendu est ${alert.expectedDisplay}.`;
+      case 'PRIME': return `Le pourcentage de prime attendu est ${alert.expectedDisplay}.`;
     }
   }
+
+  // SF-155-14 : handlers qui effacent le badge IA au changement manuel avocat.
+  onConventionChange(): void { this.provenanceConvention.set(null); }
+  onDateEntreeChange(): void { this.provenanceDateEntree.set(null); }
+  onSalaireChange(): void { this.provenanceSalaire.set(null); }
+  onCongesChange(): void { this.provenanceConges.set(null); }
+  onPrimeChange(): void { this.provenancePrime.set(null); }
 
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -281,15 +351,32 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
       this.loadBaremeAndPrefill();
       return;
     }
+    // SF-155-14 : pour chaque field IA extrait, applique la valeur + marque provenance='IA'.
+    // Le badge `auto_awesome` "Pré-rempli depuis l'analyse" s'affiche dans le template.
     if (this.aiData.conventionCollective) {
       // SF-129-01 : normaliser (ex. "3043" → "IDCC_3043", "METALLURGIE" → "IDCC_3248")
       const normalized = ConventionReferentialService.normalizeCode(this.aiData.conventionCollective);
-      if (normalized) this.conventionCode.set(normalized);
+      if (normalized) {
+        this.conventionCode.set(normalized);
+        this.provenanceConvention.set('IA');
+      }
     }
-    if (this.aiData.dateEntree) this.dateEntree.set(this.aiData.dateEntree);
-    if (this.aiData.salaireBrutMensuel) this.salaireBase.set(this.aiData.salaireBrutMensuel);
-    if (this.aiData.congesContractuels != null) this.congesContrat.set(this.aiData.congesContractuels);
-    if (this.aiData.primeAncienneteContractuelle != null) this.primeContrat.set(this.aiData.primeAncienneteContractuelle);
+    if (this.aiData.dateEntree) {
+      this.dateEntree.set(this.aiData.dateEntree);
+      this.provenanceDateEntree.set('IA');
+    }
+    if (this.aiData.salaireBrutMensuel) {
+      this.salaireBase.set(this.aiData.salaireBrutMensuel);
+      this.provenanceSalaire.set('IA');
+    }
+    if (this.aiData.congesContractuels != null) {
+      this.congesContrat.set(this.aiData.congesContractuels);
+      this.provenanceConges.set('IA');
+    }
+    if (this.aiData.primeAncienneteContractuelle != null) {
+      this.primeContrat.set(this.aiData.primeAncienneteContractuelle);
+      this.provenancePrime.set('IA');
+    }
     // SF-DT-07-05 : charger le bareme et compléter prefill pour les champs qu'IA n'a pas extraits.
     this.loadBaremeAndPrefill();
   }
@@ -356,11 +443,14 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   }
 
   private prefillForm(resp: AncienneteResponse): void {
+    // SF-155-14 : valeurs persistées — efface les badges IA (ces valeurs
+    // ont été validées par l'avocat au calcul précédent, pas pré-remplies).
     this.conventionCode.set(resp.conventionCode);
-    if (resp.dateEntree) this.dateEntree.set(resp.dateEntree);
-    if (resp.salaireBase != null) this.salaireBase.set(resp.salaireBase);
-    if (resp.congesContrat != null) this.congesContrat.set(resp.congesContrat);
-    if (resp.primeContrat != null) this.primeContrat.set(resp.primeContrat);
+    this.provenanceConvention.set(null);
+    if (resp.dateEntree) { this.dateEntree.set(resp.dateEntree); this.provenanceDateEntree.set(null); }
+    if (resp.salaireBase != null) { this.salaireBase.set(resp.salaireBase); this.provenanceSalaire.set(null); }
+    if (resp.congesContrat != null) { this.congesContrat.set(resp.congesContrat); this.provenanceConges.set(null); }
+    if (resp.primeContrat != null) { this.primeContrat.set(resp.primeContrat); this.provenancePrime.set(null); }
   }
 }
 
