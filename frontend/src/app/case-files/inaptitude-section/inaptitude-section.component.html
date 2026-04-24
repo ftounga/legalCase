@@ -1,0 +1,120 @@
+<section class="inap-section">
+  <header class="inap-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="inap-body">
+    <mat-icon class="inap-icon">medical_services</mat-icon>
+    <span class="inap-title">LICENCIEMENT POUR INAPTITUDE</span>
+    @if (result()) {
+      <span class="inap-chip">{{ result()!.total | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="inap-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="inap-body" class="inap-body">
+      @if (loading()) {
+        <div class="inap-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="inap-form" (ngSubmit)="calculate()">
+            <mat-form-field appearance="outline">
+              <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+              <input matInput type="number" min="0.01" step="0.01"
+                     [ngModel]="salaireMensuelReference()"
+                     (ngModelChange)="salaireMensuelReference.set($event)"
+                     name="salaireMensuelReference" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Ancienneté (années)</mat-label>
+              <input matInput type="number" min="0" step="1"
+                     [ngModel]="ancienneteAnnees()"
+                     (ngModelChange)="ancienneteAnnees.set($event)"
+                     name="ancienneteAnnees" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Origine de l'inaptitude</mat-label>
+              <mat-select
+                  [ngModel]="origineInaptitude()"
+                  (ngModelChange)="origineInaptitude.set($event)"
+                  name="origineInaptitude" required>
+                @for (o of originesDisponibles(); track o.code) {
+                  <mat-option [value]="o.code">{{ o.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Avis médecin du travail (optionnel)</mat-label>
+              <input matInput type="date"
+                     [ngModel]="avisMedecinTravailDate()"
+                     (ngModelChange)="avisMedecinTravailDate.set($event || null)"
+                     name="avisMedecinTravailDate" />
+            </mat-form-field>
+
+            <div class="inap-toggle-row">
+              <mat-slide-toggle
+                  [ngModel]="reclassementRespecte()"
+                  (ngModelChange)="reclassementRespecte.set($event)"
+                  name="reclassementRespecte">
+                Obligation de reclassement respectée
+              </mat-slide-toggle>
+            </div>
+
+            <div class="inap-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="inap-result">
+            <div class="inap-amount-block">
+              <span class="inap-amount-label">Total indemnités (inaptitude)</span>
+              <span class="inap-amount">{{ result()!.total | number:'1.0-2' }} €</span>
+              <span class="inap-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <ul class="inap-breakdown">
+              <li>
+                <span class="inap-bd-label">Indemnité légale</span>
+                <span class="inap-bd-value">{{ result()!.indemniteLegale | number:'1.0-2' }} €</span>
+              </li>
+              <li>
+                <span class="inap-bd-label">Indemnité compensatrice de préavis</span>
+                <span class="inap-bd-value">{{ result()!.indemniteCompensatricePreavis | number:'1.0-2' }} €</span>
+              </li>
+              <li>
+                <span class="inap-bd-label">Dommages pour manquement au reclassement</span>
+                <span class="inap-bd-value">{{ result()!.damagesReclassement | number:'1.0-2' }} €</span>
+              </li>
+            </ul>
+
+            <div class="inap-meta">
+              <span class="inap-meta-base">{{ result()!.baseJuridique }}</span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="inap-messages">
+                @for (m of result()!.messages; track m) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
