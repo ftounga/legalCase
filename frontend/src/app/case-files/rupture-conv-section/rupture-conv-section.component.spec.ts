@@ -149,12 +149,12 @@ describe('RuptureConvSectionComponent', () => {
         raison: 'Homologation obtenue', critereCode: 'RC_HOMOLOGATION' },
     ];
     fixture.detectChanges();
-    component.setReponse('RC_HOMOLOGATION', 'NON');
+    component.onReponseChange('RC_HOMOLOGATION', 'NON');
     const alert = component.coherenceAlerts()['RC_HOMOLOGATION'];
     expect(alert).toBeTruthy();
-    expect(alert.level).toBe('blocker');
-    expect(alert.source).toBe('F96');
-    expect(alert.expectedReponse).toBe('OUI');
+    expect(alert!.severity).toBe('CRITICAL');
+    expect(alert!.source).toBe('F96');
+    expect(alert!.expectedDisplay).toBe('OUI');
   });
 
   it('IA question answered "oui" on RC_ASSISTANCE + user set NON → warning alert (non-blocker)', () => {
@@ -164,12 +164,12 @@ describe('RuptureConvSectionComponent', () => {
         answerText: 'oui', critereCode: 'RC_ASSISTANCE' },
     ];
     fixture.detectChanges();
-    component.setReponse('RC_ASSISTANCE', 'NON');
+    component.onReponseChange('RC_ASSISTANCE', 'NON');
     const alert = component.coherenceAlerts()['RC_ASSISTANCE'];
     expect(alert).toBeTruthy();
-    expect(alert.level).toBe('warning');
-    expect(alert.source).toBe('QUESTION_IA');
-    expect(alert.expectedReponse).toBe('OUI');
+    expect(alert!.severity).toBe('WARNING');
+    expect(alert!.source).toBe('QUESTION_IA');
+    expect(alert!.expectedDisplay).toBe('OUI');
   });
 
   it('aiData detection OUI on RC_INDEMNITE + user set NON → blocker IA alert', () => {
@@ -181,12 +181,48 @@ describe('RuptureConvSectionComponent', () => {
     };
     fixture.detectChanges();
     // aiData pre-fills to OUI; override user choice manually
-    component.setReponse('RC_INDEMNITE', 'NON');
+    component.onReponseChange('RC_INDEMNITE', 'NON');
     const alert = component.coherenceAlerts()['RC_INDEMNITE'];
     expect(alert).toBeTruthy();
-    expect(alert.level).toBe('blocker');
-    expect(alert.source).toBe('IA');
-    expect(alert.aiReponse).toBe('OUI');
+    expect(alert!.severity).toBe('CRITICAL');
+    expect(alert!.source).toBe('IA');
+    expect(alert!.expectedDisplay).toBe('OUI');
+  });
+
+  it('SF-155-17 : prefillFromAi sets provenance IA on pre-filled criteres', () => {
+    rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.aiData = {
+      detections: {
+        RC_CONSENTEMENT: { reponse: 'OUI' },
+        RC_INDEMNITE: { reponse: 'NON', justification: 'Indemnité trop faible' },
+      },
+    };
+    fixture.detectChanges();
+    expect(component.provenanceReponses()['RC_CONSENTEMENT']).toBe('IA');
+    expect(component.provenanceReponses()['RC_INDEMNITE']).toBe('IA');
+    expect(component.provenanceReponses()['RC_DELAI_RETRACTATION']).toBeNull();
+  });
+
+  it('SF-155-17 : onReponseChange clears provenance IA badge', () => {
+    rcService.get.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 404 })));
+    component.aiData = {
+      detections: { RC_CONSENTEMENT: { reponse: 'OUI' } },
+    };
+    fixture.detectChanges();
+    expect(component.provenanceReponses()['RC_CONSENTEMENT']).toBe('IA');
+    component.onReponseChange('RC_CONSENTEMENT', 'NON');
+    expect(component.provenanceReponses()['RC_CONSENTEMENT']).toBeNull();
+    expect(component.reponses()['RC_CONSENTEMENT']).toBe('NON');
+  });
+
+  it('SF-155-17 : GET 200 never sets provenance IA (persisted = avocat)', () => {
+    rcService.get.mockReturnValue(of(fakeResponse));
+    component.aiData = {
+      detections: { RC_CONSENTEMENT: { reponse: 'OUI' } },
+    };
+    fixture.detectChanges();
+    expect(component.showForm()).toBe(false);
+    Object.values(component.provenanceReponses()).forEach(v => expect(v).toBeNull());
   });
 
   it('no alerts when showForm is false', () => {

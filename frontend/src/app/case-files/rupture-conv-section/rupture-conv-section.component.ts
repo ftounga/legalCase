@@ -16,6 +16,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
 interface CritereForm {
   code: string;
@@ -24,29 +26,30 @@ interface CritereForm {
   bloquant: boolean;
 }
 
-export type RCAlertLevel = 'blocker' | 'warning';
-export type RCAlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'PIECE_MANQUANTE' | 'MULTI';
+/**
+ * SF-155-17 : fields d'alerte F-IA-03 exposés par l'outil F-DT-10
+ * (validité rupture conventionnelle). Un par critère auditable.
+ */
+export type RCAlertField =
+  | 'RC_CONSENTEMENT'
+  | 'RC_DELAI_RETRACTATION'
+  | 'RC_HOMOLOGATION'
+  | 'RC_ASSISTANCE'
+  | 'RC_INDEMNITE'
+  | 'RC_ENTRETIENS';
 
-export interface RCCoherenceAlert {
-  level: RCAlertLevel;
-  source: RCAlertSource;
-  expectedReponse: 'OUI' | 'NON';
-  contributors: RCAlertSource[];
-  f96Statut?: 'VERIFIED' | 'NON_COMPLIANT' | null;
-  f96Raison?: string | null;
-  questionText?: string | null;
-  questionAnswer?: string | null;
-  aiReponse?: 'OUI' | 'NON' | null;
-  justification?: string | null;
-  pieceTexte?: string | null;
-}
+// SF-155-17 : alias rétro-compat — utilise l'interface générique partagée (SF-155-05).
+export type RCAlertSource = CoherenceAlertSource;
+export type RCCoherenceAlert = CoherenceAlert<RCAlertField>;
 
-const RC_CODES = new Set([
+const RC_CODES: ReadonlySet<RCAlertField> = new Set<RCAlertField>([
   'RC_CONSENTEMENT', 'RC_DELAI_RETRACTATION', 'RC_HOMOLOGATION',
   'RC_ASSISTANCE', 'RC_INDEMNITE', 'RC_ENTRETIENS',
 ]);
 
-const RC_BLOCKERS = new Set(['RC_CONSENTEMENT', 'RC_DELAI_RETRACTATION', 'RC_HOMOLOGATION', 'RC_INDEMNITE']);
+const RC_BLOCKERS: ReadonlySet<RCAlertField> = new Set<RCAlertField>([
+  'RC_CONSENTEMENT', 'RC_DELAI_RETRACTATION', 'RC_HOMOLOGATION', 'RC_INDEMNITE',
+]);
 
 const CRITERES_FR: CritereForm[] = [
   { code: 'RC_CONSENTEMENT', label: 'Consentement libre et éclairé', bloquant: true,
@@ -99,98 +102,100 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   reponses = signal<Record<string, Reponse>>(this.defaultReponses());
   result = signal<RuptureConvResponse | null>(null);
 
+  // SF-155-17 : provenance IA par critère. 'IA' quand le champ a été pré-rempli
+  // par `prefillFromAi()` ; remis à null dès que l'avocat modifie manuellement
+  // (handler `onReponseChange`). Pattern canonique harcèlement / immigration.
+  provenanceReponses = signal<Record<string, 'IA' | null>>(this.defaultProvenance());
+
   private aiDataSignal = signal<RuptureConvValidityDetection | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
   private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
-  coherenceAlerts = computed<Record<string, RCCoherenceAlert>>(() => {
+  coherenceAlerts = computed<Partial<Record<RCAlertField, RCCoherenceAlert>>>(() => {
     if (!this.showForm()) return {};
+    const alerts: Partial<Record<RCAlertField, RCCoherenceAlert>> = {};
     const detections = this.aiDataSignal()?.detections;
     const f96Index = this.buildF96Index(this.procedureChecksSignal());
     const questionsIndex = this.buildQuestionsIndex(this.aiQuestionsSignal());
     const piecesIndex = this.buildPiecesIndex(this.piecesManquantesSignal());
 
-    const alerts: Record<string, RCCoherenceAlert> = {};
     const reponses = this.reponses();
     for (const c of this.criteres) {
-      const code = c.code;
+      const code = c.code as RCAlertField;
       const reponse = reponses[code];
       if (!reponse || reponse === 'INCONNU') continue;
-      const level: RCAlertLevel = RC_BLOCKERS.has(code) ? 'blocker' : 'warning';
+      const severity = RC_BLOCKERS.has(code) ? 'CRITICAL' : 'WARNING';
 
-      // B : F-96 validé
+      // Hiérarchie F-IA-03 : F96 > QUESTION_IA > IA > PIECE_MANQUANTE.
+      // Utilise CoherenceAlertBuilder (SF-155-05) — le premier `expected` gagne,
+      // les sources ultérieures avec même expected deviennent `contributors`.
       const f96 = f96Index[code];
-      if (f96) {
-        const expected: 'OUI' | 'NON' = f96.statut === 'VERIFIED' ? 'OUI' : 'NON';
-        if (reponse === expected) continue;
-        const extras = this.collectSupportingSources(code, expected, questionsIndex, detections, piecesIndex, 'F96');
-        alerts[code] = this.multiOrSingle({
-          level,
-          primary: 'F96',
-          expectedReponse: expected,
-          f96Statut: f96.statut,
-          f96Raison: f96.raison ?? null,
-          extraContributors: extras.extraContributors,
-          questionText: extras.questionText,
-          questionAnswer: extras.questionAnswer,
-          aiReponse: extras.aiReponse,
-          justification: extras.justification,
-          pieceTexte: extras.pieceTexte,
-        });
-        continue;
-      }
-
-      // C : question IA répondue interprétable
       const q = questionsIndex[code];
-      if (q && q.expected) {
-        if (reponse === q.expected) continue;
-        const extras = this.collectSupportingSources(code, q.expected, null, detections, piecesIndex, 'QUESTION_IA');
-        alerts[code] = this.multiOrSingle({
-          level,
-          primary: 'QUESTION_IA',
-          expectedReponse: q.expected,
-          questionText: q.text,
-          questionAnswer: q.answer,
-          extraContributors: extras.extraContributors,
-          aiReponse: extras.aiReponse,
-          justification: extras.justification,
-          pieceTexte: extras.pieceTexte,
-        });
+      const det = detections?.[code];
+      const piece = piecesIndex[code];
+
+      const f96Expected = f96 ? (f96.statut === 'VERIFIED' ? 'OUI' : 'NON') : null;
+      const questionExpected = q?.expected ?? null;
+      const iaExpected: 'OUI' | 'NON' | null =
+        det && (det.reponse === 'OUI' || det.reponse === 'NON') ? det.reponse : null;
+
+      // Déterminer la source primaire (celle qui impose l'expected) dans l'ordre
+      // de hiérarchie. Si aucune des 3 sources "fortes" n'est en divergence, on
+      // tombe en E (pièce manquante seule — warning sur OUI).
+      let primaryExpected: 'OUI' | 'NON' | null = null;
+      if (f96Expected && f96Expected !== reponse) primaryExpected = f96Expected;
+      else if (questionExpected && questionExpected !== reponse) primaryExpected = questionExpected;
+      else if (iaExpected && iaExpected !== reponse) primaryExpected = iaExpected;
+
+      if (primaryExpected) {
+        const builder = CoherenceAlertBuilder.forField<RCAlertField>(code)
+          .withSeverity(severity as 'CRITICAL' | 'WARNING');
+
+        if (f96Expected === primaryExpected) {
+          const statut = f96!.statut === 'VERIFIED' ? 'vérifié' : 'non respecté';
+          const detail = f96!.raison ? ` (${f96!.raison})` : '';
+          builder.addSource('F96', {
+            expectedDisplay: primaryExpected,
+            reason: `Checklist procédurale : ${statut}${detail}`,
+          });
+        }
+        if (questionExpected === primaryExpected) {
+          builder.addSource('QUESTION_IA', {
+            expectedDisplay: primaryExpected,
+            reason: `Question complémentaire : "${q!.text}" → réponse "${q!.answer}"`,
+          });
+        }
+        if (iaExpected === primaryExpected) {
+          const just = det!.justification?.trim() || 'Aucune justification fournie';
+          builder.addSource('IA', {
+            expectedDisplay: primaryExpected,
+            reason: `Analyse du dossier : ${iaExpected}${just ? ' — ' + just : ''}`,
+          });
+        }
+        // PIECE_MANQUANTE : contributor additionnel, seulement pertinent quand
+        // l'expected canonique est NON (une pièce manquante pousse vers NON).
+        if (piece && primaryExpected === 'NON') {
+          builder.addPieceManquante(piece);
+        }
+
+        const alert = builder.build();
+        if (alert) alerts[code] = alert;
         continue;
       }
 
-      // D : détection IA
-      const detected = detections?.[code];
-      if (detected) {
-        const aiReponse = detected.reponse;
-        if (aiReponse === 'OUI' || aiReponse === 'NON') {
-          if (reponse !== aiReponse) {
-            const extras = this.collectSupportingSources(code, aiReponse, null, null, piecesIndex, 'IA');
-            alerts[code] = this.multiOrSingle({
-              level,
-              primary: 'IA',
-              expectedReponse: aiReponse,
-              aiReponse,
-              justification: detected.justification?.trim() || 'Aucune justification fournie',
-              extraContributors: extras.extraContributors,
-              pieceTexte: extras.pieceTexte,
-            });
-            continue;
-          }
-        }
-      }
-
-      // E : pièce manquante taggée — warning si avocat a coché OUI
-      const piece = piecesIndex[code];
+      // E — pièce manquante seule : warning si avocat a répondu OUI et aucune
+      // des 3 sources fortes n'a été contradictoire par ailleurs.
       if (piece && reponse === 'OUI') {
-        alerts[code] = {
-          level: 'warning',
-          source: 'PIECE_MANQUANTE',
-          expectedReponse: 'NON',
-          pieceTexte: piece,
-          contributors: ['PIECE_MANQUANTE'],
-        };
+        const builder = CoherenceAlertBuilder.forField<RCAlertField>(code)
+          .withSeverity('WARNING')
+          .addSource('PIECE_MANQUANTE', {
+            expectedDisplay: 'NON',
+            reason: `Pièce manquante : ${piece}`,
+            pieceTexte: piece,
+          });
+        const alert = builder.build();
+        if (alert) alerts[code] = alert;
       }
     }
     return alerts;
@@ -200,7 +205,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
     const alerts = Object.values(this.coherenceAlerts());
     return {
       total: alerts.length,
-      blockers: alerts.filter(a => a.level === 'blocker').length,
+      blockers: alerts.filter(a => a!.severity === 'CRITICAL').length,
     };
   });
 
@@ -240,12 +245,14 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
         this.result.set(resp);
         this.showForm.set(false);
         this.applyReponsesFromResult(resp);
+        // SF-155-17 : valeurs persistées = saisie avocat — jamais de badge IA.
+        this.provenanceReponses.set(this.defaultProvenance());
         this.loading.set(false);
       },
       error: () => {
         this.showForm.set(true);
         this.loading.set(false);
-        this.applyAiPrefill();
+        this.prefillFromAi();
       },
     });
   }
@@ -253,8 +260,10 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['aiData']) {
       this.aiDataSignal.set(this.aiData);
+      // SF-155-17 : ré-appliquer le pré-fill quand `aiData` arrive avant
+      // première résolution backend et que l'avocat n'a pas encore répondu.
       if (!changes['aiData'].firstChange && this.showForm() && !this.result()) {
-        this.applyAiPrefill();
+        this.prefillFromAi();
       }
     }
     if (changes['procedureChecks']) {
@@ -270,8 +279,21 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
 
   toggleCollapsed(): void { this.collapsed.update(v => !v); }
 
-  setReponse(code: string, value: Reponse): void {
+  /**
+   * SF-155-17 : handler manuel — efface le badge IA dès que l'avocat modifie
+   * le choix. Pattern canonique identique à harcelement/immigration sections.
+   */
+  onReponseChange(code: string, value: Reponse): void {
     this.reponses.update(r => ({ ...r, [code]: value }));
+    this.provenanceReponses.update(p => ({ ...p, [code]: null }));
+  }
+
+  /**
+   * @deprecated SF-155-17 : conservé pour compat tests existants — préférer
+   * `onReponseChange` qui efface aussi la provenance IA.
+   */
+  setReponse(code: string, value: Reponse): void {
+    this.onReponseChange(code, value);
   }
 
   analyze(): void {
@@ -320,22 +342,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
   }
 
   alertTooltip(alert: RCCoherenceAlert): string {
-    const parts: string[] = [];
-    for (const src of alert.contributors) {
-      if (src === 'F96') {
-        const statut = alert.f96Statut === 'VERIFIED' ? 'vérifié' : 'non respecté';
-        const detail = alert.f96Raison ? ` (${alert.f96Raison})` : '';
-        parts.push(`Checklist procédurale : ${statut}${detail}`);
-      } else if (src === 'QUESTION_IA') {
-        parts.push(`Question complémentaire : "${alert.questionText}" → réponse "${alert.questionAnswer}"`);
-      } else if (src === 'IA') {
-        const just = alert.justification ? ` — ${alert.justification}` : '';
-        parts.push(`Analyse du dossier : ${alert.aiReponse}${just}`);
-      } else if (src === 'PIECE_MANQUANTE') {
-        parts.push(`Pièce manquante : ${alert.pieceTexte}`);
-      }
-    }
-    return parts.length > 1 ? `Contredit ${parts.join(' ET ')}` : parts[0] ?? '';
+    return alert.contributors.length > 1 ? `Contredit ${alert.reason}` : alert.reason;
   }
 
   alertBadgeLabel(alert: RCCoherenceAlert): string {
@@ -348,84 +355,15 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
         case 'MULTI': return 'Incohérence multiple';
       }
     })();
-    return `${prefix} (${alert.expectedReponse})`;
+    return `${prefix} (${alert.expectedDisplay})`;
   }
 
-  private multiOrSingle(args: {
-    level: RCAlertLevel;
-    primary: RCAlertSource;
-    expectedReponse: 'OUI' | 'NON';
-    f96Statut?: 'VERIFIED' | 'NON_COMPLIANT' | null;
-    f96Raison?: string | null;
-    questionText?: string | null;
-    questionAnswer?: string | null;
-    aiReponse?: 'OUI' | 'NON' | null;
-    justification?: string | null;
-    pieceTexte?: string | null;
-    extraContributors?: RCAlertSource[];
-  }): RCCoherenceAlert {
-    const contributors: RCAlertSource[] = [args.primary, ...(args.extraContributors ?? [])];
-    const isMulti = contributors.length > 1;
-    return {
-      level: args.level,
-      source: isMulti ? 'MULTI' : args.primary,
-      expectedReponse: args.expectedReponse,
-      contributors,
-      f96Statut: args.f96Statut ?? null,
-      f96Raison: args.f96Raison ?? null,
-      questionText: args.questionText ?? null,
-      questionAnswer: args.questionAnswer ?? null,
-      aiReponse: args.aiReponse ?? null,
-      justification: args.justification ?? null,
-      pieceTexte: args.pieceTexte ?? null,
-    };
-  }
-
-  private collectSupportingSources(
-    code: string,
-    expected: 'OUI' | 'NON',
-    questionsIndex: Record<string, { expected: 'OUI' | 'NON' | null; text: string; answer: string }> | null,
-    detections: Record<string, { reponse: string; justification?: string | null }> | null | undefined,
-    piecesIndex: Record<string, string> | null,
-    primary: RCAlertSource,
-  ): {
-    extraContributors: RCAlertSource[];
-    questionText?: string | null;
-    questionAnswer?: string | null;
-    aiReponse?: 'OUI' | 'NON' | null;
-    justification?: string | null;
-    pieceTexte?: string | null;
-  } {
-    const extras: RCAlertSource[] = [];
-    let questionText: string | null = null, questionAnswer: string | null = null;
-    let aiReponse: 'OUI' | 'NON' | null = null, justification: string | null = null;
-    let pieceTexte: string | null = null;
-
-    if (primary !== 'QUESTION_IA' && questionsIndex) {
-      const q = questionsIndex[code];
-      if (q && q.expected === expected) {
-        extras.push('QUESTION_IA');
-        questionText = q.text;
-        questionAnswer = q.answer;
-      }
-    }
-    if (primary !== 'IA' && detections) {
-      const d = detections[code];
-      if (d && (d.reponse === 'OUI' || d.reponse === 'NON') && d.reponse === expected) {
-        extras.push('IA');
-        aiReponse = d.reponse;
-        justification = d.justification?.trim() || null;
-      }
-    }
-    if (primary !== 'PIECE_MANQUANTE' && piecesIndex && expected === 'NON') {
-      const p = piecesIndex[code];
-      if (p) {
-        extras.push('PIECE_MANQUANTE');
-        pieceTexte = p;
-      }
-    }
-
-    return { extraContributors: extras, questionText, questionAnswer, aiReponse, justification, pieceTexte };
+  /**
+   * SF-155-17 : alias rétro-compat — `level` était 'blocker'|'warning', on
+   * mappe depuis `severity` pour les classes CSS existantes.
+   */
+  alertLevelClass(alert: RCCoherenceAlert): 'blocker' | 'warning' {
+    return alert.severity === 'CRITICAL' ? 'blocker' : 'warning';
   }
 
   private buildF96Index(checks: ProcedureCheck[]): Record<string, { statut: 'VERIFIED' | 'NON_COMPLIANT', raison?: string | null }> {
@@ -433,7 +371,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
     if (!checks || checks.length === 0) return index;
     for (const chk of checks) {
       const code = chk.critereCode?.toUpperCase();
-      if (!code || !RC_CODES.has(code)) continue;
+      if (!code || !RC_CODES.has(code as RCAlertField)) continue;
       if (chk.statut !== 'VERIFIED' && chk.statut !== 'NON_COMPLIANT') continue;
       const existing = index[code];
       if (!existing || (existing.statut === 'VERIFIED' && chk.statut === 'NON_COMPLIANT')) {
@@ -448,7 +386,7 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
     if (!questions) return {};
     for (const q of questions) {
       const code = q.critereCode?.toUpperCase();
-      if (!code || !RC_CODES.has(code)) continue;
+      if (!code || !RC_CODES.has(code as RCAlertField)) continue;
       const answer = q.answerText?.trim().toLowerCase();
       if (!answer) continue;
       let expected: 'OUI' | 'NON' | null = null;
@@ -475,28 +413,48 @@ export class RuptureConvSectionComponent implements OnInit, OnChanges {
     if (!pieces) return index;
     for (const p of pieces) {
       const code = p.critereCode?.toUpperCase();
-      if (!code || !RC_CODES.has(code)) continue;
+      if (!code || !RC_CODES.has(code as RCAlertField)) continue;
       if (!index[code]) index[code] = p.texte;
     }
     return index;
   }
 
-  private applyAiPrefill(): void {
-    const detections = this.aiData?.detections;
+  /**
+   * SF-155-17 : pré-remplit les réponses depuis `aiData.detections`.
+   * N'écrase jamais une saisie avocat existante (provenance null).
+   * Marque `provenanceReponses[code] = 'IA'` pour afficher le badge.
+   */
+  private prefillFromAi(): void {
+    const detections = this.aiDataSignal()?.detections;
     if (!detections) return;
+    const currentReponses = this.reponses();
+    const currentProv = this.provenanceReponses();
+    const nextReponses: Record<string, Reponse> = { ...currentReponses };
+    const nextProv: Record<string, 'IA' | null> = { ...currentProv };
     for (const code of Object.keys(detections)) {
-      if (!RC_CODES.has(code)) continue;
+      if (!RC_CODES.has(code as RCAlertField)) continue;
       const r = detections[code].reponse;
-      if (r === 'OUI' || r === 'NON' || r === 'INCONNU') {
-        this.setReponse(code, r);
+      if (r !== 'OUI' && r !== 'NON' && r !== 'INCONNU') continue;
+      // Pré-fill uniquement si la case est INCONNU (vide) OU déjà pré-remplie par IA.
+      if (currentReponses[code] === 'INCONNU' || currentProv[code] === 'IA') {
+        nextReponses[code] = r;
+        nextProv[code] = r === 'INCONNU' ? null : 'IA';
       }
     }
+    this.reponses.set(nextReponses);
+    this.provenanceReponses.set(nextProv);
   }
 
   private defaultReponses(): Record<string, Reponse> {
     const r: Record<string, Reponse> = {};
     for (const c of CRITERES_FR) r[c.code] = 'INCONNU';
     return r;
+  }
+
+  private defaultProvenance(): Record<string, 'IA' | null> {
+    const p: Record<string, 'IA' | null> = {};
+    for (const c of CRITERES_FR) p[c.code] = null;
+    return p;
   }
 
   private applyReponsesFromResult(resp: RuptureConvResponse): void {
