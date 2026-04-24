@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="108-seed-immigration-jalons-extended" author="legalcase">
+        <comment>
+            SF-IM-16-01 : extension de l'enum `type_procedure_detectee` avec 6 nouveaux codes
+            pour débloquer la détection IA des procédures OQTF, regroupement familial,
+            naturalisation, changement de statut et AES salarié. Prérequis de F-IM-08 / F-IM-09.
+
+            Codes ajoutés (FRANCE uniquement — Belgique via F-IM-14) :
+              - REGROUPEMENT_FAMILIAL            (R.434-35 CESEDA, 6 mois)
+              - NATURALISATION_DECRET            (art. 21-15 CCiv, 18 mois)
+              - CHANGEMENT_STATUT                (L.412-1 CESEDA, 4 mois)
+              - AES_SALARIE                      (circulaire Valls 28/11/2012, 6 mois)
+              - OQTF_AVEC_DELAI                  (L.614-5 CESEDA, recours 30 j + audience TA)
+              - OQTF_SANS_DELAI                  (L.731-1 CESEDA, recours 48 h JLD)
+
+            Chaque entrée porte une description avocat SF-140-03 (langage métier).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1108000-0000-0000-0000-000000000001', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'REGROUPEMENT_FAMILIAL', '[{"label":"Instruction OFII — regroupement familial","offsetDays":180},{"label":"Silence vaut rejet — regroupement familial","offsetDays":180}]', 'Regroupement familial', NULL, true, true, 'CESEDA Art. R434-35', 'Procédure de regroupement familial (R.434-35 CESEDA) : un étranger en situation régulière en France depuis 18 mois demande à faire venir son conjoint et ses enfants mineurs. Le dossier est instruit par l''OFII (contrôle logement, ressources) puis transmis au consulat. Utilisé par F-IM-15 (calendrier procédural) et F-IM-11 (outil regroupement familial, backlog).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1108000-0000-0000-0000-000000000002', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'NATURALISATION_DECRET', '[{"label":"Instruction sous-préfecture — naturalisation par décret","offsetDays":540},{"label":"Silence vaut rejet — naturalisation","offsetDays":540}]', 'Naturalisation par décret', NULL, true, true, 'CCiv Art. 21-15 / Décret du 30 déc. 1993', 'Procédure de naturalisation française par décret (art. 21-15 CCiv) : demande déposée en préfecture par un étranger justifiant 5 ans de résidence habituelle en France, condition d''assimilation (niveau B1) et de ressources. Délai d''instruction 18 mois (art. 21-25-1 CCiv). Utilisé par F-IM-12 (outil naturalisation, backlog) et F-IM-15.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1108000-0000-0000-0000-000000000003', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'CHANGEMENT_STATUT', '[{"label":"Instruction préfecture — changement de statut","offsetDays":120},{"label":"Silence vaut rejet — changement de statut","offsetDays":120}]', 'Changement de statut', NULL, true, true, 'CESEDA Art. L412-1', 'Changement de statut (L.412-1 CESEDA) : un étranger titulaire d''un titre de séjour demande la délivrance d''un titre de nature différente (ex. étudiant devenant salarié après obtention d''un CDI, salarié devenant VPF après mariage avec un Français). Instruction préfecture 4 mois. Utilisé par F-IM-13 (outil changement de statut, backlog) et F-IM-15.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1108000-0000-0000-0000-000000000004', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'AES_SALARIE', '[{"label":"Instruction préfecture — admission exceptionnelle au séjour (salarié)","offsetDays":180},{"label":"Silence vaut rejet — AES salarié","offsetDays":180}]', 'Admission exceptionnelle au séjour — salarié', NULL, true, true, 'Circulaire Valls 28/11/2012', 'AES voie salariée (circulaire Valls du 28/11/2012, actualisée par circulaire Darmanin) : admission exceptionnelle pour un étranger sans titre régulier justifiant 5 ans de présence et 24 mois d''activité salariée (dont 8 dans les 12 derniers mois). Dossier auprès de la préfecture, instruction 6 mois. Le motif familial L.435-1 est couvert par REGULARISATION_EXCEPTIONNELLE. Utilisé par F-IM-09 (AES 4 motifs, backlog) et F-IM-15.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1108000-0000-0000-0000-000000000005', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'OQTF_AVEC_DELAI', '[{"label":"Expiration du délai de départ volontaire (30 j) — OQTF","offsetDays":30},{"label":"Audience tribunal administratif — recours OQTF","offsetDays":90},{"label":"Décision tribunal administratif — recours OQTF","offsetDays":180}]', 'OQTF avec délai de départ volontaire', NULL, true, true, 'CESEDA Art. L614-5', 'Obligation de quitter le territoire français avec délai de départ volontaire (L.614-5 CESEDA) : le préfet notifie une OQTF assortie d''un DDV de 30 jours. Le recours devant le tribunal administratif doit être formé dans ce délai (effet suspensif). Audience dans les 3 mois, décision dans les 6 mois. Utilisé par F-IM-08 (OQTF + contentieux éloignement, backlog) et F-IM-15.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1108000-0000-0000-0000-000000000006', NULL, 'DROIT_IMMIGRATION', 'IMMIGRATION_JALONS', 'OQTF_SANS_DELAI', '[{"label":"Audience tribunal administratif (JLD) — recours OQTF sans DDV","offsetDays":4},{"label":"Décision tribunal administratif (JLD) — recours OQTF sans DDV","offsetDays":7}]', 'OQTF sans délai de départ volontaire', NULL, true, true, 'CESEDA Art. L731-1', 'OQTF sans délai de départ volontaire (L.731-1 CESEDA) : prononcée par le préfet lorsque l''étranger présente un risque de fuite ou un trouble à l''ordre public. Le recours doit être formé dans les 48 heures devant le juge administratif statuant seul (JLD) qui tranche dans les 96 heures. Procédure d''urgence. Utilisé par F-IM-08 et F-IM-15.', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM legal_referentials WHERE id IN (
+                    'f1108000-0000-0000-0000-000000000001',
+                    'f1108000-0000-0000-0000-000000000002',
+                    'f1108000-0000-0000-0000-000000000003',
+                    'f1108000-0000-0000-0000-000000000004',
+                    'f1108000-0000-0000-0000-000000000005',
+                    'f1108000-0000-0000-0000-000000000006'
+                );
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
