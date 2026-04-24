@@ -105,22 +105,22 @@
               <ul class="oqtf-breakdown">
                 <li>
                   <span class="oqtf-bd-label">Expiration du délai de départ volontaire</span>
-                  <span class="oqtf-bd-value">{{ result()!.dateExpirationDdv }}</span>
+                  <span class="oqtf-bd-value">{{ result()!.dateExpirationDdv | date:'dd/MM/yyyy' }}</span>
                 </li>
                 <li>
                   <span class="oqtf-bd-label">Expiration du délai de recours TA</span>
-                  <span class="oqtf-bd-value">{{ result()!.dateExpirationDelaiRecours }}</span>
+                  <span class="oqtf-bd-value">{{ result()!.dateExpirationDelaiRecours | date:'dd/MM/yyyy' }}</span>
                 </li>
                 @if (result()!.recoursForme && result()!.dateAudiencePrevisionnelle) {
                   <li>
                     <span class="oqtf-bd-label">Audience TA prévisionnelle</span>
-                    <span class="oqtf-bd-value">{{ result()!.dateAudiencePrevisionnelle }}</span>
+                    <span class="oqtf-bd-value">{{ result()!.dateAudiencePrevisionnelle | date:'dd/MM/yyyy' }}</span>
                   </li>
                 }
                 @if (result()!.recoursForme && result()!.dateDecisionTaPrevisionnelle) {
                   <li>
                     <span class="oqtf-bd-label">Décision TA prévisionnelle</span>
-                    <span class="oqtf-bd-value">{{ result()!.dateDecisionTaPrevisionnelle }}</span>
+                    <span class="oqtf-bd-value">{{ result()!.dateDecisionTaPrevisionnelle | date:'dd/MM/yyyy' }}</span>
                   </li>
                 }
               </ul>
@@ -139,13 +139,20 @@
               @if (result()!.messages?.length) {
                 <ul class="oqtf-messages">
                   @for (m of result()!.messages; track m) {
-                    <li>{{ m }}</li>
+                    <li [innerHTML]="m | legalCitations"></li>
                   }
                 </ul>
               }
 
+              @if (result()!.formule) {
+                <div class="oqtf-formule-block">
+                  <span class="oqtf-formule-label">Formule</span>
+                  <span class="oqtf-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
               <div class="oqtf-meta">
-                <span class="oqtf-meta-base">{{ result()!.baseJuridique }}</span>
+                <span class="oqtf-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
                 <button mat-stroked-button type="button" (click)="editMode()">
                   <mat-icon>edit</mat-icon> Modifier
                 </button>

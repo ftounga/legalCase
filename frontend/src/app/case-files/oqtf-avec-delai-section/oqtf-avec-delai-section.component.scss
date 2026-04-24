@@ -230,7 +230,7 @@
 }
 
 .oqtf-messages {
-  list-style: disc inside;
+  list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
@@ -245,6 +245,15 @@
     color: var(--ds-text-primary, #1a2330);
     line-height: 1.5;
   }
+
+  // F-155 SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
 }
 
 .oqtf-meta {
@@ -258,5 +267,30 @@
   font-size: 13px;
   color: var(--ds-text-secondary, #6a7485);
   font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+// F-155 SF-155-02 — affichage `formule` (harmonisation avec les outils calcul montant)
+.oqtf-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.oqtf-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.oqtf-formule {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }

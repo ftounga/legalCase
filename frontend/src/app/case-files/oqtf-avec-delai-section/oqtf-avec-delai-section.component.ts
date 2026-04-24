@@ -19,6 +19,7 @@ import {
   StatutDelai,
 } from '../../core/models/oqtf-avec-delai.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 
 /**
  * SF-IM-08-02 : outil décisionnel dédié "OQTF avec délai de départ
@@ -36,6 +37,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatChipsModule, MatProgressSpinnerModule,
+    LegalCitationsPipe,
   ],
   templateUrl: './oqtf-avec-delai-section.component.html',
   styleUrl: './oqtf-avec-delai-section.component.scss',

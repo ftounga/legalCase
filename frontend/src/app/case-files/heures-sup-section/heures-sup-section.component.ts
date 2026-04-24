@@ -13,6 +13,7 @@ import {
   HeuresSupResponse,
 } from '../../core/models/heures-sup.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 
 /**
  * SF-DT-19-02 : outil décisionnel dédié "Calculateur heures supplémentaires"
@@ -28,6 +29,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule,
     MatProgressSpinnerModule,
+    LegalCitationsPipe,
   ],
   templateUrl: './heures-sup-section.component.html',
   styleUrl: './heures-sup-section.component.scss',

@@ -68,13 +68,8 @@
     color: #156135;
   }
 
-  &--cra {
-    background: rgba(201, 165, 75, 0.28);
-    color: #8a6a16;
-    border: 1px solid var(--ds-accent-gold, #c9a54b);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-  }
+  // F-155 SF-155-03 — le modificateur --cra a été remplacé par <app-decisional-header-flag>
+  // pour factoriser le pattern "chip additionnel header" partagé avec annexe13-be.
 }
 
 .oqtf-sd-toggle {
@@ -278,7 +273,7 @@
 }
 
 .oqtf-sd-messages {
-  list-style: disc inside;
+  list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
@@ -293,6 +288,15 @@
     color: var(--ds-text-primary, #1a2330);
     line-height: 1.5;
   }
+
+  // F-155 SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
 }
 
 .oqtf-sd-meta {
@@ -306,5 +310,31 @@
   font-size: 13px;
   color: var(--ds-text-secondary, #6a7485);
   font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+// F-155 SF-155-02 — affichage `formule` (harmonisation avec les outils calcul montant)
+// Bordure rouge pour rester cohérent avec la palette urgence 48h du composant
+.oqtf-sd-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(192, 36, 36, 0.03);
+  border-left: 3px solid #c02424;
+  border-radius: 4px;
+}
+
+.oqtf-sd-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.oqtf-sd-formule {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }

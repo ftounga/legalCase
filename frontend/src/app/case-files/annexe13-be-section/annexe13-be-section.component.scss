@@ -57,15 +57,8 @@
   }
 }
 
-.annexe13-badge-transfert {
-  padding: 4px 10px;
-  border-radius: 12px;
-  background: var(--ds-accent-gold, #c9a54b);
-  color: #3a2c08;
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-}
+// F-155 SF-155-03 — `.annexe13-badge-transfert` remplacé par <app-decisional-header-flag>
+// pour factoriser le pattern "chip additionnel header" partagé avec oqtf-sans-delai.
 
 .annexe13-toggle {
   color: var(--ds-text-secondary, #6a7485);
@@ -276,7 +269,7 @@
 }
 
 .annexe13-messages {
-  list-style: disc inside;
+  list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
@@ -291,6 +284,15 @@
     color: var(--ds-text-primary, #1a2330);
     line-height: 1.5;
   }
+
+  // F-155 SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
 }
 
 .annexe13-meta {
@@ -304,5 +306,30 @@
   font-size: 13px;
   color: var(--ds-text-secondary, #6a7485);
   font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+// F-155 SF-155-02 — affichage `formule` (harmonisation avec les outils calcul montant)
+.annexe13-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.annexe13-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.annexe13-formule {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }

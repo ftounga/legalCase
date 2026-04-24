@@ -18,6 +18,7 @@ import {
   ORIGINES_FR,
 } from '../../core/models/inaptitude.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 
 /**
  * SF-DT-15-02 : outil décisionnel dédié "Licenciement pour inaptitude"
@@ -32,6 +33,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatProgressSpinnerModule,
+    LegalCitationsPipe,
   ],
   templateUrl: './inaptitude-section.component.html',
   styleUrl: './inaptitude-section.component.scss',

@@ -12,7 +12,7 @@
         {{ statutLabel(result()!.statutDelaiRecours) }}
       </span>
       @if (result()!.placementCra) {
-        <span class="oqtf-sd-chip oqtf-sd-chip--cra" title="Placement en CRA en cours">CRA</span>
+        <app-decisional-header-flag label="CRA" icon="warning" variant="warning" />
       }
     }
     <mat-icon class="oqtf-sd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
@@ -163,13 +163,20 @@
               @if (result()!.messages?.length) {
                 <ul class="oqtf-sd-messages">
                   @for (m of result()!.messages; track m) {
-                    <li>{{ m }}</li>
+                    <li [innerHTML]="m | legalCitations"></li>
                   }
                 </ul>
               }
 
+              @if (result()!.formule) {
+                <div class="oqtf-sd-formule-block">
+                  <span class="oqtf-sd-formule-label">Formule</span>
+                  <span class="oqtf-sd-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
               <div class="oqtf-sd-meta">
-                <span class="oqtf-sd-meta-base">{{ result()!.baseJuridique }}</span>
+                <span class="oqtf-sd-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
                 <button mat-stroked-button type="button" (click)="editMode()">
                   <mat-icon>edit</mat-icon> Modifier
                 </button>
