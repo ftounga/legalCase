@@ -46,7 +46,7 @@
               }
               @if (coherenceAlerts().TAUX_HORAIRE; as alert) {
                 <span class="hs-coherence-badge hs-coherence-warning"
-                      [appCoherencePopover]="[]"
+                      [appCoherencePopover]="explanationFor('TAUX_HORAIRE')"
                       [appCoherencePopoverReason]="alertTooltip(alert)"
                       [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
@@ -54,7 +54,7 @@
               }
               @if (coherenceAlerts().SALAIRE_DEDUIT; as note) {
                 <span class="hs-coherence-note"
-                      [appCoherencePopover]="[]"
+                      [appCoherencePopover]="explanationFor('SALAIRE_DEDUIT')"
                       [appCoherencePopoverReason]="alertTooltip(note)"
                       [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>info_outline</mat-icon> {{ alertBadgeLabel(note) }}
@@ -108,7 +108,7 @@
                 }
                 @if (coherenceAlerts().HEURES_SUP; as alert) {
                   <span class="hs-coherence-badge hs-coherence-warning"
-                        [appCoherencePopover]="[]"
+                        [appCoherencePopover]="explanationFor('HEURES_SUP')"
                         [appCoherencePopoverReason]="alertTooltip(alert)"
                         [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}

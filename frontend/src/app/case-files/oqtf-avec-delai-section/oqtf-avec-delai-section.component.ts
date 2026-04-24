@@ -26,6 +26,9 @@ import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSeverity } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
 /** Enum valeurs valides pour pré-fill / alertes motif. */
 const MOTIFS_OQTF_SET: ReadonlySet<MotifOqtf> = new Set<MotifOqtf>([
@@ -63,6 +66,8 @@ export type OqtfCoherenceAlert = CoherenceAlert<OqtfAlertField>;
     MatSlideToggleModule, MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    // SF-155-07 (DIV-6) : flag header partagé (cohérent avec oqtf-sans-delai + annexe13-be).
+    DecisionalHeaderFlagComponent,
   ],
   templateUrl: './oqtf-avec-delai-section.component.html',
   styleUrl: './oqtf-avec-delai-section.component.scss',
@@ -127,10 +132,15 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
     return { total: values.length, blockers };
   });
 
+  // SF-155-07 (DIV-7) : map {sourceKey → explanations} pour popovers SF-IA-03-15c.
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
+
   constructor(
     private service: OqtfAvecDelaiService,
     private snackBar: MatSnackBar,
     @Optional() private dashboardRefresh: CaseDashboardRefreshService,
+    // SF-155-07 (DIV-7) : injection `@Optional()` — fail-open strict.
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
   ) {}
 
   ngOnInit(): void {
@@ -141,7 +151,36 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (this.isFrance()) {
       this.load();
+      // SF-155-07 (DIV-7) : pré-charge les explications F-IA-03-15a.
+      this.loadSourceExplanations();
     }
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : charge les explications de sources via F-IA-03-15a.
+   * Fail-open strict : erreur ou absence du service = map vide.
+   */
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    if (!this.sourceExplanationService) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: (map) => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : mapping field → sourceKey. Convention `IM08_<FIELD>`.
+   */
+  explanationFor(field: OqtfAlertField): SourceExplanation[] {
+    const key = (() => {
+      switch (field) {
+        case 'DATE_NOTIFICATION': return 'IM08_DATE_NOTIFICATION';
+        case 'MOTIF_OQTF': return 'IM08_MOTIF_OQTF';
+        case 'RECOURS_FORME': return 'IM08_RECOURS_FORME';
+      }
+    })();
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   ngOnChanges(changes: SimpleChanges): void {

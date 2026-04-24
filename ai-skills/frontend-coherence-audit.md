@@ -85,6 +85,12 @@ Convention projet : **`<input type="date">`** natif pour les dates simples, **`<
 
 **Exception rouge dominant** (palette rouge pour DISPONIBLE et URGENT) : **réservée aux urgences absolues < 72h** (ex. F-IM-08 SF-04 OQTF sans délai 48h JLD). Documenter l'exception dans le composant + message explicitant pourquoi.
 
+**Convention nommage palette rouge** (SF-155-07 / DIV-8) :
+- **Par défaut** : un seul modificateur `--danger` (ex. `oqtf-banner--danger`, `annexe13-banner--danger`). Utilisé pour `EXPIRE` uniquement dans les outils à urgence standard.
+- **Exception urgence < 72h** : gradation `--danger-medium` / `--danger-strong` / `--danger-dark` autorisée pour représenter l'escalade d'urgence quand tous les statuts sont déjà en zone critique (DISPONIBLE inclus). Seul cas légitime à ce jour : `oqtf-sans-delai-section` (F-IM-08 SF-04, 48h JLD).
+- **Règle d'usage** : tout composant adoptant la gradation `--danger-medium/-strong/-dark` DOIT commenter en SCSS la justification (ex. `// Urgence absolue 48h — palette rouge dominante autorisée par DESIGN_SYSTEM.md`) ET inclure une mention dans le commentaire de classe `@Component` (ou dans `bannerClass()`).
+- **Revue** : tout nouveau composant décisionnel qui introduit une gradation rouge sans justification documentée est marqué FAIL dans l'audit.
+
 ### Typographie
 
 - **Inter** pour tout le texte courant (inclus labels, messages)

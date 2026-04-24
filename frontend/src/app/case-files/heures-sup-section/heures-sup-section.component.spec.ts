@@ -14,6 +14,13 @@ describe('HeuresSupSectionComponent', () => {
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
 
   const BASE_URL = '/api/v1/case-files/case-1/heures-sup';
+  const SOURCE_EXPL_URL = '/api/v1/case-files/case-1/source-explanations';
+
+  /** SF-155-07 (DIV-7) : absorbe la requête source-explanations (fail-open). */
+  function flushSourceExplanations(): void {
+    const reqs = httpMock.match(SOURCE_EXPL_URL);
+    reqs.forEach((r) => r.flush([]));
+  }
 
   function frResponse(): HeuresSupResponse {
     return {
@@ -98,7 +105,11 @@ describe('HeuresSupSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    // SF-155-07 (DIV-7) : absorbe les requêtes source-explanations en attente.
+    flushSourceExplanations();
+    httpMock.verify();
+  });
 
   // ========================================================================
   // Tests existants SF-DT-19-02 — doivent rester verts
@@ -616,5 +627,39 @@ describe('HeuresSupSectionComponent', () => {
     expect(alert!.contributors).toContain('IA');
     expect(alert!.contributors).toContain('PIECE_MANQUANTE');
     expect(alert!.pieceTexte).toBe('Plannings mensuels');
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-07 (DIV-7) — explanationFor mapping + fail-open SourceExplanationService
+  // ---------------------------------------------------------------------------
+
+  describe('SF-155-07 (DIV-7) — explanationFor', () => {
+    it('explanationFor retourne [] quand la map est vide (fail-open)', () => {
+      component.ngOnInit();
+      flush404();
+      flushSourceExplanations();
+      expect(component.explanationFor('TAUX_HORAIRE')).toEqual([]);
+      expect(component.explanationFor('HEURES_SUP')).toEqual([]);
+      expect(component.explanationFor('SALAIRE_DEDUIT')).toEqual([]);
+    });
+
+    it('explanationFor retourne les explications quand la map est peuplée sur la bonne clé', () => {
+      component.ngOnInit();
+      flush404();
+      httpMock.expectOne(SOURCE_EXPL_URL).flush([
+        {
+          sourceKey: 'HS_TAUX_HORAIRE',
+          sourceType: 'DOCUMENT',
+          label: 'Contrat de travail',
+          sentence: 'Taux horaire brut 20 €/h',
+          secondaryText: null,
+          actionType: 'OPEN_DOCUMENT',
+          actionTarget: 'doc-1',
+        },
+      ]);
+      expect(component.explanationFor('TAUX_HORAIRE').length).toBe(1);
+      expect(component.explanationFor('TAUX_HORAIRE')[0].label).toBe('Contrat de travail');
+      expect(component.explanationFor('HEURES_SUP')).toEqual([]);
+    });
   });
 });

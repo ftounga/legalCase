@@ -39,6 +39,8 @@ import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisio
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSeverity } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
 /**
  * SF-IM-08-04 : outil décisionnel dédié "OQTF SANS délai de départ
@@ -192,10 +194,15 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
     return { total: values.length, blockers };
   });
 
+  // SF-155-07 (DIV-7) : map {sourceKey → explanations} pour popovers SF-IA-03-15c.
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
+
   constructor(
     private service: OqtfSansDelaiService,
     private snackBar: MatSnackBar,
     @Optional() private dashboardRefresh: CaseDashboardRefreshService,
+    // SF-155-07 (DIV-7) : injection `@Optional()` — fail-open strict.
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
   ) {}
 
   ngOnInit(): void {
@@ -210,7 +217,37 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
       // les signals encore à leur valeur défaut.
       this.prefillFromAi();
       this.load();
+      // SF-155-07 (DIV-7) : pré-charge les explications F-IA-03-15a.
+      this.loadSourceExplanations();
     }
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : charge les explications de sources via F-IA-03-15a.
+   * Fail-open strict : erreur ou absence = map vide.
+   */
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    if (!this.sourceExplanationService) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: (map) => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : mapping field → sourceKey. Convention `IM08_<FIELD>`.
+   */
+  explanationFor(field: OqtfSdAlertField): SourceExplanation[] {
+    const key = (() => {
+      switch (field) {
+        case 'DATE_HEURE_NOTIFICATION': return 'IM08_DATE_HEURE_NOTIFICATION';
+        case 'PLACEMENT_CRA': return 'IM08_PLACEMENT_CRA';
+        case 'RECOURS_FORME': return 'IM08_RECOURS_FORME';
+        case 'MOTIF_SANS_DELAI': return 'IM08_MOTIF_SANS_DELAI';
+      }
+    })();
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   ngOnChanges(changes: SimpleChanges): void {

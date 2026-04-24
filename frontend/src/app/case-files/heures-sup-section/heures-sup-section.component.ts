@@ -26,6 +26,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
 /** Durée légale française mensualisée (35 h × 52 semaines / 12). */
 const HEURES_MOIS_FR = 151.67;
@@ -151,10 +153,17 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     return { total: values.length, blockers: 0 };
   });
 
+  // SF-155-07 (DIV-7) : map {sourceKey → explanations} pour les popovers
+  // SF-IA-03-15c. Alimentée au mount, consultée par `explanationFor(field)`.
+  // Fail-open : map vide si service absent ou erreur HTTP.
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
+
   constructor(
     private service: HeuresSupService,
     private snackBar: MatSnackBar,
     @Optional() private dashboardRefresh: CaseDashboardRefreshService | null,
+    // SF-155-07 (DIV-7) : injection `@Optional()` — fail-open strict.
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
   ) {}
 
   ngOnInit(): void {
@@ -163,6 +172,36 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.load();
+    // SF-155-07 (DIV-7) : pré-charge les explications F-IA-03-15a pour les popovers.
+    this.loadSourceExplanations();
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : charge les explications de sources via F-IA-03-15a.
+   * Fail-open strict : erreur ou absence de service = map vide.
+   */
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    if (!this.sourceExplanationService) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: (map) => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : mapping field → sourceKey pour alimenter les popovers.
+   * Convention `HS_<FIELD>` (upper_case).
+   */
+  explanationFor(field: HsAlertField): SourceExplanation[] {
+    const key = (() => {
+      switch (field) {
+        case 'TAUX_HORAIRE': return 'HS_TAUX_HORAIRE';
+        case 'HEURES_SUP': return 'HS_HEURES_SUP';
+        case 'SALAIRE_DEDUIT': return 'HS_SALAIRE_DEDUIT';
+      }
+    })();
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   ngOnChanges(changes: SimpleChanges): void {

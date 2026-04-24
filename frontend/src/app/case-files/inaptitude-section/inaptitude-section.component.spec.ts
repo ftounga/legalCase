@@ -14,6 +14,17 @@ describe('InaptitudeSectionComponent', () => {
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
 
   const BASE_URL = '/api/v1/case-files/case-1/inaptitude';
+  const SOURCE_EXPL_URL = '/api/v1/case-files/case-1/source-explanations';
+
+  /**
+   * SF-155-07 (DIV-7) : absorbe la requête `source-explanations` émise par
+   * `ngOnInit()` (fail-open). Les tests appellent ce helper après leur
+   * `ngOnInit()` pour éviter que `httpMock.verify()` ne crash.
+   */
+  function flushSourceExplanations(): void {
+    const reqs = httpMock.match(SOURCE_EXPL_URL);
+    reqs.forEach((r) => r.flush([]));
+  }
 
   function frResponse(): InaptitudeResponse {
     return {
@@ -62,7 +73,12 @@ describe('InaptitudeSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    // SF-155-07 (DIV-7) : absorbe les requêtes source-explanations en attente
+    // avant la vérification httpMock (fail-open silencieux si non-matched).
+    flushSourceExplanations();
+    httpMock.verify();
+  });
 
   // ==========================================================================
   // Tests existants conservés (pré-SF-155-04-A2)
@@ -548,5 +564,42 @@ describe('InaptitudeSectionComponent', () => {
     expect(alert!.contributors).toContain('IA');
     expect(alert!.contributors).toContain('PIECE_MANQUANTE');
     expect(alert!.pieceTexte).toBe('Courrier de proposition reclassement');
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-07 (DIV-7) — explanationFor mapping + fail-open SourceExplanationService
+  // ---------------------------------------------------------------------------
+
+  describe('SF-155-07 (DIV-7) — explanationFor / SourceExplanationService', () => {
+    it('explanationFor retourne [] quand la map est vide (fail-open)', () => {
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+      expect(component.explanationFor('SALAIRE')).toEqual([]);
+      expect(component.explanationFor('ORIGINE')).toEqual([]);
+      expect(component.explanationFor('AVIS_DATE')).toEqual([]);
+      expect(component.explanationFor('RECLASSEMENT')).toEqual([]);
+    });
+
+    it('explanationFor retourne les explications quand la map est peuplée sur la bonne clé', () => {
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      const seReq = httpMock.expectOne(SOURCE_EXPL_URL);
+      seReq.flush([
+        {
+          sourceKey: 'INAPT_SALAIRE',
+          sourceType: 'DOCUMENT',
+          label: 'Fiche de paie',
+          sentence: '3 000 € brut',
+          secondaryText: null,
+          actionType: 'OPEN_DOCUMENT',
+          actionTarget: 'doc-1',
+        },
+      ]);
+      expect(component.explanationFor('SALAIRE').length).toBe(1);
+      expect(component.explanationFor('SALAIRE')[0].label).toBe('Fiche de paie');
+      // Autres fields sans explanation → []
+      expect(component.explanationFor('ORIGINE')).toEqual([]);
+    });
   });
 });

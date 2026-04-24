@@ -25,6 +25,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { SourceExplanation } from '../../core/models/source-explanation.model';
+import { SourceExplanationService } from '../../core/services/source-explanation.service';
 
 /**
  * SF-155-04-A2 : types pour les alertes de cohérence IA (pattern F-IA-03 aligné
@@ -136,10 +138,17 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
     return { total: values.length };
   });
 
+  // SF-155-07 (DIV-7) : map {sourceKey → explanations} pour les popovers
+  // SF-IA-03-15c. Alimentée au mount via `loadSourceExplanations()`, consultée
+  // par `explanationFor(field)`. Fail-open (map vide si service absent ou erreur).
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
+
   constructor(
     private service: InaptitudeService,
     private snackBar: MatSnackBar,
     @Optional() private dashboardRefresh: CaseDashboardRefreshService,
+    // SF-155-07 (DIV-7) : injection `@Optional()` — fail-open strict.
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
   ) {}
 
   ngOnInit(): void {
@@ -149,6 +158,39 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
     this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.load();
+    // SF-155-07 (DIV-7) : pré-charge les explications de sources F-IA-03-15a.
+    this.loadSourceExplanations();
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : charge les explications de sources via l'endpoint
+   * transversal F-IA-03-15a. Fail-open strict : toute erreur ou absence du
+   * service laisse la map vide, les popovers affichent alors le fallback
+   * `reason` sans contenu enrichi.
+   */
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId) return;
+    if (!this.sourceExplanationService) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: (map) => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /**
+   * SF-155-07 (DIV-7) : mapping field → sourceKey pour alimenter les popovers.
+   * Convention `INAPT_<FIELD>` (upper_case).
+   */
+  explanationFor(field: InaptitudeAlertField): SourceExplanation[] {
+    const key = (() => {
+      switch (field) {
+        case 'SALAIRE': return 'INAPT_SALAIRE';
+        case 'ORIGINE': return 'INAPT_ORIGINE';
+        case 'AVIS_DATE': return 'INAPT_AVIS_MEDECIN';
+        case 'RECLASSEMENT': return 'INAPT_RECLASSEMENT';
+      }
+    })();
+    return this.sourceExplanations().get(key) ?? [];
   }
 
   ngOnChanges(changes: SimpleChanges): void {

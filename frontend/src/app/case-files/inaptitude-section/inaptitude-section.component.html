@@ -41,7 +41,7 @@
               }
               @if (coherenceAlerts().SALAIRE; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [appCoherencePopover]="null"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
                       [appCoherencePopoverReason]="alertTooltip(alert)"
                       [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
@@ -79,7 +79,7 @@
               }
               @if (coherenceAlerts().ORIGINE; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [appCoherencePopover]="null"
+                      [appCoherencePopover]="explanationFor('ORIGINE')"
                       [appCoherencePopoverReason]="alertTooltip(alert)"
                       [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
@@ -100,7 +100,7 @@
               }
               @if (coherenceAlerts().AVIS_DATE; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [appCoherencePopover]="null"
+                      [appCoherencePopover]="explanationFor('AVIS_DATE')"
                       [appCoherencePopoverReason]="alertTooltip(alert)"
                       [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
@@ -120,7 +120,7 @@
               }
               @if (coherenceAlerts().RECLASSEMENT; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [appCoherencePopover]="null"
+                      [appCoherencePopover]="explanationFor('RECLASSEMENT')"
                       [appCoherencePopoverReason]="alertTooltip(alert)"
                       [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
