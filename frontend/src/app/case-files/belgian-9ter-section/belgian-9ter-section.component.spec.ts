@@ -6,6 +6,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Belgian9terSectionComponent } from './belgian-9ter-section.component';
 import { Belgian9terResponse } from '../../core/models/belgian-9ter.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
+import { PieceManquanteEntry } from '../../core/models/case-analysis.model';
 
 describe('Belgian9terSectionComponent', () => {
   let component: Belgian9terSectionComponent;
@@ -15,6 +18,16 @@ describe('Belgian9terSectionComponent', () => {
   let refreshSpy: jasmine.SpyObj<CaseDashboardRefreshService>;
 
   const BASE_URL = '/api/v1/case-files/case-1/belgian-9ter';
+  const SOURCE_EXPL_URL = '/api/v1/case-files/case-1/source-explanations';
+
+  /**
+   * SF-155-09 : absorbe la requête source-explanations émise par ngOnInit
+   * pour éviter les crashs sur httpMock.verify().
+   */
+  function flushSourceExplanationCalls(): void {
+    const reqs = httpMock.match(SOURCE_EXPL_URL);
+    reqs.forEach((r) => r.flush([]));
+  }
 
   function beResponse(overrides: Partial<Belgian9terResponse> = {}): Belgian9terResponse {
     return {
@@ -64,7 +77,10 @@ describe('Belgian9terSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    flushSourceExplanationCalls();
+    httpMock.verify();
+  });
 
   it('mount : composant créé, signaux à leur défaut', () => {
     expect(component).toBeTruthy();
@@ -346,5 +362,153 @@ describe('Belgian9terSectionComponent', () => {
     expect(component.result()!.scoreGlobal).toBe(0);
     expect(component.hasCriticalMenace(component.result())).toBe(true);
     expect(component.bannerClass('FAIBLE')).toContain('--warning');
+  });
+
+  // -----------------------------------------------------------------------
+  // SF-155-09 — Validation F-IA-03 : coherenceAlerts + popover trigger.
+  // -----------------------------------------------------------------------
+
+  it('SF-155-09 : coherenceAlerts vide par défaut (aucune source IA/F96/Q/PM)', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expect(component.coherenceAlerts()).toEqual({});
+    expect(component.alertsSummary().total).toBe(0);
+  });
+
+  it('SF-155-09 : coherenceAlerts reste vide après showForm=false (mode résultat)', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush(beResponse());
+    // En mode résultat, pas d'alertes affichées (pattern SF-IA-03-12).
+    expect(component.showForm()).toBe(false);
+    expect(component.coherenceAlerts()).toEqual({});
+  });
+
+  it('SF-155-09 : source IA — divergence sur dateDebutSymptomes déclenche alerte', () => {
+    component.aiData = { dateDebutSymptomes: '2026-01-15' } as any;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    // IA pré-remplit à '2026-01-15' → provenance IA. Avocat modifie à autre date.
+    expect(component.dateDebutSymptomes()).toBe('2026-01-15');
+    component.onDateDebutSymptomesChange('2026-03-01');
+    const alerts = component.coherenceAlerts();
+    expect(alerts.DATE_DEBUT_SYMPTOMES).toBeTruthy();
+    expect(alerts.DATE_DEBUT_SYMPTOMES!.source).toBe('IA');
+    expect(alerts.DATE_DEBUT_SYMPTOMES!.expectedDisplay).toBe('2026-01-15');
+    expect(component.alertsSummary().total).toBe(1);
+  });
+
+  it('SF-155-09 : source F96 — maladieGraveCertifiee attendue TRUE, avocat saisit FALSE', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    const checks: ProcedureCheck[] = [
+      {
+        id: 'c1', ordre: 1, description: 'Vérifier CM1+CM2', statut: 'VERIFIED',
+        critereCode: 'BE_9TER_MALADIE_GRAVE', expectedValue: 'TRUE',
+        raison: 'CM1 daté du 10/01',
+      },
+    ];
+    component.procedureChecks = checks;
+    component.ngOnChanges({ procedureChecks: new SimpleChange(null, checks, false) });
+    // Touch + conserver FALSE (désaccord avec F96).
+    component.onMaladieGraveChange(false);
+    const alerts = component.coherenceAlerts();
+    expect(alerts.MALADIE_GRAVE).toBeTruthy();
+    expect(alerts.MALADIE_GRAVE!.source).toBe('F96');
+    expect(alerts.MALADIE_GRAVE!.expectedDisplay).toBe('Maladie grave certifiée');
+    expect(alerts.MALADIE_GRAVE!.contributors).toContain('F96');
+  });
+
+  it('SF-155-09 : source QUESTION_IA — soinsNecessairesDisponiblesBe attendu FALSE, avocat saisit TRUE', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    const questions: AiQuestion[] = [
+      {
+        id: 'q1', orderIndex: 1,
+        questionText: 'Les soins sont-ils disponibles en Belgique ?',
+        answerText: 'oui',
+        critereCode: 'BE_9TER_SOINS_BE', expectedValue: 'FALSE',
+      },
+    ];
+    component.aiQuestions = questions;
+    component.ngOnChanges({ aiQuestions: new SimpleChange(null, questions, false) });
+    component.onSoinsBeChange(true);
+    const alerts = component.coherenceAlerts();
+    expect(alerts.SOINS_BE).toBeTruthy();
+    expect(alerts.SOINS_BE!.source).toBe('QUESTION_IA');
+    expect(alerts.SOINS_BE!.expectedDisplay).toBe('Soins indisponibles en Belgique');
+  });
+
+  it('SF-155-09 : source PIECE_MANQUANTE (seule) — n\'émet pas d\'alerte sans divergence IA/F96/Q', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    // PIECE_MANQUANTE seule ne déclenche pas l'alerte (addPieceManquante ignore
+    // si aucune autre source n'a initié l'alerte — pattern builder).
+    const pieces: PieceManquanteEntry[] = [
+      { texte: 'Certificat médical CM2 manquant', critereCode: 'BE_9TER_MALADIE_GRAVE' },
+    ];
+    component.piecesManquantes = pieces;
+    component.ngOnChanges({ piecesManquantes: new SimpleChange(null, pieces, false) });
+    component.onMaladieGraveChange(false);
+    const alerts = component.coherenceAlerts();
+    expect(alerts.MALADIE_GRAVE).toBeUndefined();
+  });
+
+  it('SF-155-09 : source MULTI — IA + F96 convergent, contributors=2, source=MULTI', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.aiData = { soinsInaccessiblesPaysOrigine: true } as any;
+    component.ngOnChanges({ aiData: new SimpleChange(undefined, component.aiData, false) });
+    const checks: ProcedureCheck[] = [
+      {
+        id: 'c2', ordre: 2, description: 'Accessibilité pays origine', statut: 'VERIFIED',
+        critereCode: 'BE_9TER_SOINS_INACCESSIBLES', expectedValue: 'TRUE',
+      },
+    ];
+    component.procedureChecks = checks;
+    component.ngOnChanges({ procedureChecks: new SimpleChange(null, checks, false) });
+    // L'IA avait pré-rempli à `true` (soinsInaccessibles). L'avocat désactive.
+    component.onSoinsInaccessiblesChange(false);
+    const alerts = component.coherenceAlerts();
+    expect(alerts.SOINS_INACCESSIBLES).toBeTruthy();
+    expect(alerts.SOINS_INACCESSIBLES!.source).toBe('MULTI');
+    expect(alerts.SOINS_INACCESSIBLES!.contributors.length).toBeGreaterThanOrEqual(2);
+    expect(alerts.SOINS_INACCESSIBLES!.contributors).toContain('F96');
+    expect(alerts.SOINS_INACCESSIBLES!.contributors).toContain('IA');
+  });
+
+  it('SF-155-09 : alertTooltip / alertBadgeLabel — libellés cohérents', () => {
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.aiData = { dateDebutSymptomes: '2026-01-15' } as any;
+    component.ngOnChanges({ aiData: new SimpleChange(undefined, component.aiData, false) });
+    component.onDateDebutSymptomesChange('2026-03-01');
+    const alert = component.coherenceAlerts().DATE_DEBUT_SYMPTOMES!;
+    expect(alert).toBeTruthy();
+    expect(component.alertBadgeLabel(alert)).toContain('2026-01-15');
+    expect(component.alertBadgeLabel(alert)).toContain('Incohérence');
+    expect(component.alertTooltip(alert)).toContain('Analyse du dossier');
+  });
+
+  it('SF-155-09 : explanationFor mapping → clés sourceExplanations', () => {
+    const map = new Map<string, any[]>();
+    map.set('date_debut_symptomes', [{ actionType: 'SYNTHESIS' }]);
+    map.set('BE_9TER_MALADIE_GRAVE', [{ actionType: 'F96' }]);
+    map.set('BE_9TER_SOINS_BE', [{ actionType: 'QUESTION_IA' }]);
+    map.set('BE_9TER_SOINS_INACCESSIBLES', [{ actionType: 'SYNTHESIS' }]);
+    component.sourceExplanations.set(map);
+    expect(component.explanationFor('DATE_DEBUT_SYMPTOMES').length).toBe(1);
+    expect(component.explanationFor('MALADIE_GRAVE').length).toBe(1);
+    expect(component.explanationFor('SOINS_BE').length).toBe(1);
+    expect(component.explanationFor('SOINS_INACCESSIBLES').length).toBe(1);
+    expect(component.explanationFor('MENACE_ORDRE_PUBLIC').length).toBe(0);
+  });
+
+  it('SF-155-09 : FRANCE → coherenceAlerts vide (gate pays BE-only)', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiData = { dateDebutSymptomes: '2026-01-15' } as any;
+    component.ngOnInit();
+    httpMock.expectNone(BASE_URL);
+    component.onDateDebutSymptomesChange('2026-03-01');
+    expect(component.coherenceAlerts()).toEqual({});
   });
 });
