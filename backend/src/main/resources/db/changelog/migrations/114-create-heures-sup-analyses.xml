@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="114-create-heures-sup-analyses" author="legalcase">
+        <comment>
+            SF-DT-19-01 : table dédiée à l'outil décisionnel "Calculateur heures
+            supplémentaires" (art. L.3121-28 à L.3121-39 + D.3121-24 FR /
+            art. 29 Loi 16/3/1971 BE) + règles d'affichage F-IA-04 (ALWAYS_ON,
+            DROIT_DU_TRAVAIL, FRANCE + BELGIQUE).
+        </comment>
+
+        <createTable tableName="heures_sup_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_heures_sup_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="taux_horaire_brut" type="numeric(8,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_sup_25pct" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_sup_50pct" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_hors_contingent" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="taux_majoration_25" type="numeric(5,2)" defaultValueNumeric="25">
+                <constraints nullable="false"/>
+            </column>
+            <column name="taux_majoration_50" type="numeric(5,2)" defaultValueNumeric="50">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_sup_semaine_be" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="heures_dimanche_jf_be" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="heures_sup_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_heures_sup_analyses_case_file"/>
+
+        <createIndex tableName="heures_sup_analyses"
+                     indexName="idx_heures_sup_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000191', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-19-heures-sup', 'ALWAYS_ON', NULL, NULL, 55);
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000192', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-19-heures-sup', 'ALWAYS_ON', NULL, NULL, 55);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id IN ('f1a04001-0000-0000-0000-ee0000000191', 'f1a04001-0000-0000-0000-ee0000000192');
+            </sql>
+            <dropTable tableName="heures_sup_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
