@@ -99,6 +99,45 @@ Convention projet : **`<input type="date">`** natif pour les dates simples, **`<
 - Chaque message cite la référence juridique (article CESEDA/Code travail/Loi) en `<code>` JetBrains Mono
 - Pas d'emoji dans les messages (sauf badges spécifiques type "⚠ TRANSFERT IMMINENT")
 
+### Pré-remplissage IA + validation IA au changement (RÈGLE FONDAMENTALE)
+
+Tout outil décisionnel frontend **DOIT** implémenter 2 mécanismes :
+
+#### A. Pré-remplissage IA après analyse de dossier
+
+Dès qu'une **analyse de dossier** ou une **synthèse enrichie** est produite (contenu `aiData`, `synthesis`, `caseAnalysisResult`), le composant doit :
+- Accepter un `@Input() aiData?: CaseAnalysisResult | ImmigrationExtractedData | ... | null` (type spécifique au domaine)
+- Méthode privée `prefillFromAi()` invoquée dans `ngOnInit()` ET `ngOnChanges()` (si `aiData` change avant première résolution)
+- Signal `provenance<Champ> = signal<'IA' | null>(null)` par champ pré-rempli (un par field clé)
+- Badge UI "Pré-rempli depuis l'analyse" à côté de chaque champ avec provenance IA (icône `auto_awesome` ou équivalent)
+- Au changement manuel du champ par l'avocat (`onXxxChange()`), le signal provenance est remis à `null` (effacement badge IA)
+
+**Pattern de référence** : `frontend/src/app/case-files/immigration-title-decision-section/immigration-title-decision-section.component.ts` (méthode `prefillFromAi()` + signals `provenanceMotif`, `provenanceSituationFamiliale`, `provenanceNationaliteUe` + handlers `onXxxChange()`).
+
+#### B. Validation IA / alertes cohérence F-IA-03 au changement
+
+Pour chaque champ clé du form, si l'IA a produit :
+- une valeur dans l'analyse du dossier (`aiData`),
+- un résultat de checklist procédurale F-96 (`@Input() procedureChecks: ProcedureCheck[]`),
+- une réponse à une question complémentaire (`@Input() aiQuestions: AiQuestion[]`),
+- une pièce manquante (`@Input() piecesManquantes: PieceManquanteEntry[]`),
+
+Et que la valeur saisie/affichée par l'avocat **diverge** de cette valeur IA, le composant doit afficher une **alerte de cohérence** inline (pattern F-IA-03 — `CoherencePopoverTriggerDirective` + popover expliquant la divergence avec source).
+
+**Computed signal** `coherenceAlerts = computed<Partial<Record<FieldName, CoherenceAlert>>>()` produit les alertes dynamiquement.
+
+**Pattern de référence** : `immigration-title-decision-section.component.ts` — méthodes `buildMotifAlert()`, `buildNationaliteAlert()` + `coherenceAlerts` computed + `alertsSummary` computed + `<app-coherence-popover-trigger>` dans le template.
+
+#### Rationale
+
+Cette règle est **fondamentale** car :
+1. L'avocat perd du temps à ressaisir ce que l'IA a déjà extrait
+2. L'avocat peut saisir une valeur contradictoire avec l'analyse IA sans le voir
+3. Sans pré-fill IA, l'outil décisionnel devient "encore un formulaire" au lieu d'un assistant
+4. Sans alertes cohérence F-IA-03, l'IA ne "parle pas" à l'outil — chaque outil vit en silo
+
+**Sans ces 2 mécanismes, l'outil est marqué FAIL dans l'audit** (pas juste WARN).
+
 ### Intégration TOOL_REGISTRY
 
 Entrée symétrique dans `frontend/src/app/case-files/decisional-tools-panel/decisional-tools-panel.component.ts` :
@@ -143,6 +182,10 @@ Ordre : aligner avec le `priority` de la règle `decision_tool_visibility_rules`
 | Spec test : au moins 10 tests couvrant mount + form valid + POST + erreur | | |
 | Pas de couleur hors palette `DESIGN_SYSTEM.md` | | |
 | Pas d'emoji hors badges spécifiques | | |
+| **Pré-fill IA** : `@Input() aiData`/`synthesis`, méthode `prefillFromAi()`, signals `provenance<Field>`, badges UI "Pré-rempli depuis l'analyse" (FAIL si absent) | | |
+| **Validation IA F-IA-03** : `coherenceAlerts` computed + `CoherencePopoverTriggerDirective` sur chaque field clé (FAIL si absent) | | |
+| `ngOnChanges()` re-invoque `prefillFromAi()` quand `aiData` change (avant première résolution) | | |
+| Effacement badge provenance IA au `onXxxChange()` manuel avocat | | |
 
 ---
 
