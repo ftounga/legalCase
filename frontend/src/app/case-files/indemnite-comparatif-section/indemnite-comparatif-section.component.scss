@@ -141,6 +141,14 @@
   &--wide { flex: 1.5; min-width: 220px; }
 }
 
+/* SF-155-15 : badge "Pré-rempli depuis l'analyse" — cohérent avec
+   `immigration-title-decision-section .provenance-note` (canonique). */
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; color: #1A3A5C;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #C9973A; }
+}
+
 .coherence-badge {
   display: inline-flex; align-items: center; gap: 4px;
   align-self: flex-start; padding: 2px 8px; border-radius: 4px;

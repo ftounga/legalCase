@@ -150,6 +150,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           synthesis: ctx.synthesis,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
+          // SF-155-15 : F-145 pièces manquantes pour enrichir l'alerte F-IA-03 sur TYPE_RUPTURE.
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
       ['F-DT-10-rupture-conv-validity', {
