@@ -67,7 +67,7 @@
                 @if (coherenceAlerts().DATE_HEURE_NOTIFICATION; as alert) {
                   <span class="oqtf-sd-coherence-badge"
                         [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
-                        [appCoherencePopover]="null"
+                        [appCoherencePopover]="explanationFor('DATE_HEURE_NOTIFICATION')"
                         [appCoherencePopoverReason]="alertTooltip(alert)"
                         [appCoherencePopoverCaseFileId]="caseFileId"
                         [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
@@ -96,7 +96,7 @@
                 @if (coherenceAlerts().MOTIF_SANS_DELAI; as alert) {
                   <span class="oqtf-sd-coherence-badge"
                         [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
-                        [appCoherencePopover]="null"
+                        [appCoherencePopover]="explanationFor('MOTIF_SANS_DELAI')"
                         [appCoherencePopoverReason]="alertTooltip(alert)"
                         [appCoherencePopoverCaseFileId]="caseFileId"
                         [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
@@ -120,7 +120,7 @@
                 @if (coherenceAlerts().PLACEMENT_CRA; as alert) {
                   <span class="oqtf-sd-coherence-badge"
                         [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
-                        [appCoherencePopover]="null"
+                        [appCoherencePopover]="explanationFor('PLACEMENT_CRA')"
                         [appCoherencePopoverReason]="alertTooltip(alert)"
                         [appCoherencePopoverCaseFileId]="caseFileId"
                         [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
@@ -144,7 +144,7 @@
                 @if (coherenceAlerts().RECOURS_FORME; as alert) {
                   <span class="oqtf-sd-coherence-badge"
                         [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
-                        [appCoherencePopover]="null"
+                        [appCoherencePopover]="explanationFor('RECOURS_FORME')"
                         [appCoherencePopoverReason]="alertTooltip(alert)"
                         [appCoherencePopoverCaseFileId]="caseFileId"
                         [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">

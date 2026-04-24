@@ -9,6 +9,14 @@
             [class.oqtf-chip--success]="result()!.statutDelaiRecours === 'RECOURS_FORME'">
         {{ statutLabel(result()!.statutDelaiRecours) }}
       </span>
+      <!-- SF-155-07 (DIV-6) : flag header partagé — symétrique à oqtf-sans-delai + annexe13-be.
+           URGENT = or (≤ 7 jours typique), EXPIRÉ = rouge (alerte critique documentée). -->
+      @if (result()!.statutDelaiRecours === 'URGENT') {
+        <app-decisional-header-flag label="URGENT" icon="warning" variant="warning" />
+      }
+      @if (result()!.statutDelaiRecours === 'EXPIRE') {
+        <app-decisional-header-flag label="EXPIRÉ" icon="error" variant="danger" />
+      }
     }
     <mat-icon class="oqtf-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
   </header>
@@ -56,7 +64,7 @@
                 }
                 @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
                   <span class="coherence-badge coherence-warning"
-                        [appCoherencePopover]="[]"
+                        [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
                         [appCoherencePopoverReason]="alert.reason"
                         [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
@@ -81,7 +89,7 @@
                 }
                 @if (coherenceAlerts().MOTIF_OQTF; as alert) {
                   <span class="coherence-badge coherence-warning"
-                        [appCoherencePopover]="[]"
+                        [appCoherencePopover]="explanationFor('MOTIF_OQTF')"
                         [appCoherencePopoverReason]="alert.reason"
                         [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
@@ -101,7 +109,7 @@
                 }
                 @if (coherenceAlerts().RECOURS_FORME; as alert) {
                   <span class="coherence-badge coherence-critical"
-                        [appCoherencePopover]="[]"
+                        [appCoherencePopover]="explanationFor('RECOURS_FORME')"
                         [appCoherencePopoverReason]="alert.reason"
                         [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>error</mat-icon> {{ alertBadgeLabel(alert) }}

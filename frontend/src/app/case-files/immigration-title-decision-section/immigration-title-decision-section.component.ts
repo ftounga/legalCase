@@ -144,13 +144,17 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
 
   constructor(
     private decisionService: ImmigrationTitleDecisionService,
-    private sourceExplanationService: SourceExplanationService,
+    // SF-155-07 (DIV-11) : `@Optional()` pour cohérence stricte avec le canonique
+    // `harcelement-licenciement-nul-section`. Fail-open si service absent (tests / DI minimal).
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
     private snackBar: MatSnackBar,
     @Optional() private refreshService: CaseDashboardRefreshService | null,
   ) {}
 
   private loadSourceExplanations(): void {
     if (!this.caseFileId) return;
+    // SF-155-07 (DIV-11) : garde null-safe alignée sur le canonique.
+    if (!this.sourceExplanationService) return;
     this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
       next: map => this.sourceExplanations.set(map),
       error: () => { /* fail-open */ },

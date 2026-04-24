@@ -14,6 +14,13 @@ describe('OqtfSansDelaiSectionComponent', () => {
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
 
   const BASE_URL = '/api/v1/case-files/case-1/oqtf-sans-delai';
+  const SOURCE_EXPL_URL = '/api/v1/case-files/case-1/source-explanations';
+
+  /** SF-155-07 (DIV-7) : absorbe la requête source-explanations (fail-open). */
+  function flushSourceExplanations(): void {
+    const reqs = httpMock.match(SOURCE_EXPL_URL);
+    reqs.forEach((r) => r.flush([]));
+  }
 
   function frResponse(overrides: Partial<OqtfSansDelaiResponse> = {}): OqtfSansDelaiResponse {
     return {
@@ -65,7 +72,11 @@ describe('OqtfSansDelaiSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    // SF-155-07 (DIV-7) : absorbe les requêtes source-explanations en attente.
+    flushSourceExplanations();
+    httpMock.verify();
+  });
 
   // ------------------------------------------------------------------
   // Tests existants (préservés SF-IM-08-04) — 19 tests.
@@ -754,5 +765,40 @@ describe('OqtfSansDelaiSectionComponent', () => {
     expect(alert!.contributors).toContain('IA');
     expect(alert!.contributors).toContain('PIECE_MANQUANTE');
     expect(alert!.pieceTexte).toBe('Procès-verbal notification OQTF');
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-07 (DIV-7) — explanationFor mapping + fail-open SourceExplanationService
+  // ---------------------------------------------------------------------------
+
+  describe('SF-155-07 (DIV-7) — explanationFor', () => {
+    it('explanationFor retourne [] quand la map est vide (fail-open)', () => {
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+      expect(component.explanationFor('DATE_HEURE_NOTIFICATION')).toEqual([]);
+      expect(component.explanationFor('PLACEMENT_CRA')).toEqual([]);
+      expect(component.explanationFor('RECOURS_FORME')).toEqual([]);
+      expect(component.explanationFor('MOTIF_SANS_DELAI')).toEqual([]);
+    });
+
+    it('explanationFor retourne les explications quand la map est peuplée sur la bonne clé', () => {
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      httpMock.expectOne(SOURCE_EXPL_URL).flush([
+        {
+          sourceKey: 'IM08_PLACEMENT_CRA',
+          sourceType: 'ANALYSIS_DETECTION',
+          label: 'Placement CRA détecté',
+          sentence: 'CRA actif depuis 2026-04-22',
+          secondaryText: null,
+          actionType: 'NONE',
+          actionTarget: null,
+        },
+      ]);
+      expect(component.explanationFor('PLACEMENT_CRA').length).toBe(1);
+      expect(component.explanationFor('PLACEMENT_CRA')[0].label).toBe('Placement CRA détecté');
+      expect(component.explanationFor('RECOURS_FORME')).toEqual([]);
+    });
   });
 });

@@ -14,6 +14,13 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   let snackSpy: jasmine.SpyObj<MatSnackBar>;
 
   const BASE_URL = '/api/v1/case-files/case-1/oqtf-avec-delai';
+  const SOURCE_EXPL_URL = '/api/v1/case-files/case-1/source-explanations';
+
+  /** SF-155-07 (DIV-7) : absorbe la requête source-explanations (fail-open). */
+  function flushSourceExplanations(): void {
+    const reqs = httpMock.match(SOURCE_EXPL_URL);
+    reqs.forEach((r) => r.flush([]));
+  }
 
   function frResponse(overrides: Partial<OqtfAvecDelaiResponse> = {}): OqtfAvecDelaiResponse {
     return {
@@ -61,7 +68,11 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    // SF-155-07 (DIV-7) : absorbe les requêtes source-explanations en attente.
+    flushSourceExplanations();
+    httpMock.verify();
+  });
 
   // ============================================================
   // Tests existants (SF-IM-08-02) — préservés
@@ -697,5 +708,61 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     expect(alert!.contributors).toContain('IA');
     expect(alert!.contributors).toContain('PIECE_MANQUANTE');
     expect(alert!.pieceTexte).toBe('Copie notification OQTF');
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-07 (DIV-6) — DecisionalHeaderFlagComponent pour URGENT / EXPIRE
+  // ---------------------------------------------------------------------------
+
+  describe('SF-155-07 (DIV-6) — header flag', () => {
+    it('affiche le flag URGENT (variant warning) quand statutDelaiRecours === URGENT', () => {
+      // Important : ne pas appeler ngOnInit() manuellement AVANT detectChanges()
+      // (risque double-GET). On utilise detectChanges() qui déclenche ngOnInit()
+      // une seule fois via le cycle de vie Angular.
+      fixture.detectChanges();
+      httpMock.expectOne(BASE_URL).flush(frResponse({ statutDelaiRecours: 'URGENT' }));
+      fixture.detectChanges();
+      // Étend collapsed pour que le header + flag soient dans le DOM.
+      component.collapsed.set(false);
+      fixture.detectChanges();
+      const flag = fixture.nativeElement.querySelector('app-decisional-header-flag');
+      expect(flag).toBeTruthy();
+      // Le label est passé via @Input → attribut HTML.
+      expect((flag.getAttribute('label') ?? flag.textContent ?? '').toUpperCase()).toContain('URGENT');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-07 (DIV-7) — explanationFor mapping + fail-open SourceExplanationService
+  // ---------------------------------------------------------------------------
+
+  describe('SF-155-07 (DIV-7) — explanationFor', () => {
+    it('explanationFor retourne [] quand la map est vide (fail-open)', () => {
+      component.ngOnInit();
+      flush404();
+      flushSourceExplanations();
+      expect(component.explanationFor('DATE_NOTIFICATION')).toEqual([]);
+      expect(component.explanationFor('MOTIF_OQTF')).toEqual([]);
+      expect(component.explanationFor('RECOURS_FORME')).toEqual([]);
+    });
+
+    it('explanationFor retourne les explications quand la map est peuplée sur la bonne clé', () => {
+      component.ngOnInit();
+      flush404();
+      httpMock.expectOne(SOURCE_EXPL_URL).flush([
+        {
+          sourceKey: 'IM08_DATE_NOTIFICATION',
+          sourceType: 'DOCUMENT',
+          label: 'Annexe OQTF',
+          sentence: 'Notifiée le 2026-04-01',
+          secondaryText: null,
+          actionType: 'OPEN_DOCUMENT',
+          actionTarget: 'doc-1',
+        },
+      ]);
+      expect(component.explanationFor('DATE_NOTIFICATION').length).toBe(1);
+      expect(component.explanationFor('DATE_NOTIFICATION')[0].label).toBe('Annexe OQTF');
+      expect(component.explanationFor('MOTIF_OQTF')).toEqual([]);
+    });
   });
 });
