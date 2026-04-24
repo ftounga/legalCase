@@ -1,0 +1,384 @@
+/**
+ * SF-FA-10-02 : styles outil "Divorce accepté" (F-FA-10).
+ * Aligné sur le template canonique `harcelement-licenciement-nul-section`
+ * (cf. ai-skills/frontend-coherence-audit.md §5).
+ *
+ * Palette : standard navy/or/rouge classique. Pas de gradation
+ * `--danger-medium/-strong/-dark` — pas d'urgence < 72h.
+ *
+ * Inter pour le texte courant, JetBrains Mono pour `formule`,
+ * `baseJuridique`, montants et durées.
+ */
+
+.da-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.da-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.da-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.da-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.da-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--ko {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.da-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.da-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.da-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE — palette navy info_outline (pas alarmiste).
+.da-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Form layout 2 colonnes
+.da-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.da-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.da-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field { width: 100%; }
+}
+
+.da-full {
+  grid-column: 1 / -1;
+}
+
+// Résumé global "N incohérence(s) avec l'analyse" — accent or.
+.da-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Badge "Pré-rempli depuis l'analyse"
+.da-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+// Badge alerte cohérence (popover trigger)
+.da-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.da-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// Résultat
+.da-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Bannière verdict — navy ELEVEE / rouge classique FAIBLE (palette standard).
+.da-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  // Navy "DISPONIBLE" — éligibilité ELEVEE.
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Rouge classique "FAIBLE" — palette standard `--danger`, pas dominante.
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+.da-verdict-score {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+// Grille de cartes
+.da-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.da-card {
+  padding: 12px 14px;
+  background: rgba(201, 165, 75, 0.06);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &--wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.da-card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.da-card-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.da-icon-ok { color: #1A3A5C; }
+.da-icon-ko { color: #B11A28; }
+
+// JetBrains Mono pour montants, durées et formules
+.da-mono {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 15px;
+}
+
+.da-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.da-meta-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.da-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.da-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // Citations juridiques rendues en JetBrains Mono via LegalCitationsPipe (F-155 SF-155-01)
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.da-criteres-non-remplis {
+  padding: 10px 14px;
+  background: rgba(220, 53, 69, 0.06);
+  border-left: 3px solid #B11A28;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.da-criteres-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #B11A28;
+}
+
+.da-criteres-non-remplis ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
