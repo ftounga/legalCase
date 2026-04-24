@@ -46,6 +46,7 @@ import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-a
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
 import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
 import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-grave-be-section.component';
+import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -357,6 +358,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-14-40ter-familial-belge-be', {
+        component: Belgian40terSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-IM-14-08 : pré-fill IA gracieux (lienFamilial, regroupantBelge,
+          // revenusNetsMensuels, dateDepotDemande) + validation F-IA-03.
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
         }),
       }],
     ]);
