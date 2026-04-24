@@ -168,6 +168,13 @@
                 </ul>
               }
 
+              @if (result()!.formule) {
+                <div class="oqtf-sd-formule-block">
+                  <span class="oqtf-sd-formule-label">Formule</span>
+                  <span class="oqtf-sd-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
               <div class="oqtf-sd-meta">
                 <span class="oqtf-sd-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
                 <button mat-stroked-button type="button" (click)="editMode()">

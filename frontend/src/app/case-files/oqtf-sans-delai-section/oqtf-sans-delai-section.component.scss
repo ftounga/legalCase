@@ -317,3 +317,29 @@
   font-style: italic;
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
+
+// F-155 SF-155-02 — affichage `formule` (harmonisation avec les outils calcul montant)
+// Bordure rouge pour rester cohérent avec la palette urgence 48h du composant
+.oqtf-sd-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(192, 36, 36, 0.03);
+  border-left: 3px solid #c02424;
+  border-radius: 4px;
+}
+
+.oqtf-sd-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.oqtf-sd-formule {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}

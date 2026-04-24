@@ -144,6 +144,13 @@
                 </ul>
               }
 
+              @if (result()!.formule) {
+                <div class="oqtf-formule-block">
+                  <span class="oqtf-formule-label">Formule</span>
+                  <span class="oqtf-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
               <div class="oqtf-meta">
                 <span class="oqtf-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
                 <button mat-stroked-button type="button" (click)="editMode()">

@@ -204,6 +204,13 @@
                 </ul>
               }
 
+              @if (result()!.formule) {
+                <div class="annexe13-formule-block">
+                  <span class="annexe13-formule-label">Formule</span>
+                  <span class="annexe13-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
               <div class="annexe13-meta">
                 <span class="annexe13-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
                 <button mat-stroked-button type="button" (click)="editMode()">
