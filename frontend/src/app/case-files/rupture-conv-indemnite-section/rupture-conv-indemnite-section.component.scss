@@ -67,6 +67,83 @@
   }
 }
 
+// SF-155-12 : wrapper d'un field avec badge IA + alerte cohérence sous le field.
+.rci-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field { width: 100%; }
+}
+
+// SF-155-12 : résumé global "N incohérence(s) avec l'analyse" en tête du form.
+// Palette or soutenu (accent gold) cohérente F-IM-05 / F-DT-11.
+.rci-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// SF-155-12 : badge "Pré-rempli depuis l'analyse" — navy + icône or.
+// Cohérent avec `harcelement-licenciement-nul-section .hln-provenance-note`.
+.rci-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+// SF-155-12 : badge d'alerte cohérence (hover → popover F-IA-03-15b).
+// Cohérent avec `harcelement-licenciement-nul-section .hln-coherence-badge`.
+.rci-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
 .rci-actions {
   grid-column: 1 / -1;
   display: flex;
@@ -107,6 +184,7 @@
 .rci-formule {
   font-size: 13px;
   color: var(--ds-text-secondary, #6a7485);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
 
 .rci-meta {
@@ -120,6 +198,7 @@
   font-size: 13px;
   color: var(--ds-text-secondary, #6a7485);
   font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
 
 .rci-messages {
