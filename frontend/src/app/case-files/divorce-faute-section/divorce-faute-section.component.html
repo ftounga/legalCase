@@ -60,9 +60,12 @@
                     <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
                   </span>
                 }
+                <!-- SF-155-10 : app-coherence-popover-trigger FAUTES_INVOQUEES (F-IA-03-15b). -->
                 @if (coherenceAlerts().FAUTES_INVOQUEES; as alert) {
                   <span class="df-coherence-badge"
-                        [attr.title]="alertTooltip(alert)">
+                        [appCoherencePopover]="explanationFor('FAUTES_INVOQUEES')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                   </span>
                 }
@@ -101,9 +104,12 @@
                     <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
                   </span>
                 }
+                <!-- SF-155-10 : app-coherence-popover-trigger DUREE_MARIAGE (F-IA-03-15b). -->
                 @if (coherenceAlerts().DUREE_MARIAGE; as alert) {
                   <span class="df-coherence-badge"
-                        [attr.title]="alertTooltip(alert)">
+                        [appCoherencePopover]="explanationFor('DUREE_MARIAGE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                   </span>
                 }
@@ -123,6 +129,15 @@
                     <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
                   </span>
                 }
+                <!-- SF-155-10 : app-coherence-popover-trigger DATE_DEPOT_ASSIGNATION (F-IA-03-15b). -->
+                @if (coherenceAlerts().DATE_DEPOT_ASSIGNATION; as alert) {
+                  <span class="df-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_DEPOT_ASSIGNATION')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
               <!-- Revenus demandeur. -->
@@ -139,9 +154,12 @@
                     <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
                   </span>
                 }
+                <!-- SF-155-10 : app-coherence-popover-trigger REVENUS_DEMANDEUR (F-IA-03-15b). -->
                 @if (coherenceAlerts().REVENUS_DEMANDEUR; as alert) {
                   <span class="df-coherence-badge"
-                        [attr.title]="alertTooltip(alert)">
+                        [appCoherencePopover]="explanationFor('REVENUS_DEMANDEUR')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                   </span>
                 }
@@ -161,9 +179,12 @@
                     <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
                   </span>
                 }
+                <!-- SF-155-10 : app-coherence-popover-trigger REVENUS_DEFENDEUR (F-IA-03-15b). -->
                 @if (coherenceAlerts().REVENUS_DEFENDEUR; as alert) {
                   <span class="df-coherence-badge"
-                        [attr.title]="alertTooltip(alert)">
+                        [appCoherencePopover]="explanationFor('REVENUS_DEFENDEUR')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
                     <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                   </span>
                 }
