@@ -1,0 +1,440 @@
+// SF-IM-14-07 : outil "Regroupement familial 40bis BE". Pattern canonique
+// motif-grave-be + annexe13-be. Palette navy / or / rouge — rouge réservé
+// au verdict FAIBLE (signalétique de risque de refus juridique qualifié,
+// alignée sur oqtf-sans-delai-section). Conforme DESIGN_SYSTEM.md.
+
+.b40bis-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.b40bis-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.b40bis-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.b40bis-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.b40bis-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.22);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+
+  // Rouge réservé verdict FAIBLE (refus probable) — aligné palette
+  // DESIGN_SYSTEM.md "rouge réservé alerte critique".
+  &--danger {
+    background: rgba(176, 0, 32, 0.12);
+    color: var(--ds-error, #b00020);
+  }
+}
+
+.b40bis-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.b40bis-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.b40bis-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.b40bis-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.b40bis-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.b40bis-toggle-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.b40bis-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.b40bis-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.b40bis-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--warning {
+    border-left-color: var(--ds-accent-gold, #c9a54b);
+    background: rgba(201, 165, 75, 0.14);
+
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+
+  // Rouge — signalétique du verdict FAIBLE (refus probable). Justification :
+  // alignée sur oqtf-sans-delai-section et DESIGN_SYSTEM.md "rouge réservé alerte
+  // critique" — un verdict défavorable juridiquement qualifié relève de cette
+  // catégorie. Pas de gradation `--danger-medium/strong/dark` (un seul niveau).
+  &--danger {
+    border-left-color: var(--ds-error, #b00020);
+    background: rgba(176, 0, 32, 0.08);
+
+    mat-icon { color: var(--ds-error, #b00020); }
+  }
+}
+
+.b40bis-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.b40bis-banner-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.b40bis-banner-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.b40bis-banner-score {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.b40bis-banner-score-total {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 16px;
+  color: var(--ds-text-secondary, #6a7485);
+  margin-left: 4px;
+}
+
+.b40bis-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.b40bis-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: rgba(26, 35, 48, 0.03);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+
+  mat-icon {
+    flex-shrink: 0;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &--ok mat-icon {
+    color: var(--ds-success, #2e7d32);
+  }
+
+  &--ko mat-icon {
+    color: var(--ds-text-secondary, #6a7485);
+  }
+
+  &--bonus {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+
+    mat-icon {
+      color: var(--ds-accent-gold-dark, #8a6a16);
+    }
+  }
+}
+
+.b40bis-check-label {
+  flex: 1;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.b40bis-check-points {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.b40bis-criteres-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(176, 0, 32, 0.04);
+  border-left: 3px solid var(--ds-error, #b00020);
+  border-radius: 4px;
+}
+
+.b40bis-criteres-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.b40bis-critere-chip {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  background: rgba(176, 0, 32, 0.10) !important;
+  color: var(--ds-text-primary, #1a2330) !important;
+}
+
+.b40bis-instruction-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-navy, #1a375f);
+  border-radius: 4px;
+}
+
+.b40bis-instruction-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.b40bis-instruction-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.b40bis-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // Citations juridiques rendues en JetBrains Mono via LegalCitationsPipe.
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.b40bis-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.b40bis-formule-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.b40bis-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.b40bis-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.b40bis-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.b40bis-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.b40bis-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.b40bis-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
