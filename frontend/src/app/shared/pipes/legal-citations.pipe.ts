@@ -32,10 +32,42 @@ export class LegalCitationsPipe implements PipeTransform {
 
   transform(value: string | null | undefined): SafeHtml {
     if (!value) return '';
-    let out = this.escapeHtml(value);
+    const escaped = this.escapeHtml(value);
+
+    // Collecte TOUS les matches de tous les patterns avant d'en wrapper aucun —
+    // évite qu'un pattern suivant matche à l'intérieur d'un <code> déjà injecté
+    // (bug rencontré sur "art. L.614-5 al. 2 CESEDA" où le pattern bare "L.xxx"
+    // re-wrappait l'intérieur d'une balise produite par le pattern "art. … CESEDA").
+    type Match = { start: number; end: number };
+    const matches: Match[] = [];
     for (const pattern of LegalCitationsPipe.PATTERNS) {
-      out = out.replace(pattern, match => `<code>${match}</code>`);
+      pattern.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = pattern.exec(escaped)) !== null) {
+        matches.push({ start: m.index, end: m.index + m[0].length });
+        if (m.index === pattern.lastIndex) pattern.lastIndex++;
+      }
     }
+
+    // Garder uniquement les matches qui ne sont pas contenus dans un autre.
+    // En cas de chevauchement, le plus long (plus spécifique) gagne.
+    matches.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+    const kept: Match[] = [];
+    let lastEnd = -1;
+    for (const match of matches) {
+      if (match.start < lastEnd) continue; // contenu dans un précédent
+      kept.push(match);
+      lastEnd = match.end;
+    }
+
+    // Reconstruit la chaîne en wrappant les matches retenus.
+    let out = '';
+    let cursor = 0;
+    for (const { start, end } of kept) {
+      out += escaped.slice(cursor, start) + '<code>' + escaped.slice(start, end) + '</code>';
+      cursor = end;
+    }
+    out += escaped.slice(cursor);
     return this.sanitizer.bypassSecurityTrustHtml(out);
   }
 
