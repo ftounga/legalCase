@@ -34,8 +34,17 @@
           </div>
         } @else {
           @if (showForm()) {
+            <!-- SF-155-08 : résumé des incohérences détectées (F-IA-03). -->
+            @if (alertsSummary().total > 0) {
+              <div class="b9bis-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
             <form class="b9bis-form" (ngSubmit)="analyze()">
-              <div class="b9bis-field-wrapper">
+              <!-- SF-155-08 : field dateEntreeBelgique avec badge IA + app-coherence-popover-trigger F-IA-03. -->
+              <div class="b9bis-field-wrapper b9bis-field-with-alert">
                 <mat-form-field appearance="outline">
                   <mat-label>Date d'entrée en Belgique</mat-label>
                   <input matInput type="date" required
@@ -44,9 +53,23 @@
                          (ngModelChange)="onDateEntreeChange($event)"
                          name="dateEntreeBelgique" />
                 </mat-form-field>
+                @if (provenanceDateEntreeBelgique() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_ENTREE_BELGIQUE; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_ENTREE_BELGIQUE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="b9bis-field-wrapper">
+              <!-- SF-155-08 : field dureePresenceMois + app-coherence-popover-trigger. -->
+              <div class="b9bis-field-wrapper b9bis-field-with-alert">
                 <mat-form-field appearance="outline">
                   <mat-label>Durée de présence (mois)</mat-label>
                   <input matInput type="number" required min="0"
@@ -54,54 +77,138 @@
                          (ngModelChange)="onDureePresenceChange($event)"
                          name="dureePresenceMois" />
                 </mat-form-field>
+                @if (provenanceDureePresenceMois() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DUREE_PRESENCE_MOIS; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DUREE_PRESENCE_MOIS')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="b9bis-toggle-row">
+              <!-- SF-155-08 : toggle circonstancesExceptionnelles + app-coherence-popover-trigger. -->
+              <div class="b9bis-toggle-row b9bis-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="circonstancesExceptionnelles()"
-                    (ngModelChange)="circonstancesExceptionnelles.set($event)"
+                    (ngModelChange)="onCirconstancesExceptionnellesChange($event)"
                     name="circonstancesExceptionnelles">
                   Circonstances exceptionnelles empêchant le retour au pays d'origine
                 </mat-slide-toggle>
+                @if (provenanceCirconstancesExceptionnelles() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().CIRCONSTANCES_EXCEPTIONNELLES; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('CIRCONSTANCES_EXCEPTIONNELLES')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="b9bis-toggle-row">
+              <!-- SF-155-08 : toggle liensFamiliauxBe + app-coherence-popover-trigger. -->
+              <div class="b9bis-toggle-row b9bis-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="liensFamiliauxBe()"
-                    (ngModelChange)="liensFamiliauxBe.set($event)"
+                    (ngModelChange)="onLiensFamiliauxBeChange($event)"
                     name="liensFamiliauxBe">
                   Liens familiaux constitués en Belgique
                 </mat-slide-toggle>
+                @if (provenanceLiensFamiliauxBe() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().LIENS_FAMILIAUX_BE; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('LIENS_FAMILIAUX_BE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="b9bis-toggle-row">
+              <!-- SF-155-08 : toggle liensProfessionnels + app-coherence-popover-trigger. -->
+              <div class="b9bis-toggle-row b9bis-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="liensProfessionnels()"
-                    (ngModelChange)="liensProfessionnels.set($event)"
+                    (ngModelChange)="onLiensProfessionnelsChange($event)"
                     name="liensProfessionnels">
                   Liens professionnels (contrat, emploi)
                 </mat-slide-toggle>
+                @if (provenanceLiensProfessionnels() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().LIENS_PROFESSIONNELS; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('LIENS_PROFESSIONNELS')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="b9bis-toggle-row">
+              <!-- SF-155-08 : toggle scolariteEnfantsBe + app-coherence-popover-trigger. -->
+              <div class="b9bis-toggle-row b9bis-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="scolariteEnfantsBe()"
-                    (ngModelChange)="scolariteEnfantsBe.set($event)"
+                    (ngModelChange)="onScolariteEnfantsBeChange($event)"
                     name="scolariteEnfantsBe">
                   Enfants scolarisés en Belgique
                 </mat-slide-toggle>
+                @if (provenanceScolariteEnfantsBe() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().SCOLARITE_ENFANTS_BE; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('SCOLARITE_ENFANTS_BE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="b9bis-toggle-row">
+              <!-- SF-155-08 : toggle menaceOrdrePublic + app-coherence-popover-trigger. -->
+              <div class="b9bis-toggle-row b9bis-field-with-alert">
                 <mat-slide-toggle
                     [ngModel]="menaceOrdrePublic()"
-                    (ngModelChange)="menaceOrdrePublic.set($event)"
+                    (ngModelChange)="onMenaceOrdrePublicChange($event)"
                     name="menaceOrdrePublic">
                   Menace réelle pour l'ordre public
                 </mat-slide-toggle>
+                @if (provenanceMenaceOrdrePublic() === 'IA') {
+                  <span class="b9bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MENACE_ORDRE_PUBLIC; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MENACE_ORDRE_PUBLIC')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="b9bis-field-wrapper">
+              <!-- SF-155-08 : field dateDepotDemande avec badge IA + app-coherence-popover-trigger. -->
+              <div class="b9bis-field-wrapper b9bis-field-with-alert">
                 <mat-form-field appearance="outline">
                   <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
                   <input matInput type="date"
@@ -114,6 +221,14 @@
                 @if (provenanceDateDepot() === 'IA') {
                   <span class="b9bis-provenance-note">
                     <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_DEPOT_DEMANDE; as alert) {
+                  <span class="b9bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_DEPOT_DEMANDE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
                   </span>
                 }
               </div>

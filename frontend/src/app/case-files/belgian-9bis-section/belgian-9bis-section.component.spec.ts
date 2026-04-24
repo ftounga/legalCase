@@ -4,7 +4,12 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Belgian9bisSectionComponent } from './belgian-9bis-section.component';
 import { Belgian9bisResponse } from '../../core/models/belgian-9bis.model';
-import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
+import {
+  ImmigrationExtractedData,
+  PieceManquanteEntry,
+} from '../../core/models/case-analysis.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 
 describe('Belgian9bisSectionComponent', () => {
@@ -15,6 +20,7 @@ describe('Belgian9bisSectionComponent', () => {
   let refreshSpy: jasmine.SpyObj<CaseDashboardRefreshService>;
 
   const BASE_URL = '/api/v1/case-files/case-1/belgian-9bis';
+  const SOURCE_EXPL_URL = '/api/v1/case-files/case-1/source-explanations';
 
   function r9bis(overrides: Partial<Belgian9bisResponse> = {}): Belgian9bisResponse {
     return {
@@ -40,6 +46,15 @@ describe('Belgian9bisSectionComponent', () => {
       messages: ['Demande recevable au regard de l\'art. 9bis Loi 15/12/1980'],
       ...overrides,
     };
+  }
+
+  /**
+   * SF-155-08 : absorbe la requête source-explanations émise par ngOnInit
+   * (fail-open). Empêche les tests de crash sur httpMock.verify().
+   */
+  function expectSourceExplanationCall(): void {
+    const reqs = httpMock.match(SOURCE_EXPL_URL);
+    reqs.forEach((r) => r.flush([]));
   }
 
   beforeEach(async () => {
@@ -77,6 +92,7 @@ describe('Belgian9bisSectionComponent', () => {
     const req = httpMock.expectOne(BASE_URL);
     expect(req.request.method).toBe('GET');
     req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
   });
 
   it('FRANCE → isBelgium() false, pas d\'appel HTTP, bannière info', () => {
@@ -84,12 +100,14 @@ describe('Belgian9bisSectionComponent', () => {
     expect(component.isBelgium()).toBe(false);
     component.ngOnInit();
     httpMock.expectNone(r => r.url === BASE_URL);
+    expectSourceExplanationCall();
   });
 
   it('charge l\'analyse existante si présente (GET 200)', () => {
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);
     req.flush(r9bis());
+    expectSourceExplanationCall();
     expect(component.result()!.verdictProbabilite).toBe('ELEVEE');
     expect(component.result()!.scoreGlobal).toBe(100);
     expect(component.showForm()).toBe(false);
@@ -103,6 +121,7 @@ describe('Belgian9bisSectionComponent', () => {
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);
     req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
     expect(component.showForm()).toBe(true);
     expect(component.result()).toBeNull();
   });
@@ -203,6 +222,7 @@ describe('Belgian9bisSectionComponent', () => {
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);
     req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
 
     expect(component.dateDepotDemande()).toBe('2026-03-15');
     expect(component.provenanceDateDepot()).toBe('IA');
@@ -245,5 +265,300 @@ describe('Belgian9bisSectionComponent', () => {
     component.showForm.set(false);
     component.editMode();
     expect(component.showForm()).toBe(true);
+  });
+
+  // ===========================================================================
+  // SF-155-08 : pré-fill IA tous champs + handlers (pattern canonique).
+  // ===========================================================================
+
+  it('SF-155-08 — handler onDateEntreeChange efface provenance IA', () => {
+    component.dateEntreeBelgique.set('2023-01-15');
+    component.provenanceDateEntreeBelgique.set('IA');
+    component.onDateEntreeChange('2024-06-01');
+    expect(component.dateEntreeBelgique()).toBe('2024-06-01');
+    expect(component.provenanceDateEntreeBelgique()).toBeNull();
+  });
+
+  it('SF-155-08 — handler onDureePresenceChange efface provenance IA', () => {
+    component.dureePresenceMois.set(36);
+    component.provenanceDureePresenceMois.set('IA');
+    component.onDureePresenceChange(48);
+    expect(component.dureePresenceMois()).toBe(48);
+    expect(component.provenanceDureePresenceMois()).toBeNull();
+  });
+
+  it('SF-155-08 — handler onCirconstancesExceptionnellesChange efface provenance IA', () => {
+    component.circonstancesExceptionnelles.set(false);
+    component.provenanceCirconstancesExceptionnelles.set('IA');
+    component.onCirconstancesExceptionnellesChange(true);
+    expect(component.circonstancesExceptionnelles()).toBe(true);
+    expect(component.provenanceCirconstancesExceptionnelles()).toBeNull();
+  });
+
+  it('SF-155-08 — handler onLiensFamiliauxBeChange efface provenance IA', () => {
+    component.liensFamiliauxBe.set(false);
+    component.provenanceLiensFamiliauxBe.set('IA');
+    component.onLiensFamiliauxBeChange(true);
+    expect(component.liensFamiliauxBe()).toBe(true);
+    expect(component.provenanceLiensFamiliauxBe()).toBeNull();
+  });
+
+  it('SF-155-08 — handler onLiensProfessionnelsChange efface provenance IA', () => {
+    component.liensProfessionnels.set(false);
+    component.provenanceLiensProfessionnels.set('IA');
+    component.onLiensProfessionnelsChange(true);
+    expect(component.liensProfessionnels()).toBe(true);
+    expect(component.provenanceLiensProfessionnels()).toBeNull();
+  });
+
+  it('SF-155-08 — handler onScolariteEnfantsBeChange efface provenance IA', () => {
+    component.scolariteEnfantsBe.set(false);
+    component.provenanceScolariteEnfantsBe.set('IA');
+    component.onScolariteEnfantsBeChange(true);
+    expect(component.scolariteEnfantsBe()).toBe(true);
+    expect(component.provenanceScolariteEnfantsBe()).toBeNull();
+  });
+
+  it('SF-155-08 — handler onMenaceOrdrePublicChange efface provenance IA', () => {
+    component.menaceOrdrePublic.set(false);
+    component.provenanceMenaceOrdrePublic.set('IA');
+    component.onMenaceOrdrePublicChange(true);
+    expect(component.menaceOrdrePublic()).toBe(true);
+    expect(component.provenanceMenaceOrdrePublic()).toBeNull();
+  });
+
+  it('SF-155-08 — pré-fill IA gracieux : aiData absent → no-op (pas de crash)', () => {
+    component.aiData = null;
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    expect(component.dateDepotDemande()).toBeNull();
+    expect(component.provenanceDateDepot()).toBeNull();
+  });
+
+  it('SF-155-08 — pré-fill IA dateEntreeBelgique : crochet futur — no-op si non fourni', () => {
+    component.aiData = { dateDepotProcedure: '2026-03-15' };
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    // L'IA n'expose pas dateEntreeBelgique aujourd'hui — no-op gracieux.
+    expect(component.dateEntreeBelgique()).toBeNull();
+    expect(component.provenanceDateEntreeBelgique()).toBeNull();
+  });
+
+  it('SF-155-08 — pré-fill IA dateEntreeBelgique : si extension future "as any" présente, le mécanisme rempli', () => {
+    // Simule une extension future du modèle ImmigrationExtractedData.
+    // Le composant accepte ce champ via `as any` (no-op gracieux jusqu'à la SF
+    // d'extension du modèle backend).
+    component.aiData = {
+      dateDepotProcedure: '2026-03-15',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      dateEntreeBelgique: '2022-09-10',
+    } as any;
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+    expect(component.dateEntreeBelgique()).toBe('2022-09-10');
+    expect(component.provenanceDateEntreeBelgique()).toBe('IA');
+  });
+
+  // ===========================================================================
+  // SF-155-08 : validation F-IA-03 — coherenceAlerts via CoherenceAlertBuilder.
+  // ===========================================================================
+
+  it('SF-155-08 — coherenceAlerts vide si aucune source ne diverge', () => {
+    component.aiData = { dateDepotProcedure: '2026-04-01' };
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    // Le pré-fill IA met dateDepotDemande à 2026-04-01 = même valeur que aiData → 0 alerte.
+    expect(component.dateDepotDemande()).toBe('2026-04-01');
+    expect(component.coherenceAlerts().DATE_DEPOT_DEMANDE).toBeUndefined();
+    expect(Object.keys(component.coherenceAlerts()).length).toBe(0);
+  });
+
+  it('SF-155-08 — coherenceAlerts.DATE_DEPOT_DEMANDE source IA si aiData diffère', () => {
+    component.aiData = { dateDepotProcedure: '2026-03-15' };
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    // L'avocat surcharge la valeur IA → divergence détectée.
+    component.onDateDepotChange('2026-05-20');
+    const alert = component.coherenceAlerts().DATE_DEPOT_DEMANDE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('IA');
+    expect(alert!.expectedDisplay).toBe('2026-03-15');
+    expect(alert!.contributors).toContain('IA');
+  });
+
+  it('SF-155-08 — coherenceAlerts.MENACE_ORDRE_PUBLIC source F96 quand procedureCheck VERIFIED diverge', () => {
+    const checks: ProcedureCheck[] = [{
+      id: 'pc-1',
+      ordre: 1,
+      description: 'Vérifier menace ordre public',
+      statut: 'VERIFIED',
+      critereCode: 'B9BIS_MENACE_ORDRE_PUBLIC',
+      expectedValue: 'true',
+      raison: 'Casier judiciaire chargé',
+    }];
+    component.procedureChecks = checks;
+    component.menaceOrdrePublic.set(false);
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    const alert = component.coherenceAlerts().MENACE_ORDRE_PUBLIC;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('F96');
+    expect(alert!.expectedDisplay).toBe('true');
+  });
+
+  it('SF-155-08 — coherenceAlerts.LIENS_FAMILIAUX_BE source QUESTION_IA quand réponse "oui" diverge', () => {
+    const questions: AiQuestion[] = [{
+      id: 'q-1',
+      orderIndex: 1,
+      questionText: 'Y a-t-il des liens familiaux constitués en Belgique ?',
+      answerText: 'Oui, conjoint et 2 enfants',
+      critereCode: 'B9BIS_LIENS_FAMILIAUX_BE',
+      expectedValue: 'true',
+    }];
+    component.aiQuestions = questions;
+    component.liensFamiliauxBe.set(false);
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    const alert = component.coherenceAlerts().LIENS_FAMILIAUX_BE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('QUESTION_IA');
+    expect(alert!.expectedDisplay).toBe('true');
+  });
+
+  it('SF-155-08 — coherenceAlerts MULTI quand 2 sources convergent sur même valeur', () => {
+    component.aiData = { dateDepotProcedure: '2026-03-15' };
+    component.dateDepotDemande.set('2026-05-20');
+    component.procedureChecks = [{
+      id: 'pc-2',
+      ordre: 1,
+      description: 'Vérifier date dépôt',
+      statut: 'VERIFIED',
+      critereCode: 'B9BIS_DATE_DEPOT_DEMANDE',
+      expectedValue: '2026-03-15',
+    }];
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    const alert = component.coherenceAlerts().DATE_DEPOT_DEMANDE;
+    expect(alert).toBeDefined();
+    // F96 ajouté en premier (scan ordering) → MULTI quand IA confirme.
+    expect(alert!.source).toBe('MULTI');
+    expect(alert!.contributors.length).toBeGreaterThanOrEqual(2);
+    expect(alert!.expectedDisplay).toBe('2026-03-15');
+  });
+
+  it('SF-155-08 — coherenceAlerts vide après calcul (showForm=false)', () => {
+    component.aiData = { dateDepotProcedure: '2026-03-15' };
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    component.onDateDepotChange('2026-05-20');
+    // Form mode : alerte présente.
+    expect(component.coherenceAlerts().DATE_DEPOT_DEMANDE).toBeDefined();
+    // Calcul rendu : showForm passe à false → coherenceAlerts vide (gate).
+    component.showForm.set(false);
+    expect(Object.keys(component.coherenceAlerts()).length).toBe(0);
+  });
+
+  it('SF-155-08 — alertsSummary().total reflète le nombre d\'alertes actives', () => {
+    component.aiData = { dateDepotProcedure: '2026-03-15' };
+    component.procedureChecks = [{
+      id: 'pc-3',
+      ordre: 1,
+      description: 'Liens pro',
+      statut: 'VERIFIED',
+      critereCode: 'B9BIS_LIENS_PROFESSIONNELS',
+      expectedValue: 'true',
+    }];
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    // Override post-prefill : avocat saisit valeurs divergentes.
+    component.onDateDepotChange('2026-05-20');
+    component.onLiensProfessionnelsChange(false);
+    expect(component.alertsSummary().total).toBeGreaterThanOrEqual(2);
+    expect(component.alertsSummary().blockers).toBe(0);
+  });
+
+  it('SF-155-08 — explanationFor renvoie [] par défaut (pas d\'explanations chargées)', () => {
+    expect(component.explanationFor('DATE_DEPOT_DEMANDE')).toEqual([]);
+    expect(component.explanationFor('MENACE_ORDRE_PUBLIC')).toEqual([]);
+  });
+
+  it('SF-155-08 — alertBadgeLabel formatte selon source', () => {
+    component.aiData = { dateDepotProcedure: '2026-03-15' };
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    component.onDateDepotChange('2026-05-20');
+    const alert = component.coherenceAlerts().DATE_DEPOT_DEMANDE!;
+    expect(alert).toBeDefined();
+    const label = component.alertBadgeLabel(alert);
+    expect(label).toContain('Incohérence détectée');
+    expect(label).toContain('2026-03-15');
+  });
+
+  it('SF-155-08 — alertTooltip "Contredit" quand multi-contributors', () => {
+    component.aiData = { dateDepotProcedure: '2026-03-15' };
+    component.procedureChecks = [{
+      id: 'pc-4',
+      ordre: 1,
+      description: 'X',
+      statut: 'VERIFIED',
+      critereCode: 'B9BIS_DATE_DEPOT_DEMANDE',
+      expectedValue: '2026-03-15',
+    }];
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    component.onDateDepotChange('2026-05-20');
+    const alert = component.coherenceAlerts().DATE_DEPOT_DEMANDE!;
+    expect(alert).toBeDefined();
+    expect(alert.contributors.length).toBeGreaterThanOrEqual(2);
+    expect(component.alertTooltip(alert)).toContain('Contredit');
+  });
+
+  it('SF-155-08 — pièce manquante seule ne déclenche pas d\'alerte (besoin d\'une source IA/F96/Q)', () => {
+    const pieces: PieceManquanteEntry[] = [{
+      texte: 'Justificatif liens familiaux',
+      critereCode: 'B9BIS_LIENS_FAMILIAUX_BE',
+    }];
+    component.piecesManquantes = pieces;
+    component.liensFamiliauxBe.set(false);
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    expectSourceExplanationCall();
+
+    // Pas d'alerte sans IA/F96/Q divergente.
+    expect(component.coherenceAlerts().LIENS_FAMILIAUX_BE).toBeUndefined();
   });
 });
