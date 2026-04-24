@@ -306,3 +306,53 @@
   color: var(--ds-text-primary, #1a2330);
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
+
+/* SF-155-08 : résumé des incohérences F-IA-03 + badges par field. */
+.b9bis-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-size: 13px;
+  font-weight: 600;
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.b9bis-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.b9bis-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: help;
+  align-self: flex-start;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
