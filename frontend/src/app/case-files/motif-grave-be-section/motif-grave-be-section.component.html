@@ -1,0 +1,224 @@
+<section class="motif-grave-section">
+  <header class="motif-grave-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="motif-grave-body">
+    <mat-icon class="motif-grave-icon">gavel</mat-icon>
+    <span class="motif-grave-title">MOTIF GRAVE BE (ART. 35 LOI 03/07/1978)</span>
+    @if (result()) {
+      <span class="motif-grave-chip"
+            [class.motif-grave-chip--warning]="!result()!.motifGraveProceduralementValide"
+            [class.motif-grave-chip--info]="result()!.motifGraveProceduralementValide">
+        {{ result()!.motifGraveProceduralementValide ? 'Valable' : 'Invalide' }}
+      </span>
+    }
+    <mat-icon class="motif-grave-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="motif-grave-body" class="motif-grave-body">
+      @if (!isBelgium()) {
+        <div class="motif-grave-banner motif-grave-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="motif-grave-banner-content">
+            <div class="motif-grave-banner-title">Motif grave — procédure belge uniquement</div>
+            <div class="motif-grave-banner-sub">
+              En France, voir F-DT-08 (validité licenciement disciplinaire) et F-DT-01 (licenciement simple).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="motif-grave-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="motif-grave-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="motif-grave-form" (ngSubmit)="calculate()">
+              <div class="motif-grave-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de connaissance du fait fautif</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateConnaissanceFait()"
+                         (ngModelChange)="onDateConnaissanceChange($event)"
+                         name="dateConnaissanceFait" />
+                </mat-form-field>
+              </div>
+
+              <div class="motif-grave-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de la rupture</mat-label>
+                  <input matInput type="date" required
+                         [min]="dateConnaissanceFait() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationRupture()"
+                         (ngModelChange)="onDateRuptureChange($event)"
+                         name="dateNotificationRupture" />
+                </mat-form-field>
+                @if (provenanceDateRupture() === 'IA') {
+                  <span class="motif-grave-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_RUPTURE; as alert) {
+                  <span class="motif-grave-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_RUPTURE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="motif-grave-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification des motifs (recommandé)</mat-label>
+                  <input matInput type="date" required
+                         [min]="dateNotificationRupture() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationMotifs()"
+                         (ngModelChange)="onDateMotifsChange($event)"
+                         name="dateNotificationMotifs" />
+                </mat-form-field>
+              </div>
+
+              <div class="motif-grave-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ancienneté (années)</mat-label>
+                  <input matInput type="number" required min="0" step="1"
+                         [ngModel]="anciennetteAnnees()"
+                         (ngModelChange)="onAnciennetteChange($event)"
+                         name="anciennetteAnnees" />
+                </mat-form-field>
+              </div>
+
+              <div class="motif-grave-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+                  <input matInput type="number" required min="0.01" step="0.01"
+                         [ngModel]="salaireMensuelReference()"
+                         (ngModelChange)="onSalaireChange($event)"
+                         name="salaireMensuelReference" />
+                </mat-form-field>
+                @if (provenanceSalaire() === 'IA') {
+                  <span class="motif-grave-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (salaireEstDeduit()) {
+                  <span class="motif-grave-hint-note">
+                    <mat-icon>info_outline</mat-icon>
+                    Salaire déduit d'un montant net &times; 1,30
+                  </span>
+                }
+                @if (coherenceAlerts().SALAIRE; as alert) {
+                  <span class="motif-grave-coherence-badge"
+                        [appCoherencePopover]="explanationFor('SALAIRE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="motif-grave-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="motif-grave-result">
+              <div [class]="bannerClass(result()!.motifGraveProceduralementValide)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.motifGraveProceduralementValide) }}</mat-icon>
+                <div class="motif-grave-banner-content">
+                  <div class="motif-grave-banner-title">
+                    {{ bannerTitle(result()!.motifGraveProceduralementValide) }}
+                  </div>
+                </div>
+              </div>
+
+              <ul class="motif-grave-breakdown">
+                <li>
+                  <span class="motif-grave-bd-label">Délai notification rupture</span>
+                  <span class="motif-grave-bd-value">
+                    {{ result()!.delaiRuptureJoursOuvrables }} j ouvrables
+                    (≤ 3 requis)
+                  </span>
+                </li>
+                <li>
+                  <span class="motif-grave-bd-label">Délai notification motifs</span>
+                  <span class="motif-grave-bd-value">
+                    {{ result()!.delaiMotifsJoursOuvrables }} j ouvrables
+                    (≤ 3 requis)
+                  </span>
+                </li>
+                <li>
+                  <span class="motif-grave-bd-label">Ancienneté</span>
+                  <span class="motif-grave-bd-value">{{ result()!.anciennetteAnnees }} année(s)</span>
+                </li>
+                <li>
+                  <span class="motif-grave-bd-label">Salaire mensuel brut</span>
+                  <span class="motif-grave-bd-value">
+                    {{ result()!.salaireMensuelReference | number:'1.2-2' }} €
+                  </span>
+                </li>
+                @if (!result()!.motifGraveProceduralementValide) {
+                  <li>
+                    <span class="motif-grave-bd-label">Indemnité compensatoire préavis</span>
+                    <span class="motif-grave-bd-value">
+                      {{ result()!.indemnitePreavisSiInvalide | number:'1.2-2' }} €
+                    </span>
+                  </li>
+                  <li>
+                    <span class="motif-grave-bd-label">Fourchette CCT 109 (manifestement déraisonnable)</span>
+                    <span class="motif-grave-bd-value">
+                      {{ result()!.indemniteManifestementDeraisonnableMin | number:'1.2-2' }} € —
+                      {{ result()!.indemniteManifestementDeraisonnableMax | number:'1.2-2' }} €
+                    </span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.messages?.length) {
+                <ul class="motif-grave-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="motif-grave-formule-block">
+                  <span class="motif-grave-formule-label">Formule</span>
+                  <span class="motif-grave-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="motif-grave-meta">
+                <span class="motif-grave-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

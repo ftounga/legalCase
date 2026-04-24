@@ -146,6 +146,31 @@ describe('DecisionToolsPanelComponent', () => {
     expect(component.resolveEntry('F-DT-07-anciennete-conges-prime')).not.toBeNull();
     expect(component.resolveEntry('F-IM-05-arbre-decisionnel-titre')).not.toBeNull();
     expect(component.resolveEntry('F-132-rupture-conv-indemnite')).not.toBeNull();
+    // SF-DT-27-02 : motif grave BE intégré au TOOL_REGISTRY.
+    expect(component.resolveEntry('F-DT-27-motif-grave-be')).not.toBeNull();
+  });
+
+  it('SF-DT-27-02: maps F-DT-27-motif-grave-be to MotifGraveBeSectionComponent with canonical inputs', () => {
+    component.caseFileId = 'cf-123';
+    component.workspaceCountry = 'BELGIQUE';
+    component.synthesis = {
+      travailExtractedData: { dateLicenciement: '2026-04-02', salaireBrutMensuel: 3000 },
+      piecesManquantesDetails: { foo: 'bar' },
+    };
+    component.procedureChecks = [{ p: 1 }];
+    component.aiQuestions = [{ q: 1 }];
+
+    const entry = component.resolveEntry('F-DT-27-motif-grave-be')!;
+    expect(entry).not.toBeNull();
+    expect(entry.component.name).toBe('MotifGraveBeSectionComponent');
+
+    const inputs = component.componentInputsFor(entry);
+    expect(inputs['caseFileId']).toBe('cf-123');
+    expect(inputs['workspaceCountry']).toBe('BELGIQUE');
+    expect(inputs['aiData']).toEqual({ dateLicenciement: '2026-04-02', salaireBrutMensuel: 3000 });
+    expect(inputs['procedureChecks']).toEqual([{ p: 1 }]);
+    expect(inputs['aiQuestions']).toEqual([{ q: 1 }]);
+    expect(inputs['piecesManquantes']).toEqual({ foo: 'bar' });
   });
 
   it('SF-DT-21-02 : resolves F-DT-21-travail-dissimule to TravailDissimuleSectionComponent + bindings IA', () => {

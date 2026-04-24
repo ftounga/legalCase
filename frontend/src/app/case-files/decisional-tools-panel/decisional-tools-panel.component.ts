@@ -44,6 +44,7 @@ import { TravailDissimuleSectionComponent } from '../travail-dissimule-section/t
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
 import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
+import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-grave-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -326,6 +327,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           workspaceCountry: ctx.workspaceCountry,
           // SF-155-04-C : pré-fill IA + validation F-IA-03 (4 champs BE).
           aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-27-motif-grave-be', {
+        component: MotifGraveBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-27-02 : pré-fill IA (dateLicenciement + salaireBrutMensuel)
+          // + validation F-IA-03 (2 champs : DATE_RUPTURE + SALAIRE).
+          aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
