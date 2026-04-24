@@ -332,6 +332,21 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("heures_sup_mentionnees");
     }
 
+    // SF-155-04-00-BE-immig-BE : la directive de préservation mentionne les 4 champs Annexe 13 BE
+    @Test
+    void systemPrompt_preservesAnnexe13BeFields() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_IMMIGRATION", "BELGIQUE", l,
+                java.util.List.of("OQT_BELGIQUE"));
+        // La directive de préservation de immigration_extracted_data doit lister les 4 nouveaux champs
+        assertThat(prompt).contains("immigration_extracted_data");
+        assertThat(prompt).contains("date_notification_annexe13");
+        assertThat(prompt).contains("delai_depart_impose_jours");
+        assertThat(prompt).contains("motif_oqt_code_be");
+        assertThat(prompt).contains("transfert_imminent_detected");
+    }
+
     // TC-01 : buildEnrichedPrompt avec checks NON_COMPLIANT → section injectée
     @Test
     void buildEnrichedPrompt_withNonCompliantChecks_injectsSection() {

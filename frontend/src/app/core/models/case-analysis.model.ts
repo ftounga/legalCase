@@ -253,6 +253,19 @@ export interface ImmigrationExtractedData {
   dateHeureNotificationOqtfSansDelai?: string | null;
   /** SF-155-04-00-BE-immig-FR : placement en CRA concomitant à l'OQTF sans délai (F-IM-08-04). FR uniquement. */
   placementCraDetected?: boolean | null;
+  // SF-155-04-00-BE-immig-BE : 4 champs Annexe 13 BE pour pré-fill F-IM-08-06
+  // (BELGIQUE uniquement — dossiers FR : null).
+  /** Date de notification de l'Annexe 13 / OQT belge (YYYY-MM-DD). */
+  dateNotificationAnnexe13?: string | null;
+  /** Délai de départ volontaire imposé par l'OE (entier ≥ 0, typiquement 0/7/30). */
+  delaiDepartImposeJours?: number | null;
+  /**
+   * Code motif OQT belge (Annexe13BeCalculator.MOTIFS_VALIDES) :
+   * SEJOUR_IRREGULIER_ART_7 | REFUS_SEJOUR_APRES_DEMANDE | FIN_SEJOUR_REGULIER | AUTRE.
+   */
+  motifOqtCodeBe?: string | null;
+  /** Indices factuels d'un transfert imminent vers CRA ou frontière (signal critique). */
+  transfertImminentDetected?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {
