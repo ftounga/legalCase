@@ -1,0 +1,275 @@
+<section class="df-section">
+  <header class="df-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="df-body">
+    <mat-icon class="df-icon">gavel</mat-icon>
+    <span class="df-title">DIVORCE POUR FAUTE (FR) — ART. 242 CCIV</span>
+    @if (result()) {
+      <span class="df-chip"
+            [class.df-chip--strong]="result()!.verdictProbabiliteDivorceFaute === 'ELEVEE'"
+            [class.df-chip--medium]="result()!.verdictProbabiliteDivorceFaute === 'MOYENNE'"
+            [class.df-chip--weak]="result()!.verdictProbabiliteDivorceFaute === 'FAIBLE'">
+        {{ verdictProbabiliteLabel(result()!.verdictProbabiliteDivorceFaute) }}
+      </span>
+    }
+    <mat-icon class="df-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="df-body" class="df-body">
+      @if (!isFrance()) {
+        <div class="df-banner df-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="df-banner-content">
+            <div class="df-banner-title">Divorce pour faute — procédure française uniquement</div>
+            <div class="df-banner-sub">
+              Pour la Belgique, voir l'outil divorce pour désunion irrémédiable (F-FA-11 — à venir).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="df-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="df-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="df-form" (ngSubmit)="calculate()">
+              <!-- Fautes invoquées (multi-select). -->
+              <div class="df-field-with-alert df-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Fautes invoquées</mat-label>
+                  <mat-select multiple
+                              [ngModel]="fautesInvoquees()"
+                              (ngModelChange)="onFautesChange($event)"
+                              name="fautesInvoquees" required>
+                    @for (f of fautesOptions; track f.code) {
+                      <mat-option [value]="f.code">{{ f.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceFautesInvoquees() === 'IA') {
+                  <span class="df-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().FAUTES_INVOQUEES; as alert) {
+                  <span class="df-coherence-badge"
+                        [attr.title]="alertTooltip(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Toggles preuves + torts adverses. -->
+              <div class="df-toggle-row df-field-full">
+                <mat-slide-toggle
+                    [ngModel]="preuvesDocumentaires()"
+                    (ngModelChange)="onPreuvesChange($event)"
+                    name="preuvesDocumentaires">
+                  Preuves documentaires (constats huissier, témoignages, mains courantes)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="df-toggle-row df-field-full">
+                <mat-slide-toggle
+                    [ngModel]="tortsAdverseInvoques()"
+                    (ngModelChange)="onTortsAdverseChange($event)"
+                    name="tortsAdverseInvoques">
+                  Torts adverses invoqués (demande reconventionnelle)
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Durée mariage. -->
+              <div class="df-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée du mariage (années)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="dureeMariageAnnees()"
+                         (ngModelChange)="onDureeMariageChange($event)"
+                         name="dureeMariageAnnees" required />
+                </mat-form-field>
+                @if (provenanceDureeMariage() === 'IA') {
+                  <span class="df-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DUREE_MARIAGE; as alert) {
+                  <span class="df-coherence-badge"
+                        [attr.title]="alertTooltip(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Date dépôt assignation (optionnel). -->
+              <div class="df-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de l'assignation (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateDepotAssignation()"
+                         (ngModelChange)="onDateDepotChange($event)"
+                         name="dateDepotAssignation" />
+                </mat-form-field>
+                @if (provenanceDateDepot() === 'IA') {
+                  <span class="df-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- Revenus demandeur. -->
+              <div class="df-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Revenus annuels demandeur (€)</mat-label>
+                  <input matInput type="number" min="0" step="100"
+                         [ngModel]="revenusAnnuelsDemandeurEur()"
+                         (ngModelChange)="onRevenusDemandeurChange($event)"
+                         name="revenusAnnuelsDemandeurEur" required />
+                </mat-form-field>
+                @if (provenanceRevenusDemandeur() === 'IA') {
+                  <span class="df-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REVENUS_DEMANDEUR; as alert) {
+                  <span class="df-coherence-badge"
+                        [attr.title]="alertTooltip(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Revenus défendeur. -->
+              <div class="df-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Revenus annuels défendeur (€)</mat-label>
+                  <input matInput type="number" min="0" step="100"
+                         [ngModel]="revenusAnnuelsDefendeurEur()"
+                         (ngModelChange)="onRevenusDefendeurChange($event)"
+                         name="revenusAnnuelsDefendeurEur" required />
+                </mat-form-field>
+                @if (provenanceRevenusDefendeur() === 'IA') {
+                  <span class="df-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REVENUS_DEFENDEUR; as alert) {
+                  <span class="df-coherence-badge"
+                        [attr.title]="alertTooltip(alert)">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="df-actions df-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le divorce pour faute</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="df-result">
+              <!-- Bannière verdict probabilité. -->
+              <div [class]="verdictBannerClass(result()!.verdictProbabiliteDivorceFaute)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictProbabiliteDivorceFaute === 'ELEVEE' ? 'gavel'
+                     : result()!.verdictProbabiliteDivorceFaute === 'MOYENNE' ? 'balance'
+                     : 'info_outline' }}
+                </mat-icon>
+                <div class="df-banner-content">
+                  <div class="df-banner-title">
+                    {{ verdictProbabiliteLabel(result()!.verdictProbabiliteDivorceFaute) }}
+                  </div>
+                  <div class="df-banner-sub">
+                    Score global : {{ result()!.scoreGlobal }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2 cartes : torts estimés + nombre de fautes invoquées. -->
+              <div class="df-cards-row">
+                <div [class]="verdictTortsClass(result()!.verdictTortsEstimes)">
+                  <span class="df-card-label">Torts estimés</span>
+                  <span class="df-card-value">{{ verdictTortsLabel(result()!.verdictTortsEstimes) }}</span>
+                  @if (result()!.risqueTortsPartages) {
+                    <span class="df-card-sub">Risque de torts partagés (demande reconventionnelle)</span>
+                  }
+                </div>
+
+                <div class="df-card df-card--neutral">
+                  <span class="df-card-label">Fautes invoquées</span>
+                  <span class="df-card-value">{{ result()!.nombreFautesInvoquees }}</span>
+                  @if (result()!.fautesInvoquees?.length) {
+                    <mat-chip-set class="df-card-chips">
+                      @for (f of result()!.fautesInvoquees; track f) {
+                        <mat-chip>{{ fauteLabel(f) }}</mat-chip>
+                      }
+                    </mat-chip-set>
+                  }
+                </div>
+              </div>
+
+              <!-- Carte dommages-intérêts art. 266. -->
+              <div class="df-amount-block">
+                <span class="df-amount-label">Dommages-intérêts (art. 266 Cciv)</span>
+                <span class="df-amount">
+                  {{ result()!.damagesInteretsArt266FourchetteMin | number:'1.0-0' }} €
+                  – {{ result()!.damagesInteretsArt266FourchetteMax | number:'1.0-0' }} €
+                </span>
+                <span class="df-amount-sub">Fourchette indicative — préjudice d'une particulière gravité</span>
+              </div>
+
+              <!-- Carte prestation compensatoire art. 270. -->
+              <div class="df-amount-block">
+                <span class="df-amount-label">Prestation compensatoire (art. 270 Cciv)</span>
+                <span class="df-amount">
+                  {{ result()!.prestationCompensatoireFourchetteMin | number:'1.0-0' }} €
+                  – {{ result()!.prestationCompensatoireFourchetteMax | number:'1.0-0' }} €
+                </span>
+                <span class="df-amount-sub">Indépendante des torts — disparité des conditions de vie</span>
+              </div>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="df-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="df-formule-block">
+                  <span class="df-formule-label">Formule</span>
+                  <span class="df-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="df-meta">
+                <span class="df-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

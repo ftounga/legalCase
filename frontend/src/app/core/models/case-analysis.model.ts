@@ -223,6 +223,14 @@ export interface TravailExtractedData {
   reclassementRespecteDetected?: DetectedAnswer | null;
   /** SF-155-04 : heures sup mentionnées dans le dossier pour pré-fill F-DT-19 (FR uniquement). */
   heuresSupMentionneesDansDossier?: HeuresSupMentionnees | null;
+  /**
+   * SF-FA-09-02 : codes faute détectés par le pipeline IA pour pré-fill F-FA-09
+   * (divorce pour faute, FR uniquement, art. 242 Cciv). No-op gracieux si
+   * absent — l'extraction LLM côté backend sera branchée ultérieurement.
+   * Codes attendus : ADULTERE, VIOLENCES, ABANDON, OUTRAGES, DEVOIR_ASSISTANCE,
+   * DEVOIR_FIDELITE, DEVOIR_COMMUNAUTE_VIE, AUTRE.
+   */
+  fautesDetectees?: string[] | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
