@@ -67,6 +67,102 @@
   }
 }
 
+// SF-155-04-A1 : wrapper d'un field avec badge IA + alerte cohérence sous le field.
+.hln-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field { width: 100%; }
+}
+
+// SF-155-04-A1 : résumé global "N incohérence(s) avec l'analyse" en tête du form.
+// Palette or soutenu (accent gold) cohérente F-IM-05.
+.hln-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// SF-155-04-A1 : badge "Pré-rempli depuis l'analyse" — navy + icône or.
+// Cohérent avec `immigration-title-decision-section .provenance-note`.
+.hln-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+// SF-155-04-A1 : indication discrète "Salaire déduit d'un net × 1,30" (SF-130-01).
+// Palette texte secondaire — pas d'alerte, simple info contextuelle.
+.hln-hint-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-text-secondary, #6a7485);
+  }
+}
+
+// SF-155-04-A1 : badge d'alerte cohérence (hover → popover F-IA-03-15b).
+// Cohérent avec `immigration-title-decision-section .coherence-badge`.
+.hln-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
 .hln-actions {
   grid-column: 1 / -1;
   display: flex;

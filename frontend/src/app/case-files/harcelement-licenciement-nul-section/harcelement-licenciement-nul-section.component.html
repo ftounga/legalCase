@@ -18,26 +18,72 @@
         </div>
       } @else {
         @if (showForm()) {
-          <form class="hln-form" (ngSubmit)="calculate()">
-            <mat-form-field appearance="outline">
-              <mat-label>Salaire mensuel brut de référence (€)</mat-label>
-              <input matInput type="number" min="0.01" step="0.01"
-                     [ngModel]="salaireMensuelReference()"
-                     (ngModelChange)="salaireMensuelReference.set($event)"
-                     name="salaireMensuelReference" required />
-            </mat-form-field>
+          <!-- SF-155-04-A1 : résumé des incohérences détectées. -->
+          @if (alertsSummary().total > 0) {
+            <div class="hln-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
 
-            <mat-form-field appearance="outline">
-              <mat-label>Motif de nullité</mat-label>
-              <mat-select
-                  [ngModel]="motifNullite()"
-                  (ngModelChange)="motifNullite.set($event)"
-                  name="motifNullite" required>
-                @for (m of motifsDisponibles(); track m.code) {
-                  <mat-option [value]="m.code">{{ m.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+          <form class="hln-form" (ngSubmit)="calculate()">
+            <!-- SF-155-04-A1 : field salaire avec badge IA + coherence popover. -->
+            <div class="hln-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelReference()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelReference" required />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="hln-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (salaireEstDeduit()) {
+                <span class="hln-hint-note">
+                  <mat-icon>info_outline</mat-icon>
+                  Salaire déduit d'un montant net &times; 1,30
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="hln-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- SF-155-04-A1 : field motif avec badge IA + coherence popover. -->
+            <div class="hln-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Motif de nullité</mat-label>
+                <mat-select
+                    [ngModel]="motifNullite()"
+                    (ngModelChange)="onMotifNulliteChange($event)"
+                    name="motifNullite" required>
+                  @for (m of motifsDisponibles(); track m.code) {
+                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceMotifNullite() === 'IA') {
+                <span class="hln-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().MOTIF_NULLITE; as alert) {
+                <span class="hln-coherence-badge"
+                      [appCoherencePopover]="explanationFor('MOTIF_NULLITE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
 
             <div class="hln-actions">
               <button mat-flat-button color="primary" type="submit"
