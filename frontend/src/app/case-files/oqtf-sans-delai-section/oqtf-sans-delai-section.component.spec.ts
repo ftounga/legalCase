@@ -673,4 +673,86 @@ describe('OqtfSansDelaiSectionComponent', () => {
     expect(alert!.severity).toBe('WARNING');
     expect(alert!.contributors).toEqual(['IA']);
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-06 — enrichissement 4-sources (ferme DIV-2)
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-06 : QUESTION_IA seule (réponse oui) sur RECOURS_FORME → alerte source QUESTION_IA', () => {
+    component.aiQuestions = [
+      {
+        id: 'q-1', orderIndex: 1,
+        questionText: 'Un recours a-t-il déjà été formé auprès du JLD ?',
+        answerText: 'oui, recours 48h déposé',
+        critereCode: 'IM08_RECOURS_FORME',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    // Avocat dit "pas formé" (default false) → contradiction QUESTION_IA.
+    // Pas de dateHeureNotification IA → pas d'alerte 48h critique, donc la contradiction s'applique.
+    const alert = component.coherenceAlerts().RECOURS_FORME;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('QUESTION_IA');
+    expect(alert!.contributors).toEqual(['QUESTION_IA']);
+    expect(alert!.expectedDisplay).toContain('Recours déjà formé');
+  });
+
+  it('SF-155-06 : IA + PIECE_MANQUANTE sur PLACEMENT_CRA → alerte avec pieceTexte', () => {
+    component.aiData = { placementCraDetected: true } as ImmigrationExtractedData;
+    component.piecesManquantes = [
+      { texte: 'Décision de placement CRA du préfet', critereCode: 'IM08_PLACEMENT_CRA' },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    // SF-155-06 : le prefill IA met placementCra=true ; on simule une correction
+    // manuelle avocat=false pour créer la divergence attendue (pattern terrain).
+    component.onPlacementCraChange(false);
+    const alert = component.coherenceAlerts().PLACEMENT_CRA;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Décision de placement CRA du préfet');
+  });
+
+  it('SF-155-06 : QUESTION_IA + IA convergents sur RECOURS_FORME → alerte MULTI', () => {
+    component.aiData = aiData({
+      recoursFormeDetected: { reponse: 'OUI', justification: 'Recours inscrit' },
+    });
+    component.aiQuestions = [
+      {
+        id: 'q-1', orderIndex: 1,
+        questionText: 'Un recours a-t-il déjà été formé ?',
+        answerText: 'oui',
+        critereCode: 'IM08_RECOURS_FORME',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    // SF-155-06 : le prefill IA met recoursForme=true depuis IA OUI ; on remet à
+    // false manuellement pour simuler le cas "avocat a oublié de cocher".
+    component.onRecoursFormeChange(false);
+    const alert = component.coherenceAlerts().RECOURS_FORME;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('MULTI');
+    expect(alert!.contributors.length).toBe(2);
+    expect(alert!.contributors).toContain('QUESTION_IA');
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.reason).toContain(' ET ');
+  });
+
+  it('SF-155-06 : IA + PIECE_MANQUANTE sur DATE_HEURE_NOTIFICATION → pieceTexte rempli', () => {
+    component.aiData = { dateHeureNotificationOqtfSansDelai: '2026-04-23T10:00' } as ImmigrationExtractedData;
+    component.piecesManquantes = [
+      { texte: 'Procès-verbal notification OQTF', critereCode: 'IM08_DATE_NOTIFICATION' },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.onDateHeureNotificationChange('2026-04-23T15:00'); // > 1h d'écart
+    const alert = component.coherenceAlerts().DATE_HEURE_NOTIFICATION;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Procès-verbal notification OQTF');
+  });
 });

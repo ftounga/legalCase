@@ -81,6 +81,14 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  // SF-155-06 : signals miroirs des inputs IA pour que les `computed`
+  // (coherenceAlerts) réagissent aux changements post-mount. Aligné sur le
+  // pattern canonique `immigration-title-decision-section` (lignes 95-98).
+  private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
+  private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
+
   collapsed = signal(true);
   loading = signal(false);
   calculating = signal(false);
@@ -106,7 +114,7 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
   );
 
   /** SF-155-04-A2 : note info IA (pas une alerte bloquante) si salaire déduit d'un net × 1,30. */
-  salaireEstDeduitNote = computed<boolean>(() => this.aiData?.salaireEstDeduit === true);
+  salaireEstDeduitNote = computed<boolean>(() => this.aiDataSignal()?.salaireEstDeduit === true);
 
   /** SF-155-04-A2 : alertes de cohérence F-IA-03 entre valeurs avocat et IA. */
   coherenceAlerts = computed<Partial<Record<InaptitudeAlertField, InaptitudeCoherenceAlert>>>(() => {
@@ -135,10 +143,20 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // SF-155-06 : hydrate les signals miroirs avant toute évaluation computed.
+    this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.load();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // SF-155-06 : ré-hydrate les signals miroirs à chaque changement d'input.
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
+    if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     // SF-155-04-A2 : ré-applique le pré-fill si aiData change APRÈS ngOnInit,
     // tant que l'avocat n'a pas encore validé un résultat (form actif, pas de
     // persistance côté backend). Pas d'écrasement si result() est déjà chargé.
@@ -323,66 +341,166 @@ export class InaptitudeSectionComponent implements OnInit, OnChanges {
   }
 
   private buildSalaireAlert(): InaptitudeCoherenceAlert | null {
-    const iaVal = this.aiData?.salaireBrutMensuel;
+    const iaVal = this.aiDataSignal()?.salaireBrutMensuel;
     const user = this.salaireMensuelReference();
     if (typeof iaVal !== 'number' || iaVal <= 0) return null;
     if (user === null || user <= 0) return null;
     const ratio = Math.abs(user - iaVal) / iaVal;
     if (ratio <= SALAIRE_DIVERGENCE_THRESHOLD) return null;
-    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('SALAIRE')
+    const builder = CoherenceAlertBuilder.forField<InaptitudeAlertField>('SALAIRE')
       .addSource('IA', {
         expectedDisplay: `${iaVal.toLocaleString('fr-FR')} €`,
         reason: `Analyse du dossier : salaire ${iaVal.toLocaleString('fr-FR')} € (écart > 10 % avec la valeur saisie)`,
-      })
-      .build();
+      });
+    // SF-155-06 : fiche de paie manquante — contributor additionnel.
+    const piece = this.findPieceManquante(['SALAIRE_BRUT_MENSUEL', 'INAPT_SALAIRE']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
   }
 
   private buildOrigineAlert(): InaptitudeCoherenceAlert | null {
-    const iaCode = this.aiData?.origineInaptitudePressentie;
-    if (!iaCode || !ORIGINE_IA_TO_FRONT[iaCode]) return null;
-    const mapped = ORIGINE_IA_TO_FRONT[iaCode];
-    const user = this.origineInaptitude();
-    if (!user) return null;
-    if (user === mapped) return null;
     // Ignorer côté BE (mapping non applicable)
     if (this.workspaceCountry === 'BELGIQUE') return null;
-    const label = mapped === 'PROFESSIONNELLE'
-      ? 'Origine professionnelle'
-      : 'Origine non professionnelle';
-    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('ORIGINE')
-      .addSource('IA', {
+    const user = this.origineInaptitude();
+    if (!user) return null;
+    const builder = CoherenceAlertBuilder.forField<InaptitudeAlertField>('ORIGINE');
+
+    // SF-155-06 : F96 — critereCode `INAPT_ORIGINE` NON_COMPLIANT avec expectedValue dans l'enum front.
+    const origineEnum = new Set<OrigineInaptitude>(['PROFESSIONNELLE', 'NON_PROFESSIONNELLE']);
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'INAPT_ORIGINE') continue;
+      const ev = chk.expectedValue?.toUpperCase() as OrigineInaptitude | undefined;
+      if (!ev || !origineEnum.has(ev)) continue;
+      if (ev === user) continue;
+      const label = ev === 'PROFESSIONNELLE' ? 'Origine professionnelle' : 'Origine non professionnelle';
+      builder.addSource('F96', {
         expectedDisplay: label,
-        reason: `Analyse du dossier : origine ${iaCode} → ${label}`,
-      })
-      .build();
+        reason: `Checklist procédurale : origine attendue ${label}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    // SF-155-06 : QUESTION_IA — réponse "oui" sur `INAPT_ORIGINE`.
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'INAPT_ORIGINE') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      const ev = q.expectedValue?.toUpperCase() as OrigineInaptitude | undefined;
+      if (!ev || !origineEnum.has(ev)) continue;
+      if (ev === user) continue;
+      const label = ev === 'PROFESSIONNELLE' ? 'Origine professionnelle' : 'Origine non professionnelle';
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: label,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    // IA — mapping AT/MP/MO → enum FR.
+    const iaCode = this.aiDataSignal()?.origineInaptitudePressentie;
+    if (iaCode && ORIGINE_IA_TO_FRONT[iaCode]) {
+      const mapped = ORIGINE_IA_TO_FRONT[iaCode];
+      if (mapped !== user) {
+        const label = mapped === 'PROFESSIONNELLE'
+          ? 'Origine professionnelle'
+          : 'Origine non professionnelle';
+        builder.addSource('IA', {
+          expectedDisplay: label,
+          reason: `Analyse du dossier : origine ${iaCode} → ${label}`,
+        });
+      }
+    }
+
+    // SF-155-06 : PIECE_MANQUANTE (accidentologique / certificat MP).
+    const piece = this.findPieceManquante(['INAPT_ORIGINE']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
   }
 
   private buildAvisDateAlert(): InaptitudeCoherenceAlert | null {
-    const iaDate = this.aiData?.avisMedecinTravailDate;
-    if (!iaDate || !ISO_DATE_REGEX.test(iaDate)) return null;
+    const iaDate = this.aiDataSignal()?.avisMedecinTravailDate;
     const user = this.avisMedecinTravailDate();
     if (!user) return null;
-    if (user === iaDate) return null;
-    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('AVIS_DATE')
-      .addSource('IA', {
+    const builder = CoherenceAlertBuilder.forField<InaptitudeAlertField>('AVIS_DATE');
+    // IA : divergence date.
+    if (iaDate && ISO_DATE_REGEX.test(iaDate) && user !== iaDate) {
+      builder.addSource('IA', {
         expectedDisplay: iaDate,
         reason: `Analyse du dossier : avis du ${iaDate}`,
-      })
-      .build();
+      });
+    }
+    // SF-155-06 : PIECE_MANQUANTE (avis du médecin du travail absent).
+    const piece = this.findPieceManquante(['INAPT_AVIS_MEDECIN', 'AVIS_MEDECIN_DATE']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
   }
 
   private buildReclassementAlert(): InaptitudeCoherenceAlert | null {
-    const iaDetect = this.aiData?.reclassementRespecteDetected;
-    if (!iaDetect || iaDetect.reponse === 'INCONNU' || !iaDetect.reponse) return null;
-    const iaRespecte = iaDetect.reponse === 'OUI';
-    if (iaRespecte === this.reclassementRespecte()) return null;
-    return CoherenceAlertBuilder.forField<InaptitudeAlertField>('RECLASSEMENT')
-      .addSource('IA', {
-        expectedDisplay: iaRespecte ? 'Reclassement respecté' : 'Reclassement NON respecté',
-        reason: iaDetect.justification
-          ? `Analyse du dossier : ${iaDetect.reponse} (${iaDetect.justification})`
-          : `Analyse du dossier : obligation ${iaRespecte ? 'respectée' : 'NON respectée'}`,
-      })
-      .build();
+    const builder = CoherenceAlertBuilder.forField<InaptitudeAlertField>('RECLASSEMENT');
+    const user = this.reclassementRespecte();
+
+    // SF-155-06 : QUESTION_IA — question "Obligation de reclassement a-t-elle été respectée ?"
+    // où la réponse "oui"/"non" est traduite en booléen et comparée à l'avocat.
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'INAPT_RECLASSEMENT') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      // On utilise l'answerText directement (pas besoin d'expectedValue pour
+      // un booléen — la réponse binaire encapsule déjà la valeur attendue).
+      let qRespecte: boolean | null = null;
+      if (answer === 'oui' || answer.startsWith('oui ') || answer.startsWith('oui,') || answer.startsWith('oui.')) {
+        qRespecte = true;
+      } else if (answer === 'non' || answer.startsWith('non ') || answer.startsWith('non,') || answer.startsWith('non.')) {
+        qRespecte = false;
+      }
+      if (qRespecte === null) continue;
+      if (qRespecte === user) continue;
+      const label = qRespecte ? 'Reclassement respecté' : 'Reclassement NON respecté';
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: label,
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    // IA — reclassementRespecteDetected.
+    const iaDetect = this.aiDataSignal()?.reclassementRespecteDetected;
+    if (iaDetect && iaDetect.reponse !== 'INCONNU' && iaDetect.reponse) {
+      const iaRespecte = iaDetect.reponse === 'OUI';
+      if (iaRespecte !== user) {
+        builder.addSource('IA', {
+          expectedDisplay: iaRespecte ? 'Reclassement respecté' : 'Reclassement NON respecté',
+          reason: iaDetect.justification
+            ? `Analyse du dossier : ${iaDetect.reponse} (${iaDetect.justification})`
+            : `Analyse du dossier : obligation ${iaRespecte ? 'respectée' : 'NON respectée'}`,
+        });
+      }
+    }
+
+    // SF-155-06 : PIECE_MANQUANTE (courriers reclassement, preuves de propositions).
+    const piece = this.findPieceManquante(['INAPT_RECLASSEMENT']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-06 : recherche une `PieceManquanteEntry` dont `critereCode`
+   * appartient (case-insensitive) à la liste acceptée. Retourne la 1re `texte`
+   * trouvée, ou `null`. Méthode centrale du composant pour éviter la
+   * duplication de logique d'indexation entre les 4 builders.
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
   }
 }

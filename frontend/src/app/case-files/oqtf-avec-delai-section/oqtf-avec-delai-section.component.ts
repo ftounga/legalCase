@@ -76,6 +76,13 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  // SF-155-06 : signals miroirs des inputs IA pour que les `computed`
+  // (coherenceAlerts) réagissent aux changements post-mount.
+  private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
+  private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
+
   collapsed = signal(true);
   loading = signal(false);
   analyzing = signal(false);
@@ -127,12 +134,22 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // SF-155-06 : hydrate les signals miroirs avant évaluations computed.
+    this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (this.isFrance()) {
       this.load();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // SF-155-06 : ré-hydrate les signals miroirs à chaque changement d'input.
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
+    if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     // Re-prefill si aiData arrive après le mount et qu'aucune analyse persistée
     // n'est présente ni en cours de saisie avancée. On évite d'écraser :
     // - l'analyse déjà chargée (result !== null),
@@ -303,52 +320,117 @@ export class OqtfAvecDelaiSectionComponent implements OnInit, OnChanges {
   }
 
   private buildDateNotificationAlert(): OqtfCoherenceAlert | null {
-    const ai = this.aiData?.dateNotificationOqtf;
     const user = this.dateNotificationOqtf();
     if (!user) return null;
-    if (typeof ai !== 'string' || !ISO_DATE_RE.test(ai)) return null;
-    if (ai === user) return null;
-    return CoherenceAlertBuilder.forField<OqtfAlertField>('DATE_NOTIFICATION')
-      .withSeverity('WARNING')
-      .addSource('IA', {
+    const builder = CoherenceAlertBuilder.forField<OqtfAlertField>('DATE_NOTIFICATION').withSeverity('WARNING');
+
+    // IA : divergence date.
+    const ai = this.aiDataSignal()?.dateNotificationOqtf;
+    if (typeof ai === 'string' && ISO_DATE_RE.test(ai) && ai !== user) {
+      builder.addSource('IA', {
         expectedDisplay: ai,
         reason: `L'analyse a détecté une date de notification différente : ${ai}`,
-      })
-      .build();
+      });
+    }
+
+    // SF-155-06 : pièce manquante (Annexe OQTF elle-même / notification).
+    const piece = this.findPieceManquante(['IM08_DATE_NOTIFICATION', 'IM08_OQTF_NOTIFICATION']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
   }
 
   private buildMotifOqtfAlert(): OqtfCoherenceAlert | null {
-    const aiCode = this.aiData?.motifOqtfCode;
     const user = this.motifOqtf();
     if (!user) return null;
-    if (!aiCode || !MOTIFS_OQTF_SET.has(aiCode as MotifOqtf)) return null;
-    if (aiCode === user) return null;
-    const label = MOTIFS_OQTF.find(m => m.code === aiCode)?.label ?? aiCode;
-    return CoherenceAlertBuilder.forField<OqtfAlertField>('MOTIF_OQTF')
-      .withSeverity('WARNING')
-      .addSource('IA', {
+    const builder = CoherenceAlertBuilder.forField<OqtfAlertField>('MOTIF_OQTF').withSeverity('WARNING');
+
+    // SF-155-06 : F96 — checklist procédurale `IM08_MOTIF_OQTF` NON_COMPLIANT.
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'IM08_MOTIF_OQTF') continue;
+      const ev = chk.expectedValue?.toUpperCase() as MotifOqtf | undefined;
+      if (!ev || !MOTIFS_OQTF_SET.has(ev)) continue;
+      if (ev === user) continue;
+      const label = MOTIFS_OQTF.find(m => m.code === ev)?.label ?? ev;
+      builder.addSource('F96', {
+        expectedDisplay: label,
+        reason: `Checklist procédurale : motif attendu ${label}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    // IA : motifOqtfCode.
+    const aiCode = this.aiDataSignal()?.motifOqtfCode;
+    if (aiCode && MOTIFS_OQTF_SET.has(aiCode as MotifOqtf) && aiCode !== user) {
+      const label = MOTIFS_OQTF.find(m => m.code === aiCode)?.label ?? aiCode;
+      builder.addSource('IA', {
         expectedDisplay: label,
         reason: `L'analyse a détecté un motif différent : ${label}`,
-      })
-      .build();
+      });
+    }
+
+    // SF-155-06 : PIECE_MANQUANTE sur le motif.
+    const piece = this.findPieceManquante(['IM08_MOTIF_OQTF']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
   }
 
   /**
    * Alerte critique : l'IA a détecté un recours déjà formé mais l'avocat a
    * laissé le toggle à "non formé" — risque majeur d'oubli (irrecevabilité
    * potentielle ou action en doublon).
+   * SF-155-06 : enrichi avec QUESTION_IA (réponse "oui" à une question "Un
+   * recours a-t-il déjà été formé ?") et PIECE_MANQUANTE (requête en annulation).
    */
   private buildRecoursFormeAlert(): OqtfCoherenceAlert | null {
-    const detected = this.aiData?.recoursFormeDetected;
-    if (!detected || detected.reponse !== 'OUI') return null;
     if (this.recoursForme()) return null; // avocat en phase avec la détection
-    return CoherenceAlertBuilder.forField<OqtfAlertField>('RECOURS_FORME')
-      .withSeverity('CRITICAL')
-      .addSource('IA', {
+    const builder = CoherenceAlertBuilder.forField<OqtfAlertField>('RECOURS_FORME').withSeverity('CRITICAL');
+
+    // SF-155-06 : QUESTION_IA — réponse "oui" sur IM08_RECOURS_FORME.
+    for (const q of this.aiQuestionsSignal()) {
+      if (q.critereCode?.toUpperCase() !== 'IM08_RECOURS_FORME') continue;
+      const answer = q.answerText?.trim().toLowerCase();
+      if (!answer) continue;
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
+      if (!isOui) continue;
+      builder.addSource('QUESTION_IA', {
+        expectedDisplay: 'Recours déjà formé détecté',
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+      });
+      break;
+    }
+
+    // IA : recoursFormeDetected === 'OUI'.
+    const detected = this.aiDataSignal()?.recoursFormeDetected;
+    if (detected && detected.reponse === 'OUI') {
+      builder.addSource('IA', {
         expectedDisplay: 'Recours déjà formé détecté',
         reason: `L'analyse a détecté qu'un recours a déjà été formé${detected.justification ? ' — ' + detected.justification : ''}. Vérifiez avant d'introduire une nouvelle action (risque d'irrecevabilité).`,
-      })
-      .build();
+      });
+    }
+
+    // SF-155-06 : PIECE_MANQUANTE (requête en annulation, accusé de réception).
+    const piece = this.findPieceManquante(['IM08_RECOURS_FORME']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-06 : recherche une `PieceManquanteEntry` dont `critereCode`
+   * appartient (case-insensitive) à la liste acceptée. Retourne le 1er `texte`
+   * trouvé, ou `null`.
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
   }
 
   private load(): void {

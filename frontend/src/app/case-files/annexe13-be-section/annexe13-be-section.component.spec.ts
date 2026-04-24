@@ -747,4 +747,87 @@ describe('Annexe13BeSectionComponent', () => {
       expect(alert!.severity).toBe('WARNING');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-06 — enrichissement 4-sources (ferme DIV-2)
+  // ---------------------------------------------------------------------------
+
+  describe('SF-155-06 — multi-sources', () => {
+    beforeEach(() => {
+      component.showForm.set(true);
+    });
+
+    it('SF-155-06 : F96 seul sur MOTIF_OQT → alerte source F96', () => {
+      component.procedureChecks = [
+        {
+          id: 'chk-1', ordre: 1, description: 'Motif OQT',
+          statut: 'NON_COMPLIANT',
+          critereCode: 'IM08_MOTIF_OQT_BE',
+          expectedValue: 'SEJOUR_IRREGULIER_ART_7',
+        },
+      ];
+      component.ngOnChanges({
+        procedureChecks: new SimpleChange(undefined, component.procedureChecks, true),
+      });
+      component.motifOqt.set('FIN_SEJOUR_REGULIER');
+      const alert = component.coherenceAlerts().MOTIF_OQT;
+      expect(alert).toBeDefined();
+      expect(alert!.source).toBe('F96');
+      expect(alert!.contributors).toEqual(['F96']);
+    });
+
+    it('SF-155-06 : IA + F96 convergents sur MOTIF_OQT → alerte MULTI avec 2 contributors', () => {
+      component.aiData = { motifOqtCodeBe: 'SEJOUR_IRREGULIER_ART_7' } as ImmigrationExtractedData;
+      component.procedureChecks = [
+        {
+          id: 'chk-1', ordre: 1, description: 'Motif OQT',
+          statut: 'NON_COMPLIANT',
+          critereCode: 'IM08_MOTIF_OQT_BE',
+          expectedValue: 'SEJOUR_IRREGULIER_ART_7',
+        },
+      ];
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+        procedureChecks: new SimpleChange(undefined, component.procedureChecks, true),
+      });
+      component.motifOqt.set('FIN_SEJOUR_REGULIER');
+      const alert = component.coherenceAlerts().MOTIF_OQT;
+      expect(alert).toBeDefined();
+      expect(alert!.source).toBe('MULTI');
+      expect(alert!.contributors.length).toBe(2);
+      expect(alert!.contributors).toContain('F96');
+      expect(alert!.contributors).toContain('IA');
+      expect(alert!.reason).toContain(' ET ');
+    });
+
+    it('SF-155-06 : IA + PIECE_MANQUANTE sur TRANSFERT_IMMINENT → alerte avec pieceTexte', () => {
+      component.aiData = { transfertImminentDetected: true } as ImmigrationExtractedData;
+      component.piecesManquantes = [
+        { texte: 'Ordre de mission de la police des frontières', critereCode: 'IM08_TRANSFERT' },
+      ];
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+        piecesManquantes: new SimpleChange(undefined, component.piecesManquantes, true),
+      });
+      component.transfertImminent.set(false);
+      const alert = component.coherenceAlerts().TRANSFERT_IMMINENT;
+      expect(alert).toBeDefined();
+      expect(alert!.contributors).toContain('IA');
+      expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+      expect(alert!.pieceTexte).toBe('Ordre de mission de la police des frontières');
+    });
+
+    it('SF-155-06 : PIECE_MANQUANTE seule (sans IA) sur DATE_NOTIFICATION → pas d\'alerte', () => {
+      component.aiData = null;
+      component.piecesManquantes = [
+        { texte: 'Notification originale', critereCode: 'IM08_DATE_NOTIFICATION' },
+      ];
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, null, true),
+        piecesManquantes: new SimpleChange(undefined, component.piecesManquantes, true),
+      });
+      component.dateNotificationAnnexe13.set('2026-04-10');
+      expect(component.coherenceAlerts().DATE_NOTIFICATION).toBeUndefined();
+    });
+  });
 });

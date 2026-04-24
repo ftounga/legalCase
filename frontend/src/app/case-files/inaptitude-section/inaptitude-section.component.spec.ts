@@ -466,4 +466,87 @@ describe('InaptitudeSectionComponent', () => {
     expect(component.alertBadgeLabel(alert)).toContain('Incohérence');
     expect(component.alertTooltip(alert)).toBeTruthy();
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-06 — enrichissement 4-sources (ferme DIV-2)
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-06 : F96 seul → alerte ORIGINE avec source F96', () => {
+    component.procedureChecks = [
+      {
+        id: 'chk-1', ordre: 1, description: 'Origine inaptitude',
+        statut: 'NON_COMPLIANT',
+        critereCode: 'INAPT_ORIGINE',
+        expectedValue: 'PROFESSIONNELLE',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.onOrigineChange('NON_PROFESSIONNELLE');
+    const alert = component.coherenceAlerts().ORIGINE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('F96');
+    expect(alert!.contributors).toEqual(['F96']);
+    expect(alert!.expectedDisplay).toContain('professionnelle');
+  });
+
+  it('SF-155-06 : QUESTION_IA seule (réponse oui) sur RECLASSEMENT → alerte QUESTION_IA', () => {
+    component.aiQuestions = [
+      {
+        id: 'q-1', orderIndex: 1,
+        questionText: 'L\'employeur a-t-il respecté l\'obligation de reclassement ?',
+        answerText: 'oui, recherche documentée',
+        critereCode: 'INAPT_RECLASSEMENT',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    // Avocat dit "reclassement non respecté" (false) alors que la question dit oui.
+    component.onReclassementChange(false);
+    const alert = component.coherenceAlerts().RECLASSEMENT;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('QUESTION_IA');
+    expect(alert!.contributors).toEqual(['QUESTION_IA']);
+    expect(alert!.expectedDisplay).toContain('respecté');
+  });
+
+  it('SF-155-06 : IA + F96 convergents sur ORIGINE → alerte MULTI avec 2 contributors', () => {
+    component.aiData = { origineInaptitudePressentie: 'ACCIDENT_TRAVAIL' } as TravailExtractedData;
+    component.procedureChecks = [
+      {
+        id: 'chk-1', ordre: 1, description: 'Origine inaptitude',
+        statut: 'NON_COMPLIANT',
+        critereCode: 'INAPT_ORIGINE',
+        expectedValue: 'PROFESSIONNELLE',
+      },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    component.onOrigineChange('NON_PROFESSIONNELLE');
+    const alert = component.coherenceAlerts().ORIGINE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('MULTI');
+    expect(alert!.contributors.length).toBe(2);
+    expect(alert!.contributors).toContain('F96');
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.reason).toContain(' ET ');
+  });
+
+  it('SF-155-06 : IA + PIECE_MANQUANTE sur RECLASSEMENT → contributors inclut PIECE_MANQUANTE + pieceTexte', () => {
+    component.aiData = {
+      reclassementRespecteDetected: { reponse: 'NON', justification: 'Aucune proposition' },
+    } as TravailExtractedData;
+    component.piecesManquantes = [
+      { texte: 'Courrier de proposition reclassement', critereCode: 'INAPT_RECLASSEMENT' },
+    ];
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    // Avocat dit true (respecté), IA dit NON → divergence.
+    component.onReclassementChange(true);
+    const alert = component.coherenceAlerts().RECLASSEMENT;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Courrier de proposition reclassement');
+  });
 });

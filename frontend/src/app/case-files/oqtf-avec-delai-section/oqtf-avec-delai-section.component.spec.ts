@@ -614,4 +614,88 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     expect(alert!.severity).toBe('CRITICAL');
     expect(alert!.contributors).toEqual(['IA']);
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-06 — enrichissement 4-sources (ferme DIV-2)
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-06 : F96 seul sur MOTIF_OQTF → alerte source F96', () => {
+    component.procedureChecks = [
+      {
+        id: 'chk-1', ordre: 1, description: 'Motif OQTF',
+        statut: 'NON_COMPLIANT',
+        critereCode: 'IM08_MOTIF_OQTF',
+        expectedValue: 'REFUS_TITRE',
+      },
+    ];
+    component.ngOnInit();
+    flush404();
+    component.onMotifOqtfChange('EXPIRATION_TITRE');
+    component.onDateNotificationChange('2026-04-02');
+    const alert = component.coherenceAlerts().MOTIF_OQTF;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('F96');
+    expect(alert!.contributors).toEqual(['F96']);
+    expect(alert!.expectedDisplay).toContain('Refus');
+  });
+
+  it('SF-155-06 : QUESTION_IA (réponse oui) sur RECOURS_FORME → alerte source QUESTION_IA', () => {
+    component.aiQuestions = [
+      {
+        id: 'q-1', orderIndex: 1,
+        questionText: 'Un recours a-t-il déjà été formé contre cette OQTF ?',
+        answerText: 'oui, requête en annulation déposée',
+        critereCode: 'IM08_RECOURS_FORME',
+      },
+    ];
+    component.ngOnInit();
+    flush404();
+    // Avocat laisse recoursForme=false → divergence.
+    component.onDateNotificationChange('2026-04-02');
+    component.onMotifOqtfChange('REFUS_TITRE');
+    const alert = component.coherenceAlerts().RECOURS_FORME;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('QUESTION_IA');
+    expect(alert!.contributors).toEqual(['QUESTION_IA']);
+    expect(alert!.severity).toBe('CRITICAL');
+  });
+
+  it('SF-155-06 : IA + F96 convergents sur MOTIF_OQTF → alerte MULTI', () => {
+    component.aiData = { motifOqtfCode: 'REFUS_TITRE' } as ImmigrationExtractedData;
+    component.procedureChecks = [
+      {
+        id: 'chk-1', ordre: 1, description: 'Motif OQTF',
+        statut: 'NON_COMPLIANT',
+        critereCode: 'IM08_MOTIF_OQTF',
+        expectedValue: 'REFUS_TITRE',
+      },
+    ];
+    component.ngOnInit();
+    flush404();
+    component.onMotifOqtfChange('EXPIRATION_TITRE');
+    component.onDateNotificationChange('2026-04-02');
+    const alert = component.coherenceAlerts().MOTIF_OQTF;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('MULTI');
+    expect(alert!.contributors.length).toBe(2);
+    expect(alert!.contributors).toContain('F96');
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.reason).toContain(' ET ');
+  });
+
+  it('SF-155-06 : IA + PIECE_MANQUANTE sur DATE_NOTIFICATION → contributors inclut PIECE_MANQUANTE', () => {
+    component.aiData = { dateNotificationOqtf: '2026-04-01' } as ImmigrationExtractedData;
+    component.piecesManquantes = [
+      { texte: 'Copie notification OQTF', critereCode: 'IM08_DATE_NOTIFICATION' },
+    ];
+    component.ngOnInit();
+    flush404();
+    component.onDateNotificationChange('2026-04-10'); // divergence
+    component.onMotifOqtfChange('REFUS_TITRE');
+    const alert = component.coherenceAlerts().DATE_NOTIFICATION;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Copie notification OQTF');
+  });
 });

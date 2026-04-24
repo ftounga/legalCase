@@ -127,70 +127,131 @@ export class Annexe13BeSectionComponent implements OnInit, OnChanges {
   /**
    * SF-155-04-C : alertes de cohérence F-IA-03 exposées par field.
    * Retourne `{}` quand le formulaire n'est pas visible (pattern canonique).
+   * SF-155-06 : délègue la construction de chaque alerte à un `buildXxx()`
+   * dédié exploitant les 4 sources (F96 / QUESTION_IA / IA / PIECE_MANQUANTE)
+   * via le helper `CoherenceAlertBuilder` partagé.
    */
   coherenceAlerts = computed<Partial<Record<IM08AnnexeBeAlertField, IM08AnnexeBeCoherenceAlert>>>(() => {
     if (!this.showForm()) return {};
-    const ai = this.aiDataSignal();
-    if (!ai) return {};
     const alerts: Partial<Record<IM08AnnexeBeAlertField, IM08AnnexeBeCoherenceAlert>> = {};
 
-    // 1. TRANSFERT_IMMINENT — alerte critique (severity CRITICAL)
-    if (ai.transfertImminentDetected === true && this.transfertImminent() === false) {
-      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('TRANSFERT_IMMINENT')
-        .withSeverity('CRITICAL')
-        .addSource('IA', {
-          expectedDisplay: 'Transfert imminent détecté',
-          reason: 'L\'IA a détecté un risque de transfert imminent (centre fermé, escorte, vol programmé) — à vérifier',
-        })
-        .build();
-      if (built) alerts.TRANSFERT_IMMINENT = built;
-    }
-
-    // 2. DATE_NOTIFICATION — divergence non nulle (WARNING)
-    const aiDate = typeof ai.dateNotificationAnnexe13 === 'string' ? ai.dateNotificationAnnexe13 : null;
-    const userDate = this.dateNotificationAnnexe13();
-    if (aiDate && userDate && aiDate !== userDate) {
-      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('DATE_NOTIFICATION')
-        .withSeverity('WARNING')
-        .addSource('IA', {
-          expectedDisplay: aiDate,
-          reason: `Analyse du dossier : date de notification ${aiDate}`,
-        })
-        .build();
-      if (built) alerts.DATE_NOTIFICATION = built;
-    }
-
-    // 3. DELAI_DEPART — divergence entière (WARNING)
-    const aiDelai = ai.delaiDepartImposeJours;
-    if (typeof aiDelai === 'number' && Number.isInteger(aiDelai) && aiDelai >= 0
-        && aiDelai !== this.delaiDepartImposeJours()) {
-      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('DELAI_DEPART')
-        .withSeverity('WARNING')
-        .addSource('IA', {
-          expectedDisplay: `${aiDelai} jour(s)`,
-          reason: `Analyse du dossier : délai de départ imposé = ${aiDelai} jour(s)`,
-        })
-        .build();
-      if (built) alerts.DELAI_DEPART = built;
-    }
-
-    // 4. MOTIF_OQT — divergence whitelisted (WARNING)
-    const aiMotif = ai.motifOqtCodeBe as MotifOqt | null | undefined;
-    const userMotif = this.motifOqt();
-    if (aiMotif && MOTIFS_OQT_WHITELIST.has(aiMotif) && userMotif && aiMotif !== userMotif) {
-      const label = MOTIFS_OQT.find(m => m.code === aiMotif)?.label ?? aiMotif;
-      const built = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('MOTIF_OQT')
-        .withSeverity('WARNING')
-        .addSource('IA', {
-          expectedDisplay: label,
-          reason: `Analyse du dossier : motif ${label}`,
-        })
-        .build();
-      if (built) alerts.MOTIF_OQT = built;
-    }
+    const transfert = this.buildTransfertAlert();
+    if (transfert) alerts.TRANSFERT_IMMINENT = transfert;
+    const dateA = this.buildDateNotificationAlert();
+    if (dateA) alerts.DATE_NOTIFICATION = dateA;
+    const delai = this.buildDelaiDepartAlert();
+    if (delai) alerts.DELAI_DEPART = delai;
+    const motif = this.buildMotifOqtAlert();
+    if (motif) alerts.MOTIF_OQT = motif;
 
     return alerts;
   });
+
+  // SF-155-06 : 4 builders extraits — F96 / QUESTION_IA / IA / PIECE_MANQUANTE.
+
+  private buildTransfertAlert(): IM08AnnexeBeCoherenceAlert | null {
+    if (this.transfertImminent() !== false) return null;
+    const builder = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('TRANSFERT_IMMINENT')
+      .withSeverity('CRITICAL');
+    const ai = this.aiDataSignal();
+    if (ai?.transfertImminentDetected === true) {
+      builder.addSource('IA', {
+        expectedDisplay: 'Transfert imminent détecté',
+        reason: 'L\'IA a détecté un risque de transfert imminent (centre fermé, escorte, vol programmé) — à vérifier',
+      });
+    }
+    const piece = this.findPieceManquante(['IM08_TRANSFERT', 'IM08_TRANSFERT_IMMINENT']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  private buildDateNotificationAlert(): IM08AnnexeBeCoherenceAlert | null {
+    const userDate = this.dateNotificationAnnexe13();
+    if (!userDate) return null;
+    const builder = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('DATE_NOTIFICATION')
+      .withSeverity('WARNING');
+    const ai = this.aiDataSignal();
+    const aiDate = typeof ai?.dateNotificationAnnexe13 === 'string' ? ai.dateNotificationAnnexe13 : null;
+    if (aiDate && aiDate !== userDate) {
+      builder.addSource('IA', {
+        expectedDisplay: aiDate,
+        reason: `Analyse du dossier : date de notification ${aiDate}`,
+      });
+    }
+    const piece = this.findPieceManquante(['IM08_DATE_NOTIFICATION']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  private buildDelaiDepartAlert(): IM08AnnexeBeCoherenceAlert | null {
+    const builder = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('DELAI_DEPART')
+      .withSeverity('WARNING');
+    const ai = this.aiDataSignal();
+    const aiDelai = ai?.delaiDepartImposeJours;
+    if (typeof aiDelai === 'number' && Number.isInteger(aiDelai) && aiDelai >= 0
+        && aiDelai !== this.delaiDepartImposeJours()) {
+      builder.addSource('IA', {
+        expectedDisplay: `${aiDelai} jour(s)`,
+        reason: `Analyse du dossier : délai de départ imposé = ${aiDelai} jour(s)`,
+      });
+    }
+    const piece = this.findPieceManquante(['IM08_DELAI_DEPART']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  private buildMotifOqtAlert(): IM08AnnexeBeCoherenceAlert | null {
+    const userMotif = this.motifOqt();
+    if (!userMotif) return null;
+    const builder = CoherenceAlertBuilder.forField<IM08AnnexeBeAlertField>('MOTIF_OQT')
+      .withSeverity('WARNING');
+
+    // SF-155-06 : F96 — critereCode `IM08_MOTIF_OQT_BE` NON_COMPLIANT.
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== 'IM08_MOTIF_OQT_BE'
+          && chk.critereCode?.toUpperCase() !== 'IM08_MOTIF_OQT') continue;
+      const ev = chk.expectedValue?.toUpperCase() as MotifOqt | undefined;
+      if (!ev || !MOTIFS_OQT_WHITELIST.has(ev)) continue;
+      if (ev === userMotif) continue;
+      const label = MOTIFS_OQT.find(m => m.code === ev)?.label ?? ev;
+      builder.addSource('F96', {
+        expectedDisplay: label,
+        reason: `Checklist procédurale : motif attendu ${label}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+      });
+      break;
+    }
+
+    // IA : motifOqtCodeBe.
+    const ai = this.aiDataSignal();
+    const aiMotif = ai?.motifOqtCodeBe as MotifOqt | null | undefined;
+    if (aiMotif && MOTIFS_OQT_WHITELIST.has(aiMotif) && aiMotif !== userMotif) {
+      const label = MOTIFS_OQT.find(m => m.code === aiMotif)?.label ?? aiMotif;
+      builder.addSource('IA', {
+        expectedDisplay: label,
+        reason: `Analyse du dossier : motif ${label}`,
+      });
+    }
+
+    const piece = this.findPieceManquante(['IM08_MOTIF_OQT_BE', 'IM08_MOTIF_OQT']);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
+  }
+
+  /**
+   * SF-155-06 : recherche une `PieceManquanteEntry` dont `critereCode`
+   * appartient (case-insensitive) à la liste acceptée. Retourne le 1er `texte`
+   * trouvé, ou `null`.
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
+  }
 
   alertsSummary = computed(() => {
     const values = Object.values(this.coherenceAlerts());

@@ -547,4 +547,74 @@ describe('HeuresSupSectionComponent', () => {
     expect(alert!.severity).toBe('INFO');
     expect(alert!.contributors).toEqual(['IA']);
   });
+
+  // ---------------------------------------------------------------------------
+  // SF-155-06 — enrichissement 4-sources (ferme DIV-2)
+  // Note : heures-sup ne matche pas F96/QUESTION_IA (pas de code procédural
+  // heures sup, pas de question IA typée sur quantités horaires) — donc les
+  // tests SF-155-06 validés ici sont IA seul, PIECE_MANQUANTE accrochée à
+  // une alerte IA, et vérification que PIECE_MANQUANTE seule n'émet rien.
+  // ---------------------------------------------------------------------------
+
+  it('SF-155-06 : IA seul (sans autres sources) sur TAUX_HORAIRE → contributors=[IA]', () => {
+    component.aiData = { salaireBrutMensuel: 3034 }; // dérivé 20 €/h
+    component.ngOnInit();
+    flush404();
+    component.onTauxHoraireChange();
+    component.tauxHoraireBrut.set(30); // divergence > 10 %
+    const alert = component.coherenceAlerts().TAUX_HORAIRE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('IA');
+    expect(alert!.contributors).toEqual(['IA']);
+  });
+
+  it('SF-155-06 : IA + PIECE_MANQUANTE sur TAUX_HORAIRE → pieceTexte rempli, contributors inclut IA + PIECE_MANQUANTE', () => {
+    component.aiData = { salaireBrutMensuel: 3034 };
+    component.piecesManquantes = [
+      { texte: 'Bulletins de salaire des 3 derniers mois', critereCode: 'SALAIRE_BRUT_MENSUEL' },
+    ];
+    component.ngOnInit();
+    flush404();
+    component.onTauxHoraireChange();
+    component.tauxHoraireBrut.set(30); // divergence
+    const alert = component.coherenceAlerts().TAUX_HORAIRE;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Bulletins de salaire des 3 derniers mois');
+  });
+
+  it('SF-155-06 : PIECE_MANQUANTE seule (sans IA) → pas d\'alerte (builder retourne null)', () => {
+    component.aiData = null;
+    component.piecesManquantes = [
+      { texte: 'Relevés d\'heures', critereCode: 'HS_HEURES_SUP' },
+    ];
+    component.ngOnInit();
+    flush404();
+    // Pas d'aiData → pas d'alerte TAUX_HORAIRE ni HEURES_SUP même avec une pièce manquante.
+    expect(component.coherenceAlerts().TAUX_HORAIRE).toBeUndefined();
+    expect(component.coherenceAlerts().HEURES_SUP).toBeUndefined();
+  });
+
+  it('SF-155-06 : IA + PIECE_MANQUANTE sur HEURES_SUP → alerte avec pieceTexte', () => {
+    component.aiData = {
+      heuresSupMentionneesDansDossier: {
+        totalDeclarees25pct: 10,
+        totalDeclarees50pct: 0,
+        horsContingent: 0,
+      } as unknown as TravailExtractedData['heuresSupMentionneesDansDossier'],
+    } as TravailExtractedData;
+    component.piecesManquantes = [
+      { texte: 'Plannings mensuels', critereCode: 'HS_HEURES_SUP' },
+    ];
+    component.ngOnInit();
+    flush404();
+    // Avocat saisit 30 h (vs IA 10 h) → écart abs 20 h ≥ 5, rel 200 % ≥ 50 %.
+    component.heuresSupDeclarees25pct.set(30);
+    const alert = component.coherenceAlerts().HEURES_SUP;
+    expect(alert).toBeDefined();
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.contributors).toContain('PIECE_MANQUANTE');
+    expect(alert!.pieceTexte).toBe('Plannings mensuels');
+  });
 });

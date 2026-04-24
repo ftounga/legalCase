@@ -88,6 +88,10 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
 
   // Signaux miroirs des inputs (déclenchent les computed coherenceAlerts).
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
+  // SF-155-06 : signals miroirs pour F96 + QUESTION_IA + PIECE_MANQUANTE.
+  private procedureChecksSignal = signal<ProcedureCheck[]>([]);
+  private aiQuestionsSignal = signal<AiQuestion[]>([]);
+  private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
 
   collapsed = signal(true);
   loading = signal(false);
@@ -155,10 +159,16 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     this.load();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    if (changes['piecesManquantes']) this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
     if (changes['aiData']) {
       this.aiDataSignal.set(this.aiData);
       // Ré-applique le prefill quand `aiData` arrive après ngOnInit,
@@ -336,10 +346,13 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     const rel = Math.abs(taux - derived) / Math.max(derived, 1);
     if (rel < SEUIL_TAUX_HORAIRE_REL) return null;
     const text = `${derived.toFixed(2)} €/h (dérivé de ${ai.salaireBrutMensuel} € brut / ${HEURES_MOIS_FR} h)`;
-    return CoherenceAlertBuilder.forField<HsAlertField>('TAUX_HORAIRE')
+    const builder = CoherenceAlertBuilder.forField<HsAlertField>('TAUX_HORAIRE')
       .withSeverity('WARNING')
-      .addSource('IA', { expectedDisplay: text, reason: text })
-      .build();
+      .addSource('IA', { expectedDisplay: text, reason: text });
+    // SF-155-06 : fiche de paie / bulletin manquant — contributor additionnel.
+    const piece = this.findPieceManquante(['SALAIRE_BRUT_MENSUEL', 'HS_TAUX_HORAIRE']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
   }
 
   private buildHeuresSupAlert(ai: TravailExtractedData): HsCoherenceAlert | null {
@@ -359,10 +372,31 @@ export class HeuresSupSectionComponent implements OnInit, OnChanges {
     const ecartRel = ecartAbs / Math.max(iaTotal, 1);
     if (ecartAbs < SEUIL_HEURES_ABS || ecartRel < SEUIL_HEURES_REL) return null;
     const text = `${iaTotal} h détectées dans l'analyse, ${userTotal} h saisies`;
-    return CoherenceAlertBuilder.forField<HsAlertField>('HEURES_SUP')
+    const builder = CoherenceAlertBuilder.forField<HsAlertField>('HEURES_SUP')
       .withSeverity('WARNING')
-      .addSource('IA', { expectedDisplay: text, reason: text })
-      .build();
+      .addSource('IA', { expectedDisplay: text, reason: text });
+    // SF-155-06 : relevés d'heures / plannings manquants — contributor additionnel.
+    const piece = this.findPieceManquante(['HS_HEURES_SUP', 'HS_RELEVES_HEURES']);
+    if (piece) builder.addPieceManquante(piece);
+    return builder.build();
+  }
+
+  /**
+   * SF-155-06 : recherche une `PieceManquanteEntry` dont `critereCode`
+   * appartient (case-insensitive) à la liste acceptée. Retourne le 1er `texte`
+   * trouvé, ou `null`. F96/QUESTION_IA ne sont pas exploités pour heures-sup
+   * faute de matching sémantique évident (les heures sup ne font pas partie
+   * de la checklist procédurale F-96, et il n'y a pas de question IA typée
+   * sur des quantités horaires).
+   */
+  private findPieceManquante(acceptedCodes: string[]): string | null {
+    const norm = new Set(acceptedCodes.map((c) => c.toUpperCase()));
+    for (const p of this.piecesManquantesSignal()) {
+      const code = p.critereCode?.toUpperCase();
+      if (!code) continue;
+      if (norm.has(code)) return p.texte;
+    }
+    return null;
   }
 
   private buildSalaireDeduitNote(ai: TravailExtractedData): HsCoherenceAlert | null {
