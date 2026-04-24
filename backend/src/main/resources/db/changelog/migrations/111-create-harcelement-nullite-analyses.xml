@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="111-create-harcelement-nullite-analyses" author="legalcase">
+        <comment>
+            SF-DT-11-01 : table dédiée à l'outil décisionnel "Indemnité licenciement nul —
+            harcèlement / discrimination / violence au travail" (art. L.1235-3-1 al. 2 Code du
+            travail FR + Loi 4 août 1996 art. 32tredecies BE + Loi 10 mai 2007 anti-discrimination BE)
+            + règles d'affichage F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE + BELGIQUE).
+        </comment>
+
+        <createTable tableName="harcelement_nullite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_harcelement_nullite_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="salaire_mensuel_reference" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_nullite" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="harcelement_nullite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_harcelement_nullite_analyses_case_file"/>
+
+        <createIndex tableName="harcelement_nullite_analyses"
+                     indexName="idx_harcelement_nullite_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql>
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000111', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-11-harcelement-licenciement-nul', 'ALWAYS_ON', NULL, NULL, 52);
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000112', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-11-harcelement-licenciement-nul', 'ALWAYS_ON', NULL, NULL, 52);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id IN ('f1a04001-0000-0000-0000-ee0000000111', 'f1a04001-0000-0000-0000-ee0000000112');
+            </sql>
+            <dropTable tableName="harcelement_nullite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
