@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="123-create-belgian-9ter-analyses" author="legalcase">
+        <comment>
+            SF-IM-14-02 : table dédiée à l'outil décisionnel "Régularisation 9ter
+            médical BE" (art. 9ter Loi 15/12/1980 + AR 17/05/2007 art. 7-8).
+            Évalue la probabilité d'acceptation d'une demande de régularisation
+            pour maladie grave selon 4 conditions cumulatives (certificat médical
+            type CM 1/2, soins nécessaires disponibles en Belgique, inaccessibilité
+            des soins au pays d'origine, absence de menace à l'ordre public).
+            Chaque condition = 25 pts. Verdict ELEVEE ≥75, MOYENNE 50-74,
+            FAIBLE &lt;50. Projection d'instruction à 12 mois.
+            Outil single-country BELGIQUE — le pendant français (étranger malade
+            L.425-9 CESEDA) est juridiquement distinct.
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, BELGIQUE,
+            priority 65) pour exposer l'outil sur tout dossier immigration BE.
+        </comment>
+
+        <createTable tableName="belgian_9ter_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_belgian_9ter_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_debut_symptomes" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="maladie_grave_certifiee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="soins_necessaires_disponibles_be" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="soins_inaccessibles_pays_origine" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_depot_demande" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="belgian_9ter_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_belgian_9ter_analyses_case_file"/>
+
+        <createIndex tableName="belgian_9ter_analyses"
+                     indexName="idx_belgian_9ter_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000142', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-9ter-medical-be', 'ALWAYS_ON', NULL, NULL, 65);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000142';
+            </sql>
+            <dropTable tableName="belgian_9ter_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
