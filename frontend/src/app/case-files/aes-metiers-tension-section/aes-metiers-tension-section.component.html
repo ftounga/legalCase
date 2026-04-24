@@ -1,0 +1,252 @@
+<section class="aes-section">
+  <header class="aes-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="aes-body">
+    <mat-icon class="aes-icon">how_to_reg</mat-icon>
+    <span class="aes-title">AES MÉTIERS EN TENSION (FR)</span>
+    @if (result()) {
+      <span class="aes-chip"
+            [class.aes-chip--success]="result()!.conditionsReunies"
+            [class.aes-chip--danger]="!result()!.conditionsReunies">
+        {{ result()!.conditionsReunies ? 'Conditions réunies' : 'Non réunies' }}
+      </span>
+    }
+    <mat-icon class="aes-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="aes-body" class="aes-body">
+      @if (!isFrance()) {
+        <div class="aes-banner aes-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="aes-banner-content">
+            <div class="aes-banner-title">AES Métiers en tension — régime français uniquement</div>
+            <div class="aes-banner-sub">
+              Voie expérimentale loi 26 janvier 2024 art. 26 — CESEDA L.435-4. Pour la Belgique, voir le permis unique.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="aes-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="aes-coherence-summary"
+                   [class.aes-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="aes-form" (ngSubmit)="calculate()">
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée en France</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateEntreeFrance()"
+                         (ngModelChange)="onDateEntreeFranceChange($event)"
+                         name="dateEntreeFrance" />
+                </mat-form-field>
+                @if (provenanceDateEntreeFrance() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_ENTREE_FRANCE; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_ENTREE_FRANCE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Mois d'activité salariée (24 derniers mois)</mat-label>
+                  <input matInput type="number" required
+                         min="0" max="24" step="1"
+                         [ngModel]="moisActiviteSalarieeDernieres24Mois()"
+                         (ngModelChange)="onMoisActiviteChange($event)"
+                         name="moisActiviteSalarieeDernieres24Mois" />
+                </mat-form-field>
+                @if (coherenceAlerts().MOIS_ACTIVITE; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('MOIS_ACTIVITE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="aes-toggle-row aes-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="metierEstEnTension()"
+                    (ngModelChange)="onMetierEstEnTensionChange($event)"
+                    name="metierEstEnTension">
+                  Métier figurant sur la liste des métiers en tension
+                </mat-slide-toggle>
+              </div>
+
+              @if (metierEstEnTension()) {
+                <div class="aes-field-wrap">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Code métier ROME (optionnel, ex. N1101)</mat-label>
+                    <input matInput type="text"
+                           [ngModel]="codeMetier()"
+                           (ngModelChange)="onCodeMetierChange($event)"
+                           name="codeMetier" maxlength="32" />
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="aes-toggle-row aes-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="menaceOrdrePublic()"
+                    (ngModelChange)="onMenaceOrdrePublicChange($event)"
+                    name="menaceOrdrePublic">
+                  Menace pour l'ordre public
+                </mat-slide-toggle>
+              </div>
+
+              <div class="aes-toggle-row aes-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="contratOuPromesseValide()"
+                    (ngModelChange)="onContratOuPromesseValideChange($event)"
+                    name="contratOuPromesseValide">
+                  Contrat de travail ou promesse d'embauche valide
+                </mat-slide-toggle>
+              </div>
+
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [min]="dateEntreeFrance() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateDepotDemande()"
+                         (ngModelChange)="onDateDepotDemandeChange($event)"
+                         name="dateDepotDemande" />
+                </mat-form-field>
+                @if (provenanceDateDepotDemande() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_DEPOT_DEMANDE; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_DEPOT_DEMANDE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="aes-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser AES</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="aes-result">
+              <div [class]="bannerClass(result())" role="status">
+                <mat-icon>{{ bannerIcon(result()) }}</mat-icon>
+                <div class="aes-banner-content">
+                  <div class="aes-banner-title">{{ bannerLabel(result()) }}</div>
+                </div>
+              </div>
+
+              <div class="aes-criteres-cards">
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.presence3Ans"
+                     [class.aes-card--ko]="!result()!.presence3Ans">
+                  <mat-icon>{{ result()!.presence3Ans ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Présence 3 ans en France</div>
+                    <div class="aes-card-status">{{ result()!.presence3Ans ? 'Validée' : 'Non remplie' }}</div>
+                  </div>
+                </div>
+
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.activite12MoisOk"
+                     [class.aes-card--ko]="!result()!.activite12MoisOk">
+                  <mat-icon>{{ result()!.activite12MoisOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Activité 12 mois sur 24</div>
+                    <div class="aes-card-status">{{ result()!.activite12MoisOk ? 'Validée' : 'Non remplie' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.dateEligibiliteAtteinte) {
+                <div class="aes-info-card">
+                  <mat-icon>event_available</mat-icon>
+                  <div>
+                    <div class="aes-info-label">Éligibilité atteinte le</div>
+                    <div class="aes-info-value">{{ result()!.dateEligibiliteAtteinte }}</div>
+                  </div>
+                </div>
+              }
+
+              @if (result()!.dateExpirationInstructionSiDemande) {
+                <div class="aes-info-card">
+                  <mat-icon>schedule</mat-icon>
+                  <div>
+                    <div class="aes-info-label">Expiration instruction (silence vaut rejet)</div>
+                    <div class="aes-info-value">{{ result()!.dateExpirationInstructionSiDemande }}</div>
+                  </div>
+                </div>
+              }
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="aes-criteres-non-remplis">
+                  <span class="aes-criteres-label">Critères non remplis :</span>
+                  <mat-chip-set>
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip class="aes-chip-criterion">{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="aes-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="aes-formule-block">
+                  <span class="aes-formule-label">Formule</span>
+                  <span class="aes-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="aes-meta">
+                <span class="aes-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
