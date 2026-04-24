@@ -41,6 +41,7 @@ import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-sec
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
+import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -262,6 +263,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-IM-08-oqtf-sans-delai-fr', {
         component: OqtfSansDelaiSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+        }),
+      }],
+      ['F-IM-08-annexe13-be', {
+        component: Annexe13BeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,

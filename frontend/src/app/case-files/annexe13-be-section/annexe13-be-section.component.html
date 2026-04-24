@@ -1,0 +1,219 @@
+<section class="annexe13-section">
+  <header class="annexe13-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="annexe13-body">
+    <mat-icon class="annexe13-icon">gavel</mat-icon>
+    <span class="annexe13-title">ANNEXE 13 — OQT BELGE (BE)</span>
+    @if (result()) {
+      <span class="annexe13-chip" [class.annexe13-chip--danger]="result()!.statutRecoursAnnulation === 'EXPIRE'"
+            [class.annexe13-chip--warning]="result()!.statutRecoursAnnulation === 'URGENT'"
+            [class.annexe13-chip--success]="result()!.statutRecoursAnnulation === 'RECOURS_FORME'">
+        {{ statutLabel(result()!.statutRecoursAnnulation) }}
+      </span>
+    }
+    @if (result()?.transfertImminent) {
+      <span class="annexe13-badge-transfert" role="status" aria-label="Transfert imminent">
+        ⚠ TRANSFERT IMMINENT
+      </span>
+    }
+    <mat-icon class="annexe13-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="annexe13-body" class="annexe13-body">
+      @if (!isBelgium()) {
+        <div class="annexe13-banner annexe13-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="annexe13-banner-content">
+            <div class="annexe13-banner-title">Annexe 13 — procédure belge uniquement</div>
+            <div class="annexe13-banner-sub">
+              En France, voir l'outil OQTF (SF-IM-08-01/02 avec délai, SF-IM-08-03/04 sans délai).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="annexe13-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="annexe13-form" (ngSubmit)="analyze()">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de notification de l'Annexe 13</mat-label>
+                <input matInput type="date" required
+                       [max]="todayIso"
+                       [ngModel]="dateNotificationAnnexe13()"
+                       (ngModelChange)="dateNotificationAnnexe13.set($event || null)"
+                       name="dateNotificationAnnexe13" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Délai de départ imposé (jours, 0-30)</mat-label>
+                <input matInput type="number" required min="0" max="30"
+                       [ngModel]="delaiDepartImposeJours()"
+                       (ngModelChange)="delaiDepartImposeJours.set($event ?? 30)"
+                       name="delaiDepartImposeJours" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Motif de l'OQT</mat-label>
+                <mat-select
+                    [ngModel]="motifOqt()"
+                    (ngModelChange)="motifOqt.set($event)"
+                    name="motifOqt" required>
+                  @for (m of motifs; track m.code) {
+                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <div class="annexe13-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="transfertImminent()"
+                    (ngModelChange)="transfertImminent.set($event)"
+                    name="transfertImminent">
+                  Transfert imminent (extrême urgence)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="annexe13-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="recoursForme.set($event)"
+                    name="recoursForme">
+                  Recours déjà formé devant le CCE
+                </mat-slide-toggle>
+              </div>
+
+              @if (recoursForme()) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de recours</mat-label>
+                  <mat-select
+                      [ngModel]="typeRecours()"
+                      (ngModelChange)="typeRecours.set($event)"
+                      name="typeRecours" required>
+                    @for (t of typesRecours; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du recours</mat-label>
+                  <input matInput type="date" required
+                         [min]="dateNotificationAnnexe13() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateRecours()"
+                         (ngModelChange)="dateRecours.set($event || null)"
+                         name="dateRecours" />
+                </mat-form-field>
+              }
+
+              <div class="annexe13-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="annexe13-result">
+              @if (result()!.transfertImminent) {
+                <div class="annexe13-transfert-emphasis" role="alert">
+                  <mat-icon>local_shipping</mat-icon>
+                  <div class="annexe13-transfert-content">
+                    <div class="annexe13-transfert-title">Transfert imminent détecté</div>
+                    <div class="annexe13-transfert-sub">
+                      Le recours en extrême urgence (5 jours ouvrables, art. 39/82 Loi 15.12.1980) est la voie prioritaire.
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <div [class]="bannerClass(result()!.statutRecoursAnnulation)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statutRecoursAnnulation) }}</mat-icon>
+                <div class="annexe13-banner-content">
+                  <div class="annexe13-banner-title">{{ statutLabel(result()!.statutRecoursAnnulation) }}</div>
+                  @if (showJoursRestants(result())) {
+                    <div class="annexe13-jours-restants">
+                      <span class="annexe13-jours-big">{{ result()!.joursRestantsAvantExpirationAnnulation }}</span>
+                      <span class="annexe13-jours-label">jour(s) restant(s) avant expiration du recours en annulation</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="annexe13-breakdown">
+                <li>
+                  <span class="annexe13-bd-label">Délai de départ imposé</span>
+                  <span class="annexe13-bd-value">{{ result()!.delaiDepartImposeJours }} jour(s)</span>
+                </li>
+                <li>
+                  <span class="annexe13-bd-label">Expiration du délai de départ</span>
+                  <span class="annexe13-bd-value">{{ result()!.dateExpirationDelaiDepart }}</span>
+                </li>
+                <li>
+                  <span class="annexe13-bd-label">Expiration du recours en annulation (30j)</span>
+                  <span class="annexe13-bd-value">{{ result()!.dateExpirationRecoursAnnulation }}</span>
+                </li>
+                <li>
+                  <span class="annexe13-bd-label">Expiration du recours extrême urgence (5 jours ouvrables)</span>
+                  <span class="annexe13-bd-value">{{ result()!.dateExpirationRecoursExtremeUrgence }}</span>
+                </li>
+                @if (result()!.recoursForme && result()!.typeRecours) {
+                  <li>
+                    <span class="annexe13-bd-label">Type de recours formé</span>
+                    <span class="annexe13-bd-value">{{ typeRecoursLabel(result()!.typeRecours) }}</span>
+                  </li>
+                }
+                @if (result()!.recoursForme && result()!.dateAudiencePrevisionnelle) {
+                  <li>
+                    <span class="annexe13-bd-label">Audience CCE prévisionnelle</span>
+                    <span class="annexe13-bd-value">{{ result()!.dateAudiencePrevisionnelle }}</span>
+                  </li>
+                }
+                @if (result()!.recoursForme && result()!.dateDecisionPrevisionnelle) {
+                  <li>
+                    <span class="annexe13-bd-label">Décision CCE prévisionnelle</span>
+                    <span class="annexe13-bd-value">{{ result()!.dateDecisionPrevisionnelle }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.referedDisponibles?.length) {
+                <div class="annexe13-refered">
+                  <span class="annexe13-refered-label">Recours disponibles :</span>
+                  <mat-chip-set>
+                    @for (r of result()!.referedDisponibles; track r) {
+                      <mat-chip>{{ r }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="annexe13-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li>{{ m }}</li>
+                  }
+                </ul>
+              }
+
+              <div class="annexe13-meta">
+                <span class="annexe13-meta-base">{{ result()!.baseJuridique }}</span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
