@@ -76,7 +76,13 @@ public final class ImmigrationTitleDecisionEngine {
             }
             case "FAMILLE" -> {
                 addIfExists(results, "CST_VPF");
-                if ("LONG_SEJOUR".equals(duree)) {
+                // L.423-2 CESEDA : la CARTE_RESIDENT conjoint de Français n'est ouverte
+                // qu'après 3 ans de mariage. PACS et situations hors conjugales
+                // (parent d'enfant FR, liens personnels L.423-7/L.423-9) n'ouvrent pas
+                // cette voie directe.
+                boolean eligibleResident = "LONG_SEJOUR".equals(duree)
+                        && (situationFamiliale == null || "MARIE".equals(situationFamiliale));
+                if (eligibleResident) {
                     addIfExists(results, "CARTE_RESIDENT");
                 }
             }
@@ -120,7 +126,15 @@ public final class ImmigrationTitleDecisionEngine {
             }
             case "FAMILLE" -> {
                 addIfExists(results, "CARTE_A_FAMILLE");
-                if ("LONG_SEJOUR".equals(duree)) {
+                // art. 40ter Loi 15/12/1980 : la CARTE_B est accessible après 5 ans
+                // de séjour comme membre de famille (conjoint ou cohabitant légal) d'un Belge.
+                // Les situations non conjugales (parent d'enfant belge, autres liens) ne
+                // donnent pas accès direct à la CARTE_B.
+                boolean eligibleB = "LONG_SEJOUR".equals(duree)
+                        && (situationFamiliale == null
+                                || "MARIE".equals(situationFamiliale)
+                                || "PACS_COHABITATION".equals(situationFamiliale));
+                if (eligibleB) {
                     addIfExists(results, "CARTE_B");
                 }
             }

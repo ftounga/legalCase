@@ -135,4 +135,83 @@ class ImmigrationTitleDecisionEngineTest {
             }
         }
     }
+
+    // ---- F-IM-18 SF-IM-18-01 : situation familiale branchée ----
+
+    @Test
+    void horsUE_famille_france_marie_longSejour_returnsCstVpfAndCarteResident() {
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "FRANCE", false, "FAMILLE", "LONG_SEJOUR", "MARIE");
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CST_VPF", "CARTE_RESIDENT");
+    }
+
+    @Test
+    void horsUE_famille_france_pacs_longSejour_returnsOnlyCstVpf() {
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "FRANCE", false, "FAMILLE", "LONG_SEJOUR", "PACS_COHABITATION");
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CST_VPF");
+    }
+
+    @Test
+    void horsUE_famille_france_celibataire_longSejour_returnsOnlyCstVpf() {
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "FRANCE", false, "FAMILLE", "LONG_SEJOUR", "CELIBATAIRE");
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CST_VPF");
+    }
+
+    @Test
+    void horsUE_famille_france_nullSituation_longSejour_returnsCstVpfAndCarteResident() {
+        // Rétrocompat : null déclenche le comportement legacy.
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "FRANCE", false, "FAMILLE", "LONG_SEJOUR", null);
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CST_VPF", "CARTE_RESIDENT");
+    }
+
+    @Test
+    void horsUE_famille_belgique_marie_longSejour_returnsCarteAFamilleAndCarteB() {
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "BELGIQUE", false, "FAMILLE", "LONG_SEJOUR", "MARIE");
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CARTE_A_FAMILLE", "CARTE_B");
+    }
+
+    @Test
+    void horsUE_famille_belgique_pacs_longSejour_returnsCarteAFamilleAndCarteB() {
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "BELGIQUE", false, "FAMILLE", "LONG_SEJOUR", "PACS_COHABITATION");
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CARTE_A_FAMILLE", "CARTE_B");
+    }
+
+    @Test
+    void horsUE_famille_belgique_celibataire_longSejour_returnsOnlyCarteAFamille() {
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "BELGIQUE", false, "FAMILLE", "LONG_SEJOUR", "CELIBATAIRE");
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CARTE_A_FAMILLE");
+    }
+
+    @Test
+    void horsUE_famille_belgique_nullSituation_longSejour_returnsCarteAFamilleAndCarteB() {
+        // Rétrocompat.
+        List<TitleRecommendation> result = ImmigrationTitleDecisionEngine.resolve(
+                "BELGIQUE", false, "FAMILLE", "LONG_SEJOUR", null);
+        assertThat(result).extracting(TitleRecommendation::code)
+                .containsExactly("CARTE_A_FAMILLE", "CARTE_B");
+    }
+
+    @Test
+    void horsUE_travail_situationFamilialeIgnored() {
+        // Hors motif FAMILLE, situationFamiliale n'a aucun effet.
+        List<TitleRecommendation> withMarie = ImmigrationTitleDecisionEngine.resolve(
+                "FRANCE", false, "TRAVAIL", "LONG_SEJOUR", "MARIE");
+        List<TitleRecommendation> withNull = ImmigrationTitleDecisionEngine.resolve(
+                "FRANCE", false, "TRAVAIL", "LONG_SEJOUR", null);
+        assertThat(withMarie).extracting(TitleRecommendation::code)
+                .isEqualTo(withNull.stream().map(TitleRecommendation::code).toList());
+    }
 }
