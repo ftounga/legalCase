@@ -1,0 +1,183 @@
+<section class="oqtf-sd-section">
+  <header class="oqtf-sd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="oqtf-sd-body">
+    <mat-icon class="oqtf-sd-icon">gavel</mat-icon>
+    <span class="oqtf-sd-title">OQTF SANS DÉLAI DE DÉPART VOLONTAIRE (FR) — 48h</span>
+    @if (result()) {
+      <span class="oqtf-sd-chip"
+            [class.oqtf-sd-chip--danger-medium]="result()!.statutDelaiRecours === 'DISPONIBLE'"
+            [class.oqtf-sd-chip--danger-strong]="result()!.statutDelaiRecours === 'URGENT'"
+            [class.oqtf-sd-chip--danger-dark]="result()!.statutDelaiRecours === 'EXPIRE'"
+            [class.oqtf-sd-chip--success]="result()!.statutDelaiRecours === 'RECOURS_FORME'">
+        {{ statutLabel(result()!.statutDelaiRecours) }}
+      </span>
+      @if (result()!.placementCra) {
+        <span class="oqtf-sd-chip oqtf-sd-chip--cra" title="Placement en CRA en cours">CRA</span>
+      }
+    }
+    <mat-icon class="oqtf-sd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="oqtf-sd-body" class="oqtf-sd-body">
+      @if (!isFrance()) {
+        <div class="oqtf-sd-banner oqtf-sd-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="oqtf-sd-banner-content">
+            <div class="oqtf-sd-banner-title">OQTF sans délai — procédure française uniquement</div>
+            <div class="oqtf-sd-banner-sub">
+              Pour la Belgique, voir les outils Annexe 13/13quinquies (à venir — SF-IM-08-06).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="oqtf-sd-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="oqtf-sd-form" (ngSubmit)="analyze()">
+              <mat-form-field appearance="outline">
+                <mat-label>Date et heure de notification de l'OQTF</mat-label>
+                <input matInput type="datetime-local" required
+                       [max]="nowLocalIso"
+                       [ngModel]="dateHeureNotificationOqtf()"
+                       (ngModelChange)="dateHeureNotificationOqtf.set($event || null)"
+                       name="dateHeureNotificationOqtf" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Motif de l'OQTF sans délai</mat-label>
+                <mat-select
+                    [ngModel]="motifSansDelai()"
+                    (ngModelChange)="motifSansDelai.set($event)"
+                    name="motifSansDelai" required>
+                  @for (m of motifs; track m.code) {
+                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <div class="oqtf-sd-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="placementCra()"
+                    (ngModelChange)="placementCra.set($event)"
+                    name="placementCra">
+                  Placement en CRA (centre de rétention administrative)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="oqtf-sd-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="recoursForme()"
+                    (ngModelChange)="recoursForme.set($event)"
+                    name="recoursForme">
+                  Recours déjà formé devant le TA
+                </mat-slide-toggle>
+              </div>
+
+              @if (recoursForme()) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Date et heure du recours</mat-label>
+                  <input matInput type="datetime-local" required
+                         [min]="dateHeureNotificationOqtf() || ''"
+                         [max]="nowLocalIso"
+                         [ngModel]="dateHeureRecours()"
+                         (ngModelChange)="dateHeureRecours.set($event || null)"
+                         name="dateHeureRecours" />
+                </mat-form-field>
+              }
+
+              <div class="oqtf-sd-actions">
+                <button mat-flat-button color="warn" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'urgence 48h</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="oqtf-sd-result">
+              <div [class]="bannerClass(result()!.statutDelaiRecours)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.statutDelaiRecours) }}</mat-icon>
+                <div class="oqtf-sd-banner-content">
+                  <div class="oqtf-sd-banner-title">
+                    {{ statutLabel(result()!.statutDelaiRecours) }}
+                    @if (result()!.placementCra) {
+                      <span class="oqtf-sd-cra-badge">⚠ CRA</span>
+                    }
+                  </div>
+                  @if (showHeuresRestantes(result())) {
+                    <div class="oqtf-sd-heures-restantes">
+                      <span class="oqtf-sd-heures-big">{{ result()!.heuresRestantes }}</span>
+                      <span class="oqtf-sd-heures-label">heure(s) restante(s) pour former un recours suspensif</span>
+                    </div>
+                  }
+                  @if (result()!.placementCra && result()!.statutDelaiRecours !== 'RECOURS_FORME') {
+                    <div class="oqtf-sd-banner-sub">
+                      Placement en CRA actif — référé-liberté (L.521-2 CJA) disponible, décision sous 48h.
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <ul class="oqtf-sd-breakdown">
+                <li>
+                  <span class="oqtf-sd-bd-label">Notification OQTF</span>
+                  <span class="oqtf-sd-bd-value">{{ result()!.dateHeureNotificationOqtf | date:'dd/MM/yyyy HH:mm' }}</span>
+                </li>
+                <li>
+                  <span class="oqtf-sd-bd-label">Expiration du délai de recours (48h)</span>
+                  <span class="oqtf-sd-bd-value">{{ result()!.dateHeureExpirationDelaiRecours | date:'dd/MM/yyyy HH:mm' }}</span>
+                </li>
+                @if (result()!.recoursForme && result()!.dateHeureAudiencePrevisionnelle) {
+                  <li>
+                    <span class="oqtf-sd-bd-label">Audience prévisionnelle</span>
+                    <span class="oqtf-sd-bd-value">{{ result()!.dateHeureAudiencePrevisionnelle | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </li>
+                }
+                @if (result()!.recoursForme && result()!.dateDecisionPrevisionnelle) {
+                  <li>
+                    <span class="oqtf-sd-bd-label">Décision prévisionnelle</span>
+                    <span class="oqtf-sd-bd-value">{{ result()!.dateDecisionPrevisionnelle | date:'dd/MM/yyyy' }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.refereDisponibles?.length) {
+                <div class="oqtf-sd-refere">
+                  <span class="oqtf-sd-refere-label">Référés disponibles :</span>
+                  <mat-chip-set>
+                    @for (r of result()!.refereDisponibles; track r) {
+                      <mat-chip>{{ r }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="oqtf-sd-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li>{{ m }}</li>
+                  }
+                </ul>
+              }
+
+              <div class="oqtf-sd-meta">
+                <span class="oqtf-sd-meta-base">{{ result()!.baseJuridique }}</span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

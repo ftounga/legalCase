@@ -1,0 +1,310 @@
+/*
+ * SF-IM-08-04 — OQTF sans délai FR : urgence absolue 48h.
+ * DESIGN_SYSTEM.md autorise la palette rouge pour les alertes critiques
+ * d'urgence. Ici rouge domine (DISPONIBLE rouge moyen, URGENT rouge
+ * soutenu, EXPIRE rouge foncé) — contrairement à SF-IM-08-02 (30j) qui
+ * n'utilise le rouge que pour EXPIRE. RECOURS_FORME bascule en vert.
+ */
+
+.oqtf-sd-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.oqtf-sd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.oqtf-sd-icon {
+  color: #c02424;
+}
+
+.oqtf-sd-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.oqtf-sd-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(192, 36, 36, 0.14);
+  color: #9a1c1c;
+  font-weight: 600;
+  font-size: 12px;
+
+  &--danger-medium {
+    background: rgba(192, 36, 36, 0.14);
+    color: #9a1c1c;
+  }
+
+  &--danger-strong {
+    background: rgba(192, 36, 36, 0.22);
+    color: #7a1616;
+  }
+
+  &--danger-dark {
+    background: rgba(122, 22, 22, 0.20);
+    color: #5c0f0f;
+  }
+
+  &--success {
+    background: rgba(32, 128, 64, 0.14);
+    color: #156135;
+  }
+
+  &--cra {
+    background: rgba(201, 165, 75, 0.28);
+    color: #8a6a16;
+    border: 1px solid var(--ds-accent-gold, #c9a54b);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+}
+
+.oqtf-sd-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.oqtf-sd-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.oqtf-sd-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.oqtf-sd-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.oqtf-sd-toggle-row {
+  grid-column: 1 / -1;
+  padding: 8px 0;
+}
+
+.oqtf-sd-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.oqtf-sd-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.oqtf-sd-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #c02424;
+  background: rgba(192, 36, 36, 0.06);
+
+  mat-icon {
+    color: #9a1c1c;
+    flex-shrink: 0;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  /* 48h disponible — rouge moyen (déjà urgent par nature). */
+  &--danger-medium {
+    border-left-color: #c02424;
+    background: rgba(192, 36, 36, 0.10);
+
+    mat-icon { color: #9a1c1c; }
+
+    .oqtf-sd-banner-title { color: #9a1c1c; }
+  }
+
+  /* 48h presque écoulées — rouge soutenu. */
+  &--danger-strong {
+    border-left-color: #a51d1d;
+    background: rgba(192, 36, 36, 0.18);
+
+    mat-icon { color: #7a1616; }
+
+    .oqtf-sd-banner-title { color: #7a1616; }
+  }
+
+  /* 48h expirées — rouge foncé. */
+  &--danger-dark {
+    border-left-color: #5c0f0f;
+    background: rgba(92, 15, 15, 0.22);
+
+    mat-icon { color: #5c0f0f; }
+
+    .oqtf-sd-banner-title { color: #5c0f0f; }
+  }
+
+  &--success {
+    border-left-color: #208040;
+    background: rgba(32, 128, 64, 0.10);
+
+    mat-icon { color: #156135; }
+  }
+}
+
+.oqtf-sd-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.oqtf-sd-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.oqtf-sd-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.oqtf-sd-cra-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(201, 165, 75, 0.28);
+  color: #8a6a16;
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.oqtf-sd-heures-restantes {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.oqtf-sd-heures-big {
+  /* Police volontairement très grande (urgence 48h). */
+  font-size: 40px;
+  font-weight: 700;
+  color: #9a1c1c;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  line-height: 1;
+}
+
+.oqtf-sd-heures-label {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.oqtf-sd-breakdown {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: rgba(26, 35, 48, 0.03);
+  }
+}
+
+.oqtf-sd-bd-label {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.oqtf-sd-bd-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.oqtf-sd-refere {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oqtf-sd-refere-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.oqtf-sd-messages {
+  list-style: disc inside;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(192, 36, 36, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.oqtf-sd-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.oqtf-sd-meta-base {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}

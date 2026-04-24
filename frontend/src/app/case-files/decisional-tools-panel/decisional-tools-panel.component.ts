@@ -40,6 +40,7 @@ import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licen
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
+import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -254,6 +255,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-IM-08-oqtf-avec-delai-fr', {
         component: OqtfAvecDelaiSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+        }),
+      }],
+      ['F-IM-08-oqtf-sans-delai-fr', {
+        component: OqtfSansDelaiSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
