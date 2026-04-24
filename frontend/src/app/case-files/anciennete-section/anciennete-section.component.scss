@@ -237,3 +237,11 @@
   background: #FEF7E6; color: #92400E;
   mat-icon { font-size: 14px; width: 14px; height: 14px; color: #F59E0B; }
 }
+
+// SF-155-14 : badge "Pré-rempli depuis l'analyse" à côté de chaque champ
+// pré-rempli par l'IA. Aligné sur pattern canonique F-IM-05.
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; color: #1A3A5C;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #C9973A; }
+}
