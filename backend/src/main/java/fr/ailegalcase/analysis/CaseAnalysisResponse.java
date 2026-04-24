@@ -88,7 +88,14 @@ public record CaseAnalysisResponse(
             String siretEmployeur, String bceEmployeur,
             String representantEmployeur,
             // SF-130-01 : true si salaireBrutMensuel a été déduit d'un net via conversion × 1,30
-            Boolean salaireEstDeduit) {
+            Boolean salaireEstDeduit,
+            // SF-155-04-00-BE-travail : 5 champs IA pour pré-fill outils décisionnels F-DT-11/15/19.
+            // Tous nullables — la plupart des dossiers travail BE ne portent pas ces concepts FR.
+            String motifNullitePressenti,
+            String origineInaptitudePressentie,
+            String avisMedecinTravailDate,
+            DetectedAnswer reclassementRespecteDetected,
+            HeuresSupMentionnees heuresSupMentionneesDansDossier) {
 
         /** Constructeur rétrocompat 9 champs (avant SF-DT-04-04). */
         public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
@@ -97,7 +104,8 @@ public record CaseAnalysisResponse(
             this(conventionCollective, dateEntree, salaireBrutMensuel,
                     typeContrat, poste, motifLicenciement, dateLicenciement,
                     congesContractuels, primeAncienneteContractuelle,
-                    null, null, null, null, null, null, null, null, null);
+                    null, null, null, null, null, null, null, null, null,
+                    null, null, null, null, null);
         }
 
         /** Constructeur rétrocompat 17 champs (avant SF-130-01). */
@@ -114,9 +122,38 @@ public record CaseAnalysisResponse(
                     nomSalarie, prenomSalarie, adresseSalarie,
                     nomEmployeur, adresseEmployeur,
                     siretEmployeur, bceEmployeur,
-                    representantEmployeur, null);
+                    representantEmployeur, null,
+                    null, null, null, null, null);
+        }
+
+        /** Constructeur rétrocompat 18 champs (avant SF-155-04-00-BE-travail). */
+        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
+                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
+                                     Integer congesContractuels, Double primeAncienneteContractuelle,
+                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
+                                     String nomEmployeur, String adresseEmployeur,
+                                     String siretEmployeur, String bceEmployeur,
+                                     String representantEmployeur, Boolean salaireEstDeduit) {
+            this(conventionCollective, dateEntree, salaireBrutMensuel,
+                    typeContrat, poste, motifLicenciement, dateLicenciement,
+                    congesContractuels, primeAncienneteContractuelle,
+                    nomSalarie, prenomSalarie, adresseSalarie,
+                    nomEmployeur, adresseEmployeur,
+                    siretEmployeur, bceEmployeur,
+                    representantEmployeur, salaireEstDeduit,
+                    null, null, null, null, null);
         }
     }
+
+    /**
+     * SF-155-04-00-BE-travail : agrégat des heures supplémentaires mentionnées dans le dossier
+     * (bulletins de paie, décomptes, attestations), pour pré-remplir F-DT-19 heures sup.
+     * Tous les champs nullables — chaque catégorie est indépendante.
+     */
+    public record HeuresSupMentionnees(
+            Integer totalDeclarees25pct,
+            Integer totalDeclarees50pct,
+            Integer horsContingent) {}
 
     public record DetectedAnswer(String reponse, String justification) {}
 
@@ -173,6 +210,17 @@ public record CaseAnalysisResponse(
             "FR_MOTIF_REEL", "FR_PROCEDURE_DISCIPLINAIRE", "FR_ORDRE_LICENCIEMENT",
             "BE_NOTIFICATION", "BE_PREAVIS", "BE_MOTIVATION", "BE_AUDITION",
             "BE_NON_DISCRIMINATION", "BE_PROTECTION_SPECIALE", "BE_INDEMNITE_MANIFESTE"
+    );
+
+    /** SF-155-04-00-BE-travail : codes de motif de nullité FR pour pré-fill F-DT-11. */
+    static final Set<String> MOTIFS_NULLITE_CODES = Set.of(
+            "DISCRIMINATION", "HARCELEMENT_MORAL", "HARCELEMENT_SEXUEL",
+            "RETORSION", "SYNDICAL", "MATERNITE_PATERNITE", "ACCIDENT_MP"
+    );
+
+    /** SF-155-04-00-BE-travail : codes d'origine d'inaptitude FR pour pré-fill F-DT-15. */
+    static final Set<String> ORIGINE_INAPTITUDE_CODES = Set.of(
+            "ACCIDENT_TRAVAIL", "MALADIE_PROFESSIONNELLE", "MALADIE_ORDINAIRE"
     );
 
     static final int MAX_JUSTIFICATION_LENGTH = 500;
@@ -890,9 +938,51 @@ public record CaseAnalysisResponse(
                     normalizeBeBceIdentifier(textOrNull(node, "bce_employeur")),
                     textOrNull(node, "representant_employeur"),
                     // SF-130-01 : flag IA "salaire déduit d'un net"
-                    booleanOrNull(node, "salaire_est_deduit")
+                    booleanOrNull(node, "salaire_est_deduit"),
+                    // SF-155-04-00-BE-travail : 5 champs IA pour F-DT-11 / F-DT-15 / F-DT-19
+                    normalizeEnumCode(textOrNull(node, "motif_nullite_pressenti"), MOTIFS_NULLITE_CODES),
+                    normalizeEnumCode(textOrNull(node, "origine_inaptitude_pressentie"), ORIGINE_INAPTITUDE_CODES),
+                    textOrNull(node, "avis_medecin_travail_date"),
+                    extractDetectedAnswer(node.get("reclassement_respecte_detected")),
+                    extractHeuresSupMentionnees(node.get("heures_sup_mentionnees"))
             );
         } catch (Exception ignored) { return null; }
+    }
+
+    /** SF-155-04-00-BE-travail : upper-case puis check whitelist, null sinon (fail-open). */
+    private static String normalizeEnumCode(String raw, Set<String> allowed) {
+        if (raw == null) return null;
+        String up = raw.trim().toUpperCase();
+        return allowed.contains(up) ? up : null;
+    }
+
+    /** SF-155-04-00-BE-travail : parse un objet {reponse, justification} avec troncature 500 car. */
+    private static DetectedAnswer extractDetectedAnswer(JsonNode node) {
+        if (node == null || !node.isObject()) return null;
+        String reponseRaw = node.has("reponse") && !node.get("reponse").isNull() ? node.get("reponse").asText() : null;
+        String reponse = normalizeReponse(reponseRaw);
+        String justification = node.has("justification") && !node.get("justification").isNull()
+                ? node.get("justification").asText() : null;
+        if (justification != null && justification.length() > MAX_JUSTIFICATION_LENGTH) {
+            justification = justification.substring(0, MAX_JUSTIFICATION_LENGTH);
+        }
+        return new DetectedAnswer(reponse, justification);
+    }
+
+    /** SF-155-04-00-BE-travail : parse objet heures sup agrégé (3 entiers nullable). */
+    private static HeuresSupMentionnees extractHeuresSupMentionnees(JsonNode node) {
+        if (node == null || !node.isObject()) return null;
+        Integer t25 = nonNegativeIntOrNull(node, "total_declarees_25pct");
+        Integer t50 = nonNegativeIntOrNull(node, "total_declarees_50pct");
+        Integer hc = nonNegativeIntOrNull(node, "hors_contingent");
+        if (t25 == null && t50 == null && hc == null) return null;
+        return new HeuresSupMentionnees(t25, t50, hc);
+    }
+
+    /** SF-155-04-00-BE-travail : entier ≥ 0, null si absent, négatif ou non numérique. */
+    private static Integer nonNegativeIntOrNull(JsonNode node, String field) {
+        Integer v = intOrNull(node, field);
+        return (v != null && v >= 0) ? v : null;
     }
 
     /** Normalise un SIREN/SIRET : garde uniquement les chiffres, null si 0 chiffre, sinon renvoie la chaîne. */

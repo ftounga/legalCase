@@ -828,5 +828,236 @@ class CaseAnalysisResponseTest {
         assertThat(t.nomEmployeur()).isNull();
         assertThat(t.siretEmployeur()).isNull();
         assertThat(t.bceEmployeur()).isNull();
+        // SF-155-04 : les 5 nouveaux champs sont null sur une fixture legacy
+        assertThat(t.motifNullitePressenti()).isNull();
+        assertThat(t.origineInaptitudePressentie()).isNull();
+        assertThat(t.avisMedecinTravailDate()).isNull();
+        assertThat(t.reclassementRespecteDetected()).isNull();
+        assertThat(t.heuresSupMentionneesDansDossier()).isNull();
+    }
+
+    // SF-155-04-00-BE-travail : pré-fill IA harcèlement / inaptitude / heures sup
+    @Test
+    void from_travailExtractedData_motifNullitePressenti_parsed() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "salaire_brut_mensuel": 3200,
+                    "motif_nullite_pressenti": "HARCELEMENT_MORAL"
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.motifNullitePressenti()).isEqualTo("HARCELEMENT_MORAL");
+        assertThat(t.salaireBrutMensuel()).isEqualTo(3200.0);
+    }
+
+    @Test
+    void from_travailExtractedData_motifNullitePressenti_invalide_renvoieNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "motif_nullite_pressenti": "VALEUR_INCONNUE"
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.motifNullitePressenti()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_motifNullitePressenti_normalisationLowercase() {
+        // Valeur en minuscules → normalisation upper-case, acceptée
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "motif_nullite_pressenti": "discrimination"
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.motifNullitePressenti()).isEqualTo("DISCRIMINATION");
+    }
+
+    @Test
+    void from_travailExtractedData_inaptitudeComplete_parsedAndDetectedAnswer() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "origine_inaptitude_pressentie": "ACCIDENT_TRAVAIL",
+                    "avis_medecin_travail_date": "2026-03-18",
+                    "reclassement_respecte_detected": {
+                      "reponse": "OUI",
+                      "justification": "Trois propositions de reclassement consignées dans le courrier du 20/03/2026."
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.origineInaptitudePressentie()).isEqualTo("ACCIDENT_TRAVAIL");
+        assertThat(t.avisMedecinTravailDate()).isEqualTo("2026-03-18");
+        assertThat(t.reclassementRespecteDetected()).isNotNull();
+        assertThat(t.reclassementRespecteDetected().reponse()).isEqualTo("OUI");
+        assertThat(t.reclassementRespecteDetected().justification())
+                .contains("Trois propositions");
+    }
+
+    @Test
+    void from_travailExtractedData_origineInaptitudeInvalide_renvoieNull() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "origine_inaptitude_pressentie": "AUTRE"
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.origineInaptitudePressentie()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_reclassementJustification_troncaturAt500Chars() {
+        String longJustification = "A".repeat(600);
+        String json = """
+                {
+                  "travail_extracted_data": {
+                    "reclassement_respecte_detected": {
+                      "reponse": "NON",
+                      "justification": "%s"
+                    }
+                  }
+                }
+                """.formatted(longJustification);
+        CaseAnalysis analysis = analysis(json);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.reclassementRespecteDetected()).isNotNull();
+        assertThat(t.reclassementRespecteDetected().justification()).hasSize(500);
+    }
+
+    @Test
+    void from_travailExtractedData_reclassementReponseInvalide_inconnu() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "reclassement_respecte_detected": {
+                      "reponse": "PEUT-ETRE",
+                      "justification": "ambigu"
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t.reclassementRespecteDetected()).isNotNull();
+        assertThat(t.reclassementRespecteDetected().reponse()).isEqualTo("INCONNU");
+    }
+
+    @Test
+    void from_travailExtractedData_heuresSupMentionnees_parsed() {
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "heures_sup_mentionnees": {
+                      "total_declarees_25pct": 12,
+                      "total_declarees_50pct": 5,
+                      "hors_contingent": 2
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.heuresSupMentionneesDansDossier()).isNotNull();
+        assertThat(t.heuresSupMentionneesDansDossier().totalDeclarees25pct()).isEqualTo(12);
+        assertThat(t.heuresSupMentionneesDansDossier().totalDeclarees50pct()).isEqualTo(5);
+        assertThat(t.heuresSupMentionneesDansDossier().horsContingent()).isEqualTo(2);
+    }
+
+    @Test
+    void from_travailExtractedData_heuresSupMentionnees_partialFields_parsed() {
+        // Un seul champ renseigné — les autres sont null
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "heures_sup_mentionnees": {
+                      "total_declarees_25pct": 8
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t.heuresSupMentionneesDansDossier()).isNotNull();
+        assertThat(t.heuresSupMentionneesDansDossier().totalDeclarees25pct()).isEqualTo(8);
+        assertThat(t.heuresSupMentionneesDansDossier().totalDeclarees50pct()).isNull();
+        assertThat(t.heuresSupMentionneesDansDossier().horsContingent()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_heuresSupMentionnees_negativeValues_ignored() {
+        // Valeur négative → champ ignoré (null), les autres champs valides sont gardés
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "heures_sup_mentionnees": {
+                      "total_declarees_25pct": -5,
+                      "total_declarees_50pct": 3
+                    }
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t.heuresSupMentionneesDansDossier()).isNotNull();
+        assertThat(t.heuresSupMentionneesDansDossier().totalDeclarees25pct()).isNull();
+        assertThat(t.heuresSupMentionneesDansDossier().totalDeclarees50pct()).isEqualTo(3);
+    }
+
+    @Test
+    void from_travailExtractedData_heuresSupMentionnees_malformedNotObject_gracefulNull() {
+        // Payload malformé (nombre au lieu d'objet) → heuresSupMentionnees=null, autres champs intacts
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "salaire_brut_mensuel": 2500,
+                    "heures_sup_mentionnees": 42
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.salaireBrutMensuel()).isEqualTo(2500.0);
+        assertThat(t.heuresSupMentionneesDansDossier()).isNull();
+    }
+
+    @Test
+    void from_travailExtractedData_heuresSupMentionnees_emptyObject_returnsNull() {
+        // Objet vide → pas d'utilité → null
+        CaseAnalysis analysis = analysis("""
+                {
+                  "travail_extracted_data": {
+                    "heures_sup_mentionnees": {}
+                  }
+                }
+                """);
+
+        var t = CaseAnalysisResponse.from(analysis).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.heuresSupMentionneesDansDossier()).isNull();
     }
 }
