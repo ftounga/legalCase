@@ -1,0 +1,258 @@
+<section class="b40bis-section">
+  <header class="b40bis-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="b40bis-body">
+    <mat-icon class="b40bis-icon">family_restroom</mat-icon>
+    <span class="b40bis-title">REGROUPEMENT FAMILIAL — CITOYEN UE (ART. 40BIS)</span>
+    @if (result()) {
+      <span class="b40bis-chip"
+            [class.b40bis-chip--info]="result()!.verdictProbabilite === 'ELEVEE'"
+            [class.b40bis-chip--warning]="result()!.verdictProbabilite === 'MOYENNE'"
+            [class.b40bis-chip--danger]="result()!.verdictProbabilite === 'FAIBLE'">
+        {{ verdictLabel(result()!.verdictProbabilite) }}
+      </span>
+    }
+    <mat-icon class="b40bis-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="b40bis-body" class="b40bis-body">
+      @if (!isBelgium()) {
+        <div class="b40bis-banner b40bis-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="b40bis-banner-content">
+            <div class="b40bis-banner-title">Outil applicable à la Belgique uniquement</div>
+            <div class="b40bis-banner-sub">
+              En France, voir F-IM-03 / F-IM-12 (regroupement familial CESEDA).
+              Distinct de l'art. 40ter (regroupant Belge — règles plus strictes).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="b40bis-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="b40bis-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="b40bis-form" (ngSubmit)="submit()">
+              <div class="b40bis-field-wrapper b40bis-field-wrapper--full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Lien familial</mat-label>
+                  <mat-select required
+                              [ngModel]="lienFamilial()"
+                              (ngModelChange)="onLienFamilialChange($event)"
+                              name="lienFamilial">
+                    @for (opt of liensFamiliaux; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (coherenceAlerts().LIEN_FAMILIAL; as alert) {
+                  <span class="b40bis-coherence-badge"
+                        [appCoherencePopover]="explanationFor('LIEN_FAMILIAL')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="b40bis-field-wrapper b40bis-field-wrapper--full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Catégorie d'activité du regroupant</mat-label>
+                  <mat-select required
+                              [ngModel]="regroupantActiviteCategorie()"
+                              (ngModelChange)="onCategorieActiviteChange($event)"
+                              name="regroupantActiviteCategorie">
+                    @for (opt of categoriesActivite; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="b40bis-toggle-row">
+                <mat-slide-toggle name="regroupantCitoyenUe"
+                                  [ngModel]="regroupantCitoyenUe()"
+                                  (ngModelChange)="onRegroupantCitoyenUeChange($event)">
+                  Regroupant citoyen UE (autre que Belge)
+                </mat-slide-toggle>
+                @if (provenanceRegroupantCitoyenUe() === 'IA') {
+                  <span class="b40bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="b40bis-toggle-row">
+                <mat-slide-toggle name="ressourcesSuffisantes"
+                                  [ngModel]="ressourcesSuffisantes()"
+                                  (ngModelChange)="onRessourcesSuffisantesChange($event)">
+                  Ressources suffisantes
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b40bis-toggle-row">
+                <mat-slide-toggle name="assuranceMaladieUe"
+                                  [ngModel]="assuranceMaladieUe()"
+                                  (ngModelChange)="onAssuranceMaladieUeChange($event)">
+                  Assurance maladie couvrant l'UE
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b40bis-toggle-row">
+                <mat-slide-toggle name="logementSuffisant"
+                                  [ngModel]="logementSuffisant()"
+                                  (ngModelChange)="onLogementSuffisantChange($event)">
+                  Logement suffisant
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b40bis-toggle-row">
+                <mat-slide-toggle name="menaceOrdrePublic"
+                                  [ngModel]="menaceOrdrePublic()"
+                                  (ngModelChange)="onMenaceOrdrePublicChange($event)">
+                  Menace pour l'ordre public
+                </mat-slide-toggle>
+              </div>
+
+              <div class="b40bis-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [max]="todayIso"
+                         [ngModel]="dateDepotDemande()"
+                         (ngModelChange)="onDateDepotDemandeChange($event)"
+                         name="dateDepotDemande" />
+                </mat-form-field>
+                @if (provenanceDateDepot() === 'IA') {
+                  <span class="b40bis-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="b40bis-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || submitting()">
+                  @if (submitting()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la demande</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="b40bis-result">
+              <div [class]="bannerClass(result()!.verdictProbabilite)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictProbabilite) }}</mat-icon>
+                <div class="b40bis-banner-content">
+                  <div class="b40bis-banner-title">
+                    {{ verdictLabel(result()!.verdictProbabilite) }}
+                  </div>
+                  <div class="b40bis-banner-score">
+                    {{ result()!.scoreGlobal }}<span class="b40bis-banner-score-total">/100</span>
+                  </div>
+                </div>
+              </div>
+
+              <ul class="b40bis-checklist">
+                <li class="b40bis-check" [class.b40bis-check--ok]="result()!.lienValide" [class.b40bis-check--ko]="!result()!.lienValide">
+                  <mat-icon>{{ result()!.lienValide ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="b40bis-check-label">Lien familial reconnu</span>
+                  <span class="b40bis-check-points">+15</span>
+                </li>
+                <li class="b40bis-check" [class.b40bis-check--ok]="result()!.regroupantValide" [class.b40bis-check--ko]="!result()!.regroupantValide">
+                  <mat-icon>{{ result()!.regroupantValide ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="b40bis-check-label">Regroupant citoyen UE valide</span>
+                  <span class="b40bis-check-points">+15</span>
+                </li>
+                <li class="b40bis-check" [class.b40bis-check--ok]="result()!.ressourcesOk" [class.b40bis-check--ko]="!result()!.ressourcesOk">
+                  <mat-icon>{{ result()!.ressourcesOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="b40bis-check-label">Ressources suffisantes</span>
+                  <span class="b40bis-check-points">+15</span>
+                </li>
+                <li class="b40bis-check" [class.b40bis-check--ok]="result()!.assuranceOk" [class.b40bis-check--ko]="!result()!.assuranceOk">
+                  <mat-icon>{{ result()!.assuranceOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="b40bis-check-label">Assurance maladie UE</span>
+                  <span class="b40bis-check-points">+15</span>
+                </li>
+                <li class="b40bis-check" [class.b40bis-check--ok]="result()!.logementOk" [class.b40bis-check--ko]="!result()!.logementOk">
+                  <mat-icon>{{ result()!.logementOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="b40bis-check-label">Logement suffisant</span>
+                  <span class="b40bis-check-points">+15</span>
+                </li>
+                <li class="b40bis-check" [class.b40bis-check--ok]="result()!.pasMenace" [class.b40bis-check--ko]="!result()!.pasMenace">
+                  <mat-icon>{{ result()!.pasMenace ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="b40bis-check-label">Pas de menace pour l'ordre public</span>
+                  <span class="b40bis-check-points">+15</span>
+                </li>
+                @if (result()!.regroupantValide && result()!.regroupantActiviteCategorie !== 'AUTRE') {
+                  <li class="b40bis-check b40bis-check--bonus">
+                    <mat-icon>star</mat-icon>
+                    <span class="b40bis-check-label">Bonus catégorie solide ({{ categorieActiviteLabel(result()!.regroupantActiviteCategorie) }})</span>
+                    <span class="b40bis-check-points">+10</span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="b40bis-criteres-block">
+                  <span class="b40bis-criteres-label">Critères non remplis</span>
+                  <mat-chip-set>
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip class="b40bis-critere-chip">{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.dateExpirationInstruction) {
+                <div class="b40bis-instruction-block">
+                  <span class="b40bis-instruction-label">Délai d'instruction</span>
+                  <span class="b40bis-instruction-value">
+                    Réponse attendue avant le {{ result()!.dateExpirationInstruction }}
+                    (6 mois — art. 42 §1 Loi 15/12/1980)
+                  </span>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="b40bis-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="b40bis-formule-block">
+                  <span class="b40bis-formule-label">Formule</span>
+                  <span class="b40bis-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="b40bis-meta">
+                <span class="b40bis-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
