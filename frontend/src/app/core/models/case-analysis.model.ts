@@ -243,6 +243,16 @@ export interface ImmigrationExtractedData {
   dateNotificationDecisionContestee?: string | null;
   /** SF-IM-01-04 : type de checklist inféré pour F-IM-01 (13 régimes V1). */
   inferredChecklistType?: string | null;
+  /** SF-155-04-00-BE-immig-FR : date notification OQTF avec délai (F-IM-08-02). FR uniquement. */
+  dateNotificationOqtf?: string | null;
+  /** SF-155-04-00-BE-immig-FR : code motif OQTF avec délai (F-IM-08-02), aligné enum MotifOqtf front. FR uniquement. */
+  motifOqtfCode?: 'REFUS_TITRE' | 'EXPIRATION_TITRE' | 'SEJOUR_IRREGULIER' | 'RETRAIT_TITRE' | 'AUTRE' | null;
+  /** SF-155-04-00-BE-immig-FR : indicateur détection recours OQTF déjà formé (F-IM-08-02 / F-IM-08-04). FR uniquement. */
+  recoursFormeDetected?: DetectedAnswer | null;
+  /** SF-155-04-00-BE-immig-FR : horodatage notification OQTF sans délai ISO partiel (F-IM-08-04, urgence 48h). FR uniquement. */
+  dateHeureNotificationOqtfSansDelai?: string | null;
+  /** SF-155-04-00-BE-immig-FR : placement en CRA concomitant à l'OQTF sans délai (F-IM-08-04). FR uniquement. */
+  placementCraDetected?: boolean | null;
 }
 
 export interface CaseAnalysisVersionSummary {
