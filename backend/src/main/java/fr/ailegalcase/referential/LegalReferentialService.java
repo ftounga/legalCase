@@ -199,6 +199,43 @@ public class LegalReferentialService {
     }
 
     // -----------------------------------------------------------------------
+    // DROIT_DU_TRAVAIL — jalons procéduraux par type de procédure et pays (F-136 SF-136-01)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Résout les jalons procéduraux pour le droit du travail (prud'hommes / appel / cassation FR
+     * + tribunal du travail / cour du travail / cassation BE). DB-first sur le type
+     * {@code TRAVAIL_PROCEDURE_JALONS}, fallback statique
+     * {@link TravailProcedureReferentiel#resolve(String, String)}.
+     *
+     * @param typeProcedure code (ex. {@code PRUDHOMMES_FR}, {@code TRIBUNAL_TRAVAIL_BE})
+     * @param country pays {@code FR} ou {@code BE} — obligatoire (chaque procédure est country-scoped)
+     * @return liste immuable de jalons (label + offsetDays + articleRef) ; vide si introuvable
+     */
+    public List<TravailProcedureReferentiel.ProcedureJalon> getTravailProcedureJalons(String typeProcedure, String country) {
+        if (typeProcedure == null || country == null) return List.of();
+        try {
+            List<LegalReferential> entries = repository.findSystemEntryByCountry(
+                    "DROIT_DU_TRAVAIL", "TRAVAIL_PROCEDURE_JALONS", typeProcedure, country);
+            if (!entries.isEmpty()) {
+                JsonNode array = MAPPER.readTree(entries.get(0).getValueJson());
+                List<TravailProcedureReferentiel.ProcedureJalon> jalons = new ArrayList<>();
+                for (JsonNode item : array) {
+                    jalons.add(new TravailProcedureReferentiel.ProcedureJalon(
+                            item.get("label").asText(),
+                            item.get("offsetDays").asInt(),
+                            item.has("articleRef") ? item.get("articleRef").asText() : ""));
+                }
+                return Collections.unmodifiableList(jalons);
+            }
+        } catch (Exception e) {
+            log.warn("LegalReferentialService: fallback getTravailProcedureJalons({},{}) — {}",
+                    typeProcedure, country, e.getMessage());
+        }
+        return TravailProcedureReferentiel.resolve(typeProcedure, country);
+    }
+
+    // -----------------------------------------------------------------------
     // DROIT_IMMIGRATION — pièces requises par type de titre et pays
     // -----------------------------------------------------------------------
 
