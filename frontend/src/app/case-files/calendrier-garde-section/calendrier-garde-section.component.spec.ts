@@ -43,7 +43,7 @@ describe('CalendrierGardeSectionComponent', () => {
   });
   it('should display existing', () => { initWith(); expect(component.result()).toBeTruthy(); expect(component.showForm()).toBe(false); });
 
-  // ---- AI prefill mode_garde_detaille (SF-FA-06-04) ----
+  // ---- AI prefill mode_garde_detaille (SF-FA-06-04 + SF-155-18) ----
 
   it('should prefill gardeCode from IA when mode matches workspace country', () => {
     component.workspaceCountry = 'FRANCE';
@@ -51,6 +51,7 @@ describe('CalendrierGardeSectionComponent', () => {
     initNo();
     expect(component.gardeCode()).toBe('DVH_ELARGI_FR');
     expect(component.modeDetailleNote()).toBeNull();
+    expect(component.provenanceGardeCode()).toBe('IA');
   });
 
   it('should prefill gardeCode for BELGIQUE workspace', () => {
@@ -58,15 +59,17 @@ describe('CalendrierGardeSectionComponent', () => {
     component.aiModeGardeDetaille = 'SECONDAIRE_ELARGI_BE';
     initNo();
     expect(component.gardeCode()).toBe('SECONDAIRE_ELARGI_BE');
+    expect(component.provenanceGardeCode()).toBe('IA');
   });
 
   it('should set note when IA mode is from opposite country', () => {
     component.workspaceCountry = 'FRANCE';
     component.aiModeGardeDetaille = 'ALTERNEE_BE';
     initNo();
-    // Default FR preserved, note shown
+    // Default FR preserved, note shown, no IA badge.
     expect(component.gardeCode()).toBe('ALTERNEE_FR');
     expect(component.modeDetailleNote()).toContain('ALTERNEE_BE');
+    expect(component.provenanceGardeCode()).toBeNull();
   });
 
   it('should ignore invalid IA value', () => {
@@ -74,32 +77,44 @@ describe('CalendrierGardeSectionComponent', () => {
     initNo();
     expect(component.gardeCode()).toBe('ALTERNEE_FR');
     expect(component.modeDetailleNote()).toBeNull();
+    expect(component.provenanceGardeCode()).toBeNull();
   });
 
   it('should NOT override saved result', () => {
     component.aiModeGardeDetaille = 'DVH_ELARGI_FR';
     initWith();
-    // Existing result loaded — prefill not applied
+    // Existing result loaded — prefill not applied; provenance reset to null.
     expect(component.showForm()).toBe(false);
-    // gardeCode signal may have been reset by loadExisting ; we just check no crash
+    expect(component.provenanceGardeCode()).toBeNull();
   });
 
-  it('should clear note when user changes gardeCode', () => {
+  it('should clear note and IA provenance when user changes gardeCode', () => {
     component.workspaceCountry = 'FRANCE';
     component.aiModeGardeDetaille = 'ALTERNEE_BE';
     initNo();
     expect(component.modeDetailleNote()).not.toBeNull();
     component.onGardeCodeChange();
     expect(component.modeDetailleNote()).toBeNull();
+    expect(component.provenanceGardeCode()).toBeNull();
+  });
+
+  it('should clear IA provenance when user changes gardeCode after prefill', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiModeGardeDetaille = 'DVH_CLASSIQUE_FR';
+    initNo();
+    expect(component.provenanceGardeCode()).toBe('IA');
+    component.onGardeCodeChange();
+    expect(component.provenanceGardeCode()).toBeNull();
   });
 
   it('should do nothing when aiModeGardeDetaille is absent', () => {
     initNo();
     expect(component.gardeCode()).toBe('ALTERNEE_FR');
     expect(component.modeDetailleNote()).toBeNull();
+    expect(component.provenanceGardeCode()).toBeNull();
   });
 
-  // ---- Coherence alerts (SF-IA-03-07) ----
+  // ---- Coherence alerts (SF-IA-03-07 + SF-155-18) ----
 
   function f96(statut: string, expectedValue: string, raison: string | null = null) {
     return { id: 'c', ordre: 0, description: 'point', statut, raison,
@@ -113,32 +128,30 @@ describe('CalendrierGardeSectionComponent', () => {
     return { pensionAlimentaireEstimate: { modeGarde, modeGardeDetaille } } as any;
   }
 
-  it('should alert blocker F96 on mode mismatch', () => {
+  it('should alert F96 on mode mismatch (single source)', () => {
     component.procedureChecks = [f96('VERIFIED', 'DVH_ELARGI_FR', 'Convention')];
     initNo();
     component.gardeCode.set('ALTERNEE_FR');
-    const alert = component.coherenceAlert();
+    const alert = component.coherenceAlerts().MODE_GARDE;
     expect(alert?.source).toBe('F96');
-    expect(alert?.level).toBe('blocker');
     expect(alert?.expectedDisplay).toBe('DVH_ELARGI_FR');
   });
 
-  it('should alert blocker Question IA on mode mismatch', () => {
+  it('should alert Question IA on mode mismatch', () => {
     component.aiQuestions = [question('oui', 'SECONDAIRE_BE')];
     initNo();
     component.gardeCode.set('ALTERNEE_BE');
-    const alert = component.coherenceAlert();
+    const alert = component.coherenceAlerts().MODE_GARDE;
     expect(alert?.source).toBe('QUESTION_IA');
     expect(alert?.expectedDisplay).toBe('SECONDAIRE_BE');
   });
 
-  it('should alert blocker IA modeGardeDetaille on mismatch', () => {
+  it('should alert IA modeGardeDetaille on mismatch', () => {
     component.synthesis = synthesisWith('ALTERNEE', 'ALTERNEE_FR');
     initNo();
     component.gardeCode.set('DVH_CLASSIQUE_FR');
-    const alert = component.coherenceAlert();
+    const alert = component.coherenceAlerts().MODE_GARDE;
     expect(alert?.source).toBe('IA');
-    expect(alert?.level).toBe('blocker');
     expect(alert?.expectedDisplay).toBe('ALTERNEE_FR');
   });
 
@@ -146,46 +159,46 @@ describe('CalendrierGardeSectionComponent', () => {
     component.synthesis = synthesisWith('ALTERNEE', 'ALTERNEE_FR');
     initNo();
     component.gardeCode.set('ALTERNEE_FR');
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().MODE_GARDE).toBeUndefined();
   });
 
-  it('should alert warning when IA coarse category mismatches', () => {
+  it('should alert IA coarse fallback when IA category mismatches', () => {
     component.synthesis = synthesisWith('ALTERNEE', null);
     initNo();
     component.gardeCode.set('DVH_CLASSIQUE_FR');
-    const alert = component.coherenceAlert();
-    expect(alert?.source).toBe('IA_COARSE');
-    expect(alert?.level).toBe('warning');
+    const alert = component.coherenceAlerts().MODE_GARDE;
+    expect(alert?.source).toBe('IA');
+    expect(alert?.expectedDisplay).toBe('mode alterné');
   });
 
   it('should NOT alert when IA coarse category matches', () => {
     component.synthesis = synthesisWith('ALTERNEE', null);
     initNo();
     component.gardeCode.set('ALTERNEE_FR');
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().MODE_GARDE).toBeUndefined();
   });
 
   it('should NOT alert when IA coarse EXCLUSIVE matches non-alternée user', () => {
     component.synthesis = synthesisWith('EXCLUSIVE', null);
     initNo();
     component.gardeCode.set('DVH_ELARGI_FR');
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().MODE_GARDE).toBeUndefined();
   });
 
-  it('should combine sources to MULTI when they align against user', () => {
+  it('should consolidate sources to MULTI when they align against user', () => {
     component.procedureChecks = [f96('VERIFIED', 'DVH_CLASSIQUE_FR')];
     component.aiQuestions = [question('oui', 'DVH_CLASSIQUE_FR')];
     component.synthesis = synthesisWith('EXCLUSIVE', 'DVH_CLASSIQUE_FR');
     initNo();
     component.gardeCode.set('ALTERNEE_FR');
-    const alert = component.coherenceAlert();
+    const alert = component.coherenceAlerts().MODE_GARDE;
     expect(alert?.source).toBe('MULTI');
     expect(alert?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
   });
 
   it('should NOT alert when no source available', () => {
     initNo();
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().MODE_GARDE).toBeUndefined();
     expect(component.alertsSummary().total).toBe(0);
   });
 
@@ -193,21 +206,21 @@ describe('CalendrierGardeSectionComponent', () => {
     component.procedureChecks = [f96('VERIFIED', 'UNKNOWN_MODE')];
     initNo();
     component.gardeCode.set('ALTERNEE_FR');
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().MODE_GARDE).toBeUndefined();
   });
 
   it('should freeze alert once result loaded', () => {
     component.synthesis = synthesisWith('EXCLUSIVE', 'DVH_CLASSIQUE_FR');
     initWith();
     // Result loaded, form hidden, no alert even if mismatch
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().MODE_GARDE).toBeUndefined();
   });
 
   it('should ignore Question IA "non" on enum critere', () => {
     component.aiQuestions = [question('non', 'ALTERNEE_FR')];
     initNo();
     component.gardeCode.set('DVH_CLASSIQUE_FR');
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().MODE_GARDE).toBeUndefined();
   });
 
   it('SF-118-04: GET 200 pré-remplit les signals du formulaire depuis la réponse sauvegardée', () => {
@@ -236,8 +249,17 @@ describe('CalendrierGardeSectionComponent', () => {
     component.piecesManquantes = [{ texte: 'Jugement de garde', critereCode: 'FA06_MODE_GARDE' }];
     initNo();
     component.gardeCode.set('DVH_CLASSIQUE_FR');
-    const alert = component.coherenceAlert();
+    const alert = component.coherenceAlerts().MODE_GARDE;
     expect(alert?.contributors).toContain('PIECE_MANQUANTE');
     expect(alert?.source).toBe('MULTI');
+    expect(alert?.pieceTexte).toBe('Jugement de garde');
+  });
+
+  it('SF-155-18: prefill via ngOnInit (avant loadExisting) puis confirmé via error 404', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiModeGardeDetaille = 'DVH_CLASSIQUE_FR';
+    initNo();
+    expect(component.gardeCode()).toBe('DVH_CLASSIQUE_FR');
+    expect(component.provenanceGardeCode()).toBe('IA');
   });
 });
