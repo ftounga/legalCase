@@ -20,6 +20,7 @@ import {
 } from '../../core/models/oqtf-sans-delai.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 
 /**
  * SF-IM-08-04 : outil décisionnel dédié "OQTF SANS délai de départ
@@ -39,6 +40,7 @@ import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    DecisionalHeaderFlagComponent,
   ],
   templateUrl: './oqtf-sans-delai-section.component.html',
   styleUrl: './oqtf-sans-delai-section.component.scss',

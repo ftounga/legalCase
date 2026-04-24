@@ -12,7 +12,7 @@
         {{ statutLabel(result()!.statutDelaiRecours) }}
       </span>
       @if (result()!.placementCra) {
-        <span class="oqtf-sd-chip oqtf-sd-chip--cra" title="Placement en CRA en cours">CRA</span>
+        <app-decisional-header-flag label="CRA" icon="warning" variant="warning" />
       }
     }
     <mat-icon class="oqtf-sd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>

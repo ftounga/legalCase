@@ -11,9 +11,7 @@
       </span>
     }
     @if (result()?.transfertImminent) {
-      <span class="annexe13-badge-transfert" role="status" aria-label="Transfert imminent">
-        ⚠ TRANSFERT IMMINENT
-      </span>
+      <app-decisional-header-flag label="TRANSFERT IMMINENT" icon="warning" variant="danger" />
     }
     <mat-icon class="annexe13-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
   </header>

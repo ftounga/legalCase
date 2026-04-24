@@ -68,13 +68,8 @@
     color: #156135;
   }
 
-  &--cra {
-    background: rgba(201, 165, 75, 0.28);
-    color: #8a6a16;
-    border: 1px solid var(--ds-accent-gold, #c9a54b);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-  }
+  // F-155 SF-155-03 — le modificateur --cra a été remplacé par <app-decisional-header-flag>
+  // pour factoriser le pattern "chip additionnel header" partagé avec annexe13-be.
 }
 
 .oqtf-sd-toggle {

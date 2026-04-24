@@ -57,15 +57,8 @@
   }
 }
 
-.annexe13-badge-transfert {
-  padding: 4px 10px;
-  border-radius: 12px;
-  background: var(--ds-accent-gold, #c9a54b);
-  color: #3a2c08;
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-}
+// F-155 SF-155-03 — `.annexe13-badge-transfert` remplacé par <app-decisional-header-flag>
+// pour factoriser le pattern "chip additionnel header" partagé avec oqtf-sans-delai.
 
 .annexe13-toggle {
   color: var(--ds-text-secondary, #6a7485);

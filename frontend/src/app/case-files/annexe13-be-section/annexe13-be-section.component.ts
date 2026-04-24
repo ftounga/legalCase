@@ -23,6 +23,7 @@ import {
 } from '../../core/models/annexe13-be.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
+import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
 
 /**
  * SF-IM-08-06 : outil décisionnel dédié "Annexe 13 — OQT belge"
@@ -42,6 +43,7 @@ import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatSlideToggleModule, MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
+    DecisionalHeaderFlagComponent,
   ],
   templateUrl: './annexe13-be-section.component.html',
   styleUrl: './annexe13-be-section.component.scss',
