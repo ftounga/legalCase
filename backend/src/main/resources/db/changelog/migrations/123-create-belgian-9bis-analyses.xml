@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="123-create-belgian-9bis-analyses" author="legalcase">
+        <comment>
+            SF-IM-14-01 : table dédiée à l'outil décisionnel "9bis humanitaire BE"
+            (art. 9bis Loi 15/12/1980 sur l'accès au territoire, le séjour,
+            l'établissement et l'éloignement des étrangers + AR 17/05/2007).
+            Procédure de régularisation demandée à partir du territoire belge,
+            sur base de circonstances exceptionnelles empêchant le retour au
+            pays d'origine pour y demander un visa.
+            Appréciation discrétionnaire de l'Office des étrangers (OE) selon un
+            faisceau d'indices : présence (signal ≥ 3 ans), enracinement
+            (liens familiaux, professionnels, scolarité d'enfants), absence de
+            menace pour l'ordre public. Scoring pondéré 0-100 : présence +25,
+            liens +40, pas menace +35. Verdicts ELEVEE (≥75) / MOYENNE (40-74)
+            / FAIBLE (&lt;40). Délai d'instruction OE variable 3-24 mois
+            (moyenne ~18 mois). Alternative documentée : art. 9ter (motif
+            médical).
+            Outil single-country BELGIQUE — l'équivalent français L.435-1 /
+            L.435-2 est couvert par F-IM-09.
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, BELGIQUE,
+            priority 64) pour exposer l'outil sur tout dossier immigration BE.
+        </comment>
+
+        <createTable tableName="belgian_9bis_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_belgian_9bis_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_entree_belgique" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_presence_mois" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="circonstances_exceptionnelles" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="liens_familiaux_be" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="liens_professionnels" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scolarite_enfants_be" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_depot_demande" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="belgian_9bis_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_belgian_9bis_analyses_case_file"/>
+
+        <createIndex tableName="belgian_9bis_analyses"
+                     indexName="idx_belgian_9bis_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000141', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-9bis-humanitaire-be', 'ALWAYS_ON', NULL, NULL, 64);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000141';
+            </sql>
+            <dropTable tableName="belgian_9bis_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
