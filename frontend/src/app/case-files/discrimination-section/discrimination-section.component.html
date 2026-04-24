@@ -1,0 +1,143 @@
+<section class="discrim-section">
+  <header class="discrim-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="discrim-body">
+    <mat-icon class="discrim-icon">balance</mat-icon>
+    <span class="discrim-title">DISCRIMINATION — DOMMAGES-INTÉRÊTS</span>
+    @if (result()) {
+      <span class="discrim-chip">
+        {{ result()!.fourchetteMin | number:'1.0-0' }} – {{ result()!.fourchetteMax | number:'1.0-0' }} €
+      </span>
+    }
+    <mat-icon class="discrim-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="discrim-body" class="discrim-body">
+      @if (loading()) {
+        <div class="discrim-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <!-- SF-DT-12-02 : résumé des incohérences détectées. -->
+          @if (alertsSummary().total > 0) {
+            <div class="discrim-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="discrim-form" (ngSubmit)="calculate()">
+            <!-- Salaire — field pré-remplissable + coherence alert. -->
+            <div class="discrim-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelReference()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelReference" required />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="discrim-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (salaireEstDeduit()) {
+                <span class="discrim-hint-note">
+                  <mat-icon>info_outline</mat-icon>
+                  Salaire déduit d'un montant net &times; 1,30
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="discrim-coherence-badge"
+                      [appCoherencePopover]="[]"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Motif de discrimination — enum FR ou BE selon workspaceCountry. -->
+            <div class="discrim-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Motif de discrimination</mat-label>
+                <mat-select
+                    [ngModel]="motifDiscrimination()"
+                    (ngModelChange)="onMotifChange($event)"
+                    name="motifDiscrimination" required>
+                  @for (m of motifsDisponibles(); track m.code) {
+                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <!-- Contexte d'acte — 6 codes communs FR/BE. -->
+            <div class="discrim-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Contexte d'acte</mat-label>
+                <mat-select
+                    [ngModel]="contexteActe()"
+                    (ngModelChange)="onContexteChange($event)"
+                    name="contexteActe" required>
+                  @for (c of contextesDisponibles; track c.code) {
+                    <mat-option [value]="c.code">{{ c.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="discrim-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="discrim-result">
+            <div class="discrim-amount-block">
+              <span class="discrim-amount-label">Fourchette indicative (dommages-intérêts)</span>
+              <div class="discrim-range">
+                <div class="discrim-range-item">
+                  <span class="discrim-range-label">Min</span>
+                  <span class="discrim-range-value">{{ result()!.fourchetteMin | number:'1.0-2' }} €</span>
+                </div>
+                <div class="discrim-range-item discrim-range-mediane">
+                  <span class="discrim-range-label">Médiane</span>
+                  <span class="discrim-range-value">{{ result()!.fourchetteMediane | number:'1.0-2' }} €</span>
+                </div>
+                <div class="discrim-range-item">
+                  <span class="discrim-range-label">Max</span>
+                  <span class="discrim-range-value">{{ result()!.fourchetteMax | number:'1.0-2' }} €</span>
+                </div>
+              </div>
+              <span class="discrim-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="discrim-meta">
+              <span class="discrim-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="discrim-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

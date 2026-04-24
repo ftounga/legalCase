@@ -37,6 +37,7 @@ import { ImmigrationRecoursSectionComponent } from '../immigration-recours-secti
 import { ImmigrationWorkRightSectionComponent } from '../immigration-work-right-section/immigration-work-right-section.component';
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
+import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
@@ -161,6 +162,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           // SF-155-04-A1 : branchement IA (pré-fill + validation F-IA-03).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-12-discrimination-dommages-interets', {
+        component: DiscriminationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-12-02 : pré-fill IA palier 1 (salaire uniquement) +
+          // validation F-IA-03.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

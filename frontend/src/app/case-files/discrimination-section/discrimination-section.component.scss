@@ -1,0 +1,279 @@
+.discrim-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.discrim-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.discrim-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.discrim-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.discrim-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+}
+
+.discrim-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.discrim-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.discrim-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'Inter', sans-serif;
+}
+
+.discrim-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+// Wrapper d'un field avec badge IA + alerte cohérence sous le field.
+.discrim-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field { width: 100%; }
+}
+
+// Résumé global "N incohérence(s) avec l'analyse" en tête du form.
+.discrim-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Badge "Pré-rempli depuis l'analyse" — navy + icône or.
+.discrim-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+// Indication discrète "Salaire déduit d'un net × 1,30" (SF-130-01).
+.discrim-hint-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-text-secondary, #6a7485);
+  }
+}
+
+// Badge d'alerte cohérence (hover → popover F-IA-03-15b).
+.discrim-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.discrim-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.discrim-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.discrim-amount-block {
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(201, 165, 75, 0.08);
+  border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.discrim-amount-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.discrim-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.discrim-range-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.discrim-range-mediane {
+  background: rgba(201, 165, 75, 0.15);
+  border: 1px solid rgba(201, 165, 75, 0.4);
+}
+
+.discrim-range-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.discrim-range-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.discrim-formule {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.discrim-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.discrim-meta-base {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.discrim-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+    font-family: 'Inter', sans-serif;
+  }
+
+  // F-155 SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
