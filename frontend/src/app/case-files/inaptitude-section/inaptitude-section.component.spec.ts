@@ -2,8 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { SimpleChange } from '@angular/core';
 import { InaptitudeSectionComponent } from './inaptitude-section.component';
 import { InaptitudeResponse } from '../../core/models/inaptitude.model';
+import { TravailExtractedData } from '../../core/models/case-analysis.model';
 
 describe('InaptitudeSectionComponent', () => {
   let component: InaptitudeSectionComponent;
@@ -32,6 +34,16 @@ describe('InaptitudeSectionComponent', () => {
     };
   }
 
+  function fullAiData(): TravailExtractedData {
+    return {
+      salaireBrutMensuel: 3000,
+      dateEntree: '2020-01-01',
+      origineInaptitudePressentie: 'ACCIDENT_TRAVAIL',
+      avisMedecinTravailDate: '2026-01-15',
+      reclassementRespecteDetected: { reponse: 'OUI', justification: 'Recherche documentée' },
+    };
+  }
+
   beforeEach(async () => {
     snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     await TestBed.configureTestingModule({
@@ -51,6 +63,10 @@ describe('InaptitudeSectionComponent', () => {
   });
 
   afterEach(() => httpMock.verify());
+
+  // ==========================================================================
+  // Tests existants conservés (pré-SF-155-04-A2)
+  // ==========================================================================
 
   it('FRANCE → 2 origines FR disponibles', () => {
     component.workspaceCountry = 'FRANCE';
@@ -183,5 +199,244 @@ describe('InaptitudeSectionComponent', () => {
     component.origineInaptitude.set(null);
     component.calculate();
     httpMock.expectNone(r => r.method === 'POST');
+  });
+
+  // ==========================================================================
+  // SF-155-04-A2 : tests pré-fill IA + validation F-IA-03
+  // ==========================================================================
+
+  it('pré-fill complet depuis aiData (5 champs + badges IA) sur 404', () => {
+    component.aiData = fullAiData();
+    component.ngOnInit();
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+
+    expect(component.salaireMensuelReference()).toBe(3000);
+    expect(component.provenanceSalaire()).toBe('IA');
+    expect(component.origineInaptitude()).toBe('PROFESSIONNELLE');
+    expect(component.provenanceOrigineInaptitude()).toBe('IA');
+    expect(component.avisMedecinTravailDate()).toBe('2026-01-15');
+    expect(component.provenanceAvisMedecinDate()).toBe('IA');
+    expect(component.reclassementRespecte()).toBe(true);
+    expect(component.provenanceReclassement()).toBe('IA');
+    expect(component.ancienneteAnnees()).toBeGreaterThanOrEqual(6);
+    expect(component.provenanceAnciennete()).toBe('IA');
+  });
+
+  it('pré-fill partiel : seul salaireBrutMensuel et origineInaptitudePressentie remplis', () => {
+    component.aiData = {
+      salaireBrutMensuel: 2500,
+      origineInaptitudePressentie: 'MALADIE_ORDINAIRE',
+    };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.salaireMensuelReference()).toBe(2500);
+    expect(component.provenanceSalaire()).toBe('IA');
+    expect(component.origineInaptitude()).toBe('NON_PROFESSIONNELLE');
+    expect(component.provenanceOrigineInaptitude()).toBe('IA');
+    expect(component.ancienneteAnnees()).toBeNull();
+    expect(component.provenanceAnciennete()).toBeNull();
+    expect(component.avisMedecinTravailDate()).toBeNull();
+    expect(component.provenanceAvisMedecinDate()).toBeNull();
+    expect(component.provenanceReclassement()).toBeNull();
+  });
+
+  it('pas d\'écrasement si GET 200 réussit (analyse déjà persistée)', () => {
+    component.aiData = fullAiData();
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush(frResponse());
+
+    // Les valeurs viennent de l'API (backend), pas de l'IA.
+    expect(component.showForm()).toBe(false);
+    expect(component.provenanceSalaire()).toBeNull();
+    expect(component.provenanceOrigineInaptitude()).toBeNull();
+    expect(component.provenanceAvisMedecinDate()).toBeNull();
+    expect(component.provenanceReclassement()).toBeNull();
+    expect(component.provenanceAnciennete()).toBeNull();
+  });
+
+  it('origineInaptitudePressentie hors enum whitelist ignorée (pas de mapping)', () => {
+    component.aiData = { origineInaptitudePressentie: 'FOO_BAR' as any };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.origineInaptitude()).toBeNull();
+    expect(component.provenanceOrigineInaptitude()).toBeNull();
+  });
+
+  it('pré-fill skip salaire si salaireBrutMensuel ≤ 0', () => {
+    component.aiData = { salaireBrutMensuel: 0 };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.salaireMensuelReference()).toBeNull();
+    expect(component.provenanceSalaire()).toBeNull();
+  });
+
+  it('modification manuelle salaire → provenanceSalaire = null', () => {
+    component.aiData = fullAiData();
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expect(component.provenanceSalaire()).toBe('IA');
+
+    component.onSalaireChange(3500);
+    expect(component.salaireMensuelReference()).toBe(3500);
+    expect(component.provenanceSalaire()).toBeNull();
+  });
+
+  it('modifications manuelles (4 autres champs) → provenance correspondante = null', () => {
+    component.aiData = fullAiData();
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    component.onAncienneteChange(7);
+    expect(component.provenanceAnciennete()).toBeNull();
+
+    component.onOrigineChange('NON_PROFESSIONNELLE');
+    expect(component.provenanceOrigineInaptitude()).toBeNull();
+
+    component.onAvisMedecinDateChange('2026-02-01');
+    expect(component.provenanceAvisMedecinDate()).toBeNull();
+
+    component.onReclassementChange(false);
+    expect(component.provenanceReclassement()).toBeNull();
+  });
+
+  it('divergence salaire > 10 % → coherenceAlerts().SALAIRE défini', () => {
+    component.aiData = { salaireBrutMensuel: 3000 };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    // L'IA a pré-rempli à 3000, on passe à 3400 (écart ~13 %)
+    component.onSalaireChange(3400);
+
+    const alert = component.coherenceAlerts().SALAIRE;
+    expect(alert).toBeDefined();
+    expect(alert!.field).toBe('SALAIRE');
+    expect(alert!.source).toBe('IA');
+  });
+
+  it('pas d\'alerte salaire si écart ≤ 10 %', () => {
+    component.aiData = { salaireBrutMensuel: 3000 };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    component.onSalaireChange(3200); // ~6,67 %
+    expect(component.coherenceAlerts().SALAIRE).toBeUndefined();
+  });
+
+  it('divergence origine inaptitude → coherenceAlerts().ORIGINE défini', () => {
+    component.aiData = { origineInaptitudePressentie: 'ACCIDENT_TRAVAIL' };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.origineInaptitude()).toBe('PROFESSIONNELLE');
+    component.onOrigineChange('NON_PROFESSIONNELLE');
+
+    const alert = component.coherenceAlerts().ORIGINE;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toContain('professionnelle');
+  });
+
+  it('divergence date avis médecin → coherenceAlerts().AVIS_DATE défini', () => {
+    component.aiData = { avisMedecinTravailDate: '2026-01-10' };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    component.onAvisMedecinDateChange('2026-02-01');
+    const alert = component.coherenceAlerts().AVIS_DATE;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toBe('2026-01-10');
+  });
+
+  it('contradiction reclassement avocat=true vs IA=NON → coherenceAlerts().RECLASSEMENT défini', () => {
+    component.aiData = {
+      reclassementRespecteDetected: { reponse: 'NON', justification: 'Aucune recherche documentée' },
+    };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    // IA a pré-rempli à false, on coche true
+    component.onReclassementChange(true);
+    const alert = component.coherenceAlerts().RECLASSEMENT;
+    expect(alert).toBeDefined();
+    expect(alert!.expectedDisplay).toContain('NON');
+  });
+
+  it('INCONNU → pas de prefill reclassement + pas d\'alerte', () => {
+    component.aiData = {
+      reclassementRespecteDetected: { reponse: 'INCONNU' },
+    };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.provenanceReclassement()).toBeNull();
+    expect(component.coherenceAlerts().RECLASSEMENT).toBeUndefined();
+  });
+
+  it('salaireEstDeduit=true → salaireEstDeduitNote() = true', () => {
+    component.aiData = { salaireBrutMensuel: 3000, salaireEstDeduit: true };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.salaireEstDeduitNote()).toBe(true);
+  });
+
+  it('aucun aiData + 404 → form vide, aucune provenance, aucune alerte', () => {
+    component.aiData = null;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    expect(component.salaireMensuelReference()).toBeNull();
+    expect(component.provenanceSalaire()).toBeNull();
+    expect(component.origineInaptitude()).toBeNull();
+    expect(component.provenanceOrigineInaptitude()).toBeNull();
+    expect(Object.keys(component.coherenceAlerts()).length).toBe(0);
+  });
+
+  it('ngOnChanges(aiData) re-applique prefillFromAi si showForm et pas de result', () => {
+    component.aiData = null;
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+    expect(component.salaireMensuelReference()).toBeNull();
+
+    // Simule un changement d'input aiData post-init (ex. analyse IA qui arrive)
+    component.aiData = fullAiData();
+    component.ngOnChanges({
+      aiData: new SimpleChange(null, fullAiData(), false),
+    });
+
+    expect(component.salaireMensuelReference()).toBe(3000);
+    expect(component.provenanceSalaire()).toBe('IA');
+  });
+
+  it('calcul ancienneté depuis dateEntree (années entières floor)', () => {
+    // On fige la référence temporelle autour de 2026-04-24 (aujourd'hui au
+    // moment de l'écriture de la SF) : dateEntree 2020-01-01 → 6 ans révolus.
+    component.aiData = { dateEntree: '2020-01-01' };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    const computed = component.ancienneteAnnees();
+    expect(computed).not.toBeNull();
+    expect(computed! >= 5 && computed! <= 10).toBe(true);
+    expect(Number.isInteger(computed!)).toBe(true);
+    expect(component.provenanceAnciennete()).toBe('IA');
+  });
+
+  it('BELGIQUE : origineInaptitudePressentie FR ignorée (no prefill, no alerte)', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    component.aiData = { origineInaptitudePressentie: 'ACCIDENT_TRAVAIL' };
+    component.ngOnInit();
+    httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+    // Côté BE, le mapping FR ne s'applique pas (l'enum BE n'est pas encore
+    // extrait par l'IA — cf. mini-spec backend §2.2).
+    expect(component.origineInaptitude()).toBeNull();
+    expect(component.provenanceOrigineInaptitude()).toBeNull();
+
+    component.onOrigineChange('PROFESSIONNELLE_BE');
+    expect(component.coherenceAlerts().ORIGINE).toBeUndefined();
   });
 });
