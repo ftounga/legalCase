@@ -1,0 +1,224 @@
+<section class="belgian-9ter-section">
+  <header class="belgian-9ter-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="belgian-9ter-body">
+    <mat-icon class="belgian-9ter-icon">medical_services</mat-icon>
+    <span class="belgian-9ter-title">RÉGULARISATION 9TER MÉDICAL (BE)</span>
+    @if (result()) {
+      <span class="belgian-9ter-chip"
+            [class.belgian-9ter-chip--success]="result()!.verdictProbabiliteAcceptation === 'ELEVEE'"
+            [class.belgian-9ter-chip--warning]="result()!.verdictProbabiliteAcceptation === 'FAIBLE'">
+        {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+      </span>
+    }
+    <mat-icon class="belgian-9ter-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="belgian-9ter-body" class="belgian-9ter-body">
+      @if (!isBelgium()) {
+        <div class="belgian-9ter-banner belgian-9ter-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="belgian-9ter-banner-content">
+            <div class="belgian-9ter-banner-title">Régularisation 9ter — procédure belge uniquement</div>
+            <div class="belgian-9ter-banner-sub">
+              En France, voir l'admission "étranger malade" (L.425-9 CESEDA) — procédure juridiquement distincte.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="belgian-9ter-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <form class="belgian-9ter-form" (ngSubmit)="analyze()">
+              <div class="belgian-9ter-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de début des symptômes (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [max]="todayIso"
+                         [ngModel]="dateDebutSymptomes()"
+                         (ngModelChange)="onDateDebutSymptomesChange($event)"
+                         name="dateDebutSymptomes" />
+                </mat-form-field>
+                @if (provenanceDateDebutSymptomes() === 'IA') {
+                  <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="belgian-9ter-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [min]="dateDebutSymptomes() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateDepotDemande()"
+                         (ngModelChange)="onDateDepotDemandeChange($event)"
+                         name="dateDepotDemande" />
+                </mat-form-field>
+                @if (provenanceDateDepotDemande() === 'IA') {
+                  <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+                <mat-slide-toggle
+                    [ngModel]="maladieGraveCertifiee()"
+                    (ngModelChange)="onMaladieGraveChange($event)"
+                    name="maladieGraveCertifiee">
+                  Maladie grave certifiée (CM 1 et 2)
+                </mat-slide-toggle>
+                @if (provenanceMaladieGrave() === 'IA') {
+                  <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+                <mat-slide-toggle
+                    [ngModel]="soinsNecessairesDisponiblesBe()"
+                    (ngModelChange)="onSoinsBeChange($event)"
+                    name="soinsNecessairesDisponiblesBe">
+                  Soins nécessaires disponibles en Belgique
+                </mat-slide-toggle>
+                @if (provenanceSoinsBe() === 'IA') {
+                  <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+                <mat-slide-toggle
+                    [ngModel]="soinsInaccessiblesPaysOrigine()"
+                    (ngModelChange)="onSoinsInaccessiblesChange($event)"
+                    name="soinsInaccessiblesPaysOrigine">
+                  Soins inaccessibles au pays d'origine
+                </mat-slide-toggle>
+                @if (provenanceSoinsInaccessibles() === 'IA') {
+                  <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="belgian-9ter-toggle-row belgian-9ter-field-wrapper">
+                <mat-slide-toggle
+                    [ngModel]="menaceOrdrePublic()"
+                    (ngModelChange)="onMenaceChange($event)"
+                    name="menaceOrdrePublic">
+                  Menace à l'ordre public
+                </mat-slide-toggle>
+                @if (provenanceMenace() === 'IA') {
+                  <span class="belgian-9ter-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="belgian-9ter-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="belgian-9ter-result">
+              <div [class]="bannerClass(result()!.verdictProbabiliteAcceptation)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictProbabiliteAcceptation) }}</mat-icon>
+                <div class="belgian-9ter-banner-content">
+                  <div class="belgian-9ter-banner-title">{{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}</div>
+                  <div class="belgian-9ter-score-row">
+                    <span class="belgian-9ter-score-big">{{ result()!.scoreGlobal }}</span>
+                    <span class="belgian-9ter-score-label">/ 100</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (hasCriticalMenace(result())) {
+                <div class="belgian-9ter-menace-emphasis" role="alert">
+                  <mat-icon>error</mat-icon>
+                  <div class="belgian-9ter-menace-content">
+                    <div class="belgian-9ter-menace-title">Menace ordre public présumée</div>
+                    <div class="belgian-9ter-menace-sub">
+                      La demande est vouée au rejet — examen approfondi des antécédents judiciaires requis.
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <ul class="belgian-9ter-checks">
+                <li [class.belgian-9ter-check--ok]="result()!.certificatMedicalType1Ok"
+                    [class.belgian-9ter-check--ko]="!result()!.certificatMedicalType1Ok">
+                  <mat-icon>{{ result()!.certificatMedicalType1Ok ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian-9ter-check-label">Maladie grave certifiée</span>
+                  <span class="belgian-9ter-check-points">25 pts</span>
+                </li>
+                <li [class.belgian-9ter-check--ok]="result()!.soinsRequisOk"
+                    [class.belgian-9ter-check--ko]="!result()!.soinsRequisOk">
+                  <mat-icon>{{ result()!.soinsRequisOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian-9ter-check-label">Soins disponibles en Belgique</span>
+                  <span class="belgian-9ter-check-points">25 pts</span>
+                </li>
+                <li [class.belgian-9ter-check--ok]="result()!.inaccessibiliteOk"
+                    [class.belgian-9ter-check--ko]="!result()!.inaccessibiliteOk">
+                  <mat-icon>{{ result()!.inaccessibiliteOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian-9ter-check-label">Soins inaccessibles au pays d'origine</span>
+                  <span class="belgian-9ter-check-points">25 pts</span>
+                </li>
+                <li [class.belgian-9ter-check--ok]="result()!.pasMenace"
+                    [class.belgian-9ter-check--ko]="!result()!.pasMenace">
+                  <mat-icon>{{ result()!.pasMenace ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian-9ter-check-label">Pas de menace ordre public</span>
+                  <span class="belgian-9ter-check-points">25 pts</span>
+                </li>
+              </ul>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="belgian-9ter-criteres">
+                  <span class="belgian-9ter-criteres-label">Critères non remplis :</span>
+                  <mat-chip-set>
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip>{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.dateExpirationInstruction) {
+                <div class="belgian-9ter-instruction">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Délai d'instruction prévisionnel jusqu'au
+                    <strong>{{ result()!.dateExpirationInstruction | date:'dd/MM/yyyy' }}</strong>
+                  </span>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="belgian-9ter-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="belgian-9ter-formule-block">
+                  <span class="belgian-9ter-formule-label">Formule</span>
+                  <span class="belgian-9ter-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="belgian-9ter-meta">
+                <span class="belgian-9ter-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
