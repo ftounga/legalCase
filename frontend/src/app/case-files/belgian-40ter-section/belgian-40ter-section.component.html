@@ -1,0 +1,342 @@
+<section class="belgian40ter-section">
+  <header
+    class="belgian40ter-header"
+    (click)="toggleCollapse()"
+    (keydown.enter)="toggleCollapse()"
+    tabindex="0"
+    role="button"
+    [attr.aria-expanded]="!collapsed()"
+    aria-controls="belgian40ter-body">
+    <mat-icon class="belgian40ter-icon">family_restroom</mat-icon>
+    <span class="belgian40ter-title">40TER FAMILIAL BELGE (BE)</span>
+    @if (result()) {
+      <span
+        class="belgian40ter-chip"
+        [class.belgian40ter-chip--success]="result()!.verdictProbabiliteAcceptation === 'ELEVEE'"
+        [class.belgian40ter-chip--warning]="result()!.verdictProbabiliteAcceptation === 'MOYENNE'"
+        [class.belgian40ter-chip--danger]="result()!.verdictProbabiliteAcceptation === 'FAIBLE'">
+        {{ result()!.scoreGlobal }}/100
+      </span>
+    }
+    <mat-icon class="belgian40ter-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="belgian40ter-body" class="belgian40ter-body">
+      @if (!isBelgium()) {
+        <div class="belgian40ter-banner belgian40ter-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="belgian40ter-banner-content">
+            <div class="belgian40ter-banner-title">Outil 40ter — procédure belge uniquement</div>
+            <div class="belgian40ter-banner-sub">
+              Le regroupement familial d'un Belge relève de l'art. 40ter Loi 15/12/1980.
+              En France, voir le regroupement familial CESEDA art. L.434-7 (hors périmètre).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="belgian40ter-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div
+                class="belgian40ter-coherence-summary"
+                [class.belgian40ter-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="belgian40ter-form" (ngSubmit)="analyze()">
+              <div class="belgian40ter-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Lien familial</mat-label>
+                  <mat-select
+                    [ngModel]="lienFamilial()"
+                    (ngModelChange)="onLienFamilialChange($event)"
+                    name="lienFamilial"
+                    required>
+                    @for (l of liensFamiliaux; track l.code) {
+                      <mat-option [value]="l.code">{{ l.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceLienFamilial() === 'IA') {
+                  <span class="belgian40ter-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().LIEN_FAMILIAL; as alert) {
+                  <span
+                    class="belgian40ter-coherence-badge"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="belgian40ter-toggle-row">
+                <mat-slide-toggle
+                  [ngModel]="regroupantBelge()"
+                  (ngModelChange)="onRegroupantBelgeChange($event)"
+                  name="regroupantBelge">
+                  Regroupant ressortissant Belge
+                </mat-slide-toggle>
+                @if (provenanceRegroupantBelge() === 'IA') {
+                  <span class="belgian40ter-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="belgian40ter-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Revenus mensuels nets (€)</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    [ngModel]="revenusMensuelsNetsEur()"
+                    (ngModelChange)="onRevenusMensuelsChange($event)"
+                    name="revenusMensuelsNetsEur" />
+                </mat-form-field>
+                @if (provenanceRevenusMensuels() === 'IA') {
+                  <span class="belgian40ter-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REVENUS_MENSUELS; as alert) {
+                  <span
+                    class="belgian40ter-coherence-badge"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="belgian40ter-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Seuil 120 % RIS (€/mois, défaut 1740)</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    [ngModel]="seuil120PctRisEur()"
+                    (ngModelChange)="onSeuilChange($event)"
+                    name="seuil120PctRisEur" />
+                </mat-form-field>
+              </div>
+
+              <div class="belgian40ter-toggle-row">
+                <mat-slide-toggle
+                  [ngModel]="assuranceMaladie()"
+                  (ngModelChange)="assuranceMaladie.set($event)"
+                  name="assuranceMaladie">
+                  Assurance maladie couvrant tous les risques
+                </mat-slide-toggle>
+              </div>
+
+              <div class="belgian40ter-toggle-row">
+                <mat-slide-toggle
+                  [ngModel]="logementSuffisant()"
+                  (ngModelChange)="logementSuffisant.set($event)"
+                  name="logementSuffisant">
+                  Logement suffisant pour la famille
+                </mat-slide-toggle>
+              </div>
+
+              <div class="belgian40ter-toggle-row">
+                <mat-slide-toggle
+                  [ngModel]="menaceOrdrePublic()"
+                  (ngModelChange)="menaceOrdrePublic.set($event)"
+                  name="menaceOrdrePublic">
+                  Menace pour l'ordre public (cocher si avéré)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="belgian40ter-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
+                  <input
+                    matInput
+                    type="date"
+                    [max]="todayIso"
+                    [ngModel]="dateDepotDemande()"
+                    (ngModelChange)="onDateDepotChange($event)"
+                    name="dateDepotDemande" />
+                </mat-form-field>
+                @if (provenanceDateDepot() === 'IA') {
+                  <span class="belgian40ter-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_DEPOT; as alert) {
+                  <span
+                    class="belgian40ter-coherence-badge"
+                    [appCoherencePopover]="[]"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="belgian40ter-actions">
+                <button
+                  mat-flat-button
+                  color="primary"
+                  type="submit"
+                  [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="belgian40ter-result">
+              <div [class]="bannerClass(result()!.verdictProbabiliteAcceptation)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictProbabiliteAcceptation) }}</mat-icon>
+                <div class="belgian40ter-banner-content">
+                  <div class="belgian40ter-banner-title">
+                    {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+                  </div>
+                  <div class="belgian40ter-score-line">
+                    <span class="belgian40ter-score-big">{{ result()!.scoreGlobal }}</span>
+                    <span class="belgian40ter-score-label">/ 100 — score global</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="belgian40ter-diff-card">
+                <span class="belgian40ter-diff-title">Différentiel revenus</span>
+                <span [class]="differentielBadgeClass(result()!.differentielRevenus)">
+                  {{ differentielText(result()!.differentielRevenus, result()!.seuil120PctRisEur) }}
+                </span>
+              </div>
+
+              <ul class="belgian40ter-breakdown">
+                <li [class.belgian40ter-bd--ok]="result()!.lienValide"
+                    [class.belgian40ter-bd--ko]="!result()!.lienValide">
+                  <mat-icon>{{ result()!.lienValide ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian40ter-bd-label">
+                    Lien familial éligible art. 40ter (18 pts)
+                  </span>
+                  <span class="belgian40ter-bd-value">
+                    {{ lienFamilialLabel(result()!.lienFamilial) }}
+                  </span>
+                </li>
+                <li [class.belgian40ter-bd--ok]="result()!.regroupantBelgeOk"
+                    [class.belgian40ter-bd--ko]="!result()!.regroupantBelgeOk">
+                  <mat-icon>{{ result()!.regroupantBelgeOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian40ter-bd-label">
+                    Regroupant ressortissant Belge (18 pts)
+                  </span>
+                </li>
+                <li [class.belgian40ter-bd--ok]="result()!.revenusSuffisantsOk"
+                    [class.belgian40ter-bd--ko]="!result()!.revenusSuffisantsOk">
+                  <mat-icon>{{ result()!.revenusSuffisantsOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian40ter-bd-label">
+                    Revenus &ge; 120 % RIS (18 pts)
+                  </span>
+                  <span class="belgian40ter-bd-value">
+                    {{ result()!.revenusMensuelsNetsEur }} € / {{ result()!.seuil120PctRisEur }} €
+                  </span>
+                </li>
+                <li [class.belgian40ter-bd--ok]="result()!.assuranceOk"
+                    [class.belgian40ter-bd--ko]="!result()!.assuranceOk">
+                  <mat-icon>{{ result()!.assuranceOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian40ter-bd-label">
+                    Assurance maladie (18 pts)
+                  </span>
+                </li>
+                <li [class.belgian40ter-bd--ok]="result()!.logementOk"
+                    [class.belgian40ter-bd--ko]="!result()!.logementOk">
+                  <mat-icon>{{ result()!.logementOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian40ter-bd-label">
+                    Logement suffisant (18 pts)
+                  </span>
+                </li>
+                <li [class.belgian40ter-bd--ok]="result()!.pasMenace"
+                    [class.belgian40ter-bd--ko]="!result()!.pasMenace">
+                  <mat-icon>{{ result()!.pasMenace ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <span class="belgian40ter-bd-label">
+                    Pas de menace ordre public (18 pts)
+                  </span>
+                </li>
+                @if (result()!.revenusSuffisantsOk && result()!.differentielRevenus > 0) {
+                  <li class="belgian40ter-bd--bonus">
+                    <mat-icon>star</mat-icon>
+                    <span class="belgian40ter-bd-label">
+                      Bonus différentiel &gt; 20 % du seuil (+10 pts)
+                    </span>
+                  </li>
+                }
+              </ul>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="belgian40ter-criteres">
+                  <span class="belgian40ter-criteres-label">Critères non remplis :</span>
+                  <mat-chip-set>
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip>{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.dateExpirationInstructionSiDemande) {
+                <div class="belgian40ter-instruction">
+                  <mat-icon>schedule</mat-icon>
+                  <span>
+                    Délai d'instruction jusqu'au
+                    <strong>{{ result()!.dateExpirationInstructionSiDemande | date:'dd/MM/yyyy' }}</strong>
+                    (art. 42 Loi 15/12/1980).
+                  </span>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="belgian40ter-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="belgian40ter-formule-block">
+                  <span class="belgian40ter-formule-label">Formule</span>
+                  <span class="belgian40ter-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="belgian40ter-meta">
+                <span
+                  class="belgian40ter-meta-base"
+                  [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
