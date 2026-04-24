@@ -276,6 +276,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         component: DivorceChecklistSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
+          // SF-155-19 : pré-fill IA via FamilleExtractedData (dateAcceptationPV).
+          aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,

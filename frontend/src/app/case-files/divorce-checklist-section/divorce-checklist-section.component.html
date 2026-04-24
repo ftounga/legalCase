@@ -52,19 +52,26 @@
               <button class="checklist-item"
                       [class.item-done]="etape.statut === 'FAIT'"
                       [class.has-alert]="!!coherenceAlerts()[etape.code]"
-                      (click)="toggleEtape(etape)">
+                      (click)="onEtapeStatutChange(etape)">
                 <mat-icon class="item-icon">{{ etape.statut === 'FAIT' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
                 <div class="item-content">
                   <span class="item-label">
                     {{ etape.ordre }}. {{ etape.label }}
+                    @if (isPrefilledFromAi(etape.code)) {
+                      <span class="ai-prefill-badge"
+                            matTooltip="Pré-rempli depuis l'analyse"
+                            (click)="$event.stopPropagation()">
+                        <mat-icon>auto_awesome</mat-icon>
+                      </span>
+                    }
                     @if (coherenceAlerts()[etape.code]; as alert) {
                       <span class="coherence-badge"
-                            [class.coherence-blocker]="alert.level === 'blocker'"
-                            [class.coherence-warning]="alert.level === 'warning'"
+                            [class.coherence-blocker]="alertIsBlocker(alert)"
+                            [class.coherence-warning]="!alertIsBlocker(alert)"
                             [appCoherencePopover]="explanationFor(etape.code)"
                             [appCoherencePopoverReason]="alert.reason"
                             [appCoherencePopoverCaseFileId]="caseFileId"
-                            [appCoherencePopoverBlocker]="alert.level === 'blocker'"
+                            [appCoherencePopoverBlocker]="alertIsBlocker(alert)"
                             (click)="$event.stopPropagation()">
                         <mat-icon>{{ alertIcon(alert) }}</mat-icon> Incohérence détectée
                       </span>
@@ -83,19 +90,26 @@
               <button class="checklist-item"
                       [class.item-done]="piece.statut === 'PRESENTE'"
                       [class.has-alert]="!!coherenceAlerts()[piece.code]"
-                      (click)="togglePiece(piece)">
+                      (click)="onPieceStatutChange(piece)">
                 <mat-icon class="item-icon">{{ piece.statut === 'PRESENTE' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
                 <div class="item-content">
                   <span class="item-label">
                     {{ piece.label }}
+                    @if (isPrefilledFromAi(piece.code)) {
+                      <span class="ai-prefill-badge"
+                            matTooltip="Pré-rempli depuis l'analyse"
+                            (click)="$event.stopPropagation()">
+                        <mat-icon>auto_awesome</mat-icon>
+                      </span>
+                    }
                     @if (coherenceAlerts()[piece.code]; as alert) {
                       <span class="coherence-badge"
-                            [class.coherence-blocker]="alert.level === 'blocker'"
-                            [class.coherence-warning]="alert.level === 'warning'"
+                            [class.coherence-blocker]="alertIsBlocker(alert)"
+                            [class.coherence-warning]="!alertIsBlocker(alert)"
                             [appCoherencePopover]="explanationFor(piece.code)"
                             [appCoherencePopoverReason]="alert.reason"
                             [appCoherencePopoverCaseFileId]="caseFileId"
-                            [appCoherencePopoverBlocker]="alert.level === 'blocker'"
+                            [appCoherencePopoverBlocker]="alertIsBlocker(alert)"
                             (click)="$event.stopPropagation()">
                         <mat-icon>{{ alertIcon(alert) }}</mat-icon> Incohérence détectée
                       </span>
