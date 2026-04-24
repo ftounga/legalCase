@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { SimpleChange } from '@angular/core';
 import { ImmigrationWorkRightSectionComponent } from './immigration-work-right-section.component';
 
 describe('ImmigrationWorkRightSectionComponent', () => {
@@ -100,7 +101,7 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     expect(component.titreType()).toBe('VLS_TS_SALARIE');
   });
 
-  // ---- Prefill + Coherence (SF-IA-03-11) ----
+  // ---- Prefill + Coherence (SF-IA-03-11 + SF-155-11) ----
 
   function f96(statut: string, expectedValue: string, raison: string | null = null) {
     return { id: 'c', ordre: 0, description: 'point', statut, raison,
@@ -111,7 +112,7 @@ describe('ImmigrationWorkRightSectionComponent', () => {
       critereCode: 'IM07_TITRE_TYPE', expectedValue } as any;
   }
 
-  // Prefill
+  // Prefill titre
   it('should prefill titreType from IA when FR code + FR workspace', () => {
     component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
     initNoExisting();
@@ -131,6 +132,7 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     component.aiData = { typeTitreSejourCode: 'UNKNOWN' } as any;
     initNoExisting();
     expect(component.titreType()).toBe('VLS_TS_SALARIE');
+    expect(component.provenanceTitreType()).toBeNull();
   });
 
   // SF-IM-07-05 : les nouveaux sous-types de CARTE_PLURIANNUELLE et CST_VPF_CONJOINT_FR
@@ -156,13 +158,14 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     expect(component.provenanceTitreType()).toBe('IA');
   });
 
-  it('should NOT prefill when result already exists', () => {
+  it('should NOT prefill titre when result already exists', () => {
     component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
     initWithExisting();
     expect(component.titreType()).toBe('VLS_TS_SALARIE'); // from existing result
+    expect(component.provenanceTitreType()).toBeNull();
   });
 
-  it('should clear provenance when user changes titreType', () => {
+  it('should clear titre provenance when user changes titreType', () => {
     component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
     initNoExisting();
     expect(component.provenanceTitreType()).toBe('IA');
@@ -171,28 +174,67 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     expect(component.provenanceTitreType()).toBeNull();
   });
 
-  // Cohérence
-  it('should alert warning F96 on titre mismatch', () => {
+  // ---- SF-155-11 : pré-fill country + provenance country ----
+
+  it('SF-155-11 : prefill country from workspaceCountry (FRANCE)', () => {
+    component.workspaceCountry = 'FRANCE';
+    initNoExisting();
+    expect(component.country()).toBe('FRANCE');
+    expect(component.provenanceCountry()).toBe('IA');
+  });
+
+  it('SF-155-11 : prefill country from workspaceCountry (BELGIQUE)', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    initNoExisting();
+    expect(component.country()).toBe('BELGIQUE');
+    expect(component.provenanceCountry()).toBe('IA');
+  });
+
+  it('SF-155-11 : BELGIQUE workspace switches titreType default to CARTE_A_TRAVAIL', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    initNoExisting();
+    expect(component.titreType()).toBe('CARTE_A_TRAVAIL');
+  });
+
+  it('SF-155-11 : clear country provenance when onCountryChange() is called', () => {
+    component.workspaceCountry = 'FRANCE';
+    initNoExisting();
+    expect(component.provenanceCountry()).toBe('IA');
+    component.onCountryChange();
+    expect(component.provenanceCountry()).toBeNull();
+  });
+
+  it('SF-155-11 : loadExisting (GET 200) clears both provenance signals', () => {
+    component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
+    initWithExisting();
+    expect(component.provenanceTitreType()).toBeNull();
+    expect(component.provenanceCountry()).toBeNull();
+  });
+
+  // ---- Cohérence F-IA-03 (via CoherenceAlertBuilder partagé) ----
+
+  it('should alert warning F96 on titre mismatch (TITRE_TYPE field)', () => {
     component.procedureChecks = [f96('VERIFIED', 'CARTE_RESIDENT', 'Motif regroupement')];
     initNoExisting();
     component.titreType.set('VLS_TS_SALARIE');
-    const alert = component.coherenceAlert();
+    const alert = component.coherenceAlerts().TITRE_TYPE;
     expect(alert?.source).toBe('F96');
     expect(alert?.expectedDisplay).toBe('CARTE_RESIDENT');
+    expect(alert?.field).toBe('TITRE_TYPE');
   });
 
   it('should alert warning Question IA "oui"', () => {
     component.aiQuestions = [question('oui', 'CST_VPF')];
     initNoExisting();
     component.titreType.set('VLS_TS_SALARIE');
-    expect(component.coherenceAlert()?.source).toBe('QUESTION_IA');
+    expect(component.coherenceAlerts().TITRE_TYPE?.source).toBe('QUESTION_IA');
   });
 
   it('should alert warning IA when typeTitreSejourCode diverges', () => {
     component.aiData = { typeTitreSejourCode: 'CARTE_RESIDENT' } as any;
     initNoExisting();
     component.titreType.set('VLS_TS_SALARIE');
-    expect(component.coherenceAlert()?.source).toBe('IA');
+    expect(component.coherenceAlerts().TITRE_TYPE?.source).toBe('IA');
   });
 
   it('should combine sources into MULTI', () => {
@@ -201,15 +243,16 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     component.aiData = { typeTitreSejourCode: 'CST_VPF' } as any;
     initNoExisting();
     component.titreType.set('VLS_TS_SALARIE');
-    expect(component.coherenceAlert()?.source).toBe('MULTI');
-    expect(component.coherenceAlert()?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
+    const alert = component.coherenceAlerts().TITRE_TYPE;
+    expect(alert?.source).toBe('MULTI');
+    expect(alert?.contributors).toEqual(expect.arrayContaining(['F96', 'QUESTION_IA', 'IA']));
   });
 
   it('should NOT alert when titre matches user', () => {
     component.aiData = { typeTitreSejourCode: 'VLS_TS_SALARIE' } as any;
     initNoExisting();
     component.titreType.set('VLS_TS_SALARIE');
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().TITRE_TYPE).toBeUndefined();
   });
 
   it('should freeze alert when result loaded', () => {
@@ -222,7 +265,7 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     component.procedureChecks = [f96('VERIFIED', 'UNKNOWN')];
     initNoExisting();
     component.titreType.set('VLS_TS_SALARIE');
-    expect(component.coherenceAlert()).toBeNull();
+    expect(component.coherenceAlerts().TITRE_TYPE).toBeUndefined();
   });
 
   it('SF-IA-03-14: pièce manquante IM07_TITRE_TYPE devient contributor PIECE_MANQUANTE', () => {
@@ -230,8 +273,93 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     component.piecesManquantes = [{ texte: 'Titre de séjour', critereCode: 'IM07_TITRE_TYPE' }];
     initNoExisting();
     component.titreType.set('CARTE_RESIDENT');
-    const alert = component.coherenceAlert();
+    const alert = component.coherenceAlerts().TITRE_TYPE;
     expect(alert?.contributors).toContain('PIECE_MANQUANTE');
     expect(alert?.source).toBe('MULTI');
+    expect(alert?.pieceTexte).toBe('Titre de séjour');
+  });
+
+  // ---- SF-155-11 : alertes COUNTRY (nouveau field) ----
+
+  it('SF-155-11 : should alert COUNTRY when IA code belongs to other country', () => {
+    // FR workspace, IA detects a BE code
+    component.workspaceCountry = 'FRANCE';
+    component.aiData = { typeTitreSejourCode: 'CARTE_B' } as any;
+    initNoExisting();
+    const alert = component.coherenceAlerts().COUNTRY;
+    expect(alert?.source).toBe('IA');
+    expect(alert?.field).toBe('COUNTRY');
+    expect(alert?.expectedDisplay).toBe('Belgique');
+  });
+
+  it('SF-155-11 : should NOT alert COUNTRY when IA code matches workspace country', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiData = { typeTitreSejourCode: 'VLS_TS_SALARIE' } as any;
+    initNoExisting();
+    expect(component.coherenceAlerts().COUNTRY).toBeUndefined();
+  });
+
+  it('SF-155-11 : BE workspace + FR IA code produces COUNTRY alert (France expected)', () => {
+    component.workspaceCountry = 'BELGIQUE';
+    component.aiData = { typeTitreSejourCode: 'CST_SALARIE' } as any;
+    initNoExisting();
+    const alert = component.coherenceAlerts().COUNTRY;
+    expect(alert?.source).toBe('IA');
+    expect(alert?.expectedDisplay).toBe('France');
+  });
+
+  it('SF-155-11 : alertsSummary counts multiple fields (TITRE_TYPE + COUNTRY)', () => {
+    component.workspaceCountry = 'FRANCE';
+    component.aiData = { typeTitreSejourCode: 'CARTE_B' } as any; // BE code in FR workspace
+    initNoExisting();
+    // titreType stays default VLS_TS_SALARIE (prefill rejected for wrong country).
+    // -> TITRE_TYPE alert (IA says CARTE_B, user says VLS_TS_SALARIE)
+    // -> COUNTRY alert (IA code is BE, workspace is FR)
+    expect(component.alertsSummary().total).toBe(2);
+  });
+
+  // ---- SF-155-11 : ngOnChanges re-prefill ----
+
+  it('SF-155-11 : ngOnChanges re-invokes prefillFromAi when aiData changes', () => {
+    initNoExisting();
+    component.titreType.set('VLS_TS_SALARIE'); // default
+    expect(component.provenanceTitreType()).toBeNull();
+
+    component.aiData = { typeTitreSejourCode: 'CARTE_RESIDENT' } as any;
+    component.ngOnChanges({
+      aiData: new SimpleChange(null, component.aiData, false),
+    });
+    expect(component.titreType()).toBe('CARTE_RESIDENT');
+    expect(component.provenanceTitreType()).toBe('IA');
+  });
+
+  it('SF-155-11 : ngOnChanges does NOT re-prefill after result is loaded', () => {
+    initWithExisting(); // result loaded, showForm=false
+    component.aiData = { typeTitreSejourCode: 'CARTE_RESIDENT' } as any;
+    component.ngOnChanges({
+      aiData: new SimpleChange(null, component.aiData, false),
+    });
+    expect(component.titreType()).toBe('VLS_TS_SALARIE'); // unchanged (from result)
+  });
+
+  it('SF-155-11 : explanationFor returns entry for TITRE_TYPE field key', () => {
+    initNoExisting();
+    const explanations = [{ id: 'e1', sourceKey: 'IM07_TITRE_TYPE', explanation: 'Article L.421-1' } as any];
+    component.sourceExplanations.set(new Map([['IM07_TITRE_TYPE', explanations]]));
+    expect(component.explanationFor('TITRE_TYPE')).toEqual(explanations);
+    expect(component.explanationFor('COUNTRY')).toEqual([]);
+  });
+
+  it('SF-155-11 : alertBadgeLabel formats each source correctly', () => {
+    initNoExisting();
+    const mkAlert = (source: any): any => ({
+      field: 'TITRE_TYPE', source, contributors: [source], severity: 'WARNING',
+      expectedDisplay: 'CARTE_RESIDENT', reason: 'x',
+    });
+    expect(component.alertBadgeLabel(mkAlert('F96'))).toContain('Checklist procédurale');
+    expect(component.alertBadgeLabel(mkAlert('QUESTION_IA'))).toContain('Question complémentaire');
+    expect(component.alertBadgeLabel(mkAlert('IA'))).toContain('Incohérence détectée');
+    expect(component.alertBadgeLabel(mkAlert('PIECE_MANQUANTE'))).toContain('Pièce manquante');
+    expect(component.alertBadgeLabel(mkAlert('MULTI'))).toContain('Incohérence multiple');
   });
 });

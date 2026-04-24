@@ -27,14 +27,27 @@
           @if (alertsSummary().total > 0) {
             <div class="coherence-summary">
               <mat-icon>warning</mat-icon>
-              <span>1 incohérence avec l'analyse</span>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
             </div>
           }
           <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Pays</mat-label>
-              <input matInput [value]="country() === 'BELGIQUE' ? 'Belgique' : 'France'" disabled>
-            </mat-form-field>
+            <div class="field-with-provenance field-with-alert">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Pays</mat-label>
+                <input matInput [value]="country() === 'BELGIQUE' ? 'Belgique' : 'France'" disabled>
+              </mat-form-field>
+              @if (provenanceCountry() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().COUNTRY; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="explanationFor('COUNTRY')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
 
             <div class="field-with-provenance field-with-alert form-field--wide">
               <mat-form-field appearance="outline" class="form-field form-field--wide">
@@ -48,9 +61,9 @@
               @if (provenanceTitreType() === 'IA') {
                 <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
               }
-              @if (coherenceAlert(); as alert) {
+              @if (coherenceAlerts().TITRE_TYPE; as alert) {
                 <span class="coherence-badge coherence-warning"
-                      [appCoherencePopover]="explanationFor()"
+                      [appCoherencePopover]="explanationFor('TITRE_TYPE')"
                       [appCoherencePopoverReason]="alertTooltip(alert)"
                       [appCoherencePopoverCaseFileId]="caseFileId">
                   <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
