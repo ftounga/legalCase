@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="127-create-divorce-alteration-analyses" author="legalcase">
+        <comment>
+            SF-FA-08-01 : table dédiée à l'outil décisionnel "Divorce pour altération
+            définitive du lien conjugal" (art. 237-238 Cciv, réforme loi 23/03/2019).
+            Le plus fréquent des divorces contentieux non fautifs : conditions
+            objectives = cessation effective de communauté de vie ≥ 1 an au moment
+            de l'assignation, sans volonté de reprise. Pas de recherche de tort.
+            Scoring 0-100 (délai 40, preuves 25, absence réconciliation 20,
+            bonus mariage ≥ 5 ans 15). Verdicts ELEVEE ≥75, MOYENNE 40-74,
+            FAIBLE &lt;40. Estimation prestation compensatoire (art. 270) basée
+            sur le différentiel de revenus et la durée du mariage (facteur 0.3,
+            plafonné à 10 ans, fourchette × 0.5 à × 1.5).
+            Outil single-country FRANCE — équivalent BE = F-FA-11 (procédure
+            distincte, art. 229 CC belge).
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 70) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="divorce_alteration_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_divorce_alteration_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_cessation_vie_commune" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_separation_documentaires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tentatives_reconciliation" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_mariage_annees" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revenus_annuels_epoux1_eur" type="numeric(12,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="revenus_annuels_epoux2_eur" type="numeric(12,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="patrimoine_commun_significatif" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_assignation" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="divorce_alteration_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_divorce_alteration_analyses_case_file"/>
+
+        <createIndex tableName="divorce_alteration_analyses"
+                     indexName="idx_divorce_alteration_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa081', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-08-divorce-alteration', 'ALWAYS_ON', NULL, NULL, 70);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa081';
+            </sql>
+            <dropTable tableName="divorce_alteration_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
