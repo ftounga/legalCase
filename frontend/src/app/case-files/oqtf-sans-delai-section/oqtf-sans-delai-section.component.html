@@ -38,44 +38,119 @@
           </div>
         } @else {
           @if (showForm()) {
-            <form class="oqtf-sd-form" (ngSubmit)="analyze()">
-              <mat-form-field appearance="outline">
-                <mat-label>Date et heure de notification de l'OQTF</mat-label>
-                <input matInput type="datetime-local" required
-                       [max]="nowLocalIso"
-                       [ngModel]="dateHeureNotificationOqtf()"
-                       (ngModelChange)="dateHeureNotificationOqtf.set($event || null)"
-                       name="dateHeureNotificationOqtf" />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Motif de l'OQTF sans délai</mat-label>
-                <mat-select
-                    [ngModel]="motifSansDelai()"
-                    (ngModelChange)="motifSansDelai.set($event)"
-                    name="motifSansDelai" required>
-                  @for (m of motifs; track m.code) {
-                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
+            @if (alertsSummary().total > 0) {
+              <div class="oqtf-sd-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>
+                  {{ alertsSummary().total }} incohérence(s) avec l'analyse
+                  @if (alertsSummary().blockers > 0) {
+                    — {{ alertsSummary().blockers }} critique(s) (urgence 48h)
                   }
-                </mat-select>
-              </mat-form-field>
+                </span>
+              </div>
+            }
+            <form class="oqtf-sd-form" (ngSubmit)="analyze()">
+              <div class="oqtf-sd-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date et heure de notification de l'OQTF</mat-label>
+                  <input matInput type="datetime-local" required
+                         [max]="nowLocalIso"
+                         [ngModel]="dateHeureNotificationOqtf()"
+                         (ngModelChange)="onDateHeureNotificationChange($event)"
+                         name="dateHeureNotificationOqtf" />
+                </mat-form-field>
+                @if (provenanceDateHeure() === 'IA') {
+                  <span class="oqtf-sd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_HEURE_NOTIFICATION; as alert) {
+                  <span class="oqtf-sd-coherence-badge"
+                        [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
 
-              <div class="oqtf-sd-toggle-row">
+              <div class="oqtf-sd-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif de l'OQTF sans délai</mat-label>
+                  <mat-select
+                      [ngModel]="motifSansDelai()"
+                      (ngModelChange)="onMotifSansDelaiChange($event)"
+                      name="motifSansDelai" required>
+                    @for (m of motifs; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotifSansDelai() === 'IA') {
+                  <span class="oqtf-sd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MOTIF_SANS_DELAI; as alert) {
+                  <span class="oqtf-sd-coherence-badge"
+                        [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="oqtf-sd-field-with-alert oqtf-sd-toggle-row">
                 <mat-slide-toggle
                     [ngModel]="placementCra()"
-                    (ngModelChange)="placementCra.set($event)"
+                    (ngModelChange)="onPlacementCraChange($event)"
                     name="placementCra">
                   Placement en CRA (centre de rétention administrative)
                 </mat-slide-toggle>
+                @if (provenancePlacementCra() === 'IA') {
+                  <span class="oqtf-sd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().PLACEMENT_CRA; as alert) {
+                  <span class="oqtf-sd-coherence-badge"
+                        [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
-              <div class="oqtf-sd-toggle-row">
+              <div class="oqtf-sd-field-with-alert oqtf-sd-toggle-row">
                 <mat-slide-toggle
                     [ngModel]="recoursForme()"
-                    (ngModelChange)="recoursForme.set($event)"
+                    (ngModelChange)="onRecoursFormeChange($event)"
                     name="recoursForme">
                   Recours déjà formé devant le TA
                 </mat-slide-toggle>
+                @if (provenanceRecoursForme() === 'IA') {
+                  <span class="oqtf-sd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().RECOURS_FORME; as alert) {
+                  <span class="oqtf-sd-coherence-badge"
+                        [class.oqtf-sd-coherence-badge--critical]="alert.severity === 'CRITICAL'"
+                        [appCoherencePopover]="null"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [appCoherencePopoverBlocker]="alert.severity === 'CRITICAL'">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
               @if (recoursForme()) {

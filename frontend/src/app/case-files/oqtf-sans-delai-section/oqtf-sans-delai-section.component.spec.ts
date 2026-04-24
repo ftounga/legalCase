@@ -2,8 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { SimpleChange } from '@angular/core';
 import { OqtfSansDelaiSectionComponent } from './oqtf-sans-delai-section.component';
 import { OqtfSansDelaiResponse } from '../../core/models/oqtf-sans-delai.model';
+import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
 
 describe('OqtfSansDelaiSectionComponent', () => {
   let component: OqtfSansDelaiSectionComponent;
@@ -35,6 +37,16 @@ describe('OqtfSansDelaiSectionComponent', () => {
     };
   }
 
+  function aiData(overrides: Partial<ImmigrationExtractedData> = {}): ImmigrationExtractedData {
+    return {
+      dateHeureNotificationOqtfSansDelai: null,
+      placementCraDetected: null,
+      motifOqtfCode: null,
+      recoursFormeDetected: null,
+      ...overrides,
+    };
+  }
+
   beforeEach(async () => {
     snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     await TestBed.configureTestingModule({
@@ -54,6 +66,10 @@ describe('OqtfSansDelaiSectionComponent', () => {
   });
 
   afterEach(() => httpMock.verify());
+
+  // ------------------------------------------------------------------
+  // Tests existants (préservés SF-IM-08-04) — 19 tests.
+  // ------------------------------------------------------------------
 
   it('FRANCE → 4 motifs sans délai disponibles', () => {
     component.workspaceCountry = 'FRANCE';
@@ -264,5 +280,363 @@ describe('OqtfSansDelaiSectionComponent', () => {
     expect(component.statutLabel('URGENT')).toBe('Délai 48h urgent');
     expect(component.statutLabel('EXPIRE')).toBe('Délai 48h expiré');
     expect(component.statutLabel('RECOURS_FORME')).toBe('Recours formé');
+  });
+
+  // ------------------------------------------------------------------
+  // SF-155-04-B2 — Nouveaux tests : pré-fill IA + alertes cohérence.
+  // ------------------------------------------------------------------
+
+  describe('SF-155-04-B2 — pré-fill IA', () => {
+    beforeEach(() => {
+      // On évite que ngOnInit déclenche un GET non attendu — on gère case par case.
+    });
+
+    it('prefillFromAi : no-op quand aiData === undefined', () => {
+      component.aiData = undefined;
+      component.ngOnInit();
+      const req = httpMock.expectOne(BASE_URL);
+      req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.dateHeureNotificationOqtf()).toBeNull();
+      expect(component.motifSansDelai()).toBeNull();
+      expect(component.placementCra()).toBe(false);
+      expect(component.recoursForme()).toBe(false);
+      expect(component.provenanceDateHeure()).toBeNull();
+      expect(component.provenanceMotifSansDelai()).toBeNull();
+      expect(component.provenancePlacementCra()).toBeNull();
+      expect(component.provenanceRecoursForme()).toBeNull();
+    });
+
+    it('prefillFromAi : date/heure pré-remplie depuis dateHeureNotificationOqtfSansDelai + badge IA', () => {
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-23T10:30' });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.dateHeureNotificationOqtf()).toBe('2026-04-23T10:30');
+      expect(component.provenanceDateHeure()).toBe('IA');
+    });
+
+    it('prefillFromAi : datetime IA avec secondes → normalisé YYYY-MM-DDTHH:mm', () => {
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-23T10:30:45' });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.dateHeureNotificationOqtf()).toBe('2026-04-23T10:30');
+      expect(component.provenanceDateHeure()).toBe('IA');
+    });
+
+    it('prefillFromAi : datetime IA format invalide → non rempli, pas de provenance', () => {
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '23/04/2026 10:30' });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.dateHeureNotificationOqtf()).toBeNull();
+      expect(component.provenanceDateHeure()).toBeNull();
+    });
+
+    it('prefillFromAi : placementCra=true pré-rempli depuis placementCraDetected=true', () => {
+      component.aiData = aiData({ placementCraDetected: true });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.placementCra()).toBe(true);
+      expect(component.provenancePlacementCra()).toBe('IA');
+    });
+
+    it('prefillFromAi : placementCraDetected=null → champ reste false, pas de provenance', () => {
+      component.aiData = aiData({ placementCraDetected: null });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.placementCra()).toBe(false);
+      expect(component.provenancePlacementCra()).toBeNull();
+    });
+
+    it('prefillFromAi : recoursForme=true depuis recoursFormeDetected.reponse=OUI', () => {
+      component.aiData = aiData({ recoursFormeDetected: { reponse: 'OUI', justification: 'Recours déposé le 23/04' } });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.recoursForme()).toBe(true);
+      expect(component.provenanceRecoursForme()).toBe('IA');
+    });
+
+    it('prefillFromAi : recoursFormeDetected.reponse=INCONNU → pas de pré-fill', () => {
+      component.aiData = aiData({ recoursFormeDetected: { reponse: 'INCONNU', justification: null } });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.recoursForme()).toBe(false);
+      expect(component.provenanceRecoursForme()).toBeNull();
+    });
+
+    it('prefillFromAi : motifSansDelai pré-rempli si motifOqtfCode=AUTRE (enum commun)', () => {
+      component.aiData = aiData({ motifOqtfCode: 'AUTRE' });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.motifSansDelai()).toBe('AUTRE');
+      expect(component.provenanceMotifSansDelai()).toBe('IA');
+    });
+
+    it('prefillFromAi : motifOqtfCode=EXPIRATION_TITRE (hors enum MotifSansDelai) → skip silencieux', () => {
+      component.aiData = aiData({ motifOqtfCode: 'EXPIRATION_TITRE' });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.motifSansDelai()).toBeNull();
+      expect(component.provenanceMotifSansDelai()).toBeNull();
+    });
+
+    it('workspaceCountry=BELGIQUE → aucun pré-fill, aucun appel HTTP', () => {
+      component.workspaceCountry = 'BELGIQUE';
+      component.aiData = aiData({
+        dateHeureNotificationOqtfSansDelai: '2026-04-23T10:30',
+        placementCraDetected: true,
+        recoursFormeDetected: { reponse: 'OUI', justification: null },
+      });
+      component.ngOnInit();
+      httpMock.expectNone(r => r.url === BASE_URL);
+      expect(component.dateHeureNotificationOqtf()).toBeNull();
+      expect(component.placementCra()).toBe(false);
+      expect(component.recoursForme()).toBe(false);
+      expect(component.provenanceDateHeure()).toBeNull();
+    });
+
+    it('ngOnChanges aiData avant résolution → re-applique prefillFromAi', () => {
+      component.aiData = undefined;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      expect(component.dateHeureNotificationOqtf()).toBeNull();
+
+      // Nouvel aiData arrive après ngOnInit.
+      const newAi = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-23T10:30' });
+      component.aiData = newAi;
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, newAi, false),
+      });
+      expect(component.dateHeureNotificationOqtf()).toBe('2026-04-23T10:30');
+      expect(component.provenanceDateHeure()).toBe('IA');
+    });
+
+    it('ngOnChanges aiData après result() non null → pas de re-invocation prefillFromAi', () => {
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush(frResponse({ placementCra: true }));
+      expect(component.showForm()).toBe(false);
+      // Snapshot valeur actuelle.
+      const snapshotDate = component.dateHeureNotificationOqtf();
+
+      // aiData arrive plus tard avec une autre valeur — ne doit pas écraser.
+      const newAi = aiData({ dateHeureNotificationOqtfSansDelai: '2030-01-01T00:00' });
+      component.aiData = newAi;
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, newAi, false),
+      });
+      expect(component.dateHeureNotificationOqtf()).toBe(snapshotDate);
+      expect(component.provenanceDateHeure()).toBeNull();
+    });
+  });
+
+  describe('SF-155-04-B2 — handlers onXxxChange effacent la provenance IA', () => {
+    beforeEach(() => {
+      component.aiData = undefined;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    });
+
+    it('onDateHeureNotificationChange efface provenanceDateHeure', () => {
+      component.provenanceDateHeure.set('IA');
+      component.onDateHeureNotificationChange('2026-04-23T11:00');
+      expect(component.provenanceDateHeure()).toBeNull();
+      expect(component.dateHeureNotificationOqtf()).toBe('2026-04-23T11:00');
+    });
+
+    it('onMotifSansDelaiChange efface provenanceMotifSansDelai', () => {
+      component.provenanceMotifSansDelai.set('IA');
+      component.onMotifSansDelaiChange('RISQUE_FUITE');
+      expect(component.provenanceMotifSansDelai()).toBeNull();
+      expect(component.motifSansDelai()).toBe('RISQUE_FUITE');
+    });
+
+    it('onPlacementCraChange efface provenancePlacementCra', () => {
+      component.provenancePlacementCra.set('IA');
+      component.onPlacementCraChange(false);
+      expect(component.provenancePlacementCra()).toBeNull();
+      expect(component.placementCra()).toBe(false);
+    });
+
+    it('onRecoursFormeChange efface provenanceRecoursForme', () => {
+      component.provenanceRecoursForme.set('IA');
+      component.onRecoursFormeChange(true);
+      expect(component.provenanceRecoursForme()).toBeNull();
+      expect(component.recoursForme()).toBe(true);
+    });
+  });
+
+  describe('SF-155-04-B2 — alertes cohérence F-IA-03 (urgence 48h)', () => {
+    // Horloge fixée pour déterminisme : 2026-04-25 10:00:00 local.
+    const NOW_MS = new Date('2026-04-25T10:00:00').getTime();
+
+    beforeEach(() => {
+      component.aiData = undefined;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      component.setNowMsOverride(NOW_MS);
+    });
+
+    it('ALERTE CRITIQUE 48h : notif IA il y a 49h + recoursForme=false → alerte RECOURS_FORME CRITICAL', () => {
+      // 49h avant "now" = 2026-04-23T09:00
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-23T09:00' });
+      component.recoursForme.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.RECOURS_FORME).toBeTruthy();
+      expect(alerts.RECOURS_FORME!.severity).toBe('CRITICAL');
+      expect(alerts.RECOURS_FORME!.expectedDisplay).toContain('hors délai');
+      expect(component.alertsSummary().blockers).toBe(1);
+    });
+
+    it('ALERTE CRITIQUE 48h NON déclenchée si recoursForme=true (recours formé)', () => {
+      component.aiData = aiData({
+        dateHeureNotificationOqtfSansDelai: '2026-04-23T09:00', // > 48h avant
+        recoursFormeDetected: { reponse: 'OUI', justification: null },
+      });
+      component.recoursForme.set(true);
+      const alerts = component.coherenceAlerts();
+      // Ni critique 48h, ni contradiction (OUI == true).
+      expect(alerts.RECOURS_FORME).toBeUndefined();
+    });
+
+    it('ALERTE CRITIQUE 48h NON déclenchée si notif < 48h (encore dans le délai)', () => {
+      // 24h avant "now" = 2026-04-24T10:00 (exactement 24h)
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-24T10:00' });
+      component.recoursForme.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.RECOURS_FORME).toBeUndefined();
+    });
+
+    it('Edge case 48h exact : notif il y a 48h pile → alerte non déclenchée (borne non stricte)', () => {
+      // 48h pile avant now = 2026-04-23T10:00
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-23T10:00' });
+      component.recoursForme.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.RECOURS_FORME).toBeUndefined();
+    });
+
+    it('Edge case 48h + 1 min : notif il y a 48h01 → alerte déclenchée', () => {
+      // 48h + 1 min avant now = 2026-04-23T09:59
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-23T09:59' });
+      component.recoursForme.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.RECOURS_FORME).toBeTruthy();
+      expect(alerts.RECOURS_FORME!.severity).toBe('CRITICAL');
+    });
+
+    it('ALERTE CRITIQUE CRA : placementCraDetected=true + avocat placementCra=false → PLACEMENT_CRA CRITICAL', () => {
+      component.aiData = aiData({ placementCraDetected: true });
+      component.placementCra.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.PLACEMENT_CRA).toBeTruthy();
+      expect(alerts.PLACEMENT_CRA!.severity).toBe('CRITICAL');
+      expect(alerts.PLACEMENT_CRA!.expectedDisplay).toContain('CRA');
+    });
+
+    it('Alerte CRA NON déclenchée si placementCraDetected=false', () => {
+      component.aiData = aiData({ placementCraDetected: false });
+      component.placementCra.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.PLACEMENT_CRA).toBeUndefined();
+    });
+
+    it('Alerte CRA NON déclenchée si avocat coche true (conforme à l\'IA)', () => {
+      component.aiData = aiData({ placementCraDetected: true });
+      component.placementCra.set(true);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.PLACEMENT_CRA).toBeUndefined();
+    });
+
+    it('Divergence date/heure > 1h → alerte DATE_HEURE_NOTIFICATION WARNING', () => {
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-24T08:00' });
+      component.dateHeureNotificationOqtf.set('2026-04-24T12:00'); // +4h
+      const alerts = component.coherenceAlerts();
+      expect(alerts.DATE_HEURE_NOTIFICATION).toBeTruthy();
+      expect(alerts.DATE_HEURE_NOTIFICATION!.severity).toBe('WARNING');
+    });
+
+    it('Divergence date/heure <= 1h → pas d\'alerte DATE_HEURE_NOTIFICATION', () => {
+      component.aiData = aiData({ dateHeureNotificationOqtfSansDelai: '2026-04-24T10:00' });
+      component.dateHeureNotificationOqtf.set('2026-04-24T10:30'); // +30 min
+      const alerts = component.coherenceAlerts();
+      expect(alerts.DATE_HEURE_NOTIFICATION).toBeUndefined();
+    });
+
+    it('Contradiction recours formé : IA=OUI + avocat=false → RECOURS_FORME WARNING (pas CRITICAL)', () => {
+      // Notif < 48h pour ne pas déclencher le critique.
+      component.aiData = aiData({
+        dateHeureNotificationOqtfSansDelai: '2026-04-24T11:00',
+        recoursFormeDetected: { reponse: 'OUI', justification: 'Recours déposé au greffe le 23/04' },
+      });
+      component.recoursForme.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.RECOURS_FORME).toBeTruthy();
+      expect(alerts.RECOURS_FORME!.severity).toBe('WARNING');
+      expect(alerts.RECOURS_FORME!.reason).toContain('déjà formé');
+    });
+
+    it('Critique 48h prime sur la contradiction recours (une seule alerte RECOURS_FORME, CRITICAL)', () => {
+      // Notif > 48h + IA dit NON + avocat false → théoriquement cohérent (NON==false), mais notif > 48h.
+      // On teste que le critique prime même si la reponse IA est cohérente.
+      component.aiData = aiData({
+        dateHeureNotificationOqtfSansDelai: '2026-04-23T09:00',
+        recoursFormeDetected: { reponse: 'NON', justification: null },
+      });
+      component.recoursForme.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.RECOURS_FORME).toBeTruthy();
+      expect(alerts.RECOURS_FORME!.severity).toBe('CRITICAL');
+    });
+
+    it('Aucune alerte quand showForm()=false (post-calcul)', () => {
+      component.aiData = aiData({
+        dateHeureNotificationOqtfSansDelai: '2026-04-23T09:00',
+        placementCraDetected: true,
+      });
+      component.recoursForme.set(false);
+      component.placementCra.set(false);
+      // Sanity-check : alertes présentes en showForm.
+      expect(component.alertsSummary().total).toBeGreaterThan(0);
+
+      component.showForm.set(false);
+      expect(component.coherenceAlerts()).toEqual({});
+      expect(component.alertsSummary().total).toBe(0);
+    });
+
+    it('Aucune alerte quand workspaceCountry=BELGIQUE (gate pays)', () => {
+      component.workspaceCountry = 'BELGIQUE';
+      component.aiData = aiData({
+        dateHeureNotificationOqtfSansDelai: '2026-04-23T09:00',
+        placementCraDetected: true,
+      });
+      component.recoursForme.set(false);
+      expect(component.coherenceAlerts()).toEqual({});
+    });
+  });
+
+  describe('SF-155-04-B2 — helpers alertes', () => {
+    it('alertBadgeLabel distingue CRITICAL vs WARNING', () => {
+      const critical = {
+        field: 'RECOURS_FORME' as const,
+        severity: 'CRITICAL' as const,
+        reason: 'r',
+        expectedDisplay: 'Recours hors délai probable',
+      };
+      const warning = {
+        field: 'DATE_HEURE_NOTIFICATION' as const,
+        severity: 'WARNING' as const,
+        reason: 'r',
+        expectedDisplay: 'Date IA divergente',
+      };
+      expect(component.alertBadgeLabel(critical)).toContain('Alerte critique');
+      expect(component.alertBadgeLabel(warning)).toContain('Incohérence détectée');
+    });
+
+    it('alertTooltip retourne la raison brute', () => {
+      const a = {
+        field: 'PLACEMENT_CRA' as const,
+        severity: 'CRITICAL' as const,
+        reason: 'raison explicative',
+        expectedDisplay: 'Placement CRA détecté',
+      };
+      expect(component.alertTooltip(a)).toBe('raison explicative');
+    });
   });
 });

@@ -1,4 +1,13 @@
-import { Component, Input, OnInit, Optional, signal, computed } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnChanges,
+  OnInit,
+  Optional,
+  SimpleChanges,
+  computed,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,9 +27,16 @@ import {
   OqtfSansDelaiResponse,
   StatutDelaiSd,
 } from '../../core/models/oqtf-sans-delai.model';
+import {
+  ImmigrationExtractedData,
+  PieceManquanteEntry,
+} from '../../core/models/case-analysis.model';
+import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisional-header-flag/decisional-header-flag.component';
+import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 
 /**
  * SF-IM-08-04 : outil décisionnel dédié "OQTF SANS délai de départ
@@ -30,7 +46,33 @@ import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisio
  * de SF-IM-08-02 (OQTF avec délai).
  * Consomme l'API SF-IM-08-03. Affiché conditionnellement par le panel
  * F-IA-04 (tool_id 'F-IM-08-oqtf-sans-delai-fr').
+ *
+ * SF-155-04-B2 : pré-fill IA depuis `ImmigrationExtractedData` + alertes
+ * cohérence F-IA-03 critiques (délai 48h dépassé, placement CRA détecté,
+ * divergence date/heure, contradiction recours).
  */
+export type OqtfSdAlertField =
+  | 'DATE_HEURE_NOTIFICATION'
+  | 'PLACEMENT_CRA'
+  | 'RECOURS_FORME'
+  | 'MOTIF_SANS_DELAI';
+
+export type OqtfSdAlertSeverity = 'CRITICAL' | 'WARNING';
+
+export interface OqtfSdCoherenceAlert {
+  field: OqtfSdAlertField;
+  severity: OqtfSdAlertSeverity;
+  reason: string;
+  expectedDisplay: string;
+}
+
+const ALLOWED_MOTIFS_SANS_DELAI: ReadonlySet<string> = new Set<string>(
+  MOTIFS_SANS_DELAI.map((m) => m.code),
+);
+
+const MS_ONE_HOUR = 3_600_000;
+const MS_48H = 48 * MS_ONE_HOUR;
+
 @Component({
   selector: 'app-oqtf-sans-delai-section',
   standalone: true,
@@ -41,13 +83,19 @@ import { DecisionalHeaderFlagComponent } from '../decisional-tools-panel/decisio
     MatSlideToggleModule, MatChipsModule, MatProgressSpinnerModule,
     LegalCitationsPipe,
     DecisionalHeaderFlagComponent,
+    CoherencePopoverTriggerDirective,
   ],
   templateUrl: './oqtf-sans-delai-section.component.html',
   styleUrl: './oqtf-sans-delai-section.component.scss',
 })
-export class OqtfSansDelaiSectionComponent implements OnInit {
+export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
+  // SF-155-04-B2 : Inputs IA (synthèse dossier + checklist F-96 + questions F-IA-02 + pièces F-145).
+  @Input() aiData?: ImmigrationExtractedData | null;
+  @Input() procedureChecks?: ProcedureCheck[] | null;
+  @Input() aiQuestions?: AiQuestion[] | null;
+  @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -61,12 +109,60 @@ export class OqtfSansDelaiSectionComponent implements OnInit {
   recoursForme = signal<boolean>(false);
   dateHeureRecours = signal<string | null>(null);
 
+  // SF-155-04-B2 : signals de provenance IA (badge "Pré-rempli depuis l'analyse").
+  // Effacés dès que l'avocat modifie manuellement un champ (onXxxChange).
+  provenanceDateHeure = signal<'IA' | null>(null);
+  provenanceMotifSansDelai = signal<'IA' | null>(null);
+  provenancePlacementCra = signal<'IA' | null>(null);
+  provenanceRecoursForme = signal<'IA' | null>(null);
+
+  // SF-155-04-B2 : signal d'override de l'horloge courante (pour tests déterministes).
+  // En prod : utilise toujours Date.now().
+  private nowMsOverride: number | null = null;
+
   readonly motifs: MotifSansDelaiOption[] = MOTIFS_SANS_DELAI;
 
   /** Maintenant au format ISO local (YYYY-MM-DDTHH:mm) pour `max` des inputs datetime-local. */
   readonly nowLocalIso: string = this.buildNowLocalIso();
 
   isFrance = computed<boolean>(() => this.workspaceCountry === 'FRANCE');
+
+  // SF-155-04-B2 : alertes cohérence F-IA-03. Gate strict : uniquement
+  // quand le formulaire est affiché (règle SF-IA-03-12 : ne pas réafficher
+  // après calcul, seul le verdict importe).
+  coherenceAlerts = computed<Partial<Record<OqtfSdAlertField, OqtfSdCoherenceAlert>>>(() => {
+    if (!this.showForm()) return {};
+    if (!this.isFrance()) return {};
+    const alerts: Partial<Record<OqtfSdAlertField, OqtfSdCoherenceAlert>> = {};
+    const ai = this.aiData;
+    if (!ai) return alerts;
+
+    // ALERTE CRITIQUE 48h : notif IA > 48h + recoursForme=false (recours hors délai probable).
+    const critical48h = this.buildAlert48hExpired(ai);
+    if (critical48h) {
+      alerts.RECOURS_FORME = critical48h;
+    } else {
+      // Contradiction recours formé (non critique 48h) : IA dit OUI/NON et avocat diverge.
+      const recoursContradiction = this.buildRecoursContradictionAlert(ai);
+      if (recoursContradiction) alerts.RECOURS_FORME = recoursContradiction;
+    }
+
+    // ALERTE CRITIQUE CRA : IA a détecté CRA, avocat dit NON.
+    const criticalCra = this.buildCraAlert(ai);
+    if (criticalCra) alerts.PLACEMENT_CRA = criticalCra;
+
+    // Divergence date/heure saisie vs IA > 1h.
+    const dateAlert = this.buildDateHeureDivergenceAlert(ai);
+    if (dateAlert) alerts.DATE_HEURE_NOTIFICATION = dateAlert;
+
+    return alerts;
+  });
+
+  alertsSummary = computed(() => {
+    const values = Object.values(this.coherenceAlerts());
+    const blockers = values.filter((a) => a && a.severity === 'CRITICAL').length;
+    return { total: values.length, blockers };
+  });
 
   constructor(
     private service: OqtfSansDelaiService,
@@ -76,12 +172,32 @@ export class OqtfSansDelaiSectionComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.isFrance()) {
+      // SF-155-04-B2 : pré-fill IA au mount si aiData est déjà disponible.
+      // Ne préempte pas le load() existant — prefillFromAi ne touche que
+      // les signals encore à leur valeur défaut.
+      this.prefillFromAi();
       this.load();
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    // SF-155-04-B2 : re-applique le pré-fill dès que aiData change avant la
+    // première résolution (cas : pipeline IA termine après l'ouverture du
+    // dossier). Si le form n'est plus affiché (result() présent), le
+    // pré-fill serait contre-productif — on s'abstient.
+    if (
+      changes['aiData'] &&
+      !changes['aiData'].firstChange &&
+      this.isFrance() &&
+      this.showForm() &&
+      !this.result()
+    ) {
+      this.prefillFromAi();
+    }
+  }
+
   toggleCollapse(): void {
-    this.collapsed.update(v => !v);
+    this.collapsed.update((v) => !v);
   }
 
   formValid(): boolean {
@@ -172,6 +288,203 @@ export class OqtfSansDelaiSectionComponent implements OnInit {
     return r.statutDelaiRecours === 'DISPONIBLE' || r.statutDelaiRecours === 'URGENT';
   }
 
+  // -----------------------------------------------------------------
+  // SF-155-04-B2 — Handlers manuels : effacent la provenance IA.
+  // -----------------------------------------------------------------
+
+  onDateHeureNotificationChange(value: string | null): void {
+    this.dateHeureNotificationOqtf.set(value || null);
+    this.provenanceDateHeure.set(null);
+  }
+
+  onMotifSansDelaiChange(value: MotifSansDelai | null): void {
+    this.motifSansDelai.set(value);
+    this.provenanceMotifSansDelai.set(null);
+  }
+
+  onPlacementCraChange(value: boolean): void {
+    this.placementCra.set(value);
+    this.provenancePlacementCra.set(null);
+  }
+
+  onRecoursFormeChange(value: boolean): void {
+    this.recoursForme.set(value);
+    this.provenanceRecoursForme.set(null);
+  }
+
+  // -----------------------------------------------------------------
+  // SF-155-04-B2 — Helpers alertes cohérence.
+  // -----------------------------------------------------------------
+
+  alertTooltip(alert: OqtfSdCoherenceAlert): string {
+    return alert.reason;
+  }
+
+  alertBadgeLabel(alert: OqtfSdCoherenceAlert): string {
+    return alert.severity === 'CRITICAL'
+      ? `Alerte critique : ${alert.expectedDisplay}`
+      : `Incohérence détectée : ${alert.expectedDisplay}`;
+  }
+
+  /**
+   * Test hook — permet aux specs de figer l'horloge courante pour tester
+   * les seuils 48h de façon déterministe. Ne modifie pas le comportement
+   * en production (Date.now() reste la référence quand override est null).
+   */
+  setNowMsOverride(ms: number | null): void {
+    this.nowMsOverride = ms;
+  }
+
+  private nowMs(): number {
+    return this.nowMsOverride ?? Date.now();
+  }
+
+  /** SF-155-04-B2 : alerte critique 48h — notification > 48h ET recours non formé. */
+  private buildAlert48hExpired(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
+    const iso = ai.dateHeureNotificationOqtfSansDelai;
+    if (!iso) return null;
+    if (this.recoursForme()) return null;
+    const notifMs = this.parseIsoToMs(iso);
+    if (notifMs === null) return null;
+    const deltaMs = this.nowMs() - notifMs;
+    if (deltaMs <= MS_48H) return null;
+    const hours = Math.round(deltaMs / MS_ONE_HOUR);
+    return {
+      field: 'RECOURS_FORME',
+      severity: 'CRITICAL',
+      reason: `Notification OQTF il y a environ ${hours} h (IA : ${iso}). Délai 48h probablement dépassé — aucun recours formé dans le dossier.`,
+      expectedDisplay: 'Recours hors délai probable',
+    };
+  }
+
+  /**
+   * Contradiction non critique : IA a détecté que le recours est (ou n'est
+   * pas) formé, avocat dit l'inverse. Pas déclenchée si le CRITIQUE 48h
+   * est déjà actif (prime sur cet alerte).
+   */
+  private buildRecoursContradictionAlert(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
+    const reponse = ai.recoursFormeDetected?.reponse;
+    if (reponse !== 'OUI' && reponse !== 'NON') return null;
+    const iaRecours = reponse === 'OUI';
+    if (iaRecours === this.recoursForme()) return null;
+    const just = ai.recoursFormeDetected?.justification;
+    const justSuffix = just ? ` (${just})` : '';
+    return {
+      field: 'RECOURS_FORME',
+      severity: 'WARNING',
+      reason: `Analyse du dossier : recours ${iaRecours ? 'déjà formé' : 'non formé'}${justSuffix}`,
+      expectedDisplay: iaRecours ? 'Recours déjà formé' : 'Aucun recours formé',
+    };
+  }
+
+  /** SF-155-04-B2 : alerte critique CRA détecté par IA, avocat coche non. */
+  private buildCraAlert(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
+    if (ai.placementCraDetected !== true) return null;
+    if (this.placementCra() === true) return null;
+    return {
+      field: 'PLACEMENT_CRA',
+      severity: 'CRITICAL',
+      reason: 'L\'analyse du dossier a détecté une mention de placement en CRA — vérifier les pièces.',
+      expectedDisplay: 'Placement CRA détecté',
+    };
+  }
+
+  /** Divergence date/heure saisie vs IA > 1h — alerte warning. */
+  private buildDateHeureDivergenceAlert(ai: ImmigrationExtractedData): OqtfSdCoherenceAlert | null {
+    const iso = ai.dateHeureNotificationOqtfSansDelai;
+    if (!iso) return null;
+    const saisie = this.dateHeureNotificationOqtf();
+    if (!saisie) return null;
+    const iaMs = this.parseIsoToMs(iso);
+    const saisieMs = this.parseIsoToMs(saisie);
+    if (iaMs === null || saisieMs === null) return null;
+    if (Math.abs(iaMs - saisieMs) <= MS_ONE_HOUR) return null;
+    return {
+      field: 'DATE_HEURE_NOTIFICATION',
+      severity: 'WARNING',
+      reason: `Analyse du dossier : ${iso} — écart > 1 h avec la saisie (${saisie}).`,
+      expectedDisplay: 'Date IA divergente',
+    };
+  }
+
+  /**
+   * Parse ISO partiel (YYYY-MM-DDTHH:mm[:ss]) en ms. Null si format invalide.
+   * Utilise `new Date()` qui interprète la chaîne en timezone LOCALE quand il
+   * n'y a ni Z ni offset — cohérent avec les valeurs saisies par l'avocat
+   * via `<input type="datetime-local">`.
+   */
+  private parseIsoToMs(iso: string): number | null {
+    if (!iso) return null;
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(iso)) return null;
+    const t = new Date(iso).getTime();
+    if (Number.isNaN(t)) return null;
+    return t;
+  }
+
+  // -----------------------------------------------------------------
+  // SF-155-04-B2 — Pré-fill IA.
+  // -----------------------------------------------------------------
+
+  private prefillFromAi(): void {
+    const ai = this.aiData;
+    if (!ai) return;
+    if (!this.isFrance()) return;
+    // Si le form n'est plus affiché (analyse déjà faite), ne pas écraser.
+    if (!this.showForm()) return;
+
+    // 1) dateHeureNotificationOqtf
+    if (ai.dateHeureNotificationOqtfSansDelai && !this.dateHeureNotificationOqtf()) {
+      const normalized = this.normalizeDatetimeLocalInput(ai.dateHeureNotificationOqtfSansDelai);
+      if (normalized) {
+        this.dateHeureNotificationOqtf.set(normalized);
+        this.provenanceDateHeure.set('IA');
+      }
+    }
+
+    // 2) motifSansDelai — on n'utilise que les valeurs qui croisent
+    // l'enum front MotifSansDelai (en pratique : seul 'AUTRE' est
+    // dans les deux enums au 2026-04-24). Les autres valeurs backend
+    // sont ignorées silencieusement.
+    const rawMotif = ai.motifOqtfCode;
+    if (rawMotif && ALLOWED_MOTIFS_SANS_DELAI.has(rawMotif) && !this.motifSansDelai()) {
+      this.motifSansDelai.set(rawMotif as MotifSansDelai);
+      this.provenanceMotifSansDelai.set('IA');
+    }
+
+    // 3) placementCra (boolean strict — null / undefined = skip).
+    if (ai.placementCraDetected === true || ai.placementCraDetected === false) {
+      // Pré-fill uniquement si l'avocat n'a pas déjà interagi (valeur défaut false,
+      // mais sans provenance) : pour rester non destructif, on ne pré-remplit que
+      // si le signal provenance est encore null ET que la valeur courante est la
+      // valeur défaut (false). Cas simple : initial mount.
+      if (this.provenancePlacementCra() === null && this.placementCra() === false) {
+        this.placementCra.set(ai.placementCraDetected);
+        this.provenancePlacementCra.set('IA');
+      }
+    }
+
+    // 4) recoursForme (OUI/NON/INCONNU — INCONNU skip).
+    const reponse = ai.recoursFormeDetected?.reponse;
+    if (reponse === 'OUI' || reponse === 'NON') {
+      if (this.provenanceRecoursForme() === null && this.recoursForme() === false) {
+        this.recoursForme.set(reponse === 'OUI');
+        this.provenanceRecoursForme.set('IA');
+      }
+    }
+  }
+
+  /**
+   * Convertit un ISO partiel (YYYY-MM-DDTHH:mm[:ss]) en chaîne compatible
+   * `<input type="datetime-local">` (YYYY-MM-DDTHH:mm, sans secondes).
+   * Retourne null si la chaîne ne matche pas le format attendu.
+   */
+  private normalizeDatetimeLocalInput(iso: string): string | null {
+    if (!iso) return null;
+    const m = iso.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2})?$/);
+    if (!m) return null;
+    return m[1];
+  }
+
   private load(): void {
     this.loading.set(true);
     this.service.get(this.caseFileId).subscribe({
@@ -183,6 +496,13 @@ export class OqtfSansDelaiSectionComponent implements OnInit {
         this.recoursForme.set(r.recoursForme);
         this.dateHeureRecours.set(r.dateHeureRecours ? this.toLocalInputValue(r.dateHeureRecours) : null);
         this.showForm.set(false);
+        // SF-155-04-B2 : reset provenance IA (les valeurs viennent maintenant
+        // du backend, plus de l'analyse IA — badge "Pré-rempli depuis l'analyse"
+        // ne doit pas s'afficher).
+        this.provenanceDateHeure.set(null);
+        this.provenanceMotifSansDelai.set(null);
+        this.provenancePlacementCra.set(null);
+        this.provenanceRecoursForme.set(null);
         this.loading.set(false);
       },
       error: () => {
