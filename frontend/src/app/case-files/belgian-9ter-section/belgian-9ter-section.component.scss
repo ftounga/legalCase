@@ -1,0 +1,385 @@
+.belgian-9ter-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.belgian-9ter-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.belgian-9ter-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.belgian-9ter-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+
+  &--success {
+    background: rgba(32, 128, 64, 0.14);
+    color: #156135;
+  }
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.22);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
+
+.belgian-9ter-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.belgian-9ter-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.belgian-9ter-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.belgian-9ter-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.belgian-9ter-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.belgian-9ter-toggle-row {
+  grid-column: 1 / -1;
+  padding: 8px 0;
+}
+
+.belgian-9ter-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.belgian-9ter-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.belgian-9ter-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--warning {
+    border-left-color: var(--ds-accent-gold, #c9a54b);
+    background: rgba(201, 165, 75, 0.14);
+
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+
+  &--success {
+    border-left-color: #208040;
+    background: rgba(32, 128, 64, 0.10);
+
+    mat-icon { color: #156135; }
+  }
+}
+
+.belgian-9ter-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.belgian-9ter-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-score-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.belgian-9ter-score-big {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.belgian-9ter-score-label {
+  font-size: 14px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+/* Bandeau "menace ordre public" — alerte critique (rouge autorisé). */
+.belgian-9ter-menace-emphasis {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 2px solid #c02424;
+  background: rgba(192, 36, 36, 0.10);
+
+  mat-icon {
+    color: #9a1c1c;
+    flex-shrink: 0;
+  }
+}
+
+.belgian-9ter-menace-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.belgian-9ter-menace-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #9a1c1c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-menace-sub {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  line-height: 1.5;
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-checks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: rgba(26, 35, 48, 0.03);
+
+    mat-icon {
+      flex-shrink: 0;
+    }
+  }
+
+  .belgian-9ter-check--ok {
+    background: rgba(32, 128, 64, 0.06);
+    mat-icon { color: #156135; }
+  }
+
+  .belgian-9ter-check--ko {
+    background: rgba(201, 165, 75, 0.10);
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+}
+
+.belgian-9ter-check-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-check-points {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.belgian-9ter-criteres {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.belgian-9ter-criteres-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-instruction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  background: rgba(201, 165, 75, 0.06);
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+
+  strong {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-weight: 600;
+  }
+}
+
+.belgian-9ter-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+    font-family: 'Inter', sans-serif;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.belgian-9ter-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.belgian-9ter-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'Inter', sans-serif;
+}
+
+.belgian-9ter-formule {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.belgian-9ter-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.belgian-9ter-meta-base {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.belgian-9ter-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
