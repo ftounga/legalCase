@@ -155,15 +155,15 @@
                 </li>
                 <li>
                   <span class="annexe13-bd-label">Expiration du délai de départ</span>
-                  <span class="annexe13-bd-value">{{ result()!.dateExpirationDelaiDepart }}</span>
+                  <span class="annexe13-bd-value">{{ result()!.dateExpirationDelaiDepart | date:'dd/MM/yyyy' }}</span>
                 </li>
                 <li>
                   <span class="annexe13-bd-label">Expiration du recours en annulation (30j)</span>
-                  <span class="annexe13-bd-value">{{ result()!.dateExpirationRecoursAnnulation }}</span>
+                  <span class="annexe13-bd-value">{{ result()!.dateExpirationRecoursAnnulation | date:'dd/MM/yyyy' }}</span>
                 </li>
                 <li>
                   <span class="annexe13-bd-label">Expiration du recours extrême urgence (5 jours ouvrables)</span>
-                  <span class="annexe13-bd-value">{{ result()!.dateExpirationRecoursExtremeUrgence }}</span>
+                  <span class="annexe13-bd-value">{{ result()!.dateExpirationRecoursExtremeUrgence | date:'dd/MM/yyyy' }}</span>
                 </li>
                 @if (result()!.recoursForme && result()!.typeRecours) {
                   <li>
@@ -174,13 +174,13 @@
                 @if (result()!.recoursForme && result()!.dateAudiencePrevisionnelle) {
                   <li>
                     <span class="annexe13-bd-label">Audience CCE prévisionnelle</span>
-                    <span class="annexe13-bd-value">{{ result()!.dateAudiencePrevisionnelle }}</span>
+                    <span class="annexe13-bd-value">{{ result()!.dateAudiencePrevisionnelle | date:'dd/MM/yyyy' }}</span>
                   </li>
                 }
                 @if (result()!.recoursForme && result()!.dateDecisionPrevisionnelle) {
                   <li>
                     <span class="annexe13-bd-label">Décision CCE prévisionnelle</span>
-                    <span class="annexe13-bd-value">{{ result()!.dateDecisionPrevisionnelle }}</span>
+                    <span class="annexe13-bd-value">{{ result()!.dateDecisionPrevisionnelle | date:'dd/MM/yyyy' }}</span>
                   </li>
                 }
               </ul>
@@ -199,13 +199,13 @@
               @if (result()!.messages?.length) {
                 <ul class="annexe13-messages">
                   @for (m of result()!.messages; track m) {
-                    <li>{{ m }}</li>
+                    <li [innerHTML]="m | legalCitations"></li>
                   }
                 </ul>
               }
 
               <div class="annexe13-meta">
-                <span class="annexe13-meta-base">{{ result()!.baseJuridique }}</span>
+                <span class="annexe13-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
                 <button mat-stroked-button type="button" (click)="editMode()">
                   <mat-icon>edit</mat-icon> Modifier
                 </button>

@@ -278,7 +278,7 @@
 }
 
 .oqtf-sd-messages {
-  list-style: disc inside;
+  list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
@@ -292,6 +292,15 @@
     font-size: 13px;
     color: var(--ds-text-primary, #1a2330);
     line-height: 1.5;
+  }
+
+  // F-155 SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
   }
 }
 

@@ -59,7 +59,7 @@
             </div>
 
             <div class="hln-meta">
-              <span class="hln-meta-base">{{ result()!.baseJuridique }}</span>
+              <span class="hln-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
               <button mat-stroked-button type="button" (click)="editMode()">
                 <mat-icon>edit</mat-icon> Modifier
               </button>
@@ -68,7 +68,7 @@
             @if (result()!.messages?.length) {
               <ul class="hln-messages">
                 @for (m of result()!.messages; track m) {
-                  <li>{{ m }}</li>
+                  <li [innerHTML]="m | legalCitations"></li>
                 }
               </ul>
             }

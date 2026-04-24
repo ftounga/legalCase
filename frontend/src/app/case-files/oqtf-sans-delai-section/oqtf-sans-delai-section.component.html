@@ -163,13 +163,13 @@
               @if (result()!.messages?.length) {
                 <ul class="oqtf-sd-messages">
                   @for (m of result()!.messages; track m) {
-                    <li>{{ m }}</li>
+                    <li [innerHTML]="m | legalCitations"></li>
                   }
                 </ul>
               }
 
               <div class="oqtf-sd-meta">
-                <span class="oqtf-sd-meta-base">{{ result()!.baseJuridique }}</span>
+                <span class="oqtf-sd-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
                 <button mat-stroked-button type="button" (click)="editMode()">
                   <mat-icon>edit</mat-icon> Modifier
                 </button>

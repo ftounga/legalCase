@@ -17,6 +17,7 @@ import {
   MOTIFS_FR,
 } from '../../core/models/harcelement-nullite.model';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { LegalCitationsPipe } from '../../shared/pipes/legal-citations.pipe';
 
 /**
  * SF-DT-11-02 : outil décisionnel dédié "Indemnité minimum licenciement nul
@@ -32,6 +33,7 @@ import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-re
     MatButtonModule, MatIconModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
     MatProgressSpinnerModule,
+    LegalCitationsPipe,
   ],
   templateUrl: './harcelement-licenciement-nul-section.component.html',
   styleUrl: './harcelement-licenciement-nul-section.component.scss',

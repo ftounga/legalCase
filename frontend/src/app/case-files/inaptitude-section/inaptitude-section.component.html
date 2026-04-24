@@ -99,7 +99,7 @@
             </ul>
 
             <div class="inap-meta">
-              <span class="inap-meta-base">{{ result()!.baseJuridique }}</span>
+              <span class="inap-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
               <button mat-stroked-button type="button" (click)="editMode()">
                 <mat-icon>edit</mat-icon> Modifier
               </button>
@@ -108,7 +108,7 @@
             @if (result()!.messages?.length) {
               <ul class="inap-messages">
                 @for (m of result()!.messages; track m) {
-                  <li>{{ m }}</li>
+                  <li [innerHTML]="m | legalCitations"></li>
                 }
               </ul>
             }
