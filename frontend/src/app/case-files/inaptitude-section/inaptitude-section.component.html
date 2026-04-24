@@ -18,50 +18,114 @@
         </div>
       } @else {
         @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
           <form class="inap-form" (ngSubmit)="calculate()">
-            <mat-form-field appearance="outline">
-              <mat-label>Salaire mensuel brut de référence (€)</mat-label>
-              <input matInput type="number" min="0.01" step="0.01"
-                     [ngModel]="salaireMensuelReference()"
-                     (ngModelChange)="salaireMensuelReference.set($event)"
-                     name="salaireMensuelReference" required />
-            </mat-form-field>
+            <div class="inap-field-block">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelReference()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelReference" required />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (salaireEstDeduitNote()) {
+                <span class="info-note"><mat-icon>info_outline</mat-icon> Salaire déduit d'un net (× 1,30)</span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="null"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Ancienneté (années)</mat-label>
-              <input matInput type="number" min="0" step="1"
-                     [ngModel]="ancienneteAnnees()"
-                     (ngModelChange)="ancienneteAnnees.set($event)"
-                     name="ancienneteAnnees" required />
-            </mat-form-field>
+            <div class="inap-field-block">
+              <mat-form-field appearance="outline">
+                <mat-label>Ancienneté (années)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="ancienneteAnnees()"
+                       (ngModelChange)="onAncienneteChange($event)"
+                       name="ancienneteAnnees" required />
+              </mat-form-field>
+              @if (provenanceAnciennete() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+            </div>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Origine de l'inaptitude</mat-label>
-              <mat-select
-                  [ngModel]="origineInaptitude()"
-                  (ngModelChange)="origineInaptitude.set($event)"
-                  name="origineInaptitude" required>
-                @for (o of originesDisponibles(); track o.code) {
-                  <mat-option [value]="o.code">{{ o.label }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+            <div class="inap-field-block">
+              <mat-form-field appearance="outline">
+                <mat-label>Origine de l'inaptitude</mat-label>
+                <mat-select
+                    [ngModel]="origineInaptitude()"
+                    (ngModelChange)="onOrigineChange($event)"
+                    name="origineInaptitude" required>
+                  @for (o of originesDisponibles(); track o.code) {
+                    <mat-option [value]="o.code">{{ o.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceOrigineInaptitude() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().ORIGINE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="null"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Avis médecin du travail (optionnel)</mat-label>
-              <input matInput type="date"
-                     [ngModel]="avisMedecinTravailDate()"
-                     (ngModelChange)="avisMedecinTravailDate.set($event || null)"
-                     name="avisMedecinTravailDate" />
-            </mat-form-field>
+            <div class="inap-field-block">
+              <mat-form-field appearance="outline">
+                <mat-label>Avis médecin du travail (optionnel)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="avisMedecinTravailDate()"
+                       (ngModelChange)="onAvisMedecinDateChange($event)"
+                       name="avisMedecinTravailDate" />
+              </mat-form-field>
+              @if (provenanceAvisMedecinDate() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().AVIS_DATE; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="null"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
 
             <div class="inap-toggle-row">
               <mat-slide-toggle
                   [ngModel]="reclassementRespecte()"
-                  (ngModelChange)="reclassementRespecte.set($event)"
+                  (ngModelChange)="onReclassementChange($event)"
                   name="reclassementRespecte">
                 Obligation de reclassement respectée
               </mat-slide-toggle>
+              @if (provenanceReclassement() === 'IA') {
+                <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+              }
+              @if (coherenceAlerts().RECLASSEMENT; as alert) {
+                <span class="coherence-badge coherence-warning"
+                      [appCoherencePopover]="null"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
             </div>
 
             <div class="inap-actions">

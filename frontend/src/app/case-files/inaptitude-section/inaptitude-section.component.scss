@@ -67,9 +67,22 @@
   }
 }
 
+// SF-155-04-A2 : bloc (champ + badges provenance/alerte) pour accrocher
+// les notes IA et alertes de cohérence F-IA-03 sous chaque field.
+.inap-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .inap-toggle-row {
   grid-column: 1 / -1;
   padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
 }
 
 .inap-actions {
@@ -183,5 +196,91 @@
     background: rgba(26, 35, 48, 0.05);
     padding: 1px 4px;
     border-radius: 3px;
+  }
+}
+
+// SF-155-04-A2 : synthèse compteur alertes F-IA-03 en tête de formulaire
+// (aligné sur immigration-title-decision-section canonique).
+.coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// SF-155-04-A2 : badge « Pré-rempli depuis l'analyse » (IA) — palette navy/or
+// stricte, cohérente avec le pattern canonique (F-IM-05 SF-IM-05-04).
+.provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1A3A5C);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #C9A54B);
+  }
+}
+
+// SF-155-04-A2 : note info (ex. salaire déduit d'un net × 1,30) — non bloquante,
+// ton gris sobre pour distinguer de l'alerte incohérence.
+.info-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6B7A8D);
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-text-secondary, #6B7A8D);
+  }
+}
+
+// SF-155-04-A2 : badge incohérence F-IA-03 (divergence avocat vs IA). Palette
+// or/ambre (pas rouge — l'urgence absolue < 72h est réservée aux outils
+// OQTF sans délai). Popover enrichi via CoherencePopoverTriggerDirective.
+.coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
   }
 }
