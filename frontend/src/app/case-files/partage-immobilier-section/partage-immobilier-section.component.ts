@@ -19,11 +19,22 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
+import {
+  CoherenceAlert,
+  CoherenceAlertSource,
+} from '../../shared/coherence-popover/coherence-alert.model';
+import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
 const IMMO_KEYWORDS = ['immobilier', 'maison', 'appartement', 'résidence', 'residence', 'villa', 'studio', 'terrain', 'logement'];
 const PRET_KEYWORDS = ['prêt', 'pret', 'emprunt', 'crédit', 'credit', 'hypothèque', 'hypotheque', 'hypothécaire', 'hypothecaire'];
 
-const FA05_CODES = new Set(['FA05_VALEUR_VENALE', 'FA05_CAPITAL_RESTANT']);
+const FA05_VALEUR_CODE = 'FA05_VALEUR_VENALE';
+const FA05_CAPITAL_CODE = 'FA05_CAPITAL_RESTANT';
+const FA05_CODES = new Set([FA05_VALEUR_CODE, FA05_CAPITAL_CODE]);
+
+/** Seuil divergence relatif (10 %) — aligné sur SF-IA-03-08 + F-DT-09. */
+const DIVERGENCE_RATIO = 0.10;
 
 function matchesKeyword(libelle: string | null, keywords: string[]): boolean {
   if (!libelle) return false;
@@ -45,20 +56,16 @@ function findBestMatch(value: number, items: BienItem[]): BienItem | null {
   return best;
 }
 
+/**
+ * SF-155-20 : champs F-IA-03 audités par l'outil F-FA-05 (partage immobilier).
+ * Conserve les noms historiques (`VALEUR_VENALE`, `CAPITAL_RESTANT`) pour
+ * compat tests SF-IA-03-08 + SF-FA-05-04.
+ */
 export type PartageAlertField = 'VALEUR_VENALE' | 'CAPITAL_RESTANT';
-export type PartageAlertSource = 'F96' | 'QUESTION_IA' | 'IA' | 'PIECE_MANQUANTE' | 'MULTI';
 
-export interface PartageCoherenceAlert {
-  field: PartageAlertField;
-  iaValue: number;
-  iaLibelle?: string;
-  source: PartageAlertSource;
-  contributors: PartageAlertSource[];
-  f96Raison?: string | null;
-  questionText?: string | null;
-  questionAnswer?: string | null;
-  pieceTexte?: string | null;
-}
+// SF-155-20 : alias rétro-compat — utilise l'interface partagée.
+export type PartageAlertSource = CoherenceAlertSource;
+export type PartageCoherenceAlert = CoherenceAlert<PartageAlertField>;
 
 @Component({
   selector: 'app-partage-immobilier-section',
@@ -75,12 +82,25 @@ export interface PartageCoherenceAlert {
 })
 export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   @Input() caseFileId!: string;
+  /**
+   * SF-FA-05-04 : liquidation communauté détectée — alimente le panneau
+   * "Importer depuis l'analyse" (sélecteurs bien + prêt). Conservé en
+   * complément de `aiData` (sources non substituables : la liquidation
+   * porte la liste détaillée des biens, `aiData` porte les valeurs canoniques).
+   */
   @Input() liquidationCommunaute?: LiquidationCommunaute | null;
+  /**
+   * SF-155-20 : pré-fill IA — `valeurImmeuble` + `capitalRestantDu` extraits
+   * par le pipeline IA (FamilleExtractedData). Null-safe partout.
+   */
+  @Input() aiData?: FamilleExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
 
+  // Snapshots signal des inputs pour réactivité des `computed` signals.
   private liquidationSignal = signal<LiquidationCommunaute | null | undefined>(undefined);
+  private aiDataSignal = signal<FamilleExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
   private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
@@ -97,10 +117,15 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   quotePartAttributaire = signal(50);
   isDivorce = signal(true);
 
-  // Import panel state
+  // Import panel state (SF-FA-05-04).
   showImportPanel = signal(false);
   selectedBienLibelle = signal<string | null>(null);
   selectedPretLibelle = signal<string | null>(null); // null = "Aucun prêt"
+
+  // SF-155-20 : provenance IA par champ (badge "Pré-rempli depuis l'analyse").
+  // Effacé dès que l'avocat modifie manuellement (onXxxChange).
+  // Sources possibles : 'IA' (pré-fill direct depuis aiData OU import depuis
+  // liquidationCommunaute — les deux sont des données issues de l'analyse IA).
   provenanceValeur = signal<'IA' | null>(null);
   provenancePret = signal<'IA' | null>(null);
 
@@ -116,28 +141,24 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
 
   canImport = computed(() => this.biensImmobiliersFiltres().some(b => b.valeur != null && b.valeur > 0));
 
-  // Import reference values (for SF-IA-03-08 "best match" override)
+  // Import reference values (pour SF-IA-03-08 "best match" override).
   private importedValeurVenale = signal<number | null>(null);
   private importedCapital = signal<number | null>(null);
 
+  /**
+   * SF-155-20 : alertes de cohérence F-IA-03 — gate `showForm()` strict
+   * (pattern anti-bug SF-IA-03-12 : pas d'alertes affichées après calcul).
+   *
+   * 4 sources consolidées : `aiData` (FamilleExtractedData), F-96 (procedureChecks
+   * VERIFIED), QUESTION_IA (aiQuestions answered "oui"), PIECE_MANQUANTE.
+   */
   coherenceAlerts = computed<Partial<Record<PartageAlertField, PartageCoherenceAlert>>>(() => {
     if (!this.showForm()) return {};
     const alerts: Partial<Record<PartageAlertField, PartageCoherenceAlert>> = {};
-    const f96 = this.buildF96Index();
-    const questions = this.buildQuestionsIndex();
-    const pieces = this.buildPiecesIndex();
-
-    this.buildAlertForField(
-      'FA05_VALEUR_VENALE', 'VALEUR_VENALE',
-      this.valeurVenale(), this.importedValeurVenale(), this.biensImmobiliersFiltres(),
-      f96, questions, pieces, alerts,
-    );
-    this.buildAlertForField(
-      'FA05_CAPITAL_RESTANT', 'CAPITAL_RESTANT',
-      this.capitalRestantDu(), this.importedCapital(), this.pretsFiltres(),
-      f96, questions, pieces, alerts,
-    );
-
+    const valeurAlert = this.buildValeurVenaleAlert();
+    if (valeurAlert) alerts.VALEUR_VENALE = valeurAlert;
+    const capitalAlert = this.buildCapitalRestantAlert();
+    if (capitalAlert) alerts.CAPITAL_RESTANT = capitalAlert;
     return alerts;
   });
 
@@ -146,8 +167,117 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     return { total: values.length, blockers: 0 };
   });
 
-  private findBienByValeur(valeur: number, list: BienItem[]): BienItem | null {
-    return list.find(b => b.valeur === valeur) ?? null;
+  // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi.
+  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
+
+  constructor(
+    private partageService: PartageImmobilierService,
+    @Optional() private sourceExplanationService: SourceExplanationService | null,
+    private snackBar: MatSnackBar,
+    @Optional() private refreshService: CaseDashboardRefreshService | null,
+  ) {}
+
+  private loadSourceExplanations(): void {
+    if (!this.caseFileId || !this.sourceExplanationService) return;
+    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
+      next: map => this.sourceExplanations.set(map),
+      error: () => { /* fail-open */ },
+    });
+  }
+
+  /** SF-IA-03-15b : mapping vers sourceKey F96 FA05_*. */
+  explanationFor(field: PartageAlertField): SourceExplanation[] {
+    const key = field === 'VALEUR_VENALE' ? FA05_VALEUR_CODE : FA05_CAPITAL_CODE;
+    return this.sourceExplanations().get(key) ?? [];
+  }
+
+  ngOnInit(): void {
+    this.liquidationSignal.set(this.liquidationCommunaute);
+    this.aiDataSignal.set(this.aiData);
+    this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    // SF-155-20 : pré-fill au mount si aiData déjà disponible (cas où
+    // l'analyse IA est terminée avant l'ouverture de l'outil).
+    this.prefillFromAi();
+    this.loadExisting();
+    this.loadSourceExplanations();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['liquidationCommunaute']) {
+      this.liquidationSignal.set(this.liquidationCommunaute);
+    }
+    if (changes['aiData']) this.aiDataSignal.set(this.aiData);
+    if (changes['procedureChecks']) {
+      this.procedureChecksSignal.set(this.procedureChecks ?? []);
+    }
+    if (changes['aiQuestions']) {
+      this.aiQuestionsSignal.set(this.aiQuestions ?? []);
+    }
+    if (changes['piecesManquantes']) {
+      this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
+    }
+    // SF-155-20 : ré-appliquer le pré-fill quand `aiData` arrive après mount
+    // tant que l'avocat n'a pas saisi manuellement et qu'aucun résultat n'est
+    // affiché (form encore visible).
+    if (changes['aiData'] && !changes['aiData'].firstChange
+        && this.showForm() && !this.result()) {
+      this.prefillFromAi();
+    }
+  }
+
+  /**
+   * SF-155-20 : pré-remplit `valeurVenale` et `capitalRestantDu` depuis
+   * `aiData`. N'écrase pas une saisie avocat (provenance === null indique
+   * une modification manuelle).
+   *
+   * Convention : `valeurVenale` à 0 = "non saisi" (signal initial). Le
+   * pré-fill ne s'applique que si la valeur courante est 0 OU si la
+   * provenance est déjà 'IA' (re-prefill autorisé).
+   */
+  private prefillFromAi(): void {
+    const ai = this.aiDataSignal();
+    if (!ai) return;
+
+    if (typeof ai.valeurImmeuble === 'number' && ai.valeurImmeuble > 0) {
+      if (this.valeurVenale() === 0 || this.provenanceValeur() === 'IA') {
+        this.valeurVenale.set(ai.valeurImmeuble);
+        this.provenanceValeur.set('IA');
+        this.importedValeurVenale.set(ai.valeurImmeuble);
+      }
+    }
+
+    if (typeof ai.capitalRestantDu === 'number' && ai.capitalRestantDu >= 0) {
+      if (this.capitalRestantDu() === 0 || this.provenancePret() === 'IA') {
+        this.capitalRestantDu.set(ai.capitalRestantDu);
+        if (ai.capitalRestantDu > 0) {
+          this.provenancePret.set('IA');
+          this.importedCapital.set(ai.capitalRestantDu);
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Builders d'alertes F-IA-03 (un par field) — via CoherenceAlertBuilder
+  // ---------------------------------------------------------------------------
+
+  alertTooltip(alert: PartageCoherenceAlert): string {
+    return alert.contributors.length > 1 ? `Contredit ${alert.reason}` : alert.reason;
+  }
+
+  alertBadgeLabel(alert: PartageCoherenceAlert): string {
+    const prefix = (() => {
+      switch (alert.source) {
+        case 'F96': return 'Incohérence Checklist procédurale';
+        case 'QUESTION_IA': return 'Incohérence Question complémentaire';
+        case 'IA': return 'Incohérence détectée';
+        case 'PIECE_MANQUANTE': return 'Pièce manquante';
+        case 'MULTI': return 'Incohérence multiple';
+      }
+    })();
+    return `${prefix} (${alert.expectedDisplay})`;
   }
 
   private parseNumeric(raw: string | null | undefined): number | null {
@@ -158,202 +288,182 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
 
   private within10Percent(a: number, b: number): boolean {
     const base = Math.max(Math.abs(b), 1);
-    return Math.abs(a - b) / base < 0.10;
+    return Math.abs(a - b) / base < DIVERGENCE_RATIO;
   }
 
-  private buildF96Index(): Record<string, { expectedNumeric: number; raison: string | null }> {
-    const out: Record<string, { expectedNumeric: number; raison: string | null }> = {};
-    for (const chk of this.procedureChecksSignal()) {
-      const code = chk.critereCode?.toUpperCase();
-      if (!code || !FA05_CODES.has(code)) continue;
-      if (chk.statut !== 'VERIFIED') continue;
-      const n = this.parseNumeric(chk.expectedValue);
-      if (n == null) continue;
-      if (!out[code]) out[code] = { expectedNumeric: n, raison: chk.raison ?? null };
+  private formatEuros(n: number): string {
+    return `${n.toLocaleString('fr-FR')} €`;
+  }
+
+  private findPieceManquante(code: string): string | null {
+    for (const p of this.piecesManquantesSignal()) {
+      if (p.critereCode?.toUpperCase() === code) return p.texte;
     }
-    return out;
+    return null;
   }
 
-  private buildQuestionsIndex(): Record<string, { expectedNumeric: number; text: string; answer: string }> {
-    const out: Record<string, { expectedNumeric: number; text: string; answer: string }> = {};
+  /**
+   * Pré-collecte les sources F-96 + QUESTION_IA + IA pour un field numérique
+   * (VALEUR_VENALE / CAPITAL_RESTANT). Permet d'aligner l'`expectedDisplay`
+   * des sources convergentes (within 10 %) sur la valeur "primaire" (la
+   * première source détectée), pour que `CoherenceAlertBuilder` les
+   * consolide correctement (le builder partagé matche par chaîne exacte).
+   *
+   * Hiérarchie de "primaire" : F-96 > QUESTION_IA > IA. La première source
+   * détectée fixe l'`expectedDisplay` canonique ; les sources suivantes
+   * convergentes (à ±10 %) sont alignées dessus.
+   */
+  private collectNumericSources(
+    user: number,
+    code: string,
+    iaExpected: number | null,
+    iaLibelle: string | undefined,
+  ): { source: 'F96' | 'QUESTION_IA' | 'IA'; expectedDisplay: string; reason: string }[] {
+    const out: { source: 'F96' | 'QUESTION_IA' | 'IA'; expectedDisplay: string; reason: string; rawValue: number }[] = [];
+
+    // 1. F-96 VERIFIED
+    for (const chk of this.procedureChecksSignal()) {
+      if (chk.critereCode?.toUpperCase() !== code) continue;
+      if (chk.statut !== 'VERIFIED') continue;
+      const expected = this.parseNumeric(chk.expectedValue);
+      if (expected == null) continue;
+      if (this.within10Percent(user, expected)) break;
+      out.push({
+        source: 'F96',
+        expectedDisplay: this.formatEuros(expected),
+        reason: `Checklist procédurale : ${this.formatEuros(expected)}${chk.raison ? ' (' + chk.raison + ')' : ''}`,
+        rawValue: expected,
+      });
+      break;
+    }
+
+    // 2. QUESTION_IA "oui"
     for (const q of this.aiQuestionsSignal()) {
-      const code = q.critereCode?.toUpperCase();
-      if (!code || !FA05_CODES.has(code)) continue;
+      if (q.critereCode?.toUpperCase() !== code) continue;
       const answer = q.answerText?.trim().toLowerCase();
       if (!answer) continue;
-      const isOui = answer === 'oui' || answer.startsWith('oui ') || answer.startsWith('oui,') || answer.startsWith('oui.');
+      const isOui = answer === 'oui' || answer.startsWith('oui ')
+        || answer.startsWith('oui,') || answer.startsWith('oui.');
       if (!isOui) continue;
-      const n = this.parseNumeric(q.expectedValue);
-      if (n == null) continue;
-      if (!out[code]) out[code] = { expectedNumeric: n, text: q.questionText, answer: q.answerText ?? '' };
+      const expected = this.parseNumeric(q.expectedValue);
+      if (expected == null) continue;
+      if (this.within10Percent(user, expected)) break;
+      out.push({
+        source: 'QUESTION_IA',
+        expectedDisplay: this.formatEuros(expected),
+        reason: `Question complémentaire : "${q.questionText}" → "${q.answerText}"`,
+        rawValue: expected,
+      });
+      break;
     }
-    return out;
+
+    // 3. IA (best-match parmi les biens / prêts / aiData)
+    if (iaExpected != null && !this.within10Percent(user, iaExpected)) {
+      out.push({
+        source: 'IA',
+        expectedDisplay: this.formatEuros(iaExpected),
+        reason: `Analyse du dossier : ${this.formatEuros(iaExpected)}${iaLibelle ? ' (' + iaLibelle + ')' : ''}`,
+        rawValue: iaExpected,
+      });
+    }
+
+    if (out.length === 0) return [];
+
+    // Aligne l'expectedDisplay des sources convergentes (within 10 %)
+    // sur la première source ("primaire" — F-96 > QUESTION_IA > IA).
+    const primary = out[0];
+    return out
+      .filter((s, i) => i === 0 || this.within10Percent(s.rawValue, primary.rawValue))
+      .map((s, i) => ({
+        source: s.source,
+        expectedDisplay: i === 0 ? primary.expectedDisplay : primary.expectedDisplay,
+        reason: s.reason,
+      }));
   }
 
-  private buildPiecesIndex(): Record<string, string> {
-    const out: Record<string, string> = {};
-    for (const p of this.piecesManquantesSignal()) {
-      const code = p.critereCode?.toUpperCase();
-      if (!code || !FA05_CODES.has(code)) continue;
-      if (!out[code]) out[code] = p.texte;
-    }
-    return out;
-  }
+  /**
+   * Construit l'alerte VALEUR_VENALE en consolidant 4 sources :
+   *  1. F-96 procedureCheck VERIFIED `FA05_VALEUR_VENALE`
+   *  2. QUESTION_IA réponse "oui" sur `FA05_VALEUR_VENALE`
+   *  3. IA — best-match dans biens immobiliers ou aiData.valeurImmeuble
+   *  4. PIECE_MANQUANTE `FA05_VALEUR_VENALE` (contributor uniquement)
+   */
+  private buildValeurVenaleAlert(): PartageCoherenceAlert | null {
+    const user = this.valeurVenale();
+    if (user <= 0) return null;
+    const builder = CoherenceAlertBuilder.forField<PartageAlertField>('VALEUR_VENALE');
 
-  private buildAlertForField(
-    code: string,
-    field: PartageAlertField,
-    userValue: number,
-    importedValue: number | null,
-    biens: BienItem[],
-    f96: Record<string, { expectedNumeric: number; raison: string | null }>,
-    questions: Record<string, { expectedNumeric: number; text: string; answer: string }>,
-    pieces: Record<string, string>,
-    out: Partial<Record<PartageAlertField, PartageCoherenceAlert>>,
-  ): void {
-    if (userValue <= 0) return;
-    const contributors: PartageAlertSource[] = [];
-    let expected: number | null = null;
+    // IA — référence : valeur importée si disponible, sinon best-match
+    // parmi les biens immobiliers, sinon aiData.valeurImmeuble.
+    const biens = this.biensImmobiliersFiltres();
+    const importedRef = this.importedValeurVenale();
+    let iaRef: BienItem | null = null;
+    if (importedRef != null) {
+      iaRef = biens.find(b => b.valeur === importedRef) ?? null;
+    } else {
+      iaRef = findBestMatch(user, biens);
+    }
+    let iaExpected: number | null = null;
     let iaLibelle: string | undefined;
-    let f96Raison: string | null = null;
-    let questionText: string | null = null;
-    let questionAnswer: string | null = null;
-    let pieceTexte: string | null = null;
-    let primary: PartageAlertSource | null = null;
-
-    // Source F96
-    const f96Entry = f96[code];
-    if (f96Entry && !this.within10Percent(userValue, f96Entry.expectedNumeric)) {
-      expected = f96Entry.expectedNumeric;
-      f96Raison = f96Entry.raison;
-      primary = 'F96';
-      contributors.push('F96');
+    if (iaRef && iaRef.valeur != null && iaRef.valeur > 0) {
+      iaExpected = iaRef.valeur;
+      iaLibelle = iaRef.libelle;
+    } else if (typeof this.aiDataSignal()?.valeurImmeuble === 'number'
+               && (this.aiDataSignal()!.valeurImmeuble as number) > 0) {
+      iaExpected = this.aiDataSignal()!.valeurImmeuble as number;
     }
 
-    // Source Question IA
-    const qEntry = questions[code];
-    if (qEntry && !this.within10Percent(userValue, qEntry.expectedNumeric)) {
-      if (expected == null) {
-        expected = qEntry.expectedNumeric;
-        primary = 'QUESTION_IA';
-        questionText = qEntry.text;
-        questionAnswer = qEntry.answer;
-        contributors.push('QUESTION_IA');
-      } else if (this.within10Percent(qEntry.expectedNumeric, expected)) {
-        if ((primary as PartageAlertSource | null) !== 'QUESTION_IA') contributors.push('QUESTION_IA');
-        if (!questionText) { questionText = qEntry.text; questionAnswer = qEntry.answer; }
-      }
+    const sources = this.collectNumericSources(user, FA05_VALEUR_CODE, iaExpected, iaLibelle);
+    for (const s of sources) {
+      builder.addSource(s.source, { expectedDisplay: s.expectedDisplay, reason: s.reason });
     }
 
-    // Source IA best-match existante
-    const iaRef = importedValue != null
-      ? this.findBienByValeur(importedValue, biens)
-      : findBestMatch(userValue, biens);
-    if (iaRef && iaRef.valeur != null && iaRef.valeur > 0
-        && !this.within10Percent(userValue, iaRef.valeur)) {
-      if (expected == null) {
-        expected = iaRef.valeur;
-        iaLibelle = iaRef.libelle;
-        primary = 'IA';
-        contributors.push('IA');
-      } else if (this.within10Percent(iaRef.valeur, expected)) {
-        if ((primary as PartageAlertSource | null) !== 'IA') {
-          contributors.push('IA');
-          if (!iaLibelle) iaLibelle = iaRef.libelle;
-        }
-      }
-    }
+    // PIECE_MANQUANTE (contributor si une alerte est déjà initiée).
+    const piece = this.findPieceManquante(FA05_VALEUR_CODE);
+    if (piece) builder.addPieceManquante(piece);
 
-    // Contributor pièce manquante
-    const p = pieces[code];
-    if (p && expected != null) {
-      contributors.push('PIECE_MANQUANTE');
-      pieceTexte = p;
-    }
-
-    if (expected == null || primary == null) return;
-    // Reorder: primary en tête
-    const allContribs = [primary, ...contributors.filter(c => c !== primary)];
-    const uniqueContribs = Array.from(new Set(allContribs));
-    const source: PartageAlertSource = uniqueContribs.length > 1 ? 'MULTI' : primary;
-
-    out[field] = {
-      field, iaValue: expected, iaLibelle, source, contributors: uniqueContribs,
-      f96Raison, questionText, questionAnswer, pieceTexte,
-    };
+    return builder.build();
   }
 
-  alertTooltip(alert: PartageCoherenceAlert): string {
-    const parts: string[] = [];
-    for (const src of alert.contributors) {
-      if (src === 'F96') {
-        parts.push(`Checklist procédurale : ${alert.iaValue} €${alert.f96Raison ? ' (' + alert.f96Raison + ')' : ''}`);
-      } else if (src === 'QUESTION_IA') {
-        parts.push(`Question complémentaire : "${alert.questionText}" → "${alert.questionAnswer}"`);
-      } else if (src === 'IA') {
-        parts.push(`Analyse du dossier : ${alert.iaValue} €${alert.iaLibelle ? ' (' + alert.iaLibelle + ')' : ''}`);
-      } else if (src === 'PIECE_MANQUANTE') {
-        parts.push(`Pièce manquante : ${alert.pieceTexte}`);
-      }
+  /**
+   * Construit l'alerte CAPITAL_RESTANT en consolidant 4 sources analogues :
+   * F-96 / QUESTION_IA / IA (best-match prêts ou aiData.capitalRestantDu) /
+   * PIECE_MANQUANTE.
+   */
+  private buildCapitalRestantAlert(): PartageCoherenceAlert | null {
+    const user = this.capitalRestantDu();
+    if (user <= 0) return null;
+    const builder = CoherenceAlertBuilder.forField<PartageAlertField>('CAPITAL_RESTANT');
+
+    // IA — référence : valeur importée si disponible, sinon best-match
+    // parmi les prêts détectés, sinon aiData.capitalRestantDu.
+    const prets = this.pretsFiltres();
+    const importedRef = this.importedCapital();
+    let iaRef: BienItem | null = null;
+    if (importedRef != null) {
+      iaRef = prets.find(p => p.valeur === importedRef) ?? null;
+    } else {
+      iaRef = findBestMatch(user, prets);
     }
-    return parts.length > 1 ? `Contredit ${parts.join(' ET ')}` : (parts[0] ?? '');
-  }
-
-  alertBadgeLabel(alert: PartageCoherenceAlert): string {
-    const prefix = alert.source === 'F96' ? 'Incohérence Checklist procédurale'
-      : alert.source === 'QUESTION_IA' ? 'Incohérence Question complémentaire'
-      : alert.source === 'IA' ? 'Incohérence détectée'
-      : alert.source === 'PIECE_MANQUANTE' ? 'Pièce manquante'
-      : 'Incohérence multiple';
-    return `${prefix} (${alert.iaValue} €)`;
-  }
-
-  // SF-IA-03-15b — map {sourceKey → explanation} pour le popover enrichi
-  sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
-
-  constructor(
-    private partageService: PartageImmobilierService,
-    private sourceExplanationService: SourceExplanationService,
-    private snackBar: MatSnackBar,
-    @Optional() private refreshService: CaseDashboardRefreshService | null,
-  ) {}
-
-  private loadSourceExplanations(): void {
-    if (!this.caseFileId) return;
-    this.sourceExplanationService.getForCaseFile(this.caseFileId).subscribe({
-      next: map => this.sourceExplanations.set(map),
-      error: () => { /* fail-open */ },
-    });
-  }
-
-  /** SF-IA-03-15b : mapping vers sourceKey F96 FA05_*. */
-  explanationFor(field: 'VALEUR_VENALE' | 'CAPITAL_RESTANT'): SourceExplanation[] {
-    const key = field === 'VALEUR_VENALE' ? 'FA05_VALEUR_VENALE' : 'FA05_CAPITAL_RESTANT';
-    return this.sourceExplanations().get(key) ?? [];
-  }
-
-  ngOnInit(): void {
-    this.liquidationSignal.set(this.liquidationCommunaute);
-    this.procedureChecksSignal.set(this.procedureChecks ?? []);
-    this.aiQuestionsSignal.set(this.aiQuestions ?? []);
-    this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
-    this.loadExisting();
-    this.loadSourceExplanations();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['liquidationCommunaute']) {
-      this.liquidationSignal.set(this.liquidationCommunaute);
+    let iaExpected: number | null = null;
+    let iaLibelle: string | undefined;
+    if (iaRef && iaRef.valeur != null && iaRef.valeur > 0) {
+      iaExpected = iaRef.valeur;
+      iaLibelle = iaRef.libelle;
+    } else if (typeof this.aiDataSignal()?.capitalRestantDu === 'number'
+               && (this.aiDataSignal()!.capitalRestantDu as number) > 0) {
+      iaExpected = this.aiDataSignal()!.capitalRestantDu as number;
     }
-    if (changes['procedureChecks']) {
-      this.procedureChecksSignal.set(this.procedureChecks ?? []);
+
+    const sources = this.collectNumericSources(user, FA05_CAPITAL_CODE, iaExpected, iaLibelle);
+    for (const s of sources) {
+      builder.addSource(s.source, { expectedDisplay: s.expectedDisplay, reason: s.reason });
     }
-    if (changes['aiQuestions']) {
-      this.aiQuestionsSignal.set(this.aiQuestions ?? []);
-    }
-    if (changes['piecesManquantes']) {
-      this.piecesManquantesSignal.set(this.piecesManquantes ?? []);
-    }
+
+    const piece = this.findPieceManquante(FA05_CAPITAL_CODE);
+    if (piece) builder.addPieceManquante(piece);
+
+    return builder.build();
   }
 
   toggleCollapsed(): void { this.collapsed.update(v => !v); }
@@ -361,8 +471,16 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   loadExisting(): void {
     this.loading.set(true);
     this.partageService.get(this.caseFileId).subscribe({
-      next: r => { this.result.set(r); this.prefillForm(r); this.showForm.set(false); this.loading.set(false); },
-      error: () => { this.showForm.set(true); this.loading.set(false); },
+      next: r => {
+        this.result.set(r);
+        this.prefillForm(r);
+        this.showForm.set(false);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.showForm.set(true);
+        this.loading.set(false);
+      },
     });
   }
 
@@ -374,6 +492,9 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
       // Backend stocke la décimale (0.5) — le signal est en pourcentage (50)
       this.quotePartAttributaire.set(resp.quotePartAttributaire * 100);
     }
+    // SF-155-20 : valeurs persistées = saisie avocat — jamais de badge IA.
+    this.provenanceValeur.set(null);
+    this.provenancePret.set(null);
   }
 
   calculate(): void {
@@ -420,6 +541,12 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
     this.showImportPanel.set(false);
   }
 
-  onValeurVenaleChange(): void { this.provenanceValeur.set(null); }
-  onCapitalChange(): void { this.provenancePret.set(null); }
+  // SF-155-20 : handlers manuels — effacent les badges IA correspondants.
+  onValeurVenaleChange(): void {
+    this.provenanceValeur.set(null);
+  }
+
+  onCapitalChange(): void {
+    this.provenancePret.set(null);
+  }
 }
