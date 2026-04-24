@@ -274,6 +274,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
+          // SF-155-04-B1 : pré-fill IA + alertes de cohérence F-IA-03.
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
       ['F-IM-08-oqtf-sans-delai-fr', {

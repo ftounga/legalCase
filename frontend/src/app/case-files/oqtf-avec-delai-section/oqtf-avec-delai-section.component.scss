@@ -294,3 +294,93 @@
   color: var(--ds-text-primary, #1a2330);
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
+
+/* ------------------------------------------------------------------
+ * SF-155-04-B1 — Badges pré-fill IA + alertes de cohérence F-IA-03.
+ * Pattern aligné sur immigration-title-decision-section (canonique).
+ * ------------------------------------------------------------------ */
+
+.oqtf-field-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.oqtf-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-size: 13px;
+  font-weight: 600;
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &--critical {
+    background: rgba(192, 36, 36, 0.10);
+    color: #9a1c1c;
+
+    mat-icon { color: #9a1c1c; }
+  }
+}
+
+.provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: help;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.coherence-warning {
+  background: rgba(201, 165, 75, 0.18);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+}
+
+/* Rouge réservé aux alertes CRITIQUES (irrecevabilité probable). */
+.coherence-critical {
+  background: rgba(192, 36, 36, 0.12);
+  color: #9a1c1c;
+
+  mat-icon { color: #9a1c1c; }
+}

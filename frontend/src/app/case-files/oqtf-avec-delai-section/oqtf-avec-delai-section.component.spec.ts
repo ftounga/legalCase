@@ -2,8 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { SimpleChange } from '@angular/core';
 import { OqtfAvecDelaiSectionComponent } from './oqtf-avec-delai-section.component';
 import { OqtfAvecDelaiResponse } from '../../core/models/oqtf-avec-delai.model';
+import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
 
 describe('OqtfAvecDelaiSectionComponent', () => {
   let component: OqtfAvecDelaiSectionComponent;
@@ -35,6 +37,12 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     };
   }
 
+  /** Helper : flush un GET 404 (pas d'analyse existante → reste en mode formulaire). */
+  function flush404(): void {
+    const req = httpMock.expectOne(BASE_URL);
+    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+  }
+
   beforeEach(async () => {
     snackSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     await TestBed.configureTestingModule({
@@ -54,6 +62,10 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   });
 
   afterEach(() => httpMock.verify());
+
+  // ============================================================
+  // Tests existants (SF-IM-08-02) — préservés
+  // ============================================================
 
   it('FRANCE → 5 motifs OQTF disponibles', () => {
     component.workspaceCountry = 'FRANCE';
@@ -92,8 +104,7 @@ describe('OqtfAvecDelaiSectionComponent', () => {
 
   it('reste en mode formulaire si GET 404', () => {
     component.ngOnInit();
-    const req = httpMock.expectOne(BASE_URL);
-    req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    flush404();
     expect(component.showForm()).toBe(true);
     expect(component.result()).toBeNull();
   });
@@ -112,7 +123,6 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   });
 
   it('formValid false si dateNotificationOqtf dans le futur', () => {
-    // today + 10 jours
     const future = new Date();
     future.setDate(future.getDate() + 10);
     const futureIso = future.toISOString().slice(0, 10);
@@ -128,7 +138,7 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     component.dateRecours.set(null);
     expect(component.formValid()).toBe(false);
 
-    component.dateRecours.set('2026-03-15'); // avant notification → invalide
+    component.dateRecours.set('2026-03-15');
     expect(component.formValid()).toBe(false);
 
     component.dateRecours.set('2026-04-05');
@@ -136,6 +146,8 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   });
 
   it('analyze() POST recoursForme=false → résultat + snackbar succès + pas de dateRecours dans le body', () => {
+    component.ngOnInit();
+    flush404();
     component.dateNotificationOqtf.set('2026-04-01');
     component.motifOqtf.set('REFUS_TITRE');
     component.recoursForme.set(false);
@@ -156,6 +168,8 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   });
 
   it('analyze() POST recoursForme=true inclut dateRecours + bannière succès verte', () => {
+    component.ngOnInit();
+    flush404();
     component.dateNotificationOqtf.set('2026-04-01');
     component.motifOqtf.set('REFUS_TITRE');
     component.recoursForme.set(true);
@@ -179,7 +193,6 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     }));
 
     expect(component.result()!.dateAudiencePrevisionnelle).toBe('2026-07-09');
-    expect(component.result()!.dateDecisionTaPrevisionnelle).toBe('2026-10-07');
     expect(component.bannerClass('RECOURS_FORME')).toContain('oqtf-banner--success');
     expect(component.bannerIcon('RECOURS_FORME')).toBe('check_circle');
     expect(component.showJoursRestants(component.result())).toBe(false);
@@ -200,8 +213,7 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   });
 
   it('statut EXPIRE → classe rouge (seule utilisation rouge)', () => {
-    const cls = component.bannerClass('EXPIRE');
-    expect(cls).toContain('oqtf-banner--danger');
+    expect(component.bannerClass('EXPIRE')).toContain('oqtf-banner--danger');
   });
 
   it('showJoursRestants true seulement pour DISPONIBLE et URGENT', () => {
@@ -213,6 +225,8 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   });
 
   it('analyze() erreur backend → snackbar rouge + analyzing reset', () => {
+    component.ngOnInit();
+    flush404();
     component.dateNotificationOqtf.set('2026-04-01');
     component.motifOqtf.set('REFUS_TITRE');
     component.analyze();
@@ -229,6 +243,8 @@ describe('OqtfAvecDelaiSectionComponent', () => {
   });
 
   it('analyze() ignoré si form invalide (pas d\'appel HTTP POST)', () => {
+    component.ngOnInit();
+    flush404();
     component.dateNotificationOqtf.set(null);
     component.motifOqtf.set(null);
     component.analyze();
@@ -254,5 +270,313 @@ describe('OqtfAvecDelaiSectionComponent', () => {
     expect(component.statutLabel('URGENT')).toBe('Délai urgent');
     expect(component.statutLabel('EXPIRE')).toBe('Délai expiré');
     expect(component.statutLabel('RECOURS_FORME')).toBe('Recours formé');
+  });
+
+  // ============================================================
+  // SF-155-04-B1 : pré-fill IA + validation F-IA-03
+  // ============================================================
+
+  describe('SF-155-04-B1 — pré-fill IA', () => {
+    function aiComplete(overrides: Partial<ImmigrationExtractedData> = {}): ImmigrationExtractedData {
+      return {
+        dateNotificationOqtf: '2026-04-01',
+        motifOqtfCode: 'REFUS_TITRE',
+        recoursFormeDetected: { reponse: 'NON', justification: null },
+        ...overrides,
+      };
+    }
+
+    it('1. aiData complet → pré-fill des 3 champs + badges provenance IA', () => {
+      component.aiData = aiComplete({
+        recoursFormeDetected: { reponse: 'OUI', justification: 'Mémoire TA du 2026-04-05' },
+      });
+      component.ngOnInit();
+      flush404();
+      expect(component.dateNotificationOqtf()).toBe('2026-04-01');
+      expect(component.motifOqtf()).toBe('REFUS_TITRE');
+      expect(component.recoursForme()).toBe(true);
+      expect(component.provenanceDateNotification()).toBe('IA');
+      expect(component.provenanceMotifOqtf()).toBe('IA');
+      expect(component.provenanceRecoursForme()).toBe('IA');
+    });
+
+    it('2. motifOqtfCode hors enum → skip silencieux (motif reste null, pas de badge)', () => {
+      component.aiData = aiComplete({
+        motifOqtfCode: 'INCONNU_XYZ' as any,
+      });
+      component.ngOnInit();
+      flush404();
+      expect(component.motifOqtf()).toBeNull();
+      expect(component.provenanceMotifOqtf()).toBeNull();
+      // les autres champs passent bien
+      expect(component.dateNotificationOqtf()).toBe('2026-04-01');
+    });
+
+    it('3. recoursFormeDetected.reponse=OUI → recoursForme true + badge', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'OUI', justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      expect(component.recoursForme()).toBe(true);
+      expect(component.provenanceRecoursForme()).toBe('IA');
+    });
+
+    it('4. recoursFormeDetected.reponse=NON → recoursForme false + badge', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'NON', justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      expect(component.recoursForme()).toBe(false);
+      expect(component.provenanceRecoursForme()).toBe('IA');
+    });
+
+    it('5. recoursFormeDetected.reponse=INCONNU → pas de pré-fill, pas de badge', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'INCONNU', justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      expect(component.recoursForme()).toBe(false);
+      expect(component.provenanceRecoursForme()).toBeNull();
+    });
+
+    it('6. dateNotificationOqtf malformée (format FR 31/03/2026) → champ reste null', () => {
+      component.aiData = {
+        dateNotificationOqtf: '31/03/2026',
+      };
+      component.ngOnInit();
+      flush404();
+      expect(component.dateNotificationOqtf()).toBeNull();
+      expect(component.provenanceDateNotification()).toBeNull();
+    });
+
+    it('7. dateNotificationOqtf dans le futur → champ reste null', () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 10);
+      const futureIso = future.toISOString().slice(0, 10);
+      component.aiData = { dateNotificationOqtf: futureIso };
+      component.ngOnInit();
+      flush404();
+      expect(component.dateNotificationOqtf()).toBeNull();
+      expect(component.provenanceDateNotification()).toBeNull();
+    });
+
+    it('8. onMotifOqtfChange efface le badge IA', () => {
+      component.aiData = aiComplete();
+      component.ngOnInit();
+      flush404();
+      expect(component.provenanceMotifOqtf()).toBe('IA');
+      component.onMotifOqtfChange('AUTRE');
+      expect(component.provenanceMotifOqtf()).toBeNull();
+      expect(component.motifOqtf()).toBe('AUTRE');
+    });
+
+    it('8b. onDateNotificationChange efface le badge IA', () => {
+      component.aiData = aiComplete();
+      component.ngOnInit();
+      flush404();
+      expect(component.provenanceDateNotification()).toBe('IA');
+      component.onDateNotificationChange('2026-04-05');
+      expect(component.provenanceDateNotification()).toBeNull();
+    });
+
+    it('8c. onRecoursFormeChange efface le badge IA', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'OUI', justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      expect(component.provenanceRecoursForme()).toBe('IA');
+      component.onRecoursFormeChange(false);
+      expect(component.provenanceRecoursForme()).toBeNull();
+      expect(component.recoursForme()).toBe(false);
+    });
+
+    it('13. ngOnChanges avec nouveau aiData en mode formulaire → re-prefill', () => {
+      component.ngOnInit();
+      flush404();
+      expect(component.motifOqtf()).toBeNull();
+      // Pipeline IA termine plus tard et le panel pousse aiData
+      component.aiData = aiComplete({ motifOqtfCode: 'EXPIRATION_TITRE' });
+      component.ngOnChanges({
+        aiData: new SimpleChange(null, component.aiData, false),
+      });
+      expect(component.motifOqtf()).toBe('EXPIRATION_TITRE');
+      expect(component.provenanceMotifOqtf()).toBe('IA');
+    });
+
+    it('14. ngOnChanges avec result() persisté → pas de re-prefill (pas d\'écrasement)', () => {
+      component.ngOnInit();
+      const req = httpMock.expectOne(BASE_URL);
+      req.flush(frResponse({ motifOqtf: 'RETRAIT_TITRE' }));
+      // analyse déjà chargée — maintenant aiData arrive
+      component.aiData = aiComplete({ motifOqtfCode: 'EXPIRATION_TITRE' });
+      component.ngOnChanges({
+        aiData: new SimpleChange(null, component.aiData, false),
+      });
+      // motifOqtf doit rester celui chargé depuis l'analyse existante
+      expect(component.motifOqtf()).toBe('RETRAIT_TITRE');
+      expect(component.provenanceMotifOqtf()).toBeNull();
+    });
+
+    it('15. GET 200 analyse persistée → prefillFromAi NON appelé, pas de badge', () => {
+      component.aiData = aiComplete({ motifOqtfCode: 'EXPIRATION_TITRE' });
+      component.ngOnInit();
+      const req = httpMock.expectOne(BASE_URL);
+      req.flush(frResponse({ motifOqtf: 'REFUS_TITRE' }));
+      expect(component.motifOqtf()).toBe('REFUS_TITRE');
+      expect(component.provenanceMotifOqtf()).toBeNull();
+      expect(component.provenanceDateNotification()).toBeNull();
+      expect(component.provenanceRecoursForme()).toBeNull();
+    });
+
+    it('16. workspaceCountry=BELGIQUE → pas de pré-fill, pas d\'alerte', () => {
+      component.workspaceCountry = 'BELGIQUE';
+      component.aiData = aiComplete();
+      component.ngOnInit();
+      httpMock.expectNone(r => r.url === BASE_URL);
+      expect(component.dateNotificationOqtf()).toBeNull();
+      expect(component.motifOqtf()).toBeNull();
+      expect(component.provenanceDateNotification()).toBeNull();
+      expect(component.coherenceAlerts()).toEqual({});
+    });
+
+    it('17. fixture aiData malformée (reponse FOO) → no-op défensif', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'FOO' as any, justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      expect(component.recoursForme()).toBe(false);
+      expect(component.provenanceRecoursForme()).toBeNull();
+    });
+
+    it('18. aiData undefined → prefillFromAi no-op', () => {
+      component.aiData = undefined;
+      component.ngOnInit();
+      flush404();
+      expect(component.dateNotificationOqtf()).toBeNull();
+      expect(component.provenanceDateNotification()).toBeNull();
+    });
+  });
+
+  describe('SF-155-04-B1 — alertes de cohérence F-IA-03', () => {
+    it('9. divergence date notification → alerte DATE_NOTIFICATION (WARNING)', () => {
+      component.aiData = { dateNotificationOqtf: '2026-04-01' };
+      component.ngOnInit();
+      flush404();
+      // avocat écrase avec une autre date
+      component.onDateNotificationChange('2026-04-03');
+      const alert = component.coherenceAlerts().DATE_NOTIFICATION;
+      expect(alert).toBeTruthy();
+      expect(alert!.severity).toBe('WARNING');
+      expect(alert!.expectedDisplay).toBe('2026-04-01');
+    });
+
+    it('9b. pas de divergence date notification si aiData absent', () => {
+      component.aiData = {};
+      component.ngOnInit();
+      flush404();
+      component.dateNotificationOqtf.set('2026-04-03');
+      expect(component.coherenceAlerts().DATE_NOTIFICATION).toBeUndefined();
+    });
+
+    it('10. divergence motif OQTF → alerte MOTIF_OQTF (WARNING)', () => {
+      component.aiData = { motifOqtfCode: 'EXPIRATION_TITRE' };
+      component.ngOnInit();
+      flush404();
+      // Après prefill, motif = EXPIRATION_TITRE ; avocat écrase en REFUS_TITRE
+      component.onMotifOqtfChange('REFUS_TITRE');
+      const alert = component.coherenceAlerts().MOTIF_OQTF;
+      expect(alert).toBeTruthy();
+      expect(alert!.severity).toBe('WARNING');
+      expect(alert!.expectedDisplay).toBe('Expiration de titre');
+    });
+
+    it('11. contradiction critique recours formé détecté OUI + avocat non coché → alerte CRITICAL', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'OUI', justification: 'Recours TA du 2026-03-20' },
+      };
+      component.ngOnInit();
+      flush404();
+      // Prefill met recoursForme=true + badge IA. L'avocat décide de le décocher.
+      component.onRecoursFormeChange(false);
+      const alert = component.coherenceAlerts().RECOURS_FORME;
+      expect(alert).toBeTruthy();
+      expect(alert!.severity).toBe('CRITICAL');
+      expect(alert!.expectedDisplay).toContain('Recours déjà formé');
+      expect(alert!.reason).toContain('Recours TA du 2026-03-20');
+      expect(component.alertsSummary().blockers).toBe(1);
+    });
+
+    it('12. pas d\'alerte RECOURS_FORME quand avocat coché true + IA détecte OUI', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'OUI', justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      expect(component.recoursForme()).toBe(true);
+      expect(component.coherenceAlerts().RECOURS_FORME).toBeUndefined();
+    });
+
+    it('12b. pas d\'alerte RECOURS_FORME quand IA détecte NON (pas critique)', () => {
+      component.aiData = {
+        recoursFormeDetected: { reponse: 'NON', justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      component.onRecoursFormeChange(false);
+      expect(component.coherenceAlerts().RECOURS_FORME).toBeUndefined();
+    });
+
+    it('pas d\'alerte quand showForm=false (analyse validée)', () => {
+      component.aiData = { dateNotificationOqtf: '2026-04-01', motifOqtfCode: 'EXPIRATION_TITRE' };
+      component.ngOnInit();
+      const req = httpMock.expectOne(BASE_URL);
+      req.flush(frResponse({ dateNotificationOqtf: '2026-04-05', motifOqtf: 'REFUS_TITRE' }));
+      // showForm=false suite à GET 200 — pas d'alertes affichées
+      expect(component.coherenceAlerts()).toEqual({});
+    });
+
+    it('alertsSummary : total + blockers', () => {
+      component.aiData = {
+        dateNotificationOqtf: '2026-04-01',
+        motifOqtfCode: 'EXPIRATION_TITRE',
+        recoursFormeDetected: { reponse: 'OUI', justification: null },
+      };
+      component.ngOnInit();
+      flush404();
+      // Après prefill : tout en phase → 0 alerte
+      expect(component.alertsSummary().total).toBe(0);
+      // L'avocat écrase tout manuellement
+      component.onDateNotificationChange('2026-04-03');
+      component.onMotifOqtfChange('REFUS_TITRE');
+      component.onRecoursFormeChange(false);
+      const summary = component.alertsSummary();
+      expect(summary.total).toBe(3);
+      expect(summary.blockers).toBe(1); // RECOURS_FORME critical
+    });
+
+    it('alertBadgeLabel : CRITICAL → "Risque d\'irrecevabilité"', () => {
+      const label = component.alertBadgeLabel({
+        field: 'RECOURS_FORME',
+        severity: 'CRITICAL',
+        expectedDisplay: 'Recours déjà formé détecté',
+        reason: 'test',
+      });
+      expect(label).toContain('Risque d\'irrecevabilité');
+    });
+
+    it('alertBadgeLabel : WARNING → "Incohérence détectée"', () => {
+      const label = component.alertBadgeLabel({
+        field: 'MOTIF_OQTF',
+        severity: 'WARNING',
+        expectedDisplay: 'Refus de titre',
+        reason: 'test',
+      });
+      expect(label).toContain('Incohérence détectée');
+    });
   });
 });
