@@ -36,43 +36,101 @@
           </div>
         } @else {
           @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="annexe13-coherence-summary" [class.annexe13-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
             <form class="annexe13-form" (ngSubmit)="analyze()">
-              <mat-form-field appearance="outline">
-                <mat-label>Date de notification de l'Annexe 13</mat-label>
-                <input matInput type="date" required
-                       [max]="todayIso"
-                       [ngModel]="dateNotificationAnnexe13()"
-                       (ngModelChange)="dateNotificationAnnexe13.set($event || null)"
-                       name="dateNotificationAnnexe13" />
-              </mat-form-field>
+              <div class="annexe13-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de l'Annexe 13</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationAnnexe13()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationAnnexe13" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="annexe13-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="annexe13-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Délai de départ imposé (jours, 0-30)</mat-label>
-                <input matInput type="number" required min="0" max="30"
-                       [ngModel]="delaiDepartImposeJours()"
-                       (ngModelChange)="delaiDepartImposeJours.set($event ?? 30)"
-                       name="delaiDepartImposeJours" />
-              </mat-form-field>
+              <div class="annexe13-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Délai de départ imposé (jours, 0-30)</mat-label>
+                  <input matInput type="number" required min="0" max="30"
+                         [ngModel]="delaiDepartImposeJours()"
+                         (ngModelChange)="onDelaiDepartChange($event)"
+                         name="delaiDepartImposeJours" />
+                </mat-form-field>
+                @if (provenanceDelaiDepart() === 'IA') {
+                  <span class="annexe13-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DELAI_DEPART; as alert) {
+                  <span class="annexe13-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DELAI_DEPART')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Motif de l'OQT</mat-label>
-                <mat-select
-                    [ngModel]="motifOqt()"
-                    (ngModelChange)="motifOqt.set($event)"
-                    name="motifOqt" required>
-                  @for (m of motifs; track m.code) {
-                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <div class="annexe13-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif de l'OQT</mat-label>
+                  <mat-select
+                      [ngModel]="motifOqt()"
+                      (ngModelChange)="onMotifOqtChange($event)"
+                      name="motifOqt" required>
+                    @for (m of motifs; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotifOqt() === 'IA') {
+                  <span class="annexe13-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().MOTIF_OQT; as alert) {
+                  <span class="annexe13-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MOTIF_OQT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
 
-              <div class="annexe13-toggle-row">
+              <div class="annexe13-toggle-row annexe13-field-wrapper">
                 <mat-slide-toggle
                     [ngModel]="transfertImminent()"
-                    (ngModelChange)="transfertImminent.set($event)"
+                    (ngModelChange)="onTransfertImminentChange($event)"
                     name="transfertImminent">
                   Transfert imminent (extrême urgence)
                 </mat-slide-toggle>
+                @if (provenanceTransfertImminent() === 'IA') {
+                  <span class="annexe13-provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().TRANSFERT_IMMINENT; as alert) {
+                  <span class="annexe13-coherence-badge annexe13-coherence-badge--critical"
+                        [appCoherencePopover]="explanationFor('TRANSFERT_IMMINENT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId"
+                        [appCoherencePopoverBlocker]="true">
+                    <mat-icon>error</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
               <div class="annexe13-toggle-row">

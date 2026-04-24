@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { SimpleChange } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Annexe13BeSectionComponent } from './annexe13-be-section.component';
 import { Annexe13BeResponse } from '../../core/models/annexe13-be.model';
+import { ImmigrationExtractedData } from '../../core/models/case-analysis.model';
 
 describe('Annexe13BeSectionComponent', () => {
   let component: Annexe13BeSectionComponent;
@@ -37,6 +39,11 @@ describe('Annexe13BeSectionComponent', () => {
       messages: ['Recours suspensif possible'],
       ...overrides,
     };
+  }
+
+  /** SF-155-04-C : flush silencieux des requêtes /source-explanations déclenchées par ngOnInit. */
+  function flushSourceExplanations(): void {
+    httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));
   }
 
   beforeEach(async () => {
@@ -83,6 +90,7 @@ describe('Annexe13BeSectionComponent', () => {
     const req = httpMock.expectOne(BASE_URL);
     expect(req.request.method).toBe('GET');
     req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    flushSourceExplanations();
   });
 
   it('FRANCE → isBelgium() false, pas d\'appel HTTP au ngOnInit', () => {
@@ -90,12 +98,15 @@ describe('Annexe13BeSectionComponent', () => {
     expect(component.isBelgium()).toBe(false);
     component.ngOnInit();
     httpMock.expectNone(r => r.url === BASE_URL);
+    // SF-155-04-C : loadSourceExplanations est gated par isBelgium() aussi
+    httpMock.expectNone(r => r.url.endsWith('/source-explanations'));
   });
 
   it('charge l\'analyse existante si présente (GET 200)', () => {
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);
     req.flush(beResponse());
+    flushSourceExplanations();
     expect(component.result()!.statutRecoursAnnulation).toBe('DISPONIBLE');
     expect(component.showForm()).toBe(false);
     expect(component.dateNotificationAnnexe13()).toBe('2026-04-01');
@@ -111,6 +122,7 @@ describe('Annexe13BeSectionComponent', () => {
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);
     req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+    flushSourceExplanations();
     expect(component.showForm()).toBe(true);
     expect(component.result()).toBeNull();
   });
@@ -232,6 +244,7 @@ describe('Annexe13BeSectionComponent', () => {
     component.ngOnInit();
     const req = httpMock.expectOne(BASE_URL);
     req.flush(beResponse({ transfertImminent: true }));
+    flushSourceExplanations();
     expect(component.result()!.transfertImminent).toBe(true);
     expect(component.transfertImminent()).toBe(true);
   });
@@ -310,5 +323,387 @@ describe('Annexe13BeSectionComponent', () => {
     expect(component.typeRecoursLabel('ANNULATION_30J')).toBe('Annulation 30 jours');
     expect(component.typeRecoursLabel('EXTREME_URGENCE_5JO')).toBe('Extrême urgence 5 jours ouvrables');
     expect(component.typeRecoursLabel(null)).toBe('');
+  });
+
+  // ============================================================================
+  // SF-155-04-C : pré-fill IA + validation F-IA-03
+  // ============================================================================
+
+  describe('SF-155-04-C — pré-fill IA', () => {
+    /** Fixture ImmigrationExtractedData BE complète (4 champs SF-155-04-00-BE-immig-BE). */
+    function aiDataBeComplete(overrides: Partial<ImmigrationExtractedData> = {}): ImmigrationExtractedData {
+      return {
+        dateNotificationAnnexe13: '2026-04-10',
+        delaiDepartImposeJours: 7,
+        motifOqtCodeBe: 'SEJOUR_IRREGULIER_ART_7',
+        transfertImminentDetected: false,
+        ...overrides,
+      };
+    }
+
+    it('prefill complet BE : 4 champs + 4 provenance IA (après GET 404)', () => {
+      component.aiData = aiDataBeComplete();
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.dateNotificationAnnexe13()).toBe('2026-04-10');
+      expect(component.delaiDepartImposeJours()).toBe(7);
+      expect(component.motifOqt()).toBe('SEJOUR_IRREGULIER_ART_7');
+      expect(component.transfertImminent()).toBe(false);
+      expect(component.provenanceDateNotification()).toBe('IA');
+      expect(component.provenanceDelaiDepart()).toBe('IA');
+      expect(component.provenanceMotifOqt()).toBe('IA');
+      expect(component.provenanceTransfertImminent()).toBe('IA');
+    });
+
+    it('prefill partiel : seule la date est présente → seule la date a provenance IA', () => {
+      component.aiData = { dateNotificationAnnexe13: '2026-04-05' };
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.dateNotificationAnnexe13()).toBe('2026-04-05');
+      expect(component.provenanceDateNotification()).toBe('IA');
+      // Les autres champs restent à leur défaut sans provenance
+      expect(component.delaiDepartImposeJours()).toBe(30);
+      expect(component.provenanceDelaiDepart()).toBeNull();
+      expect(component.motifOqt()).toBeNull();
+      expect(component.provenanceMotifOqt()).toBeNull();
+      expect(component.transfertImminent()).toBe(false);
+      expect(component.provenanceTransfertImminent()).toBeNull();
+    });
+
+    it('motifOqtCodeBe hors whitelist ("INCONNU") → motif non pré-rempli, graceful', () => {
+      component.aiData = aiDataBeComplete({ motifOqtCodeBe: 'INCONNU' as any });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.motifOqt()).toBeNull();
+      expect(component.provenanceMotifOqt()).toBeNull();
+      // Les autres champs valides sont toujours pré-remplis
+      expect(component.provenanceDateNotification()).toBe('IA');
+    });
+
+    it('delaiDepartImposeJours < 0 → délai non pré-rempli, défaut 30 préservé', () => {
+      component.aiData = aiDataBeComplete({ delaiDepartImposeJours: -5 });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.delaiDepartImposeJours()).toBe(30);
+      expect(component.provenanceDelaiDepart()).toBeNull();
+    });
+
+    it('delaiDepartImposeJours = 0 (OQT urgence) → délai pré-rempli 0 + provenance', () => {
+      component.aiData = aiDataBeComplete({ delaiDepartImposeJours: 0 });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.delaiDepartImposeJours()).toBe(0);
+      expect(component.provenanceDelaiDepart()).toBe('IA');
+    });
+
+    it('transfertImminentDetected = null → pas de pré-fill, pas de provenance', () => {
+      component.aiData = aiDataBeComplete({ transfertImminentDetected: null });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.transfertImminent()).toBe(false);
+      expect(component.provenanceTransfertImminent()).toBeNull();
+    });
+
+    it('transfertImminentDetected = false explicite → pré-fill false + provenance IA', () => {
+      component.aiData = aiDataBeComplete({ transfertImminentDetected: false });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.transfertImminent()).toBe(false);
+      expect(component.provenanceTransfertImminent()).toBe('IA');
+    });
+
+    it('loadExisting GET 200 → résultat affiché, prefillFromAi NON appelé (pas d\'écrasement)', () => {
+      component.aiData = aiDataBeComplete({
+        dateNotificationAnnexe13: '2026-04-10',
+        delaiDepartImposeJours: 7,
+      });
+      component.ngOnInit();
+      // GET 200 → résultat backend prend la main
+      httpMock.expectOne(BASE_URL).flush(beResponse({
+        dateNotificationAnnexe13: '2026-03-15',
+        delaiDepartImposeJours: 30,
+      }));
+      flushSourceExplanations();
+
+      // Les valeurs du backend sont celles affichées (pas celles de l'IA)
+      expect(component.dateNotificationAnnexe13()).toBe('2026-03-15');
+      expect(component.delaiDepartImposeJours()).toBe(30);
+      expect(component.showForm()).toBe(false);
+      // Aucune provenance IA posée (pas d'écrasement)
+      expect(component.provenanceDateNotification()).toBeNull();
+      expect(component.provenanceDelaiDepart()).toBeNull();
+    });
+
+    it('workspace FRANCE → prefillFromAi non appelé (gate isBelgium)', () => {
+      component.workspaceCountry = 'FRANCE';
+      component.aiData = aiDataBeComplete();
+      component.ngOnInit();
+      // Pas d'appel GET côté FR (gate déjà existant)
+      httpMock.expectNone(BASE_URL);
+      // Les signals restent à leur défaut
+      expect(component.dateNotificationAnnexe13()).toBeNull();
+      expect(component.motifOqt()).toBeNull();
+      expect(component.provenanceDateNotification()).toBeNull();
+    });
+
+    it('fixture malformée (motifOqtCodeBe numeric) → prefill graceful skip, pas d\'exception', () => {
+      component.aiData = aiDataBeComplete({ motifOqtCodeBe: 12345 as any });
+      expect(() => {
+        component.ngOnInit();
+        httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+        flushSourceExplanations();
+      }).not.toThrow();
+      expect(component.motifOqt()).toBeNull();
+      expect(component.provenanceMotifOqt()).toBeNull();
+    });
+
+    it('delaiDepartImposeJours non entier (7.5) → prefill skip (integer check)', () => {
+      component.aiData = aiDataBeComplete({ delaiDepartImposeJours: 7.5 });
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      expect(component.delaiDepartImposeJours()).toBe(30);
+      expect(component.provenanceDelaiDepart()).toBeNull();
+    });
+  });
+
+  describe('SF-155-04-C — onChange handlers (provenance clear)', () => {
+    beforeEach(() => {
+      // Pré-fill initial simulé : les 4 signals provenance sont à 'IA'.
+      component.provenanceDateNotification.set('IA');
+      component.provenanceDelaiDepart.set('IA');
+      component.provenanceMotifOqt.set('IA');
+      component.provenanceTransfertImminent.set('IA');
+    });
+
+    it('onDateNotificationChange → provenance à null', () => {
+      component.onDateNotificationChange('2026-04-15');
+      expect(component.dateNotificationAnnexe13()).toBe('2026-04-15');
+      expect(component.provenanceDateNotification()).toBeNull();
+    });
+
+    it('onDelaiDepartChange → provenance à null', () => {
+      component.onDelaiDepartChange(15);
+      expect(component.delaiDepartImposeJours()).toBe(15);
+      expect(component.provenanceDelaiDepart()).toBeNull();
+    });
+
+    it('onMotifOqtChange → provenance à null', () => {
+      component.onMotifOqtChange('AUTRE');
+      expect(component.motifOqt()).toBe('AUTRE');
+      expect(component.provenanceMotifOqt()).toBeNull();
+    });
+
+    it('onTransfertImminentChange → provenance à null', () => {
+      component.onTransfertImminentChange(true);
+      expect(component.transfertImminent()).toBe(true);
+      expect(component.provenanceTransfertImminent()).toBeNull();
+    });
+
+    it('onDelaiDepartChange(null) → fallback défaut 30', () => {
+      component.onDelaiDepartChange(null);
+      expect(component.delaiDepartImposeJours()).toBe(30);
+      expect(component.provenanceDelaiDepart()).toBeNull();
+    });
+  });
+
+  describe('SF-155-04-C — coherenceAlerts', () => {
+    beforeEach(() => {
+      component.showForm.set(true);
+    });
+
+    it('alerte CRITIQUE TRANSFERT_IMMINENT : IA=true + avocat=false → blocker=true', () => {
+      component.aiData = { transfertImminentDetected: true };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.transfertImminent.set(false);
+      const alerts = component.coherenceAlerts();
+      expect(alerts.TRANSFERT_IMMINENT).toBeDefined();
+      expect(alerts.TRANSFERT_IMMINENT!.blocker).toBe(true);
+      expect(alerts.TRANSFERT_IMMINENT!.source).toBe('IA');
+      expect(component.alertsSummary().blockers).toBe(1);
+    });
+
+    it('alerte CRITIQUE TRANSFERT_IMMINENT non déclenchée si avocat a coché transfert=true', () => {
+      component.aiData = { transfertImminentDetected: true };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.transfertImminent.set(true);
+      expect(component.coherenceAlerts().TRANSFERT_IMMINENT).toBeUndefined();
+    });
+
+    it('alerte DELAI_DEPART : IA=30 + avocat=7 → warning (blocker false)', () => {
+      component.aiData = { delaiDepartImposeJours: 30 };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.delaiDepartImposeJours.set(7);
+      const alert = component.coherenceAlerts().DELAI_DEPART;
+      expect(alert).toBeDefined();
+      expect(alert!.blocker).toBe(false);
+      expect(alert!.expectedDisplay).toBe('30 jour(s)');
+    });
+
+    it('alerte MOTIF_OQT : IA=SEJOUR_IRREGULIER_ART_7 + avocat=AUTRE → warning', () => {
+      component.aiData = { motifOqtCodeBe: 'SEJOUR_IRREGULIER_ART_7' };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.motifOqt.set('AUTRE');
+      const alert = component.coherenceAlerts().MOTIF_OQT;
+      expect(alert).toBeDefined();
+      expect(alert!.blocker).toBe(false);
+      expect(alert!.expectedDisplay).toContain('Séjour irrégulier');
+    });
+
+    it('alerte DATE_NOTIFICATION : IA ≠ avocat → warning', () => {
+      component.aiData = { dateNotificationAnnexe13: '2026-04-01' };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.dateNotificationAnnexe13.set('2026-04-02');
+      const alert = component.coherenceAlerts().DATE_NOTIFICATION;
+      expect(alert).toBeDefined();
+      expect(alert!.expectedDisplay).toBe('2026-04-01');
+    });
+
+    it('showForm=false → coherenceAlerts = {}', () => {
+      component.aiData = { transfertImminentDetected: true };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.showForm.set(false);
+      expect(component.coherenceAlerts()).toEqual({});
+    });
+
+    it('motif IA hors whitelist → pas d\'alerte MOTIF_OQT (ne pas signaler divergence sur code invalide)', () => {
+      component.aiData = { motifOqtCodeBe: 'INCONNU' };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.motifOqt.set('AUTRE');
+      expect(component.coherenceAlerts().MOTIF_OQT).toBeUndefined();
+    });
+
+    it('délai IA non entier (7.5) → pas d\'alerte DELAI_DEPART', () => {
+      component.aiData = { delaiDepartImposeJours: 7.5 };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      component.delaiDepartImposeJours.set(30);
+      expect(component.coherenceAlerts().DELAI_DEPART).toBeUndefined();
+    });
+
+    it('aiData null → coherenceAlerts = {}', () => {
+      component.aiData = null;
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, null, true),
+      });
+      expect(component.coherenceAlerts()).toEqual({});
+    });
+
+    it('alertBadgeLabel — blocker=true → "Alerte critique (...)"', () => {
+      expect(component.alertBadgeLabel({
+        field: 'TRANSFERT_IMMINENT', source: 'IA', blocker: true,
+        expectedDisplay: 'X', reason: 'Y',
+      })).toContain('Alerte critique');
+    });
+
+    it('alertBadgeLabel — blocker=false → "Incohérence détectée (...)"', () => {
+      expect(component.alertBadgeLabel({
+        field: 'DELAI_DEPART', source: 'IA', blocker: false,
+        expectedDisplay: 'X', reason: 'Y',
+      })).toContain('Incohérence');
+    });
+  });
+
+  describe('SF-155-04-C — ngOnChanges re-prefill', () => {
+    it('ngOnChanges(aiData) en mode formulaire sans result → re-prefill appliqué', () => {
+      component.aiData = undefined;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      flushSourceExplanations();
+
+      // Initialement rien en provenance
+      expect(component.provenanceMotifOqt()).toBeNull();
+
+      // L'IA termine son analyse pendant que l'avocat a le formulaire ouvert
+      const newAi: ImmigrationExtractedData = {
+        motifOqtCodeBe: 'FIN_SEJOUR_REGULIER',
+        delaiDepartImposeJours: 15,
+      };
+      component.aiData = newAi;
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, newAi, false),
+      });
+
+      expect(component.motifOqt()).toBe('FIN_SEJOUR_REGULIER');
+      expect(component.provenanceMotifOqt()).toBe('IA');
+      expect(component.delaiDepartImposeJours()).toBe(15);
+      expect(component.provenanceDelaiDepart()).toBe('IA');
+    });
+
+    it('ngOnChanges(aiData) alors que result existe (showForm=false) → pas de re-prefill', () => {
+      component.aiData = undefined;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush(beResponse({
+        motifOqt: 'AUTRE',
+        delaiDepartImposeJours: 30,
+      }));
+      flushSourceExplanations();
+      expect(component.showForm()).toBe(false);
+      expect(component.result()).not.toBeNull();
+
+      const newAi: ImmigrationExtractedData = {
+        motifOqtCodeBe: 'SEJOUR_IRREGULIER_ART_7',
+        delaiDepartImposeJours: 7,
+      };
+      component.aiData = newAi;
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, newAi, false),
+      });
+
+      // Valeurs du résultat chargé, non écrasées
+      expect(component.motifOqt()).toBe('AUTRE');
+      expect(component.delaiDepartImposeJours()).toBe(30);
+      expect(component.provenanceMotifOqt()).toBeNull();
+    });
+
+    it('ngOnChanges(aiData) firstChange → pas de prefill (le ngOnInit s\'en charge déjà)', () => {
+      // firstChange=true simule le premier binding Angular
+      component.aiData = { motifOqtCodeBe: 'SEJOUR_IRREGULIER_ART_7' };
+      component.ngOnChanges({
+        aiData: new SimpleChange(undefined, component.aiData, true),
+      });
+      // En firstChange, ngOnChanges ne doit pas lancer prefillFromAi (évite double-appel)
+      // Seul ngOnInit le fera. Les signals d'entrée sont en revanche mis à jour.
+      expect(component.motifOqt()).toBeNull(); // pas de prefill via onChanges firstChange
+    });
+  });
+
+  describe('SF-155-04-C — explanationFor mapping', () => {
+    it('explanationFor mappe vers la bonne sourceKey (fallback vide = fail-open)', () => {
+      expect(component.explanationFor('TRANSFERT_IMMINENT')).toEqual([]);
+      expect(component.explanationFor('DATE_NOTIFICATION')).toEqual([]);
+      expect(component.explanationFor('DELAI_DEPART')).toEqual([]);
+      expect(component.explanationFor('MOTIF_OQT')).toEqual([]);
+    });
   });
 });

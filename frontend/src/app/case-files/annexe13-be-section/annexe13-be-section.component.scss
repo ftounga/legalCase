@@ -309,6 +309,98 @@
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
 
+// SF-155-04-C : pré-fill IA + validation F-IA-03 (pattern canonique
+// `immigration-title-decision-section`).
+.annexe13-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.annexe13-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.annexe13-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  // Rouge réservé aux alertes critiques (transfert imminent).
+  &--critical {
+    background: rgba(192, 36, 36, 0.10);
+    border-color: #c02424;
+    color: #9a1c1c;
+
+    mat-icon { color: #9a1c1c; }
+  }
+}
+
+.annexe13-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+
+  // Rouge : alerte critique (transfert imminent).
+  // DESIGN_SYSTEM.md autorise le rouge pour les urgences.
+  &--critical {
+    background: rgba(192, 36, 36, 0.14);
+    color: #9a1c1c;
+    border: 1px solid #c02424;
+
+    mat-icon { color: #9a1c1c; }
+  }
+}
+
 // F-155 SF-155-02 — affichage `formule` (harmonisation avec les outils calcul montant)
 .annexe13-formule-block {
   display: flex;
