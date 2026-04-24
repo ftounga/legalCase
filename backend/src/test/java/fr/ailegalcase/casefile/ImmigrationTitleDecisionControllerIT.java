@@ -301,6 +301,48 @@ class ImmigrationTitleDecisionControllerIT {
                 .andExpect(jsonPath("$.motif").value("ETUDES"));
     }
 
+    // ---- F-IM-18 SF-IM-18-01 : situation familiale branchée ----
+
+    @Test
+    void POST_famille_celibataire_longSejour_france_returnsOnlyCstVpf() throws Exception {
+        String body = objectMapper.writeValueAsString(Map.of(
+                "country", "FRANCE",
+                "nationaliteUe", false,
+                "motif", "FAMILLE",
+                "duree", "LONG_SEJOUR",
+                "situationFamiliale", "CELIBATAIRE"
+        ));
+
+        mockMvc.perform(post("/api/v1/case-files/" + immigrationCaseFile.getId() + "/immigration/title-decision")
+                        .with(authentication(authImmigration))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.situationFamiliale").value("CELIBATAIRE"))
+                .andExpect(jsonPath("$.recommendations.length()").value(1))
+                .andExpect(jsonPath("$.recommendations[0].code").value("CST_VPF"));
+    }
+
+    @Test
+    void POST_famille_marie_longSejour_france_includesCarteResident() throws Exception {
+        String body = objectMapper.writeValueAsString(Map.of(
+                "country", "FRANCE",
+                "nationaliteUe", false,
+                "motif", "FAMILLE",
+                "duree", "LONG_SEJOUR",
+                "situationFamiliale", "MARIE"
+        ));
+
+        mockMvc.perform(post("/api/v1/case-files/" + immigrationCaseFile.getId() + "/immigration/title-decision")
+                        .with(authentication(authImmigration))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recommendations.length()").value(2))
+                .andExpect(jsonPath("$.recommendations[0].code").value("CST_VPF"))
+                .andExpect(jsonPath("$.recommendations[1].code").value("CARTE_RESIDENT"));
+    }
+
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
         Map<String, Object> claims = Map.of(
                 "sub", sub, "email", email, "iss", "https://accounts.google.com");
