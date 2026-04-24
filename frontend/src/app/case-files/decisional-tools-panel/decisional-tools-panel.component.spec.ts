@@ -147,6 +147,31 @@ describe('DecisionToolsPanelComponent', () => {
     expect(component.resolveEntry('F-IM-05-arbre-decisionnel-titre')).not.toBeNull();
     expect(component.resolveEntry('F-132-rupture-conv-indemnite')).not.toBeNull();
   });
+
+  it('SF-DT-21-02 : resolves F-DT-21-travail-dissimule to TravailDissimuleSectionComponent + bindings IA', () => {
+    const entry = component.resolveEntry('F-DT-21-travail-dissimule');
+    expect(entry).not.toBeNull();
+    expect(entry!.component.name).toBe('TravailDissimuleSectionComponent');
+
+    component.caseFileId = 'case-td-1';
+    component.workspaceCountry = 'FRANCE';
+    component.synthesis = {
+      travailExtractedData: { salaireBrutMensuel: 2500 },
+      piecesManquantesDetails: [{ texte: 'Bulletins', critereCode: 'SALAIRE_BRUT_MENSUEL' }],
+    };
+    component.procedureChecks = [{ id: 'c1' } as any];
+    component.aiQuestions = [{ id: 'q1' } as any];
+
+    const inputs = component.componentInputsFor(entry!);
+    expect(inputs['caseFileId']).toBe('case-td-1');
+    expect(inputs['workspaceCountry']).toBe('FRANCE');
+    expect(inputs['aiData']).toEqual({ salaireBrutMensuel: 2500 });
+    expect(inputs['procedureChecks']).toEqual([{ id: 'c1' }]);
+    expect(inputs['aiQuestions']).toEqual([{ id: 'q1' }]);
+    expect(inputs['piecesManquantes']).toEqual([
+      { texte: 'Bulletins', critereCode: 'SALAIRE_BRUT_MENSUEL' },
+    ]);
+  });
 });
 
 describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRefreshService', () => {
