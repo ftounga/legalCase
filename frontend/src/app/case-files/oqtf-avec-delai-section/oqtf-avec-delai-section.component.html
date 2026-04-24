@@ -33,35 +33,80 @@
           </div>
         } @else {
           @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="oqtf-coherence-summary"
+                   [class.oqtf-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
             <form class="oqtf-form" (ngSubmit)="analyze()">
-              <mat-form-field appearance="outline">
-                <mat-label>Date de notification de l'OQTF</mat-label>
-                <input matInput type="date" required
-                       [max]="todayIso"
-                       [ngModel]="dateNotificationOqtf()"
-                       (ngModelChange)="dateNotificationOqtf.set($event || null)"
-                       name="dateNotificationOqtf" />
-              </mat-form-field>
+              <div class="oqtf-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de l'OQTF</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationOqtf()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationOqtf" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
 
-              <mat-form-field appearance="outline">
-                <mat-label>Motif de l'OQTF</mat-label>
-                <mat-select
-                    [ngModel]="motifOqtf()"
-                    (ngModelChange)="motifOqtf.set($event)"
-                    name="motifOqtf" required>
-                  @for (m of motifs; track m.code) {
-                    <mat-option [value]="m.code">{{ m.label }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <div class="oqtf-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif de l'OQTF</mat-label>
+                  <mat-select
+                      [ngModel]="motifOqtf()"
+                      (ngModelChange)="onMotifOqtfChange($event)"
+                      name="motifOqtf" required>
+                    @for (m of motifs; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotifOqtf() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().MOTIF_OQTF; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
 
-              <div class="oqtf-toggle-row">
+              <div class="oqtf-toggle-row oqtf-field-wrap">
                 <mat-slide-toggle
                     [ngModel]="recoursForme()"
-                    (ngModelChange)="recoursForme.set($event)"
+                    (ngModelChange)="onRecoursFormeChange($event)"
                     name="recoursForme">
                   Recours déjà formé devant le TA
                 </mat-slide-toggle>
+                @if (provenanceRecoursForme() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().RECOURS_FORME; as alert) {
+                  <span class="coherence-badge coherence-critical"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>error</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
               </div>
 
               @if (recoursForme()) {
