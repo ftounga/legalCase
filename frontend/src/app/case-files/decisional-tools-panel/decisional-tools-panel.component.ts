@@ -36,6 +36,7 @@ import { ImmigrationTitleDecisionSectionComponent } from '../immigration-title-d
 import { ImmigrationRecoursSectionComponent } from '../immigration-recours-section/immigration-recours-section.component';
 import { ImmigrationWorkRightSectionComponent } from '../immigration-work-right-section/immigration-work-right-section.component';
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
+import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -147,6 +148,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           synthesis: ctx.synthesis,
+        }),
+      }],
+      ['F-DT-11-harcelement-licenciement-nul', {
+        component: HarcelementLicenciementNulSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
         }),
       }],
       ['F-132-rupture-amiable-info', {

@@ -1,0 +1,80 @@
+<section class="hln-section">
+  <header class="hln-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="hln-body">
+    <mat-icon class="hln-icon">gavel</mat-icon>
+    <span class="hln-title">INDEMNITÉ LICENCIEMENT NUL — HARCÈLEMENT</span>
+    @if (result()) {
+      <span class="hln-chip">{{ result()!.indemniteMinimumNullite | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="hln-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="hln-body" class="hln-body">
+      @if (loading()) {
+        <div class="hln-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          <form class="hln-form" (ngSubmit)="calculate()">
+            <mat-form-field appearance="outline">
+              <mat-label>Salaire mensuel brut de référence (€)</mat-label>
+              <input matInput type="number" min="0.01" step="0.01"
+                     [ngModel]="salaireMensuelReference()"
+                     (ngModelChange)="salaireMensuelReference.set($event)"
+                     name="salaireMensuelReference" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Motif de nullité</mat-label>
+              <mat-select
+                  [ngModel]="motifNullite()"
+                  (ngModelChange)="motifNullite.set($event)"
+                  name="motifNullite" required>
+                @for (m of motifsDisponibles(); track m.code) {
+                  <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <div class="hln-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="hln-result">
+            <div class="hln-amount-block">
+              <span class="hln-amount-label">Indemnité minimum (licenciement nul)</span>
+              <span class="hln-amount">{{ result()!.indemniteMinimumNullite | number:'1.0-2' }} €</span>
+              <span class="hln-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="hln-meta">
+              <span class="hln-meta-base">{{ result()!.baseJuridique }}</span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="hln-messages">
+                @for (m of result()!.messages; track m) {
+                  <li>{{ m }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
