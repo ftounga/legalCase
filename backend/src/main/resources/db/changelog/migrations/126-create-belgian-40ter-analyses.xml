@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="126-create-belgian-40ter-analyses" author="legalcase">
+        <comment>
+            SF-IM-14-04 : table dédiée à l'outil décisionnel "40ter familial
+            Belge BE" (Loi 15/12/1980 art. 40ter — regroupement familial d'un
+            ressortissant belge). Conditions plus strictes que 40bis : ressources
+            stables et suffisantes ≥ 120 % du RIS (Revenu d'intégration sociale),
+            lien familial éligible, assurance maladie, logement suffisant,
+            absence de menace pour l'ordre public. Scoring pondéré 0-100
+            (6 × 18 pts + bonus +10 si différentiel revenus > 20 % seuil),
+            verdicts ELEVEE (≥75) / MOYENNE (50-74) / FAIBLE (&lt;50). Carte F
+            après 5 ans. Délai d'instruction 6 mois (art. 42). Outil
+            single-country BELGIQUE.
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, BELGIQUE,
+            priority 67) pour exposer l'outil sur tout dossier immigration BE.
+        </comment>
+
+        <createTable tableName="belgian_40ter_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_belgian_40ter_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="lien_familial" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="regroupant_belge" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revenus_mensuels_nets_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="seuil_120_pct_ris_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assurance_maladie" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="logement_suffisant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="menace_ordre_public" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_depot_demande" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="belgian_40ter_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_belgian_40ter_analyses_case_file"/>
+
+        <createIndex tableName="belgian_40ter_analyses"
+                     indexName="idx_belgian_40ter_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000144', 'DROIT_IMMIGRATION', 'BELGIQUE', 'F-IM-14-40ter-familial-belge-be', 'ALWAYS_ON', NULL, NULL, 67);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000144';
+            </sql>
+            <dropTable tableName="belgian_40ter_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
