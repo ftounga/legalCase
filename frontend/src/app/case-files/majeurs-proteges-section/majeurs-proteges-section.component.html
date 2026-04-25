@@ -1,0 +1,371 @@
+<section class="mp-section">
+  <header class="mp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="mp-body">
+    <mat-icon class="mp-icon">supervisor_account</mat-icon>
+    <span class="mp-title">MAJEURS PROTÉGÉS (FR) — ART. 425-494 / 494-1 CCIV</span>
+    @if (result()) {
+      <span class="mp-chip"
+            [class.mp-chip--strong]="result()!.verdictAcceptabiliteJaf === 'ELEVEE'"
+            [class.mp-chip--medium]="result()!.verdictAcceptabiliteJaf === 'MOYENNE'"
+            [class.mp-chip--weak]="result()!.verdictAcceptabiliteJaf === 'FAIBLE'">
+        {{ verdictMajeursLabel(result()!.verdictAcceptabiliteJaf) }}
+      </span>
+    }
+    <mat-icon class="mp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="mp-body" class="mp-body">
+      @if (!isFrance()) {
+        <div class="mp-banner mp-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="mp-banner-content">
+            <div class="mp-banner-title">Majeurs protégés — procédure française uniquement</div>
+            <div class="mp-banner-sub">
+              Pour la Belgique, voir l'équivalent <code>art. 488 CC</code> (administration provisoire — F-FA-25-BE backlog).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="mp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="mp-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="mp-form" (ngSubmit)="calculate()">
+              <!-- Régime protection demandé. -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Régime de protection demandé</mat-label>
+                  <mat-select
+                      [ngModel]="regimeProtectionDemande()"
+                      (ngModelChange)="onRegimeChange($event)"
+                      name="regimeProtectionDemande" required>
+                    @for (r of regimesOptions; track r.code) {
+                      <mat-option [value]="r.code">{{ r.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceRegimeProtectionDemande() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- Toggle altération facultés mentales. -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="altertationFacultesMentales()"
+                    (ngModelChange)="onAltMentalesChange($event)"
+                    name="altertationFacultesMentales">
+                  Altération des facultés mentales (art. 425 Cciv)
+                </mat-slide-toggle>
+                @if (provenanceAltertationFacultesMentales() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+                @if (coherenceAlerts().ALT_MENTALES; as alert) {
+                  <span class="mp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('ALT_MENTALES')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Toggle altération facultés physiques. -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="altertationFacultesPhysiques()"
+                    (ngModelChange)="onAltPhysiquesChange($event)"
+                    name="altertationFacultesPhysiques">
+                  Altération des facultés physiques (empêchant l'expression de la volonté)
+                </mat-slide-toggle>
+                @if (provenanceAltertationFacultesPhysiques() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+              </div>
+
+              <!-- Toggle certificat médical circonstancié. -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="certificatMedicalCirconstancie()"
+                    (ngModelChange)="onCertificatChange($event)"
+                    name="certificatMedicalCirconstancie">
+                  Certificat médical circonstancié (médecin liste procureur — art. 431 Cciv)
+                </mat-slide-toggle>
+                @if (provenanceCertificatMedicalCirconstancie() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+              </div>
+
+              <!-- Datepicker date certificat médical. -->
+              <div class="mp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date du certificat médical</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateCertificatMedical()"
+                         (ngModelChange)="onDateCertificatChange($event)"
+                         name="dateCertificatMedical" required />
+                </mat-form-field>
+                @if (provenanceDateCertificatMedical() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_CERTIFICAT; as alert) {
+                  <span class="mp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_CERTIFICAT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Toggle consentement personne à protéger. -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="consentementPersonneAProteger()"
+                    (ngModelChange)="onConsentementChange($event)"
+                    name="consentementPersonneAProteger">
+                  Consentement de la personne à protéger (déterminant pour habilitation familiale)
+                </mat-slide-toggle>
+                @if (provenanceConsentementPersonneAProteger() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+                @if (coherenceAlerts().CONSENTEMENT; as alert) {
+                  <span class="mp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('CONSENTEMENT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Demandeur familial. -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Demandeur</mat-label>
+                  <mat-select
+                      [ngModel]="demandeurFamilial()"
+                      (ngModelChange)="onDemandeurChange($event)"
+                      name="demandeurFamilial" required>
+                    @for (d of demandeursOptions; track d.code) {
+                      <mat-option [value]="d.code">{{ d.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceDemandeurFamilial() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DEMANDEUR_FAMILIAL; as alert) {
+                  <span class="mp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DEMANDEUR_FAMILIAL')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Actes envisagés (multi-select). -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Actes envisagés</mat-label>
+                  <mat-select multiple
+                              [ngModel]="actesEnvisages()"
+                              (ngModelChange)="onActesChange($event)"
+                              name="actesEnvisages" required>
+                    @for (a of actesOptions; track a.code) {
+                      <mat-option [value]="a.code">{{ a.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceActesEnvisages() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- Toggles contextuels. -->
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="urgencePatrimoniale()"
+                    (ngModelChange)="onUrgencePatrimonialeChange($event)"
+                    name="urgencePatrimoniale">
+                  Urgence patrimoniale (acte conservatoire à passer rapidement)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="patrimoineSignificatif()"
+                    (ngModelChange)="onPatrimoineSignificatifChange($event)"
+                    name="patrimoineSignificatif">
+                  Patrimoine significatif (immobilier, placements, comptes &gt; 50 k€)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="mp-field-with-alert mp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="isolementSocial()"
+                    (ngModelChange)="onIsolementSocialChange($event)"
+                    name="isolementSocial">
+                  Isolement social de la personne (absence de proches mobilisables)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="mp-actions mp-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le régime de protection</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="mp-result">
+              <!-- Bannière verdict. -->
+              <div [class]="verdictBannerClass(result()!.verdictAcceptabiliteJaf)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictAcceptabiliteJaf === 'ELEVEE' ? 'gavel'
+                     : result()!.verdictAcceptabiliteJaf === 'MOYENNE' ? 'balance'
+                     : 'info_outline' }}
+                </mat-icon>
+                <div class="mp-banner-content">
+                  <div class="mp-banner-title">
+                    {{ verdictMajeursLabel(result()!.verdictAcceptabiliteJaf) }}
+                  </div>
+                  <div class="mp-banner-sub">
+                    Score d'éligibilité : {{ result()!.scoreEligibilite }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- Carte "Régime optimal recommandé" (point différenciant). -->
+              <div class="mp-recommandation-card"
+                   [class.mp-recommandation-card--diff]="isRegimeRecommandationDifferente()">
+                <span class="mp-recommandation-label">Régime optimal recommandé</span>
+                <span class="mp-recommandation-value">
+                  {{ regimeProtectionLabel(result()!.regimeOptimalRecommande) }}
+                </span>
+                @if (isRegimeRecommandationDifferente()) {
+                  <span class="mp-recommandation-sub">
+                    Cette recommandation diffère du régime demandé
+                    ({{ regimeProtectionLabel(result()!.regimeProtectionDemande) }}) —
+                    réajuster la requête au juge des contentieux de la protection est conseillé.
+                  </span>
+                } @else {
+                  <span class="mp-recommandation-sub">
+                    Le régime demandé correspond au régime optimal recommandé.
+                  </span>
+                }
+              </div>
+
+              <!-- 2 cartes recommandations procédurales. -->
+              <div class="mp-cards-row">
+                <div class="mp-card"
+                     [class.mp-card--active]="result()!.auditionPersonneObligatoire">
+                  <span class="mp-card-label">Audition de la personne</span>
+                  <span class="mp-card-value">
+                    {{ result()!.auditionPersonneObligatoire ? 'Obligatoire' : 'Non obligatoire' }}
+                  </span>
+                  @if (result()!.auditionPersonneObligatoire) {
+                    <span class="mp-card-sub">
+                      Art. 432 Cciv — sauf dispense motivée par l'état de la personne.
+                    </span>
+                  }
+                </div>
+
+                <div class="mp-card"
+                     [class.mp-card--active]="result()!.expertisePsyComplementaireRecommandee">
+                  <span class="mp-card-label">Expertise psychiatrique complémentaire</span>
+                  <span class="mp-card-value">
+                    {{ result()!.expertisePsyComplementaireRecommandee ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  @if (result()!.expertisePsyComplementaireRecommandee) {
+                    <span class="mp-card-sub">
+                      Demander une expertise pour étayer le certificat médical circonstancié.
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Délai procédure. -->
+              <div class="mp-amount-block">
+                <span class="mp-amount-label">Délai indicatif de la procédure (juge des contentieux de la protection)</span>
+                <span class="mp-amount">
+                  {{ result()!.delaiProcedureMoisPrevisionnel }} mois
+                </span>
+                <span class="mp-amount-sub">Indicatif — varie selon le régime et l'encombrement de la juridiction.</span>
+              </div>
+
+              <!-- Récap actes envisagés. -->
+              @if (result()!.actesEnvisages?.length) {
+                <div class="mp-mesures-block">
+                  <span class="mp-mesures-label">Actes envisagés</span>
+                  <mat-chip-set class="mp-mesures-chips">
+                    @for (a of result()!.actesEnvisages; track a) {
+                      <mat-chip>{{ acteEnvisageLabel(a) }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="mp-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="mp-formule-block">
+                  <span class="mp-formule-label">Formule</span>
+                  <span class="mp-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="mp-meta">
+                <span class="mp-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

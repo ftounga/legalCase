@@ -131,33 +131,19 @@ export interface FamilleExtractedData {
    * l'*exercice* parental (qui décide), pas la *résidence* (où vit l'enfant).
    */
   modeResidenceActuel?: string | null;
-  /**
-   * SF-FA-20-02 : pré-fill outil "Dissolution PACS art. 515-7 Cciv".
-   * Date de conclusion du PACS (ISO YYYY-MM-DD).
-   */
+  /** SF-FA-20-02 : dissolution PACS pré-fill. */
   dateConclusionPacs?: string | null;
-  /**
-   * SF-FA-20-02 : mode de dissolution PACS détecté. Valeur attendue parmi
-   * `ModeDissolutionPacs` (`DECLARATION_UNILATERALE` / `DECLARATION_CONJOINTE` /
-   * `MARIAGE_PARTENAIRES` / `MARIAGE_TIERS` / `DECES`) — toute autre valeur
-   * est ignorée.
-   */
   modeDissolutionPacsDetecte?: string | null;
-  /**
-   * SF-FA-20-02 : régime des biens entre partenaires PACS détecté. Valeur
-   * attendue parmi `RegimeBiensPacs` (`SEPARATION_BIENS` / `INDIVISION_AMENAGEE`
-   * / `INDIVISION_PAR_DEFAUT`).
-   */
   regimeBiensPacsDetecte?: string | null;
-  /**
-   * SF-FA-20-02 : créances alléguées détectées par l'IA. Liste de `CreanceAlleguee`
-   * (`CONTRIBUTION_DESEQUILIBRE` / `INVESTISSEMENT_BIEN_PROPRE` /
-   * `ENRICHISSEMENT_INJUSTE` / `PRESTATION_TRAVAIL_NON_REMUNEREE` / `AUCUNE`).
-   */
   creancesAllegueesDetectees?: string[] | null;
-  /**
-   * SF-FA-20-02 : patrimoine commun significatif détecté par l'IA
-   * (achats communs, comptes joints, biens immobiliers indivis).
-   */
   patrimoineCommunSignificatifDetecte?: boolean | null;
+  /** SF-FA-25-02 : majeurs protégés pré-fill. */
+  regimeProtectionDemande?: string | null;
+  altertationFacultesMentales?: boolean | null;
+  altertationFacultesPhysiques?: boolean | null;
+  certificatMedicalCirconstancieDetected?: boolean | null;
+  dateCertificatMedicalDetected?: string | null;
+  consentementPersonneAProtegerDetected?: boolean | null;
+  demandeurFamilialDetected?: string | null;
+  actesEnvisagesDetected?: string[] | null;
 }

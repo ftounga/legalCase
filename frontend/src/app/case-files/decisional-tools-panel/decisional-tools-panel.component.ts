@@ -76,6 +76,7 @@ import { MesuresProvisoiresSectionComponent } from '../mesures-provisoires-secti
 import { DocumentsFinContratSectionComponent } from '../documents-fin-contrat-section/documents-fin-contrat-section.component';
 import { IndivisionSectionComponent } from '../indivision-section/indivision-section.component';
 import { PacsDissolutionSectionComponent } from '../pacs-dissolution-section/pacs-dissolution-section.component';
+import { MajeursProtegesSectionComponent } from '../majeurs-proteges-section/majeurs-proteges-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -738,6 +739,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-FA-20-pacs-dissolution', {
         component: PacsDissolutionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-25-02 : majeurs protégés FR (art. 425-494 / 494-1 Cciv).
+      ['F-FA-25-majeurs-proteges', {
+        component: MajeursProtegesSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
