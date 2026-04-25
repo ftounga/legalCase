@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="169-create-partage-judiciaire-analyses" author="legalcase">
+        <comment>
+            SF-FA-17-01 : table dédiée à l'outil décisionnel "Partage judiciaire"
+            (FR — art. 840 et s. Cciv + 1364 et s. CPC). Premier morceau backend
+            de F-FA-17.
+
+            Procédure intervenant quand les co-indivisaires (succession ou
+            post-divorce) n'arrivent pas à s'accorder sur la liquidation.
+            3 étapes possibles :
+            - PROCES_VERBAL_DIFFICULTES (notaire art. 1366 CPC — préalable)
+            - HOMOLOGATION_AMIABLE_PARTIELLE (juge homologue + tranche)
+            - PARTAGE_JUDICIAIRE_INTEGRAL (art. 1364 CPC + expertise + tirage
+              au sort des lots ou licitation si bien indivisible).
+
+            Critères d'éligibilité ELEVEE : pvDifficultesEtabli + tentative
+            amiable épuisée + bien parmi types prévus + nombreCoindivisaires
+            ≥ 2 + désaccord motivé. Bien indivisible → MOYENNE + risque de
+            licitation. PV non établi ou tentative amiable non documentée
+            → FAIBLE.
+
+            Outil single-country FRANCE — l'équivalent BE (CJ art. 1207 et s.,
+            juge de paix) sera traité dans une feature jumelle dédiée au
+            backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 85) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="partage_judiciaire_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_partage_judiciaire_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="etape_procedure" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_bien_indivision" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_coindivisaires" type="int" defaultValueNumeric="2">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valeur_estimee_biens_eur" type="double" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pv_difficultes_etabli" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tentative_amiable_epuisee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="desaccord_motive" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="partage_judiciaire_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_partage_judiciaire_analyses_case_file"/>
+
+        <createIndex tableName="partage_judiciaire_analyses"
+                     indexName="idx_partage_judiciaire_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000169', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-17-partage-judiciaire', 'ALWAYS_ON', NULL, NULL, 85);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000169';
+            </sql>
+            <dropTable tableName="partage_judiciaire_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
