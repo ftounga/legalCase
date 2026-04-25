@@ -84,6 +84,7 @@ import { SeparationCorpsSectionComponent } from '../separation-corps-section/sep
 import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/refere-prudhomal-section.component';
 import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit-temps-be-section.component';
 import { PseSectionComponent } from '../pse-section/pse-section.component';
+import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -636,6 +637,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // Pré-fill IA gracieux (dateLicenciement → dateProjet)
           // + validation F-IA-03 (1 champ DATE_PROJET multi-sources
           // IA / F96 / QUESTION_IA / PIECE_MANQUANTE).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-DT-30-02 : Protection des représentants du personnel (FR uniquement,
+      // art. L.2411-1 + L.2411-3 + L.2411-22 + L.2422-1 + R.2422-1 CT).
+      // tool_id aligné avec la migration 166.
+      ['F-DT-30-protection-rp', {
+        component: ProtectionRpSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (motifLicenciement → motifLicenciement
+          // mappé vers enum backend) + validation F-IA-03 (1 champ
+          // MOTIF_LICENCIEMENT multi-sources IA / F96 / QUESTION_IA /
+          // PIECE_MANQUANTE).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

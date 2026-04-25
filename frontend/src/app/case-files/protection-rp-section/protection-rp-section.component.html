@@ -1,0 +1,261 @@
+<section class="protection-rp-section">
+  <header class="protection-rp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="protection-rp-body">
+    <mat-icon class="protection-rp-icon">shield</mat-icon>
+    <span class="protection-rp-title">PROTECTION DES REPRÉSENTANTS DU PERSONNEL (FR)</span>
+    @if (result()) {
+      <span class="protection-rp-chip"
+            [class.protection-rp-chip--info]="result()!.verdictLegalite === 'VALIDE'"
+            [class.protection-rp-chip--warning]="result()!.verdictLegalite === 'CONTESTABLE'"
+            [class.protection-rp-chip--critical]="result()!.verdictLegalite === 'NUL'">
+        {{ result()!.verdictLegalite }} — Score {{ result()!.scoreConformite }}/100
+      </span>
+    }
+    <mat-icon class="protection-rp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="protection-rp-body" class="protection-rp-body">
+      @if (!isFrance()) {
+        <div class="protection-rp-banner protection-rp-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="protection-rp-banner-content">
+            <div class="protection-rp-banner-title">Outil français uniquement</div>
+            <div class="protection-rp-banner-sub">
+              La protection statutaire des représentants du personnel
+              (art. L.2411-1 et s. CT — autorisation préalable de l'inspection
+              du travail) est propre au droit du travail français. L'équivalent
+              belge (loi du 19 mars 1991 sur les délégués du personnel) est
+              traité dans une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="protection-rp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="protection-rp-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="protection-rp-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Statut protégé (L.2411-1 et s.) -->
+              <fieldset class="protection-rp-fieldset">
+                <legend class="protection-rp-legend">
+                  <mat-icon>badge</mat-icon>
+                  Statut protégé (L.2411-1 et s.)
+                </legend>
+
+                <div class="protection-rp-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="statutProtege()"
+                                   (ngModelChange)="onStatutProtegeChange($event)"
+                                   name="statutProtege">
+                    @for (opt of statutProtegeOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Période de protection (mandat + 6 mois) -->
+              <fieldset class="protection-rp-fieldset">
+                <legend class="protection-rp-legend">
+                  <mat-icon>event</mat-icon>
+                  Période de protection (L.2411-1 al. 2)
+                </legend>
+
+                <div class="protection-rp-grid">
+                  <div class="protection-rp-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date d'expiration du mandat</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateExpirationMandat()"
+                             (ngModelChange)="onDateExpirationMandatChange($event)"
+                             name="dateExpirationMandat" />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="protection-rp-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date présumée de rupture</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="datePresumeeRupture()"
+                             (ngModelChange)="onDatePresumeeRuptureChange($event)"
+                             name="datePresumeeRupture" />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Procédure suivie -->
+              <fieldset class="protection-rp-fieldset">
+                <legend class="protection-rp-legend">
+                  <mat-icon>gavel</mat-icon>
+                  Procédure d'autorisation IT (L.2411-3)
+                </legend>
+
+                <div class="protection-rp-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="procedureSuivie()"
+                                   (ngModelChange)="onProcedureSuivieChange($event)"
+                                   name="procedureSuivie">
+                    @for (opt of procedureSuivieOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 4 : Motif de licenciement + salaire -->
+              <fieldset class="protection-rp-fieldset">
+                <legend class="protection-rp-legend">
+                  <mat-icon>article</mat-icon>
+                  Motif et salaire
+                </legend>
+
+                <div class="protection-rp-radio-group">
+                  <span class="protection-rp-radio-label">Motif de licenciement</span>
+                  <mat-radio-group required
+                                   [ngModel]="motifLicenciement()"
+                                   (ngModelChange)="onMotifLicenciementChange($event)"
+                                   name="motifLicenciement">
+                    @for (opt of motifLicenciementOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="protection-rp-motif-meta">
+                    @if (provenanceMotifLicenciement() === 'IA') {
+                      <span class="protection-rp-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().MOTIF_LICENCIEMENT; as alert) {
+                      <span class="protection-rp-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="protection-rp-field-wrapper">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Salaire mensuel brut (€, optionnel)</mat-label>
+                    <input matInput type="number" min="0" step="100"
+                           [ngModel]="salaireMensuelBrutEur()"
+                           (ngModelChange)="onSalaireChange($event)"
+                           name="salaireMensuelBrutEur" />
+                  </mat-form-field>
+                </div>
+              </fieldset>
+
+              <div class="protection-rp-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="protection-rp-result">
+              <div [class]="bannerClass(result()!.verdictLegalite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictLegalite === 'NUL' ? 'gpp_bad' :
+                     result()!.verdictLegalite === 'CONTESTABLE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="protection-rp-banner-content">
+                  <div class="protection-rp-banner-title">
+                    Verdict : {{ result()!.verdictLegalite }}
+                    @if (result()!.salarieEncoreProtege) {
+                      — Salarié dans la période de protection
+                    } @else {
+                      — Hors période de protection
+                    }
+                  </div>
+                  <div class="protection-rp-banner-sub">
+                    Score conformité : {{ result()!.scoreConformite | number:'1.0-0' }} / 100
+                    — Délai contestation : {{ result()!.delaiContestationJours }} jours (R.2422-1)
+                  </div>
+                  @if (result()!.verdictLegalite === 'NUL' && result()!.indemniteForfaitaireMinEur > 0) {
+                    <div class="protection-rp-indemnite-block">
+                      <span class="protection-rp-indemnite-label">Indemnité forfaitaire minimale (≥ 6 × salaire — L.2422-1)</span>
+                      <span class="protection-rp-indemnite-value">
+                        {{ result()!.indemniteForfaitaireMinEur | number:'1.2-2' }} €
+                      </span>
+                      @if (result()!.salaireEvictionPotentielEur > 0) {
+                        <span class="protection-rp-eviction">
+                          + Salaires éviction estimés : {{ result()!.salaireEvictionPotentielEur | number:'1.2-2' }} €
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              @if (result()!.criteresRemplis?.length) {
+                <div class="protection-rp-criteres protection-rp-criteres--ok">
+                  <div class="protection-rp-criteres-label">Critères remplis ({{ result()!.criteresRemplis.length }})</div>
+                  <ul class="protection-rp-criteres-list">
+                    @for (c of result()!.criteresRemplis; track c) {
+                      <li>{{ critereLabel(c) }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.criteresManquants?.length) {
+                <div class="protection-rp-criteres protection-rp-criteres--ko">
+                  <div class="protection-rp-criteres-label">Critères manquants ({{ result()!.criteresManquants.length }})</div>
+                  <ul class="protection-rp-criteres-list">
+                    @for (c of result()!.criteresManquants; track c) {
+                      <li>{{ critereLabel(c) }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="protection-rp-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="protection-rp-formule-block">
+                  <span class="protection-rp-formule-label">Formule</span>
+                  <span class="protection-rp-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="protection-rp-meta">
+                <span class="protection-rp-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
