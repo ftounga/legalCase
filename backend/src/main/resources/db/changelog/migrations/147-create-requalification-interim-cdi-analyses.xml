@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="147-create-requalification-interim-cdi-analyses" author="legalcase">
+        <comment>
+            SF-DT-23-01 : table dédiée à l'outil décisionnel "Requalification intérim → CDI"
+            (art. L.1251-40, L.1251-41, L.1251-32, L.1251-36 Code du travail) + règle
+            d'affichage F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 58).
+            Pattern jumeau de F-DT-22 (CDD → CDI), adapté à la relation triangulaire intérim.
+        </comment>
+
+        <createTable tableName="requalification_interim_cdi_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_requalification_interim_cdi_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="motif_interim_invoque" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_interdit" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_interdit_type" type="varchar(50)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="delai_carence_respecte" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_missions_totale_mois" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_brut_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_derniere_mission" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="meme_entreprise_utilisatrice" type="boolean">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score_requalification" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="requalification_interim_cdi_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_requalification_interim_cdi_analyses_case_file"/>
+
+        <createIndex tableName="requalification_interim_cdi_analyses"
+                     indexName="idx_requalification_interim_cdi_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql>
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000231', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-23-requalification-interim-cdi', 'ALWAYS_ON', NULL, NULL, 58);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000231';
+            </sql>
+            <dropTable tableName="requalification_interim_cdi_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
