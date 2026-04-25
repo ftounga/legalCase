@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="150-create-transaction-analyses" author="legalcase">
+        <comment>
+            SF-DT-31-01 : table dédiée à l'outil décisionnel "Transaction / protocole
+            transactionnel — analyse de validité" (art. 2044 à 2052 Cciv +
+            Cass. soc. 16/12/2010 n° 09-67.679 sur les concessions réciproques).
+            FRANCE uniquement (pendant BE = feature jumelle backlog : Loi 03/07/1978 + CCT).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI sans
+            recalcul.
+
+            Règle d'affichage F-IA-04 : ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 61.
+        </comment>
+
+        <createTable tableName="transaction_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_transaction_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="transaction_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_transaction_analyses_case_file"/>
+
+        <createIndex tableName="transaction_analyses"
+                     indexName="idx_transaction_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql>
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000311', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-31-transaction', 'ALWAYS_ON', NULL, NULL, 61);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000311';
+            </sql>
+            <dropTable tableName="transaction_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
