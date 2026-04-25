@@ -77,6 +77,22 @@ public class MajeursProtegesAnalysis {
     @Column(name = "altertation_grave")
     private Boolean altertationGrave;
 
+    /**
+     * SF-FA-25-05 : critère pivot art. 477 Cciv pour mandat de protection
+     * future. true = la personne avait signé un mandat AVANT l'altération.
+     * Nullable pour rester compatible avec les analyses persistées avant la
+     * migration 161.
+     */
+    @Column(name = "mandat_prealable_signe")
+    private Boolean mandatPrealableSigne;
+
+    /**
+     * SF-FA-25-05 : forme du mandat de protection future
+     * (NOTARIE art. 489 vs SOUS_SEING_PRIVE art. 492). Nullable.
+     */
+    @Column(name = "forme_mandat_protection", length = 30)
+    private String formeMandatProtection;
+
     @Column(name = "country", nullable = false, length = 20)
     private String country;
 

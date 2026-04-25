@@ -19,6 +19,11 @@ import java.util.List;
  * grave et durable empêchant la personne de pourvoir seule à ses intérêts)
  * de la curatelle.
  *
+ * <p>SF-FA-25-05 : extension pour mandat de protection future
+ * (art. 477-494) — ajout des champs {@code mandatPrealableSigne} (input
+ * pivot art. 477) et {@code formeMandatProtection} (NOTARIE art. 489 vs
+ * SOUS_SEING_PRIVE art. 492). Clôt F-FA-25 6/6 régimes.
+ *
  * <p>Outil single-country FR — DROIT_FAMILLE.
  */
 public record MajeursProtegesResult(
@@ -35,6 +40,8 @@ public record MajeursProtegesResult(
         boolean isolementSocial,
         boolean incapaciteGestionQuotidienne,
         boolean altertationGrave,
+        boolean mandatPrealableSigne,
+        String formeMandatProtection,
         int scoreEligibilite,
         String regimeOptimalRecommande,
         String verdictAcceptabiliteJaf,
@@ -62,6 +69,8 @@ public record MajeursProtegesResult(
             @JsonProperty("isolementSocial") boolean isolementSocial,
             @JsonProperty("incapaciteGestionQuotidienne") boolean incapaciteGestionQuotidienne,
             @JsonProperty("altertationGrave") boolean altertationGrave,
+            @JsonProperty("mandatPrealableSigne") boolean mandatPrealableSigne,
+            @JsonProperty("formeMandatProtection") String formeMandatProtection,
             @JsonProperty("scoreEligibilite") int scoreEligibilite,
             @JsonProperty("regimeOptimalRecommande") String regimeOptimalRecommande,
             @JsonProperty("verdictAcceptabiliteJaf") String verdictAcceptabiliteJaf,
@@ -87,6 +96,8 @@ public record MajeursProtegesResult(
         this.isolementSocial = isolementSocial;
         this.incapaciteGestionQuotidienne = incapaciteGestionQuotidienne;
         this.altertationGrave = altertationGrave;
+        this.mandatPrealableSigne = mandatPrealableSigne;
+        this.formeMandatProtection = formeMandatProtection;
         this.scoreEligibilite = scoreEligibilite;
         this.regimeOptimalRecommande = regimeOptimalRecommande;
         this.verdictAcceptabiliteJaf = verdictAcceptabiliteJaf;

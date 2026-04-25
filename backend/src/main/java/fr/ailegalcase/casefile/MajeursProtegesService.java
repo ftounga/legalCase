@@ -85,6 +85,9 @@ public class MajeursProtegesService {
         boolean incapaciteQuotidienne = Boolean.TRUE.equals(request.incapaciteGestionQuotidienne());
         // SF-FA-25-04 : critère pivot art. 440 al. 3 (tutelle) — null = false
         boolean altertationGrave = Boolean.TRUE.equals(request.altertationGrave());
+        // SF-FA-25-05 : critères pivots mandat de protection future
+        boolean mandatPrealableSigne = Boolean.TRUE.equals(request.mandatPrealableSigne());
+        String formeMandatProtection = request.formeMandatProtection();
 
         MajeursProtegesResult result;
         try {
@@ -101,7 +104,9 @@ public class MajeursProtegesService {
                     patrimoine,
                     isolement,
                     incapaciteQuotidienne,
-                    altertationGrave);
+                    altertationGrave,
+                    mandatPrealableSigne,
+                    formeMandatProtection);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -127,6 +132,9 @@ public class MajeursProtegesService {
         entity.setIncapaciteGestionQuotidienne(result.incapaciteGestionQuotidienne());
         // SF-FA-25-04 : persistance du critère pivot tutelle
         entity.setAltertationGrave(result.altertationGrave());
+        // SF-FA-25-05 : persistance des critères pivots mandat de protection future
+        entity.setMandatPrealableSigne(result.mandatPrealableSigne());
+        entity.setFormeMandatProtection(result.formeMandatProtection());
         entity.setCountry(country);
         entity.setResultData(serialize(result));
         repository.save(entity);
@@ -201,6 +209,8 @@ public class MajeursProtegesService {
                 r.isolementSocial(),
                 r.incapaciteGestionQuotidienne(),
                 r.altertationGrave(),
+                r.mandatPrealableSigne(),
+                r.formeMandatProtection(),
                 r.scoreEligibilite(),
                 r.regimeOptimalRecommande(),
                 r.verdictAcceptabiliteJaf(),

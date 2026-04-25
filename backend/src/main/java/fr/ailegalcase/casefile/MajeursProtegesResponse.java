@@ -14,6 +14,11 @@ import java.util.UUID;
  *
  * <p>SF-FA-25-04 : ajout du champ {@code altertationGrave} (art. 440 al. 3)
  * pour le régime tutelle.
+ *
+ * <p>SF-FA-25-05 : ajout des champs {@code mandatPrealableSigne} (art. 477)
+ * et {@code formeMandatProtection} (NOTARIE / SOUS_SEING_PRIVE — art. 489
+ * / 492) pour le régime mandat de protection future. Clôt F-FA-25 6/6
+ * régimes.
  */
 public record MajeursProtegesResponse(
         UUID caseFileId,
@@ -30,6 +35,8 @@ public record MajeursProtegesResponse(
         boolean isolementSocial,
         boolean incapaciteGestionQuotidienne,
         boolean altertationGrave,
+        boolean mandatPrealableSigne,
+        String formeMandatProtection,
         int scoreEligibilite,
         String regimeOptimalRecommande,
         String verdictAcceptabiliteJaf,
