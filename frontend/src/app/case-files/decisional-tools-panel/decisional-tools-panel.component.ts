@@ -38,6 +38,7 @@ import { ImmigrationWorkRightSectionComponent } from '../immigration-work-right-
 import { ImmigrationChecklistSectionComponent } from '../immigration-checklist-section/immigration-checklist-section.component';
 import { HarcelementLicenciementNulSectionComponent } from '../harcelement-licenciement-nul-section/harcelement-licenciement-nul-section.component';
 import { DiscriminationSectionComponent } from '../discrimination-section/discrimination-section.component';
+import { LicenciementEconomiqueSectionComponent } from '../licenciement-economique-section/licenciement-economique-section.component';
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 import { IndemnitePrecariteCddSectionComponent } from '../indemnite-precarite-cdd-section/indemnite-precarite-cdd-section.component';
@@ -199,6 +200,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           workspaceCountry: ctx.workspaceCountry,
           // SF-DT-12-02 : pré-fill IA palier 1 (salaire uniquement) +
           // validation F-IA-03.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-13-licenciement-economique', {
+        component: LicenciementEconomiqueSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-13-02 : pré-fill IA (motifLicenciement → motifEconomique,
+          // dateLicenciement → dateNotification) + validation F-IA-03 sur
+          // MOTIF_ECONOMIQUE + DATE_NOTIFICATION (multi-sources IA / F96 /
+          // QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

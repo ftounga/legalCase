@@ -1,0 +1,307 @@
+<section class="lec-section">
+  <header class="lec-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="lec-body">
+    <mat-icon class="lec-icon">gavel</mat-icon>
+    <span class="lec-title">LICENCIEMENT ÉCONOMIQUE (FR) — ART. L.1233-3/4/5/45</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdictRisqueRequalification)">
+        {{ verdictRisqueLabel(result()!.verdictRisqueRequalification) }}
+      </span>
+    }
+    <mat-icon class="lec-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="lec-body" class="lec-body">
+      @if (!isFrance()) {
+        <div class="lec-banner lec-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="lec-banner-content">
+            <div class="lec-banner-title">Outil applicable à la France uniquement</div>
+            <div class="lec-banner-sub">
+              Pour la Belgique, voir l'outil "PSE Loi Renault" (F-DT-14 — à venir).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="lec-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="lec-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="lec-form" (ngSubmit)="calculate()">
+              <!-- Motif économique invoqué (mat-select simple). -->
+              <div class="lec-field-with-alert lec-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif économique invoqué (L.1233-3)</mat-label>
+                  <mat-select
+                      [ngModel]="motifEconomiqueInvoque()"
+                      (ngModelChange)="onMotifChange($event)"
+                      name="motifEconomiqueInvoque" required>
+                    @for (m of motifsOptions; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotif() === 'IA') {
+                  <span class="lec-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MOTIF_ECONOMIQUE; as alert) {
+                  <span class="lec-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MOTIF_ECONOMIQUE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Preuves matérielles (mat-select multiple). -->
+              <div class="lec-field-with-alert lec-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Preuves matérielles du motif</mat-label>
+                  <mat-select multiple
+                              [ngModel]="preuvesMotif()"
+                              (ngModelChange)="onPreuvesChange($event)"
+                              name="preuvesMotif">
+                    @for (p of preuvesOptions; track p.code) {
+                      <mat-option [value]="p.code">{{ p.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Critères d'ordre appliqués (mat-select multiple). -->
+              <div class="lec-field-with-alert lec-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Critères d'ordre appliqués (L.1233-5)</mat-label>
+                  <mat-select multiple
+                              [ngModel]="criteresOrdreAppliques()"
+                              (ngModelChange)="onCriteresChange($event)"
+                              name="criteresOrdreAppliques">
+                    @for (c of criteresOptions; track c.code) {
+                      <mat-option [value]="c.code">
+                        {{ c.label }}{{ c.obligatoire ? ' (obligatoire)' : '' }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Âge salarié. -->
+              <div class="lec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Âge du salarié (années)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="salarieAge()"
+                         (ngModelChange)="onSalarieAgeChange($event)"
+                         name="salarieAge" />
+                </mat-form-field>
+              </div>
+
+              <!-- Ancienneté en mois. -->
+              <div class="lec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ancienneté du salarié (mois)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="salarieAncienneteMois()"
+                         (ngModelChange)="onSalarieAncienneteChange($event)"
+                         name="salarieAncienneteMois" />
+                </mat-form-field>
+              </div>
+
+              <!-- Charges famille. -->
+              <div class="lec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Personnes à charge</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="salarieChargesFamille()"
+                         (ngModelChange)="onSalarieChargesChange($event)"
+                         name="salarieChargesFamille" />
+                </mat-form-field>
+              </div>
+
+              <!-- Qualités professionnelles (mat-select simple). -->
+              <div class="lec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Qualités professionnelles</mat-label>
+                  <mat-select
+                      [ngModel]="salarieQualitesProf()"
+                      (ngModelChange)="onQualitesProfChange($event)"
+                      name="salarieQualitesProf">
+                    @for (q of qualitesOptions; track q.code) {
+                      <mat-option [value]="q.code">{{ q.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Tentatives de reclassement (mat-select multiple). -->
+              <div class="lec-field-with-alert lec-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Tentatives de reclassement (L.1233-4)</mat-label>
+                  <mat-select multiple
+                              [ngModel]="tentativesReclassement()"
+                              (ngModelChange)="onTentativesChange($event)"
+                              name="tentativesReclassement">
+                    @for (t of tentativesOptions; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Toggles priorité réembauche + congé reclassement. -->
+              <div class="lec-toggle-row lec-field-full">
+                <mat-slide-toggle
+                    [ngModel]="prioriteReembauchePropose()"
+                    (ngModelChange)="onPrioriteReembaucheChange($event)"
+                    name="prioriteReembauchePropose">
+                  Priorité de réembauche L.1233-45 proposée (mention obligatoire)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="lec-toggle-row lec-field-full">
+                <mat-slide-toggle
+                    [ngModel]="congeReclassementPropose()"
+                    (ngModelChange)="onCongeReclassementChange($event)"
+                    name="congeReclassementPropose">
+                  Congé de reclassement L.1233-71 proposé (entreprises ≥ 1 000 salariés)
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Date notification (datepicker natif). -->
+              <div class="lec-field-with-alert lec-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification du licenciement</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateNotification()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotification" required />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="lec-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="lec-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="lec-actions lec-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le risque de requalification</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="lec-result">
+              <!-- Bannière verdict global. -->
+              <div [class]="verdictBannerClass(result()!.verdictRisqueRequalification)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdictRisqueRequalification) }}</mat-icon>
+                <div class="lec-banner-content">
+                  <div class="lec-banner-title">
+                    {{ verdictRisqueLabel(result()!.verdictRisqueRequalification) }}
+                  </div>
+                  <div class="lec-banner-sub">
+                    Score global : {{ result()!.scoreGlobal }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3 cartes : Causalité / Critères ordre / Reclassement. -->
+              <div class="lec-cards-row">
+                <div class="lec-card">
+                  <span class="lec-card-label">Causalité (L.1233-3)</span>
+                  <span class="lec-card-value">{{ result()!.scoreCausalite }} / 100</span>
+                  <span class="lec-card-sub">Motif économique + preuves matérielles</span>
+                </div>
+
+                <div class="lec-card">
+                  <span class="lec-card-label">Critères d'ordre (L.1233-5)</span>
+                  <span class="lec-card-value">{{ result()!.scoreCriteresOrdre }} / 100</span>
+                  @if (result()!.criteresOrdreObligatoiresOk) {
+                    <span class="lec-card-sub lec-card-sub--ok">4 critères obligatoires OK</span>
+                  } @else {
+                    <span class="lec-card-sub lec-card-sub--warn">
+                      {{ result()!.criteresOrdreManquants.length }} critère(s) obligatoire(s) manquant(s)
+                    </span>
+                  }
+                </div>
+
+                <div class="lec-card">
+                  <span class="lec-card-label">Reclassement (L.1233-4 + L.1233-45)</span>
+                  <span class="lec-card-value">{{ result()!.scoreReclassement }} / 100</span>
+                  @if (result()!.obligationReclassementRespectee) {
+                    <span class="lec-card-sub lec-card-sub--ok">Obligation respectée</span>
+                  } @else {
+                    <span class="lec-card-sub lec-card-sub--warn">Obligation non respectée</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Critères d'ordre manquants (chips). -->
+              @if (result()!.criteresOrdreManquants?.length) {
+                <div class="lec-missing-block">
+                  <span class="lec-missing-label">Critères d'ordre manquants</span>
+                  <mat-chip-set class="lec-missing-chips">
+                    @for (c of result()!.criteresOrdreManquants; track c) {
+                      <mat-chip>{{ critereOrdreLabel(c) }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="lec-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule (JetBrains Mono). -->
+              @if (result()!.formule) {
+                <div class="lec-formule-block">
+                  <span class="lec-formule-label">Formule</span>
+                  <span class="lec-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="lec-meta">
+                <span class="lec-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
