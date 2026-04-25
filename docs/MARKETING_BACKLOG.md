@@ -29,6 +29,14 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 ---
 
+## 🧭 Cadrage stratégique
+
+| ID | Action | Priorité | Statut | Notes |
+|----|--------|----------|--------|-------|
+| M-71 | Cadrage budget marketing 2026 H2 — enveloppe globale et arbitrage canaux | Haute | `Terminé` | Document de référence : `docs/marketing/m71-budget-cadrage-2026h2.md` (v1 2026-04-25). **Plan B-dynamique** : Tranche 1 = **13 000 € déployés mois 0** (Transfodroit atelier 3 500 € + vidéo 1 200 € + Village 600 € + Google Ads 1 500 € + SDR 2 400 € + Belgique 500 € + barreaux 1 000 € + voix off 200 € + déplacements 500 € + réserve activable 1 800 €). Tranche 2 = **9 000 € dry powder** activable à T+3 sur le canal gagnant (audit ≈ 2026-07-25). Pricing F-123 : ARR 2 300 €/an, LTV 3 ans 6 000 €. ROI Y1 attendu **2,8×**. Gouvernance CLAUDE.md règle 2 : toute nouvelle tâche M-XX > 1 000 € doit être justifiée contre ce document. |
+
+---
+
 ## 🌐 Site & Landing page
 
 | ID | Action | Priorité | Statut | Notes |
@@ -102,6 +110,10 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-68 | CNB — référencement dans l'annuaire des solutions numériques pour avocats | Haute | `À faire` | Le CNB référence des solutions sur cnb.avocat.fr. Vérifier les conditions d'inscription, monter le dossier (présentation produit, conformité RGPD, hébergement, secret pro). |
 | M-69 | Convention Nationale des Avocats — présence/sponsoring | Moyenne | `À faire` | Événement annuel CNB. Évaluer coût stand vs simple présence. À budgéter sur l'enveloppe M-58 ou en complément. |
 | M-70 | CNB — partenariat formation continue (EFB / écoles d'avocats) | Moyenne | `À faire` | Toute heure de formation comptabilisée par les EFB est un canal d'acquisition massif. Proposer un module "IA et droit du travail" comme cas d'usage de l'outil. |
+| M-72 | Village de la Justice — sondage Transfodroit 2026 (atelier sponsorisé + Technodroit + table ronde) | Haute | `À faire` | Cadré par M-71. Capitaliser sur M-53 en cours via Christophe Albert. Demander : (a) tarifs et conditions atelier sponsorisé 30 min Transfodroit (budget alloué 3 500 €), (b) conditions et deadline du concours **Technodroit 2026** (pitch jeunes legaltechs — si retenu, économie 3 500 € à réallouer en Tranche 1 réserve), (c) ouverture intervention table ronde. Output : tableau récap conditions + recommandation. Effort : 0,5 j. |
+| M-73 | One-pager traction commerciale présentable | Haute | `À faire` | Compile données déjà disponibles (F-76 dashboard super-admin Terminée + F-119 tracking conversion Terminée + retours qualitatifs M-44/M-62) en asset PDF/Slide réutilisable pour pitch deck M-40, candidature Technodroit, AMI France Legaltech M-75, outreach M-41/M-44, présentation CNB M-67. Effort : 0,5 j. |
+| M-74 | Candidature Technodroit 2026 (concours jeunes legaltechs) | Moyenne | `Bloqué` | Bloqué par M-72 (modalités à confirmer) + M-73 (asset traction). Format pitch scène devant jury, généralement gratuit ou peu cher. Dossier : démo M-11, pitch deck M-40, traction M-73, brief souveraineté M-60. Effort : 2 j. |
+| M-75 | Veille AMI France Legaltech 2027 (DGE / Mission French Tech) | Basse | `À faire` | Surveiller annonce DGE / Mission French Tech (probable T4 2026 pour vague 2027). Première promotion 2026 = 10 lauréats annoncés au AI Day 2026 (Dastra, Pappers Justice, Legapass…). Préparer dossier en amont (réutilise M-40 + M-73). Effort : 0,25 j veille + 2 j candidature le moment venu. |
 
 ### 🇧🇪 Belgique
 
@@ -114,9 +126,11 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 
 ---
 
-## 🎯 Stratégie acquisition 7 000€
+## 🎯 Stratégie acquisition 13 000 € — Plan B-dynamique (cadré par M-71)
 
-Séquence à respecter : M-53 (crédibilité) + M-55 (vidéo) en parallèle → M-56 (Google Ads) + M-57 (SDR) → M-58 (événements).
+> 🧭 Cadrage de référence : `docs/marketing/m71-budget-cadrage-2026h2.md`. La présente section liste les tâches opérationnelles ; le doc M-71 fixe l'enveloppe (13 K€ Tranche 1 + 9 K€ Tranche 2 dry powder), le ROI attendu (2,8× Y1), et l'audit T+3.
+
+Séquence à respecter : M-53 (crédibilité) + M-55 (vidéo) en parallèle → M-56 (Google Ads) + M-57 (SDR) → M-72 (sondage Transfodroit) → atelier sponsorisé OU Technodroit → M-58 (barreaux locaux).
 
 | ID | Action | Budget | Priorité | Statut | Dépendances | Notes |
 |----|--------|--------|----------|--------|-------------|-------|
@@ -126,8 +140,8 @@ Séquence à respecter : M-53 (crédibilité) + M-55 (vidéo) en parallèle → 
 | M-57 | SDR freelance — 6 semaines | 2 400€ | Haute | `À faire` | M-55 intégré sur landing | Recruter sur Malt. Profil : SDR expérience SaaS B2B ou professions libérales. Mission : 10-20 RDV qualifiés avocats droit du travail Paris/IDF. Valider ses messages avant envoi. |
 | M-58 | Événements barreaux / associations avocats | 1 000€ | Moyenne | `À faire` | Aucune | 2 événements du trimestre : barreau Paris, FNUJA, LegalTech Hub Paris. Présence physique = conversion 10x LinkedIn. |
 
-**Budget total stratégie France : 800€ M-53 + 1 000€ M-11 + 1 500€ M-56 + 2 400€ M-57 + 1 000€ M-58 = ~6 700€**
-**Budget additionnel Belgique : 0-500€ M-65 (partenariat éditorial BE, à évaluer). M-63 (Google Ads BE) pris sur l'enveloppe M-56.**
+**Tranche 1 (13 000 € — déployable mois 0)** : 600 € M-53 + 1 200 € M-11 + 1 500 € M-56 + 2 400 € M-57 + 1 000 € M-58 + 500 € M-65 + 3 500 € atelier Transfodroit (M-72 si non Technodroit) + 500 € déplacements + 200 € voix off + 1 800 € réserve activable.
+**Tranche 2 (9 000 € — dry powder activable T+3)** : déploiement conditionné à l'audit signal (cf. M-71 §7). Cible : doublement canal gagnant, 2ᵉ événement, ou cycle SDR additionnel.
 
 ---
 
