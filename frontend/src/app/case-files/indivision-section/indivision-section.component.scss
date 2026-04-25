@@ -1,0 +1,488 @@
+// SF-FA-22-02 : styles outil décisionnel Indivision post-communautaire
+// (art. 815 et s. Cciv) — palette navy/or famille (DESIGN_SYSTEM.md).
+// JetBrains Mono pour `baseJuridique` + `formule` + montants en €.
+// Pattern aligné sur `harcelement-licenciement-nul-section` (canonical),
+// `recompenses-section` (palette famille) et `desaccords-parentaux-section`
+// (multi-select + CSV).
+
+.indivision-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.indivision-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.indivision-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.indivision-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.indivision-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.indivision-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.indivision-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.indivision-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'Inter', sans-serif;
+}
+
+// Bannière info gate FRANCE — palette navy clair (info_outline).
+.country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #EAF1F8;
+  border: 1px solid #1A3A5C;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Résumé global "N incohérence(s) avec l'analyse" — palette or soutenu (warning).
+.indivision-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.indivision-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Wrapper d'un field avec badge IA + alerte cohérence sous le field.
+.indivision-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  .form-field-wide {
+    width: 100%;
+  }
+}
+
+.form-field-wide {
+  width: 100%;
+}
+
+// Badge "Pré-rempli depuis l'analyse" — navy + icône or.
+.indivision-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.indivision-hint {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.indivision-hint-mono {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Badge alerte cohérence (hover → popover F-IA-03-15b).
+.indivision-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+// Warning hint en ligne (sous quotes-part).
+.indivision-warning-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #F59E0B;
+  }
+}
+
+.indivision-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.indivision-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #F7FAFC;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.indivision-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+// --------------------------------------------------------------------------
+// Résultat
+// --------------------------------------------------------------------------
+
+.indivision-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Bannière verdict — palette navy/or/rouge selon urgence.
+.indivision-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+}
+
+.indivision-verdict-banner--success {
+  background: rgba(26, 58, 92, 0.06);
+  border-color: #1A3A5C;
+  color: #1A3A5C;
+  mat-icon { color: #1A3A5C; }
+}
+
+.indivision-verdict-banner--info {
+  background: #EAF1F8;
+  border-color: #1A3A5C;
+  color: #1A3A5C;
+  mat-icon { color: #1A3A5C; }
+}
+
+.indivision-verdict-banner--warning {
+  background: #FEF7E6;
+  border-color: #F59E0B;
+  color: #92400E;
+  mat-icon { color: #F59E0B; }
+}
+
+.indivision-verdict-banner--danger {
+  background: #FDEBEC;
+  border-color: #C0383F;
+  color: #7A1F25;
+  mat-icon { color: #C0383F; }
+}
+
+.indivision-verdict-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.indivision-verdict-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+.indivision-verdict-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.indivision-score-badge {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+// 4 cartes recommandations.
+.indivision-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.indivision-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #F7FAFC;
+  border: 1px solid #E0E4EA;
+  border-left: 4px solid #E0E4EA;
+  border-radius: 6px;
+
+  mat-icon {
+    color: #6a7485;
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.indivision-card--active {
+  background: rgba(201, 165, 75, 0.08);
+  border-left-color: var(--ds-accent-gold, #c9a54b);
+
+  mat-icon {
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.indivision-card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.indivision-card-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.indivision-card-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 10px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Métriques (indemnité + délai).
+.indivision-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.indivision-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #1A3A5C;
+  color: #FFFFFF;
+  border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+}
+
+.indivision-metric-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+.indivision-metric-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.indivision-metric-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+// Base juridique + formule.
+.indivision-juridique {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #F7FAFC;
+  border: 1px solid #E0E4EA;
+  border-radius: 6px;
+}
+
+.indivision-juridique-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.indivision-juridique-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.indivision-juridique-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-primary, #1a2330);
+  background: rgba(26, 35, 48, 0.05);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.indivision-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.indivision-messages {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+
+    code {
+      font-family: 'JetBrains Mono', 'Menlo', monospace;
+      font-size: 0.95em;
+      background: rgba(26, 35, 48, 0.05);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+  }
+}
