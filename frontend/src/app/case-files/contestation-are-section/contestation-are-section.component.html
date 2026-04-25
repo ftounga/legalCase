@@ -1,0 +1,264 @@
+<section class="ca-section">
+  <header class="ca-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ca-body">
+    <mat-icon class="ca-icon">how_to_vote</mat-icon>
+    <span class="ca-title">CONTESTATION ARE — FRANCE TRAVAIL (EX-PÔLE EMPLOI)</span>
+    @if (result()) {
+      <span class="ca-chip"
+            [class.ca-chip--primary]="result()!.verdictRecommandation === 'RECOURS_HIERARCHIQUE_PRIORITAIRE'"
+            [class.ca-chip--accent]="result()!.verdictRecommandation === 'CONTENTIEUX_TA_DIRECT_POSSIBLE'"
+            [class.ca-chip--danger]="result()!.verdictRecommandation === 'INSUFFISAMMENT_FONDE'"
+            [class.ca-chip--info]="result()!.verdictRecommandation === 'AUTRE_VOIE'">
+        {{ verdictLabel(result()!.verdictRecommandation) }}
+      </span>
+    }
+    <mat-icon class="ca-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ca-body" class="ca-body">
+      @if (!isFrance()) {
+        <div class="ca-banner ca-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="ca-banner-content">
+            <div class="ca-banner-title">Contestation ARE — procédure française uniquement</div>
+            <div class="ca-banner-sub">
+              France Travail (ex-Pôle emploi) est l'organisme français. La Belgique
+              dispose d'une procédure ONEM distincte non couverte par cet outil.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="ca-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="ca-coherence-summary"
+                   [class.ca-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="ca-form" (ngSubmit)="analyze()">
+              <div class="ca-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de décision contestée</mat-label>
+                  <mat-select required
+                              [ngModel]="typeDecisionContestee()"
+                              (ngModelChange)="onTypeDecisionChange($event)"
+                              name="typeDecisionContestee">
+                    @for (t of typesDecision; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="ca-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif de contestation</mat-label>
+                  <mat-select required
+                              [ngModel]="motifContestation()"
+                              (ngModelChange)="onMotifChange($event)"
+                              name="motifContestation">
+                    @for (m of motifsContestation; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="ca-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification France Travail</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationDecision()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationDecision" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="ca-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de recours hiérarchique proposée</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateRecoursHierarchiquePropose()"
+                         (ngModelChange)="onDateRecoursChange($event)"
+                         name="dateRecoursHierarchiquePropose" />
+                </mat-form-field>
+              </div>
+
+              <div class="ca-field-wrap ca-full-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Preuves produites</mat-label>
+                  <mat-select multiple
+                              [ngModel]="preuvesProduites()"
+                              (ngModelChange)="onPreuvesChange($event)"
+                              name="preuvesProduites">
+                    @for (p of preuvesOptions; track p.code) {
+                      <mat-option [value]="p.code">{{ p.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="ca-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Montant contesté (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01" required
+                         [ngModel]="montantContesteEur()"
+                         (ngModelChange)="onMontantChange($event)"
+                         name="montantContesteEur" />
+                </mat-form-field>
+              </div>
+
+              <div class="ca-toggle-row ca-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="demandeurDejaSaisiTribunal()"
+                    (ngModelChange)="onTribunalChange($event)"
+                    name="demandeurDejaSaisiTribunal">
+                  Demandeur a déjà saisi le tribunal administratif
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ca-toggle-row ca-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="delaiContestationRespecte()"
+                    (ngModelChange)="onDelaiRespecteChange($event)"
+                    name="delaiContestationRespecte">
+                  Délai de contestation respecté (2 mois à compter de la notification)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ca-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="ca-result">
+              <div [class]="verdictBannerClass(result()!.verdictRecommandation)" role="status">
+                <mat-icon>{{ verdictBannerIcon(result()!.verdictRecommandation) }}</mat-icon>
+                <div class="ca-banner-content">
+                  <div class="ca-banner-title-big">
+                    {{ verdictLabel(result()!.verdictRecommandation) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Score global -->
+              <div class="ca-score-block" [ngClass]="scoreClass(result()!.scoreSuccessProbable)">
+                <div class="ca-score-label">Probabilité de succès estimée</div>
+                <div class="ca-score-value">
+                  {{ result()!.scoreSuccessProbable }}<span class="ca-score-unit">/100</span>
+                </div>
+              </div>
+
+              <!-- 2 cartes parallèles : recours hiérarchique vs contentieux TA -->
+              <div class="ca-routes-grid">
+                <div class="ca-route-card"
+                     [class.ca-route-card--ok]="result()!.delaiRecoursHierarchiqueJoursOk"
+                     [class.ca-route-card--ko]="!result()!.delaiRecoursHierarchiqueJoursOk">
+                  <div class="ca-route-label">Recours hiérarchique France Travail</div>
+                  <div class="ca-route-status">
+                    @if (result()!.delaiRecoursHierarchiqueJoursOk) {
+                      <mat-icon class="ca-cond-ok">check_circle</mat-icon>
+                      <span>Délai 2 mois respecté — voie ouverte</span>
+                    } @else {
+                      <mat-icon class="ca-cond-ko">cancel</mat-icon>
+                      <span>Délai 2 mois dépassé — voie fermée</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="ca-route-card"
+                     [class.ca-route-card--ok]="result()!.delaiRecoursContentieuxTaJoursOk"
+                     [class.ca-route-card--ko]="!result()!.delaiRecoursContentieuxTaJoursOk">
+                  <div class="ca-route-label">Contentieux Tribunal Administratif</div>
+                  <div class="ca-route-status">
+                    @if (result()!.delaiRecoursContentieuxTaJoursOk) {
+                      <mat-icon class="ca-cond-ok">check_circle</mat-icon>
+                      <span>Délai 2 mois respecté — voie ouverte</span>
+                    } @else {
+                      <mat-icon class="ca-cond-ko">cancel</mat-icon>
+                      <span>Délai 2 mois dépassé — voie fermée</span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="ca-delai-block">
+                <mat-icon>schedule</mat-icon>
+                <div>
+                  <div class="ca-delai-label">Délai d'instruction prévisionnel</div>
+                  <div class="ca-delai-value">
+                    <span class="ca-delai-mono">{{ result()!.delaiInstructionMoisPrevisionnel }}</span>
+                    mois
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.expertiseTraitementSalaireRecommandee) {
+                <div class="ca-expertise-banner" role="note">
+                  <mat-icon>fact_check</mat-icon>
+                  <div>
+                    <div class="ca-expertise-title">Expertise du traitement salaire recommandée</div>
+                    <div class="ca-expertise-sub">
+                      Le motif "erreur de calcul de la rémunération de référence" justifie
+                      une analyse détaillée des bulletins de paie sur la période de référence.
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="ca-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="ca-formule-block">
+                  <span class="ca-formule-label">Formule</span>
+                  <span class="ca-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="ca-meta">
+                <span class="ca-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
