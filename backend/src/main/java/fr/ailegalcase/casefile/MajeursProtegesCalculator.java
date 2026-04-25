@@ -25,6 +25,17 @@ import java.util.Set;
  * et durable empêchant la personne de pourvoir seule à ses intérêts dans
  * les actes essentiels) distingue la tutelle des curatelles.
  *
+ * <p>SF-FA-25-05 : extension explicite du régime MANDAT_PROTECTION_FUTURE
+ * (art. 477-494 Cciv) — clôture F-FA-25 6/6 régimes. Mécanisme
+ * <b>anticipatif</b> et <b>contractuel</b> par lequel la personne, encore
+ * capable, désigne à l'avance un mandataire. Critères pivots :
+ * {@code mandatPrealableSigne} (true = mandat signé avant l'altération —
+ * art. 477) et {@code formeMandatProtection} (NOTARIE art. 489 vs
+ * SOUS_SEING_PRIVE art. 492). Le mandat est <b>prioritaire</b> dans
+ * l'arbre de décision dès lors que les conditions de mise en vigueur sont
+ * réunies (art. 481 — altération + cert médical), car il exprime la
+ * volonté anticipée de la personne (subsidiarité art. 428).
+ *
  * <p>L'outil :
  * <ul>
  *   <li>évalue un score 0-100 d'éligibilité (acceptabilité par le JCP)</li>
@@ -49,6 +60,10 @@ import java.util.Set;
  *
  * <p>Régime optimal recommandé selon arbre de décision :
  * <ol>
+ *   <li>SF-FA-25-05 : mandat préalable signé + altération + cert médical
+ *       (sauf urgence + sous seing privé qui doit céder à la sauvegarde
+ *       provisoire conservatoire) → MANDAT_PROTECTION_FUTURE (prioritaire
+ *       car expression anticipée de la volonté — subsidiarité art. 428)</li>
  *   <li>urgence patrimoniale + altération mentale (provisoire suffit) →
  *       SAUVEGARDE_JUSTICE</li>
  *   <li>famille proche + consentement + altération mentale + non urgent →
@@ -123,6 +138,23 @@ public final class MajeursProtegesCalculator {
      */
     public static final int MIN_CATEGORIES_ACTES_TUTELLE = 2;
 
+    /**
+     * SF-FA-25-05 : formes possibles du mandat de protection future
+     * (art. 489 mandat notarié vs art. 492 mandat sous seing privé).
+     */
+    public static final String FORME_NOTARIE = "NOTARIE";
+    public static final String FORME_SOUS_SEING_PRIVE = "SOUS_SEING_PRIVE";
+    public static final Set<String> FORMES_MANDAT = Set.of(
+            FORME_NOTARIE, FORME_SOUS_SEING_PRIVE);
+
+    /**
+     * SF-FA-25-05 : actes graves nécessitant la forme notariée
+     * (art. 493 — le mandat sous seing privé est limité à la gestion
+     * patrimoniale courante, pas les actes graves).
+     */
+    public static final Set<String> ACTES_GRAVES_REQUIERENT_NOTARIE = Set.of(
+            "GESTION_PATRIMOINE", "DECISIONS_LOGEMENT");
+
     private static final String BASE_JURIDIQUE =
             "Art. 433-441 + 494-1 et s. Cciv";
 
@@ -131,8 +163,9 @@ public final class MajeursProtegesCalculator {
 
     /**
      * Surcharge SF-FA-25-01 (backward compatible) : appelle la version
-     * étendue avec {@code incapaciteGestionQuotidienne = false} et
-     * {@code altertationGrave = false}.
+     * étendue avec {@code incapaciteGestionQuotidienne = false},
+     * {@code altertationGrave = false}, {@code mandatPrealableSigne = false}
+     * et {@code formeMandatProtection = null}.
      */
     public static MajeursProtegesResult compute(String regimeProtectionDemande,
                                                 boolean altertationFacultesMentales,
@@ -157,12 +190,16 @@ public final class MajeursProtegesCalculator {
                 patrimoineSignificatif,
                 isolementSocial,
                 false,
-                false);
+                false,
+                false,
+                null);
     }
 
     /**
      * Surcharge SF-FA-25-03 (backward compatible) : appelle la version
-     * étendue avec {@code altertationGrave = false}.
+     * étendue avec {@code altertationGrave = false},
+     * {@code mandatPrealableSigne = false} et
+     * {@code formeMandatProtection = null}.
      */
     public static MajeursProtegesResult compute(String regimeProtectionDemande,
                                                 boolean altertationFacultesMentales,
@@ -188,14 +225,15 @@ public final class MajeursProtegesCalculator {
                 patrimoineSignificatif,
                 isolementSocial,
                 incapaciteGestionQuotidienne,
-                false);
+                false,
+                false,
+                null);
     }
 
     /**
-     * SF-FA-25-04 : version étendue avec critères
-     * {@code incapaciteGestionQuotidienne} (pivot art. 472 pour curatelle
-     * renforcée) ET {@code altertationGrave} (pivot art. 440 al. 3 pour
-     * tutelle).
+     * Surcharge SF-FA-25-04 (backward compatible) : appelle la version
+     * étendue avec {@code mandatPrealableSigne = false} et
+     * {@code formeMandatProtection = null}.
      */
     public static MajeursProtegesResult compute(String regimeProtectionDemande,
                                                 boolean altertationFacultesMentales,
@@ -210,9 +248,50 @@ public final class MajeursProtegesCalculator {
                                                 boolean isolementSocial,
                                                 boolean incapaciteGestionQuotidienne,
                                                 boolean altertationGrave) {
+        return compute(regimeProtectionDemande,
+                altertationFacultesMentales,
+                altertationFacultesPhysiques,
+                certificatMedicalCirconstancie,
+                dateCertificatMedical,
+                consentementPersonneAProteger,
+                demandeurFamilial,
+                actesEnvisages,
+                urgencePatrimoniale,
+                patrimoineSignificatif,
+                isolementSocial,
+                incapaciteGestionQuotidienne,
+                altertationGrave,
+                false,
+                null);
+    }
+
+    /**
+     * SF-FA-25-05 : version étendue avec les 2 critères pivots du mandat
+     * de protection future (art. 477-494 Cciv) :
+     * {@code mandatPrealableSigne} (pivot — la personne avait signé un
+     * mandat AVANT l'altération) et {@code formeMandatProtection}
+     * (NOTARIE art. 489 vs SOUS_SEING_PRIVE art. 492 — détermine si les
+     * actes graves sont couverts).
+     */
+    public static MajeursProtegesResult compute(String regimeProtectionDemande,
+                                                boolean altertationFacultesMentales,
+                                                boolean altertationFacultesPhysiques,
+                                                boolean certificatMedicalCirconstancie,
+                                                LocalDate dateCertificatMedical,
+                                                boolean consentementPersonneAProteger,
+                                                String demandeurFamilial,
+                                                List<String> actesEnvisages,
+                                                boolean urgencePatrimoniale,
+                                                boolean patrimoineSignificatif,
+                                                boolean isolementSocial,
+                                                boolean incapaciteGestionQuotidienne,
+                                                boolean altertationGrave,
+                                                boolean mandatPrealableSigne,
+                                                String formeMandatProtection) {
         validateRegime(regimeProtectionDemande);
         validateDemandeur(demandeurFamilial);
         List<String> actes = validateActes(actesEnvisages);
+        String formeMandat = validateFormeMandat(formeMandatProtection);
 
         int score = computeScore(certificatMedicalCirconstancie,
                 altertationFacultesMentales,
@@ -233,10 +312,18 @@ public final class MajeursProtegesCalculator {
                 patrimoineSignificatif,
                 isolementSocial,
                 incapaciteGestionQuotidienne,
-                altertationGrave);
+                altertationGrave,
+                mandatPrealableSigne,
+                formeMandat);
 
         int delai = REGIMES_LONGS.contains(regimeOptimal)
                 ? DELAI_LONG_MOIS : DELAI_COURT_MOIS;
+        // SF-FA-25-05 : le mandat de protection future ne nécessite pas
+        // d'audience JAF (mise en œuvre directe sur certificat médical
+        // art. 481). Délai prévisionnel court (~ 4 mois).
+        if ("MANDAT_PROTECTION_FUTURE".equals(regimeOptimal)) {
+            delai = DELAI_COURT_MOIS;
+        }
 
         // art. 432 Cciv : audition obligatoire de la personne, sauf certificat
         // médical attestant l'impossibilité d'auditionner (non géré dans cette SF).
@@ -260,21 +347,32 @@ public final class MajeursProtegesCalculator {
                 demandeurFamilial,
                 actes,
                 incapaciteGestionQuotidienne,
-                altertationGrave);
+                altertationGrave,
+                mandatPrealableSigne,
+                formeMandat);
         boolean eligible = criteresNonRemplis.isEmpty();
 
-        String formule = buildFormule(score, verdict, regimeOptimal,
+        // SF-FA-25-05 : verdict spécifique mandat — MOYENNE si forme
+        // sous seing privé pour actes graves alors que le mandat est par
+        // ailleurs valable (override du verdict basé sur le score).
+        String verdictFinal = adjustVerdictForMandat(verdict,
+                regimeProtectionDemande, mandatPrealableSigne, formeMandat,
+                actes, certificatMedicalCirconstancie,
+                altertationFacultesMentales || altertationFacultesPhysiques);
+
+        String formule = buildFormule(score, verdictFinal, regimeOptimal,
                 regimeProtectionDemande, certificatMedicalCirconstancie,
                 consentementPersonneAProteger, urgencePatrimoniale, delai,
                 eligible);
 
-        List<String> messages = buildMessages(verdict, regimeOptimal,
+        List<String> messages = buildMessages(verdictFinal, regimeOptimal,
                 regimeProtectionDemande, certificatMedicalCirconstancie,
                 consentementPersonneAProteger, urgencePatrimoniale,
                 altertationFacultesMentales, altertationFacultesPhysiques,
                 demandeurFamilial, actes, patrimoineSignificatif,
                 isolementSocial, auditionObligatoire, expertisePsy,
                 incapaciteGestionQuotidienne, altertationGrave,
+                mandatPrealableSigne, formeMandat,
                 criteresNonRemplis);
 
         return new MajeursProtegesResult(
@@ -291,9 +389,11 @@ public final class MajeursProtegesCalculator {
                 isolementSocial,
                 incapaciteGestionQuotidienne,
                 altertationGrave,
+                mandatPrealableSigne,
+                formeMandat,
                 score,
                 regimeOptimal,
-                verdict,
+                verdictFinal,
                 delai,
                 auditionObligatoire,
                 expertisePsy,
@@ -346,10 +446,30 @@ public final class MajeursProtegesCalculator {
                                            boolean patrimoine,
                                            boolean isolement,
                                            boolean incapaciteQuotidienne,
-                                           boolean altertationGrave) {
+                                           boolean altertationGrave,
+                                           boolean mandatPrealableSigne,
+                                           String formeMandat) {
         boolean alterationToute = alterationMentale || alterationPhysique;
         boolean actePat = actes.stream().anyMatch(ACTES_PATRIMONIAUX_IMPORTANTS::contains);
         int categoriesActes = actes.size();
+
+        // SF-FA-25-05 : Mandat de protection future prioritaire (art. 477).
+        // Le mandat exprime la volonté anticipée de la personne et la
+        // subsidiarité (art. 428) commande de le respecter avant toute
+        // mesure judiciaire. Conditions de mise en vigueur : mandat
+        // préalable + altération + cert médical (art. 481).
+        // Exception : si urgence patrimoniale ET sous seing privé (limité
+        // à la gestion patrimoniale courante art. 493), la sauvegarde
+        // provisoire conservatoire reste prioritaire en attendant
+        // l'activation du mandat.
+        boolean mandatExceptionUrgenceSousSeing =
+                urgence && FORME_SOUS_SEING_PRIVE.equals(formeMandat);
+        if (mandatPrealableSigne
+                && alterationToute
+                && certificat
+                && !mandatExceptionUrgenceSousSeing) {
+            return "MANDAT_PROTECTION_FUTURE";
+        }
 
         // Sauvegarde de justice : urgence patrimoniale + altération (provisoire)
         if (urgence && alterationToute) {
@@ -444,11 +564,14 @@ public final class MajeursProtegesCalculator {
                                                 String demandeur,
                                                 List<String> actes,
                                                 boolean incapaciteQuotidienne,
-                                                boolean altertationGrave) {
+                                                boolean altertationGrave,
+                                                boolean mandatPrealableSigne,
+                                                String formeMandat) {
         List<String> ko = new ArrayList<>();
         boolean alterationToute = alterationMentale || alterationPhysique;
         boolean actePat = actes.stream().anyMatch(ACTES_PATRIMONIAUX_IMPORTANTS::contains);
         int categoriesActes = actes.size();
+        boolean acteGrave = actes.stream().anyMatch(ACTES_GRAVES_REQUIERENT_NOTARIE::contains);
 
         // Critères communs : certificat (art. 431) + altération (art. 425)
         if (!certificat) {
@@ -516,10 +639,31 @@ public final class MajeursProtegesCalculator {
                             + "ENFANT_MAJEUR ou PARENT — art. 494-1 al. 1)");
                 }
             }
-            case "SAUVEGARDE_JUSTICE", "MANDAT_PROTECTION_FUTURE" -> {
+            case "MANDAT_PROTECTION_FUTURE" -> {
+                // SF-FA-25-05 : critères pivots du mandat (art. 477-494)
+                if (!mandatPrealableSigne) {
+                    ko.add("Mandat préalable signé requis (art. 477 Cciv) — "
+                            + "le mandat de protection future suppose un acte "
+                            + "signé AVANT l'altération ; sans mandat préalable, "
+                            + "basculer vers un autre régime (sauvegarde, "
+                            + "habilitation, curatelle ou tutelle)");
+                }
+                if (formeMandat == null) {
+                    ko.add("Forme du mandat requise (NOTARIE — art. 489 ou "
+                            + "SOUS_SEING_PRIVE — art. 492) ; sans forme "
+                            + "renseignée, l'éligibilité ne peut être "
+                            + "appréciée");
+                } else if (FORME_SOUS_SEING_PRIVE.equals(formeMandat) && acteGrave) {
+                    ko.add("Forme notariée requise pour les actes graves "
+                            + "(GESTION_PATRIMOINE ou DECISIONS_LOGEMENT — "
+                            + "art. 493) — le mandat sous seing privé est "
+                            + "limité à la gestion patrimoniale courante ; "
+                            + "passer au mandat notarié (art. 489)");
+                }
+            }
+            case "SAUVEGARDE_JUSTICE" -> {
                 // pas de critères spécifiques additionnels analysés ici
-                // (couverts par le scoring 0-100 pour SAUVEGARDE,
-                // hors-scope pour MANDAT_PROTECTION_FUTURE)
+                // (couverts par le scoring 0-100)
             }
             default -> { }
         }
@@ -589,6 +733,8 @@ public final class MajeursProtegesCalculator {
                                               boolean expertisePsy,
                                               boolean incapaciteQuotidienne,
                                               boolean altertationGrave,
+                                              boolean mandatPrealableSigne,
+                                              String formeMandat,
                                               List<String> criteresNonRemplis) {
         List<String> msgs = new ArrayList<>();
         msgs.add("Saisine du juge des contentieux de la protection (ex-JAF "
@@ -655,12 +801,35 @@ public final class MajeursProtegesCalculator {
                             + "actes patrimoniaux importants (art. 467). Si la "
                             + "gestion quotidienne devient impossible, "
                             + "basculer vers CURATELLE_RENFORCEE (art. 472).");
-            case "MANDAT_PROTECTION_FUTURE" -> msgs.add(
-                    "MANDAT DE PROTECTION FUTURE (art. 477-494 Cciv) : "
-                            + "anticipé par la personne avant l'altération. "
-                            + "Activable sur certificat médical sans "
-                            + "intervention du juge (mandat sous seing privé) "
-                            + "ou avec contrôle juge (mandat notarié).");
+            case "MANDAT_PROTECTION_FUTURE" -> {
+                msgs.add("MANDAT DE PROTECTION FUTURE (art. 477-494 Cciv) : "
+                        + "mécanisme ANTICIPATIF et CONTRACTUEL — la personne, "
+                        + "encore capable, désigne à l'avance un mandataire "
+                        + "qui pourra agir pour elle si ses facultés se "
+                        + "trouvent altérées. Mise en vigueur sur "
+                        + "présentation au greffier d'un certificat médical "
+                        + "circonstancié constatant l'altération (art. 481). "
+                        + "Pas d'audience JAF — délai prévisionnel court "
+                        + "(~ 4 mois). Subsidiarité art. 428 : prioritaire "
+                        + "sur toute mesure judiciaire imposée car il "
+                        + "exprime la volonté anticipée de la personne.");
+                if (FORME_NOTARIE.equals(formeMandat)) {
+                    msgs.add("Mandat NOTARIÉ (art. 489 Cciv) : authentique, "
+                            + "couvre la gestion patrimoniale ET la "
+                            + "protection de la personne, force exécutoire. "
+                            + "Permet les actes graves (vente immobilière, "
+                            + "emprunt) sans autorisation judiciaire "
+                            + "supplémentaire.");
+                } else if (FORME_SOUS_SEING_PRIVE.equals(formeMandat)) {
+                    msgs.add("Mandat SOUS SEING PRIVÉ (art. 492 Cciv) : "
+                            + "limité à la gestion patrimoniale COURANTE — "
+                            + "les actes graves (GESTION_PATRIMOINE, "
+                            + "DECISIONS_LOGEMENT — art. 493) requièrent une "
+                            + "autorisation spéciale du juge ou la forme "
+                            + "notariée. Visa du greffier requis pour la "
+                            + "mise en vigueur.");
+                }
+            }
             default -> { }
         }
 
@@ -747,6 +916,25 @@ public final class MajeursProtegesCalculator {
                     + "d'un curateur).");
         }
 
+        if (mandatPrealableSigne) {
+            msgs.add("Mandat préalable signé : critère pivot du mandat de "
+                    + "protection future (art. 477 Cciv) — la personne, "
+                    + "alors capable, a désigné un mandataire pour agir "
+                    + "pour elle en cas d'altération future. Subsidiarité "
+                    + "art. 428 : ce mandat est prioritaire sur toute "
+                    + "mesure judiciaire imposée.");
+        }
+
+        if (FORME_SOUS_SEING_PRIVE.equals(formeMandat)
+                && actes.stream().anyMatch(ACTES_GRAVES_REQUIERENT_NOTARIE::contains)) {
+            msgs.add("Forme du mandat INADAPTÉE aux actes envisagés : un "
+                    + "mandat sous seing privé (art. 492) ne couvre que la "
+                    + "gestion patrimoniale courante. Pour les actes graves "
+                    + "(GESTION_PATRIMOINE, DECISIONS_LOGEMENT), une "
+                    + "autorisation spéciale du juge sera nécessaire ou il "
+                    + "faudra passer à la forme notariée (art. 489/493).");
+        }
+
         if (!criteresNonRemplis.isEmpty()) {
             msgs.add("Critères NON REMPLIS pour le régime demandé ("
                     + regimeDemande + ") : "
@@ -811,5 +999,67 @@ public final class MajeursProtegesCalculator {
             dedup.add(t);
         }
         return new ArrayList<>(dedup);
+    }
+
+    /**
+     * SF-FA-25-05 : valide la forme du mandat de protection future.
+     * null ou vide = non renseignée (default) ; sinon doit appartenir à
+     * {NOTARIE, SOUS_SEING_PRIVE}.
+     */
+    private static String validateFormeMandat(String forme) {
+        if (forme == null || forme.isBlank()) {
+            return null;
+        }
+        String t = forme.trim();
+        if (!FORMES_MANDAT.contains(t)) {
+            throw new IllegalArgumentException(
+                    "formeMandatProtection invalide : " + t
+                            + ". Valeurs : " + FORMES_MANDAT);
+        }
+        return t;
+    }
+
+    /**
+     * SF-FA-25-05 : ajuste le verdict pour le régime mandat de protection
+     * future. Si l'avocat demande MANDAT_PROTECTION_FUTURE, que le mandat
+     * est par ailleurs valable (préalable + altération + cert) mais que la
+     * forme est sous seing privé alors qu'un acte grave est envisagé →
+     * verdict MOYENNE (forme inadaptée). Pour les autres régimes, le
+     * verdict basé sur le scoring 0-100 reste applicable tel quel.
+     */
+    private static String adjustVerdictForMandat(String verdictBase,
+                                                 String regimeDemande,
+                                                 boolean mandatPrealableSigne,
+                                                 String formeMandat,
+                                                 List<String> actes,
+                                                 boolean certificat,
+                                                 boolean alterationToute) {
+        if (!"MANDAT_PROTECTION_FUTURE".equals(regimeDemande)) {
+            return verdictBase;
+        }
+        boolean acteGrave = actes.stream()
+                .anyMatch(ACTES_GRAVES_REQUIERENT_NOTARIE::contains);
+        boolean baseValable = mandatPrealableSigne
+                && certificat
+                && alterationToute;
+        // Forme inadaptée pour actes graves → MOYENNE
+        if (baseValable
+                && FORME_SOUS_SEING_PRIVE.equals(formeMandat)
+                && acteGrave) {
+            return "MOYENNE";
+        }
+        // Mandat préalable absent → FAIBLE (impossible de retenir le régime)
+        if (!mandatPrealableSigne) {
+            return "FAIBLE";
+        }
+        // Mandat valable + forme adaptée → ELEVEE indépendamment du score
+        // (le scoring 0-100 ne reflète pas pleinement le mandat — il est
+        // calibré sur les régimes judiciaires).
+        if (baseValable
+                && (FORME_NOTARIE.equals(formeMandat)
+                    || (FORME_SOUS_SEING_PRIVE.equals(formeMandat) && !acteGrave))) {
+            return "ELEVEE";
+        }
+        return verdictBase;
     }
 }

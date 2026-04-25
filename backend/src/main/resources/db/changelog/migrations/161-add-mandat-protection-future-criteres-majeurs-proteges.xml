@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="161-add-mandat-protection-future-criteres-majeurs-proteges" author="legalcase">
+        <comment>
+            SF-FA-25-05 : extension de l'outil "Majeurs protégés" (table
+            majeurs_proteges_analyses créée en migration 153, étendue en 159
+            puis en 160) pour le régime MANDAT_PROTECTION_FUTURE
+            (art. 477-494 Cciv) — clôture F-FA-25 6/6 régimes.
+
+            Mécanisme ANTICIPATIF et CONTRACTUEL : la personne, encore
+            capable, désigne à l'avance un mandataire qui pourra agir pour
+            elle si ses facultés se trouvent altérées. Différent des autres
+            régimes (prononcés par le juge), il échappe au contrôle continu
+            du juge dès lors qu'il prend la forme notariée.
+
+            Changement de schéma minimal :
+            - ADD COLUMN mandat_prealable_signe (boolean nullable) — critère
+              pivot art. 477 ; true = la personne avait signé un mandat
+              AVANT l'altération.
+            - ADD COLUMN forme_mandat_protection (varchar(30) nullable) —
+              forme du mandat (NOTARIE art. 489 / SOUS_SEING_PRIVE
+              art. 492). Détermine si les actes graves
+              (GESTION_PATRIMOINE, DECISIONS_LOGEMENT) sont couverts.
+
+            Aucun changement de la signature des colonnes existantes :
+            backward compatible. Les analyses existantes restent lisibles
+            (mandat_prealable_signe = NULL traité comme false dans le
+            calcul, forme_mandat_protection = NULL = forme non renseignée).
+
+            + Seed de 1 entry legal_referentials de type
+            MAJEURS_PROTEGES_REGIMES code MANDAT_PROTECTION_FUTURE avec
+            description SF-140-03 obligatoire (langage avocat).
+
+            Rollback : DROP COLUMN x2 + DELETE legal_referentials par UUID.
+        </comment>
+
+        <addColumn tableName="majeurs_proteges_analyses">
+            <column name="mandat_prealable_signe" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="majeurs_proteges_analyses">
+            <column name="forme_mandat_protection" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1a04001-0000-0000-0000-000000000162', NULL, 'DROIT_FAMILLE', 'MAJEURS_PROTEGES_REGIMES', 'MANDAT_PROTECTION_FUTURE', '{"articles":["Cciv 477","Cciv 481","Cciv 489","Cciv 492","Cciv 493"],"delaiProcedureMois":4,"renouvelable":false,"formes":["NOTARIE","SOUS_SEING_PRIVE"],"criteresEligibilite":["Mandat préalable signé AVANT l''altération (art. 477) — critère pivot","Forme renseignée : NOTARIE (art. 489 — gestion patrimoniale + protection personne, force exécutoire) ou SOUS_SEING_PRIVE (art. 492 — gestion patrimoniale courante uniquement)","Altération des facultés mentales OU physiques constatée par certificat médical circonstancié (art. 481) — condition de mise en vigueur du mandat","Forme notariée requise pour les actes graves (GESTION_PATRIMOINE, DECISIONS_LOGEMENT — art. 493) ; le mandat sous seing privé est limité à la gestion patrimoniale courante"]}', 'Mandat de protection future', 'FR', true, true, 'Cciv 477 + 481 + 489 + 492 + 493', 'Mandat de protection future (art. 477-494 Cciv) : régime de protection juridique ANTICIPATIF et CONTRACTUEL — la personne, alors capable, désigne à l''avance un mandataire qui pourra agir pour elle si ses facultés se trouvent altérées. Mise en vigueur sur présentation au greffier d''un certificat médical circonstancié constatant l''altération (art. 481) ; pas d''audience JAF, délai prévisionnel court (~4 mois). Subsidiarité art. 428 : le mandat est PRIORITAIRE sur toute mesure judiciaire imposée car il exprime la volonté anticipée de la personne. Deux formes possibles : (1) mandat NOTARIÉ (art. 489) — authentique, couvre la gestion patrimoniale ET la protection de la personne, force exécutoire, permet les actes graves (vente immobilière, emprunt) sans autorisation judiciaire supplémentaire ; (2) mandat SOUS SEING PRIVÉ (art. 492) — limité à la gestion patrimoniale COURANTE, les actes graves (GESTION_PATRIMOINE, DECISIONS_LOGEMENT — art. 493) requièrent une autorisation spéciale du juge ou la forme notariée. Visa du greffier requis pour la mise en vigueur du mandat sous seing privé. Le juge des contentieux de la protection peut révoquer ou modifier le mandat insuffisamment protecteur (art. 491). Utilisé par l''outil décisionnel F-FA-25 (Majeurs protégés). Critères DISCRIMINANTS : mandatPrealableSigne (true → mandat éligible, false → basculer vers un autre régime) ET formeMandatProtection (NOTARIE → couverture totale, SOUS_SEING_PRIVE → limité aux actes courants, MOYENNE si actes graves envisagés).', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM legal_referentials WHERE id = 'f1a04001-0000-0000-0000-000000000162';
+            </sql>
+            <dropColumn tableName="majeurs_proteges_analyses" columnName="forme_mandat_protection"/>
+            <dropColumn tableName="majeurs_proteges_analyses" columnName="mandat_prealable_signe"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
