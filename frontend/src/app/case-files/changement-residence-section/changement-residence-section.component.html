@@ -1,0 +1,360 @@
+<section class="cr-section">
+  <header class="cr-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cr-body">
+    <mat-icon class="cr-icon">home_work</mat-icon>
+    <span class="cr-title">CHANGEMENT DE RÉSIDENCE (FR) — ART. 373-2 CCIV</span>
+    @if (result()) {
+      <span class="cr-chip"
+            [class.cr-chip--strong]="result()!.verdictProbabiliteAcceptation === 'ELEVEE'"
+            [class.cr-chip--medium]="result()!.verdictProbabiliteAcceptation === 'MOYENNE'"
+            [class.cr-chip--weak]="result()!.verdictProbabiliteAcceptation === 'FAIBLE'">
+        {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+      </span>
+    }
+    <mat-icon class="cr-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cr-body" class="cr-body">
+      @if (!isFrance()) {
+        <div class="cr-banner cr-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="cr-banner-content">
+            <div class="cr-banner-title">Changement de résidence — procédure française uniquement</div>
+            <div class="cr-banner-sub">
+              Pour la Belgique, voir l'outil cohabitation parentale (art. 374 CC — à venir).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="cr-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="cr-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="cr-form" (ngSubmit)="calculate()">
+              <!-- Date prévue. -->
+              <div class="cr-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date prévue du changement</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateChangementPrevu()"
+                         (ngModelChange)="onDateChangementChange($event)"
+                         name="dateChangementPrevu" required />
+                </mat-form-field>
+              </div>
+
+              <!-- Distance km. -->
+              <div class="cr-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Distance (km)</mat-label>
+                  <input matInput type="number" min="1"
+                         [ngModel]="distanceKm()"
+                         (ngModelChange)="onDistanceChange($event)"
+                         name="distanceKm" required />
+                  <mat-hint>Entre les deux résidences (en km).</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- Raison changement. -->
+              <div class="cr-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Raison du changement</mat-label>
+                  <mat-select
+                      [ngModel]="raisonChangement()"
+                      (ngModelChange)="onRaisonChange($event)"
+                      name="raisonChangement" required>
+                    @for (r of raisonsOptions; track r.code) {
+                      <mat-option [value]="r.code">{{ r.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceRaisonChangement() === 'IA') {
+                  <span class="cr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().RAISON_CHANGEMENT; as alert) {
+                  <span class="cr-coherence-badge"
+                        [appCoherencePopover]="explanationFor('RAISON_CHANGEMENT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Mode résidence actuel. -->
+              <div class="cr-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Mode de résidence actuel</mat-label>
+                  <mat-select
+                      [ngModel]="modeResidenceActuel()"
+                      (ngModelChange)="onModeResidenceChange($event)"
+                      name="modeResidenceActuel" required>
+                    @for (m of modesOptions; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceModeResidenceActuel() === 'IA') {
+                  <span class="cr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MODE_RESIDENCE_ACTUEL; as alert) {
+                  <span class="cr-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MODE_RESIDENCE_ACTUEL')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Slide-toggle consentement autre parent. -->
+              <div class="cr-field-with-alert cr-field-full">
+                <mat-slide-toggle
+                    [ngModel]="consentementAutreParent()"
+                    (ngModelChange)="onConsentementChange($event)"
+                    name="consentementAutreParent">
+                  Consentement de l'autre parent au changement
+                </mat-slide-toggle>
+                @if (provenanceConsentementAutreParent() === 'IA') {
+                  <span class="cr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().CONSENTEMENT_AUTRE_PARENT; as alert) {
+                  <span class="cr-coherence-badge"
+                        [appCoherencePopover]="explanationFor('CONSENTEMENT_AUTRE_PARENT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Slide-toggle informé préalablement. -->
+              <div class="cr-field-with-alert cr-field-full">
+                <mat-slide-toggle
+                    [ngModel]="informePrealablement()"
+                    (ngModelChange)="onInformePrealablementChange($event)"
+                    name="informePrealablement">
+                  L'autre parent a été informé préalablement (art. 373-2 Cciv)
+                </mat-slide-toggle>
+                @if (provenanceInformePrealablement() === 'IA') {
+                  <span class="cr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().INFORME_PREALABLEMENT; as alert) {
+                  <span class="cr-coherence-badge"
+                        [appCoherencePopover]="explanationFor('INFORME_PREALABLEMENT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Délai d'information préalable. -->
+              <div class="cr-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Délai d'information préalable (jours)</mat-label>
+                  <input matInput type="number" min="0"
+                         [ngModel]="delaiInformationJours()"
+                         (ngModelChange)="onDelaiInformationChange($event)"
+                         name="delaiInformationJours" required />
+                  <mat-hint>0 si l'autre parent n'a pas été informé.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- Âges enfants (CSV). -->
+              <div class="cr-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Âges des enfants (séparés par virgules)</mat-label>
+                  <input matInput type="text"
+                         placeholder="Ex : 12, 8, 5"
+                         [ngModel]="ageEnfantsRaw()"
+                         (ngModelChange)="onAgeEnfantsRawChange($event)"
+                         name="ageEnfantsRaw" required />
+                  <mat-hint>Entrez les âges des enfants concernés en années entières.</mat-hint>
+                </mat-form-field>
+                @if (provenanceAgeEnfants() === 'IA') {
+                  <span class="cr-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().AGE_ENFANTS; as alert) {
+                  <span class="cr-coherence-badge"
+                        [appCoherencePopover]="explanationFor('AGE_ENFANTS')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Slide-toggle scolarité impactée. -->
+              <div class="cr-field-with-alert cr-field-full">
+                <mat-slide-toggle
+                    [ngModel]="scolariteImpactee()"
+                    (ngModelChange)="onScolariteChange($event)"
+                    name="scolariteImpactee">
+                  La scolarité des enfants est impactée (changement d'établissement)
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Slide-toggle modification DVH demandée. -->
+              <div class="cr-field-with-alert cr-field-full">
+                <mat-slide-toggle
+                    [ngModel]="modificationDvhDemandee()"
+                    (ngModelChange)="onModificationDvhChange($event)"
+                    name="modificationDvhDemandee">
+                  Modification des modalités de la DVH demandée
+                </mat-slide-toggle>
+              </div>
+
+              <div class="cr-actions cr-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le changement de résidence</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="cr-result">
+              <!-- Bannière verdict. -->
+              <div [class]="verdictBannerClass(result()!.verdictProbabiliteAcceptation)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictProbabiliteAcceptation === 'ELEVEE' ? 'gavel'
+                     : result()!.verdictProbabiliteAcceptation === 'MOYENNE' ? 'balance'
+                     : 'info_outline' }}
+                </mat-icon>
+                <div class="cr-banner-content">
+                  <div class="cr-banner-title">
+                    {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+                  </div>
+                  <div class="cr-banner-sub">
+                    Score d'acceptabilité : {{ result()!.scoreAcceptabilite }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3 cartes recommandations. -->
+              <div class="cr-cards-row">
+                <div class="cr-card"
+                     [class.cr-card--active]="result()!.obligationInformationRespectee"
+                     [class.cr-card--warn]="!result()!.obligationInformationRespectee">
+                  <span class="cr-card-label">Obligation d'information (art. 373-2)</span>
+                  <span class="cr-card-value">
+                    {{ result()!.obligationInformationRespectee ? 'Respectée' : 'Non respectée' }}
+                  </span>
+                  @if (!result()!.obligationInformationRespectee) {
+                    <span class="cr-card-sub">
+                      Régulariser une notification écrite à l'autre parent (art. 373-2 al. 3 Cciv)
+                    </span>
+                  }
+                </div>
+
+                <div class="cr-card"
+                     [class.cr-card--active]="result()!.expertisePsyEnfantRecommandee">
+                  <span class="cr-card-label">Expertise psy enfant</span>
+                  <span class="cr-card-value">
+                    {{ result()!.expertisePsyEnfantRecommandee ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  @if (result()!.expertisePsyEnfantRecommandee) {
+                    <span class="cr-card-sub">
+                      Demander une expertise psychologique pour évaluer l'impact sur l'enfant
+                    </span>
+                  }
+                </div>
+
+                <div class="cr-card"
+                     [class.cr-card--active]="result()!.delaiPreavisLegalOk"
+                     [class.cr-card--warn]="!result()!.delaiPreavisLegalOk">
+                  <span class="cr-card-label">Délai de préavis</span>
+                  <span class="cr-card-value">
+                    {{ result()!.delaiPreavisLegalOk ? 'Conforme' : 'Insuffisant' }}
+                  </span>
+                  @if (!result()!.delaiPreavisLegalOk) {
+                    <span class="cr-card-sub">
+                      Préavis raisonnable non respecté — risque d'opposition recevable
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Récap saisie. -->
+              <div class="cr-recap">
+                <div class="cr-recap-row">
+                  <span class="cr-recap-label">Date prévue</span>
+                  <span class="cr-recap-value">{{ result()!.dateChangementPrevu }}</span>
+                </div>
+                <div class="cr-recap-row">
+                  <span class="cr-recap-label">Distance</span>
+                  <span class="cr-recap-value">{{ result()!.distanceKm }} km</span>
+                </div>
+                <div class="cr-recap-row">
+                  <span class="cr-recap-label">Raison</span>
+                  <span class="cr-recap-value">{{ raisonChangementLabel(result()!.raisonChangement) }}</span>
+                </div>
+                <div class="cr-recap-row">
+                  <span class="cr-recap-label">Mode résidence</span>
+                  <span class="cr-recap-value">{{ modeResidenceLabel(result()!.modeResidenceActuel) }}</span>
+                </div>
+                <div class="cr-recap-row">
+                  <span class="cr-recap-label">Délai information</span>
+                  <span class="cr-recap-value">{{ result()!.delaiInformationJours }} jour(s)</span>
+                </div>
+                <div class="cr-recap-row">
+                  <span class="cr-recap-label">Âges enfants</span>
+                  <span class="cr-recap-value">{{ result()!.ageEnfants?.join(', ') }} an(s)</span>
+                </div>
+              </div>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="cr-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="cr-formule-block">
+                  <span class="cr-formule-label">Formule</span>
+                  <span class="cr-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="cr-meta">
+                <span class="cr-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
