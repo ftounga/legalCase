@@ -1,0 +1,219 @@
+<section class="aes-section">
+  <header class="aes-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="aes-humanitaire-body">
+    <mat-icon class="aes-icon">volunteer_activism</mat-icon>
+    <span class="aes-title">AES — VOIE HUMANITAIRE (L.435-2)</span>
+    @if (result()) {
+      <span class="aes-chip aes-chip--{{ result()!.verdictProbabiliteAcceptation | lowercase }}">
+        {{ result()!.scoreGlobal }}/100
+      </span>
+    }
+    <mat-icon class="aes-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="aes-humanitaire-body" class="aes-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="aes-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil France uniquement — la Belgique n'a pas d'équivalent standard à l'art. <code>L.435-2 CESEDA</code> ; la régularisation humanitaire BE relève de l'art. <code>9bis loi 15/12/1980</code>.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="aes-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="aes-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="aes-form" (ngSubmit)="calculate()">
+            <div class="aes-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Date d'entrée en France</mat-label>
+                <input matInput type="date"
+                       [max]="todayIso"
+                       [ngModel]="dateEntreeFrance()"
+                       (ngModelChange)="onDateEntreeChange($event)"
+                       name="dateEntreeFrance" required />
+              </mat-form-field>
+              @if (provenanceDateEntree() === 'IA') {
+                <span class="aes-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().DATE_ENTREE_FRANCE; as alert) {
+                <span class="aes-coherence-badge"
+                      [appCoherencePopover]="explanationFor('DATE_ENTREE_FRANCE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="aes-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Motif humanitaire dominant</mat-label>
+                <mat-select [ngModel]="motifHumanitaireDominant()"
+                            (ngModelChange)="onMotifChange($event)"
+                            name="motifHumanitaireDominant" required>
+                  @for (opt of motifOptions; track opt.code) {
+                    <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceMotif() === 'IA') {
+                <span class="aes-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().MOTIF_HUMANITAIRE; as alert) {
+                <span class="aes-coherence-badge"
+                      [appCoherencePopover]="explanationFor('MOTIF_HUMANITAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="aes-toggle-field">
+              <mat-slide-toggle
+                  [ngModel]="preuvesMedicales()"
+                  (ngModelChange)="onPreuvesMedicalesChange($event)"
+                  name="preuvesMedicales">
+                Preuves médicales détaillées (certificats, avis OFII)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="aes-toggle-field">
+              <mat-slide-toggle
+                  [ngModel]="preuvesViolencesOuTraite()"
+                  (ngModelChange)="onPreuvesViolencesChange($event)"
+                  name="preuvesViolencesOuTraite">
+                Preuves de violences ou traite (plaintes, mains courantes, ONG)
+              </mat-slide-toggle>
+            </div>
+
+            <div class="aes-toggle-field">
+              <mat-slide-toggle
+                  [ngModel]="demandeAsileDeposeeEtRejetee()"
+                  (ngModelChange)="onDemandeAsileChange($event)"
+                  name="demandeAsileDeposeeEtRejetee">
+                Demande d'asile déjà déposée et rejetée
+              </mat-slide-toggle>
+            </div>
+
+            <div class="aes-toggle-field">
+              <mat-slide-toggle
+                  [ngModel]="commissionTitreSejourSaisie()"
+                  (ngModelChange)="onCommissionChange($event)"
+                  name="commissionTitreSejourSaisie">
+                Commission du titre de séjour (L.432-14) saisie
+              </mat-slide-toggle>
+            </div>
+
+            <div class="aes-toggle-field">
+              <mat-slide-toggle
+                  [ngModel]="menaceOrdrePublic()"
+                  (ngModelChange)="onMenaceOrdrePublicChange($event)"
+                  name="menaceOrdrePublic">
+                Menace pour l'ordre public
+              </mat-slide-toggle>
+            </div>
+
+            <div class="aes-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateDepotDemande()"
+                       (ngModelChange)="onDateDepotChange($event)"
+                       name="dateDepotDemande" />
+              </mat-form-field>
+              @if (provenanceDateDepot() === 'IA') {
+                <span class="aes-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().DATE_DEPOT_DEMANDE; as alert) {
+                <span class="aes-coherence-badge"
+                      [appCoherencePopover]="explanationFor('DATE_DEPOT_DEMANDE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="aes-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="aes-result">
+            <div [class]="verdictBannerClass()">
+              <mat-icon>{{ verdictIcon() }}</mat-icon>
+              <div class="aes-verdict-content">
+                <span class="aes-verdict-label">{{ verdictLabel() }}</span>
+                <span class="aes-verdict-score">{{ result()!.scoreGlobal }} / 100</span>
+              </div>
+            </div>
+
+            @if (result()!.criteresNonRemplis?.length) {
+              <div class="aes-criteres">
+                <span class="aes-section-title">Critères non remplis</span>
+                <mat-chip-set>
+                  @for (c of result()!.criteresNonRemplis; track c) {
+                    <mat-chip class="aes-critere-chip">{{ c }}</mat-chip>
+                  }
+                </mat-chip-set>
+              </div>
+            }
+
+            @if (result()!.dateExpirationInstruction) {
+              <div class="aes-deadline-card">
+                <mat-icon>event</mat-icon>
+                <div>
+                  <span class="aes-deadline-label">Délai d'instruction (silence vaut rejet)</span>
+                  <span class="aes-deadline-date">{{ result()!.dateExpirationInstruction }}</span>
+                </div>
+              </div>
+            }
+
+            <div class="aes-formule-block">
+              <span class="aes-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="aes-meta">
+              <span class="aes-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="aes-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
