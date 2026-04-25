@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="162-seed-famille-be-procedure-jalons" author="legalcase">
+        <comment>
+            F-137 SF-F-137-01 : seed du nouveau référentiel FAMILLE_PROCEDURE_JALONS
+            (calendrier procédural famille — Belgique).
+
+            Pattern symétrique strict à TRAVAIL_PROCEDURE_JALONS (migration 130, F-136 SF-136-01)
+            appliqué au droit de la famille belge. 3 procédures clés :
+              BE : TRIBUNAL_FAMILLE_BE (1ʳᵉ instance, art. 572bis CJ — audience MP, mise en état,
+                                       fond, prononcé),
+                   COUR_APPEL_FAMILLE_BE (appel, art. 1051 CJ — délai 1 mois),
+                   CASSATION_FAMILLE_BE (pourvoi, art. 1073 CJ — délai 3 mois).
+
+            La SF jumelle SF-F-137-02 (à venir) couvrira la France (JAF, audience MEC, ONC,
+            appel CA, Cassation civile).
+
+            Chaque entrée porte une description avocat SF-140-03 obligatoire (langage métier).
+            UUID prefix f1620000-… pour éviter collisions avec migrations 049 / 108 / 130.
+
+            Hors scope : aucun endpoint ni UI (SF-F-137-03 / SF-F-137-04 à venir). Aucune génération
+            automatique de case_deadlines (date pivot ambiguë — décision produit reportée, cohérent
+            avec F-136).
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1620000-0000-0000-0000-000000000001', NULL, 'DROIT_FAMILLE', 'FAMILLE_PROCEDURE_JALONS', 'TRIBUNAL_FAMILLE_BE', '[{"label":"Dépôt de la requête au greffe du tribunal de la famille","offsetDays":0,"articleRef":"CJ Art. 572bis"},{"label":"Audience des mesures provisoires (MP) — ordonnance","offsetDays":30,"articleRef":"CJ Art. 1253ter/2"},{"label":"Mise en état — calendrier de procédure (échange de conclusions)","offsetDays":120,"articleRef":"CJ Art. 747"},{"label":"Audience de plaidoiries au fond","offsetDays":180,"articleRef":"CJ Art. 755"},{"label":"Prononcé du jugement et notification","offsetDays":240,"articleRef":"CJ Art. 770"}]', 'Tribunal de la famille (1ʳᵉ instance)', 'BE', true, true, 'CJ Art. 572bis, 1253ter/2, 747, 770', 'Procédure devant le tribunal de la famille belge — compétence générale en matière familiale (art. 572bis Code judiciaire) : divorce, autorité parentale, mesures provisoires, pensions, partage. Saisine par requête au greffe (J0). Audience des mesures provisoires (MP) en référé familial sous ~30 jours (art. 1253ter/2 CJ) — l''ordonnance fixe les mesures urgentes (résidence, contributions, hébergement enfants). Mise en état avec échange de conclusions (art. 747 CJ) sur ~3-4 mois. Audience de plaidoiries au fond puis prononcé du jugement sous ~8 mois en moyenne. Délais de conclusions stricts ; durées de fixation indicatives selon la chambre. Utilisé par F-137 (calendrier procédural famille BE) et les outils décisionnels famille BE (séparation de corps, mesures provisoires, autorité parentale).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1620000-0000-0000-0000-000000000002', NULL, 'DROIT_FAMILLE', 'FAMILLE_PROCEDURE_JALONS', 'COUR_APPEL_FAMILLE_BE', '[{"label":"Délai d''appel — Cour d''appel chambre famille","offsetDays":30,"articleRef":"CJ Art. 1051"},{"label":"Mise en état appel — conclusions","offsetDays":150,"articleRef":"CJ Art. 747"},{"label":"Audience Cour d''appel chambre famille","offsetDays":300,"articleRef":"CJ Art. 1056"},{"label":"Arrêt et notification","offsetDays":360,"articleRef":"CJ Art. 770"}]', 'Cour d''appel — chambre famille', 'BE', true, true, 'CJ Art. 1051, 1056, 770', 'Appel d''un jugement du tribunal de la famille devant la Cour d''appel chambre famille (BE) : délai d''appel impératif d''1 mois (art. 1051 CJ) à dater de la signification du jugement. Procédure avec représentation obligatoire. Mise en état avec conclusions sur ~5 mois. Audience et arrêt sous ~10-12 mois en moyenne. Délai d''appel = strict ; durées d''instruction indicatives. Utilisé par F-137 (calendrier procédural famille BE).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1620000-0000-0000-0000-000000000003', NULL, 'DROIT_FAMILLE', 'FAMILLE_PROCEDURE_JALONS', 'CASSATION_FAMILLE_BE', '[{"label":"Délai de pourvoi — Cour de cassation BE","offsetDays":90,"articleRef":"CJ Art. 1073"},{"label":"Mémoire en cassation","offsetDays":180,"articleRef":"CJ Art. 1080"},{"label":"Audience Cour de cassation BE","offsetDays":450,"articleRef":"CJ Art. 1095"},{"label":"Arrêt et notification","offsetDays":540,"articleRef":"CJ Art. 1109"}]', 'Pourvoi en cassation famille BE', 'BE', true, true, 'CJ Art. 1073, 1080, 1095', 'Pourvoi en cassation devant la Cour de cassation belge contre un arrêt de la Cour d''appel chambre famille : délai impératif de 3 mois (art. 1073 CJ) à dater de la signification de l''arrêt. Représentation par avocat à la Cour de cassation obligatoire. Mémoire en cassation sous ~6 mois (art. 1080 CJ). Audience et arrêt sous ~15-18 mois. Délai de pourvoi strict ; durées d''instruction indicatives. Utilisé par F-137 (calendrier procédural famille BE).', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM legal_referentials WHERE id IN (
+                    'f1620000-0000-0000-0000-000000000001',
+                    'f1620000-0000-0000-0000-000000000002',
+                    'f1620000-0000-0000-0000-000000000003'
+                );
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

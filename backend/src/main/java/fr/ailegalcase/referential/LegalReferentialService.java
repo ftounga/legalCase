@@ -236,6 +236,43 @@ public class LegalReferentialService {
     }
 
     // -----------------------------------------------------------------------
+    // DROIT_FAMILLE — jalons procéduraux par type de procédure et pays (F-137 SF-F-137-01)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Résout les jalons procéduraux pour le droit de la famille (tribunal de la famille BE,
+     * cour d'appel famille BE, cassation BE — périmètre actuel ; FR à venir en SF-F-137-02).
+     * DB-first sur le type {@code FAMILLE_PROCEDURE_JALONS}, fallback statique
+     * {@link FamilleProcedureReferentiel#resolve(String, String)}.
+     *
+     * @param typeProcedure code (ex. {@code TRIBUNAL_FAMILLE_BE})
+     * @param country pays {@code BE} (FR à venir) — obligatoire (chaque procédure est country-scoped)
+     * @return liste immuable de jalons (label + offsetDays + articleRef) ; vide si introuvable
+     */
+    public List<FamilleProcedureReferentiel.ProcedureJalon> getFamilleProcedureJalons(String typeProcedure, String country) {
+        if (typeProcedure == null || country == null) return List.of();
+        try {
+            List<LegalReferential> entries = repository.findSystemEntryByCountry(
+                    "DROIT_FAMILLE", "FAMILLE_PROCEDURE_JALONS", typeProcedure, country);
+            if (!entries.isEmpty()) {
+                JsonNode array = MAPPER.readTree(entries.get(0).getValueJson());
+                List<FamilleProcedureReferentiel.ProcedureJalon> jalons = new ArrayList<>();
+                for (JsonNode item : array) {
+                    jalons.add(new FamilleProcedureReferentiel.ProcedureJalon(
+                            item.get("label").asText(),
+                            item.get("offsetDays").asInt(),
+                            item.has("articleRef") ? item.get("articleRef").asText() : ""));
+                }
+                return Collections.unmodifiableList(jalons);
+            }
+        } catch (Exception e) {
+            log.warn("LegalReferentialService: fallback getFamilleProcedureJalons({},{}) — {}",
+                    typeProcedure, country, e.getMessage());
+        }
+        return FamilleProcedureReferentiel.resolve(typeProcedure, country);
+    }
+
+    // -----------------------------------------------------------------------
     // DROIT_IMMIGRATION — pièces requises par type de titre et pays
     // -----------------------------------------------------------------------
 
