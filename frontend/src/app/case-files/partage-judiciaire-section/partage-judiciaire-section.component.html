@@ -1,0 +1,248 @@
+<section class="partage-jud-section">
+  <header class="partage-jud-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="partage-jud-body">
+    <mat-icon class="partage-jud-icon">balance</mat-icon>
+    <span class="partage-jud-title">PARTAGE JUDICIAIRE (FR)</span>
+    @if (result()) {
+      <span class="partage-jud-chip"
+            [class.partage-jud-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.partage-jud-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.partage-jud-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }} — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+    }
+    <mat-icon class="partage-jud-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="partage-jud-body" class="partage-jud-body">
+      @if (!isFrance()) {
+        <div class="partage-jud-banner partage-jud-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="partage-jud-banner-content">
+            <div class="partage-jud-banner-title">Outil français uniquement</div>
+            <div class="partage-jud-banner-sub">
+              La procédure de partage judiciaire (art. 840 et s. Cciv +
+              1364 et s. + 1366 CPC) est propre au droit français. L'équivalent
+              belge (juge de paix, art. 1207 et s. CJ) est traité dans une
+              feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="partage-jud-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="partage-jud-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="partage-jud-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Préalables procéduraux (art. 1366 CPC) -->
+              <fieldset class="partage-jud-fieldset">
+                <legend class="partage-jud-legend">
+                  <mat-icon>fact_check</mat-icon>
+                  Préalables procéduraux (art. 1366 CPC)
+                </legend>
+
+                <div class="partage-jud-radio-group">
+                  <span class="partage-jud-radio-label">PV de difficultés établi par le notaire</span>
+                  <mat-radio-group required
+                                   [ngModel]="pvDifficultesEtabli()"
+                                   (ngModelChange)="onPvDifficultesChange($event)"
+                                   name="pvDifficultesEtabli">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="partage-jud-field-meta">
+                    @if (provenancePvDifficultes() === 'IA') {
+                      <span class="partage-jud-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().PV_DIFFICULTES; as alert) {
+                      <span class="partage-jud-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="partage-jud-radio-group">
+                  <span class="partage-jud-radio-label">Tentative amiable épuisée</span>
+                  <mat-radio-group required
+                                   [ngModel]="tentativeAmiableEpuiseuee()"
+                                   (ngModelChange)="onTentativeAmiableChange($event)"
+                                   name="tentativeAmiableEpuiseuee">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="partage-jud-field-meta">
+                    @if (provenanceTentativeAmiable() === 'IA') {
+                      <span class="partage-jud-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().TENTATIVE_AMIABLE; as alert) {
+                      <span class="partage-jud-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="partage-jud-radio-group">
+                  <span class="partage-jud-radio-label">Désaccord motivé (motif documenté)</span>
+                  <mat-radio-group required
+                                   [ngModel]="desaccordMotive()"
+                                   (ngModelChange)="onDesaccordMotiveChange($event)"
+                                   name="desaccordMotive">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Type de bien indivis (art. 840+ Cciv) -->
+              <fieldset class="partage-jud-fieldset">
+                <legend class="partage-jud-legend">
+                  <mat-icon>home_work</mat-icon>
+                  Type de bien en indivision
+                </legend>
+
+                <div class="partage-jud-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="typeBienIndivision()"
+                                   (ngModelChange)="onTypeBienChange($event)"
+                                   name="typeBienIndivision">
+                    @for (opt of typeBienOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Données chiffrées -->
+              <fieldset class="partage-jud-fieldset">
+                <legend class="partage-jud-legend">
+                  <mat-icon>calculate</mat-icon>
+                  Données chiffrées
+                </legend>
+
+                <div class="partage-jud-grid">
+                  <div class="partage-jud-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nombre de co-indivisaires (≥ 2)</mat-label>
+                      <input matInput type="number" min="2" step="1" required
+                             [ngModel]="nombreCoindivisaires()"
+                             (ngModelChange)="onNombreCoindivisairesChange($event)"
+                             name="nombreCoindivisaires" />
+                    </mat-form-field>
+                    @if (provenanceNombreCoindivisaires() === 'IA') {
+                      <span class="partage-jud-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="partage-jud-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Valeur estimée des biens (€)</mat-label>
+                      <input matInput type="number" min="0" step="1000" required
+                             [ngModel]="valeurEstimeeBiensEur()"
+                             (ngModelChange)="onValeurBiensChange($event)"
+                             name="valeurEstimeeBiensEur" />
+                    </mat-form-field>
+                    @if (provenanceValeurBiens() === 'IA') {
+                      <span class="partage-jud-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="partage-jud-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="partage-jud-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictRecevabilite === 'FAIBLE' ? 'gpp_bad' :
+                     result()!.verdictRecevabilite === 'MOYENNE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="partage-jud-banner-content">
+                  <div class="partage-jud-banner-title">
+                    Verdict : {{ result()!.verdictRecevabilite }}
+                  </div>
+                  <div class="partage-jud-banner-sub">
+                    Score recevabilité : {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100
+                    — Durée procédure estimée : {{ result()!.dureeProcedureMois }} mois
+                  </div>
+                  <div class="partage-jud-frais-block">
+                    <span class="partage-jud-frais-label">Frais estimés (provision notariale 2-5 %)</span>
+                    <span class="partage-jud-frais-value">
+                      {{ result()!.fraisEstimesEur | number:'1.2-2' }} €
+                    </span>
+                    @if (result()!.risqueLicitation) {
+                      <span class="partage-jud-licitation-chip">
+                        <mat-icon>gavel</mat-icon> Risque de licitation (bien indivisible)
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.messages?.length) {
+                <ul class="partage-jud-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="partage-jud-formule-block">
+                  <span class="partage-jud-formule-label">Formule</span>
+                  <span class="partage-jud-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="partage-jud-meta">
+                <span class="partage-jud-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
