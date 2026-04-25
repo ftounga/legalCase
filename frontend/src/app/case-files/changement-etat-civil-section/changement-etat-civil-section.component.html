@@ -1,0 +1,344 @@
+<section class="cec-section">
+  <header class="cec-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cec-body">
+    <mat-icon class="cec-icon">badge</mat-icon>
+    <span class="cec-title">CHANGEMENT D'ÉTAT CIVIL (FR) — ART. 60 / 61-1 / 61-5 CCIV</span>
+    @if (result()) {
+      <span class="cec-chip"
+            [class.cec-chip--strong]="result()!.verdictAcceptabilite === 'ELEVEE'"
+            [class.cec-chip--medium]="result()!.verdictAcceptabilite === 'MOYENNE'"
+            [class.cec-chip--weak]="result()!.verdictAcceptabilite === 'FAIBLE'">
+        {{ verdictLabel(result()!.verdictAcceptabilite) }}
+      </span>
+    }
+    <mat-icon class="cec-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cec-body" class="cec-body">
+      @if (!isFrance()) {
+        <div class="cec-banner cec-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="cec-banner-content">
+            <div class="cec-banner-title">Changement d'état civil — procédure française uniquement</div>
+            <div class="cec-banner-sub">
+              Pour la Belgique, la procédure de changement de nom relève du Code civil belge (à venir — backlog F-FA-26-BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="cec-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="cec-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="cec-form" (ngSubmit)="calculate()">
+              <!-- Type changement. -->
+              <div class="cec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de changement</mat-label>
+                  <mat-select
+                      [ngModel]="typeChangement()"
+                      (ngModelChange)="onTypeChangementChange($event)"
+                      name="typeChangement" required>
+                    @for (t of typesOptions; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceTypeChangement() === 'IA') {
+                  <span class="cec-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().TYPE_CHANGEMENT; as alert) {
+                  <span class="cec-coherence-badge"
+                        [appCoherencePopover]="explanationFor('TYPE_CHANGEMENT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Motif invoqué. -->
+              <div class="cec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif invoqué</mat-label>
+                  <mat-select
+                      [ngModel]="motifInvoque()"
+                      (ngModelChange)="onMotifInvoqueChange($event)"
+                      name="motifInvoque" required>
+                    @for (m of motifsOptions; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceMotifInvoque() === 'IA') {
+                  <span class="cec-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MOTIF_INVOQUE; as alert) {
+                  <span class="cec-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MOTIF_INVOQUE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Preuves produites (multi-select). -->
+              <div class="cec-field-with-alert cec-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Preuves produites</mat-label>
+                  <mat-select multiple
+                              [ngModel]="preuvesProduites()"
+                              (ngModelChange)="onPreuvesChange($event)"
+                              name="preuvesProduites" required>
+                    @for (p of preuvesOptions; track p.code) {
+                      <mat-option [value]="p.code">{{ p.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Au moins une preuve requise (livret de famille, justificatifs, expertise…)</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- Date naissance demandeur. -->
+              <div class="cec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de naissance du demandeur</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateNaissanceDemandeur()"
+                         (ngModelChange)="onDateNaissanceChange($event)"
+                         name="dateNaissanceDemandeur" required />
+                </mat-form-field>
+                @if (provenanceDateNaissance() === 'IA') {
+                  <span class="cec-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_NAISSANCE; as alert) {
+                  <span class="cec-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_NAISSANCE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Département de déclaration. -->
+              <div class="cec-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Département de déclaration</mat-label>
+                  <input matInput type="text"
+                         placeholder="Ex : 75, 13, 974"
+                         [ngModel]="departementDeclaration()"
+                         (ngModelChange)="onDepartementChange($event)"
+                         name="departementDeclaration" required />
+                  <mat-hint>Code département du lieu de déclaration ou de résidence.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- Toggle majeurDemandeur. -->
+              <div class="cec-field-with-alert cec-field-full">
+                <mat-slide-toggle
+                    [ngModel]="majeurDemandeur()"
+                    (ngModelChange)="onMajeurDemandeurChange($event)"
+                    name="majeurDemandeur">
+                  Le demandeur est majeur
+                </mat-slide-toggle>
+                @if (provenanceMajeurDemandeur() === 'IA') {
+                  <span class="cec-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().MAJEUR_DEMANDEUR; as alert) {
+                  <span class="cec-coherence-badge"
+                        [appCoherencePopover]="explanationFor('MAJEUR_DEMANDEUR')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Toggle consentementParental (mineur). -->
+              <div class="cec-field-with-alert cec-field-full">
+                <mat-slide-toggle
+                    [ngModel]="consentementParental()"
+                    (ngModelChange)="onConsentementParentalChange($event)"
+                    name="consentementParental">
+                  Consentement parental obtenu (si demandeur mineur, art. 60 al. 3 Cciv)
+                </mat-slide-toggle>
+                @if (provenanceConsentementParental() === 'IA') {
+                  <span class="cec-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().CONSENTEMENT_PARENTAL; as alert) {
+                  <span class="cec-coherence-badge"
+                        [appCoherencePopover]="explanationFor('CONSENTEMENT_PARENTAL')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Toggle datesDocsConcordants. -->
+              <div class="cec-field-with-alert cec-field-full">
+                <mat-slide-toggle
+                    [ngModel]="datesDocsConcordants()"
+                    (ngModelChange)="onDatesDocsChange($event)"
+                    name="datesDocsConcordants">
+                  Dates des documents officiels concordantes
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Toggle dejaChangeAuparavant. -->
+              <div class="cec-field-with-alert cec-field-full">
+                <mat-slide-toggle
+                    [ngModel]="dejaChangeAuparavant()"
+                    (ngModelChange)="onDejaChangeChange($event)"
+                    name="dejaChangeAuparavant">
+                  Le demandeur a déjà changé de nom/prénom auparavant
+                </mat-slide-toggle>
+              </div>
+
+              <div class="cec-actions cec-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le changement d'état civil</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="cec-result">
+              <!-- Bannière verdict. -->
+              <div [class]="verdictBannerClass(result()!.verdictAcceptabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictAcceptabilite === 'ELEVEE' ? 'gavel'
+                     : result()!.verdictAcceptabilite === 'MOYENNE' ? 'balance'
+                     : 'info_outline' }}
+                </mat-icon>
+                <div class="cec-banner-content">
+                  <div class="cec-banner-title">
+                    {{ verdictLabel(result()!.verdictAcceptabilite) }}
+                  </div>
+                  <div class="cec-banner-sub">
+                    Score d'acceptabilité : {{ result()!.scoreAcceptabilite }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- Carte "Compétence procédure" (point différenciant). -->
+              <div [class]="competenceCardClass(result()!.competenceProcedure)" role="region"
+                   aria-label="Compétence procédure">
+                <div class="cec-competence-icon">
+                  <mat-icon>{{ competenceIcon(result()!.competenceProcedure) }}</mat-icon>
+                </div>
+                <div class="cec-competence-content">
+                  <span class="cec-competence-label">Compétence procédure</span>
+                  <span class="cec-competence-value">
+                    {{ competenceProcedureLabel(result()!.competenceProcedure) }}
+                  </span>
+                  <span class="cec-competence-sub">
+                    Délai d'instruction prévisionnel : {{ result()!.delaiInstructionMoisPrevisionnel }} mois
+                  </span>
+                </div>
+              </div>
+
+              <!-- Documents requis manquants (chips). -->
+              @if (result()!.documentsRequisManquants?.length) {
+                <div class="cec-pieces">
+                  <span class="cec-pieces-label">Documents requis manquants</span>
+                  <mat-chip-set>
+                    @for (doc of result()!.documentsRequisManquants; track doc) {
+                      <mat-chip class="cec-chip-warn">
+                        <mat-icon matChipAvatar>description</mat-icon>
+                        {{ doc }}
+                      </mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              <!-- Récap saisie. -->
+              <div class="cec-recap">
+                <div class="cec-recap-row">
+                  <span class="cec-recap-label">Type</span>
+                  <span class="cec-recap-value">{{ typeChangementLabel(result()!.typeChangement) }}</span>
+                </div>
+                <div class="cec-recap-row">
+                  <span class="cec-recap-label">Motif</span>
+                  <span class="cec-recap-value">{{ motifInvoqueLabel(result()!.motifInvoque) }}</span>
+                </div>
+                <div class="cec-recap-row">
+                  <span class="cec-recap-label">Preuves</span>
+                  <span class="cec-recap-value">
+                    @for (p of result()!.preuvesProduites; track p; let last = $last) {
+                      {{ preuveEtatCivilLabel(p) }}{{ last ? '' : ', ' }}
+                    }
+                  </span>
+                </div>
+                <div class="cec-recap-row">
+                  <span class="cec-recap-label">Date naissance</span>
+                  <span class="cec-recap-value">{{ result()!.dateNaissanceDemandeur }}</span>
+                </div>
+                <div class="cec-recap-row">
+                  <span class="cec-recap-label">Département</span>
+                  <span class="cec-recap-value">{{ result()!.departementDeclaration }}</span>
+                </div>
+                <div class="cec-recap-row">
+                  <span class="cec-recap-label">Demandeur majeur</span>
+                  <span class="cec-recap-value">{{ result()!.majeurDemandeur ? 'Oui' : 'Non' }}</span>
+                </div>
+              </div>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="cec-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="cec-formule-block">
+                  <span class="cec-formule-label">Formule</span>
+                  <span class="cec-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="cec-meta">
+                <span class="cec-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

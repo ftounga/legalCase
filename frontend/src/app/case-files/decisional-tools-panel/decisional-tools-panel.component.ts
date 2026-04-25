@@ -77,6 +77,7 @@ import { DocumentsFinContratSectionComponent } from '../documents-fin-contrat-se
 import { IndivisionSectionComponent } from '../indivision-section/indivision-section.component';
 import { PacsDissolutionSectionComponent } from '../pacs-dissolution-section/pacs-dissolution-section.component';
 import { MajeursProtegesSectionComponent } from '../majeurs-proteges-section/majeurs-proteges-section.component';
+import { ChangementEtatCivilSectionComponent } from '../changement-etat-civil-section/changement-etat-civil-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -751,6 +752,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-25-02 : majeurs protégés FR (art. 425-494 / 494-1 Cciv).
       ['F-FA-25-majeurs-proteges', {
         component: MajeursProtegesSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-26-02 : changement d'état civil FR (art. 60 / 61-1 / 61-5 Cciv).
+      ['F-FA-26-changement-etat-civil', {
+        component: ChangementEtatCivilSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,

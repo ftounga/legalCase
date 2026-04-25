@@ -146,4 +146,25 @@ export interface FamilleExtractedData {
   consentementPersonneAProtegerDetected?: boolean | null;
   demandeurFamilialDetected?: string | null;
   actesEnvisagesDetected?: string[] | null;
+  /**
+   * SF-FA-26-02 : pré-fill outil "Changement état civil" (art. 60 / 61-1 / 61-5
+   * Cciv ; loi 2016-1547 / 2022-301). Toutes les valeurs sont optionnelles —
+   * le composant est no-op gracieux si absent.
+   *
+   * Type changement : valeur attendue parmi `TypeChangement`
+   * (`NOM` / `PRENOM` / `SEXE` / `NOM_ET_PRENOM`) — toute autre valeur ignorée.
+   */
+  typeChangementDetecte?: string | null;
+  /**
+   * SF-FA-26-02 : motif invoqué détecté. Valeur attendue parmi `MotifInvoque`
+   * (`INTERET_LEGITIME` / `MARIAGE` / `RECTIFICATION_ERREUR` /
+   * `IDENTIFICATION_GENRE` / `AUTRE`) — toute autre valeur ignorée.
+   */
+  motifChangementDetecte?: string | null;
+  /** SF-FA-26-02 : date de naissance du demandeur (ISO YYYY-MM-DD). */
+  dateNaissanceDemandeurDetectee?: string | null;
+  /** SF-FA-26-02 : demandeur majeur détecté par l'IA. */
+  majeurDemandeurDetected?: boolean | null;
+  /** SF-FA-26-02 : consentement parental détecté (mineur). */
+  consentementParentalDetected?: boolean | null;
 }
