@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="133-create-indemnite-conges-payes-analyses" author="legalcase">
+        <comment>
+            SF-DT-26-01 : table dediee a l'outil decisionnel "Indemnite compensatrice
+            de conges payes" (art. L.3141-26 et L.3141-28 Code du travail).
+            Compare la methode du dixieme (10 % remuneration) et la methode du
+            maintien de salaire (trentieme), puis retient celle qui donne le resultat
+            le plus favorable au salarie (jurisprudence constante L.3141-28). Permet
+            le forcage explicite d'une methode par l'avocat (cas specifiques).
+            + 1 regle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE,
+            priority 52, UUID f1a04001-0000-0000-0000-ee0000000261).
+            Note : le brief initial suggerait l'UUID ee00000dt261 mais 't' n'est pas
+            hexadecimal (H2 rejette le cast UUID) ; UUID substitue par ee0000000261
+            (convention existante ee0000000XYZ, voir F-DT-19 ee0000000191).
+        </comment>
+
+        <createTable tableName="indemnite_conges_payes_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_indemnite_conges_payes_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="total_remuneration_periode_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jours_acquis_annee" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jours_pris" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_brut_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_rupture" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="methode_forcee" type="varchar(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="methode_retenue" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_indemnite_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="indemnite_conges_payes_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_indemnite_conges_payes_analyses_case_file"/>
+
+        <createIndex tableName="indemnite_conges_payes_analyses"
+                     indexName="idx_indemnite_conges_payes_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000261', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-26-conges-payes-indemnite', 'ALWAYS_ON', NULL, NULL, 52);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000261';
+            </sql>
+            <dropTable tableName="indemnite_conges_payes_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
