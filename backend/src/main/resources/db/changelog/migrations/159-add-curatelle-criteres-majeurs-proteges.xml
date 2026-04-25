@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="159-add-curatelle-criteres-majeurs-proteges" author="legalcase">
+        <comment>
+            SF-FA-25-03 : extension de l'outil "Majeurs protégés" (table
+            majeurs_proteges_analyses créée en migration 153) pour les régimes
+            CURATELLE_SIMPLE (art. 440 al. 1 Cciv) et CURATELLE_RENFORCEE
+            (art. 472 Cciv).
+
+            Changement de schéma minimal :
+            - ADD COLUMN incapacite_gestion_quotidienne (boolean nullable) —
+              critère pivot de la curatelle renforcée art. 472 (le curateur
+              perçoit revenus + paie dépenses parce que la personne ne peut
+              plus gérer son budget quotidien).
+
+            Aucun changement de la signature des colonnes existantes :
+            backward compatible. Les analyses sauvegarde/habilitation
+            persistées avant cette migration restent lisibles (incap = NULL).
+
+            + Seed de 2 entries legal_referentials de type
+            MAJEURS_PROTEGES_REGIMES avec description SF-140-03 obligatoire
+            (langage avocat).
+
+            Rollback : DROP COLUMN + DELETE legal_referentials par UUID.
+        </comment>
+
+        <addColumn tableName="majeurs_proteges_analyses">
+            <column name="incapacite_gestion_quotidienne" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1a04001-0000-0000-0000-000000000159', NULL, 'DROIT_FAMILLE', 'MAJEURS_PROTEGES_REGIMES', 'CURATELLE_SIMPLE', '{"articles":["Cciv 425","Cciv 440 al. 1","Cciv 467","Cciv 469"],"delaiProcedureMois":8,"delaiInitialAnsMax":5,"renouvelable":true,"criteresEligibilite":["Altération significative des facultés mentales OU physiques (art. 425) constatée par certificat médical circonstancié (art. 431)","Au moins un acte patrimonial important à venir (gestion de patrimoine ou décisions logement)","Personne capable de gérer son budget quotidien (sinon → curatelle renforcée)"]}', 'Curatelle simple', 'FR', true, true, 'Cciv 440 al. 1 + 425 + 467 + 469', 'Curatelle SIMPLE (art. 440 al. 1 Cciv) : régime de protection juridique intermédiaire pour une personne dont les facultés mentales ou physiques sont altérées de façon à requérir une ASSISTANCE pour les actes patrimoniaux importants (vendre/acheter un bien, signer un emprunt, conclure un bail), mais qui reste autonome pour la gestion de son budget quotidien. Le curateur ne représente pas la personne (différence avec la tutelle) — il l''assiste : double signature requise pour les actes de disposition (art. 467). Conditions de saisine : certificat médical circonstancié obligatoire (art. 431) délivré par un médecin inscrit sur la liste du procureur, audition de la personne (art. 432) sauf impossibilité médicale, qualité à agir du demandeur (art. 430). Durée initiale 5 ans max, renouvelable (art. 441). Délai prévisionnel devant le juge des contentieux de la protection : ~8 mois. Utilisé par l''outil décisionnel F-FA-25 (Majeurs protégés). Si la personne ne peut plus gérer ses revenus/dépenses du quotidien, basculer vers CURATELLE_RENFORCEE (art. 472).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1a04001-0000-0000-0000-000000000160', NULL, 'DROIT_FAMILLE', 'MAJEURS_PROTEGES_REGIMES', 'CURATELLE_RENFORCEE', '{"articles":["Cciv 425","Cciv 440","Cciv 472","Cciv 469"],"delaiProcedureMois":8,"delaiInitialAnsMax":5,"renouvelable":true,"criteresEligibilite":["Tous les critères de la curatelle simple","Critère pivot art. 472 : la personne ne peut PAS gérer ses revenus et ses dépenses au quotidien","Le curateur perçoit seul les revenus, règle les dépenses et reverse l''excédent à la personne"]}', 'Curatelle renforcée', 'FR', true, true, 'Cciv 472 + 440 + 425', 'Curatelle RENFORCÉE (art. 472 Cciv) : régime appliqué dans le cadre d''une curatelle (art. 440 — altération + assistance) lorsque la personne ne peut plus gérer ses revenus et ses dépenses au quotidien. Le curateur PERÇOIT seul les revenus de la personne sur un compte ouvert au nom de cette dernière, RÈGLE les dépenses (loyer, charges, courses, soins) et REVERSE l''excédent éventuel. C''est une mesure plus lourde que la curatelle simple : elle suppose que l''autonomie quotidienne (et pas seulement patrimoniale exceptionnelle) est compromise. Conditions de saisine identiques à la curatelle simple (certificat médical circonstancié art. 431, audition art. 432, qualité à agir art. 430). Durée initiale 5 ans max renouvelable. Délai prévisionnel ~8 mois devant le juge des contentieux de la protection. Le curateur rend compte annuellement au juge (art. 510). Utilisé par F-FA-25. Critère DISCRIMINANT vs curatelle simple : la capacité à gérer son budget courant (incapaciteGestionQuotidienne = true → renforcée).', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM legal_referentials WHERE id IN (
+                    'f1a04001-0000-0000-0000-000000000159',
+                    'f1a04001-0000-0000-0000-000000000160'
+                );
+            </sql>
+            <dropColumn tableName="majeurs_proteges_analyses" columnName="incapacite_gestion_quotidienne"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

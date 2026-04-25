@@ -11,13 +11,21 @@ import java.util.Set;
  * majeurs vulnérables — sauvegarde de justice (art. 433-441 Cciv) et
  * habilitation familiale (art. 494-1 et s. Cciv depuis 2016).
  *
- * <p>Premier morceau backend de F-FA-25. L'outil :
+ * <p>SF-FA-25-03 : extension explicite des régimes CURATELLE_SIMPLE
+ * (art. 440 al. 1 Cciv — assistance pour actes patrimoniaux importants)
+ * et CURATELLE_RENFORCEE (art. 472 Cciv — le curateur perçoit revenus +
+ * paie dépenses parce que la personne ne peut plus gérer son budget
+ * quotidien). Le critère pivot {@code incapaciteGestionQuotidienne}
+ * distingue les deux.
+ *
+ * <p>L'outil :
  * <ul>
- *   <li>évalue un score 0-100 d'éligibilité (acceptabilité par le JAF / juge
- *       des contentieux de la protection)</li>
+ *   <li>évalue un score 0-100 d'éligibilité (acceptabilité par le JCP)</li>
  *   <li>recommande le régime optimal entre les 6 régimes possibles</li>
  *   <li>donne un verdict (ELEVEE / MOYENNE / FAIBLE), le délai indicatif et
  *       la nécessité d'audition / expertise psy complémentaire</li>
+ *   <li>SF-FA-25-03 : expose un drapeau {@code eligible} et la liste
+ *       {@code criteresNonRemplis} pour le régime demandé</li>
  * </ul>
  *
  * <p>Scoring 0-100 :
@@ -38,8 +46,12 @@ import java.util.Set;
  *       SAUVEGARDE_JUSTICE</li>
  *   <li>famille proche + consentement + altération mentale + non urgent →
  *       HABILITATION_FAMILIALE</li>
+ *   <li>SF-FA-25-03 : altération + cert médical + incapacité gestion
+ *       quotidienne sans consentement → CURATELLE_RENFORCEE</li>
  *   <li>gestion patrimoine + patrimoine significatif + pas de consentement →
- *       CURATELLE_RENFORCEE</li>
+ *       CURATELLE_RENFORCEE (compat SF-FA-25-01)</li>
+ *   <li>SF-FA-25-03 : altération + cert médical + acte patrimonial important
+ *       sans incapacité quotidienne → CURATELLE_SIMPLE</li>
  *   <li>altération mentale + isolement social + pas de consentement →
  *       TUTELLE</li>
  *   <li>sinon → fallback sur regimeProtectionDemande</li>
@@ -89,12 +101,20 @@ public final class MajeursProtegesCalculator {
             "CURATELLE_SIMPLE", "CURATELLE_RENFORCEE",
             "TUTELLE", "MANDAT_PROTECTION_FUTURE");
 
+    /** SF-FA-25-03 : actes patrimoniaux importants requérant curatelle. */
+    public static final Set<String> ACTES_PATRIMONIAUX_IMPORTANTS = Set.of(
+            "GESTION_PATRIMOINE", "DECISIONS_LOGEMENT");
+
     private static final String BASE_JURIDIQUE =
             "Art. 433-441 + 494-1 et s. Cciv";
 
     private MajeursProtegesCalculator() {
     }
 
+    /**
+     * Surcharge SF-FA-25-01 (backward compatible) : appelle la version
+     * étendue avec {@code incapaciteGestionQuotidienne = false}.
+     */
     public static MajeursProtegesResult compute(String regimeProtectionDemande,
                                                 boolean altertationFacultesMentales,
                                                 boolean altertationFacultesPhysiques,
@@ -106,6 +126,37 @@ public final class MajeursProtegesCalculator {
                                                 boolean urgencePatrimoniale,
                                                 boolean patrimoineSignificatif,
                                                 boolean isolementSocial) {
+        return compute(regimeProtectionDemande,
+                altertationFacultesMentales,
+                altertationFacultesPhysiques,
+                certificatMedicalCirconstancie,
+                dateCertificatMedical,
+                consentementPersonneAProteger,
+                demandeurFamilial,
+                actesEnvisages,
+                urgencePatrimoniale,
+                patrimoineSignificatif,
+                isolementSocial,
+                false);
+    }
+
+    /**
+     * SF-FA-25-03 : version étendue avec critère
+     * {@code incapaciteGestionQuotidienne} (pivot art. 472 pour curatelle
+     * renforcée).
+     */
+    public static MajeursProtegesResult compute(String regimeProtectionDemande,
+                                                boolean altertationFacultesMentales,
+                                                boolean altertationFacultesPhysiques,
+                                                boolean certificatMedicalCirconstancie,
+                                                LocalDate dateCertificatMedical,
+                                                boolean consentementPersonneAProteger,
+                                                String demandeurFamilial,
+                                                List<String> actesEnvisages,
+                                                boolean urgencePatrimoniale,
+                                                boolean patrimoineSignificatif,
+                                                boolean isolementSocial,
+                                                boolean incapaciteGestionQuotidienne) {
         validateRegime(regimeProtectionDemande);
         validateDemandeur(demandeurFamilial);
         List<String> actes = validateActes(actesEnvisages);
@@ -121,12 +172,14 @@ public final class MajeursProtegesCalculator {
         String regimeOptimal = recommandeRegime(regimeProtectionDemande,
                 altertationFacultesMentales,
                 altertationFacultesPhysiques,
+                certificatMedicalCirconstancie,
                 consentementPersonneAProteger,
                 demandeurFamilial,
                 actes,
                 urgencePatrimoniale,
                 patrimoineSignificatif,
-                isolementSocial);
+                isolementSocial,
+                incapaciteGestionQuotidienne);
 
         int delai = REGIMES_LONGS.contains(regimeOptimal)
                 ? DELAI_LONG_MOIS : DELAI_COURT_MOIS;
@@ -141,16 +194,32 @@ public final class MajeursProtegesCalculator {
                 certificatMedicalCirconstancie,
                 actes);
 
+        // SF-FA-25-03 : analyse d'éligibilité du régime DEMANDÉ
+        // (eligible + criteresNonRemplis sont calculés sur le régime que
+        // l'avocat a saisi, pas sur le régime optimal recommandé).
+        List<String> criteresNonRemplis = analyseCriteres(
+                regimeProtectionDemande,
+                altertationFacultesMentales,
+                altertationFacultesPhysiques,
+                certificatMedicalCirconstancie,
+                consentementPersonneAProteger,
+                demandeurFamilial,
+                actes,
+                incapaciteGestionQuotidienne);
+        boolean eligible = criteresNonRemplis.isEmpty();
+
         String formule = buildFormule(score, verdict, regimeOptimal,
                 regimeProtectionDemande, certificatMedicalCirconstancie,
-                consentementPersonneAProteger, urgencePatrimoniale, delai);
+                consentementPersonneAProteger, urgencePatrimoniale, delai,
+                eligible);
 
         List<String> messages = buildMessages(verdict, regimeOptimal,
                 regimeProtectionDemande, certificatMedicalCirconstancie,
                 consentementPersonneAProteger, urgencePatrimoniale,
                 altertationFacultesMentales, altertationFacultesPhysiques,
                 demandeurFamilial, actes, patrimoineSignificatif,
-                isolementSocial, auditionObligatoire, expertisePsy);
+                isolementSocial, auditionObligatoire, expertisePsy,
+                incapaciteGestionQuotidienne, criteresNonRemplis);
 
         return new MajeursProtegesResult(
                 regimeProtectionDemande,
@@ -164,12 +233,15 @@ public final class MajeursProtegesCalculator {
                 urgencePatrimoniale,
                 patrimoineSignificatif,
                 isolementSocial,
+                incapaciteGestionQuotidienne,
                 score,
                 regimeOptimal,
                 verdict,
                 delai,
                 auditionObligatoire,
                 expertisePsy,
+                eligible,
+                criteresNonRemplis,
                 BASE_JURIDIQUE,
                 formule,
                 messages);
@@ -209,14 +281,19 @@ public final class MajeursProtegesCalculator {
     private static String recommandeRegime(String regimeDemande,
                                            boolean alterationMentale,
                                            boolean alterationPhysique,
+                                           boolean certificat,
                                            boolean consentement,
                                            String demandeur,
                                            List<String> actes,
                                            boolean urgence,
                                            boolean patrimoine,
-                                           boolean isolement) {
+                                           boolean isolement,
+                                           boolean incapaciteQuotidienne) {
+        boolean alterationToute = alterationMentale || alterationPhysique;
+        boolean actePat = actes.stream().anyMatch(ACTES_PATRIMONIAUX_IMPORTANTS::contains);
+
         // Sauvegarde de justice : urgence patrimoniale + altération (provisoire)
-        if (urgence && (alterationMentale || alterationPhysique)) {
+        if (urgence && alterationToute) {
             return "SAUVEGARDE_JUSTICE";
         }
         // Habilitation familiale : famille proche + consentement + altération
@@ -227,11 +304,31 @@ public final class MajeursProtegesCalculator {
                 && !urgence) {
             return "HABILITATION_FAMILIALE";
         }
-        // Curatelle renforcée : gestion de patrimoine significatif sans consentement
+        // SF-FA-25-03 : Curatelle renforcée pivot art. 472 — incapacité de
+        // gestion du budget quotidien + altération + cert médical
+        if (incapaciteQuotidienne
+                && alterationToute
+                && certificat
+                && !consentement) {
+            return "CURATELLE_RENFORCEE";
+        }
+        // Curatelle renforcée (compat SF-FA-25-01) : gestion de patrimoine
+        // significatif sans consentement
         if (actes.contains("GESTION_PATRIMOINE")
                 && patrimoine
                 && !consentement) {
             return "CURATELLE_RENFORCEE";
+        }
+        // SF-FA-25-03 : Curatelle simple — altération + cert médical + acte
+        // patrimonial important + pas d'incapacité quotidienne + pas de
+        // consentement (sinon habilitation prioritaire au-dessus)
+        if (alterationToute
+                && certificat
+                && actePat
+                && !incapaciteQuotidienne
+                && !consentement
+                && !isolement) {
+            return "CURATELLE_SIMPLE";
         }
         // Tutelle : altération mentale + isolement social sans consentement
         if (alterationMentale && isolement && !consentement) {
@@ -256,6 +353,83 @@ public final class MajeursProtegesCalculator {
     }
 
     // =========================================================================
+    // SF-FA-25-03 : Analyse des critères d'éligibilité par régime
+    // =========================================================================
+
+    /**
+     * Liste les critères NON REMPLIS pour le régime demandé.
+     * Si la liste est vide → {@code eligible = true}.
+     *
+     * <p>Les critères vérifiés dépendent du régime ; tous les régimes
+     * partagent les exigences communes (cert médical, altération).
+     */
+    private static List<String> analyseCriteres(String regime,
+                                                boolean alterationMentale,
+                                                boolean alterationPhysique,
+                                                boolean certificat,
+                                                boolean consentement,
+                                                String demandeur,
+                                                List<String> actes,
+                                                boolean incapaciteQuotidienne) {
+        List<String> ko = new ArrayList<>();
+        boolean alterationToute = alterationMentale || alterationPhysique;
+        boolean actePat = actes.stream().anyMatch(ACTES_PATRIMONIAUX_IMPORTANTS::contains);
+
+        // Critères communs : certificat (art. 431) + altération (art. 425)
+        if (!certificat) {
+            ko.add("Certificat médical circonstancié obligatoire (art. 431 Cciv)");
+        }
+        if (!alterationToute) {
+            ko.add("Altération des facultés (mentales ou physiques) requise (art. 425 Cciv)");
+        }
+
+        switch (regime) {
+            case "CURATELLE_SIMPLE" -> {
+                if (!actePat) {
+                    ko.add("Au moins un acte patrimonial important "
+                            + "(GESTION_PATRIMOINE ou DECISIONS_LOGEMENT) "
+                            + "requis pour la curatelle simple (art. 440 al. 1)");
+                }
+                // curatelle simple : la personne reste autonome au quotidien
+                if (incapaciteQuotidienne) {
+                    ko.add("Incapacité de gestion quotidienne incompatible avec "
+                            + "la curatelle simple — basculer vers la curatelle "
+                            + "renforcée (art. 472)");
+                }
+            }
+            case "CURATELLE_RENFORCEE" -> {
+                if (!actePat) {
+                    ko.add("Au moins un acte patrimonial important "
+                            + "(GESTION_PATRIMOINE ou DECISIONS_LOGEMENT) "
+                            + "requis pour la curatelle (art. 440)");
+                }
+                if (!incapaciteQuotidienne) {
+                    ko.add("Incapacité de gestion des revenus / dépenses "
+                            + "quotidiens requise pour la curatelle "
+                            + "renforcée (art. 472 Cciv)");
+                }
+            }
+            case "HABILITATION_FAMILIALE" -> {
+                if (!consentement) {
+                    ko.add("Consentement de la personne à protéger requis "
+                            + "(art. 494-1 al. 2 Cciv)");
+                }
+                if (!FAMILLE_PROCHE.contains(demandeur)) {
+                    ko.add("Demandeur familial proche requis (CONJOINT, "
+                            + "ENFANT_MAJEUR ou PARENT — art. 494-1 al. 1)");
+                }
+            }
+            case "SAUVEGARDE_JUSTICE", "TUTELLE", "MANDAT_PROTECTION_FUTURE" -> {
+                // pas de critères spécifiques additionnels analysés ici
+                // (couverts par le scoring 0-100 pour SAUVEGARDE / TUTELLE,
+                // hors-scope pour MANDAT_PROTECTION_FUTURE)
+            }
+            default -> { }
+        }
+        return ko;
+    }
+
+    // =========================================================================
     // Formule & messages
     // =========================================================================
 
@@ -266,7 +440,8 @@ public final class MajeursProtegesCalculator {
                                        boolean certificat,
                                        boolean consentement,
                                        boolean urgence,
-                                       int delai) {
+                                       int delai,
+                                       boolean eligible) {
         StringBuilder sb = new StringBuilder();
         sb.append("Score ").append(score)
                 .append(" = acceptabilité ").append(verdict)
@@ -277,7 +452,10 @@ public final class MajeursProtegesCalculator {
             sb.append("Régime demandé ").append(regimeDemande)
                     .append(" → recommandé ").append(regimeOptimal);
         }
-        sb.append(" (délai ~").append(delai).append(" mois).");
+        sb.append(" (délai ~").append(delai).append(" mois). ");
+        sb.append(eligible
+                ? "Éligibilité : OUI (tous critères du régime demandé remplis)."
+                : "Éligibilité : NON (critères manquants — voir liste).");
         if (!certificat) {
             sb.append(" Certificat médical circonstancié manquant — obligatoire art. 431.");
         }
@@ -311,7 +489,9 @@ public final class MajeursProtegesCalculator {
                                               boolean patrimoine,
                                               boolean isolement,
                                               boolean auditionObligatoire,
-                                              boolean expertisePsy) {
+                                              boolean expertisePsy,
+                                              boolean incapaciteQuotidienne,
+                                              List<String> criteresNonRemplis) {
         List<String> msgs = new ArrayList<>();
         msgs.add("Saisine du juge des contentieux de la protection (ex-JAF "
                 + "tutelles) : requête écrite + certificat médical "
@@ -348,11 +528,14 @@ public final class MajeursProtegesCalculator {
                             + "constatée par certificat) et l'absence de "
                             + "conflit familial. Procédure souple (4 mois).");
             case "CURATELLE_RENFORCEE" -> msgs.add(
-                    "CURATELLE RENFORCÉE (art. 440 et 472 Cciv) : le curateur "
-                            + "perçoit seul les revenus et règle les dépenses. "
-                            + "Adaptée à la gestion d'un patrimoine "
-                            + "significatif sans consentement de la personne. "
-                            + "Mesure plus lourde (~ 8 mois).");
+                    "CURATELLE RENFORCÉE (art. 472 Cciv) : le curateur perçoit "
+                            + "seul les revenus de la personne et règle les "
+                            + "dépenses (loyer, charges, courses, soins) ; "
+                            + "l'excédent est reversé à la personne. Adaptée "
+                            + "lorsque la personne ne peut plus gérer son "
+                            + "budget quotidien (critère pivot art. 472). "
+                            + "Compte annuel de gestion à soumettre au juge "
+                            + "(art. 510). Mesure plus lourde (~ 8 mois).");
             case "TUTELLE" -> msgs.add(
                     "TUTELLE (art. 440 al. 3 et 473 Cciv) : représentation "
                             + "continue de la personne dans tous les actes de "
@@ -360,9 +543,14 @@ public final class MajeursProtegesCalculator {
                             + "réservée aux altérations sévères avec isolement "
                             + "social et absence de consentement.");
             case "CURATELLE_SIMPLE" -> msgs.add(
-                    "CURATELLE SIMPLE (art. 440 al. 1 Cciv) : assistance pour "
-                            + "les actes de disposition, la personne reste "
-                            + "autonome pour les actes courants.");
+                    "CURATELLE SIMPLE (art. 440 al. 1 Cciv) : ASSISTANCE pour "
+                            + "les actes de disposition (vente immobilière, "
+                            + "emprunt, bail), la personne reste AUTONOME pour "
+                            + "ses actes courants et la gestion de son budget "
+                            + "quotidien. Double signature requise pour les "
+                            + "actes patrimoniaux importants (art. 467). Si la "
+                            + "gestion quotidienne devient impossible, "
+                            + "basculer vers CURATELLE_RENFORCEE (art. 472).");
             case "MANDAT_PROTECTION_FUTURE" -> msgs.add(
                     "MANDAT DE PROTECTION FUTURE (art. 477-494 Cciv) : "
                             + "anticipé par la personne avant l'altération. "
@@ -440,8 +628,21 @@ public final class MajeursProtegesCalculator {
                     + "renforcée) plutôt qu'une habilitation familiale.");
         }
 
+        if (incapaciteQuotidienne) {
+            msgs.add("Incapacité de gestion quotidienne : critère pivot de la "
+                    + "curatelle renforcée (art. 472 Cciv) — le curateur "
+                    + "perçoit revenus et règle dépenses courantes.");
+        }
+
+        if (!criteresNonRemplis.isEmpty()) {
+            msgs.add("Critères NON REMPLIS pour le régime demandé ("
+                    + regimeDemande + ") : "
+                    + String.join(" ; ", criteresNonRemplis)
+                    + ".");
+        }
+
         if ("ELEVEE".equals(verdict)) {
-            msgs.add("Probabilité ÉLEVÉE d'acceptation par le JAF : préparer "
+            msgs.add("Probabilité ÉLEVÉE d'acceptation par le JCP : préparer "
                     + "la requête complète + certificat médical + pièces sur "
                     + "le consentement et la subsidiarité.");
         } else if ("FAIBLE".equals(verdict)) {

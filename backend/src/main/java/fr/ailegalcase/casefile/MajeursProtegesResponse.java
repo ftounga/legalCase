@@ -7,6 +7,10 @@ import java.util.UUID;
 /**
  * SF-FA-25-01 : réponse de l'API mesures de protection des majeurs
  * (art. 433-441 + 494-1 et s. Cciv).
+ *
+ * <p>SF-FA-25-03 : ajout des champs {@code incapaciteGestionQuotidienne}
+ * (art. 472), {@code eligible} et {@code criteresNonRemplis} pour les
+ * régimes curatelle simple/renforcée.
  */
 public record MajeursProtegesResponse(
         UUID caseFileId,
@@ -21,12 +25,15 @@ public record MajeursProtegesResponse(
         boolean urgencePatrimoniale,
         boolean patrimoineSignificatif,
         boolean isolementSocial,
+        boolean incapaciteGestionQuotidienne,
         int scoreEligibilite,
         String regimeOptimalRecommande,
         String verdictAcceptabiliteJaf,
         int delaiProcedureMoisPrevisionnel,
         boolean auditionPersonneObligatoire,
         boolean expertisePsyComplementaireRecommandee,
+        boolean eligible,
+        List<String> criteresNonRemplis,
         String baseJuridique,
         String formule,
         List<String> messages,
