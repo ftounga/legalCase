@@ -1,0 +1,352 @@
+<section class="rpd-section">
+  <header class="rpd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button" [attr.aria-expanded]="!collapsed()" aria-controls="rpd-body">
+    <mat-icon class="rpd-icon">history</mat-icon>
+    <span class="rpd-title">RÉVISIONS POST-DIVORCE (FR)</span>
+    @if (result()) {
+      <span class="rpd-chip">{{ result()!.verdictRevisionPossible }} ({{ result()!.scoreGlobal }}/100)</span>
+    }
+    <mat-icon class="rpd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rpd-body" class="rpd-body">
+
+      @if (!isFranceGate()) {
+        <!-- Gate workspaceCountry BE : bannière info redirigeant vers F-FA-21. -->
+        <div class="rpd-info-banner">
+          <mat-icon>info</mat-icon>
+          <div>
+            <strong>Outil disponible uniquement pour les dossiers FR.</strong>
+            <p>
+              En droit belge, la révision des décisions du tribunal de la
+              famille suit une procédure spécifique. L'outil correspondant
+              (F-FA-21) sera disponible prochainement.
+            </p>
+          </div>
+        </div>
+      } @else {
+
+        @if (loading()) {
+          <div class="rpd-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+
+          @if (showForm()) {
+            <!-- Résumé incohérences détectées. -->
+            @if (alertsSummary().total > 0) {
+              <div class="rpd-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="rpd-form" (ngSubmit)="calculate()">
+              <!-- Type de révision (mat-select obligatoire). -->
+              <div class="rpd-field-with-alert rpd-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de révision</mat-label>
+                  <mat-select
+                      [ngModel]="typeRevision()"
+                      (ngModelChange)="onTypeRevisionChange($event)"
+                      name="typeRevision" required>
+                    @for (t of typesOptions; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Date décision initiale. -->
+              <div class="rpd-field-with-alert">
+                <label class="rpd-field-label" for="rpd-date-decision">
+                  Date de la décision initiale <span class="rpd-required">*</span>
+                </label>
+                <input id="rpd-date-decision" class="rpd-date-input" type="date"
+                       [ngModel]="dateDecisionInitiale()"
+                       (ngModelChange)="onDateDecisionChange($event)"
+                       name="dateDecisionInitiale" required />
+              </div>
+
+              <!-- Changement de circonstance (textarea, ≥ 20 chars). -->
+              <div class="rpd-field-with-alert rpd-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Changement de circonstance (≥ 20 caractères)</mat-label>
+                  <textarea matInput rows="3" minlength="20"
+                            [ngModel]="changementCirconstance()"
+                            (ngModelChange)="onChangementCirconstanceChange($event)"
+                            name="changementCirconstance" required></textarea>
+                  <mat-hint align="end">
+                    {{ changementCirconstance().length }}/20+
+                  </mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- ===== Cas PENSION_ALIMENTAIRE / PRESTATION_COMPENSATOIRE : revenus ===== -->
+              @if (showRevenusFields()) {
+                <div class="rpd-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Revenus initiaux débiteur (€)</mat-label>
+                    <input matInput type="number" min="0" step="100"
+                           [ngModel]="revenusInitialsDebiteurEur()"
+                           (ngModelChange)="onRevenusInitialsDebiteurChange($event)"
+                           name="revenusInitialsDebiteurEur" />
+                  </mat-form-field>
+                </div>
+
+                <div class="rpd-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Revenus actuels débiteur (€)</mat-label>
+                    <input matInput type="number" min="0" step="100"
+                           [ngModel]="revenusActuelsDebiteurEur()"
+                           (ngModelChange)="onRevenusActuelsDebiteurChange($event)"
+                           name="revenusActuelsDebiteurEur" />
+                  </mat-form-field>
+                  @if (provenanceRevenusActuelsDebiteur() === 'IA') {
+                    <span class="rpd-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                  @if (coherenceAlerts().REVENUS_DEBITEUR_ACTUEL; as alert) {
+                    <span class="rpd-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+
+                <div class="rpd-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Revenus initiaux créancier (€)</mat-label>
+                    <input matInput type="number" min="0" step="100"
+                           [ngModel]="revenusInitialsCreancierEur()"
+                           (ngModelChange)="onRevenusInitialsCreancierChange($event)"
+                           name="revenusInitialsCreancierEur" />
+                  </mat-form-field>
+                </div>
+
+                <div class="rpd-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Revenus actuels créancier (€)</mat-label>
+                    <input matInput type="number" min="0" step="100"
+                           [ngModel]="revenusActuelsCreancierEur()"
+                           (ngModelChange)="onRevenusActuelsCreancierChange($event)"
+                           name="revenusActuelsCreancierEur" />
+                  </mat-form-field>
+                  @if (provenanceRevenusActuelsCreancier() === 'IA') {
+                    <span class="rpd-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                  @if (coherenceAlerts().REVENUS_CREANCIER_ACTUEL; as alert) {
+                    <span class="rpd-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- ===== Cas RESIDENCE / DROIT_VISITE : enfants + résidence ===== -->
+              @if (showResidenceFields()) {
+                <div class="rpd-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nombre d'enfants à charge</mat-label>
+                    <input matInput type="number" min="0" max="12" step="1"
+                           [ngModel]="nbEnfantsACharge()"
+                           (ngModelChange)="onNbEnfantsChange($event)"
+                           name="nbEnfantsACharge" />
+                  </mat-form-field>
+                  @if (provenanceNbEnfants() === 'IA') {
+                    <span class="rpd-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                  @if (coherenceAlerts().NB_ENFANTS; as alert) {
+                    <span class="rpd-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+
+                <div class="rpd-field-with-alert">
+                  <label class="rpd-field-label">Âges des enfants</label>
+                  <div class="rpd-age-row">
+                    <mat-chip-set>
+                      @for (age of ageEnfants(); track $index; let i = $index) {
+                        <mat-chip (removed)="onAgeEnfantRemove(i)">
+                          {{ age }} an(s)
+                          <button matChipRemove type="button">
+                            <mat-icon>cancel</mat-icon>
+                          </button>
+                        </mat-chip>
+                      }
+                    </mat-chip-set>
+                    <input #ageInput type="number" min="0" max="30"
+                           class="rpd-age-input"
+                           placeholder="+ âge"
+                           (keydown.enter)="onAgeEnfantsAdd(ageInput.value); ageInput.value = ''" />
+                  </div>
+                </div>
+
+                <div class="rpd-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Mode de résidence actuel</mat-label>
+                    <mat-select
+                        [ngModel]="modeResidenceActuel()"
+                        (ngModelChange)="onModeResidenceActuelChange($event)"
+                        name="modeResidenceActuel">
+                      @for (m of modesResidenceOptions; track m.code) {
+                        <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                <div class="rpd-field-with-alert">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Mode de résidence demandé</mat-label>
+                    <mat-select
+                        [ngModel]="modeResidenceDemande()"
+                        (ngModelChange)="onModeResidenceDemandeChange($event)"
+                        name="modeResidenceDemande">
+                      @for (m of modesResidenceOptions; track m.code) {
+                        <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              }
+
+              <!-- ===== Cas DEMENAGEMENT_PARENT : hint informatif ===== -->
+              @if (showDemenagementHint()) {
+                <div class="rpd-field-full rpd-info-banner rpd-info-banner--inline">
+                  <mat-icon>info_outline</mat-icon>
+                  <div>
+                    <strong>Déménagement parent — informations à inclure dans la motivation.</strong>
+                    <p>
+                      Précisez la distance, l'impact sur l'organisation de la résidence,
+                      le préavis donné à l'autre parent et les motifs du déménagement
+                      (professionnels, familiaux, scolaires).
+                    </p>
+                  </div>
+                </div>
+              }
+
+              <div class="rpd-actions rpd-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la révision</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rpd-result">
+              <!-- Bannière verdict (palette navy/or/rouge-classique). -->
+              <div [class]="verdictClass(result()!.verdictRevisionPossible)" role="status">
+                <mat-icon class="verdict-icon">
+                  @switch (result()!.verdictRevisionPossible) {
+                    @case ('ELEVEE') { check_circle }
+                    @case ('MOYENNE') { warning }
+                    @case ('FAIBLE') { error_outline }
+                  }
+                </mat-icon>
+                <div class="verdict-text">
+                  <span class="verdict-label">{{ verdictRevisionLabel(result()!.verdictRevisionPossible) }}</span>
+                  <span class="verdict-score">Score {{ result()!.scoreGlobal }}/100</span>
+                </div>
+              </div>
+
+              <!-- Type de révision (rappel). -->
+              <div class="rpd-card rpd-card--type">
+                <div class="rpd-card-header">
+                  <span class="rpd-card-label">Type de révision</span>
+                </div>
+                <span class="rpd-card-value">
+                  {{ typeRevisionLabel(result()!.typeRevision) }}
+                </span>
+              </div>
+
+              <!-- Carte modification substantielle. -->
+              <div class="rpd-card rpd-card--check">
+                <div class="rpd-card-header">
+                  <span class="rpd-card-label">Modification substantielle</span>
+                  <mat-icon [class.rpd-check-ok]="result()!.modificationSubstantielle"
+                            [class.rpd-check-ko]="!result()!.modificationSubstantielle">
+                    {{ result()!.modificationSubstantielle ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </div>
+                <span class="rpd-card-note">
+                  Critère de fond — jurisprudence constante (Cass. civ. 1, 14 mars 2018)
+                </span>
+              </div>
+
+              <!-- Carte motivation suffisante. -->
+              <div class="rpd-card rpd-card--check">
+                <div class="rpd-card-header">
+                  <span class="rpd-card-label">Motivation suffisante</span>
+                  <mat-icon [class.rpd-check-ok]="result()!.motivationSuffisante"
+                            [class.rpd-check-ko]="!result()!.motivationSuffisante">
+                    {{ result()!.motivationSuffisante ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </div>
+                <span class="rpd-card-note">
+                  Critère de forme — précision et longueur du changement de circonstance
+                </span>
+              </div>
+
+              <!-- Carte écart revenus % (si applicable). -->
+              @if (result()!.ecartRevenusPct !== null && result()!.ecartRevenusPct !== undefined) {
+                <div class="rpd-card rpd-card--ecart">
+                  <div class="rpd-card-header">
+                    <span class="rpd-card-label">Écart revenus débiteur (initiale → actuelle)</span>
+                  </div>
+                  <span class="rpd-card-value rpd-ecart-value">
+                    {{ ecartFormatted(result()!.ecartRevenusPct) }}
+                  </span>
+                  <span class="rpd-card-note">
+                    Indicateur de la modification financière (seuil indicatif ≥ 20 % d'écart)
+                  </span>
+                </div>
+              }
+
+              <!-- Meta : base juridique + bouton modifier. -->
+              <div class="rpd-meta">
+                <span class="rpd-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+
+              <!-- Formule. -->
+              <pre class="rpd-formule">{{ result()!.formule }}</pre>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="rpd-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+
+        }
+      }
+    </div>
+  }
+</section>
