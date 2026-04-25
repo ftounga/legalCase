@@ -55,6 +55,7 @@ import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-a
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
 import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
 import { ReferesAdminSectionComponent } from '../referes-admin-section/referes-admin-section.component';
+import { ContestationAreSectionComponent } from '../contestation-are-section/contestation-are-section.component';
 import { MotifGraveBeSectionComponent } from '../motif-grave-be-section/motif-grave-be-section.component';
 import { Belgian40terSectionComponent } from '../belgian-40ter-section/belgian-40ter-section.component';
 import { Belgian9bisSectionComponent } from '../belgian-9bis-section/belgian-9bis-section.component';
@@ -540,6 +541,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-DT-35-02 : contestation ARE / France Travail (FR uniquement).
+      ['F-DT-35-contestation-are-fr', {
+        component: ContestationAreSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (dateLicenciement → dateNotificationDecision)
+          // + validation F-IA-03 (DATE_NOTIFICATION).
+          aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
