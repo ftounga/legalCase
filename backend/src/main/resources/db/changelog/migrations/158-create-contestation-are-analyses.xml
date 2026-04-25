@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="158-create-contestation-are-analyses" author="legalcase">
+        <comment>
+            SF-DT-35-01 : table dédiée à l'outil décisionnel "Contestation ARE — France
+            Travail (ex-Pôle emploi)" — refus d'ouverture de droits, contestation montant
+            ou durée d'indemnité, radiation, trop-perçu.
+            Base juridique : art. L.5422-1 et s. + R.5422-1 Code travail + Loi 18/12/2023
+            (plein emploi — Pôle emploi devenu France Travail au 1er janvier 2024).
+            Procédure : recours hiérarchique préalable obligatoire (≤ 2 mois après
+            notification) puis contentieux TA dans les 2 mois suivant la réponse explicite
+            ou implicite (R.421-1 CJA). Score 0-100 + verdict :
+            RECOURS_HIERARCHIQUE_PRIORITAIRE / CONTENTIEUX_TA_DIRECT_POSSIBLE /
+            INSUFFISAMMENT_FONDE / AUTRE_VOIE.
+            Outil single-country FRANCE — équivalent BE = procédure ONEM avec juridiction
+            du travail (TT), feature jumelle backlog F-DT-35-BE.
+            Snapshot JSON complet (inputs + outputs).
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 64)
+            pour exposer l'outil sur tout dossier travail FR.
+        </comment>
+
+        <createTable tableName="contestation_are_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_contestation_are_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="contestation_are_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_contestation_are_analyses_case_file"/>
+
+        <createIndex tableName="contestation_are_analyses"
+                     indexName="idx_contestation_are_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql>
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000351', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-35-contestation-are', 'ALWAYS_ON', NULL, NULL, 64);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000351';
+            </sql>
+            <dropTable tableName="contestation_are_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
