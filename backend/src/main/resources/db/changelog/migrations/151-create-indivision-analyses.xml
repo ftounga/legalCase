@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="151-create-indivision-analyses" author="legalcase">
+        <comment>
+            SF-FA-22-01 : table dédiée à l'outil décisionnel "Indivision
+            post-communautaire" (art. 815 Cciv + art. 1364 CPC). Outil
+            single-country FRANCE — DROIT_FAMILLE. Évalue l'éligibilité au
+            partage judiciaire d'une indivision (suite à divorce ou succession),
+            calcule l'indemnité d'occupation due (art. 815-9 al. 2 Cciv),
+            recommande l'expertise notariale, la licitation, et estime le
+            délai prévisible de la procédure.
+
+            Logique de scoring 0-100 :
+            - ≥ 2 tentatives de partage amiable : +30
+            - conflit ouvert entre indivisaires : +25
+            - absence de consentement au partage global : +20
+            - durée d'indivision &gt; 2 ans : +15
+            - occupation du bien par un indivisaire : +10
+
+            Verdict :
+            - score ≥ 70 → PARTAGE_JUDICIAIRE_RECOMMANDE
+            - 40-69 + IMMOBILIER + ≥ 2 tentatives → LICITATION_REQUISE
+            - 40-69 sinon → MEDIATION_PREALABLE
+            - &lt; 40 + consentement → PARTAGE_AMIABLE_POSSIBLE
+            - &lt; 40 sinon → MEDIATION_PREALABLE
+
+            Indemnité d'occupation (art. 815-9 al. 2) :
+            indemnite = valeur × 0.04 / 12 × duréeMois × quotePartLesee
+            où quotePartLesee = (100 - max(quotesPart)) / 100. Le taux 4 %/an
+            est la convention prudente notariale (3 à 5 % selon expertise).
+
+            Recommandations dérivées :
+            - expertiseNotarialeRecommandee si nbIndivisaires ≥ 3 OU valeur
+              &gt; 100 000 €
+            - licitationRecommandee si IMMOBILIER + verdict judiciaire/licitation
+            - delaiProcedurePartageJudiciaireMois : 12 (2 indivisaires, pas
+              d'immobilier), 18 (immobilier OU 3 indivisaires), 24 (≥ 4
+              indivisaires OU conflit + immobilier)
+
+            Outil single-country FRANCE — la BE (loi du 13 août 2011 — art.
+            1207 et s. C. jud.) repose sur une logique distincte non couverte ici.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 80) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="indivision_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_indivision_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_origine_indivision" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nature_biens" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valeur_estimee_totale_eur" type="numeric(14,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_indivisaires" type="integer" defaultValueNumeric="2">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tentatives_partage_amiable" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_partage_global" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="occupation_bien_par_un_indivisaire" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="indivision_duree_annees" type="integer" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demande_mesures_conservatoires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="conflit_ouvert_entre_indivisaires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="indivision_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_indivision_analyses_case_file"/>
+
+        <createIndex tableName="indivision_analyses"
+                     indexName="idx_indivision_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa221', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-22-indivision', 'ALWAYS_ON', NULL, NULL, 80);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa221';
+            </sql>
+            <dropTable tableName="indivision_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
