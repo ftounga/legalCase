@@ -63,4 +63,15 @@ export interface FamilleExtractedData {
   patrimoineCommun?: boolean | null;
   /** Date de signature du PV d'acceptation (ISO YYYY-MM-DD). */
   dateAcceptationPV?: string | null;
+  /**
+   * SF-155-20 : valeur vénale du bien immobilier principal (€) — utilisée
+   * par l'outil F-FA-05 (partage immobilier) pour pré-remplir le champ
+   * "Valeur vénale". Optionnel ; absent si le pipeline IA ne l'a pas extrait.
+   */
+  valeurImmeuble?: number | null;
+  /**
+   * SF-155-20 : capital restant dû du prêt hypothécaire associé (€).
+   * Pré-remplit le champ "Capital restant dû" de l'outil F-FA-05.
+   */
+  capitalRestantDu?: number | null;
 }

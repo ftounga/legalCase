@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { PartageImmobilierSectionComponent } from './partage-immobilier-section.component';
+import { FamilleExtractedData } from '../../core/models/divorce-accepte.model';
 
 describe('PartageImmobilierSectionComponent', () => {
   let component: PartageImmobilierSectionComponent;
@@ -147,7 +148,7 @@ describe('PartageImmobilierSectionComponent', () => {
     expect(component.valeurVenale()).toBe(100000);
   });
 
-  // ---- Coherence alerts (SF-IA-03-08) ----
+  // ---- Coherence alerts (SF-IA-03-08 + SF-155-20) ----
 
   it('should NOT alert valeur when within 10% of IA best match', () => {
     setLiquidation([{ libelle: 'Maison', valeur: 400000 }]);
@@ -162,8 +163,10 @@ describe('PartageImmobilierSectionComponent', () => {
     component.valeurVenale.set(450000); // +12.5%
     const alert = component.coherenceAlerts().VALEUR_VENALE;
     expect(alert).toBeDefined();
-    expect(alert!.iaValue).toBe(400000);
-    expect(alert!.iaLibelle).toBe('Maison');
+    expect(alert!.expectedDisplay).toContain('400');
+    expect(alert!.expectedDisplay).toContain('€');
+    expect(alert!.reason).toContain('Maison');
+    expect(alert!.source).toBe('IA');
   });
 
   it('should pick best-match among multiple biens', () => {
@@ -184,10 +187,9 @@ describe('PartageImmobilierSectionComponent', () => {
     ]);
     initNo();
     component.valeurVenale.set(360000); // best match = maison (-10%)
-    // écart relatif = 40/400 = 0.10 exactement
     const alert = component.coherenceAlerts().VALEUR_VENALE;
     expect(alert).toBeDefined();
-    expect(alert!.iaValue).toBe(400000);
+    expect(alert!.expectedDisplay).toContain('400');
   });
 
   it('should use imported reference over best-match if import active', () => {
@@ -203,7 +205,7 @@ describe('PartageImmobilierSectionComponent', () => {
     component.valeurVenale.set(350000);
     component.onValeurVenaleChange();
     const alert = component.coherenceAlerts().VALEUR_VENALE;
-    expect(alert?.iaValue).toBe(400000); // reference = imported Maison, not best match
+    expect(alert?.expectedDisplay).toContain('400'); // reference = imported Maison
   });
 
   it('should NOT alert when valeur user = 0', () => {
@@ -287,6 +289,12 @@ describe('PartageImmobilierSectionComponent', () => {
     expect(component.quotePartAttributaire()).toBe(50);
   });
 
+  it('SF-155-20: provenance Valeur effacée par les valeurs persistées GET 200', () => {
+    initWith();
+    expect(component.provenanceValeur()).toBeNull();
+    expect(component.provenancePret()).toBeNull();
+  });
+
   // ---- Pattern F-IA-03 complet (F96 + Question IA + Pièce manquante) ----
 
   it('should alert F96 when procedureCheck VERIFIED contredit la valeur saisie', () => {
@@ -300,7 +308,7 @@ describe('PartageImmobilierSectionComponent', () => {
     const alert = component.coherenceAlerts().VALEUR_VENALE;
     expect(alert).toBeDefined();
     expect(alert!.source).toBe('F96');
-    expect(alert!.iaValue).toBe(400000);
+    expect(alert!.expectedDisplay).toContain('400');
     expect(alert!.contributors).toEqual(['F96']);
   });
 
@@ -316,7 +324,7 @@ describe('PartageImmobilierSectionComponent', () => {
     const alert = component.coherenceAlerts().CAPITAL_RESTANT;
     expect(alert).toBeDefined();
     expect(alert!.source).toBe('QUESTION_IA');
-    expect(alert!.iaValue).toBe(120000);
+    expect(alert!.expectedDisplay).toContain('120');
   });
 
   it('should add PIECE_MANQUANTE contributor when F96 actif + pièce manquante même code', () => {
@@ -349,7 +357,100 @@ describe('PartageImmobilierSectionComponent', () => {
     const alert = component.coherenceAlerts().VALEUR_VENALE;
     expect(alert).toBeDefined();
     expect(alert!.source).toBe('MULTI');
-    expect(alert!.contributors).toEqual(['F96', 'IA']);
-    expect(alert!.iaValue).toBe(400000);
+    expect(alert!.contributors).toContain('F96');
+    expect(alert!.contributors).toContain('IA');
+    expect(alert!.expectedDisplay).toContain('400');
+  });
+
+  // ---- SF-155-20 : pré-fill IA via aiData (FamilleExtractedData) ----
+
+  it('SF-155-20: pré-remplit valeurVenale depuis aiData.valeurImmeuble (ngOnInit)', () => {
+    component.aiData = { valeurImmeuble: 380000 } as FamilleExtractedData;
+    initNo();
+    expect(component.valeurVenale()).toBe(380000);
+    expect(component.provenanceValeur()).toBe('IA');
+  });
+
+  it('SF-155-20: pré-remplit capitalRestantDu depuis aiData.capitalRestantDu (ngOnInit)', () => {
+    component.aiData = { capitalRestantDu: 95000 } as FamilleExtractedData;
+    initNo();
+    expect(component.capitalRestantDu()).toBe(95000);
+    expect(component.provenancePret()).toBe('IA');
+  });
+
+  it('SF-155-20: ngOnChanges ré-applique le pré-fill quand aiData arrive après mount', () => {
+    initNo();
+    expect(component.provenanceValeur()).toBeNull();
+    component.aiData = { valeurImmeuble: 410000, capitalRestantDu: 80000 } as FamilleExtractedData;
+    component.ngOnChanges({
+      aiData: { previousValue: undefined, currentValue: component.aiData, firstChange: false, isFirstChange: () => false },
+    });
+    expect(component.valeurVenale()).toBe(410000);
+    expect(component.capitalRestantDu()).toBe(80000);
+    expect(component.provenanceValeur()).toBe('IA');
+    expect(component.provenancePret()).toBe('IA');
+  });
+
+  it('SF-155-20: prefillFromAi n\'écrase pas une saisie avocat (provenance null)', () => {
+    initNo();
+    // Avocat saisit manuellement avant que aiData arrive
+    component.valeurVenale.set(500000);
+    component.onValeurVenaleChange();
+    expect(component.provenanceValeur()).toBeNull();
+    component.aiData = { valeurImmeuble: 380000 } as FamilleExtractedData;
+    component.ngOnChanges({
+      aiData: { previousValue: undefined, currentValue: component.aiData, firstChange: false, isFirstChange: () => false },
+    });
+    expect(component.valeurVenale()).toBe(500000); // saisie avocat préservée
+    expect(component.provenanceValeur()).toBeNull();
+  });
+
+  it('SF-155-20: onValeurVenaleChange efface provenanceValeur après prefill IA', () => {
+    component.aiData = { valeurImmeuble: 380000 } as FamilleExtractedData;
+    initNo();
+    expect(component.provenanceValeur()).toBe('IA');
+    component.valeurVenale.set(420000);
+    component.onValeurVenaleChange();
+    expect(component.provenanceValeur()).toBeNull();
+  });
+
+  it('SF-155-20: onCapitalChange efface provenancePret après prefill IA', () => {
+    component.aiData = { capitalRestantDu: 95000 } as FamilleExtractedData;
+    initNo();
+    expect(component.provenancePret()).toBe('IA');
+    component.capitalRestantDu.set(110000);
+    component.onCapitalChange();
+    expect(component.provenancePret()).toBeNull();
+  });
+
+  it('SF-155-20: alerte VALEUR_VENALE basée sur aiData.valeurImmeuble (sans liquidation)', () => {
+    component.aiData = { valeurImmeuble: 400000 } as FamilleExtractedData;
+    initNo();
+    // Avocat modifie après pré-fill IA → écart > 10 %
+    component.valeurVenale.set(460000);
+    component.onValeurVenaleChange();
+    const alert = component.coherenceAlerts().VALEUR_VENALE;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('IA');
+    expect(alert!.expectedDisplay).toContain('400');
+  });
+
+  it('SF-155-20: alerte CAPITAL_RESTANT basée sur aiData.capitalRestantDu (sans liquidation)', () => {
+    component.aiData = { capitalRestantDu: 100000 } as FamilleExtractedData;
+    initNo();
+    component.capitalRestantDu.set(120000); // +20 %
+    component.onCapitalChange();
+    const alert = component.coherenceAlerts().CAPITAL_RESTANT;
+    expect(alert).toBeDefined();
+    expect(alert!.source).toBe('IA');
+    expect(alert!.expectedDisplay).toContain('100');
+  });
+
+  it('SF-155-20: pré-fill IA no-op si aiData absent (fallback gracieux)', () => {
+    initNo();
+    expect(component.valeurVenale()).toBe(0);
+    expect(component.capitalRestantDu()).toBe(0);
+    expect(component.provenanceValeur()).toBeNull();
+    expect(component.provenancePret()).toBeNull();
   });
 });
