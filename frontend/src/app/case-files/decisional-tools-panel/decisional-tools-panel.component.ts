@@ -49,6 +49,7 @@ import { TravailDissimuleSectionComponent } from '../travail-dissimule-section/t
 import { IndemnitePreavisSectionComponent } from '../indemnite-preavis-section/indemnite-preavis-section.component';
 import { RappelSalaireSectionComponent } from '../rappel-salaire-section/rappel-salaire-section.component';
 import { RequalificationCddCdiSectionComponent } from '../requalification-cdd-cdi-section/requalification-cdd-cdi-section.component';
+import { RequalificationInterimCdiSectionComponent } from '../requalification-interim-cdi-section/requalification-interim-cdi-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
 import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
@@ -347,6 +348,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // SF-DT-22-02 : pré-fill IA (salaireBrutMensuel) + validation F-IA-03
           // (1 alerte : SALAIRE_MENSUEL multi-sources IA / F96 / QUESTION_IA /
           // PIECE_MANQUANTE).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-23-requalification-interim-cdi', {
+        component: RequalificationInterimCdiSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-23-02 : pré-fill IA (salaireBrutMensuel) + validation F-IA-03
+          // (1 alerte : SALAIRE_MENSUEL multi-sources IA / F96 / QUESTION_IA /
+          // PIECE_MANQUANTE). Jumeau direct F-DT-22 — adapté MissionInterim
+          // (entrepriseUtilisatrice + memeEntrepriseUtilisatrice).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
