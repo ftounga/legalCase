@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="155-create-changement-etat-civil-analyses" author="legalcase">
+        <comment>
+            SF-FA-26-01 : table dédiée à l'outil décisionnel "Changement
+            d'état civil" — nom (art. 61-3-1 Cciv loi 2022), prénom
+            (art. 60 Cciv loi 2016 simplifiée mairie), sexe (art. 61-5 Cciv
+            loi 2016).
+
+            L'outil détermine la compétence procédurale (MAIRIE / JUGE /
+            TRIBUNAL_JUDICIAIRE) et un score 0-100 d'acceptabilité, en
+            fonction du type de changement, du motif, des preuves, de la
+            majorité du demandeur, de la concordance documentaire et de
+            l'historique de changements antérieurs.
+
+            Logique de scoring 0-100 :
+            - motif reconnu (INTERET_LEGITIME / MARIAGE / RECTIFICATION_ERREUR
+              / IDENTIFICATION_GENRE) : +30
+            - ≥ 2 preuves variées : +25
+            - majeur OU mineur avec consentement parental : +15
+            - pas de changement antérieur : +15
+            - dates des documents concordants : +15
+
+            Verdicts : ELEVEE ≥ 70, MOYENNE 40-69, FAIBLE &lt; 40.
+
+            Compétence selon arbre :
+            - PRENOM → MAIRIE (art. 60 Cciv depuis loi 2016)
+            - NOM + INTERET_LEGITIME + JUSTIFICATIF_USAGE_30ANS → MAIRIE
+              (art. 61-3-1 Cciv loi 2022)
+            - NOM autres motifs → TRIBUNAL_JUDICIAIRE (art. 61 Cciv)
+            - SEXE → JUGE (TJ état des personnes, art. 61-5 Cciv)
+            - NOM_ET_PRENOM : MAIRIE si la partie NOM relève MAIRIE,
+              sinon TRIBUNAL_JUDICIAIRE
+
+            Délais : 2 mois (MAIRIE), 3 mois (JUGE sexe), 6 mois (TJ nom).
+
+            Outil single-country FRANCE — l'équivalent BE (art. 370 CJ +
+            loi 2017 BE) est une procédure distincte (juge de paix /
+            officier d'état civil), couverte par une SF jumelle au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 84) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="changement_etat_civil_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_changement_etat_civil_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="type_changement" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_invoque" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_produites" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="majeur_demandeur" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_parental" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dates_docs_concordants" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deja_change_auparavant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_naissance_demandeur" type="date"/>
+            <column name="departement_declaration" type="varchar(10)"/>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="changement_etat_civil_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_changement_etat_civil_analyses_case_file"/>
+
+        <createIndex tableName="changement_etat_civil_analyses"
+                     indexName="idx_changement_etat_civil_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa261', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-26-changement-etat-civil', 'ALWAYS_ON', NULL, NULL, 84);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa261';
+            </sql>
+            <dropTable tableName="changement_etat_civil_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
