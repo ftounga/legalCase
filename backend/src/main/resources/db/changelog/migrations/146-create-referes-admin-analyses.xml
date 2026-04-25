@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="146-create-referes-admin-analyses" author="legalcase">
+        <comment>
+            SF-IM-08-07 : table dédiée à l'outil décisionnel "Référés administratifs combinés FR"
+            (art. L.521-1 + L.521-2 CJA). Calcule deux scoring de probabilité de succès distincts
+            (suspension L.521-1 et liberté L.521-2) puis recommande la voie prioritaire.
+            Ferme F-IM-08 (8/8 SF).
+            Outil single-country FRANCE — procédure CJA non applicable BE.
+            + 1 règle visibility F-IA-04 (CONTEXTUAL, DROIT_IMMIGRATION, FRANCE,
+            trigger type_procedure_detectee=OQTF_AVEC_DELAI, priority 68).
+        </comment>
+
+        <createTable tableName="referes_admin_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_referes_admin_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="type_refere" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="decision_contestee" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_notification_decision" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="urgence_caracterisee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="atteinte_liberte_fondamentale" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="doutes_serieux_legalite" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demandeur_deja_prived" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_urgence" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="referes_admin_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_referes_admin_analyses_case_file"/>
+
+        <createIndex tableName="referes_admin_analyses"
+                     indexName="idx_referes_admin_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000087', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-08-referes-admin-fr', 'CONTEXTUAL', 'type_procedure_detectee', 'OQTF_AVEC_DELAI', 68);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000087';
+            </sql>
+            <dropTable tableName="referes_admin_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
