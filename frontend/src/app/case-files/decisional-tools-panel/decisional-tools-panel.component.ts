@@ -80,6 +80,7 @@ import { PacsDissolutionSectionComponent } from '../pacs-dissolution-section/pac
 import { MajeursProtegesSectionComponent } from '../majeurs-proteges-section/majeurs-proteges-section.component';
 import { ChangementEtatCivilSectionComponent } from '../changement-etat-civil-section/changement-etat-civil-section.component';
 import { AvantagesConventionnelsBeSectionComponent } from '../avantages-conventionnels-be-section/avantages-conventionnels-be-section.component';
+import { SeparationCorpsSectionComponent } from '../separation-corps-section/separation-corps-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -794,6 +795,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-26-02 : changement d'état civil FR (art. 60 / 61-1 / 61-5 Cciv).
       ['F-FA-26-changement-etat-civil', {
         component: ChangementEtatCivilSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-21-02 : séparation de corps + conversion divorce FR (art. 296+306 Cciv).
+      ['F-FA-21-separation-corps', {
+        component: SeparationCorpsSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
