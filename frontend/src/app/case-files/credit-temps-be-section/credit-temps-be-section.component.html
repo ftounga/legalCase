@@ -1,0 +1,237 @@
+<section class="credit-section">
+  <header class="credit-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="credit-body">
+    <mat-icon class="credit-icon">schedule</mat-icon>
+    <span class="credit-title">CRÉDIT-TEMPS / INTERRUPTION DE CARRIÈRE BE</span>
+    @if (result()) {
+      <span class="credit-chip credit-chip--info">
+        {{ regimeLabel(result()!.regime) }} — {{ result()!.verdictEligibilite }}
+      </span>
+    }
+    <mat-icon class="credit-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="credit-body" class="credit-body">
+      @if (!isBelgium()) {
+        <div class="credit-banner credit-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="credit-banner-content">
+            <div class="credit-banner-title">Crédit-temps — outil belge uniquement</div>
+            <div class="credit-banner-sub">
+              Le crédit-temps (CCT 103) et l'interruption de carrière fin de carrière
+              (AR 29/10/1997) sont des dispositifs propres au droit belge. Pas
+              d'équivalent direct côté droit du travail français à ce jour.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="credit-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="credit-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="credit-form" (ngSubmit)="calculate()">
+              <div class="credit-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Régime</mat-label>
+                  <mat-select required
+                              [ngModel]="regime()"
+                              (ngModelChange)="onRegimeChange($event)"
+                              name="regime">
+                    @for (opt of regimeOptions; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              @if (motifRequired()) {
+                <div class="credit-field-wrapper">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Motif (CCT 103)</mat-label>
+                    <mat-select required
+                                [ngModel]="motif()"
+                                (ngModelChange)="onMotifChange($event)"
+                                name="motif">
+                      @for (opt of motifOptions; track opt.code) {
+                        <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              }
+
+              <div class="credit-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ancienneté entreprise (mois)</mat-label>
+                  <input matInput type="number" required min="0" step="1"
+                         [ngModel]="ancienneteEntrepriseMois()"
+                         (ngModelChange)="onAncienneteChange($event)"
+                         name="ancienneteEntrepriseMois" />
+                </mat-form-field>
+                @if (provenanceAnciennete() === 'IA') {
+                  <span class="credit-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().ANCIENNETE; as alert) {
+                  <span class="credit-coherence-badge"
+                        [appCoherencePopover]="explanationFor('ANCIENNETE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="credit-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Taille entreprise (ETP)</mat-label>
+                  <input matInput type="number" required min="0" step="1"
+                         [ngModel]="tailleEntrepriseEtp()"
+                         (ngModelChange)="onTailleEtpChange($event)"
+                         name="tailleEntrepriseEtp" />
+                </mat-form-field>
+              </div>
+
+              <div class="credit-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de réduction</mat-label>
+                  <mat-select required
+                              [ngModel]="dureeReductionType()"
+                              (ngModelChange)="onDureeReductionChange($event)"
+                              name="dureeReductionType">
+                    @for (opt of dureeReductionOptions; track opt.code) {
+                      <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="credit-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Âge du demandeur (années)</mat-label>
+                  <input matInput type="number" required min="0" max="75" step="1"
+                         [ngModel]="ageDemandeurAnnees()"
+                         (ngModelChange)="onAgeChange($event)"
+                         name="ageDemandeurAnnees" />
+                </mat-form-field>
+                @if (provenanceAge() === 'IA') {
+                  <span class="credit-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().AGE; as alert) {
+                  <span class="credit-coherence-badge"
+                        [appCoherencePopover]="explanationFor('AGE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="credit-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de la demande</mat-label>
+                  <input matInput type="date" required
+                         [ngModel]="dateDemande()"
+                         (ngModelChange)="onDateDemandeChange($event)"
+                         name="dateDemande" />
+                </mat-form-field>
+              </div>
+
+              <div class="credit-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="credit-result">
+              <div [class]="bannerClass(result()!.verdictEligibilite)" role="status">
+                <mat-icon>schedule</mat-icon>
+                <div class="credit-banner-content">
+                  <div class="credit-banner-title">
+                    {{ regimeLabel(result()!.regime) }}
+                    — Verdict éligibilité : {{ result()!.verdictEligibilite }}
+                  </div>
+                  <div class="credit-banner-sub">
+                    Score global : {{ result()!.scoreGlobal | number:'1.0-0' }} / 100
+                    — {{ result()!.eligible ? 'Éligible' : 'Non éligible' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="credit-cards">
+                <div class="credit-card">
+                  <div class="credit-card-label">Indemnité ONEM mensuelle</div>
+                  <div class="credit-card-value">
+                    {{ result()!.indemniteOnemMensuelle | number:'1.2-2' }} €
+                  </div>
+                </div>
+
+                <div class="credit-card">
+                  <div class="credit-card-label">Durée maximale</div>
+                  <div class="credit-card-value">
+                    {{ result()!.dureeMaximaleMois | number:'1.0-0' }} mois
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="credit-criteres">
+                  <div class="credit-criteres-label">Critères non remplis</div>
+                  <ul class="credit-criteres-list">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="credit-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="credit-formule-block">
+                  <span class="credit-formule-label">Formule</span>
+                  <span class="credit-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="credit-meta">
+                <span class="credit-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

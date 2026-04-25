@@ -1,0 +1,354 @@
+// SF-DT-29-02 : outil "Crédit-temps BE". Pattern canonique
+// `harcelement-licenciement-nul-section` + jumeau BE
+// `avantages-conventionnels-be-section`. Palette navy/or/neutre — pas de
+// rouge dominant (calcul indemnitaire / éligibilité, pas urgence temporelle
+// critique). DESIGN_SYSTEM.md aligné.
+
+.credit-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.credit-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.credit-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.credit-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.credit-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+}
+
+.credit-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.credit-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.credit-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.credit-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.credit-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.credit-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.credit-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.credit-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--warning {
+    border-left-color: var(--ds-accent-gold, #c9a54b);
+    background: rgba(201, 165, 75, 0.10);
+
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+
+  &--neutre {
+    border-left-color: var(--ds-text-secondary, #6a7485);
+    background: rgba(26, 35, 48, 0.04);
+
+    mat-icon { color: var(--ds-text-secondary, #6a7485); }
+  }
+}
+
+.credit-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.credit-banner-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.credit-banner-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.credit-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.credit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(26, 35, 48, 0.03);
+  border: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.credit-card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.credit-card-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.credit-criteres {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(201, 165, 75, 0.06);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+}
+
+.credit-criteres-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+}
+
+.credit-criteres-list {
+  list-style: disc;
+  padding-left: 18px;
+  margin: 0;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.credit-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.credit-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.credit-formule-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.credit-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.credit-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.credit-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+// Pré-fill IA + validation F-IA-03 (palette canonique).
+.credit-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.credit-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.credit-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
