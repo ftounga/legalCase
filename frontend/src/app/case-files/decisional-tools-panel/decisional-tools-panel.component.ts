@@ -85,6 +85,7 @@ import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/ref
 import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit-temps-be-section.component';
 import { PseSectionComponent } from '../pse-section/pse-section.component';
 import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
+import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section/ordonnance-requete-section.component';
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 
@@ -896,9 +897,6 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
-          // Pré-fill IA (typeTitreSejourCode → titreActuel) + validation
-          // F-IA-03 (1 champ TITRE_ACTUEL multi-sources IA / F96 /
-          // QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
@@ -912,11 +910,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
-          // Pré-fill IA gracieux (pvDifficultesEtablisDetected,
-          // tentativeAmiableEpuiseueeDetected, nombreCoindivisairesDetecte,
-          // valeurBiensIndivisionEur) + validation F-IA-03 (2 alertes :
-          // PV_DIFFICULTES + TENTATIVE_AMIABLE multi-sources IA / F96 /
-          // QUESTION_IA / PIECE_MANQUANTE).
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-23-02 : ordonnance sur requête (mesures urgentes familiales)
+      // FR + BE actifs (art. 493 + 497 CPC FR / art. 1025 et s. CJ BE).
+      ['F-FA-23-ordonnance-requete', {
+        component: OrdonnanceRequeteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
