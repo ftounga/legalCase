@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="145-create-desaccords-parentaux-analyses" author="legalcase">
+        <comment>
+            SF-FA-19-05 : table dédiée à l'outil décisionnel "Désaccords parentaux"
+            (art. 373-2-10 Cciv) — saisine du JAF par requête simple en cas de
+            désaccord parental persistant sur l'exercice de l'autorité parentale
+            conjointe (scolarité, santé, religion, loisirs/sports, choix
+            éducatifs, déménagement). Troisième morceau backend de F-FA-19.
+
+            L'outil évalue la probabilité d'acceptation par le JAF en fonction
+            du domaine, de l'intensité, des tentatives de médiation préalable
+            et du contexte enfants.
+
+            Logique de scoring 0-100 :
+            - domaine reconnu (≠ AUTRE) : +20
+            - intensité MAJEUR : +30 ; MOYEN : +15 ; MINEUR : +5
+            - tentatives médiation effectives ≥ 2 : +25 ; 1 : +10 ; 0 : 0
+            - intérêt supérieur invoqué : +15
+            - urgence : +10
+
+            Verdicts : ELEVEE ≥ 70, MOYENNE 40-69, FAIBLE &lt; 40.
+
+            Recommandations dérivées :
+            - médiation préalable recommandée si aucune tentative ou AUCUNE seul
+            - audition enfants recommandée si au moins un enfant ≥ 13 ans (art. 388-1)
+            - expertise psychologique recommandée si MAJEUR &amp;&amp; pas d'expertise
+            - délai prévisionnel : 30 jours en référé (urgence), 90 jours sinon
+
+            Outil single-country FRANCE — l'équivalent BE (art. 374 §1er Code
+            civil BE) repose sur une procédure distincte non couverte ici.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 79) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="desaccords_parentaux_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_desaccords_parentaux_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="domaine_desaccord" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="intensite_desaccord" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tentatives_mediation" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="age_enfants_concernes" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interet_superieur_invoque" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expertise_deja_realisee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="urgence" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_requete" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="desaccords_parentaux_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_desaccords_parentaux_analyses_case_file"/>
+
+        <createIndex tableName="desaccords_parentaux_analyses"
+                     indexName="idx_desaccords_parentaux_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa195', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-19-desaccords-parentaux', 'ALWAYS_ON', NULL, NULL, 79);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa195';
+            </sql>
+            <dropTable tableName="desaccords_parentaux_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
