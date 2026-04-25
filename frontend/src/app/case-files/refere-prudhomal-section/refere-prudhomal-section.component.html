@@ -1,0 +1,285 @@
+<section class="rp-section">
+  <header class="rp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rp-body">
+    <mat-icon class="rp-icon">gavel</mat-icon>
+    <span class="rp-title">RÉFÉRÉ PRUD'HOMAL R.1454-1 (FR)</span>
+    @if (result()) {
+      <span class="rp-chip"
+            [class.rp-chip--success]="result()!.verdictRecommandation === 'PROVISION_PROBABLE'"
+            [class.rp-chip--accent]="result()!.verdictRecommandation === 'EXPERTISE_RECOMMANDEE'"
+            [class.rp-chip--info]="result()!.verdictRecommandation === 'INSUFFISAMMENT_FONDE'
+                                || result()!.verdictRecommandation === 'AUTRE_VOIE_RECOMMANDEE'">
+        Score {{ result()!.scoreSuccess }}/100
+      </span>
+    }
+    <mat-icon class="rp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rp-body" class="rp-body">
+      @if (!isFrance()) {
+        <div class="rp-banner rp-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rp-banner-content">
+            <div class="rp-banner-title">Référé prud'homal — procédure française uniquement</div>
+            <div class="rp-banner-sub">
+              Pour la Belgique, voir la procédure d'urgence Tribunal du travail
+              (feature jumelle backlog).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="rp-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="rp-form" (ngSubmit)="analyze()">
+              <!-- Type de référé -->
+              <div class="rp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de référé</mat-label>
+                  <mat-select required
+                              [ngModel]="typeRefere()"
+                              (ngModelChange)="onTypeRefereChange($event)"
+                              name="typeRefere">
+                    @for (t of typesRefere; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Nature de la créance -->
+              <div class="rp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Nature de la créance</mat-label>
+                  <mat-select required
+                              [ngModel]="natureCreance()"
+                              (ngModelChange)="onNatureCreanceChange($event)"
+                              name="natureCreance">
+                    @for (n of naturesCreance; track n.code) {
+                      <mat-option [value]="n.code">{{ n.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceNatureCreance() === 'IA') {
+                  <span class="rp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- Montant provision demandée -->
+              <div class="rp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Montant provision demandée (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01"
+                         [ngModel]="montantProvisionDemandeeEur()"
+                         (ngModelChange)="onMontantProvisionChange($event)"
+                         name="montantProvisionDemandeeEur" required />
+                  <mat-hint>Montant total demandé en provision (R.1454-1).</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- Date de mise en demeure -->
+              <div class="rp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de mise en demeure</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateMiseEnDemeure()"
+                         (ngModelChange)="onDateMiseEnDemeureChange($event)"
+                         name="dateMiseEnDemeure" />
+                  <mat-hint>Date d'envoi de la mise en demeure à l'employeur (LRAR).</mat-hint>
+                </mat-form-field>
+                @if (provenanceDateMiseEnDemeure() === 'IA') {
+                  <span class="rp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_MISE_EN_DEMEURE; as alert) {
+                  <span class="rp-coherence-badge rp-coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_MISE_EN_DEMEURE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Ancienneté contrat (mois) -->
+              <div class="rp-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ancienneté du contrat (mois)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="ancienneteContratMois()"
+                         (ngModelChange)="onAncienneteChange($event)"
+                         name="ancienneteContratMois" required />
+                  <mat-hint>Nombre de mois d'ancienneté à la date de mise en demeure.</mat-hint>
+                </mat-form-field>
+                @if (provenanceAnciennete() === 'IA') {
+                  <span class="rp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().ANCIENNETE; as alert) {
+                  <span class="rp-coherence-badge rp-coherence-warning"
+                        [appCoherencePopover]="explanationFor('ANCIENNETE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Preuves d'urgence (multi-select) -->
+              <div class="rp-field-wrap rp-full-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Preuves d'urgence produites</mat-label>
+                  <mat-select multiple
+                              [ngModel]="preuvesUrgenceProduites()"
+                              (ngModelChange)="onPreuvesUrgenceChange($event)"
+                              name="preuvesUrgenceProduites">
+                    @for (p of preuvesUrgenceOptions; track p.code) {
+                      <mat-option [value]="p.code">{{ p.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Sélectionner toutes les pièces effectivement produites.</mat-hint>
+                </mat-form-field>
+              </div>
+
+              <!-- Toggles -->
+              <div class="rp-toggle-row rp-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="absenceContestationSerieuse()"
+                    (ngModelChange)="onAbsenceContestationChange($event)"
+                    name="absenceContestationSerieuse">
+                  Absence de contestation sérieuse (R.1454-1 al. 1)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="rp-toggle-row rp-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="dommageImmediatCarac()"
+                    (ngModelChange)="onDommageImmediatChange($event)"
+                    name="dommageImmediatCarac">
+                  Dommage immédiat caractérisé
+                </mat-slide-toggle>
+              </div>
+
+              <div class="rp-toggle-row rp-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="tresorerieEmployeurDouteuse()"
+                    (ngModelChange)="onTresorerieDouteuseChange($event)"
+                    name="trésorerieEmployeurDouteuse">
+                  Trésorerie de l'employeur douteuse (risque insolvabilité)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="rp-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rp-result">
+              <!-- Bannière verdict -->
+              <div [class]="verdictBannerClass(result()!.verdictRecommandation)" role="status">
+                <mat-icon>{{ verdictBannerIcon(result()!.verdictRecommandation) }}</mat-icon>
+                <div class="rp-banner-content">
+                  <div class="rp-banner-title-big">
+                    {{ verdictLabel(result()!.verdictRecommandation) }}
+                  </div>
+                </div>
+                <div class="rp-score-badge" [ngClass]="scoreClass(result()!.scoreSuccess)">
+                  <span class="rp-score-value">{{ result()!.scoreSuccess }}</span>
+                  <span class="rp-score-unit">/100</span>
+                </div>
+              </div>
+
+              <!-- 2 cartes délais (audience + ordonnance) -->
+              <div class="rp-cards">
+                <div class="rp-card">
+                  <div class="rp-card-header">
+                    <mat-icon>event</mat-icon>
+                    <span class="rp-card-title">Délai d'audience prévisionnel</span>
+                  </div>
+                  <div class="rp-card-value">
+                    <span class="rp-card-value-mono">{{ result()!.delaiAudienceJoursPrevisionnel }}</span>
+                    <span class="rp-card-value-unit">jour(s)</span>
+                  </div>
+                  <span class="rp-card-sub">Référé prud'homal (R.1454-1)</span>
+                </div>
+
+                <div class="rp-card">
+                  <div class="rp-card-header">
+                    <mat-icon>schedule</mat-icon>
+                    <span class="rp-card-title">Délai d'ordonnance prévisionnel</span>
+                  </div>
+                  <div class="rp-card-value">
+                    <span class="rp-card-value-mono">{{ result()!.delaiOrdonnanceJoursPrevisionnel }}</span>
+                    <span class="rp-card-value-unit">jour(s)</span>
+                  </div>
+                  <span class="rp-card-sub">Mise à disposition de l'ordonnance.</span>
+                </div>
+              </div>
+
+              <!-- Provision recommandée -->
+              <div class="rp-provision">
+                <span class="rp-provision-label">Provision recommandée</span>
+                <span class="rp-provision-value">
+                  {{ result()!.montantProvisionRecommandeEur | number:'1.2-2' }} €
+                </span>
+                @if (result()!.montantProvisionRecommandeEur !== result()!.montantProvisionDemandeeEur) {
+                  <span class="rp-provision-note">
+                    (demande initiale : {{ result()!.montantProvisionDemandeeEur | number:'1.2-2' }} €)
+                  </span>
+                }
+              </div>
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="rp-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="rp-formule-block">
+                  <span class="rp-formule-label">Formule</span>
+                  <span class="rp-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="rp-meta">
+                <span class="rp-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
