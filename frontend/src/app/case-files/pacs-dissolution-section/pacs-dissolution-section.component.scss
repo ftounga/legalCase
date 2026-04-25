@@ -1,0 +1,416 @@
+// SF-FA-20-02 : dissolution PACS art. 515-7 (F-FA-20, FRANCE).
+// Palette navy/or/rouge classique — rouge réservé au verdict
+// CONTENTIEUX_INEVITABLE (alerte critique). Conforme DESIGN_SYSTEM.md
+// + audit cohérence §5 (frontend-coherence-audit).
+
+.pd-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.pd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.pd-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.pd-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.pd-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(26, 58, 92, 0.08);
+  color: #1A3A5C;
+
+  &--strong {
+    background: rgba(26, 58, 92, 0.12);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.16);
+    color: #8a6a16;
+  }
+  &--weak {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B02A37;
+  }
+}
+
+.pd-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.pd-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.pd-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.pd-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+
+  &--info {
+    background: rgba(26, 58, 92, 0.06);
+    border: 1px solid rgba(26, 58, 92, 0.20);
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.pd-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pd-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pd-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.pd-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.pd-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pd-field-full { grid-column: 1 / -1; }
+
+.pd-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.pd-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.pd-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.pd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pd-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pd-verdict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+
+  &--strong {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+    color: #8a6a16;
+  }
+  &--weak {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B02A37;
+    color: #B02A37;
+  }
+}
+
+.pd-cards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.pd-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: rgba(106, 116, 133, 0.06);
+  border: 1px solid rgba(106, 116, 133, 0.18);
+
+  &--active {
+    background: rgba(201, 165, 75, 0.10);
+    border-color: rgba(201, 165, 75, 0.30);
+  }
+}
+
+.pd-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.pd-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.pd-card-sub {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.pd-delai-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  color: #1A3A5C;
+
+  mat-icon {
+    color: #1A3A5C;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.pd-delai-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pd-delai-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// SF-FA-20-02 : délai prescription en JetBrains Mono — convention canonique.
+.pd-delai-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pd-delai-sub {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.pd-creances-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(201, 165, 75, 0.06);
+  border: 1px solid rgba(201, 165, 75, 0.20);
+}
+
+.pd-creances-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.pd-creances-chips {
+  flex: 1;
+}
+
+.pd-recap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(26, 58, 92, 0.04);
+  border: 1px solid rgba(26, 58, 92, 0.10);
+}
+
+.pd-recap-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-recap-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+  min-width: 140px;
+}
+
+.pd-recap-value {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.pd-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.pd-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-radius: 4px;
+}
+
+.pd-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.pd-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.pd-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pd-meta-base {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
