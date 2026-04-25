@@ -231,6 +231,12 @@ export interface TravailExtractedData {
    * DEVOIR_FIDELITE, DEVOIR_COMMUNAUTE_VIE, AUTRE.
    */
   fautesDetectees?: string[] | null;
+  /**
+   * SF-DT-29-02 : âge du demandeur en années entières pour pré-fill F-DT-29
+   * (crédit-temps BE, AR 29/10/1997 fin de carrière nécessite âge ≥ 55/60).
+   * No-op gracieux si absent — pipeline IA peut le brancher ultérieurement.
+   */
+  ageDemandeurAnnees?: number | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */

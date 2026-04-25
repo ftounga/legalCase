@@ -82,6 +82,7 @@ import { ChangementEtatCivilSectionComponent } from '../changement-etat-civil-se
 import { AvantagesConventionnelsBeSectionComponent } from '../avantages-conventionnels-be-section/avantages-conventionnels-be-section.component';
 import { SeparationCorpsSectionComponent } from '../separation-corps-section/separation-corps-section.component';
 import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/refere-prudhomal-section.component';
+import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit-temps-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -600,6 +601,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // SF-DT-28-02 : pré-fill IA (salaireBrutMensuel) + validation
           // F-IA-03 (1 champ SALAIRE). Autres champs non extraits par
           // le prompt IA travail actuel.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-DT-29-02 : crédit-temps / interruption de carrière BE
+      // (CCT 103 + AR 29/10/1997). BE uniquement.
+      ['F-DT-29-credit-temps-be', {
+        component: CreditTempsBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA (dateEntree → ancienneteEntrepriseMois,
+          // ageDemandeurAnnees) + validation F-IA-03 (2 champs :
+          // ANCIENNETE, AGE) multi-sources IA / F96 / QUESTION_IA /
+          // PIECE_MANQUANTE.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
