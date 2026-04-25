@@ -75,6 +75,7 @@ import { DesaccordsParentauxSectionComponent } from '../desaccords-parentaux-sec
 import { MesuresProvisoiresSectionComponent } from '../mesures-provisoires-section/mesures-provisoires-section.component';
 import { DocumentsFinContratSectionComponent } from '../documents-fin-contrat-section/documents-fin-contrat-section.component';
 import { IndivisionSectionComponent } from '../indivision-section/indivision-section.component';
+import { PacsDissolutionSectionComponent } from '../pacs-dissolution-section/pacs-dissolution-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -729,9 +730,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
-          // SF-FA-22-02 : pré-fill IA via FamilleExtractedData (dateSeparation
-          // → dateOrigineIndivision ; logementCommunDetected → occupationBien)
-          // + validation F-IA-03 (DATE_ORIGINE_INDIVISION + OCCUPATION_BIEN).
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-20-pacs-dissolution', {
+        component: PacsDissolutionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
