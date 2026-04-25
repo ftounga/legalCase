@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="171-create-naturalisation-analyses" author="legalcase">
+        <comment>
+            SF-IM-13-01 : table dédiée à l'outil décisionnel "Naturalisation" (Code civil — FR).
+            Évalue la recevabilité d'une demande de naturalisation française au regard du
+            Code civil (art. 21-15 et s.) selon 6 voies : décret (21-15), déclaration mariage
+            (21-2), déclaration ascendant (21-13-1), effet collectif mineur (22-1), réintégration
+            (24-1+), opposition gouvernementale (21-4 / 27-2). Verdict ELEVEE / MOYENNE / FAIBLE
+            selon : durée résidence régulière, durée mariage, cohabitation, âge, lien filiation,
+            casier vierge, assimilation linguistique B1, ressources stables, opposition active.
+
+            Outil single-country FRANCE — l'équivalent BE (Code de la nationalité belge,
+            art. 12bis CNB) sera traité dans une feature jumelle au backlog (F-IM-13-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, FRANCE, priority 73).
+        </comment>
+
+        <createTable tableName="naturalisation_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_naturalisation_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="voie_naturalisation" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_residence_reguliere_annees" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="duree_mariage_annees" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="cohabitation_continue" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="age_demandeur" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="ascendant_direct_francais" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="parent_acquiert_nationalite" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="vit_avec_parent_acquereur" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="ancien_francais" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="casier_judiciaire_vierge" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assimilation_langue_b1" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="ressources_stables" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="opposition_gouvernementale_active" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="etudes_superieures_france" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="naturalisation_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_naturalisation_analyses_case_file"/>
+
+        <createIndex tableName="naturalisation_analyses"
+                     indexName="idx_naturalisation_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000171', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-13-naturalisation', 'ALWAYS_ON', NULL, NULL, 73);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000171';
+            </sql>
+            <dropTable tableName="naturalisation_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
