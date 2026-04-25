@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="156-create-avantages-conventionnels-be-analyses" author="legalcase">
+        <comment>
+            SF-DT-28-01 : table dédiée à l'outil décisionnel "Avantages conventionnels BE"
+            (pécule de vacances + prime de fin d'année + éco-chèques + chèques-repas).
+
+            Outil cumulant 4 postes obligatoires en droit du travail belge :
+            - Pécule de vacances simple = 7,67 % salaire annuel (Loi 28/06/1971)
+            - Double pécule = 0,50 × annuel × 0,92 (cotisation spéciale 8 %)
+            - Prime de fin d'année = 1 mois si CCT sectorielle prévoit (CP 200 et al.)
+            - Éco-chèques = 250 €/an plafond ONSS (CCT 98 du CNT)
+            - Chèques-repas = jours prestés × 8 € (CCT 19octies, valeur médiane)
+
+            Outil single-country BELGIQUE — pas d'équivalent FR (le 13e mois français
+            relève des CCN sectorielles individuelles, pas d'un cadre légal national).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, BELGIQUE,
+            priority 62) pour exposer l'outil sur tout dossier travail BE.
+        </comment>
+
+        <createTable tableName="avantages_conventionnels_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_avantages_conv_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="salaire_mensuel_brut_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jours_travailles_annee_precedente" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="anciennette_mois" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="commission_paritaire" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="annee" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="double_pecule_vacances_percu" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="prime_fin_annee_prevue_cc_cp" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eco_cheques_prevu_cc_cp" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eco_cheques_utilisation_dans_an" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cheques_repas_prevu" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="jours_prestes_effectifs" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="avantages_conventionnels_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_avantages_conv_be_analyses_case_file"/>
+
+        <createIndex tableName="avantages_conventionnels_be_analyses"
+                     indexName="idx_avantages_conv_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000281', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-28-avantages-conventionnels-be', 'ALWAYS_ON', NULL, NULL, 62);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000281';
+            </sql>
+            <dropTable tableName="avantages_conventionnels_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
