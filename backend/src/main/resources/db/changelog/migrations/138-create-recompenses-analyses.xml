@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="138-create-recompenses-analyses" author="legalcase">
+        <comment>
+            SF-FA-15-01 : table dédiée à l'outil décisionnel "Récompenses"
+            (art. 1437 et 1469 Cciv). Cœur technique de la liquidation matrimoniale FR.
+            Pour chaque opération soumise (dépense propre au profit communauté ou
+            inverse), le calculator détermine la règle applicable selon la nature du
+            bien (al. 1 général / al. 2 dépenses usuelles / al. 3 acquisition,
+            conservation, amélioration). Calcul du profit subsistant pour al. 3
+            (la plus forte des 2 sommes) et al. 2 (la plus faible). Agrégation des
+            totaux : récompenses dues par communauté / par les époux / solde net.
+
+            Outil single-country FRANCE — régime BE (indemnités art. 1432-1438
+            anciens C. civ. BE) hors scope de cette SF.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 76) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="recompenses_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_recompenses_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="regime_matrimonial" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operations_json" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="recompenses_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_recompenses_analyses_case_file"/>
+
+        <createIndex tableName="recompenses_analyses"
+                     indexName="idx_recompenses_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa151', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-15-recompenses', 'ALWAYS_ON', NULL, NULL, 76);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa151';
+            </sql>
+            <dropTable tableName="recompenses_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
