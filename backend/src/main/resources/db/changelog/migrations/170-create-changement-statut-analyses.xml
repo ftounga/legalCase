@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="170-create-changement-statut-analyses" author="legalcase">
+        <comment>
+            SF-IM-11-01 : table dédiée à l'outil décisionnel "Changement de statut" (CESEDA — FR).
+            Évalue la viabilité d'une transition entre titres de séjour (étudiant → salarié,
+            visiteur → salarié, VPF → autre, transitions intra passeport talent) au regard du
+            CESEDA (L.421+, L.422-10) et du Code du travail (R.5221-3). Verdict ELEVEE / MOYENNE
+            / FAIBLE selon : durée restante sur titre actuel ≥ 2 mois, document justificatif
+            fourni (contrat / attestation école / etc.), rémunération ≥ 1,5 SMIC pour passages
+            salarié, casier judiciaire vierge.
+
+            Outil single-country FRANCE — l'équivalent BE (modification 9bis OE) sera traité
+            dans une feature jumelle dédiée au backlog (F-IM-11-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, FRANCE, priority 72).
+        </comment>
+
+        <createTable tableName="changement_statut_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_changement_statut_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="titre_actuel" type="varchar(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="titre_envisage" type="varchar(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_restante_mois" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="document_justificatif_fourni" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remuneration_contrat_eur" type="numeric(12,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="casier_judiciaire_vierge" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="changement_statut_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_changement_statut_analyses_case_file"/>
+
+        <createIndex tableName="changement_statut_analyses"
+                     indexName="idx_changement_statut_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000170', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-11-changement-statut', 'ALWAYS_ON', NULL, NULL, 72);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000170';
+            </sql>
+            <dropTable tableName="changement_statut_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
