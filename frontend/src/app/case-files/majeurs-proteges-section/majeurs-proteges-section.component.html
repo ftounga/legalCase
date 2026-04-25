@@ -210,6 +210,81 @@
                 }
               </div>
 
+              <!-- SF-FA-25-06 : champs conditionnels selon régime sélectionné. -->
+
+              <!-- Incapacité gestion quotidienne (CURATELLE_RENFORCEE / TUTELLE). -->
+              @if (showIncapaciteGestionQuotidienne()) {
+                <div class="mp-field-with-alert mp-field-full mp-field-conditional">
+                  <mat-slide-toggle
+                      [ngModel]="incapaciteGestionQuotidienne()"
+                      (ngModelChange)="onIncapaciteGestionQuotidienneChange($event)"
+                      name="incapaciteGestionQuotidienne">
+                    Incapacité de gestion quotidienne (art. 472 / 440 al. 3 Cciv)
+                  </mat-slide-toggle>
+                  @if (provenanceIncapaciteGestionQuotidienne() === 'IA') {
+                    <span class="mp-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Altération grave (TUTELLE). -->
+              @if (showAltertationGrave()) {
+                <div class="mp-field-with-alert mp-field-full mp-field-conditional">
+                  <mat-slide-toggle
+                      [ngModel]="altertationGrave()"
+                      (ngModelChange)="onAltertationGraveChange($event)"
+                      name="altertationGrave">
+                    Altération grave et durable (art. 440 al. 3 Cciv) — la personne ne peut plus pourvoir seule à ses intérêts
+                  </mat-slide-toggle>
+                  @if (provenanceAltertationGrave() === 'IA') {
+                    <span class="mp-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Mandat préalable signé (MANDAT_PROTECTION_FUTURE). -->
+              @if (showMandatPrealableSigne()) {
+                <div class="mp-field-with-alert mp-field-full mp-field-conditional">
+                  <mat-slide-toggle
+                      [ngModel]="mandatPrealableSigne()"
+                      (ngModelChange)="onMandatPrealableSigneChange($event)"
+                      name="mandatPrealableSigne">
+                    Mandat préalable signé (art. 477 Cciv) — le mandat doit être antérieur à l'altération
+                  </mat-slide-toggle>
+                  @if (provenanceMandatPrealableSigne() === 'IA') {
+                    <span class="mp-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Forme mandat (NOTARIE / SOUS_SEING_PRIVE) — conditionnel sur mandatPrealableSigne. -->
+              @if (showFormeMandatProtection()) {
+                <div class="mp-field-with-alert mp-field-full mp-field-conditional">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Forme du mandat de protection</mat-label>
+                    <mat-select
+                        [ngModel]="formeMandatProtection()"
+                        (ngModelChange)="onFormeMandatProtectionChange($event)"
+                        name="formeMandatProtection" required>
+                      @for (f of formesMandatOptions; track f.code) {
+                        <mat-option [value]="f.code">{{ f.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                  @if (provenanceFormeMandatProtection() === 'IA') {
+                    <span class="mp-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+              }
+
               <!-- Toggles contextuels. -->
               <div class="mp-field-with-alert mp-field-full">
                 <mat-slide-toggle
@@ -261,12 +336,35 @@
                 <div class="mp-banner-content">
                   <div class="mp-banner-title">
                     {{ verdictMajeursLabel(result()!.verdictAcceptabiliteJaf) }}
+                    @if (result()!.eligible !== undefined) {
+                      <span class="mp-eligible-marker"
+                            [class.mp-eligible-marker--ok]="result()!.eligible"
+                            [class.mp-eligible-marker--ko]="!result()!.eligible">
+                        <mat-icon>{{ result()!.eligible ? 'check_circle' : 'cancel' }}</mat-icon>
+                        {{ result()!.eligible ? 'Régime éligible' : 'Régime non éligible' }}
+                      </span>
+                    }
                   </div>
                   <div class="mp-banner-sub">
                     Score d'éligibilité : {{ result()!.scoreEligibilite }} / 100
                   </div>
                 </div>
               </div>
+
+              <!-- SF-FA-25-06 : critères non remplis (chips rouges) si éligible=false. -->
+              @if (result()!.eligible === false && result()!.criteresNonRemplis?.length) {
+                <div class="mp-criteres-non-remplis-block" role="alert">
+                  <div class="mp-criteres-non-remplis-label">
+                    <mat-icon>warning</mat-icon>
+                    Critères non remplis pour le régime demandé ({{ regimeProtectionLabel(result()!.regimeProtectionDemande) }})
+                  </div>
+                  <mat-chip-set class="mp-criteres-non-remplis-chips">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip class="mp-critere-non-rempli-chip">{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
 
               <!-- Carte "Régime optimal recommandé" (point différenciant). -->
               <div class="mp-recommandation-card"

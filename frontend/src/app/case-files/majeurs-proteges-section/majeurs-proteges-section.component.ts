@@ -27,6 +27,9 @@ import {
   DemandeurFamilial,
   DEMANDEURS_FAMILIAUX_FR,
   DemandeurFamilialOption,
+  FormeMandatProtection,
+  FORMES_MANDAT_PROTECTION_FR,
+  FormeMandatProtectionOption,
   MajeursProtegesRequest,
   MajeursProtegesResponse,
   RegimeProtection,
@@ -35,6 +38,7 @@ import {
   VerdictMajeurs,
   acteEnvisageLabel,
   demandeurFamilialLabel,
+  formeMandatProtectionLabel,
   regimeProtectionLabel,
   verdictMajeursLabel,
 } from '../../core/models/majeurs-proteges.model';
@@ -94,6 +98,11 @@ const VALID_ACTES: ReadonlySet<string> = new Set<ActeEnvisage>([
   'DECISIONS_FAMILIALES',
   'ACTES_ETAT_CIVIL',
   'AUTRE',
+]);
+
+const VALID_FORMES_MANDAT: ReadonlySet<string> = new Set<FormeMandatProtection>([
+  'NOTARIE',
+  'SOUS_SEING_PRIVE',
 ]);
 
 /**
@@ -176,8 +185,13 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   urgencePatrimoniale = signal<boolean>(false);
   patrimoineSignificatif = signal<boolean>(false);
   isolementSocial = signal<boolean>(false);
+  // SF-FA-25-06 : 4 nouveaux champs conditionnels selon régime.
+  incapaciteGestionQuotidienne = signal<boolean>(false);
+  altertationGrave = signal<boolean>(false);
+  mandatPrealableSigne = signal<boolean>(false);
+  formeMandatProtection = signal<FormeMandatProtection | null>(null);
 
-  // Provenance IA par champ pré-remplissable (8 fields IA détectables).
+  // Provenance IA par champ pré-remplissable (8 fields IA initiaux + 4 SF-06).
   provenanceRegimeProtectionDemande = signal<'IA' | null>(null);
   provenanceAltertationFacultesMentales = signal<'IA' | null>(null);
   provenanceAltertationFacultesPhysiques = signal<'IA' | null>(null);
@@ -186,6 +200,11 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   provenanceConsentementPersonneAProteger = signal<'IA' | null>(null);
   provenanceDemandeurFamilial = signal<'IA' | null>(null);
   provenanceActesEnvisages = signal<'IA' | null>(null);
+  // SF-FA-25-06 : provenance des 4 nouveaux champs.
+  provenanceIncapaciteGestionQuotidienne = signal<'IA' | null>(null);
+  provenanceAltertationGrave = signal<'IA' | null>(null);
+  provenanceMandatPrealableSigne = signal<'IA' | null>(null);
+  provenanceFormeMandatProtection = signal<'IA' | null>(null);
 
   // Map {sourceKey → explanations} pour le popover F-IA-03-15c (fail-open).
   sourceExplanations = signal<Map<string, SourceExplanation[]>>(new Map());
@@ -193,6 +212,34 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   readonly regimesOptions: RegimeProtectionOption[] = REGIMES_PROTECTION_FR;
   readonly demandeursOptions: DemandeurFamilialOption[] = DEMANDEURS_FAMILIAUX_FR;
   readonly actesOptions: ActeEnvisageOption[] = ACTES_ENVISAGES_FR;
+  readonly formesMandatOptions: FormeMandatProtectionOption[] = FORMES_MANDAT_PROTECTION_FR;
+
+  // ---------------------------------------------------------------------------
+  // SF-FA-25-06 : helpers de visibilité conditionnelle des nouveaux champs
+  // selon le régime sélectionné. UX progressive disclosure.
+  // ---------------------------------------------------------------------------
+
+  /** Visible pour CURATELLE_RENFORCEE et TUTELLE (art. 472 + 440 al. 3). */
+  showIncapaciteGestionQuotidienne = computed<boolean>(() => {
+    const r = this.regimeProtectionDemande();
+    return r === 'CURATELLE_RENFORCEE' || r === 'TUTELLE';
+  });
+
+  /** Visible pour TUTELLE seule (art. 440 al. 3 — altération grave). */
+  showAltertationGrave = computed<boolean>(() => {
+    return this.regimeProtectionDemande() === 'TUTELLE';
+  });
+
+  /** Visible pour MANDAT_PROTECTION_FUTURE (art. 477 — mandat préalable). */
+  showMandatPrealableSigne = computed<boolean>(() => {
+    return this.regimeProtectionDemande() === 'MANDAT_PROTECTION_FUTURE';
+  });
+
+  /** Visible pour MANDAT_PROTECTION_FUTURE ssi `mandatPrealableSigne === true`. */
+  showFormeMandatProtection = computed<boolean>(() => {
+    return this.regimeProtectionDemande() === 'MANDAT_PROTECTION_FUTURE'
+      && this.mandatPrealableSigne() === true;
+  });
 
   /**
    * Coherence alerts F-IA-03 — gate strict `showForm()` (pattern anti-bug
@@ -301,11 +348,18 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
     const reg = this.regimeProtectionDemande();
     const dem = this.demandeurFamilial();
     const date = this.dateCertificatMedical();
-    return reg !== null
+    const baseOk = reg !== null
       && dem !== null
       && this.actesEnvisages().length > 0
       && date !== null && ISO_DATE_REGEX.test(date)
       && (this.altertationFacultesMentales() || this.altertationFacultesPhysiques());
+    if (!baseOk) return false;
+    // SF-FA-25-06 : si mandat préalable signé est exigé (régime MANDAT_PROTECTION_FUTURE
+    // avec toggle on), la forme du mandat est requise.
+    if (this.showFormeMandatProtection() && this.formeMandatProtection() === null) {
+      return false;
+    }
+    return true;
   }
 
   editMode(): void {
@@ -315,6 +369,22 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   onRegimeChange(value: RegimeProtection | null): void {
     this.regimeProtectionDemande.set(value);
     this.provenanceRegimeProtectionDemande.set(null);
+    // SF-FA-25-06 : reset des champs conditionnels qui ne sont plus visibles
+    // pour éviter d'envoyer au backend des valeurs incohérentes avec le régime.
+    if (value !== 'CURATELLE_RENFORCEE' && value !== 'TUTELLE') {
+      this.incapaciteGestionQuotidienne.set(false);
+      this.provenanceIncapaciteGestionQuotidienne.set(null);
+    }
+    if (value !== 'TUTELLE') {
+      this.altertationGrave.set(false);
+      this.provenanceAltertationGrave.set(null);
+    }
+    if (value !== 'MANDAT_PROTECTION_FUTURE') {
+      this.mandatPrealableSigne.set(false);
+      this.formeMandatProtection.set(null);
+      this.provenanceMandatPrealableSigne.set(null);
+      this.provenanceFormeMandatProtection.set(null);
+    }
   }
 
   onAltMentalesChange(value: boolean): void {
@@ -364,6 +434,35 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
     this.isolementSocial.set(!!value);
   }
 
+  // SF-FA-25-06 : handlers des 4 nouveaux champs.
+
+  onIncapaciteGestionQuotidienneChange(value: boolean): void {
+    this.incapaciteGestionQuotidienne.set(!!value);
+    this.provenanceIncapaciteGestionQuotidienne.set(null);
+  }
+
+  onAltertationGraveChange(value: boolean): void {
+    this.altertationGrave.set(!!value);
+    this.provenanceAltertationGrave.set(null);
+  }
+
+  onMandatPrealableSigneChange(value: boolean): void {
+    this.mandatPrealableSigne.set(!!value);
+    this.provenanceMandatPrealableSigne.set(null);
+    // Si l'avocat décoche le mandat préalable, la forme n'a plus de sens —
+    // on reset pour rester cohérent avec le contrat backend (formeMandatProtection
+    // ne peut être renseignée que si mandatPrealableSigne === true).
+    if (!value) {
+      this.formeMandatProtection.set(null);
+      this.provenanceFormeMandatProtection.set(null);
+    }
+  }
+
+  onFormeMandatProtectionChange(value: FormeMandatProtection | null): void {
+    this.formeMandatProtection.set(value);
+    this.provenanceFormeMandatProtection.set(null);
+  }
+
   // ---------------------------------------------------------------------------
   // HTTP : load + calculate
   // ---------------------------------------------------------------------------
@@ -382,6 +481,13 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
       urgencePatrimoniale: this.urgencePatrimoniale(),
       patrimoineSignificatif: this.patrimoineSignificatif(),
       isolementSocial: this.isolementSocial(),
+      // SF-FA-25-06 : 4 nouveaux champs envoyés tels quels (le backend
+      // accepte des null/false pour les régimes auxquels ils ne s'appliquent
+      // pas — backward-compatible).
+      incapaciteGestionQuotidienne: this.incapaciteGestionQuotidienne(),
+      altertationGrave: this.altertationGrave(),
+      mandatPrealableSigne: this.mandatPrealableSigne(),
+      formeMandatProtection: this.formeMandatProtection(),
     };
     this.calculating.set(true);
     this.service.calculate(this.caseFileId, request).subscribe({
@@ -428,6 +534,16 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
     this.urgencePatrimoniale.set(!!r.urgencePatrimoniale);
     this.patrimoineSignificatif.set(!!r.patrimoineSignificatif);
     this.isolementSocial.set(!!r.isolementSocial);
+    // SF-FA-25-06 : reprise des 4 nouveaux champs persistés.
+    this.incapaciteGestionQuotidienne.set(!!r.incapaciteGestionQuotidienne);
+    this.altertationGrave.set(!!r.altertationGrave);
+    this.mandatPrealableSigne.set(!!r.mandatPrealableSigne);
+    const persistedForme = r.formeMandatProtection;
+    this.formeMandatProtection.set(
+      persistedForme === 'NOTARIE' || persistedForme === 'SOUS_SEING_PRIVE'
+        ? persistedForme
+        : null,
+    );
     // Valeurs persistées = saisie avocat — jamais de badge IA.
     this.provenanceRegimeProtectionDemande.set(null);
     this.provenanceAltertationFacultesMentales.set(null);
@@ -437,6 +553,10 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
     this.provenanceConsentementPersonneAProteger.set(null);
     this.provenanceDemandeurFamilial.set(null);
     this.provenanceActesEnvisages.set(null);
+    this.provenanceIncapaciteGestionQuotidienne.set(null);
+    this.provenanceAltertationGrave.set(null);
+    this.provenanceMandatPrealableSigne.set(null);
+    this.provenanceFormeMandatProtection.set(null);
     this.showForm.set(false);
   }
 
@@ -540,6 +660,54 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
               || this.provenanceActesEnvisages() === 'IA')) {
         this.actesEnvisages.set(filtered);
         this.provenanceActesEnvisages.set('IA');
+      }
+    }
+
+    // SF-FA-25-06 : 4 champs spécifiques aux régimes 3-6.
+
+    // 9. Incapacité de gestion quotidienne (CURATELLE_RENFORCEE / TUTELLE).
+    if (typeof ai.incapaciteGestionQuotidienneDetected === 'boolean') {
+      if (this.provenanceIncapaciteGestionQuotidienne() === 'IA'
+          || this.incapaciteGestionQuotidienne() === false) {
+        this.incapaciteGestionQuotidienne.set(ai.incapaciteGestionQuotidienneDetected);
+        if (ai.incapaciteGestionQuotidienneDetected) {
+          this.provenanceIncapaciteGestionQuotidienne.set('IA');
+        }
+      }
+    }
+
+    // 10. Altération grave (TUTELLE).
+    if (typeof ai.altertationGraveDetected === 'boolean') {
+      if (this.provenanceAltertationGrave() === 'IA'
+          || this.altertationGrave() === false) {
+        this.altertationGrave.set(ai.altertationGraveDetected);
+        if (ai.altertationGraveDetected) {
+          this.provenanceAltertationGrave.set('IA');
+        }
+      }
+    }
+
+    // 11. Mandat préalable signé (MANDAT_PROTECTION_FUTURE).
+    if (typeof ai.mandatPrealableSigneDetected === 'boolean') {
+      if (this.provenanceMandatPrealableSigne() === 'IA'
+          || this.mandatPrealableSigne() === false) {
+        this.mandatPrealableSigne.set(ai.mandatPrealableSigneDetected);
+        if (ai.mandatPrealableSigneDetected) {
+          this.provenanceMandatPrealableSigne.set('IA');
+        }
+      }
+    }
+
+    // 12. Forme mandat protection (NOTARIE / SOUS_SEING_PRIVE).
+    const formeAi = ai.formeMandatProtectionDetected;
+    if (typeof formeAi === 'string' && formeAi.length > 0) {
+      const upper = formeAi.toUpperCase();
+      if (VALID_FORMES_MANDAT.has(upper)) {
+        if (this.formeMandatProtection() === null
+            || this.provenanceFormeMandatProtection() === 'IA') {
+          this.formeMandatProtection.set(upper as FormeMandatProtection);
+          this.provenanceFormeMandatProtection.set('IA');
+        }
       }
     }
   }
@@ -714,6 +882,7 @@ export class MajeursProtegesSectionComponent implements OnInit, OnChanges {
   demandeurFamilialLabel = demandeurFamilialLabel;
   acteEnvisageLabel = acteEnvisageLabel;
   verdictMajeursLabel = verdictMajeursLabel;
+  formeMandatProtectionLabel = formeMandatProtectionLabel;
 
   /**
    * Palette navy/or/rouge classique. Verdict ELEVEE = strong navy (acceptabi
