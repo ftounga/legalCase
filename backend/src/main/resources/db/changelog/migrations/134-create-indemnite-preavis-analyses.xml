@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="134-create-indemnite-preavis-analyses" author="legalcase">
+        <comment>
+            SF-DT-25-01 : table dédiée à l'outil décisionnel "Indemnité compensatrice de
+            préavis FR" (art. L.1234-1 Code du travail + CCN).
+
+            La durée de préavis dépend de l'ancienneté + de la convention collective + de
+            la fonction. La table stocke l'input avocat ; le résultat (durée retenue +
+            source LEGALE/CCN/USAGE + montant) est sérialisé dans result_data.
+
+            Seed du nouveau référentiel CONVENTION_PREAVIS (FR) : 3 IDCC représentatifs
+            (banque IDCC_2120, métallurgie IDCC_3248, Syntec IDCC_1486). Chaque entry
+            porte la matrice fonctions × tranches d'ancienneté → préavis (en mois) ainsi
+            que la référence d'article CCN.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 53)
+            pour exposer l'outil sur tout dossier travail FR.
+
+            Outil single-country FRANCE — pas d'équivalent BE direct (BE = formule Claeys
+            / CCT 109, feature jumelle à ouvrir au backlog si besoin).
+        </comment>
+
+        <createTable tableName="indemnite_preavis_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_indemnite_preavis_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="anciennete_mois" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fonction" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="convention_collective_code" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="salaire_mensuel_brut_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="exemption_employeur" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_rupture" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="indemnite_preavis_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_indemnite_preavis_analyses_case_file"/>
+
+        <createIndex tableName="indemnite_preavis_analyses"
+                     indexName="idx_indemnite_preavis_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d25000-0000-0000-0000-000000002120', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_2120', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"AGENT_MAITRISE":[{"min":0,"max":6,"mois":2},{"min":6,"max":null,"mois":3}],"CADRE":[{"min":0,"max":6,"mois":3},{"min":6,"max":null,"mois":3}]},"article":"CCN Banque art. 27"}', 'CCN Banque (IDCC 2120) — durée de préavis', 'FR', true, true, 'CCN Banque IDCC 2120 art. 27', 'Durée du préavis prévue par la convention collective nationale de la banque (IDCC 2120) selon la catégorie professionnelle (ouvrier, employé, agent de maîtrise, cadre) et l''ancienneté en mois. La CCN Banque est plus favorable que la durée légale L.1234-1 pour les employés (2 mois dès 6 mois d''ancienneté) et les cadres (3 mois dès l''embauche). Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue (ajouter/changer une tranche : min/max en mois, mois = durée de préavis).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d25000-0000-0000-0000-000000003248', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_3248', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":0},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Métallurgie art. 30"}', 'CCN Métallurgie (IDCC 3248) — durée de préavis', 'FR', true, true, 'CCN Métallurgie IDCC 3248 art. 30 (ex-conventions ouvriers/ETAM/cadres unifiées 2022)', 'Durée du préavis prévue par la convention collective nationale de la métallurgie (IDCC 3248, accord de branche unifié 2022) selon la catégorie professionnelle. Reproduit la durée légale L.1234-1 pour les ouvriers et employés, mais prévoit un préavis cadre de 3 mois dès l''embauche (plus favorable). Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Mettre à jour si la branche révise les durées (avenants).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d25000-0000-0000-0000-000000001486', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_1486', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":1},{"min":6,"max":null,"mois":1}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Syntec art. 15 / 19"}', 'CCN Syntec (IDCC 1486) — durée de préavis', 'FR', true, true, 'CCN Syntec IDCC 1486 art. 15 (ETAM) / 19 (Ingénieurs et cadres)', 'Durée du préavis prévue par la convention collective Syntec (IDCC 1486, bureaux d''études techniques) selon la catégorie professionnelle. Le préavis cadre Syntec est notoirement de 3 mois dès l''embauche (art. 19) — plus favorable que la durée légale. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Adapter si avenant Syntec révise les seuils.', NOW(), NULL);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000251', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-25-indemnite-preavis', 'ALWAYS_ON', NULL, NULL, 53);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000251';
+                DELETE FROM legal_referentials WHERE id IN (
+                    'f1d25000-0000-0000-0000-000000002120',
+                    'f1d25000-0000-0000-0000-000000003248',
+                    'f1d25000-0000-0000-0000-000000001486'
+                );
+            </sql>
+            <dropTable tableName="indemnite_preavis_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

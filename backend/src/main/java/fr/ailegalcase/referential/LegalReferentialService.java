@@ -409,6 +409,68 @@ public class LegalReferentialService {
     }
 
     /**
+     * SF-DT-25-01 : durée de préavis prévue par une convention collective française pour
+     * la combinaison ({@code fonction}, {@code ancienneteMois}). DB only — retourne null
+     * si la CCN est inconnue, n'a pas d'entrée pour la fonction demandée, ou n'a pas de
+     * tranche couvrant l'ancienneté donnée.
+     *
+     * <p>Format attendu de {@code value_json} :</p>
+     * <pre>{
+     *   "fonctions": {
+     *     "OUVRIER": [{"min": 0, "max": 6, "mois": 0}, {"min": 6, "max": 24, "mois": 1}, {"min": 24, "max": null, "mois": 2}],
+     *     "EMPLOYE": [...],
+     *     "AGENT_MAITRISE": [...],
+     *     "CADRE": [...]
+     *   },
+     *   "article": "CCN art. 27"
+     * }</pre>
+     *
+     * @param code           code CCN (sera normalisé via {@link fr.ailegalcase.casefile.ConventionCodeNormalizer})
+     * @param fonction       catégorie professionnelle
+     * @param ancienneteMois ancienneté en mois (≥ 0)
+     * @return durée + référence article ; ou {@code null} si CCN/fonction/tranche inconnue
+     */
+    public ConventionPreavis getConventionPreavis(String code,
+                                                  fr.ailegalcase.casefile.IndemnitePreavisFonction fonction,
+                                                  int ancienneteMois) {
+        if (code == null || fonction == null || ancienneteMois < 0) return null;
+        String normalized = fr.ailegalcase.casefile.ConventionCodeNormalizer.normalize(code);
+        if (normalized == null) return null;
+        try {
+            List<LegalReferential> entries = repository.findSystemEntry("DROIT_DU_TRAVAIL", "CONVENTION_PREAVIS", normalized);
+            if (entries.isEmpty()) return null;
+            LegalReferential e = entries.get(0);
+            JsonNode root = MAPPER.readTree(e.getValueJson());
+            JsonNode fonctions = root.path("fonctions");
+            if (fonctions.isMissingNode() || !fonctions.isObject()) return null;
+            JsonNode tranches = fonctions.path(fonction.name());
+            if (tranches.isMissingNode() || !tranches.isArray() || tranches.isEmpty()) return null;
+            for (JsonNode t : tranches) {
+                int min = t.path("min").asInt(0);
+                JsonNode maxNode = t.path("max");
+                Integer max = (maxNode.isMissingNode() || maxNode.isNull()) ? null : maxNode.asInt();
+                if (ancienneteMois >= min && (max == null || ancienneteMois < max)) {
+                    int mois = t.path("mois").asInt(0);
+                    String article = root.path("article").asText("");
+                    return new ConventionPreavis(normalized, fonction, mois, article);
+                }
+            }
+            return null;
+        } catch (Exception ex) {
+            log.warn("Erreur lecture référentiel CONVENTION_PREAVIS/{}: {}", normalized, ex.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * SF-DT-25-01 : résolution d'une durée de préavis CCN (FR).
+     */
+    public record ConventionPreavis(String code,
+                                    fr.ailegalcase.casefile.IndemnitePreavisFonction fonction,
+                                    int dureeMois,
+                                    String article) {}
+
+    /**
      * SF-139-01 : critère de validité licenciement. DB only (plus de fallback Java
      * depuis la suppression de {@code LicenciementCritereReferentiel}).
      */
