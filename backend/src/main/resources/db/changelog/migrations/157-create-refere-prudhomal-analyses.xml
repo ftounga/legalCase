@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="157-create-refere-prudhomal-analyses" author="legalcase">
+        <comment>
+            SF-DT-34-01 : table dédiée à l'outil décisionnel "Référé prud'homal" FR
+            (art. R.1454-1 et s. Code travail). Évalue la probabilité de succès d'un référé
+            (provision, expertise, mesure conservatoire, réintégration en urgence) +
+            calcule le score 0-100, le verdict de recommandation, les délais prévisionnels
+            (audience 15j R.1455-1, ordonnance 8j R.1455-2) et le montant de provision
+            recommandé.
+
+            Outil single-country FRANCE — la procédure de référé en BE relève d'une
+            mécanique différente (art. 19 al. 3 Code judiciaire — référé absolue urgence
+            devant le tribunal du travail) qui sera traitée par une feature jumelle au
+            backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE,
+            priority 63) UUID f1a04001-0000-0000-0000-ee0000000341 (hex valide)
+            tool_id F-DT-34-refere-prudhomal.
+        </comment>
+
+        <createTable tableName="refere_prudhomal_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_refere_prudhomal_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="type_refere" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nature_creance" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_provision_demandee_eur" type="numeric(12,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="absence_contestation_serieuse" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_urgence_produites" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="dommage_immediat_carac" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tresorerie_employeur_douteuse" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_mise_en_demeure" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="anciennete_contrat_mois" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="refere_prudhomal_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_refere_prudhomal_analyses_case_file"/>
+
+        <createIndex tableName="refere_prudhomal_analyses"
+                     indexName="idx_refere_prudhomal_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000341', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-34-refere-prudhomal', 'ALWAYS_ON', NULL, NULL, 63);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000341';
+            </sql>
+            <dropTable tableName="refere_prudhomal_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
