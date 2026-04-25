@@ -1,0 +1,418 @@
+// SF-DT-23-02 : palette navy/or standard + danger réservé verdict ELEVEE.
+// Aligné sur `harcelement-licenciement-nul-section` (template canonique)
+// et `requalification-cdd-cdi-section` (jumeau direct F-DT-22).
+
+.rci-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.rci-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.rci-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.rci-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.rci-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--strong {
+    background: rgba(220, 38, 38, 0.12);
+    color: #b91c1c;
+  }
+
+  &--medium {
+    background: rgba(201, 165, 75, 0.12);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+
+  &--weak {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+}
+
+.rci-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.rci-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+// Bannière info (pays BE).
+.rci-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+
+  mat-icon { flex-shrink: 0; }
+
+  &--info {
+    background: rgba(26, 58, 92, 0.06);
+    border: 1px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.rci-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rci-banner-title {
+  font-weight: 600;
+}
+
+.rci-banner-sub {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.rci-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'Inter', sans-serif;
+}
+
+.rci-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.rci-field-full { grid-column: 1 / -1; }
+
+.rci-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  mat-form-field { width: 100%; }
+}
+
+.rci-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.rci-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.rci-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.rci-toggle-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.rci-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 6px;
+}
+
+.rci-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  margin-top: 4px;
+  font-family: 'Inter', sans-serif;
+}
+
+.rci-succession {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rci-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+
+  mat-chip {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 12px;
+  }
+}
+
+.rci-mission-add-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr 1.5fr auto;
+  gap: 8px;
+  align-items: start;
+
+  .rci-mission-add-btn {
+    align-self: center;
+    margin-top: 6px;
+  }
+}
+
+.rci-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// -------------------------------------------------------------------------
+// Result block
+// -------------------------------------------------------------------------
+
+.rci-result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rci-verdict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+
+  mat-icon { flex-shrink: 0; }
+
+  &--info {
+    // FAIBLE → navy clair
+    background: rgba(26, 58, 92, 0.06);
+    border: 1px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  &--warn {
+    // MOYENNE → or
+    background: rgba(201, 165, 75, 0.10);
+    border: 1px solid var(--ds-accent-gold, #c9a54b);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    mat-icon { color: var(--ds-accent-gold, #c9a54b); }
+  }
+
+  &--danger {
+    // ELEVEE → rouge (alerte critique réservée — risque concret de
+    // requalification + prescription L.1471-1 12 mois). Modificateur
+    // unique `--danger` aligné convention SF-155-07 / DIV-8 et F-DT-22.
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid #b91c1c;
+    color: #b91c1c;
+    mat-icon { color: #b91c1c; }
+  }
+}
+
+.rci-score-mono {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-weight: 600;
+}
+
+.rci-cards-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.rci-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+
+  &--primary {
+    background: rgba(201, 165, 75, 0.08);
+    border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+  }
+
+  &--total {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+  }
+}
+
+.rci-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rci-card-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.rci-card-sub {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.rci-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(26, 35, 48, 0.04);
+  border-radius: 6px;
+}
+
+.rci-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: 'Inter', sans-serif;
+}
+
+.rci-formule {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+.rci-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+    font-family: 'Inter', sans-serif;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.rci-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rci-meta-base {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}

@@ -1,0 +1,276 @@
+<section class="rci-section">
+  <header class="rci-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rci-body">
+    <mat-icon class="rci-icon">swap_horiz</mat-icon>
+    <span class="rci-title">REQUALIFICATION INTÉRIM &rarr; CDI (FR) — ART. L.1251-40</span>
+    @if (result()) {
+      <span class="rci-chip"
+            [class.rci-chip--strong]="result()!.verdictProbabiliteRequalification === 'ELEVEE'"
+            [class.rci-chip--medium]="result()!.verdictProbabiliteRequalification === 'MOYENNE'"
+            [class.rci-chip--weak]="result()!.verdictProbabiliteRequalification === 'FAIBLE'">
+        {{ verdictProbabiliteInterimLabel(result()!.verdictProbabiliteRequalification) }}
+      </span>
+    }
+    <mat-icon class="rci-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rci-body" class="rci-body">
+      @if (!isFrance()) {
+        <div class="rci-banner rci-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rci-banner-content">
+            <div class="rci-banner-title">Outil France uniquement — régime intérim distinct en Belgique</div>
+            <div class="rci-banner-sub">
+              La loi belge du 24/07/1987 sur le travail temporaire et la CCT 36 du CNT prévoient un régime propre. Voir l'outil belge dédié quand disponible.
+            </div>
+          </div>
+        </div>
+      } @else if (loading()) {
+        <div class="rci-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement&hellip;</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="rci-coherence-summary" role="alert">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="rci-form" (ngSubmit)="calculate()">
+            <!-- Motif intérim invoqué -->
+            <mat-form-field appearance="outline" class="rci-field-full">
+              <mat-label>Motif de recours à l'intérim invoqué</mat-label>
+              <mat-select
+                  [ngModel]="motifInterimInvoque()"
+                  (ngModelChange)="onMotifInterimInvoqueChange($event)"
+                  name="motifInterimInvoque" required>
+                @for (opt of motifInterimOptions; track opt.code) {
+                  <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>Art. L.1251-6 — motif déclaré par l'entreprise utilisatrice dans le contrat de mise à disposition.</mat-hint>
+            </mat-form-field>
+
+            <!-- Slide-toggle motifInterdit -->
+            <div class="rci-toggle-row rci-field-full">
+              <mat-slide-toggle
+                  [ngModel]="motifInterdit()"
+                  (ngModelChange)="onMotifInterditChange($event)"
+                  name="motifInterdit">
+                Le recours à l'intérim relève d'un motif interdit (art. L.1251-5 / L.1251-10)
+              </mat-slide-toggle>
+            </div>
+
+            <!-- Type motif interdit (révélé si motifInterdit=true) -->
+            @if (motifInterdit()) {
+              <mat-form-field appearance="outline" class="rci-field-full">
+                <mat-label>Type de motif interdit</mat-label>
+                <mat-select
+                    [ngModel]="motifInterditType()"
+                    (ngModelChange)="onMotifInterditTypeChange($event)"
+                    name="motifInterditType" required>
+                  @for (opt of motifInterditOptions; track opt.code) {
+                    <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
+            <!-- Succession missions intérim : liste éditable (chips avec entreprise) -->
+            <div class="rci-field-full rci-succession">
+              <span class="rci-label">Succession de missions intérim (optionnel)</span>
+              @if (successionMissions().length > 0) {
+                <mat-chip-set class="rci-chips">
+                  @for (mission of successionMissions(); track $index; let i = $index) {
+                    <mat-chip [removable]="true" (removed)="removeMissionInterim(i)">
+                      {{ mission.dateDebut }} &rarr; {{ mission.dateFin }} —
+                      <strong>{{ mission.entrepriseUtilisatrice }}</strong>
+                      ({{ mission.motif }})
+                      <button matChipRemove type="button" aria-label="Retirer cette mission">
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    </mat-chip>
+                  }
+                </mat-chip-set>
+              }
+              <div class="rci-mission-add-row">
+                <mat-form-field appearance="outline" class="rci-mission-add-date">
+                  <mat-label>Début</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="newMissionDateDebut()"
+                         (ngModelChange)="onNewMissionDateDebutChange($event)"
+                         name="newMissionDateDebut" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="rci-mission-add-date">
+                  <mat-label>Fin</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="newMissionDateFin()"
+                         (ngModelChange)="onNewMissionDateFinChange($event)"
+                         name="newMissionDateFin" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="rci-mission-add-motif">
+                  <mat-label>Motif</mat-label>
+                  <input matInput type="text"
+                         [ngModel]="newMissionMotif()"
+                         (ngModelChange)="onNewMissionMotifChange($event)"
+                         name="newMissionMotif" />
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="rci-mission-add-eu">
+                  <mat-label>Entreprise utilisatrice</mat-label>
+                  <input matInput type="text"
+                         [ngModel]="newMissionEntrepriseUtilisatrice()"
+                         (ngModelChange)="onNewMissionEntrepriseUtilisatriceChange($event)"
+                         name="newMissionEntrepriseUtilisatrice" />
+                </mat-form-field>
+                <button mat-stroked-button type="button" class="rci-mission-add-btn"
+                        (click)="addMissionInterim()"
+                        [disabled]="!newMissionValid()">
+                  <mat-icon>add</mat-icon> Ajouter
+                </button>
+              </div>
+              <span class="rci-hint">Permet d'objectiver la relation triangulaire ETT / EU / salarié (Cass. soc.) et la durée totale des missions.</span>
+            </div>
+
+            <!-- Slide-toggle delaiCarenceRespecte -->
+            <div class="rci-toggle-row rci-field-full">
+              <mat-slide-toggle
+                  [ngModel]="delaiCarenceRespecte()"
+                  (ngModelChange)="onDelaiCarenceRespecteChange($event)"
+                  name="delaiCarenceRespecte">
+                Délai de carence respecté entre missions successives (L.1251-36)
+              </mat-slide-toggle>
+            </div>
+
+            <!-- Slide-toggle memeEntrepriseUtilisatrice -->
+            <div class="rci-toggle-row rci-field-full">
+              <mat-slide-toggle
+                  [ngModel]="memeEntrepriseUtilisatrice()"
+                  (ngModelChange)="onMemeEntrepriseUtilisatriceChange($event)"
+                  name="memeEntrepriseUtilisatrice">
+                Toutes les missions ont été effectuées chez la même entreprise utilisatrice (faisceau jurisprudentiel — Cass. soc.)
+              </mat-slide-toggle>
+            </div>
+
+            <!-- Durée totale des missions (mois) -->
+            <mat-form-field appearance="outline">
+              <mat-label>Durée totale des missions (mois)</mat-label>
+              <input matInput type="number" min="0.01" step="0.25"
+                     [ngModel]="dureeMissionsTotaleMois()"
+                     (ngModelChange)="onDureeMissionsTotaleMoisChange($event)"
+                     name="dureeMissionsTotaleMois" required />
+              <mat-hint>Décimal autorisé (ex. 18.5 mois). Plafond légal 18 mois (L.1251-12).</mat-hint>
+            </mat-form-field>
+
+            <!-- Salaire mensuel brut + pré-fill IA + alerte F-IA-03 -->
+            <div class="rci-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelBrutEur()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEur" required />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="rci-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE_MENSUEL; as alert) {
+                <span class="rci-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE_MENSUEL')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Date fin de la dernière mission -->
+            <mat-form-field appearance="outline">
+              <mat-label>Date de fin de la dernière mission</mat-label>
+              <input matInput type="date"
+                     [ngModel]="dateFinDerniereMission()"
+                     (ngModelChange)="onDateFinChange($event)"
+                     name="dateFinDerniereMission" required />
+              <mat-hint>Point de départ pour la prescription de 12 mois (L.1471-1).</mat-hint>
+            </mat-form-field>
+
+            <div class="rci-actions rci-field-full">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la requalification</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="rci-result">
+            <!-- Bannière verdict probabilité requalification -->
+            <div [class]="verdictBannerClass(result()!.verdictProbabiliteRequalification)" role="status">
+              <mat-icon>{{ verdictIcon(result()!.verdictProbabiliteRequalification) }}</mat-icon>
+              <div class="rci-banner-content">
+                <div class="rci-banner-title">
+                  {{ verdictProbabiliteInterimLabel(result()!.verdictProbabiliteRequalification) }} de requalification
+                </div>
+                <div class="rci-banner-sub">
+                  Score : <span class="rci-score-mono">{{ result()!.scoreRequalification }} / 100</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 cartes montants -->
+            <div class="rci-cards-row">
+              <div class="rci-card rci-card--primary">
+                <span class="rci-card-label">Indemnité de requalification</span>
+                <span class="rci-card-value">{{ result()!.indemniteRequalificationEur | number:'1.0-2' }} €</span>
+                <span class="rci-card-sub">Minimum 1 mois (L.1251-41)</span>
+              </div>
+              <div class="rci-card rci-card--primary">
+                <span class="rci-card-label">Indemnité de fin de mission (10 %)</span>
+                <span class="rci-card-value">{{ result()!.indemniteFinMissionInterimEur | number:'1.0-2' }} €</span>
+                <span class="rci-card-sub">Art. L.1251-32</span>
+              </div>
+              <div class="rci-card rci-card--total">
+                <span class="rci-card-label">Total dû au salarié</span>
+                <span class="rci-card-value">{{ result()!.totalDommagesIndemniteEur | number:'1.0-2' }} €</span>
+                <span class="rci-card-sub">Cumul indemnité requalif + fin mission</span>
+              </div>
+            </div>
+
+            <!-- Messages -->
+            @if (result()!.messages?.length) {
+              <ul class="rci-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- Formule -->
+            @if (result()!.formule) {
+              <div class="rci-formule-block">
+                <span class="rci-formule-label">Formule</span>
+                <span class="rci-formule">{{ result()!.formule }}</span>
+              </div>
+            }
+
+            <!-- Base juridique + bouton modifier -->
+            <div class="rci-meta">
+              <span class="rci-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
