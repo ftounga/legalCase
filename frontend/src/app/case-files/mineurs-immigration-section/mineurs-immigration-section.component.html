@@ -1,0 +1,319 @@
+<section class="mi-section">
+  <header class="mi-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="mi-body">
+    <mat-icon class="mi-icon">child_care</mat-icon>
+    <span class="mi-title">MINEURS ÉTRANGERS (FR)</span>
+    @if (result()) {
+      <span class="mi-chip"
+            [class.mi-chip--info]="result()!.verdictEligibilite === 'ELEVEE'"
+            [class.mi-chip--warning]="result()!.verdictEligibilite === 'MOYENNE'"
+            [class.mi-chip--critical]="result()!.verdictEligibilite === 'FAIBLE'">
+        {{ result()!.verdictEligibilite }}
+      </span>
+    }
+    <mat-icon class="mi-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="mi-body" class="mi-body">
+      @if (!isFrance()) {
+        <div class="mi-banner mi-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="mi-banner-content">
+            <div class="mi-banner-title">Régime mineurs étrangers propre à la France</div>
+            <div class="mi-banner-sub">
+              Les 4 dispositifs (MNA art. 375 Cciv, L.435-3 CESEDA, DCEM,
+              TIR) relèvent du droit français (CESEDA + Code civil + CASF).
+              L'équivalent belge — procédure tutelle MENA via le Service
+              des Tutelles (DGDE) — relève d'une feature jumelle au
+              backlog (F-IM-19-BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="mi-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="mi-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            @if (isMajeurAlert()) {
+              <div class="mi-banner mi-banner--critical" role="alert">
+                <mat-icon>gpp_bad</mat-icon>
+                <div class="mi-banner-content">
+                  <div class="mi-banner-title">Mineur requis pour ces dispositifs</div>
+                  <div class="mi-banner-sub">
+                    L'âge calculé ({{ ageAnnees() }} ans) est ≥ 18 ans.
+                    Les 4 dispositifs (MNA, L.435-3, DCEM, TIR) sont
+                    strictement réservés aux mineurs — verdict forcé
+                    FAIBLE en cas de soumission.
+                  </div>
+                </div>
+              </div>
+            }
+
+            <form class="mi-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Dispositif visé -->
+              <fieldset class="mi-fieldset">
+                <legend class="mi-legend">
+                  <mat-icon>flag</mat-icon>
+                  Dispositif visé
+                </legend>
+
+                <div class="mi-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="dispositifVise()"
+                                   (ngModelChange)="onDispositifChange($event)"
+                                   name="dispositifVise">
+                    @for (opt of dispositifOptions; track opt.code) {
+                      <div class="mi-radio-row">
+                        <mat-radio-button [value]="opt.code">
+                          <span class="mi-radio-label">{{ opt.label }}</span>
+                          <span class="mi-radio-sub">{{ opt.sub }}</span>
+                        </mat-radio-button>
+                      </div>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Identité du mineur -->
+              <fieldset class="mi-fieldset">
+                <legend class="mi-legend">
+                  <mat-icon>person</mat-icon>
+                  Identité du mineur
+                </legend>
+
+                <div class="mi-field-wrapper">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date de naissance</mat-label>
+                    <input matInput type="date" required
+                           [ngModel]="dateNaissance()"
+                           (ngModelChange)="onDateNaissanceChange($event)"
+                           name="dateNaissance" />
+                  </mat-form-field>
+                  <div class="mi-field-meta">
+                    @if (provenanceDateNaissance() === 'IA') {
+                      <span class="mi-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().DATE_NAISSANCE; as alert) {
+                      <span class="mi-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                    @if (ageAnnees() !== null && !isMajeurAlert()) {
+                      <span class="mi-age-note">
+                        Âge calculé : {{ ageAnnees() }} ans
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                @if (showDateEntree()) {
+                  <div class="mi-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date d'entrée en France</mat-label>
+                      <input matInput type="date"
+                             [ngModel]="dateEntreeFrance()"
+                             (ngModelChange)="onDateEntreeChange($event)"
+                             name="dateEntreeFrance" />
+                    </mat-form-field>
+                    <div class="mi-field-meta">
+                      @if (provenanceDateEntreeFrance() === 'IA') {
+                        <span class="mi-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().DATE_ENTREE; as alert) {
+                        <span class="mi-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                    <span class="mi-helper-text">
+                      Pour L.435-3 : laisser vide ou ≈ date naissance si
+                      enfant né en France.
+                    </span>
+                  </div>
+                }
+
+                <div class="mi-field-wrapper">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nationalité (informationnel)</mat-label>
+                    <input matInput type="text" maxlength="60"
+                           [ngModel]="nationalite()"
+                           (ngModelChange)="onNationaliteChange($event)"
+                           name="nationalite" />
+                  </mat-form-field>
+                  @if (provenanceNationalite() === 'IA') {
+                    <span class="mi-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Critères spécifiques au dispositif -->
+              @if (showIsolement() || showParentRegulier() || showMotifOrdrePublic() || showTirNote()) {
+                <fieldset class="mi-fieldset">
+                  <legend class="mi-legend">
+                    <mat-icon>rule</mat-icon>
+                    Critères spécifiques
+                  </legend>
+
+                  @if (showIsolement()) {
+                    <div class="mi-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="isolementAvere()"
+                          (ngModelChange)="onIsolementChange($event)"
+                          name="isolementAvere">
+                        Isolement avéré (pas d'adulte référent)
+                      </mat-slide-toggle>
+                    </div>
+                    <span class="mi-helper-text">
+                      Signalement préfecture obligatoire — saisine JE par
+                      requête conjointe procureur + ASE (art. 375 Cciv).
+                    </span>
+                  }
+
+                  @if (showParentRegulier()) {
+                    <div class="mi-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="parentRegulier()"
+                          (ngModelChange)="onParentRegulierChange($event)"
+                          name="parentRegulier">
+                        Au moins un parent en situation régulière
+                      </mat-slide-toggle>
+                    </div>
+                    <span class="mi-helper-text">
+                      L.435-3 : exige titre de séjour ou justificatif de
+                      régularité du parent + résidence ≥ 3 ans.
+                    </span>
+                  }
+
+                  @if (showMotifOrdrePublic()) {
+                    <div class="mi-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="motifOrdrePublic()"
+                          (ngModelChange)="onMotifOpChange($event)"
+                          name="motifOrdrePublic">
+                        Motif d'ordre public (bloquant pour DCEM)
+                      </mat-slide-toggle>
+                    </div>
+                    <span class="mi-helper-text">
+                      DCEM : tout motif d'ordre public bloque la délivrance
+                      (art. R.321-3 CESEDA).
+                    </span>
+                  }
+
+                  @if (showTirNote()) {
+                    <div class="mi-info-block" role="note">
+                      <mat-icon>info_outline</mat-icon>
+                      <div>
+                        <strong>TIR</strong> — réservé aux mineurs apatrides
+                        ou bénéficiaires de l'asile. Preuve OFPRA / CNDA
+                        requise (statut apatride ou réfugié).
+                      </div>
+                    </div>
+                  }
+                </fieldset>
+              }
+
+              <div class="mi-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'éligibilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="mi-result">
+              <div [class]="bannerClass(result()!.verdictEligibilite)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictEligibilite) }}</mat-icon>
+                <div class="mi-banner-content">
+                  <div class="mi-banner-title">
+                    {{ bannerLabel(result()!.verdictEligibilite) }}
+                  </div>
+                  <div class="mi-banner-sub">
+                    {{ dispositifLabel(result()!.dispositifVise) }}
+                    — Âge :
+                    <span class="mi-formule-inline">{{ result()!.ageAnnees }} ans</span>
+                    — Délai instruction :
+                    <span class="mi-formule-inline">{{ result()!.delaiInstructionMois }} mois</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="mi-section-block">
+                  <div class="mi-section-label">Documents requis</div>
+                  <mat-chip-set class="mi-chip-set">
+                    @for (d of result()!.documentsRequis; track d) {
+                      <mat-chip class="mi-chip-doc">{{ d }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="mi-section-block">
+                  <div class="mi-section-label">Critères non remplis</div>
+                  <mat-chip-set class="mi-chip-set">
+                    @for (r of result()!.criteresNonRemplis; track r) {
+                      <mat-chip [class]="riskChipClass(r)">{{ r }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="mi-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="mi-formule-block">
+                  <span class="mi-formule-label">Formule</span>
+                  <span class="mi-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="mi-meta">
+                <span class="mi-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
