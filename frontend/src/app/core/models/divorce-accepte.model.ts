@@ -101,4 +101,25 @@ export interface FamilleExtractedData {
   logementCommunDetected?: boolean | null;
   victimeFinanciairementDependanteDetected?: boolean | null;
   demandeurDejaProtegeDetected?: boolean | null;
+  /**
+   * SF-FA-19-04 : pré-fill outil "Changement de résidence" (art. 373-2 Cciv).
+   * Raison détectée du changement (mutation / regroupement / logement / etc.).
+   * Valeur attendue parmi `RaisonChangement` (TRAVAIL / FAMILLE / LOGEMENT /
+   * RAPPROCHEMENT_FAMILIAL / AUTRE) — toute autre valeur est ignorée.
+   */
+  raisonChangementDetectee?: string | null;
+  /**
+   * SF-FA-19-04 : l'autre parent a-t-il été informé préalablement
+   * (heuristique IA — emails / SMS / courriers détectés).
+   */
+  informePrealablement?: boolean | null;
+  /**
+   * SF-FA-19-04 : mode de résidence actuel des enfants. Valeur attendue
+   * parmi `ModeResidenceCh` (`ALTERNEE` / `EXCLUSIVE_DEMANDEUR` /
+   * `EXCLUSIVE_DEFENDEUR`) — toute autre valeur est ignorée.
+   *
+   * NB : distinct de `regimeExerciceActuel` (SF-FA-19-02), qui décrit
+   * l'*exercice* parental (qui décide), pas la *résidence* (où vit l'enfant).
+   */
+  modeResidenceActuel?: string | null;
 }
