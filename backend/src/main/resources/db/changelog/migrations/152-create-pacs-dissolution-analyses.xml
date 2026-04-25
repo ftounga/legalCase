@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="152-create-pacs-dissolution-analyses" author="legalcase">
+        <comment>
+            SF-FA-20-01 : table dédiée à l'outil décisionnel "Dissolution PACS"
+            (art. 515-7 + 515-7-1 + 515-8 Code civil). Modes de dissolution :
+            DECLARATION_UNILATERALE (signification huissier), DECLARATION_CONJOINTE
+            (greffe), MARIAGE_PARTENAIRES, MARIAGE_TIERS, DECES. Régimes :
+            SEPARATION_BIENS (légal depuis 2007), INDIVISION_AMENAGEE (option),
+            INDIVISION_PAR_DEFAUT (PACS pré-2007). Pas de prestation
+            compensatoire entre partenaires — uniquement créances. Score 0-100
+            (patrimoine +30, ≥2 créances +25, durée ≥3 ans +20, régime ≠
+            SEPARATION +15, enfants +10) → verdict CONTENTIEUX_INEVITABLE /
+            MEDIATION_OU_JAF / LIQUIDATION_AMIABLE / RIEN_A_FAIRE. Prescription
+            5 ans (art. 2224 Cciv). Outil single-country FRANCE + DROIT_FAMILLE.
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 81) UUID f1a04001-0000-0000-0000-ee00000fa201 (hex valide)
+            pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="pacs_dissolution_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_pacs_dissolution_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_conclusion_pacs" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="mode_dissolution" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_dissolution" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="duree_union_annees" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="regime_biens" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="patrimoine_commun_significatif" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enfants_communs" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_notification_partenaire" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="pacs_dissolution_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_pacs_dissolution_analyses_case_file"/>
+
+        <createIndex tableName="pacs_dissolution_analyses"
+                     indexName="idx_pacs_dissolution_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa201', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-20-pacs-dissolution', 'ALWAYS_ON', NULL, NULL, 81);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa201';
+            </sql>
+            <dropTable tableName="pacs_dissolution_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
