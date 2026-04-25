@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="131-create-divorce-desunion-irremediable-be-analyses" author="legalcase">
+        <comment>
+            SF-FA-11-01 : table dédiée à l'outil décisionnel "Divorce pour désunion
+            irrémédiable BE" (art. 229 §3 Code civil belge, Loi du 27/04/2007).
+            Équivalent belge des features FR F-FA-08 (altération définitive,
+            art. 237 Cciv) et F-FA-10 (accepté, art. 233 Cciv) — la procédure
+            unique belge couvre les deux cas français via une présomption légale
+            fondée sur la séparation de fait : 6 mois si demande conjointe
+            (consentue) ou 1 an si demande unilatérale.
+            Procédure objective sans recherche de tort, pas de dommages-intérêts
+            (différence majeure vs FR art. 266 Cciv).
+            Scoring 0-100 (délai 40, preuves séparation 30, preuves documentaires
+            15, absence réconciliation 15). Verdicts ELEVEE ≥75, MOYENNE ≥50,
+            FAIBLE &lt;50.
+            Outil single-country BELGIQUE — équivalent FR = F-FA-08 + F-FA-10.
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, BELGIQUE,
+            priority 73, tool_id F-FA-11-desunion-irremediable-be) pour exposer
+            l'outil sur tout dossier famille BE.
+        </comment>
+
+        <createTable tableName="divorce_desunion_irremediable_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_divorce_desunion_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_separation" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="separation_consentue" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_separation" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_documentaires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tentatives_reconciliation" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_assignation" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="divorce_desunion_irremediable_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_divorce_desunion_be_analyses_case_file"/>
+
+        <createIndex tableName="divorce_desunion_irremediable_be_analyses"
+                     indexName="idx_divorce_desunion_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa111', 'DROIT_FAMILLE', 'BELGIQUE', 'F-FA-11-desunion-irremediable-be', 'ALWAYS_ON', NULL, NULL, 73);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa111';
+            </sql>
+            <dropTable tableName="divorce_desunion_irremediable_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
