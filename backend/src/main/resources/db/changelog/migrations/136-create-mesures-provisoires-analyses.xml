@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="136-create-mesures-provisoires-analyses" author="legalcase">
+        <comment>
+            SF-FA-12-01 : table dédiée à l'outil décisionnel "Mesures provisoires"
+            (audience d'orientation et sur mesures provisoires AOMP — art. 254-256
+            Cciv + jurisprudence Cass. 1ère civ.). Le JAF statue sur cinq mesures
+            applicables pendant la procédure de divorce contentieux : pension
+            alimentaire ad interim, attribution provisoire du logement, résidence
+            provisoire des enfants, contribution aux charges du mariage, mesures
+            conservatoires patrimoniales (art. 220-1 Cciv). Prérequis des outils
+            F-FA-08 (altération), F-FA-09 (faute) et F-FA-10 (accepté).
+
+            Logique :
+            - PA = max(0, |revenusDemandeur - revenusDefendeur| / 2) — méthode
+              simplifiée, le calcul détaillé reste F-FA-02.
+            - Attribution logement : si violences → demandeur (non-violent) ;
+              sinon propriétaire ; sinon revenus les plus faibles ;
+              sinon INDIVISION_MAINTENUE si revenus égaux.
+            - Résidence enfants : SANS_OBJET si pas d'enfants ; alternée si âge
+              tous ≥ 6 ans + concordance souhait, sinon exclusive.
+            - Contribution charges = max(revenus) / 2.
+            - Mesure conservatoire = patrimoineCommunSignificatif &amp;&amp; demande.
+            - Score cohésion 0-100 (écart demande/recommandation).
+            - Verdicts ELEVEE ≥ 75, MOYENNE 40-74, FAIBLE &lt; 40.
+
+            Outil single-country FRANCE — équivalent BE = F-FA-11 (procédure
+            distincte de divorce désunion irrémédiable, mesures provisoires
+            intégrées).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 74) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="mesures_provisoires_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mesures_provisoires_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_audience_aomp" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revenus_demandeur_eur" type="numeric(12,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revenus_defendeur_eur" type="numeric(12,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="logement_proprietaire" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="souhait_residence_enfants" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="violences_alleguees" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="patrimoine_commun_significatif" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demande_mesure_conservatoire" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="mesures_provisoires_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_mesures_provisoires_analyses_case_file"/>
+
+        <createIndex tableName="mesures_provisoires_analyses"
+                     indexName="idx_mesures_provisoires_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa121', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-12-mesures-provisoires', 'ALWAYS_ON', NULL, NULL, 74);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa121';
+            </sql>
+            <dropTable tableName="mesures_provisoires_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
