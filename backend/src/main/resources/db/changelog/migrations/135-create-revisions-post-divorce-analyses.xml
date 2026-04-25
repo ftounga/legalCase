@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="135-create-revisions-post-divorce-analyses" author="legalcase">
+        <comment>
+            SF-FA-13-01 : table dédiée à l'outil décisionnel "Révisions post-divorce FR".
+            Évalue la recevabilité d'une demande de révision sur 5 sujets :
+              - PENSION_ALIMENTAIRE (art. 209 Cciv) — modification substantielle ressources/besoins
+              - RESIDENCE (art. 373-2-13 Cciv) — éléments nouveaux
+              - DROIT_VISITE (art. 373-2-9 + 388-1 Cciv) — voix de l'enfant
+              - PRESTATION_COMPENSATOIRE (art. 279 / 276-3 / 280-1 Cciv)
+              - DEMENAGEMENT_PARENT (art. 373-2 al. 3 Cciv)
+            Scoring 0-100 pondéré (modification substantielle 50, motivation 25,
+            ancienneté 15, critère spécifique 10) avec verdicts ELEVEE/MOYENNE/FAIBLE.
+            Outil single-country FRANCE — équivalents BE (art. 301 § 7 CC pension,
+            art. 374 CC autorité parentale) hors scope, à ouvrir au backlog (feature
+            jumelle). + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 73) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="revisions_post_divorce_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_revisions_post_divorce_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="type_revision" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_decision_initiale" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="changement_circonstance" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="revenus_initials_debiteur_eur" type="decimal(15,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="revenus_actuels_debiteur_eur" type="decimal(15,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="revenus_initials_creancier_eur" type="decimal(15,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="revenus_actuels_creancier_eur" type="decimal(15,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="nb_enfants_a_charge" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="age_enfants" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="mode_residence_actuel" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="mode_residence_demande" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="information_prealable" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="distance_demenagement_km" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="revisions_post_divorce_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_revisions_post_divorce_case_file"/>
+
+        <createIndex tableName="revisions_post_divorce_analyses"
+                     indexName="idx_revisions_post_divorce_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa131', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-13-revisions-post-divorce', 'ALWAYS_ON', NULL, NULL, 73);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa131';
+            </sql>
+            <dropTable tableName="revisions_post_divorce_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
