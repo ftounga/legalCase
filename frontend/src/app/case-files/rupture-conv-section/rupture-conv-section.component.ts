@@ -19,13 +19,6 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 
-interface CritereForm {
-  code: string;
-  label: string;
-  description: string;
-  bloquant: boolean;
-}
-
 /**
  * SF-155-17 : fields d'alerte F-IA-03 exposés par l'outil F-DT-10
  * (validité rupture conventionnelle). Un par critère auditable.
@@ -37,6 +30,13 @@ export type RCAlertField =
   | 'RC_ASSISTANCE'
   | 'RC_INDEMNITE'
   | 'RC_ENTRETIENS';
+
+interface CritereForm {
+  code: RCAlertField;
+  label: string;
+  description: string;
+  bloquant: boolean;
+}
 
 // SF-155-17 : alias rétro-compat — utilise l'interface générique partagée (SF-155-05).
 export type RCAlertSource = CoherenceAlertSource;
