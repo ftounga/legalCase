@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="148-create-documents-fin-contrat-analyses" author="legalcase">
+        <comment>
+            SF-DT-32-01 : table dédiée à l'outil décisionnel "Documents de fin de contrat —
+            conformité employeur" (art. L.1234-19 certificat de travail + R.1234-9 attestation
+            France Travail + L.1234-20 reçu pour solde de tout compte). FRANCE uniquement
+            (pendant BE = feature jumelle backlog : C4 ONEM, certif Loi 03/07/1978 art. 22).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI sans recalcul.
+
+            Règle d'affichage F-IA-04 : ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 59.
+        </comment>
+
+        <createTable tableName="documents_fin_contrat_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_documents_fin_contrat_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="documents_fin_contrat_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_documents_fin_contrat_analyses_case_file"/>
+
+        <createIndex tableName="documents_fin_contrat_analyses"
+                     indexName="idx_documents_fin_contrat_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql>
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000321', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-32-documents-fin-contrat', 'ALWAYS_ON', NULL, NULL, 59);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000321';
+            </sql>
+            <dropTable tableName="documents_fin_contrat_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
