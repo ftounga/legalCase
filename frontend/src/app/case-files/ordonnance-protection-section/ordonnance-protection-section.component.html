@@ -1,0 +1,282 @@
+<section class="op-section">
+  <header class="op-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="op-body">
+    <mat-icon class="op-icon">shield</mat-icon>
+    <span class="op-title">ORDONNANCE DE PROTECTION (FR) — ART. 515-9 CCIV</span>
+    @if (result()) {
+      <span class="op-chip"
+            [class.op-chip--strong]="result()!.verdictProbabiliteOctroi === 'ELEVEE'"
+            [class.op-chip--medium]="result()!.verdictProbabiliteOctroi === 'MOYENNE'"
+            [class.op-chip--weak]="result()!.verdictProbabiliteOctroi === 'FAIBLE'">
+        {{ verdictProbabiliteOctroiLabel(result()!.verdictProbabiliteOctroi) }}
+      </span>
+    }
+    <mat-icon class="op-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="op-body" class="op-body">
+      @if (!isFrance()) {
+        <div class="op-banner op-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="op-banner-content">
+            <div class="op-banner-title">Ordonnance de protection — procédure française uniquement</div>
+            <div class="op-banner-sub">
+              Pour la Belgique, voir l'équivalent <code>art. 1253ter CJ</code> (Tribunal de la famille — F-FA-14-BE backlog).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="op-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="op-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="op-form" (ngSubmit)="calculate()">
+              <!-- Date requête (optionnel). -->
+              <div class="op-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de la requête (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRequete()"
+                         (ngModelChange)="onDateRequeteChange($event)"
+                         name="dateRequete" />
+                </mat-form-field>
+                @if (provenanceDateRequete() === 'IA') {
+                  <span class="op-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_REQUETE; as alert) {
+                  <span class="op-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DATE_REQUETE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Violences alléguées (multi-select). -->
+              <div class="op-field-with-alert op-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Violences alléguées</mat-label>
+                  <mat-select multiple
+                              [ngModel]="violencesAlleguees()"
+                              (ngModelChange)="onViolencesChange($event)"
+                              name="violencesAlleguees" required>
+                    @for (v of violencesOptions; track v.code) {
+                      <mat-option [value]="v.code">{{ v.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceViolencesAlleguees() === 'IA') {
+                  <span class="op-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().VIOLENCES_ALLEGUEES; as alert) {
+                  <span class="op-coherence-badge"
+                        [appCoherencePopover]="explanationFor('VIOLENCES_ALLEGUEES')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Preuves disponibles (multi-select). -->
+              <div class="op-field-with-alert op-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Preuves disponibles</mat-label>
+                  <mat-select multiple
+                              [ngModel]="preuvesViolences()"
+                              (ngModelChange)="onPreuvesChange($event)"
+                              name="preuvesViolences">
+                    @for (p of preuvesOptions; track p.code) {
+                      <mat-option [value]="p.code">{{ p.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenancePreuvesViolences() === 'IA') {
+                  <span class="op-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <!-- Toggles contextuels. -->
+              <div class="op-toggle-row op-field-full">
+                <mat-slide-toggle
+                    [ngModel]="dangerImmediat()"
+                    (ngModelChange)="onDangerImmediatChange($event)"
+                    name="dangerImmediat">
+                  Danger immédiat caractérisé (TGD/BAR — Loi 30/07/2020)
+                </mat-slide-toggle>
+                @if (provenanceDangerImmediat() === 'IA') {
+                  <span class="op-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+              </div>
+
+              <div class="op-toggle-row op-field-full">
+                <mat-slide-toggle
+                    [ngModel]="presenceEnfants()"
+                    (ngModelChange)="onPresenceEnfantsChange($event)"
+                    name="presenceEnfants">
+                  Enfants présents au foyer (résidence enfants)
+                </mat-slide-toggle>
+                @if (provenancePresenceEnfants() === 'IA') {
+                  <span class="op-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+              </div>
+
+              <div class="op-toggle-row op-field-full">
+                <mat-slide-toggle
+                    [ngModel]="logementCommun()"
+                    (ngModelChange)="onLogementCommunChange($event)"
+                    name="logementCommun">
+                  Logement commun (éviction conjoint)
+                </mat-slide-toggle>
+                @if (provenanceLogementCommun() === 'IA') {
+                  <span class="op-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                  </span>
+                }
+                @if (coherenceAlerts().LOGEMENT_COMMUN; as alert) {
+                  <span class="op-coherence-badge"
+                        [appCoherencePopover]="explanationFor('LOGEMENT_COMMUN')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="op-toggle-row op-field-full">
+                <mat-slide-toggle
+                    [ngModel]="victimeFinanciairementDependante()"
+                    (ngModelChange)="onVictimeDependanteChange($event)"
+                    name="victimeFinanciairementDependante">
+                  Victime financièrement dépendante
+                </mat-slide-toggle>
+              </div>
+
+              <div class="op-toggle-row op-field-full">
+                <mat-slide-toggle
+                    [ngModel]="demandeurDejaProtege()"
+                    (ngModelChange)="onDemandeurDejaProtegeChange($event)"
+                    name="demandeurDejaProtege">
+                  Demandeur déjà sous protection (demande renouvelée)
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Mesures demandées (multi-select). -->
+              <div class="op-field-with-alert op-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Mesures demandées au JAF</mat-label>
+                  <mat-select multiple
+                              [ngModel]="demandeMesures()"
+                              (ngModelChange)="onMesuresChange($event)"
+                              name="demandeMesures" required>
+                    @for (m of mesuresOptions; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="op-actions op-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la demande de protection</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="op-result">
+              <!-- Bannière verdict. -->
+              <div [class]="verdictBannerClass(result()!.verdictProbabiliteOctroi)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictProbabiliteOctroi === 'ELEVEE' ? 'shield'
+                     : result()!.verdictProbabiliteOctroi === 'MOYENNE' ? 'balance'
+                     : 'info_outline' }}
+                </mat-icon>
+                <div class="op-banner-content">
+                  <div class="op-banner-title">
+                    {{ verdictProbabiliteOctroiLabel(result()!.verdictProbabiliteOctroi) }}
+                  </div>
+                  <div class="op-banner-sub">
+                    Score de vraisemblance : {{ result()!.scoreVraisemblance }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- Délai traitement. -->
+              <div class="op-amount-block">
+                <span class="op-amount-label">Délai indicatif de traitement par le JAF</span>
+                <span class="op-amount">
+                  {{ result()!.delaiTraitementJoursPrevisionnel }} jours
+                </span>
+                <span class="op-amount-sub">Art. 515-11 al. 1 Cciv</span>
+              </div>
+
+              <!-- Mesures recommandées. -->
+              @if (result()!.mesuresRecommandees?.length) {
+                <div class="op-mesures-block">
+                  <span class="op-mesures-label">Mesures recommandées (intersection demandes / contexte)</span>
+                  <mat-chip-set class="op-mesures-chips">
+                    @for (m of result()!.mesuresRecommandees; track m) {
+                      <mat-chip>{{ mesureLabel(m) }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="op-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="op-formule-block">
+                  <span class="op-formule-label">Formule</span>
+                  <span class="op-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="op-meta">
+                <span class="op-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

@@ -59,6 +59,7 @@ import { AesFamilleSectionComponent } from '../aes-famille-section/aes-famille-s
 import { DivorceAlterationSectionComponent } from '../divorce-alteration-section/divorce-alteration-section.component';
 import { DivorceFauteSectionComponent } from '../divorce-faute-section/divorce-faute-section.component';
 import { DivorceAccepteSectionComponent } from '../divorce-accepte-section/divorce-accepte-section.component';
+import { OrdonnanceProtectionSectionComponent } from '../ordonnance-protection-section/ordonnance-protection-section.component';
 import { RevisionsPostDivorceSectionComponent } from '../revisions-post-divorce-section/revisions-post-divorce-section.component';
 import { TravailProcedureSectionComponent } from '../travail-procedure-section/travail-procedure-section.component';
 import { RecompensesSectionComponent } from '../recompenses-section/recompenses-section.component';
@@ -541,6 +542,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-FA-13-revisions-post-divorce', {
         component: RevisionsPostDivorceSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-14-02 : ordonnance de protection FR (art. 515-9 Cciv).
+      ['F-FA-14-ordonnance-protection', {
+        component: OrdonnanceProtectionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
