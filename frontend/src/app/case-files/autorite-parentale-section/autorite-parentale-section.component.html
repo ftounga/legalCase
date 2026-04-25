@@ -1,0 +1,343 @@
+<section class="ap-section">
+  <header class="ap-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ap-body">
+    <mat-icon class="ap-icon">family_restroom</mat-icon>
+    <span class="ap-title">AUTORITÉ PARENTALE — EXERCICE (FR) — ART. 372-373 CCIV</span>
+    @if (result()) {
+      <span class="ap-chip"
+            [class.ap-chip--strong]="result()!.verdictProbabiliteAcceptation === 'ELEVEE'"
+            [class.ap-chip--medium]="result()!.verdictProbabiliteAcceptation === 'MOYENNE'"
+            [class.ap-chip--weak]="result()!.verdictProbabiliteAcceptation === 'FAIBLE'">
+        {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+      </span>
+    }
+    <mat-icon class="ap-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ap-body" class="ap-body">
+      @if (!isFrance()) {
+        <div class="ap-banner ap-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="ap-banner-content">
+            <div class="ap-banner-title">Autorité parentale — procédure française uniquement</div>
+            <div class="ap-banner-sub">
+              Pour la Belgique, voir l'outil cohabitation parentale (art. 373 CC — à venir).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="ap-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="ap-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="ap-form" (ngSubmit)="calculate()">
+              <!-- Régime exercice actuel. -->
+              <div class="ap-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Régime d'exercice actuel</mat-label>
+                  <mat-select
+                      [ngModel]="regimeExerciceActuel()"
+                      (ngModelChange)="onRegimeActuelChange($event)"
+                      name="regimeExerciceActuel" required>
+                    @for (r of regimesOptions; track r.code) {
+                      <mat-option [value]="r.code">{{ r.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceRegimeActuel() === 'IA') {
+                  <span class="ap-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REGIME_EXERCICE_ACTUEL; as alert) {
+                  <span class="ap-coherence-badge"
+                        [appCoherencePopover]="explanationFor('REGIME_EXERCICE_ACTUEL')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Régime exercice demandé. -->
+              <div class="ap-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Régime d'exercice demandé</mat-label>
+                  <mat-select
+                      [ngModel]="regimeExerciceDemande()"
+                      (ngModelChange)="onRegimeDemandeChange($event)"
+                      name="regimeExerciceDemande" required>
+                    @for (r of regimesOptions; track r.code) {
+                      <mat-option [value]="r.code">{{ r.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Motif changement. -->
+              <div class="ap-field-with-alert ap-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Motif du changement</mat-label>
+                  <mat-select
+                      [ngModel]="motifChangement()"
+                      (ngModelChange)="onMotifChange($event)"
+                      name="motifChangement" required>
+                    @for (m of motifsOptions; track m.code) {
+                      <mat-option [value]="m.code">{{ m.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Slide-toggle danger. -->
+              <div class="ap-field-with-alert ap-field-full">
+                <mat-slide-toggle
+                    [ngModel]="dangerCaracterise()"
+                    (ngModelChange)="onDangerChange($event)"
+                    name="dangerCaracterise">
+                  Danger caractérisé pour l'enfant (violences, mise en danger)
+                </mat-slide-toggle>
+                @if (provenanceDangerCaracterise() === 'IA') {
+                  <span class="ap-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DANGER_CARACTERISE; as alert) {
+                  <span class="ap-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DANGER_CARACTERISE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Slide-toggle consentement. -->
+              <div class="ap-field-with-alert ap-field-full">
+                <mat-slide-toggle
+                    [ngModel]="consentementAutreParent()"
+                    (ngModelChange)="onConsentementChange($event)"
+                    name="consentementAutreParent">
+                  Consentement de l'autre parent au changement
+                </mat-slide-toggle>
+                @if (provenanceConsentementAutreParent() === 'IA') {
+                  <span class="ap-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().CONSENTEMENT_AUTRE_PARENT; as alert) {
+                  <span class="ap-coherence-badge"
+                        [appCoherencePopover]="explanationFor('CONSENTEMENT_AUTRE_PARENT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Slide-toggle interférence. -->
+              <div class="ap-field-with-alert ap-field-full">
+                <mat-slide-toggle
+                    [ngModel]="interferenceVieEnfant()"
+                    (ngModelChange)="onInterferenceChange($event)"
+                    name="interferenceVieEnfant">
+                  Interférence d'un parent dans la vie de l'enfant (aliénation parentale)
+                </mat-slide-toggle>
+                @if (provenanceInterferenceVieEnfant() === 'IA') {
+                  <span class="ap-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().INTERFERENCE_VIE_ENFANT; as alert) {
+                  <span class="ap-coherence-badge"
+                        [appCoherencePopover]="explanationFor('INTERFERENCE_VIE_ENFANT')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Preuves produites (multi-select). -->
+              <div class="ap-field-with-alert ap-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Preuves produites</mat-label>
+                  <mat-select multiple
+                              [ngModel]="preuvesProduites()"
+                              (ngModelChange)="onPreuvesChange($event)"
+                              name="preuvesProduites">
+                    @for (p of preuvesOptions; track p.code) {
+                      <mat-option [value]="p.code">{{ p.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Âges enfants (CSV). -->
+              <div class="ap-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Âges des enfants (séparés par virgules)</mat-label>
+                  <input matInput type="text"
+                         placeholder="Ex : 12, 8, 5"
+                         [ngModel]="ageEnfantsRaw()"
+                         (ngModelChange)="onAgeEnfantsRawChange($event)"
+                         name="ageEnfantsRaw" required />
+                  <mat-hint>Entrez les âges des enfants concernés en années entières.</mat-hint>
+                </mat-form-field>
+                @if (provenanceAgeEnfants() === 'IA') {
+                  <span class="ap-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().AGE_ENFANTS; as alert) {
+                  <span class="ap-coherence-badge"
+                        [appCoherencePopover]="explanationFor('AGE_ENFANTS')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Date requête. -->
+              <div class="ap-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de la requête JAF</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRequete()"
+                         (ngModelChange)="onDateRequeteChange($event)"
+                         name="dateRequete" required />
+                </mat-form-field>
+              </div>
+
+              <div class="ap-actions ap-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'autorité parentale</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="ap-result">
+              <!-- Bannière verdict. -->
+              <div [class]="verdictBannerClass(result()!.verdictProbabiliteAcceptation)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictProbabiliteAcceptation === 'ELEVEE' ? 'gavel'
+                     : result()!.verdictProbabiliteAcceptation === 'MOYENNE' ? 'balance'
+                     : 'info_outline' }}
+                </mat-icon>
+                <div class="ap-banner-content">
+                  <div class="ap-banner-title">
+                    {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+                  </div>
+                  <div class="ap-banner-sub">
+                    Score d'éligibilité : {{ result()!.scoreEligibilite }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2 cartes recommandations. -->
+              <div class="ap-cards-row">
+                <div class="ap-card"
+                     [class.ap-card--active]="result()!.expertiseRecommandee">
+                  <span class="ap-card-label">Expertise psychiatrique</span>
+                  <span class="ap-card-value">
+                    {{ result()!.expertiseRecommandee ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  @if (result()!.expertiseRecommandee) {
+                    <span class="ap-card-sub">
+                      Demander une expertise (psy enfant + parents) pour étayer le dossier
+                    </span>
+                  }
+                </div>
+
+                <div class="ap-card"
+                     [class.ap-card--active]="result()!.auditionEnfantsRecommandee">
+                  <span class="ap-card-label">Audition des enfants</span>
+                  <span class="ap-card-value">
+                    {{ result()!.auditionEnfantsRecommandee ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  @if (result()!.auditionEnfantsRecommandee) {
+                    <span class="ap-card-sub">
+                      Audition des enfants ≥ 13 ans (art. 388-1 Cciv) — droit pour le mineur
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Récap saisie. -->
+              <div class="ap-recap">
+                <div class="ap-recap-row">
+                  <span class="ap-recap-label">Régime actuel</span>
+                  <span class="ap-recap-value">{{ regimeExerciceLabel(result()!.regimeExerciceActuel) }}</span>
+                </div>
+                <div class="ap-recap-row">
+                  <span class="ap-recap-label">Régime demandé</span>
+                  <span class="ap-recap-value">{{ regimeExerciceLabel(result()!.regimeExerciceDemande) }}</span>
+                </div>
+                <div class="ap-recap-row">
+                  <span class="ap-recap-label">Motif</span>
+                  <span class="ap-recap-value">{{ motifChangementLabel(result()!.motifChangement) }}</span>
+                </div>
+                <div class="ap-recap-row">
+                  <span class="ap-recap-label">Âges enfants</span>
+                  <span class="ap-recap-value">{{ result()!.ageEnfants?.join(', ') }} an(s)</span>
+                </div>
+                @if (result()!.preuvesProduites?.length) {
+                  <div class="ap-recap-row">
+                    <span class="ap-recap-label">Preuves</span>
+                    <mat-chip-set class="ap-recap-chips">
+                      @for (p of result()!.preuvesProduites; track p) {
+                        <mat-chip>{{ preuveAutoriteLabel(p) }}</mat-chip>
+                      }
+                    </mat-chip-set>
+                  </div>
+                }
+              </div>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="ap-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="ap-formule-block">
+                  <span class="ap-formule-label">Formule</span>
+                  <span class="ap-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="ap-meta">
+                <span class="ap-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

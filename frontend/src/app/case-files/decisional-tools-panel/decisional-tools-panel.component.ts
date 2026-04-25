@@ -62,6 +62,7 @@ import { DivorceAccepteSectionComponent } from '../divorce-accepte-section/divor
 import { RevisionsPostDivorceSectionComponent } from '../revisions-post-divorce-section/revisions-post-divorce-section.component';
 import { TravailProcedureSectionComponent } from '../travail-procedure-section/travail-procedure-section.component';
 import { RecompensesSectionComponent } from '../recompenses-section/recompenses-section.component';
+import { AutoriteParentaleSectionComponent } from '../autorite-parentale-section/autorite-parentale-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -557,6 +558,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
+        }),
+      }],
+      ['F-FA-19-autorite-parentale', {
+        component: AutoriteParentaleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
     ]);
