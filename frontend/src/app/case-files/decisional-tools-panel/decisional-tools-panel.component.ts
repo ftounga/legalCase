@@ -85,6 +85,7 @@ import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/ref
 import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit-temps-be-section.component';
 import { PseSectionComponent } from '../pse-section/pse-section.component';
 import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
+import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -882,6 +883,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-11-02 : changement de statut CESEDA (FR uniquement,
+      // art. L.421+ + R.5221). tool_id aligné migration 170.
+      ['F-IM-11-changement-statut', {
+        component: ChangementStatutSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA (typeTitreSejourCode → titreActuel) + validation
+          // F-IA-03 (1 champ TITRE_ACTUEL multi-sources IA / F96 /
+          // QUESTION_IA / PIECE_MANQUANTE).
+          aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
