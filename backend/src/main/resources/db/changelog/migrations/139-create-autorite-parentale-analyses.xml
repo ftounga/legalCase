@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="139-create-autorite-parentale-analyses" author="legalcase">
+        <comment>
+            SF-FA-19-01 : table dédiée à l'outil décisionnel "Autorité parentale —
+            exercice" (art. 372-373 Cciv + art. 388-1 Cciv pour l'audition des
+            mineurs). Premier morceau de F-FA-19. L'outil évalue la probabilité
+            d'acceptation par le JAF d'une demande de passage de l'exercice
+            conjoint à un exercice exclusif (mère, père) ou à une délégation à
+            un tiers (art. 377 Cciv), en fonction du motif invoqué, des preuves
+            produites et des circonstances (danger caractérisé, ingérence dans
+            la vie de l'enfant).
+
+            Logique de scoring 0-100 :
+            - motif reconnu (≠ AUTRE) : +25
+            - ≥ 2 preuves produites : +25
+            - danger caractérisé : +25
+            - interférence vie enfant : +15
+            - consentement autre parent : +10
+
+            Verdicts : ELEVEE ≥ 70, MOYENNE 40-69, FAIBLE &lt; 40.
+
+            Recommandations dérivées :
+            - expertise psychiatrique recommandée si motif sensible
+              (MISE_EN_DANGER, ALIENATION_PARENTALE)
+            - audition enfants recommandée si tout enfant ≥ 13 ans (art. 388-1)
+
+            Outil single-country FRANCE — la BE (loi 13 avril 1995, art. 373
+            Code civil BE) repose sur une logique distincte non couverte ici.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 77) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="autorite_parentale_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_autorite_parentale_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="regime_exercice_actuel" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="regime_exercice_demande" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_changement" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="danger_caracterise" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_autre_parent" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interference_vie_enfant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_requete" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="autorite_parentale_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_autorite_parentale_analyses_case_file"/>
+
+        <createIndex tableName="autorite_parentale_analyses"
+                     indexName="idx_autorite_parentale_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa191', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-19-autorite-parentale', 'ALWAYS_ON', NULL, NULL, 77);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa191';
+            </sql>
+            <dropTable tableName="autorite_parentale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
