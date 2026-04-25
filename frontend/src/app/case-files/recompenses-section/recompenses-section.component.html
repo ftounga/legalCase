@@ -1,0 +1,278 @@
+<section class="recompenses-section">
+  <header class="recompenses-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="recompenses-body">
+    <mat-icon class="recompenses-icon">account_balance</mat-icon>
+    <span class="recompenses-title">RÉCOMPENSES (ART. 1437/1469 CCIV)</span>
+    @if (result() && !showForm()) {
+      <span class="recompenses-chip">
+        Solde : {{ result()!.soldeNetPourEpouxEur | number:'1.0-0' }} €
+      </span>
+    }
+    <mat-icon class="recompenses-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="recompenses-body" class="recompenses-body">
+
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>
+            Cet outil s'applique au droit français uniquement (art. 1437 et 1469 Cciv).
+            Le régime belge des indemnités matrimoniales (art. 1432-1438 anciens C. civ. BE)
+            n'est pas couvert par cette feature — backlog futur F-FA-15-BE.
+          </span>
+        </div>
+      }
+
+      @if (workspaceCountry === 'FRANCE') {
+        @if (loading()) {
+          <div class="recompenses-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+
+          @if (showForm()) {
+
+            @if (alertsSummary().total > 0) {
+              <div class="recompenses-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="recompenses-form" (ngSubmit)="calculate()">
+
+              <!-- Régime matrimonial avec badge IA + alerte cohérence F-IA-03. -->
+              <div class="recompenses-field-with-alert">
+                <mat-form-field appearance="outline" class="form-field-wide">
+                  <mat-label>Régime matrimonial</mat-label>
+                  <mat-select
+                      [ngModel]="regimeMatrimonial()"
+                      (ngModelChange)="onRegimeChange($event)"
+                      name="regimeMatrimonial" required>
+                    @for (r of regimeOptions; track r.code) {
+                      <mat-option [value]="r.code">{{ r.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceRegime() === 'IA') {
+                  <span class="recompenses-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REGIME_MATRIMONIAL; as alert) {
+                  <span class="recompenses-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+                <span class="recompenses-hint">
+                  La séparation de biens est exclue : pas de récompenses
+                  (art. 1536 Cciv — créances entre patrimoines hors scope).
+                </span>
+                @if (coherenceAlerts().REGIME_APPLICABILITE; as alert) {
+                  <span class="recompenses-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Liste des opérations. -->
+              <div class="operations-block">
+                <div class="operations-header">
+                  <span class="operations-title">Opérations à analyser</span>
+                  <button mat-stroked-button type="button" (click)="addOperation()">
+                    <mat-icon>add</mat-icon> Ajouter une opération
+                  </button>
+                </div>
+
+                @if (operations().length === 0) {
+                  <div class="operations-empty">
+                    Aucune opération. Cliquez sur "Ajouter une opération" pour commencer.
+                  </div>
+                }
+
+                @for (op of operations(); track trackByOperationId($index, op)) {
+                  <div class="operation-card">
+                    <div class="operation-card-header">
+                      <span class="operation-id">{{ op.id }}</span>
+                      <button mat-icon-button type="button"
+                              (click)="removeOperation(op.id)"
+                              matTooltip="Supprimer cette opération"
+                              aria-label="Supprimer cette opération">
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </div>
+
+                    <div class="operation-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Type d'opération</mat-label>
+                        <mat-select
+                            [ngModel]="op.type"
+                            (ngModelChange)="onOperationTypeChange(op.id, $event)"
+                            [name]="'type-' + op.id">
+                          @for (t of typeOperationOptions; track t.code) {
+                            <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>Nature du bien</mat-label>
+                        <mat-select
+                            [ngModel]="op.natureBien"
+                            (ngModelChange)="onOperationNatureChange(op.id, $event)"
+                            [name]="'nature-' + op.id">
+                          @for (n of natureBienOptions; track n.code) {
+                            <mat-option [value]="n.code">{{ n.label }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="operation-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Montant de la dépense (€)</mat-label>
+                        <input matInput type="number" min="0" step="0.01"
+                               [ngModel]="op.montantDepenseEur"
+                               (ngModelChange)="onOperationFieldChange(op.id, 'montantDepenseEur', $event)"
+                               [name]="'montant-' + op.id" required />
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>Valeur initiale du bien (€)</mat-label>
+                        <input matInput type="number" min="0" step="0.01"
+                               [ngModel]="op.valeurInitialeBienEur"
+                               (ngModelChange)="onOperationFieldChange(op.id, 'valeurInitialeBienEur', $event)"
+                               [name]="'vinit-' + op.id" />
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>Valeur actuelle du bien (€)</mat-label>
+                        <input matInput type="number" min="0" step="0.01"
+                               [ngModel]="op.valeurActuelleBienEur"
+                               (ngModelChange)="onOperationFieldChange(op.id, 'valeurActuelleBienEur', $event)"
+                               [name]="'vact-' + op.id" />
+                      </mat-form-field>
+                    </div>
+
+                    <mat-form-field appearance="outline" class="operation-description">
+                      <mat-label>Description</mat-label>
+                      <textarea matInput rows="2"
+                                [ngModel]="op.description"
+                                (ngModelChange)="onOperationDescriptionChange(op.id, $event)"
+                                [name]="'desc-' + op.id"></textarea>
+                    </mat-form-field>
+                  </div>
+                }
+              </div>
+
+              <div class="recompenses-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>
+                      <mat-icon>calculate</mat-icon> Calculer les récompenses
+                    </ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+
+            <div class="recompenses-result">
+
+              <!-- 3 cartes totaux. -->
+              <div class="totaux-cards">
+                <div class="totaux-card totaux-card--communaute">
+                  <span class="totaux-card-label">Dû par la communauté</span>
+                  <span class="totaux-card-value">
+                    {{ result()!.totalRecompensesDuesParCommunauteEur | number:'1.0-2' }} €
+                  </span>
+                </div>
+                <div class="totaux-card totaux-card--epoux">
+                  <span class="totaux-card-label">Dû par les époux</span>
+                  <span class="totaux-card-value">
+                    {{ result()!.totalRecompensesDuesParEpouxEur | number:'1.0-2' }} €
+                  </span>
+                </div>
+                <div class="totaux-card totaux-card--solde">
+                  <span class="totaux-card-label">Solde net pour les époux</span>
+                  <span class="totaux-card-value">
+                    {{ result()!.soldeNetPourEpouxEur | number:'1.0-2' }} €
+                  </span>
+                </div>
+              </div>
+
+              <!-- Tableau récapitulatif des récompenses. -->
+              @if (result()!.recompenses?.length) {
+                <div class="recompenses-table">
+                  <div class="recompenses-table-header">
+                    <span>Opération</span>
+                    <span>Règle</span>
+                    <span>Montant</span>
+                    <span>Direction</span>
+                  </div>
+                  @for (r of result()!.recompenses; track r.operationId) {
+                    <div class="recompenses-table-row">
+                      <div class="recompenses-table-cell">
+                        <span class="cell-id">{{ r.operationId }}</span>
+                        @if (r.description) {
+                          <span class="cell-description">{{ r.description }}</span>
+                        }
+                      </div>
+                      <div class="recompenses-table-cell">
+                        <span class="cell-regle">{{ r.regleApplicable }}</span>
+                        <span class="cell-base-juridique">{{ r.baseJuridiqueOperation }}</span>
+                      </div>
+                      <div class="recompenses-table-cell cell-amount">
+                        {{ r.montantRecompenseEur | number:'1.0-2' }} €
+                      </div>
+                      <div class="recompenses-table-cell">
+                        <span class="cell-direction"
+                              [class.cell-direction--communaute]="r.directionRecompense === 'COMMUNAUTE_DOIT_PROPRE'"
+                              [class.cell-direction--propre]="r.directionRecompense === 'PROPRE_DOIT_COMMUNAUTE'">
+                          @if (r.directionRecompense === 'COMMUNAUTE_DOIT_PROPRE') {
+                            Communauté → Époux
+                          } @else {
+                            Époux → Communauté
+                          }
+                        </span>
+                        <span class="cell-formule">{{ r.formule }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="recompenses-meta">
+                <span class="recompenses-base-juridique">{{ result()!.baseJuridiqueGenerale }}</span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+
+              @if (result()!.messages?.length) {
+                <ul class="recompenses-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li>{{ m }}</li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

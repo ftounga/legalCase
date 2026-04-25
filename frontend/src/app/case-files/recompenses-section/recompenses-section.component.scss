@@ -1,0 +1,472 @@
+// SF-FA-15-02 : styles outil décisionnel Récompenses (art. 1437/1469 Cciv).
+// Palette navy/or (DESIGN_SYSTEM.md), JetBrains Mono pour formules + bases juridiques.
+// Pattern aligné sur `harcelement-licenciement-nul-section` (canonical) et
+// `partage-immobilier-section` (palette famille).
+
+.recompenses-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.recompenses-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.recompenses-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.recompenses-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.recompenses-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.recompenses-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.recompenses-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.recompenses-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-family: 'Inter', sans-serif;
+}
+
+// Bannière info gate FRANCE — palette navy clair (info_outline).
+.country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #EAF1F8;
+  border: 1px solid #1A3A5C;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Résumé global "N incohérence(s) avec l'analyse" — palette or soutenu (warning).
+.recompenses-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.recompenses-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Wrapper d'un field avec badge IA + alerte cohérence sous le field.
+.recompenses-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  .form-field-wide {
+    width: 100%;
+  }
+}
+
+// Badge "Pré-rempli depuis l'analyse" — navy + icône or.
+.recompenses-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+// Note discrète sous le champ régime (info statique).
+.recompenses-hint {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+// Badge alerte cohérence (hover → popover F-IA-03-15b).
+.recompenses-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Bloc Opérations
+// --------------------------------------------------------------------------
+
+.operations-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #F7FAFC;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+}
+
+.operations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.operations-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1A3A5C;
+}
+
+.operations-empty {
+  padding: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  text-align: center;
+  font-style: italic;
+}
+
+.operation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E0E4EA;
+  border-radius: 6px;
+}
+
+.operation-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.operation-id {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1A3A5C;
+  background: rgba(26, 58, 92, 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.operation-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.operation-description {
+  width: 100%;
+}
+
+.recompenses-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+// --------------------------------------------------------------------------
+// Résultat
+// --------------------------------------------------------------------------
+
+.recompenses-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.totaux-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.totaux-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(201, 165, 75, 0.08);
+  border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+}
+
+.totaux-card--communaute {
+  background: rgba(26, 58, 92, 0.06);
+  border-left-color: #1A3A5C;
+}
+
+.totaux-card--epoux {
+  background: rgba(201, 165, 75, 0.08);
+  border-left-color: var(--ds-accent-gold, #c9a54b);
+}
+
+.totaux-card--solde {
+  background: #1A3A5C;
+  color: #FFFFFF;
+  border-left-color: var(--ds-accent-gold, #c9a54b);
+
+  .totaux-card-label,
+  .totaux-card-value {
+    color: #FFFFFF;
+  }
+}
+
+.totaux-card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.totaux-card-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.recompenses-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #E0E4EA;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.recompenses-table-header,
+.recompenses-table-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.6fr 1fr 1.6fr;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.recompenses-table-header {
+  background: #1A3A5C;
+  color: #FFFFFF;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.recompenses-table-row {
+  background: #FFFFFF;
+  border-top: 1px solid #E0E4EA;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+
+  &:nth-child(even) {
+    background: #F7FAFC;
+  }
+}
+
+.recompenses-table-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cell-id {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1A3A5C;
+}
+
+.cell-description {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.cell-regle {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1A3A5C;
+}
+
+.cell-base-juridique {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.cell-amount {
+  align-items: flex-end;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.cell-direction {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.cell-direction--communaute {
+  background: rgba(26, 58, 92, 0.08);
+  color: #1A3A5C;
+}
+
+.cell-direction--propre {
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+}
+
+.cell-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.recompenses-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recompenses-base-juridique {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.recompenses-messages {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+
+    code {
+      font-family: 'JetBrains Mono', 'Menlo', monospace;
+      font-size: 0.95em;
+      background: rgba(26, 35, 48, 0.05);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+  }
+}

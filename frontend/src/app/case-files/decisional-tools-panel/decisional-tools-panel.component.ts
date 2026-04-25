@@ -60,6 +60,7 @@ import { DivorceFauteSectionComponent } from '../divorce-faute-section/divorce-f
 import { DivorceAccepteSectionComponent } from '../divorce-accepte-section/divorce-accepte-section.component';
 import { RevisionsPostDivorceSectionComponent } from '../revisions-post-divorce-section/revisions-post-divorce-section.component';
 import { TravailProcedureSectionComponent } from '../travail-procedure-section/travail-procedure-section.component';
+import { RecompensesSectionComponent } from '../recompenses-section/recompenses-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -299,6 +300,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           liquidationCommunaute: ctx.synthesis?.liquidationCommunaute,
           // SF-155-20 : pré-fill IA via FamilleExtractedData (valeurImmeuble + capitalRestantDu).
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-15-recompenses', {
+        component: RecompensesSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-FA-15-02 : pré-fill IA via FamilleExtractedData (regimeMatrimonialDetecte)
+          // + validation F-IA-03 sur REGIME_MATRIMONIAL.
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
