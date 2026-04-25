@@ -50,6 +50,7 @@ import { IndemnitePreavisSectionComponent } from '../indemnite-preavis-section/i
 import { RappelSalaireSectionComponent } from '../rappel-salaire-section/rappel-salaire-section.component';
 import { RequalificationCddCdiSectionComponent } from '../requalification-cdd-cdi-section/requalification-cdd-cdi-section.component';
 import { RequalificationInterimCdiSectionComponent } from '../requalification-interim-cdi-section/requalification-interim-cdi-section.component';
+import { NonConcurrenceSectionComponent } from '../non-concurrence-section/non-concurrence-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
 import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
@@ -364,6 +365,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // (1 alerte : SALAIRE_MENSUEL multi-sources IA / F96 / QUESTION_IA /
           // PIECE_MANQUANTE). Jumeau direct F-DT-22 — adapté MissionInterim
           // (entrepriseUtilisatrice + memeEntrepriseUtilisatrice).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-24-non-concurrence', {
+        component: NonConcurrenceSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-24-02 : pré-fill IA (salaireBrutMensuel) + validation F-IA-03
+          // (1 alerte : SALAIRE_MENSUEL multi-sources IA / F96 / QUESTION_IA /
+          // PIECE_MANQUANTE). Outil scoring 4 critères Cass. soc. 10/07/2002.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
