@@ -83,6 +83,7 @@ import { AvantagesConventionnelsBeSectionComponent } from '../avantages-conventi
 import { SeparationCorpsSectionComponent } from '../separation-corps-section/separation-corps-section.component';
 import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/refere-prudhomal-section.component';
 import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit-temps-be-section.component';
+import { PseSectionComponent } from '../pse-section/pse-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -618,6 +619,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // ageDemandeurAnnees) + validation F-IA-03 (2 champs :
           // ANCIENNETE, AGE) multi-sources IA / F96 / QUESTION_IA /
           // PIECE_MANQUANTE.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-DT-14-02 : PSE — critères de validité (FR uniquement,
+      // L.1233-24-1 + L.1233-30 + L.1233-57-2 + L.1233-61 + L.1235-7-1).
+      // tool_id aligné avec la migration 164.
+      ['F-DT-14-pse-validite', {
+        component: PseSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (dateLicenciement → dateProjet)
+          // + validation F-IA-03 (1 champ DATE_PROJET multi-sources
+          // IA / F96 / QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
