@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="166-create-protection-rp-analyses" author="legalcase">
+        <comment>
+            SF-DT-30-01 : table dédiée à l'outil décisionnel "Protection des représentants
+            du personnel" (FR — art. L.2411-1 et s. Code du travail).
+            Évalue la régularité de la procédure de licenciement d'un salarié protégé selon
+            4 critères structurants :
+            - statut protégé (membre CSE, délégué syndical, conseiller prud'hommes, etc.)
+            - période de protection (mandat + 6 mois)
+            - procédure d'autorisation de l'inspection du travail
+            - motif de licenciement
+
+            Outil single-country FRANCE — l'équivalent BE (statut protégé belge,
+            loi du 19 mars 1991 sur les délégués du personnel) sera traité dans une
+            feature jumelle dédiée au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 58).
+        </comment>
+
+        <createTable tableName="protection_rp_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_protection_rp_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="statut_protege" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_expiration_mandat" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_presumee_rupture" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="procedure_suivie" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_licenciement" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="salaire_mensuel_brut_eur" type="double">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="protection_rp_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_protection_rp_analyses_case_file"/>
+
+        <createIndex tableName="protection_rp_analyses"
+                     indexName="idx_protection_rp_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000166', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-30-protection-rp', 'ALWAYS_ON', NULL, NULL, 58);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000166';
+            </sql>
+            <dropTable tableName="protection_rp_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
