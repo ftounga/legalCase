@@ -1,0 +1,362 @@
+/*
+ * SF-FA-14-02 — Ordonnance de protection FR (art. 515-9 Cciv).
+ *
+ * Palette navy/or/rouge **classique** (DESIGN_SYSTEM.md §palette statut) :
+ *   - verdict ELEVEE → strong navy (succès procédural pour la victime)
+ *   - verdict MOYENNE → or (intermédiaire)
+ *   - verdict FAIBLE → rouge (échec procédural)
+ *
+ * Justification (cf. SF-155-07 / DIV-8) : la sémantique métier est inversée
+ * de F-IM-08 SF-04 OQTF JLD 48h — ici "score élevé = bon pour la victime",
+ * donc on NE bascule PAS en gradation rouge dominante (--danger-medium /
+ * -strong / -dark). Le rouge reste réservé à FAIBLE (sémantique alerte).
+ * L'urgence procédurale 6 j JAF est signalée par les `messages` côté résultat
+ * (pas par la palette dominante).
+ *
+ * Pattern visuel calqué sur `divorce-faute-section` (F-FA-09 SF-FA-09-02).
+ */
+
+.op-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.op-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.op-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.op-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.op-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(26, 58, 92, 0.08);
+  color: #1A3A5C;
+
+  &--strong {
+    background: rgba(26, 58, 92, 0.12);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.16);
+    color: #8a6a16;
+  }
+  &--weak {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B02A37;
+  }
+}
+
+.op-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.op-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.op-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.op-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+
+  &--info {
+    background: rgba(26, 58, 92, 0.06);
+    border: 1px solid rgba(26, 58, 92, 0.20);
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.op-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.op-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.op-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.op-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.op-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.op-field-full { grid-column: 1 / -1; }
+
+.op-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  flex-wrap: wrap;
+}
+
+.op-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.op-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.op-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+.op-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.op-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.op-verdict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+
+  &--strong {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+    color: #8a6a16;
+  }
+  &--weak {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B02A37;
+    color: #B02A37;
+  }
+}
+
+.op-amount-block {
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(201, 165, 75, 0.08);
+  border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.op-amount-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.op-amount {
+  // JetBrains Mono pour le délai 6 jours (cf. DESIGN_SYSTEM.md §typo).
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.op-amount-sub {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.op-mesures-block {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(26, 58, 92, 0.04);
+  border: 1px solid rgba(26, 58, 92, 0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.op-mesures-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.op-mesures-chips {
+  margin-top: 4px;
+}
+
+.op-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.op-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-radius: 4px;
+}
+
+.op-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.op-formule {
+  // JetBrains Mono pour la formule (cf. DESIGN_SYSTEM.md §typo).
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.op-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.op-meta-base {
+  // JetBrains Mono pour la base juridique (cf. DESIGN_SYSTEM.md §typo).
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}

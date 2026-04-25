@@ -84,15 +84,21 @@ export interface FamilleExtractedData {
    * l'outil F-FA-11 désunion irrémédiable BE.
    */
   separationConsentue?: boolean | null;
-   * SF-FA-15-02 : régime matrimonial détecté par l'IA — pré-fill F-FA-15.
-   */
+  /** SF-FA-15-02 : régime matrimonial détecté par l'IA. */
   regimeMatrimonialDetecte?: string | null;
-  /**
-   * SF-FA-19-02 : régime d'exercice de l'autorité parentale détecté.
-   */
+  /** SF-FA-19-02 : autorité parentale détectée. */
   regimeExerciceActuel?: string | null;
   dangerCaracterise?: boolean | null;
   consentementAutreParent?: boolean | null;
   interferenceVieEnfant?: boolean | null;
   ageEnfants?: number[] | null;
+  /** SF-FA-14-02 : pré-fill ordonnance de protection. */
+  dateRequeteOP?: string | null;
+  violencesAllegueesDetectees?: string[] | null;
+  preuvesViolencesDetectees?: string[] | null;
+  dangerImmediatDetected?: boolean | null;
+  presenceEnfantsDetected?: boolean | null;
+  logementCommunDetected?: boolean | null;
+  victimeFinanciairementDependanteDetected?: boolean | null;
+  demandeurDejaProtegeDetected?: boolean | null;
 }
