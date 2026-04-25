@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="137-create-ordonnance-protection-analyses" author="legalcase">
+        <comment>
+            SF-FA-14-01 : table dédiée à l'outil décisionnel "Ordonnance de
+            protection FR" (art. 515-9 à 515-13 Cciv + Loi 30/07/2020 BAR).
+            ~30 000/an FR en hausse. Le JAF statue dans un délai indicatif
+            de 6 jours (art. 515-11). Mesures : éviction conjoint violent,
+            interdiction d'approcher, TGD (téléphone grave danger), BAR
+            (bracelet anti-rapprochement), interdiction de paraître,
+            résidence enfants, obligation de soin.
+            Score 0-100 + verdict ELEVEE/MOYENNE/FAIBLE + mesures
+            recommandées en intersection avec contexte (logementCommun pour
+            EVICTION, dangerImmediat pour TGD/BAR, presenceEnfants pour
+            RESIDENCE_ENFANTS).
+            Outil single-country FRANCE — équivalent BE = art. 1253ter CJ
+            procédure juridiquement distincte (SF-FA-14-04 ultérieure).
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 75) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="ordonnance_protection_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_ordonnance_protection_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_requete" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="violences_alleguees" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preuves_violences" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="danger_immediat" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="presence_enfants" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="age_enfants" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="logement_commun" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="victime_financierement_dependante" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demandeur_deja_protege" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demande_mesures" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="ordonnance_protection_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_ordonnance_protection_analyses_case_file"/>
+
+        <createIndex tableName="ordonnance_protection_analyses"
+                     indexName="idx_ordonnance_protection_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa141', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-14-ordonnance-protection', 'ALWAYS_ON', NULL, NULL, 75);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa141';
+            </sql>
+            <dropTable tableName="ordonnance_protection_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
