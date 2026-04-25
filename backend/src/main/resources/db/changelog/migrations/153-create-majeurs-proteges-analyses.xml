@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="153-create-majeurs-proteges-analyses" author="legalcase">
+        <comment>
+            SF-FA-25-01 : table dédiée à l'outil décisionnel "Majeurs protégés"
+            (art. 433-441 Cciv pour la sauvegarde de justice + art. 494-1 et s.
+            Cciv pour l'habilitation familiale, depuis 2016). Premier morceau
+            backend de F-FA-25.
+
+            L'outil évalue un score 0-100 d'éligibilité d'une mesure de
+            protection et recommande le régime optimal entre 6 régimes
+            (sauvegarde de justice, habilitation familiale, curatelle simple,
+            curatelle renforcée, tutelle, mandat de protection future).
+
+            Logique de scoring 0-100 :
+            - certificat médical circonstancié : +30 (obligatoire art. 431)
+            - altération des facultés mentales : +25
+            - consentement personne ET régime habilitation : +20
+            - demandeur familial proche (CONJOINT/ENFANT_MAJEUR/PARENT) : +15
+            - patrimoine significatif : +10
+
+            Verdicts : ELEVEE ≥ 75, MOYENNE 50-74, FAIBLE &lt; 50.
+
+            Régime optimal recommandé selon arbre de décision :
+            - urgence + altération → SAUVEGARDE_JUSTICE
+            - famille proche + consentement + altération mentale + non urgent
+              → HABILITATION_FAMILIALE
+            - gestion patrimoine + patrimoine significatif + sans consentement
+              → CURATELLE_RENFORCEE
+            - altération mentale + isolement social + sans consentement
+              → TUTELLE
+            - sinon → fallback sur regimeProtectionDemande
+
+            Délai indicatif : 4 mois (sauvegarde/habilitation), 8 mois
+            (curatelle/tutelle/mandat).
+
+            Outil single-country FRANCE — l'équivalent BE est l'administration
+            provisoire (art. 488 et s. Code civil BE), procédure devant le
+            juge de paix, distincte et couverte par une SF jumelle backlog.
+
+            Note F-FA-25 partielle : ce 1er morceau cible 2 régimes
+            (sauvegarde + habilitation, les plus accessibles avec délai
+            court 4 mois). Curatelle/tutelle/mandat = SF futures.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 82) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="majeurs_proteges_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_majeurs_proteges_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="regime_protection_demande" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="alteration_facultes_mentales" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="alteration_facultes_physiques" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="certificat_medical_circonstancie" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_certificat_medical" type="date"/>
+            <column name="consentement_personne_a_proteger" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demandeur_familial" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actes_envisages" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="urgence_patrimoniale" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="patrimoine_significatif" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="isolement_social" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="majeurs_proteges_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_majeurs_proteges_analyses_case_file"/>
+
+        <createIndex tableName="majeurs_proteges_analyses"
+                     indexName="idx_majeurs_proteges_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa251', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-25-majeurs-proteges', 'ALWAYS_ON', NULL, NULL, 82);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa251';
+            </sql>
+            <dropTable tableName="majeurs_proteges_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
