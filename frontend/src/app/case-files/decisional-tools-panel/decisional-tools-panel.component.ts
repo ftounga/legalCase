@@ -63,6 +63,7 @@ import { RevisionsPostDivorceSectionComponent } from '../revisions-post-divorce-
 import { TravailProcedureSectionComponent } from '../travail-procedure-section/travail-procedure-section.component';
 import { RecompensesSectionComponent } from '../recompenses-section/recompenses-section.component';
 import { AutoriteParentaleSectionComponent } from '../autorite-parentale-section/autorite-parentale-section.component';
+import { MesuresProvisoiresSectionComponent } from '../mesures-provisoires-section/mesures-provisoires-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -530,6 +531,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-FA-10-divorce-accepte', {
         component: DivorceAccepteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-12-mesures-provisoires', {
+        component: MesuresProvisoiresSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
