@@ -74,4 +74,14 @@ export interface FamilleExtractedData {
    * Pré-remplit le champ "Capital restant dû" de l'outil F-FA-05.
    */
   capitalRestantDu?: number | null;
+  /**
+   * SF-FA-11-02 : date de séparation effective (ISO YYYY-MM-DD) — pré-fill
+   * pour l'outil F-FA-11 désunion irrémédiable BE (art. 229 CC).
+   */
+  dateSeparation?: string | null;
+  /**
+   * SF-FA-11-02 : séparation consentue par les 2 époux — pré-fill pour
+   * l'outil F-FA-11 désunion irrémédiable BE.
+   */
+  separationConsentue?: boolean | null;
 }
