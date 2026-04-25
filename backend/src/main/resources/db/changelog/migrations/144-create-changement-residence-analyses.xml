@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="144-create-changement-residence-analyses" author="legalcase">
+        <comment>
+            SF-FA-19-03 : table dédiée à l'outil décisionnel "Changement de
+            résidence enfant — déménagement parent" (art. 373-2 al. 3 Cciv).
+            2ème SF backend de F-FA-19. L'outil évalue la probabilité
+            d'acceptation par le JAF d'un changement de résidence en fonction
+            du respect de l'obligation d'information préalable, de la distance,
+            de la raison du déménagement, du consentement de l'autre parent
+            et de l'impact sur la scolarité.
+
+            Logique de scoring 0-100 :
+            - information préalable + délai ≥ 30j : +30
+            - raison reconnue (≠ AUTRE) : +20
+            - distance &lt; 100 km : +20 ; 100-300 km : +10 ; &gt; 300 km : 0
+            - consentement autre parent : +20
+            - pas d'impact scolarité majeur : +10
+
+            Verdicts : ELEVEE ≥ 70, MOYENNE 40-69, FAIBLE &lt; 40.
+
+            Indicateurs dérivés :
+            - obligationInformationRespectee : informePrealablement &amp;&amp;
+              delaiInformationJours ≥ 30
+            - expertisePsyEnfantRecommandee : distance &gt; 300 km OU tous
+              enfants &gt; 10 ans
+            - delaiPreavisLegalOk : informePrealablement &amp;&amp;
+              delaiInformationJours ≥ 30
+
+            Outil single-country FRANCE — la BE (art. 374 Code civil BE / loi
+            18 juillet 2006) repose sur une logique distincte non couverte ici.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 78) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="changement_residence_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_changement_residence_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_changement_prevu" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="distance_km" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="raison_changement" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_autre_parent" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="informe_prealablement" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delai_information_jours" type="integer" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mode_residence_actuel" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scolarite_impactee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modification_dvh_demandee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="changement_residence_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_changement_residence_analyses_case_file"/>
+
+        <createIndex tableName="changement_residence_analyses"
+                     indexName="idx_changement_residence_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa193', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-19-changement-residence', 'ALWAYS_ON', NULL, NULL, 78);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa193';
+            </sql>
+            <dropTable tableName="changement_residence_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
