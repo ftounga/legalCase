@@ -1,0 +1,320 @@
+<section class="tx-section">
+  <header class="tx-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="tx-body">
+    <mat-icon class="tx-icon">handshake</mat-icon>
+    <span class="tx-title">TRANSACTION (FR) — ART. 2044 CCIV</span>
+    @if (result()) {
+      <span [class]="verdictChipClass(result()!.verdictValiditeContrat)">
+        {{ verdictValiditeLabel(result()!.verdictValiditeContrat) }}
+      </span>
+    }
+    <mat-icon class="tx-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="tx-body" class="tx-body">
+      @if (!isFrance()) {
+        <div class="tx-banner tx-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="tx-banner-content">
+            <div class="tx-banner-title">Transaction art. 2044 Cciv — droit français uniquement</div>
+            <div class="tx-banner-sub">
+              Le droit belge est régi par les art. 1043 et suivants du Code civil — outil dédié à venir.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="tx-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="tx-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="tx-form" (ngSubmit)="calculate()">
+              <!-- Date signature. -->
+              <div class="tx-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de signature</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateSignature()"
+                         (ngModelChange)="onDateSignatureChange($event)"
+                         name="dateSignature" required />
+                </mat-form-field>
+              </div>
+
+              <!-- Rupture préalable. -->
+              <div class="tx-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Rupture préalable</mat-label>
+                  <mat-select
+                      [ngModel]="rupturePrealable()"
+                      (ngModelChange)="onRupturePrealableChange($event)"
+                      name="rupturePrealable" required>
+                    @for (r of rupturesPrealableOptions; track r.code) {
+                      <mat-option [value]="r.code">{{ r.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceRupturePrealable() === 'IA') {
+                  <span class="tx-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().RUPTURE_PREALABLE; as alert) {
+                  <span class="tx-coherence-badge"
+                        [appCoherencePopover]="explanationFor('RUPTURE_PREALABLE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Concessions employeur (multi-select). -->
+              <div class="tx-field-with-alert tx-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Concessions de l'employeur</mat-label>
+                  <mat-select multiple
+                              [ngModel]="concessionsEmployeur()"
+                              (ngModelChange)="onConcessionsEmployeurChange($event)"
+                              name="concessionsEmployeur" required>
+                    @for (c of concessionsEmployeurOptions; track c.code) {
+                      <mat-option [value]="c.code">{{ c.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Concessions salarié (multi-select). -->
+              <div class="tx-field-with-alert tx-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Concessions du salarié</mat-label>
+                  <mat-select multiple
+                              [ngModel]="concessionsSalarie()"
+                              (ngModelChange)="onConcessionsSalarieChange($event)"
+                              name="concessionsSalarie" required>
+                    @for (c of concessionsSalarieOptions; track c.code) {
+                      <mat-option [value]="c.code">{{ c.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Indemnité transactionnelle. -->
+              <div class="tx-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Indemnité transactionnelle (€)</mat-label>
+                  <input matInput type="number" min="0" step="100"
+                         [ngModel]="indemniteTransactionnelleEur()"
+                         (ngModelChange)="onIndemniteChange($event)"
+                         name="indemniteTransactionnelleEur" required />
+                </mat-form-field>
+              </div>
+
+              <!-- Salaire mensuel brut. -->
+              <div class="tx-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Salaire mensuel brut (€)</mat-label>
+                  <input matInput type="number" min="0.01" step="10"
+                         [ngModel]="salaireMensuelBrutEur()"
+                         (ngModelChange)="onSalaireChange($event)"
+                         name="salaireMensuelBrutEur" required />
+                </mat-form-field>
+                @if (provenanceSalaire() === 'IA') {
+                  <span class="tx-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().SALAIRE_MENSUEL; as alert) {
+                  <span class="tx-coherence-badge"
+                        [appCoherencePopover]="explanationFor('SALAIRE_MENSUEL')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Ancienneté. -->
+              <div class="tx-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Ancienneté (années)</mat-label>
+                  <input matInput type="number" min="0" step="0.5"
+                         [ngModel]="ancienneteAnnees()"
+                         (ngModelChange)="onAncienneteChange($event)"
+                         name="ancienneteAnnees" required />
+                </mat-form-field>
+                @if (provenanceAnciennete() === 'IA') {
+                  <span class="tx-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().ANCIENNETE; as alert) {
+                  <span class="tx-coherence-badge"
+                        [appCoherencePopover]="explanationFor('ANCIENNETE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Toggles. -->
+              <div class="tx-toggle-row tx-field-full">
+                <mat-slide-toggle
+                    [ngModel]="renonciationActionExpresse()"
+                    (ngModelChange)="onRenonciationChange($event)"
+                    name="renonciationActionExpresse">
+                  Renonciation expresse à l'action prud'homale
+                </mat-slide-toggle>
+              </div>
+
+              <div class="tx-toggle-row tx-field-full">
+                <mat-slide-toggle
+                    [ngModel]="delaiReflexion15jOk()"
+                    (ngModelChange)="onDelaiReflexionChange($event)"
+                    name="delaiReflexion15jOk">
+                  Délai de réflexion de 15 jours respecté
+                </mat-slide-toggle>
+              </div>
+
+              <div class="tx-toggle-row tx-field-full">
+                <mat-slide-toggle
+                    [ngModel]="presenceAvocatAssistance()"
+                    (ngModelChange)="onPresenceAvocatChange($event)"
+                    name="presenceAvocatAssistance">
+                  Présence d'un avocat / assistance lors de la signature
+                </mat-slide-toggle>
+              </div>
+
+              <div class="tx-toggle-row tx-field-full">
+                <mat-slide-toggle
+                    [ngModel]="viceConsentementAllegue()"
+                    (ngModelChange)="onViceConsentementChange($event)"
+                    name="viceConsentementAllegue">
+                  Vice du consentement allégué (dol, violence, erreur)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="tx-actions tx-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la transaction</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="tx-result">
+              <!-- Bannière verdict (3 niveaux : navy / or / rouge classique). -->
+              <div [class]="verdictBannerClass(result()!.verdictValiditeContrat)" role="status">
+                <mat-icon>{{ verdictIconName(result()!.verdictValiditeContrat) }}</mat-icon>
+                <div class="tx-banner-content">
+                  <div class="tx-banner-title">
+                    {{ verdictValiditeLabel(result()!.verdictValiditeContrat) }}
+                  </div>
+                  <div class="tx-banner-sub">
+                    Score de validité : {{ result()!.scoreValidite }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cartes synthétiques. -->
+              <div class="tx-cards-row">
+                <div class="tx-card"
+                     [class.tx-card--ok]="result()!.concessionsReciproquesCaracterisees"
+                     [class.tx-card--ko]="!result()!.concessionsReciproquesCaracterisees">
+                  <span class="tx-card-label">Concessions réciproques</span>
+                  <span class="tx-card-value">
+                    <mat-icon>{{ result()!.concessionsReciproquesCaracterisees ? 'check_circle' : 'cancel' }}</mat-icon>
+                    {{ result()!.concessionsReciproquesCaracterisees ? 'Caractérisées' : 'Non caractérisées' }}
+                  </span>
+                  <span class="tx-card-sub">art. 2044 Cciv</span>
+                </div>
+
+                <div class="tx-card tx-card--neutral">
+                  <span class="tx-card-label">Ratio concessions employeur</span>
+                  <span class="tx-card-value">{{ ratioPct(result()!.ratioConcessionsEmployeurPct) | number:'1.0-1' }} %</span>
+                  <span class="tx-card-sub">part employeur du package transactionnel</span>
+                </div>
+
+                <div class="tx-card"
+                     [class.tx-card--ok]="result()!.indemniteTransactionnelleSuperieureMacron"
+                     [class.tx-card--medium]="!result()!.indemniteTransactionnelleSuperieureMacron">
+                  <span class="tx-card-label">Comparaison barème Macron</span>
+                  <span class="tx-card-value">
+                    <mat-icon>{{ result()!.indemniteTransactionnelleSuperieureMacron ? 'trending_up' : 'trending_flat' }}</mat-icon>
+                    {{ result()!.indemniteTransactionnelleSuperieureMacron ? 'Supérieure' : 'Inférieure ou égale' }}
+                  </span>
+                  <span class="tx-card-sub">art. L.1235-3</span>
+                </div>
+
+                <div class="tx-card"
+                     [class.tx-card--danger]="result()!.risqueNulliteRetenu"
+                     [class.tx-card--ok]="!result()!.risqueNulliteRetenu">
+                  <span class="tx-card-label">Risque de nullité retenu</span>
+                  <span class="tx-card-value">
+                    <mat-icon>{{ result()!.risqueNulliteRetenu ? 'error' : 'check_circle' }}</mat-icon>
+                    {{ result()!.risqueNulliteRetenu ? 'Oui' : 'Non' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Indemnité + récap concessions. -->
+              <div class="tx-amount-block">
+                <span class="tx-amount-label">Indemnité transactionnelle</span>
+                <span class="tx-amount">{{ result()!.indemniteTransactionnelleEur | number:'1.0-0' }} €</span>
+                <span class="tx-amount-sub">
+                  {{ result()!.concessionsEmployeur.length }} concession(s) employeur — {{ result()!.concessionsSalarie.length }} concession(s) salarié
+                </span>
+                @if (result()!.concessionsEmployeur?.length) {
+                  <mat-chip-set class="tx-card-chips">
+                    @for (c of result()!.concessionsEmployeur; track c) {
+                      <mat-chip>{{ concessionEmployeurLabel(c) }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                }
+              </div>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="tx-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="tx-formule-block">
+                  <span class="tx-formule-label">Formule</span>
+                  <span class="tx-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="tx-meta">
+                <span class="tx-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
