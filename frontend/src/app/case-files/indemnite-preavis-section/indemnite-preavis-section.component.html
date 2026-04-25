@@ -1,0 +1,213 @@
+<section class="indpre-section">
+  <header class="indpre-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="indpre-body">
+    <mat-icon class="indpre-icon">schedule</mat-icon>
+    <span class="indpre-title">INDEMNITÉ COMPENSATRICE DE PRÉAVIS</span>
+    @if (result()) {
+      <span class="indpre-chip">{{ result()!.montantIndemniteEur | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="indpre-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="indpre-body" class="indpre-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="indpre-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil France uniquement — la durée de préavis BE est régie par la loi du 03/07/1978 et la CCT applicable. Voir l'outil F-DT-09 (comparateur indemnités) ou F-DT-27 (motif grave BE).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="indpre-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="indpre-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="indpre-form" (ngSubmit)="calculate()">
+            <!-- Ancienneté années + mois -->
+            <mat-form-field appearance="outline">
+              <mat-label>Ancienneté (années)</mat-label>
+              <input matInput type="number" min="0" step="1"
+                     [ngModel]="ancienneteAnnees()"
+                     (ngModelChange)="onAncienneteAnneesChange($event)"
+                     name="ancienneteAnnees" required />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Ancienneté (mois 0-11)</mat-label>
+              <input matInput type="number" min="0" max="11" step="1"
+                     [ngModel]="ancienneteMois()"
+                     (ngModelChange)="onAncienneteMoisChange($event)"
+                     name="ancienneteMois" required />
+            </mat-form-field>
+
+            <!-- Salaire mensuel brut + alerte IA -->
+            <div class="indpre-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelBrutEur()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEur" required />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="indpre-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="indpre-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Convention collective + alerte IA -->
+            <div class="indpre-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Convention collective (optionnel)</mat-label>
+                <mat-select
+                    [ngModel]="conventionCollectiveCode()"
+                    (ngModelChange)="onConventionChange($event)"
+                    name="conventionCollectiveCode">
+                  <mat-option [value]="null">— Aucune —</mat-option>
+                  @for (opt of conventionsFrance(); track opt.code) {
+                    <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              @if (provenanceConvention() === 'IA') {
+                <span class="indpre-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().CONVENTION; as alert) {
+                <span class="indpre-coherence-badge"
+                      [appCoherencePopover]="explanationFor('CONVENTION')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Fonction -->
+            <mat-form-field appearance="outline">
+              <mat-label>Fonction</mat-label>
+              <mat-select
+                  [ngModel]="fonction()"
+                  (ngModelChange)="onFonctionChange($event)"
+                  name="fonction" required>
+                @for (opt of fonctionOptions; track opt.code) {
+                  <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Exemption employeur (slide toggle) -->
+            <div class="indpre-toggle-group">
+              <mat-slide-toggle
+                  [ngModel]="exemptionEmployeur()"
+                  (ngModelChange)="onExemptionChange($event)"
+                  name="exemptionEmployeur">
+                Exemption préavis par l'employeur
+              </mat-slide-toggle>
+              <span class="indpre-hint">
+                Si l'employeur dispense le salarié d'effectuer le préavis, l'indemnité reste due (L.1234-5).
+              </span>
+            </div>
+
+            <!-- Date de rupture + alerte IA -->
+            <div class="indpre-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de rupture</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateRupture()"
+                       (ngModelChange)="onDateRuptureChange($event)"
+                       name="dateRupture" required />
+              </mat-form-field>
+              @if (provenanceDateRupture() === 'IA') {
+                <span class="indpre-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().DATE_RUPTURE; as alert) {
+                <span class="indpre-coherence-badge"
+                      [appCoherencePopover]="explanationFor('DATE_RUPTURE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="indpre-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="indpre-result">
+            <!-- Carte 1 : durée préavis + badge sourceDuree -->
+            <div class="indpre-card indpre-duree">
+              <span class="indpre-card-label">Durée du préavis</span>
+              <div class="indpre-card-value-row">
+                <span class="indpre-card-value">{{ result()!.dureePreavisMois }} mois</span>
+                <span class="indpre-source-badge"
+                      [class.indpre-source-legale]="result()!.sourceDuree === 'LEGALE'"
+                      [class.indpre-source-ccn]="result()!.sourceDuree === 'CCN'"
+                      [class.indpre-source-usage]="result()!.sourceDuree === 'USAGE'">
+                  {{ sourceDureeLabel(result()!.sourceDuree) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Carte 2 : montant indemnité -->
+            <div class="indpre-card indpre-montant">
+              <span class="indpre-card-label">Montant de l'indemnité compensatrice</span>
+              <span class="indpre-amount">{{ result()!.montantIndemniteEur | number:'1.0-2' }} €</span>
+              <span class="indpre-formule">{{ result()!.formule }}</span>
+              @if (result()!.exemptionRetenue) {
+                <span class="indpre-exemption-chip">
+                  <mat-icon>info_outline</mat-icon>
+                  Exemption employeur retenue
+                </span>
+              }
+            </div>
+
+            <div class="indpre-meta">
+              <span class="indpre-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="indpre-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

@@ -42,6 +42,7 @@ import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-sec
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 import { IndemnitePrecariteCddSectionComponent } from '../indemnite-precarite-cdd-section/indemnite-precarite-cdd-section.component';
 import { TravailDissimuleSectionComponent } from '../travail-dissimule-section/travail-dissimule-section.component';
+import { IndemnitePreavisSectionComponent } from '../indemnite-preavis-section/indemnite-preavis-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
 import { Annexe13BeSectionComponent } from '../annexe13-be-section/annexe13-be-section.component';
@@ -238,6 +239,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           // SF-DT-21-02 : pré-fill IA (salaireBrutMensuel) + validation F-IA-03.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-25-indemnite-preavis', {
+        component: IndemnitePreavisSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-25-02 : pré-fill IA (salaireBrutMensuel + dateLicenciement +
+          // conventionCollective) + validation F-IA-03 (3 alertes : SALAIRE,
+          // DATE_RUPTURE, CONVENTION).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
