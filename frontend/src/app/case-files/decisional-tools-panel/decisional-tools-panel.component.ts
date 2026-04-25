@@ -87,6 +87,7 @@ import { PseSectionComponent } from '../pse-section/pse-section.component';
 import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
 import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section/ordonnance-requete-section.component';
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
+import { MineursImmigrationSectionComponent } from '../mineurs-immigration-section/mineurs-immigration-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 
 export interface DecisionToolContext {
@@ -897,6 +898,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-19-02 : mineurs étrangers FR (CESEDA L.435-3 + R.321-3 +
+      // R.321-7 + Cciv art. 375 + CASF L.221-2-2). tool_id aligné
+      // migration 172. FR uniquement (BE = bannière info, backlog F-IM-19-BE).
+      ['F-IM-19-mineurs', {
+        component: MineursImmigrationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (dateNaissance + dateEntreeFrance +
+          // nationalite via cast défensif, champs non encore présents
+          // dans ImmigrationExtractedData) + validation F-IA-03
+          // (DATE_NAISSANCE + DATE_ENTREE multi-sources IA / F96 /
+          // QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
