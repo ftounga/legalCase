@@ -1,0 +1,318 @@
+<section class="indivision-section">
+  <header class="indivision-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="indivision-body">
+    <mat-icon class="indivision-icon">apartment</mat-icon>
+    <span class="indivision-title">INDIVISION POST-COMMUNAUTAIRE (ART. 815 CCIV)</span>
+    @if (result() && !showForm()) {
+      <span class="indivision-chip">
+        Score : {{ result()!.scoreEligibilitePartageJudiciaire }}
+      </span>
+    }
+    <mat-icon class="indivision-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="indivision-body" class="indivision-body">
+
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>
+            Cet outil s'applique au droit français uniquement (art. 815 et s. Cciv).
+            Le régime belge de l'indivision (art. 577-2 et s. anciens C. civ. BE)
+            n'est pas couvert — backlog futur F-FA-22-BE.
+          </span>
+        </div>
+      }
+
+      @if (workspaceCountry === 'FRANCE') {
+        @if (loading()) {
+          <div class="indivision-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+
+          @if (showForm()) {
+
+            @if (alertsSummary().total > 0) {
+              <div class="indivision-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="indivision-form" (ngSubmit)="analyser()">
+
+              <!-- Date origine indivision -->
+              <div class="indivision-field-with-alert">
+                <mat-form-field appearance="outline" class="form-field-wide">
+                  <mat-label>Date d'origine de l'indivision</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateOrigineIndivision()"
+                         (ngModelChange)="onDateOrigineChange($event)"
+                         name="dateOrigineIndivision" required />
+                </mat-form-field>
+                @if (provenanceDateOrigine() === 'IA') {
+                  <span class="indivision-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_ORIGINE_INDIVISION; as alert) {
+                  <span class="indivision-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+                <span class="indivision-hint">
+                  Date à laquelle l'indivision est née (dissolution du régime,
+                  séparation effective, jugement de divorce — selon le cas).
+                </span>
+              </div>
+
+              <!-- Nature des biens (multi-select) -->
+              <mat-form-field appearance="outline" class="form-field-wide">
+                <mat-label>Nature des biens en indivision</mat-label>
+                <mat-select multiple
+                            [ngModel]="natureBiens()"
+                            (ngModelChange)="onNatureBiensChange($event)"
+                            name="natureBiens" required>
+                  @for (n of natureBienOptions; track n.code) {
+                    <mat-option [value]="n.code">{{ n.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Valeur estimée totale + nbIndivisaires + duréeAnnees -->
+              <div class="indivision-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Valeur estimée totale (€)</mat-label>
+                  <input matInput type="number" min="0" step="100"
+                         [ngModel]="valeurEstimeeTotaleEur()"
+                         (ngModelChange)="onValeurEstimeeChange($event)"
+                         name="valeurEstimeeTotaleEur" required />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Nombre d'indivisaires</mat-label>
+                  <input matInput type="number" min="2" step="1"
+                         [ngModel]="nbIndivisaires()"
+                         (ngModelChange)="onNbIndivisairesChange($event)"
+                         name="nbIndivisaires" required />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée de l'indivision (années)</mat-label>
+                  <input matInput type="number" min="0" step="1"
+                         [ngModel]="indivisionDureeAnnees()"
+                         (ngModelChange)="onIndivisionDureeChange($event)"
+                         name="indivisionDureeAnnees" />
+                </mat-form-field>
+              </div>
+
+              <!-- Quotes-part CSV -->
+              <mat-form-field appearance="outline" class="form-field-wide">
+                <mat-label>Quotes-part en % (séparées par virgule)</mat-label>
+                <input matInput type="text"
+                       [ngModel]="quotesPartRaw()"
+                       (ngModelChange)="onQuotesPartRawChange($event)"
+                       name="quotesPartRaw"
+                       placeholder="Ex : 50, 50  ou  33.33, 33.33, 33.34"
+                       required />
+                @if (quotesPart().length > 0) {
+                  <mat-hint align="end">
+                    <span class="indivision-hint-mono">{{ quotesPart().join(' + ') }}</span>
+                  </mat-hint>
+                }
+              </mat-form-field>
+              @if (quotesPartSumWarning()) {
+                <span class="indivision-warning-inline">
+                  <mat-icon>warning</mat-icon>
+                  La somme des quotes-part diverge de 100 % (vérifiez la saisie).
+                </span>
+              }
+
+              <!-- Tentatives partage amiable (multi-select) -->
+              <mat-form-field appearance="outline" class="form-field-wide">
+                <mat-label>Tentatives de partage amiable engagées</mat-label>
+                <mat-select multiple
+                            [ngModel]="tentativesPartageAmiable()"
+                            (ngModelChange)="onTentativesChange($event)"
+                            name="tentativesPartageAmiable">
+                  @for (t of tentativePartageOptions; track t.code) {
+                    <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Toggles booléens -->
+              <div class="indivision-toggles">
+                <mat-slide-toggle
+                    [ngModel]="consentementPartageGlobal()"
+                    (ngModelChange)="onConsentementChange($event)"
+                    name="consentementPartageGlobal">
+                  Consentement global au partage de tous les indivisaires
+                </mat-slide-toggle>
+
+                <div class="indivision-field-with-alert">
+                  <mat-slide-toggle
+                      [ngModel]="occupationBienParUnIndivisaire()"
+                      (ngModelChange)="onOccupationChange($event)"
+                      name="occupationBienParUnIndivisaire">
+                    Occupation du bien par un indivisaire (art. 815-9 al. 2)
+                  </mat-slide-toggle>
+                  @if (provenanceOccupation() === 'IA') {
+                    <span class="indivision-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                  @if (coherenceAlerts().OCCUPATION_BIEN; as alert) {
+                    <span class="indivision-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+
+                <mat-slide-toggle
+                    [ngModel]="conflitOuvertEntreIndivisaires()"
+                    (ngModelChange)="onConflitOuvertChange($event)"
+                    name="conflitOuvertEntreIndivisaires">
+                  Conflit ouvert entre indivisaires
+                </mat-slide-toggle>
+
+                <mat-slide-toggle
+                    [ngModel]="demandeMesuresConservatoires()"
+                    (ngModelChange)="onMesuresConservatoiresChange($event)"
+                    name="demandeMesuresConservatoires">
+                  Demande de mesures conservatoires (art. 815-6)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="indivision-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>
+                      <mat-icon>analytics</mat-icon> Analyser l'indivision
+                    </ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+
+            <div class="indivision-result">
+
+              <!-- Bannière verdict -->
+              <div [class]="verdictBannerClass(result()!.verdictRecommandation)">
+                <mat-icon>gavel</mat-icon>
+                <div class="indivision-verdict-text">
+                  <span class="indivision-verdict-label">Recommandation procédurale</span>
+                  <span class="indivision-verdict-value">{{ verdictLabel(result()!.verdictRecommandation) }}</span>
+                </div>
+                <span class="indivision-score-badge">
+                  Score : {{ result()!.scoreEligibilitePartageJudiciaire }}/100
+                </span>
+              </div>
+
+              <!-- 4 cartes recommandations -->
+              <div class="indivision-cards">
+                <div class="indivision-card"
+                     [class.indivision-card--active]="result()!.expertiseNotarialeRecommandee">
+                  <mat-icon>fact_check</mat-icon>
+                  <span class="indivision-card-label">Expertise notariale</span>
+                  <span class="indivision-card-value">
+                    {{ result()!.expertiseNotarialeRecommandee ? 'Recommandée' : 'Non requise' }}
+                  </span>
+                  <span class="indivision-card-base">art. 815-2 Cciv</span>
+                </div>
+
+                <div class="indivision-card"
+                     [class.indivision-card--active]="result()!.licitationRecommandee">
+                  <mat-icon>auction</mat-icon>
+                  <span class="indivision-card-label">Licitation</span>
+                  <span class="indivision-card-value">
+                    {{ result()!.licitationRecommandee ? 'Recommandée' : 'Non requise' }}
+                  </span>
+                  <span class="indivision-card-base">art. 1377 CPC</span>
+                </div>
+
+                <div class="indivision-card"
+                     [class.indivision-card--active]="result()!.demandeMesuresConservatoires">
+                  <mat-icon>shield</mat-icon>
+                  <span class="indivision-card-label">Mesures conservatoires</span>
+                  <span class="indivision-card-value">
+                    {{ result()!.demandeMesuresConservatoires ? 'Demandées' : 'Non demandées' }}
+                  </span>
+                  <span class="indivision-card-base">art. 815-6 Cciv</span>
+                </div>
+
+                <div class="indivision-card"
+                     [class.indivision-card--active]="result()!.verdictRecommandation === 'MEDIATION_PREALABLE'">
+                  <mat-icon>handshake</mat-icon>
+                  <span class="indivision-card-label">Médiation</span>
+                  <span class="indivision-card-value">
+                    {{ result()!.verdictRecommandation === 'MEDIATION_PREALABLE' ? 'Préalable' : 'Non requise' }}
+                  </span>
+                  <span class="indivision-card-base">CPC art. 131-1 et s.</span>
+                </div>
+              </div>
+
+              <!-- Indemnité d'occupation + délai procédure -->
+              <div class="indivision-metrics">
+                <div class="indivision-metric">
+                  <span class="indivision-metric-label">Indemnité d'occupation due</span>
+                  <span class="indivision-metric-value">
+                    {{ result()!.indemniteOccupationDueEur | number:'1.0-2' }} €
+                  </span>
+                  <span class="indivision-metric-base">art. 815-9 al. 2</span>
+                </div>
+                <div class="indivision-metric">
+                  <span class="indivision-metric-label">Délai procédure partage judiciaire</span>
+                  <span class="indivision-metric-value">
+                    {{ result()!.delaiProcedurePartageJudiciaireMois }} mois
+                  </span>
+                  <span class="indivision-metric-base">estimation</span>
+                </div>
+              </div>
+
+              <!-- Base juridique + formule -->
+              <div class="indivision-juridique">
+                <div class="indivision-juridique-line">
+                  <span class="indivision-juridique-label">Base juridique :</span>
+                  <code class="indivision-juridique-value">{{ result()!.baseJuridique }}</code>
+                </div>
+                <div class="indivision-juridique-line">
+                  <span class="indivision-juridique-label">Formule :</span>
+                  <code class="indivision-juridique-value">{{ result()!.formule }}</code>
+                </div>
+              </div>
+
+              <div class="indivision-meta">
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+
+              @if (result()!.messages?.length) {
+                <ul class="indivision-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li>{{ m }}</li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
