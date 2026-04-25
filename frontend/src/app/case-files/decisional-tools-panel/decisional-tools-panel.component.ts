@@ -85,6 +85,7 @@ import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/ref
 import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit-temps-be-section.component';
 import { PseSectionComponent } from '../pse-section/pse-section.component';
 import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
+import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section/ordonnance-requete-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -881,6 +882,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-23-02 : ordonnance sur requête (mesures urgentes familiales)
+      // FR + BE actifs (art. 493 + 497 CPC FR / art. 1025 et s. CJ BE).
+      ['F-FA-23-ordonnance-requete', {
+        component: OrdonnanceRequeteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (presenceEnfantsDetected → presenceEnfants)
+          // + validation F-IA-03 (1 champ PRESENCE_ENFANTS multi-sources
+          // IA / F96 / QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

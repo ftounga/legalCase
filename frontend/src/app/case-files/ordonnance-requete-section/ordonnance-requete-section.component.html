@@ -1,0 +1,240 @@
+<section class="ord-requete-section">
+  <header class="ord-requete-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ord-requete-body">
+    <mat-icon class="ord-requete-icon">gavel</mat-icon>
+    <span class="ord-requete-title">ORDONNANCE SUR REQUÊTE (FR/BE)</span>
+    @if (result()) {
+      <span class="ord-requete-chip"
+            [class.ord-requete-chip--info]="result()!.verdictAccordeProbabilite === 'ELEVEE'"
+            [class.ord-requete-chip--warning]="result()!.verdictAccordeProbabilite === 'MOYENNE'"
+            [class.ord-requete-chip--critical]="result()!.verdictAccordeProbabilite === 'FAIBLE'">
+        {{ result()!.verdictAccordeProbabilite }} — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+      @if (isUrgentResult()) {
+        <span class="ord-requete-chip ord-requete-chip--urgent" data-testid="chip-urgent-header">
+          <mat-icon>priority_high</mat-icon> URGENT
+        </span>
+      }
+    }
+    <mat-icon class="ord-requete-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ord-requete-body" class="ord-requete-body">
+      @if (loading()) {
+        <div class="ord-requete-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="ord-requete-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          @if (isUrgent()) {
+            <div class="ord-requete-urgent-banner" role="status" data-testid="urgent-banner-form">
+              <mat-icon>priority_high</mat-icon>
+              <div class="ord-requete-banner-content">
+                <div class="ord-requete-banner-title">Procédure URGENTE</div>
+                <div class="ord-requete-banner-sub">
+                  Délai typique 24-72h (IST avec enfants concernés).
+                </div>
+              </div>
+            </div>
+          }
+
+          <form class="ord-requete-form" (ngSubmit)="calculate()">
+
+            <!-- Section 1 : Motif de la requête -->
+            <fieldset class="ord-requete-fieldset">
+              <legend class="ord-requete-legend">
+                <mat-icon>flag</mat-icon>
+                Motif de la requête
+              </legend>
+
+              <div class="ord-requete-radio-group">
+                <mat-radio-group required
+                                 [ngModel]="motifRequete()"
+                                 (ngModelChange)="onMotifRequeteChange($event)"
+                                 name="motifRequete">
+                  @for (opt of motifRequeteOptions; track opt.code) {
+                    <mat-radio-button [value]="opt.code">
+                      <div class="ord-requete-radio-content">
+                        <span class="ord-requete-radio-main">{{ opt.label }}</span>
+                        <span class="ord-requete-radio-desc">{{ opt.description }}</span>
+                      </div>
+                    </mat-radio-button>
+                  }
+                </mat-radio-group>
+              </div>
+            </fieldset>
+
+            <!-- Section 2 : Critères de recevabilité art. 493 CPC -->
+            <fieldset class="ord-requete-fieldset">
+              <legend class="ord-requete-legend">
+                <mat-icon>checklist</mat-icon>
+                Critères de recevabilité (art. 493 CPC)
+              </legend>
+
+              <div class="ord-requete-checkbox-group">
+                <mat-checkbox [ngModel]="urgenceJustifiee()"
+                              (ngModelChange)="onUrgenceJustifieeChange($event)"
+                              name="urgenceJustifiee">
+                  Urgence justifiée par pièces concrètes
+                </mat-checkbox>
+                <mat-checkbox [ngModel]="derogationContradictoireJustifiee()"
+                              (ngModelChange)="onDerogationContradictoireChange($event)"
+                              name="derogationContradictoireJustifiee">
+                  Dérogation au contradictoire justifiée (avertir l'adverse détruirait l'effet utile)
+                </mat-checkbox>
+                <mat-checkbox [ngModel]="pieceJustificativeFournie()"
+                              (ngModelChange)="onPieceJustificativeChange($event)"
+                              name="pieceJustificativeFournie">
+                  Pièce justificative minimale au dossier
+                </mat-checkbox>
+              </div>
+            </fieldset>
+
+            <!-- Section 3 : Enfants concernés (force IST) -->
+            <fieldset class="ord-requete-fieldset">
+              <legend class="ord-requete-legend">
+                <mat-icon>child_care</mat-icon>
+                Enfants concernés
+              </legend>
+
+              <div class="ord-requete-checkbox-group">
+                <mat-checkbox [ngModel]="presenceEnfants()"
+                              (ngModelChange)="onPresenceEnfantsChange($event)"
+                              name="presenceEnfants">
+                  Des enfants mineurs sont concernés (déclenche l'IST 373-2-6 Cciv et le délai 1-3 jours)
+                </mat-checkbox>
+                <div class="ord-requete-presence-meta">
+                  @if (provenancePresenceEnfants() === 'IA') {
+                    <span class="ord-requete-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                  @if (coherenceAlerts().PRESENCE_ENFANTS; as alert) {
+                    <span class="ord-requete-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Section 4 : Commentaire libre -->
+            <fieldset class="ord-requete-fieldset">
+              <legend class="ord-requete-legend">
+                <mat-icon>edit_note</mat-icon>
+                Commentaire urgence (optionnel)
+              </legend>
+
+              <div class="ord-requete-field-wrapper">
+                <mat-form-field appearance="outline">
+                  <mat-label>Précisions sur l'urgence (max 2000 caractères)</mat-label>
+                  <textarea matInput rows="3" maxlength="2000"
+                            [ngModel]="commentaireUrgence()"
+                            (ngModelChange)="onCommentaireChange($event)"
+                            name="commentaireUrgence"></textarea>
+                </mat-form-field>
+              </div>
+            </fieldset>
+
+            <div class="ord-requete-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="ord-requete-result">
+            <div [class]="bannerClass(result()!.verdictAccordeProbabilite)" role="status">
+              <mat-icon>
+                {{ result()!.verdictAccordeProbabilite === 'FAIBLE' ? 'gpp_bad' :
+                   result()!.verdictAccordeProbabilite === 'MOYENNE' ? 'warning' : 'verified' }}
+              </mat-icon>
+              <div class="ord-requete-banner-content">
+                <div class="ord-requete-banner-title">
+                  Probabilité : {{ result()!.verdictAccordeProbabilite }}
+                  @if (isUrgentResult()) {
+                    <span class="ord-requete-chip ord-requete-chip--urgent ord-requete-chip--inline"
+                          data-testid="chip-urgent-result">
+                      URGENT
+                    </span>
+                  }
+                </div>
+                <div class="ord-requete-banner-sub">
+                  Score éligibilité : {{ result()!.scoreEligibilite }} / 100
+                  — Délai typique : {{ result()!.delaiTypiqueJoursMin }}-{{ result()!.delaiTypiqueJoursMax }} jours
+                  — Recours adverse : {{ result()!.recoursAdverseDelaiJours }} jours (référé-rétractation)
+                </div>
+                <div class="ord-requete-banner-sub">
+                  Motif : {{ motifLabel(result()!.motifRequete) }}
+                </div>
+              </div>
+            </div>
+
+            @if (result()!.criteresRemplis?.length) {
+              <div class="ord-requete-criteres ord-requete-criteres--ok">
+                <div class="ord-requete-criteres-label">Critères remplis ({{ result()!.criteresRemplis.length }})</div>
+                <ul class="ord-requete-criteres-list">
+                  @for (c of result()!.criteresRemplis; track c) {
+                    <li>{{ critereLabel(c) }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (result()!.criteresManquants?.length) {
+              <div class="ord-requete-criteres ord-requete-criteres--ko">
+                <div class="ord-requete-criteres-label">Critères manquants ({{ result()!.criteresManquants.length }})</div>
+                <ul class="ord-requete-criteres-list">
+                  @for (c of result()!.criteresManquants; track c) {
+                    <li>{{ critereLabel(c) }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (result()!.messages?.length) {
+              <ul class="ord-requete-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.formule) {
+              <div class="ord-requete-formule-block">
+                <span class="ord-requete-formule-label">Formule</span>
+                <span class="ord-requete-formule">{{ result()!.formule }}</span>
+              </div>
+            }
+
+            <div class="ord-requete-meta">
+              <span class="ord-requete-meta-base"
+                    [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
