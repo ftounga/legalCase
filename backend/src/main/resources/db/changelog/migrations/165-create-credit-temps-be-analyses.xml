@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="165-create-credit-temps-be-analyses" author="legalcase">
+        <comment>
+            SF-DT-29-01 : table dédiée à l'outil décisionnel "Crédit-temps /
+            interruption de carrière BE" (CCT 103 + AR 29/10/1997).
+
+            Outil scoring niveau 5 single-country BELGIQUE — 3 régimes :
+            - AVEC_MOTIF (CCT 103 art. 4) : 4 motifs reconnus (soins enfant
+              &lt; 8 ans, soins parent malade, formation, autre)
+            - SANS_MOTIF (CCT 103 art. 3) : quota employeur, ETP &gt;= 10
+            - FIN_CARRIERE (AR 29/10/1997 / CCT 103 art. 8) : âge &gt;= 55
+
+            Pas d'équivalent FR (le CET français — art. L.3151-1 et s. CT —
+            est un mécanisme distinct sans plafond légal national équivalent).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL,
+            BELGIQUE, priority 57) pour exposer l'outil sur tout dossier
+            travail BE. Le tool_id 'F-DT-29-credit-temps-be' matche
+            exactement le TOOL_REGISTRY frontend (SF-DT-29-02 déjà mergée).
+        </comment>
+
+        <createTable tableName="credit_temps_be_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_credit_temps_be_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="regime" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="anciennete_entreprise_mois" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="taille_entreprise_etp" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duree_reduction_type" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="age_demandeur_annees" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_demande" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="credit_temps_be_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_credit_temps_be_analyses_case_file"/>
+
+        <createIndex tableName="credit_temps_be_analyses"
+                     indexName="idx_credit_temps_be_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000165', 'DROIT_DU_TRAVAIL', 'BELGIQUE', 'F-DT-29-credit-temps-be', 'ALWAYS_ON', NULL, NULL, 57);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000165';
+            </sql>
+            <dropTable tableName="credit_temps_be_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
