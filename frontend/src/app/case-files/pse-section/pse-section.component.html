@@ -1,0 +1,277 @@
+<section class="pse-section">
+  <header class="pse-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pse-body">
+    <mat-icon class="pse-icon">groups</mat-icon>
+    <span class="pse-title">PSE — CRITÈRES DE VALIDITÉ (FR)</span>
+    @if (result()) {
+      <span class="pse-chip"
+            [class.pse-chip--info]="result()!.verdictValidite === 'VALIDE'"
+            [class.pse-chip--warning]="result()!.verdictValidite === 'CONTESTABLE'"
+            [class.pse-chip--critical]="result()!.verdictValidite === 'NUL'">
+        {{ result()!.verdictValidite }} — Score {{ result()!.scoreConformite }}/100
+      </span>
+    }
+    <mat-icon class="pse-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pse-body" class="pse-body">
+      @if (!isFrance()) {
+        <div class="pse-banner pse-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="pse-banner-content">
+            <div class="pse-banner-title">PSE — outil français uniquement</div>
+            <div class="pse-banner-sub">
+              Le Plan de Sauvegarde de l'Emploi (art. L.1233-24-1 et s.) est
+              un mécanisme propre au droit du travail français. L'équivalent
+              belge (congé-réorganisation Loi 1976 / Loi Renault) est traité
+              dans une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="pse-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="pse-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="pse-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Déclenchement L.1233-24-1 -->
+              <fieldset class="pse-fieldset">
+                <legend class="pse-legend">
+                  <mat-icon>flag</mat-icon>
+                  Déclenchement (L.1233-24-1)
+                  @if (pseRequisPreview()) {
+                    <span class="pse-mini-chip pse-mini-chip--info">PSE requis</span>
+                  } @else {
+                    <span class="pse-mini-chip pse-mini-chip--neutre">Seuils non atteints</span>
+                  }
+                </legend>
+
+                <div class="pse-grid">
+                  <div class="pse-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Effectif entreprise (salariés)</mat-label>
+                      <input matInput type="number" required min="0" step="1"
+                             [ngModel]="tailleEntrepriseSalaries()"
+                             (ngModelChange)="onTailleEntrepriseChange($event)"
+                             name="tailleEntrepriseSalaries" />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="pse-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Licenciements envisagés</mat-label>
+                      <input matInput type="number" required min="0" step="1"
+                             [ngModel]="nombreLicenciementsEnvisages()"
+                             (ngModelChange)="onNombreLicenciementsChange($event)"
+                             name="nombreLicenciementsEnvisages" />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="pse-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Période (jours)</mat-label>
+                      <input matInput type="number" required min="0" step="1"
+                             [ngModel]="periodeJours()"
+                             (ngModelChange)="onPeriodeJoursChange($event)"
+                             name="periodeJours" />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="pse-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date du projet</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateProjet()"
+                             (ngModelChange)="onDateProjetChange($event)"
+                             name="dateProjet" />
+                    </mat-form-field>
+                    @if (provenanceDateProjet() === 'IA') {
+                      <span class="pse-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().DATE_PROJET; as alert) {
+                      <span class="pse-coherence-badge"
+                            [appCoherencePopover]="explanationFor('DATE_PROJET')"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Mode d'adoption + DREETS L.1233-57-2 -->
+              <fieldset class="pse-fieldset">
+                <legend class="pse-legend">
+                  <mat-icon>gavel</mat-icon>
+                  Mode d'adoption + DREETS (L.1233-57-2)
+                </legend>
+
+                <div class="pse-radio-group">
+                  <span class="pse-radio-label">Mode d'adoption</span>
+                  <mat-radio-group required
+                                   [ngModel]="modeAdoption()"
+                                   (ngModelChange)="onModeAdoptionChange($event)"
+                                   name="modeAdoption">
+                    @for (opt of modeAdoptionOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+
+                <div class="pse-radio-group">
+                  <span class="pse-radio-label">Statut DREETS</span>
+                  <mat-radio-group required
+                                   [ngModel]="dreetsStatut()"
+                                   (ngModelChange)="onDreetsStatutChange($event)"
+                                   name="dreetsStatut">
+                    @for (opt of statutDreetsOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+
+                <div class="pse-field-wrapper">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Date notification DREETS (optionnel)</mat-label>
+                    <input matInput type="date"
+                           [ngModel]="dateNotificationDreets()"
+                           (ngModelChange)="onDateNotificationDreetsChange($event)"
+                           name="dateNotificationDreets" />
+                  </mat-form-field>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Consultation CSE L.1233-30 -->
+              <fieldset class="pse-fieldset">
+                <legend class="pse-legend">
+                  <mat-icon>forum</mat-icon>
+                  Consultation CSE (L.1233-30)
+                </legend>
+
+                <div class="pse-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="csaeConsulteAvis()"
+                                   (ngModelChange)="onCsaeAvisChange($event)"
+                                   name="csaeConsulteAvis">
+                    @for (opt of avisCseOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 4 : Contenu L.1233-61 -->
+              <fieldset class="pse-fieldset">
+                <legend class="pse-legend">
+                  <mat-icon>fact_check</mat-icon>
+                  Contenu du PSE (L.1233-61)
+                </legend>
+
+                <div class="pse-checkbox-grid">
+                  @for (opt of contenuMesureOptions; track opt.code) {
+                    <mat-checkbox
+                        [checked]="isMesureChecked(opt.code)"
+                        (change)="onMesureToggle(opt.code, $event.checked)">
+                      {{ opt.label }}
+                    </mat-checkbox>
+                  }
+                </div>
+              </fieldset>
+
+              <div class="pse-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="pse-result">
+              <div [class]="bannerClass(result()!.verdictValidite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictValidite === 'NUL' ? 'gpp_bad' :
+                     result()!.verdictValidite === 'CONTESTABLE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="pse-banner-content">
+                  <div class="pse-banner-title">
+                    Verdict : {{ result()!.verdictValidite }}
+                    — {{ result()!.pseRequis ? 'PSE requis' : 'PSE non requis' }}
+                  </div>
+                  <div class="pse-banner-sub">
+                    Score conformité : {{ result()!.scoreConformite | number:'1.0-0' }} / 100
+                    — Délai contestation : {{ result()!.delaiContestationJours }} jours
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.criteresRemplis?.length) {
+                <div class="pse-criteres pse-criteres--ok">
+                  <div class="pse-criteres-label">Critères remplis ({{ result()!.criteresRemplis.length }})</div>
+                  <ul class="pse-criteres-list">
+                    @for (c of result()!.criteresRemplis; track c) {
+                      <li>{{ critereLabel(c) }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.criteresManquants?.length) {
+                <div class="pse-criteres pse-criteres--ko">
+                  <div class="pse-criteres-label">Critères manquants ({{ result()!.criteresManquants.length }})</div>
+                  <ul class="pse-criteres-list">
+                    @for (c of result()!.criteresManquants; track c) {
+                      <li>{{ critereLabel(c) }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="pse-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="pse-formule-block">
+                  <span class="pse-formule-label">Formule</span>
+                  <span class="pse-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="pse-meta">
+                <span class="pse-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
