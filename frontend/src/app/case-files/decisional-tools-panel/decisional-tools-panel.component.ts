@@ -42,6 +42,7 @@ import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-sec
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 import { IndemnitePrecariteCddSectionComponent } from '../indemnite-precarite-cdd-section/indemnite-precarite-cdd-section.component';
 import { CongesPayesSectionComponent } from '../conges-payes-section/conges-payes-section.component';
+import { FinMissionInterimSectionComponent } from '../fin-mission-interim-section/fin-mission-interim-section.component';
 import { TravailDissimuleSectionComponent } from '../travail-dissimule-section/travail-dissimule-section.component';
 import { IndemnitePreavisSectionComponent } from '../indemnite-preavis-section/indemnite-preavis-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
@@ -242,6 +243,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           workspaceCountry: ctx.workspaceCountry,
           // SF-DT-26-02 : pré-fill IA (salaireBrutMensuel + dateLicenciement)
           // + validation F-IA-03 (2 champs : SALAIRE_MENSUEL + DATE_RUPTURE).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-18-fin-mission-interim', {
+        component: FinMissionInterimSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-18-02 : pré-fill IA salaire mensuel + alertes F-IA-03.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
