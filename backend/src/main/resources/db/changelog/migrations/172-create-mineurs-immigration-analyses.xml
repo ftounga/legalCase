@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="172-create-mineurs-immigration-analyses" author="legalcase">
+        <comment>
+            SF-IM-19-01 : table dédiée à l'outil décisionnel "Mineurs étrangers immigration" (FR).
+            Évalue l'éligibilité d'un mineur étranger à l'un des 4 dispositifs :
+              - MNA_ORDONNANCE_JE (Mineur Non Accompagné, art. 375 Cciv + L.221-2-2 CASF)
+              - TITRE_SEJOUR_L435_3 (enfant né en France, CESEDA L.435-3)
+              - DCEM (Document de Circulation Étranger Mineur, CESEDA R.321-3)
+              - TIR (Titre d'Identité Républicain, CESEDA R.321-7)
+            Verdict ELEVEE / MOYENNE / FAIBLE selon : minorité prouvée, isolement avéré (MNA),
+            parent en situation régulière (L.435-3), motif d'ordre public absent (DCEM).
+
+            Outil single-country FRANCE — l'équivalent BE (procédure tutelle MENA via DGDE)
+            sera traité dans une feature jumelle au backlog (F-IM-19-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, FRANCE, priority 74).
+        </comment>
+
+        <createTable tableName="mineurs_immigration_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mineurs_immigration_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="dispositif_vise" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_naissance" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_entree_france" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="parent_regulier" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="isolement_avere" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_ordre_public" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nationalite" type="varchar(60)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="mineurs_immigration_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_mineurs_immigration_analyses_case_file"/>
+
+        <createIndex tableName="mineurs_immigration_analyses"
+                     indexName="idx_mineurs_immigration_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000172', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-19-mineurs', 'ALWAYS_ON', NULL, NULL, 74);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000172';
+            </sql>
+            <dropTable tableName="mineurs_immigration_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
