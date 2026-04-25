@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="164-create-pse-analyses" author="legalcase">
+        <comment>
+            SF-DT-14-01 : table dédiée à l'outil décisionnel "PSE — critères de validité" (FR).
+            Évalue la validité d'un Plan de Sauvegarde de l'Emploi selon 4 axes
+            (art. L.1233-24-1 + L.1233-30 + L.1233-57-2 + L.1233-61 + L.1235-7-1) :
+            - déclenchement obligatoire (≥ 10 licenciements / 30 jours / entreprise ≥ 50)
+            - consultation CSE (avis obligatoire)
+            - statut DREETS (validation accord majoritaire / homologation document unilatéral)
+            - contenu minimal (reclassement interne + ≥ 2 mesures)
+
+            Outil single-country FRANCE — l'équivalent BE (congé-réorganisation Loi 1976 /
+            Loi Renault) sera traité dans une feature jumelle dédiée au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 56).
+        </comment>
+
+        <createTable tableName="pse_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_pse_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="taille_entreprise_salaries" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_licenciements_envisages" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="periode_jours" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mode_adoption" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="csae_consulte_avis" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dreets_statut" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_notification_dreets" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="contenu_mesures_json" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_projet" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="pse_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_pse_analyses_case_file"/>
+
+        <createIndex tableName="pse_analyses"
+                     indexName="idx_pse_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000164', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-14-pse-validite', 'ALWAYS_ON', NULL, NULL, 56);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000164';
+            </sql>
+            <dropTable tableName="pse_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
