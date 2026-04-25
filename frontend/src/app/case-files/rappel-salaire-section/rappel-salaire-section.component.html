@@ -1,0 +1,244 @@
+<section class="rsal-section">
+  <header class="rsal-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rsal-body">
+    <mat-icon class="rsal-icon">payments</mat-icon>
+    <span class="rsal-title">RAPPEL DE SALAIRE</span>
+    @if (result()) {
+      <span class="rsal-chip">{{ result()!.totalAvecCpEur | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="rsal-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rsal-body" class="rsal-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="rsal-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil France uniquement — la Belgique applique un régime distinct (prescription 5 ans art. 2262bis CC + pécule de vacances). Une feature jumelle F-DT-20-BE est au backlog.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="rsal-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="rsal-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="rsal-form" (ngSubmit)="calculate()">
+            <!-- Période début -->
+            <mat-form-field appearance="outline">
+              <mat-label>Période — début</mat-label>
+              <input matInput type="date"
+                     [ngModel]="periodeDebut()"
+                     (ngModelChange)="onPeriodeDebutChange($event)"
+                     name="periodeDebut" required />
+              <mat-hint>Premier mois inclus.</mat-hint>
+            </mat-form-field>
+
+            <!-- Période fin -->
+            <mat-form-field appearance="outline">
+              <mat-label>Période — fin</mat-label>
+              <input matInput type="date"
+                     [ngModel]="periodeFin()"
+                     (ngModelChange)="onPeriodeFinChange($event)"
+                     [min]="periodeDebut() || ''"
+                     name="periodeFin" required />
+              <mat-hint>Dernier mois inclus.</mat-hint>
+            </mat-form-field>
+
+            <!-- Salaire mensuel dû + alerte IA -->
+            <div class="rsal-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel dû (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="montantSalaireDuMensuelEur()"
+                       (ngModelChange)="onMontantDuChange($event)"
+                       name="montantSalaireDuMensuelEur" required />
+                <mat-hint>Salaire contractuel ou conventionnel.</mat-hint>
+              </mat-form-field>
+              @if (provenanceMontantDu() === 'IA') {
+                <span class="rsal-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="rsal-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Salaire mensuel versé -->
+            <mat-form-field appearance="outline">
+              <mat-label>Salaire mensuel perçu (€)</mat-label>
+              <input matInput type="number" min="0" step="0.01"
+                     [ngModel]="montantSalairePerVerseMensuelEur()"
+                     (ngModelChange)="onMontantVerseChange($event)"
+                     name="montantSalairePerVerseMensuelEur" required />
+              <mat-hint>Doit être strictement inférieur au salaire dû.</mat-hint>
+            </mat-form-field>
+
+            <!-- Convention collective + alerte IA -->
+            <div class="rsal-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Convention collective (optionnel)</mat-label>
+                <mat-select
+                    [ngModel]="conventionCollectiveCode()"
+                    (ngModelChange)="onConventionChange($event)"
+                    name="conventionCollectiveCode">
+                  <mat-option [value]="null">— Aucune —</mat-option>
+                  @for (opt of conventionsFrance(); track opt.code) {
+                    <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+                <mat-hint>Sert à appliquer la prime d'ancienneté CCN.</mat-hint>
+              </mat-form-field>
+              @if (provenanceConvention() === 'IA') {
+                <span class="rsal-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().CONVENTION; as alert) {
+                <span class="rsal-coherence-badge"
+                      [appCoherencePopover]="explanationFor('CONVENTION')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Ancienneté années (prime CCN) -->
+            <mat-form-field appearance="outline">
+              <mat-label>Ancienneté (années) pour prime CCN</mat-label>
+              <input matInput type="number" min="0" step="1"
+                     [ngModel]="ancienneteAnneesPrime()"
+                     (ngModelChange)="onAncienneteChange($event)"
+                     name="ancienneteAnneesPrime" required />
+              <mat-hint>Saisir 0 si la CCN ne prévoit pas de prime.</mat-hint>
+            </mat-form-field>
+
+            <!-- Revalorisation INSEE (slide toggle) -->
+            <div class="rsal-toggle-group">
+              <mat-slide-toggle
+                  [ngModel]="indexInseeRevalorise()"
+                  (ngModelChange)="onIndexInseeChange($event)"
+                  name="indexInseeRevalorise">
+                Appliquer une revalorisation (index INSEE)
+              </mat-slide-toggle>
+              <span class="rsal-hint">
+                Si activée, le différentiel est revalorisé d'un taux saisi par l'avocat.
+              </span>
+            </div>
+
+            <!-- Taux de revalorisation (conditionnel) -->
+            @if (indexInseeRevalorise()) {
+              <mat-form-field appearance="outline" class="rsal-field-wide">
+                <mat-label>Taux de revalorisation (%)</mat-label>
+                <input matInput type="number" min="0" max="100" step="0.01"
+                       [ngModel]="tauxRevalorisationPct()"
+                       (ngModelChange)="onTauxRevalorisationChange($event)"
+                       name="tauxRevalorisationPct" required />
+                <mat-hint>Taux INSEE consolidé sur la période (entre 0 et 100).</mat-hint>
+              </mat-form-field>
+            }
+
+            <!-- Méthode CP sur rappel -->
+            <div class="rsal-methode-group">
+              <span class="rsal-methode-label">Méthode CP sur rappel (art. L.3141-26)</span>
+              <mat-radio-group [value]="methodeCpSurRappel()" (change)="onMethodeCpChange($event.value)" name="methodeCpSurRappel">
+                @for (opt of methodeOptions; track opt.code) {
+                  <mat-radio-button [value]="opt.code">
+                    {{ opt.label }}
+                    <span class="rsal-methode-article">{{ opt.article }}</span>
+                  </mat-radio-button>
+                }
+              </mat-radio-group>
+              <span class="rsal-methode-hint">La règle du dixième (10 %) est la pratique majoritaire. Le maintien (1/12) reste équivalent en pratique. AUCUN s'utilise quand l'ICCP a déjà été versée séparément (CDD).</span>
+            </div>
+
+            <div class="rsal-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="rsal-result">
+            <!-- Récap période en haut -->
+            <div class="rsal-recap">
+              <div class="rsal-recap-row">
+                <span class="rsal-recap-label">Période</span>
+                <span class="rsal-recap-value">{{ result()!.nbMoisPeriode }} mois</span>
+              </div>
+              <div class="rsal-recap-row">
+                <span class="rsal-recap-label">Différentiel mensuel</span>
+                <span class="rsal-recap-value">{{ result()!.differentielMensuelEur | number:'1.0-2' }} €/mois</span>
+              </div>
+            </div>
+
+            <!-- Tableau breakdown -->
+            <div class="rsal-breakdown">
+              <div class="rsal-breakdown-row">
+                <span class="rsal-breakdown-label">Différentiel brut hors revalorisation</span>
+                <span class="rsal-breakdown-value">{{ result()!.totalRappelBrutHorsRevalorisationEur | number:'1.0-2' }} €</span>
+              </div>
+              <div class="rsal-breakdown-row">
+                <span class="rsal-breakdown-label">Revalorisation INSEE</span>
+                <span class="rsal-breakdown-value">{{ result()!.montantRevalorisationEur | number:'1.0-2' }} €</span>
+              </div>
+              <div class="rsal-breakdown-row">
+                <span class="rsal-breakdown-label">Prime d'ancienneté CCN</span>
+                <span class="rsal-breakdown-value">{{ result()!.primeAncienneteEur | number:'1.0-2' }} €</span>
+              </div>
+              <div class="rsal-breakdown-row rsal-breakdown-row--subtotal">
+                <span class="rsal-breakdown-label">Total brut</span>
+                <span class="rsal-breakdown-value">{{ result()!.totalRappelBrutEur | number:'1.0-2' }} €</span>
+              </div>
+              <div class="rsal-breakdown-row">
+                <span class="rsal-breakdown-label">CP sur rappel ({{ methodeLabel(result()!.methodeCpSurRappel) }})</span>
+                <span class="rsal-breakdown-value">{{ result()!.congesPayesSurRappelEur | number:'1.0-2' }} €</span>
+              </div>
+            </div>
+
+            <!-- Total avec CP — bloc final -->
+            <div class="rsal-amount-block">
+              <span class="rsal-amount-label">Total dû au salarié (avec CP)</span>
+              <span class="rsal-amount">{{ result()!.totalAvecCpEur | number:'1.0-2' }} €</span>
+              <span class="rsal-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="rsal-meta">
+              <span class="rsal-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="rsal-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>

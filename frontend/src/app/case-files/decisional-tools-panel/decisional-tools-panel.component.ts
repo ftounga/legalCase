@@ -47,6 +47,7 @@ import { CongesPayesSectionComponent } from '../conges-payes-section/conges-paye
 import { FinMissionInterimSectionComponent } from '../fin-mission-interim-section/fin-mission-interim-section.component';
 import { TravailDissimuleSectionComponent } from '../travail-dissimule-section/travail-dissimule-section.component';
 import { IndemnitePreavisSectionComponent } from '../indemnite-preavis-section/indemnite-preavis-section.component';
+import { RappelSalaireSectionComponent } from '../rappel-salaire-section/rappel-salaire-section.component';
 import { RequalificationCddCdiSectionComponent } from '../requalification-cdd-cdi-section/requalification-cdd-cdi-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
@@ -319,6 +320,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // SF-DT-25-02 : pré-fill IA (salaireBrutMensuel + dateLicenciement +
           // conventionCollective) + validation F-IA-03 (3 alertes : SALAIRE,
           // DATE_RUPTURE, CONVENTION).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-20-rappel-salaire', {
+        component: RappelSalaireSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-20-02 : pré-fill IA (salaireBrutMensuel + conventionCollective)
+          // + validation F-IA-03 (2 alertes : SALAIRE + CONVENTION).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
