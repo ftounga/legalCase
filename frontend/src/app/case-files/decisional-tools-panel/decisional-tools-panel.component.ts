@@ -41,6 +41,7 @@ import { DiscriminationSectionComponent } from '../discrimination-section/discri
 import { InaptitudeSectionComponent } from '../inaptitude-section/inaptitude-section.component';
 import { HeuresSupSectionComponent } from '../heures-sup-section/heures-sup-section.component';
 import { IndemnitePrecariteCddSectionComponent } from '../indemnite-precarite-cdd-section/indemnite-precarite-cdd-section.component';
+import { CongesPayesSectionComponent } from '../conges-payes-section/conges-payes-section.component';
 import { TravailDissimuleSectionComponent } from '../travail-dissimule-section/travail-dissimule-section.component';
 import { OqtfAvecDelaiSectionComponent } from '../oqtf-avec-delai-section/oqtf-avec-delai-section.component';
 import { OqtfSansDelaiSectionComponent } from '../oqtf-sans-delai-section/oqtf-sans-delai-section.component';
@@ -226,6 +227,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           // SF-DT-17-02 : pré-fill IA salaire mensuel + alertes F-IA-03.
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-26-conges-payes-indemnite', {
+        component: CongesPayesSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-26-02 : pré-fill IA (salaireBrutMensuel + dateLicenciement)
+          // + validation F-IA-03 (2 champs : SALAIRE_MENSUEL + DATE_RUPTURE).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

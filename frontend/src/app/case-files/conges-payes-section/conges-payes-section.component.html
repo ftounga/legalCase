@@ -1,0 +1,209 @@
+<section class="cp-section">
+  <header class="cp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="cp-body">
+    <mat-icon class="cp-icon">beach_access</mat-icon>
+    <span class="cp-title">INDEMNITÉ COMPENSATRICE DE CONGÉS PAYÉS</span>
+    @if (result()) {
+      <span class="cp-chip">{{ result()!.montantIndemniteEur | number:'1.0-0' }} €</span>
+    }
+    <mat-icon class="cp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="cp-body" class="cp-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="cp-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil France uniquement — la Belgique applique un régime distinct (pécule de vacances ONSS, lié à l'année antérieure). Voir la feature dédiée Belgique.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="cp-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="cp-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="cp-form" (ngSubmit)="calculate()">
+            <!-- Total des rémunérations brutes de la période de référence -->
+            <mat-form-field appearance="outline" class="cp-field-wide">
+              <mat-label>Total rémunérations brutes de la période (€)</mat-label>
+              <input matInput type="number" min="0.01" step="0.01"
+                     [ngModel]="totalRemunerationPeriodeEur()"
+                     (ngModelChange)="onTotalRemunerationChange($event)"
+                     name="totalRemunerationPeriodeEur" required />
+              <mat-hint>Période de référence : 1er juin (N-1) au 31 mai (N), ou autre selon convention collective.</mat-hint>
+            </mat-form-field>
+
+            <!-- Jours acquis sur la période -->
+            <mat-form-field appearance="outline">
+              <mat-label>Jours de congés acquis</mat-label>
+              <input matInput type="number" min="0" step="0.5"
+                     [ngModel]="joursAcquisAnnee()"
+                     (ngModelChange)="onJoursAcquisChange($event)"
+                     name="joursAcquisAnnee" required />
+              <mat-hint>Jours ouvrables (5 sem. = 30 j.).</mat-hint>
+            </mat-form-field>
+
+            <!-- Jours déjà pris -->
+            <mat-form-field appearance="outline">
+              <mat-label>Jours de congés pris</mat-label>
+              <input matInput type="number" min="0" step="0.5"
+                     [ngModel]="joursPris()"
+                     (ngModelChange)="onJoursPrisChange($event)"
+                     name="joursPris" required />
+              <mat-hint>Doit être ≤ jours acquis.</mat-hint>
+            </mat-form-field>
+
+            <!-- Salaire mensuel (pré-fill IA + alerte F-IA-03) -->
+            <div class="cp-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelBrutEur()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEur" required />
+                <mat-hint>Référence pour la méthode du maintien.</mat-hint>
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="cp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE_MENSUEL; as alert) {
+                <span class="cp-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE_MENSUEL')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE_DEDUIT; as note) {
+                <span class="cp-coherence-note"
+                      [appCoherencePopover]="explanationFor('SALAIRE_DEDUIT')"
+                      [appCoherencePopoverReason]="alertTooltip(note)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>info_outline</mat-icon> {{ alertBadgeLabel(note) }}
+                </span>
+              }
+            </div>
+
+            <!-- Date de rupture (pré-fill IA + alerte F-IA-03) -->
+            <div class="cp-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de rupture du contrat</mat-label>
+                <input matInput type="date"
+                       [max]="todayIso"
+                       [ngModel]="dateRupture()"
+                       (ngModelChange)="onDateRuptureChange($event)"
+                       name="dateRupture" required />
+              </mat-form-field>
+              @if (provenanceDateRupture() === 'IA') {
+                <span class="cp-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().DATE_RUPTURE; as alert) {
+                <span class="cp-coherence-badge"
+                      [appCoherencePopover]="explanationFor('DATE_RUPTURE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Choix de méthode -->
+            <div class="cp-methode-group">
+              <span class="cp-methode-label">Méthode de calcul</span>
+              <mat-radio-group [value]="methodeForcee()" (change)="onMethodeForceeChange($event.value)" name="methodeForcee">
+                <mat-radio-button [value]="null">Auto — la plus favorable au salarié (défaut)</mat-radio-button>
+                <mat-radio-button [value]="'DIX_POURCENT'">Méthode du dixième (L.3141-24)</mat-radio-button>
+                <mat-radio-button [value]="'MAINTIEN'">Méthode du maintien (L.3141-22)</mat-radio-button>
+              </mat-radio-group>
+              <span class="cp-methode-hint">Le salarié bénéficie de la méthode la plus favorable (jurisprudence Cass. soc.). La surcharge force l'application d'une méthode spécifique.</span>
+            </div>
+
+            <div class="cp-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="cp-result">
+            <!-- Bandeau "Méthode retenue" -->
+            <div class="cp-retenue-banner">
+              <mat-icon>verified</mat-icon>
+              <div class="cp-retenue-text">
+                <span class="cp-retenue-label">Méthode retenue</span>
+                <span class="cp-retenue-value">{{ methodeLabel(result()!.methodeRetenue) }}</span>
+              </div>
+            </div>
+
+            <!-- Comparateur 2 méthodes côte-à-côte -->
+            <div class="cp-comparator">
+              <div class="cp-method-card"
+                   [class.cp-method-card--retained]="result()!.methodeRetenue === 'DIX_POURCENT'">
+                <div class="cp-method-card-header">
+                  <span class="cp-method-card-title">{{ methodeLabel('DIX_POURCENT') }}</span>
+                  @if (result()!.methodeRetenue === 'DIX_POURCENT') {
+                    <span class="cp-method-card-badge">Le plus favorable</span>
+                  }
+                </div>
+                <span class="cp-method-card-amount">{{ result()!.montantMethodeDixPourcentEur | number:'1.0-2' }} €</span>
+                <span class="cp-method-card-article">{{ methodeArticle('DIX_POURCENT') }}</span>
+              </div>
+
+              <div class="cp-method-card"
+                   [class.cp-method-card--retained]="result()!.methodeRetenue === 'MAINTIEN'">
+                <div class="cp-method-card-header">
+                  <span class="cp-method-card-title">{{ methodeLabel('MAINTIEN') }}</span>
+                  @if (result()!.methodeRetenue === 'MAINTIEN') {
+                    <span class="cp-method-card-badge">Le plus favorable</span>
+                  }
+                </div>
+                <span class="cp-method-card-amount">{{ result()!.montantMethodeMaintienEur | number:'1.0-2' }} €</span>
+                <span class="cp-method-card-article">{{ methodeArticle('MAINTIEN') }}</span>
+              </div>
+            </div>
+
+            <!-- Montant final + formule -->
+            <div class="cp-amount-block">
+              <span class="cp-amount-label">Indemnité compensatrice due</span>
+              <span class="cp-amount">{{ result()!.montantIndemniteEur | number:'1.0-2' }} €</span>
+              <span class="cp-jours-dus">{{ result()!.joursDus | number:'1.0-1' }} jour(s) dû(s)</span>
+              <span class="cp-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="cp-meta">
+              <span class="cp-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="cp-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
