@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="163-extend-ccn-fr-cp-be-referentiel" author="legalcase">
+        <comment>
+            SF-F-138-01 : extension du référentiel CONVENTION_BAREMES (FR + BE) et
+            CONVENTION_PREAVIS (FR) pour passer la couverture du réel prud'homal
+            de ~95-98 %.
+
+            Avant cette migration :
+            - 49 CCN FR (CONVENTION_BAREMES) seedées par F-129 (086/087) + F-136-02 (090).
+            - 17 CP BE (CONVENTION_BAREMES) seedées par F-129 (089) + F-136-03.
+            - 3 CCN FR (CONVENTION_PREAVIS) seedées par SF-DT-25-01 (134).
+
+            Après cette migration :
+            - +50 CCN FR CONVENTION_BAREMES (top effectif, exclusion des doublons F-129/F-136).
+            - +10 CP BE CONVENTION_BAREMES (top effectif).
+            - +8 CCN FR CONVENTION_PREAVIS (parité avec les CCN les plus consultées).
+
+            Aucune entry préexistante n'est modifiée (pas d'UPDATE) — seuls des INSERT.
+
+            Convention de description SF-140-03 : chaque INSERT renseigne explicitement
+            la colonne description (texte avocat).
+
+            Convention UUID : préfixe f1d38000-... pour CONVENTION_BAREMES FR, f1d38100-...
+            pour CONVENTION_BAREMES BE, f1d38200-... pour CONVENTION_PREAVIS, distinct
+            des plages F-129 (f2000000) et F-DT-25 (f1d25000).
+
+            Valeurs : minimums légaux (25j FR / 20j BE) pour CONVENTION_BAREMES sans
+            congés sup ni primes — pattern conservateur. L'enrichissement vague 3 (avec
+            barèmes spécifiques) est un travail séparé. Pour CONVENTION_PREAVIS, la
+            matrice fonctions × tranches est renseignée d'après les CCN publiques.
+
+            Country : conservé tel quel par type — 'FRANCE' pour CONVENTION_BAREMES
+            (cohérent F-129) et 'FR' pour CONVENTION_PREAVIS (cohérent SF-DT-25-01).
+        </comment>
+
+        <sql splitStatements="true">
+-- =====================================================================
+-- 50 CCN FR (CONVENTION_BAREMES / FRANCE)
+-- =====================================================================
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001000', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1000', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Cabinets d''avocats (IDCC 1000)', 'FRANCE', true, true, 'IDCC 1000 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des cabinets d''avocats (IDCC 1000). Référence utilisée par l''outil Ancienneté pour calculer les droits conventionnels du salarié — congés légaux (25 jours base FR), congés supplémentaires d''ancienneté et prime d''ancienneté quand documentés par la CCN — puis comparer automatiquement à son contrat individuel. À enrichir si l''accord de branche prévoit des congés supplémentaires ou une prime d''ancienneté spécifique.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001619', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1619', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Cabinets dentaires (IDCC 1619)', 'FRANCE', true, true, 'IDCC 1619 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des cabinets dentaires (IDCC 1619). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels (congés légaux + ancienneté) du salarié et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001734', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1734', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Audiovisuel — entreprises techniques au service de la création et de l''événement (IDCC 1734)', 'FRANCE', true, true, 'IDCC 1734 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des entreprises techniques au service de la création et de l''événement (IDCC 1734). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels (congés légaux + ancienneté) et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002150', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2150', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Personnels des sociétés anonymes et fondations d''HLM (IDCC 2150)', 'FRANCE', true, true, 'IDCC 2150 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des personnels des sociétés anonymes et fondations d''HLM (IDCC 2150). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002205', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2205', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Notariat (IDCC 2205)', 'FRANCE', true, true, 'IDCC 2205 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du notariat (IDCC 2205). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels du clerc/employé/cadre du notariat et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002121', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2121', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Édition (IDCC 2121)', 'FRANCE', true, true, 'IDCC 2121 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de l''édition (IDCC 2121, secteur livre). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000018', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0018', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries textiles (IDCC 0018)', 'FRANCE', true, true, 'IDCC 0018 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries textiles (IDCC 18). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000303', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0303', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Couture parisienne (IDCC 0303)', 'FRANCE', true, true, 'IDCC 0303 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la couture parisienne (IDCC 303). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001631', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1631', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Hôtellerie de plein air (IDCC 1631)', 'FRANCE', true, true, 'IDCC 1631 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de l''hôtellerie de plein air (IDCC 1631, campings). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001612', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1612', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Mareyeurs-expéditeurs (IDCC 1612)', 'FRANCE', true, true, 'IDCC 1612 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des mareyeurs-expéditeurs (IDCC 1612). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000184', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0184', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Imprimeries de labeur et industries graphiques (IDCC 0184)', 'FRANCE', true, true, 'IDCC 0184 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des imprimeries de labeur et industries graphiques (IDCC 184). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000247', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0247', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries de la maroquinerie, articles de voyage (IDCC 0247)', 'FRANCE', true, true, 'IDCC 0247 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la maroquinerie et des articles de voyage (IDCC 247). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000489', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0489', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries laitières (IDCC 0489)', 'FRANCE', true, true, 'IDCC 0489 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries laitières (IDCC 489). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000500', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0500', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Entreprises de courtage d''assurances (IDCC 0500)', 'FRANCE', true, true, 'IDCC 0500 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des entreprises de courtage d''assurances (IDCC 500). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000635', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0635', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Cabinets ou entreprises d''expertises en automobile (IDCC 0635)', 'FRANCE', true, true, 'IDCC 0635 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des cabinets d''expertises automobiles (IDCC 635). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000653', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0653', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Cabinets ou entreprises de géomètres-experts, géomètres-topographes, photogrammètres et experts fonciers (IDCC 0653)', 'FRANCE', true, true, 'IDCC 0653 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des cabinets de géomètres-experts (IDCC 653). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000700', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0700', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries textiles artificielles et synthétiques (IDCC 0700)', 'FRANCE', true, true, 'IDCC 0700 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries textiles artificielles et synthétiques (IDCC 700). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000000731', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_0731', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Quincaillerie, fournitures industrielles, fers, métaux (IDCC 0731)', 'FRANCE', true, true, 'IDCC 0731 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la quincaillerie et des fournitures industrielles (IDCC 731). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001077', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1077', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Personnel des entreprises agréées de service à la personne — PSP (IDCC 1077)', 'FRANCE', true, true, 'IDCC 1077 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du personnel des entreprises agréées de service à la personne (IDCC 1077). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001182', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1182', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Personnel des organismes de tourisme (IDCC 1182)', 'FRANCE', true, true, 'IDCC 1182 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du personnel des organismes de tourisme (IDCC 1182, offices de tourisme). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001311', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1311', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries de la fabrication des ciments (IDCC 1311)', 'FRANCE', true, true, 'IDCC 1311 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries de la fabrication des ciments (IDCC 1311). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001396', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1396', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries charcutières (IDCC 1396)', 'FRANCE', true, true, 'IDCC 1396 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries charcutières (IDCC 1396). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001408', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1408', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries de la fabrication de la chaux (IDCC 1408)', 'FRANCE', true, true, 'IDCC 1408 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries de la fabrication de la chaux (IDCC 1408). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001411', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1411', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Manutention ferroviaire et travaux connexes (IDCC 1411)', 'FRANCE', true, true, 'IDCC 1411 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la manutention ferroviaire et des travaux connexes (IDCC 1411). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001413', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1413', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Personnel intérimaire des entreprises de travail temporaire — ETT (IDCC 1413)', 'FRANCE', true, true, 'IDCC 1413 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des salariés intérimaires (IDCC 1413). Référence majeure pour les dossiers prud''homaux travail temporaire. Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001499', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1499', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Fabrication et commerce des produits à usage pharmaceutique, parapharmaceutique et vétérinaire (IDCC 1499)', 'FRANCE', true, true, 'IDCC 1499 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la fabrication et du commerce des produits à usage pharmaceutique (IDCC 1499). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001543', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1543', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Boyauderie (IDCC 1543)', 'FRANCE', true, true, 'IDCC 1543 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la boyauderie (IDCC 1543). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001555', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1555', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries de fabrication mécanique du verre (IDCC 1555)', 'FRANCE', true, true, 'IDCC 1555 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries de fabrication mécanique du verre (IDCC 1555). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001558', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1558', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Caoutchouc (IDCC 1558)', 'FRANCE', true, true, 'IDCC 1558 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries du caoutchouc (IDCC 1558). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001564', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1564', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Cartonnage (IDCC 1564)', 'FRANCE', true, true, 'IDCC 1564 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du cartonnage (IDCC 1564). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001577', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1577', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Cinq branches industries alimentaires diverses — 5 BIAD (IDCC 1577)', 'FRANCE', true, true, 'IDCC 1577 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des cinq branches industries alimentaires diverses (IDCC 1577). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001686', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1686', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Commerce et réparation de l''horlogerie-bijouterie (IDCC 1686)', 'FRANCE', true, true, 'IDCC 1686 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du commerce et de la réparation de l''horlogerie-bijouterie (IDCC 1686). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001740', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1740', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Distributeurs conseils hors domicile — DCHD (IDCC 1740)', 'FRANCE', true, true, 'IDCC 1740 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des distributeurs conseils hors domicile (IDCC 1740, distribution boissons CHR). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001747', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1747', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Activités industrielles de boulangerie-pâtisserie (IDCC 1747)', 'FRANCE', true, true, 'IDCC 1747 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des activités industrielles de boulangerie-pâtisserie (IDCC 1747). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001760', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1760', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Restauration ferroviaire (IDCC 1760)', 'FRANCE', true, true, 'IDCC 1760 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la restauration ferroviaire (IDCC 1760). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001794', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1794', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Conserveries coopératives et SICA (IDCC 1794)', 'FRANCE', true, true, 'IDCC 1794 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des conserveries coopératives et SICA (IDCC 1794). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001816', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1816', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Pompes funèbres (IDCC 1816)', 'FRANCE', true, true, 'IDCC 1816 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des pompes funèbres (IDCC 1816). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001875', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1875', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries de la sérigraphie (IDCC 1875)', 'FRANCE', true, true, 'IDCC 1875 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries de la sérigraphie (IDCC 1875). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001909', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1909', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Organismes de tourisme social et familial (IDCC 1909)', 'FRANCE', true, true, 'IDCC 1909 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des organismes de tourisme social et familial (IDCC 1909). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001922', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1922', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Radiodiffusion (IDCC 1922)', 'FRANCE', true, true, 'IDCC 1922 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la radiodiffusion (IDCC 1922). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000001947', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_1947', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Commerces de quincaillerie, fournitures pour l''industrie (IDCC 1947)', 'FRANCE', true, true, 'IDCC 1947 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des commerces de quincaillerie et fournitures pour l''industrie (IDCC 1947). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002104', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2104', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Thermalisme (IDCC 2104)', 'FRANCE', true, true, 'IDCC 2104 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du thermalisme (IDCC 2104, établissements thermaux). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002128', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2128', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Mutualité (IDCC 2128)', 'FRANCE', true, true, 'IDCC 2128 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la mutualité (IDCC 2128). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002156', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2156', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Grands magasins et magasins populaires (IDCC 2156)', 'FRANCE', true, true, 'IDCC 2156 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des grands magasins et magasins populaires (IDCC 2156). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002174', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2174', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Industries et commerces de la récupération (IDCC 2174)', 'FRANCE', true, true, 'IDCC 2174 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des industries et commerces de la récupération (IDCC 2174, recyclage / déchets). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002247', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2247', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Entreprises de courtage de marchandises (IDCC 2247)', 'FRANCE', true, true, 'IDCC 2247 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des entreprises de courtage de marchandises (IDCC 2247). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002335', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2335', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Personnel des agences générales d''assurances (IDCC 2335)', 'FRANCE', true, true, 'IDCC 2335 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du personnel des agences générales d''assurances (IDCC 2335). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002344', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2344', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Sociétés d''expertises et d''évaluations (IDCC 2344)', 'FRANCE', true, true, 'IDCC 2344 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des sociétés d''expertises et d''évaluations (IDCC 2344). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002378', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2378', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Boulangerie-pâtisserie : entreprises industrielles (IDCC 2378)', 'FRANCE', true, true, 'IDCC 2378 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la boulangerie-pâtisserie industrielle (IDCC 2378). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002603', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2603', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Salariés en portage salarial (IDCC 2603)', 'FRANCE', true, true, 'IDCC 2603 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des salariés en portage salarial (IDCC 2603). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002691', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2691', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Entreprises d''architecture (IDCC 2691)', 'FRANCE', true, true, 'IDCC 2691 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective des entreprises d''architecture (IDCC 2691). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002785', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2785', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Personnel sédentaire des entreprises de navigation (IDCC 2785)', 'FRANCE', true, true, 'IDCC 2785 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective du personnel sédentaire des entreprises de navigation (IDCC 2785, secteur maritime). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38000-0000-0000-0000-000000002847', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'IDCC_2847', '{"congesLegauxJours":25,"congesSupp":[],"primes":[]}', 'Production audiovisuelle (IDCC 2847)', 'FRANCE', true, true, 'IDCC 2847 — Légifrance / kali-data', 'Barème d''ancienneté de la convention collective de la production audiovisuelle (IDCC 2847). Utilisé par l''outil Ancienneté pour calculer les droits conventionnels et les comparer au contrat. Enrichir si la CCN prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+-- =====================================================================
+-- 10 CP BE (CONVENTION_BAREMES / BELGIQUE)
+-- =====================================================================
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000da', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP218', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 218 — Commission paritaire nationale auxiliaire pour employés (CPNAE résiduelle)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 218 (valeurs indicatives — vérification juridique recommandée)', 'Barème d''ancienneté de la commission paritaire CP 218 (CPNAE résiduelle pour employés non couverts par une autre CP, très large). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours base belge — et les comparer au contrat. Enrichir si l''accord sectoriel ou d''entreprise prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000db', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP312', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 312 — Grands magasins', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 312 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 312 (grands magasins, secteur grande distribution). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000dc', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP313', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 313 — Pharmacies et offices de tarification', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 313 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 313 (pharmacies et offices de tarification). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000dd', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP327', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 327 — Entreprises de travail adapté et ateliers sociaux', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 327 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 327 (entreprises de travail adapté et ateliers sociaux, inclusion professionnelle). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000de', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP152', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 152 — Enseignement libre subventionné (ouvriers)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 152 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 152 (personnel ouvrier de l''enseignement libre subventionné). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000df', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP140', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 140 — Transport et logistique', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 140 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 140 (transport routier de marchandises, voyageurs et logistique). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000e0', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP149', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 149 — Secteurs connexes à la métallurgie (sous-commissions 149.01 à 149.04)', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 149 (valeurs indicatives — sous-commissions sectorielles)', 'Barème d''ancienneté de la commission paritaire CP 149 (secteurs connexes à la métallurgie : électriciens, garages, métaux non ferreux, métaux précieux). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000e1', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP304', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 304 — Secteur du spectacle', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 304 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 304 (secteur du spectacle, industrie culturelle). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000e2', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP318', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 318 — Services d''aides familiales et seniors', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 318 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 318 (services d''aides familiales et seniors, aide à domicile). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38100-0000-0000-0000-0000000000e3', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_BAREMES', 'CP329', '{"congesLegauxJours":20,"congesSupp":[],"primes":[]}', 'CP 329 — Secteur socio-culturel', 'BELGIQUE', true, true, 'Loi 28/06/1971 ; CP 329 (valeurs indicatives)', 'Barème d''ancienneté de la commission paritaire CP 329 (secteur socio-culturel : associations, ASBL culturelles). Utilisé par l''outil Ancienneté (Belgique) pour calculer les droits conventionnels — congés légaux 20 jours — et les comparer au contrat. Enrichir si la CCT sectorielle prévoit des congés supplémentaires ou une prime d''ancienneté.', NOW(), NULL);
+
+-- =====================================================================
+-- 8 CCN FR supplémentaires (CONVENTION_PREAVIS / FR)
+-- =====================================================================
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000001597', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_1597', '{"fonctions":{"OUVRIER":[{"min":0,"max":3,"mois":0},{"min":3,"max":6,"mois":1},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Bâtiment Ouvriers art. 9.1 / 10.1"}', 'CCN Bâtiment Ouvriers &gt; 10 sal. (IDCC 1597) — durée de préavis', 'FR', true, true, 'CCN Bâtiment Ouvriers IDCC 1597 art. 9.1 (préavis ouvriers) / art. 10.1 (préavis cadres)', 'Durée du préavis prévue par la convention collective des ouvriers du bâtiment (IDCC 1597, entreprises occupant plus de 10 salariés) selon la catégorie professionnelle (ouvrier, employé, agent de maîtrise, cadre) et l''ancienneté en mois. Reproduit la durée légale L.1234-1 pour les ouvriers et employés ; le préavis cadre est fixé à 3 mois dès l''embauche (plus favorable). Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000002609', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_2609', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Bâtiment ETAM art. 5"}', 'CCN Bâtiment ETAM (IDCC 2609) — durée de préavis', 'FR', true, true, 'CCN Bâtiment ETAM IDCC 2609 art. 5', 'Durée du préavis prévue par la convention collective des ETAM du bâtiment (IDCC 2609) selon la catégorie professionnelle (employé, agent de maîtrise) et l''ancienneté. Le préavis ETAM est aligné sur la durée légale L.1234-1 (1 mois &lt; 6 mois, 2 mois ≥ 6 mois) ; le préavis agent de maîtrise atteint 3 mois après 2 ans d''ancienneté. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000001702', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_1702', '{"fonctions":{"OUVRIER":[{"min":0,"max":3,"mois":0},{"min":3,"max":6,"mois":1},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Travaux Publics Ouvriers (Tome II) art. 7"}', 'CCN Travaux Publics Ouvriers (IDCC 1702) — durée de préavis', 'FR', true, true, 'CCN Travaux Publics Tome II IDCC 1702 art. 7', 'Durée du préavis prévue par la convention collective des ouvriers des travaux publics (IDCC 1702, Tome II) selon la catégorie professionnelle et l''ancienneté en mois. Pattern aligné sur le bâtiment (IDCC 1597) : reproduit la durée légale L.1234-1 pour ouvriers/employés et un préavis cadre 3 mois dès l''embauche. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000001979', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_1979', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":0},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":0},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN HCR art. 30"}', 'CCN HCR Hôtels-Cafés-Restaurants (IDCC 1979) — durée de préavis', 'FR', true, true, 'CCN Hôtels Cafés Restaurants IDCC 1979 art. 30', 'Durée du préavis prévue par la convention collective des Hôtels Cafés Restaurants (IDCC 1979) selon la catégorie professionnelle et l''ancienneté. Aligné sur la durée légale L.1234-1 pour ouvriers et employés ; le préavis cadre est fixé à 3 mois. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN HCR évolue.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000002216', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_2216', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":0},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Commerce de détail alimentaire art. 4.5"}', 'CCN Commerce de détail alimentaire (IDCC 2216) — durée de préavis', 'FR', true, true, 'CCN Commerce de détail alimentaire IDCC 2216 art. 4.5', 'Durée du préavis prévue par la convention collective du commerce de détail alimentaire (IDCC 2216) selon la catégorie professionnelle et l''ancienneté. Aligné sur la durée légale L.1234-1 pour les employés (1 mois &lt; 6 mois, 2 mois ≥ 6 mois) ; le préavis cadre est fixé à 3 mois dès l''embauche. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000000573', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_0573', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":0},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Commerce de gros art. 24"}', 'CCN Commerce de gros (IDCC 0573) — durée de préavis', 'FR', true, true, 'CCN Commerce de gros IDCC 573 art. 24', 'Durée du préavis prévue par la convention collective du commerce de gros (IDCC 573) selon la catégorie professionnelle et l''ancienneté. Aligné sur la durée légale L.1234-1 pour les employés ; le préavis cadre est fixé à 3 mois dès l''embauche. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000001996', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_1996', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":0},{"min":6,"max":24,"mois":1},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":24,"mois":2},{"min":24,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Pharmacie d''officine art. 23"}', 'CCN Pharmacie d''officine (IDCC 1996) — durée de préavis', 'FR', true, true, 'CCN Pharmacie d''officine IDCC 1996 art. 23', 'Durée du préavis prévue par la convention collective de la pharmacie d''officine (IDCC 1996) selon la catégorie professionnelle et l''ancienneté. Aligné sur la durée légale L.1234-1 pour préparateurs et employés ; le préavis cadre est fixé à 3 mois dès l''embauche. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1d38200-0000-0000-0000-000000001672', NULL, 'DROIT_DU_TRAVAIL', 'CONVENTION_PREAVIS', 'IDCC_1672', '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"EMPLOYE":[{"min":0,"max":6,"mois":1},{"min":6,"max":24,"mois":2},{"min":24,"max":null,"mois":2}],"AGENT_MAITRISE":[{"min":0,"max":null,"mois":3}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Sociétés d''assurances art. 73"}', 'CCN Sociétés d''assurances (IDCC 1672) — durée de préavis', 'FR', true, true, 'CCN Sociétés d''assurances IDCC 1672 art. 73', 'Durée du préavis prévue par la convention collective des sociétés d''assurances (IDCC 1672) selon la catégorie professionnelle et l''ancienneté. Le préavis cadre est fixé à 3 mois dès l''embauche, plus favorable que la durée légale. Utilisé par F-DT-25 (calculateur indemnité compensatrice de préavis). Modifier la matrice si l''avenant CCN évolue.', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM legal_referentials WHERE id IN (
+                    'f1d38000-0000-0000-0000-000000001000',
+                    'f1d38000-0000-0000-0000-000000001619',
+                    'f1d38000-0000-0000-0000-000000001734',
+                    'f1d38000-0000-0000-0000-000000002150',
+                    'f1d38000-0000-0000-0000-000000002205',
+                    'f1d38000-0000-0000-0000-000000002121',
+                    'f1d38000-0000-0000-0000-000000000018',
+                    'f1d38000-0000-0000-0000-000000000303',
+                    'f1d38000-0000-0000-0000-000000001631',
+                    'f1d38000-0000-0000-0000-000000001612',
+                    'f1d38000-0000-0000-0000-000000000184',
+                    'f1d38000-0000-0000-0000-000000000247',
+                    'f1d38000-0000-0000-0000-000000000489',
+                    'f1d38000-0000-0000-0000-000000000500',
+                    'f1d38000-0000-0000-0000-000000000635',
+                    'f1d38000-0000-0000-0000-000000000653',
+                    'f1d38000-0000-0000-0000-000000000700',
+                    'f1d38000-0000-0000-0000-000000000731',
+                    'f1d38000-0000-0000-0000-000000001077',
+                    'f1d38000-0000-0000-0000-000000001182',
+                    'f1d38000-0000-0000-0000-000000001311',
+                    'f1d38000-0000-0000-0000-000000001396',
+                    'f1d38000-0000-0000-0000-000000001408',
+                    'f1d38000-0000-0000-0000-000000001411',
+                    'f1d38000-0000-0000-0000-000000001413',
+                    'f1d38000-0000-0000-0000-000000001499',
+                    'f1d38000-0000-0000-0000-000000001543',
+                    'f1d38000-0000-0000-0000-000000001555',
+                    'f1d38000-0000-0000-0000-000000001558',
+                    'f1d38000-0000-0000-0000-000000001564',
+                    'f1d38000-0000-0000-0000-000000001577',
+                    'f1d38000-0000-0000-0000-000000001686',
+                    'f1d38000-0000-0000-0000-000000001740',
+                    'f1d38000-0000-0000-0000-000000001747',
+                    'f1d38000-0000-0000-0000-000000001760',
+                    'f1d38000-0000-0000-0000-000000001794',
+                    'f1d38000-0000-0000-0000-000000001816',
+                    'f1d38000-0000-0000-0000-000000001875',
+                    'f1d38000-0000-0000-0000-000000001909',
+                    'f1d38000-0000-0000-0000-000000001922',
+                    'f1d38000-0000-0000-0000-000000001947',
+                    'f1d38000-0000-0000-0000-000000002104',
+                    'f1d38000-0000-0000-0000-000000002128',
+                    'f1d38000-0000-0000-0000-000000002156',
+                    'f1d38000-0000-0000-0000-000000002174',
+                    'f1d38000-0000-0000-0000-000000002247',
+                    'f1d38000-0000-0000-0000-000000002335',
+                    'f1d38000-0000-0000-0000-000000002344',
+                    'f1d38000-0000-0000-0000-000000002378',
+                    'f1d38000-0000-0000-0000-000000002603',
+                    'f1d38000-0000-0000-0000-000000002691',
+                    'f1d38000-0000-0000-0000-000000002785',
+                    'f1d38000-0000-0000-0000-000000002847',
+                    'f1d38100-0000-0000-0000-0000000000da',
+                    'f1d38100-0000-0000-0000-0000000000db',
+                    'f1d38100-0000-0000-0000-0000000000dc',
+                    'f1d38100-0000-0000-0000-0000000000dd',
+                    'f1d38100-0000-0000-0000-0000000000de',
+                    'f1d38100-0000-0000-0000-0000000000df',
+                    'f1d38100-0000-0000-0000-0000000000e0',
+                    'f1d38100-0000-0000-0000-0000000000e1',
+                    'f1d38100-0000-0000-0000-0000000000e2',
+                    'f1d38100-0000-0000-0000-0000000000e3',
+                    'f1d38200-0000-0000-0000-000000001597',
+                    'f1d38200-0000-0000-0000-000000002609',
+                    'f1d38200-0000-0000-0000-000000001702',
+                    'f1d38200-0000-0000-0000-000000001979',
+                    'f1d38200-0000-0000-0000-000000002216',
+                    'f1d38200-0000-0000-0000-000000000573',
+                    'f1d38200-0000-0000-0000-000000001996',
+                    'f1d38200-0000-0000-0000-000000001672'
+                );
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
