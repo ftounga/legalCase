@@ -81,6 +81,7 @@ import { MajeursProtegesSectionComponent } from '../majeurs-proteges-section/maj
 import { ChangementEtatCivilSectionComponent } from '../changement-etat-civil-section/changement-etat-civil-section.component';
 import { AvantagesConventionnelsBeSectionComponent } from '../avantages-conventionnels-be-section/avantages-conventionnels-be-section.component';
 import { SeparationCorpsSectionComponent } from '../separation-corps-section/separation-corps-section.component';
+import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/refere-prudhomal-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -318,6 +319,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           workspaceCountry: ctx.workspaceCountry,
           // SF-DT-32-02 : pré-fill IA (salaireBrutMensuel + dateLicenciement)
           // + validation F-IA-03 (2 alertes : SALAIRE + DATE_FIN_CONTRAT).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-34-refere-prudhomal', {
+        component: ReferePrudhomalSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-34-02 : pré-fill IA (dateLicenciement → dateMiseEnDemeure,
+          // dateEntree → ancienneteContratMois, heuresSupMentionneesDansDossier
+          // → natureCreance=HEURES_SUPPLEMENTAIRES) + validation F-IA-03
+          // (2 alertes : DATE_MISE_EN_DEMEURE + ANCIENNETE).
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
