@@ -1,0 +1,279 @@
+<section class="dfc-section">
+  <header class="dfc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dfc-body">
+    <mat-icon class="dfc-icon">fact_check</mat-icon>
+    <span class="dfc-title">DOCUMENTS DE FIN DE CONTRAT — CONFORMITÉ</span>
+    @if (result()) {
+      <span class="dfc-chip" [class]="verdictClass()">
+        Score {{ result()!.scoreConformiteEmployeur }}/100 · {{ result()!.verdictRisqueContentieux }}
+      </span>
+    }
+    <mat-icon class="dfc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dfc-body" class="dfc-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="dfc-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil France uniquement (L.1234-19 / R.1234-9 / L.1234-20). Pour la Belgique, voir la feature jumelle backlog (C4 ONEM, certificat Loi 03/07/1978 art. 22, attestation vacances).</span>
+        </div>
+      } @else if (loading()) {
+        <div class="dfc-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="dfc-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="dfc-form" (ngSubmit)="calculate()">
+            <!-- Date de fin de contrat (pré-fill IA + alerte F-IA-03) -->
+            <div class="dfc-field-with-alert dfc-field-wide">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de fin de contrat</mat-label>
+                <input matInput type="date"
+                       [max]="todayIso"
+                       [ngModel]="dateFinContrat()"
+                       (ngModelChange)="onDateFinContratChange($event)"
+                       name="dateFinContrat" required />
+                <mat-hint>Date d'expiration du contrat de travail.</mat-hint>
+              </mat-form-field>
+              @if (provenanceDateFinContrat() === 'IA') {
+                <span class="dfc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().DATE_FIN_CONTRAT; as alert) {
+                <span class="dfc-coherence-badge"
+                      [appCoherencePopover]="explanationFor('DATE_FIN_CONTRAT')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Salaire mensuel brut (pré-fill IA + alerte F-IA-03) -->
+            <div class="dfc-field-with-alert dfc-field-wide">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelBrutEur()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEur" required />
+                <mat-hint>Référence pour le calcul de l'indemnité journalière de retard (salaire / 30).</mat-hint>
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="dfc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="dfc-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Certificat de travail (toggle + datepicker conditionnel) -->
+            <div class="dfc-doc-block">
+              <div class="dfc-doc-header">
+                <mat-slide-toggle
+                    [ngModel]="certificatTravailRemis()"
+                    (ngModelChange)="onCertificatRemisChange($event)"
+                    name="certificatTravailRemis">
+                  Certificat de travail remis
+                </mat-slide-toggle>
+                <span class="dfc-doc-article">L.1234-19</span>
+              </div>
+              @if (certificatTravailRemis()) {
+                <mat-form-field appearance="outline" class="dfc-doc-date">
+                  <mat-label>Date de remise du certificat</mat-label>
+                  <input matInput type="date"
+                         [max]="todayIso"
+                         [ngModel]="dateCertificatTravail()"
+                         (ngModelChange)="onDateCertificatChange($event)"
+                         name="dateCertificatTravail" required />
+                  <mat-hint>Tolérance jurisprudentielle : 7 jours après fin de contrat.</mat-hint>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Attestation France Travail (toggle + datepicker conditionnel) -->
+            <div class="dfc-doc-block">
+              <div class="dfc-doc-header">
+                <mat-slide-toggle
+                    [ngModel]="attestationFranceTravailRemise()"
+                    (ngModelChange)="onAttestationRemiseChange($event)"
+                    name="attestationFranceTravailRemise">
+                  Attestation France Travail remise
+                </mat-slide-toggle>
+                <span class="dfc-doc-article">R.1234-9</span>
+              </div>
+              @if (attestationFranceTravailRemise()) {
+                <mat-form-field appearance="outline" class="dfc-doc-date">
+                  <mat-label>Date de remise de l'attestation</mat-label>
+                  <input matInput type="date"
+                         [max]="todayIso"
+                         [ngModel]="dateAttestationFranceTravail()"
+                         (ngModelChange)="onDateAttestationChange($event)"
+                         name="dateAttestationFranceTravail" required />
+                  <mat-hint>Indispensable pour l'ouverture des droits chômage.</mat-hint>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Reçu pour solde de tout compte (toggle + datepicker + STC contestable) -->
+            <div class="dfc-doc-block">
+              <div class="dfc-doc-header">
+                <mat-slide-toggle
+                    [ngModel]="souldeToutCompteSigne()"
+                    (ngModelChange)="onSouldeSigneChange($event)"
+                    name="souldeToutCompteSigne">
+                  Reçu pour solde de tout compte signé
+                </mat-slide-toggle>
+                <span class="dfc-doc-article">L.1234-20</span>
+              </div>
+              @if (souldeToutCompteSigne()) {
+                <mat-form-field appearance="outline" class="dfc-doc-date">
+                  <mat-label>Date de signature du STC</mat-label>
+                  <input matInput type="date"
+                         [max]="todayIso"
+                         [ngModel]="dateSouldeToutCompte()"
+                         (ngModelChange)="onDateSouldeChange($event)"
+                         name="dateSouldeToutCompte" required />
+                  <mat-hint>Délai de 30 jours après fin de contrat. Contestable 6 mois après signature (al. 2).</mat-hint>
+                </mat-form-field>
+                <div class="dfc-doc-extra-toggle">
+                  <mat-slide-toggle
+                      [ngModel]="souldeToutCompteContestableDelai6mois()"
+                      (ngModelChange)="onSouldeContestableChange($event)"
+                      name="souldeToutCompteContestableDelai6mois">
+                    Encore contestable (fenêtre 6 mois en cours)
+                  </mat-slide-toggle>
+                  <span class="dfc-doc-info-hint">
+                    <mat-icon>info_outline</mat-icon>
+                    Indication informative — le backend recalcule la fenêtre 6 mois automatiquement.
+                  </span>
+                </div>
+              }
+            </div>
+
+            <div class="dfc-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer la conformité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="dfc-result">
+            <!-- Bandeau verdict -->
+            <div class="dfc-verdict-banner" [class]="verdictClass()">
+              <mat-icon>{{ result()!.verdictRisqueContentieux === 'FAIBLE' ? 'verified'
+                       : result()!.verdictRisqueContentieux === 'MOYEN' ? 'warning_amber'
+                       : 'priority_high' }}</mat-icon>
+              <div class="dfc-verdict-text">
+                <span class="dfc-verdict-label">Risque contentieux</span>
+                <span class="dfc-verdict-value">{{ result()!.verdictRisqueContentieux }}</span>
+              </div>
+              <div class="dfc-score-block">
+                <span class="dfc-score-label">Score conformité</span>
+                <span class="dfc-score-value">{{ result()!.scoreConformiteEmployeur }}/100</span>
+              </div>
+            </div>
+
+            <!-- 3 cartes documents -->
+            <div class="dfc-cards">
+              <div class="dfc-card" [class]="certificatStatutClass()">
+                <div class="dfc-card-header">
+                  <mat-icon>description</mat-icon>
+                  <span class="dfc-card-title">Certificat de travail</span>
+                  <span class="dfc-card-article">L.1234-19</span>
+                </div>
+                <span class="dfc-card-statut">{{ certificatStatutLabel() }}</span>
+                @if (result()!.indemniteRetardCertificatEur > 0) {
+                  <span class="dfc-card-indemnite">
+                    Indemnité retard : {{ result()!.indemniteRetardCertificatEur | number:'1.2-2' }} €
+                  </span>
+                }
+              </div>
+
+              <div class="dfc-card" [class]="attestationStatutClass()">
+                <div class="dfc-card-header">
+                  <mat-icon>assignment</mat-icon>
+                  <span class="dfc-card-title">Attestation France Travail</span>
+                  <span class="dfc-card-article">R.1234-9</span>
+                </div>
+                <span class="dfc-card-statut">{{ attestationStatutLabel() }}</span>
+                @if (result()!.indemniteRetardAttestationEur > 0) {
+                  <span class="dfc-card-indemnite">
+                    Indemnité retard : {{ result()!.indemniteRetardAttestationEur | number:'1.2-2' }} €
+                  </span>
+                }
+              </div>
+
+              <div class="dfc-card" [class]="stcStatutClass()">
+                <div class="dfc-card-header">
+                  <mat-icon>receipt_long</mat-icon>
+                  <span class="dfc-card-title">Reçu pour solde de tout compte</span>
+                  <span class="dfc-card-article">L.1234-20</span>
+                </div>
+                <span class="dfc-card-statut">{{ stcStatutLabel() }}</span>
+                @if (result()!.souldeToutCompteSigne) {
+                  <span class="dfc-card-stc-contestable">
+                    {{ result()!.souldeToutCompteContestable
+                        ? 'Encore contestable (fenêtre 6 mois en cours)'
+                        : 'Effet libératoire acquis (6 mois écoulés)' }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Formule + base juridique -->
+            <div class="dfc-formule-block">
+              <span class="dfc-formule-label">Formule</span>
+              <span class="dfc-formule">{{ result()!.formule }}</span>
+            </div>
+
+            <div class="dfc-meta">
+              <span class="dfc-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messagesContentieux?.length) {
+              <ul class="dfc-messages dfc-messages--contentieux">
+                @for (m of result()!.messagesContentieux; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            @if (result()!.messages?.length) {
+              <ul class="dfc-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
