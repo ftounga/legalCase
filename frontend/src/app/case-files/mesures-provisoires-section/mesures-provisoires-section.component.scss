@@ -1,0 +1,441 @@
+// SF-FA-12-02 : palette navy / or / rouge classique — pas de rouge dominant.
+// Rouge réservé au verdict FAIBLE et au badge cohérence CRITICAL (violences).
+
+.mp-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.mp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.mp-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.mp-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.mp-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(26, 58, 92, 0.08);
+  color: #1A3A5C;
+
+  &--strong {
+    background: rgba(26, 58, 92, 0.12);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.16);
+    color: #8a6a16;
+  }
+  &--weak {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B02A37;
+  }
+}
+
+.mp-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.mp-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.mp-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.mp-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+
+  &--info {
+    background: rgba(26, 58, 92, 0.06);
+    border: 1px solid rgba(26, 58, 92, 0.20);
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+}
+
+.mp-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mp-banner-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.mp-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.mp-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.mp-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mp-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.mp-required { color: #B02A37; }
+
+.mp-date-input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+
+  &:focus {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -1px;
+  }
+}
+
+.mp-toggle-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  flex-wrap: wrap;
+}
+
+.mp-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.mp-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.mp-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+
+  // Variante CRITICAL (violences détectées non saisies par l'avocat).
+  &--critical {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B02A37;
+    mat-icon { color: #B02A37; }
+  }
+}
+
+.mp-enfants {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(26, 58, 92, 0.04);
+  border: 1px solid rgba(26, 58, 92, 0.10);
+  border-radius: 8px;
+}
+
+.mp-enfants-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mp-enfant-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.mp-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mp-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mp-verdict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+
+  &--strong {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+    color: #8a6a16;
+  }
+  &--weak {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B02A37;
+    color: #B02A37;
+  }
+}
+
+.mp-verdict-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.mp-verdict-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mp-verdict-label {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.mp-verdict-score {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+}
+
+.mp-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: rgba(26, 58, 92, 0.04);
+  border: 1px solid rgba(26, 58, 92, 0.10);
+
+  &--neutral {
+    background: rgba(26, 58, 92, 0.04);
+    border-color: rgba(26, 58, 92, 0.10);
+  }
+  &--ok {
+    background: rgba(76, 175, 80, 0.06);
+    border-color: rgba(76, 175, 80, 0.25);
+  }
+  &--muted {
+    background: rgba(106, 116, 133, 0.06);
+    border-color: rgba(106, 116, 133, 0.18);
+  }
+  &--amount {
+    background: rgba(201, 165, 75, 0.08);
+    border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.mp-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.mp-card-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.mp-card-value--amount {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 20px;
+}
+
+.mp-card-sub {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.mp-diff-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(26, 35, 48, 0.04);
+}
+
+.mp-diff-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.mp-diff-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.mp-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.mp-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-radius: 4px;
+}
+
+.mp-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.mp-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.mp-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mp-meta-base {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}

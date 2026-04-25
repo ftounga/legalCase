@@ -1,0 +1,357 @@
+<section class="mp-section">
+  <header class="mp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button" [attr.aria-expanded]="!collapsed()" aria-controls="mp-body">
+    <mat-icon class="mp-icon">gavel</mat-icon>
+    <span class="mp-title">MESURES PROVISOIRES (FR) — ART. 254 CCIV</span>
+    @if (result()) {
+      <span class="mp-chip"
+            [class.mp-chip--strong]="result()!.verdictAcceptabilite === 'ELEVEE'"
+            [class.mp-chip--medium]="result()!.verdictAcceptabilite === 'MOYENNE'"
+            [class.mp-chip--weak]="result()!.verdictAcceptabilite === 'FAIBLE'">
+        {{ verdictAcceptabiliteLabel(result()!.verdictAcceptabilite) }} ({{ result()!.scoreCohesionMesures }}/100)
+      </span>
+    }
+    <mat-icon class="mp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="mp-body" class="mp-body">
+
+      @if (!isFranceGate()) {
+        <!-- Gate workspaceCountry BE : bannière info, pas de masquage silencieux. -->
+        <div class="mp-banner mp-banner--info">
+          <mat-icon>info_outline</mat-icon>
+          <div class="mp-banner-content">
+            <div class="mp-banner-title">Outil disponible uniquement pour les dossiers FR</div>
+            <div class="mp-banner-sub">
+              En droit belge, la procédure équivalente est la <em>désunion irrémédiable</em>
+              (art. 229 CC). L'outil correspondant (F-FA-11) est livré séparément.
+            </div>
+          </div>
+        </div>
+      } @else {
+
+        @if (loading()) {
+          <div class="mp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+
+          @if (showForm()) {
+            <!-- Résumé incohérences détectées (F-IA-03). -->
+            @if (alertsSummary().total > 0) {
+              <div class="mp-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="mp-form" (ngSubmit)="calculate()">
+
+              <!-- Date audience AOMP -->
+              <div class="mp-field-with-alert">
+                <label class="mp-field-label" for="mp-date-audience">
+                  Date de l'audience AOMP <span class="mp-required">*</span>
+                </label>
+                <input id="mp-date-audience" class="mp-date-input" type="date"
+                       [ngModel]="dateAudienceAOMP()"
+                       (ngModelChange)="onDateAudienceChange($event)"
+                       name="dateAudienceAOMP" required />
+                @if (provenanceDateAudience() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_AUDIENCE; as alert) {
+                  <span class="mp-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Revenus mensuels demandeur -->
+              <div class="mp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Revenus mensuels époux demandeur (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01"
+                         [ngModel]="revenusEpouxDemandeurEur()"
+                         (ngModelChange)="onRevenusDemandeurChange($event)"
+                         name="revenusEpouxDemandeurEur" required />
+                </mat-form-field>
+                @if (provenanceRevenusDemandeur() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REVENUS_DEMANDEUR; as alert) {
+                  <span class="mp-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Revenus mensuels défendeur -->
+              <div class="mp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Revenus mensuels époux défendeur (€)</mat-label>
+                  <input matInput type="number" min="0" step="0.01"
+                         [ngModel]="revenusEpouxDefendeurEur()"
+                         (ngModelChange)="onRevenusDefendeurChange($event)"
+                         name="revenusEpouxDefendeurEur" required />
+                </mat-form-field>
+                @if (provenanceRevenusDefendeur() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().REVENUS_DEFENDEUR; as alert) {
+                  <span class="mp-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Logement propriétaire -->
+              <div class="mp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Régime du logement commun</mat-label>
+                  <mat-select required
+                              [ngModel]="logementProprietaire()"
+                              (ngModelChange)="onLogementProprietaireChange($event)"
+                              name="logementProprietaire">
+                    @for (opt of logementOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Description logement (libre) -->
+              <div class="mp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Description du logement (optionnel)</mat-label>
+                  <input matInput type="text"
+                         [ngModel]="logementCommunDescription()"
+                         (ngModelChange)="onLogementDescriptionChange($event)"
+                         name="logementCommunDescription"
+                         placeholder="Adresse, type, surface" />
+                </mat-form-field>
+              </div>
+
+              <!-- Souhait résidence enfants -->
+              <div class="mp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Souhait de résidence des enfants</mat-label>
+                  <mat-select required
+                              [ngModel]="souhaitResidenceEnfants()"
+                              (ngModelChange)="onSouhaitResidenceChange($event)"
+                              name="souhaitResidenceEnfants">
+                    @for (opt of residenceOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <!-- Liste enfants mineurs -->
+              <div class="mp-enfants">
+                <div class="mp-enfants-header">
+                  <span class="mp-field-label">Enfants mineurs</span>
+                  <button mat-stroked-button type="button" (click)="addEnfant()">
+                    <mat-icon>add</mat-icon> Ajouter un enfant
+                  </button>
+                </div>
+                @for (e of enfantsMineurs(); track $index) {
+                  <div class="mp-enfant-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Prénom</mat-label>
+                      <input matInput type="text"
+                             [ngModel]="e.prenom"
+                             (ngModelChange)="updateEnfantPrenom($index, $event)"
+                             [name]="'enfant-prenom-' + $index" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Âge</mat-label>
+                      <input matInput type="number" min="0" max="17" step="1"
+                             [ngModel]="e.age"
+                             (ngModelChange)="updateEnfantAge($index, $event)"
+                             [name]="'enfant-age-' + $index" />
+                    </mat-form-field>
+                    <button mat-icon-button type="button" (click)="removeEnfant($index)" aria-label="Supprimer">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <!-- Toggles bool -->
+              <div class="mp-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="violencesAlleguees()"
+                    (ngModelChange)="onViolencesChange($event)"
+                    name="violencesAlleguees"
+                    color="primary">
+                  Violences alléguées
+                </mat-slide-toggle>
+                @if (provenanceViolences() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().VIOLENCES; as alert) {
+                  <span class="mp-coherence-badge mp-coherence-badge--critical"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="mp-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="patrimoineCommunIsignificatif()"
+                    (ngModelChange)="onPatrimoineChange($event)"
+                    name="patrimoineCommunIsignificatif"
+                    color="primary">
+                  Patrimoine commun significatif
+                </mat-slide-toggle>
+                @if (provenancePatrimoine() === 'IA') {
+                  <span class="mp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+
+              <div class="mp-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="demandeMesureConservatoire()"
+                    (ngModelChange)="onMesureConservatoireChange($event)"
+                    name="demandeMesureConservatoire"
+                    color="primary">
+                  Demande de mesure conservatoire patrimoniale (art. 220-1 Cciv)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="mp-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser les mesures provisoires</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="mp-result">
+
+              <!-- Bannière verdict -->
+              <div [class]="verdictBannerClass(result()!.verdictAcceptabilite)" role="status">
+                <mat-icon class="mp-verdict-icon">
+                  @switch (result()!.verdictAcceptabilite) {
+                    @case ('ELEVEE') { check_circle }
+                    @case ('MOYENNE') { warning }
+                    @case ('FAIBLE') { error_outline }
+                  }
+                </mat-icon>
+                <div class="mp-verdict-text">
+                  <span class="mp-verdict-label">{{ verdictAcceptabiliteLabel(result()!.verdictAcceptabilite) }}</span>
+                  <span class="mp-verdict-score">Score cohésion {{ result()!.scoreCohesionMesures }}/100</span>
+                </div>
+              </div>
+
+              <!-- Cartes recommandations -->
+              <div class="mp-cards-grid">
+
+                <!-- Logement -->
+                <div class="mp-card mp-card--neutral">
+                  <span class="mp-card-label">Attribution du logement</span>
+                  <span class="mp-card-value">{{ attributionLogementLabel(result()!.attributionLogementRecommande) }}</span>
+                </div>
+
+                <!-- Résidence enfants -->
+                <div [class]="residenceCardClass(result()!.residenceEnfantsRecommande)">
+                  <span class="mp-card-label">Résidence des enfants</span>
+                  <span class="mp-card-value">{{ residenceEnfantsLabel(result()!.residenceEnfantsRecommande) }}</span>
+                </div>
+
+                <!-- Pension alimentaire -->
+                <div class="mp-card mp-card--amount">
+                  <span class="mp-card-label">Pension alimentaire ad interim</span>
+                  <span class="mp-card-value mp-card-value--amount">
+                    {{ result()!.pensionAlimentairePropose | number:'1.2-2' }} €
+                  </span>
+                  <span class="mp-card-sub">|différentiel revenus|/2 — méthode simplifiée</span>
+                </div>
+
+                <!-- Contribution charges -->
+                <div class="mp-card mp-card--amount">
+                  <span class="mp-card-label">Contribution aux charges (art. 214 Cciv)</span>
+                  <span class="mp-card-value mp-card-value--amount">
+                    {{ result()!.contributionCharges | number:'1.2-2' }} €
+                  </span>
+                  <span class="mp-card-sub">moitié des revenus les plus élevés</span>
+                </div>
+
+                <!-- Mesure conservatoire -->
+                <div class="mp-card"
+                     [class.mp-card--ok]="result()!.mesureConservatoireRecommande"
+                     [class.mp-card--muted]="!result()!.mesureConservatoireRecommande">
+                  <span class="mp-card-label">Mesure conservatoire patrimoniale</span>
+                  <span class="mp-card-value">
+                    {{ result()!.mesureConservatoireRecommande ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  <span class="mp-card-sub">art. 220-1 Cciv</span>
+                </div>
+              </div>
+
+              <!-- Différentiel revenus -->
+              <div class="mp-diff-block">
+                <span class="mp-diff-label">Différentiel de revenus (signé)</span>
+                <span class="mp-diff-value">{{ result()!.differentielRevenus | number:'1.2-2' }} €</span>
+              </div>
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="mp-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule (JetBrains Mono) -->
+              @if (result()!.formule) {
+                <div class="mp-formule-block">
+                  <span class="mp-formule-label">Formule</span>
+                  <span class="mp-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier -->
+              <div class="mp-meta">
+                <span class="mp-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+
+        }
+      }
+    </div>
+  }
+</section>
