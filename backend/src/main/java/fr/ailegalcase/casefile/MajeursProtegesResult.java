@@ -14,6 +14,11 @@ import java.util.List;
  * renforcée (art. 472) — ajout des champs {@code incapaciteGestionQuotidienne}
  * (input) + {@code eligible} et {@code criteresNonRemplis} (sortie).
  *
+ * <p>SF-FA-25-04 : extension pour tutelle (art. 440 al. 3) — ajout du champ
+ * {@code altertationGrave} (input) qui distingue la tutelle (altération
+ * grave et durable empêchant la personne de pourvoir seule à ses intérêts)
+ * de la curatelle.
+ *
  * <p>Outil single-country FR — DROIT_FAMILLE.
  */
 public record MajeursProtegesResult(
@@ -29,6 +34,7 @@ public record MajeursProtegesResult(
         boolean patrimoineSignificatif,
         boolean isolementSocial,
         boolean incapaciteGestionQuotidienne,
+        boolean altertationGrave,
         int scoreEligibilite,
         String regimeOptimalRecommande,
         String verdictAcceptabiliteJaf,
@@ -55,6 +61,7 @@ public record MajeursProtegesResult(
             @JsonProperty("patrimoineSignificatif") boolean patrimoineSignificatif,
             @JsonProperty("isolementSocial") boolean isolementSocial,
             @JsonProperty("incapaciteGestionQuotidienne") boolean incapaciteGestionQuotidienne,
+            @JsonProperty("altertationGrave") boolean altertationGrave,
             @JsonProperty("scoreEligibilite") int scoreEligibilite,
             @JsonProperty("regimeOptimalRecommande") String regimeOptimalRecommande,
             @JsonProperty("verdictAcceptabiliteJaf") String verdictAcceptabiliteJaf,
@@ -79,6 +86,7 @@ public record MajeursProtegesResult(
         this.patrimoineSignificatif = patrimoineSignificatif;
         this.isolementSocial = isolementSocial;
         this.incapaciteGestionQuotidienne = incapaciteGestionQuotidienne;
+        this.altertationGrave = altertationGrave;
         this.scoreEligibilite = scoreEligibilite;
         this.regimeOptimalRecommande = regimeOptimalRecommande;
         this.verdictAcceptabiliteJaf = verdictAcceptabiliteJaf;

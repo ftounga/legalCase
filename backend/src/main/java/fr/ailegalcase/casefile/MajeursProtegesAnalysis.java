@@ -68,6 +68,15 @@ public class MajeursProtegesAnalysis {
     @Column(name = "incapacite_gestion_quotidienne")
     private Boolean incapaciteGestionQuotidienne;
 
+    /**
+     * SF-FA-25-04 : critère pivot art. 440 al. 3 Cciv pour tutelle.
+     * true = la personne ne peut plus pourvoir seule à ses intérêts dans les
+     * actes essentiels (altération grave et durable). Nullable pour rester
+     * compatible avec les analyses persistées avant la migration 160.
+     */
+    @Column(name = "altertation_grave")
+    private Boolean altertationGrave;
+
     @Column(name = "country", nullable = false, length = 20)
     private String country;
 

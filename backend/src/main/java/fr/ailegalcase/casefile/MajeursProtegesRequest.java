@@ -11,6 +11,12 @@ import java.util.List;
  * {@code incapaciteGestionQuotidienne} (art. 472 Cciv) qui distingue la
  * curatelle renforcée de la curatelle simple. Backward compatible : un POST
  * sans ce champ reste valide (default false).
+ *
+ * <p>SF-FA-25-04 : ajout du champ optionnel {@code altertationGrave}
+ * (art. 440 al. 3 Cciv) qui distingue la tutelle (altération grave et
+ * durable empêchant la personne de pourvoir seule à ses intérêts) de la
+ * curatelle. Backward compatible : un POST sans ce champ reste valide
+ * (default false).
  */
 public record MajeursProtegesRequest(
         String regimeProtectionDemande,
@@ -24,5 +30,6 @@ public record MajeursProtegesRequest(
         Boolean urgencePatrimoniale,
         Boolean patrimoineSignificatif,
         Boolean isolementSocial,
-        Boolean incapaciteGestionQuotidienne
+        Boolean incapaciteGestionQuotidienne,
+        Boolean altertationGrave
 ) {}

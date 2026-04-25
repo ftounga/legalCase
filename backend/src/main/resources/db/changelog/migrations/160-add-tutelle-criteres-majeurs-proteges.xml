@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="160-add-tutelle-criteres-majeurs-proteges" author="legalcase">
+        <comment>
+            SF-FA-25-04 : extension de l'outil "Majeurs protégés" (table
+            majeurs_proteges_analyses créée en migration 153, étendue en 159)
+            pour le régime TUTELLE (art. 440 al. 3 Cciv) — le plus protecteur
+            des 6 régimes : la personne ne peut plus pourvoir seule à ses
+            intérêts en raison d'une altération grave et durable de ses
+            facultés, et le tuteur la REPRÉSENTE dans tous les actes de la
+            vie civile (à la différence de la curatelle qui se contente
+            d'assister).
+
+            Changement de schéma minimal :
+            - ADD COLUMN altertation_grave (boolean nullable) — critère pivot
+              tutelle (art. 440 al. 3) qui distingue la tutelle de la
+              curatelle renforcée. true = la personne ne peut plus pourvoir
+              seule à ses intérêts dans les actes essentiels (pas seulement
+              les actes patrimoniaux exceptionnels).
+
+            Aucun changement de la signature des colonnes existantes :
+            backward compatible. Les analyses existantes restent lisibles
+            (altertation_grave = NULL traité comme false dans le calcul).
+
+            + Seed de 1 entry legal_referentials de type
+            MAJEURS_PROTEGES_REGIMES code TUTELLE avec description
+            SF-140-03 obligatoire (langage avocat).
+
+            Rollback : DROP COLUMN + DELETE legal_referentials par UUID.
+        </comment>
+
+        <addColumn tableName="majeurs_proteges_analyses">
+            <column name="altertation_grave" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1a04001-0000-0000-0000-000000000161', NULL, 'DROIT_FAMILLE', 'MAJEURS_PROTEGES_REGIMES', 'TUTELLE', '{"articles":["Cciv 425","Cciv 440 al. 3","Cciv 473","Cciv 510"],"delaiProcedureMois":8,"delaiInitialAnsMax":5,"renouvelable":true,"criteresEligibilite":["Altération grave et durable des facultés mentales OU physiques (art. 425) constatée par certificat médical circonstancié (art. 431)","Personne ne pouvant plus pourvoir seule à ses intérêts dans les actes essentiels (art. 440 al. 3) — critère pivot vs curatelle","Incapacité de gestion quotidienne (budget courant)","Au moins 2 catégories d''actes envisagés (représentation continue, pas simple assistance ponctuelle)"]}', 'Tutelle', 'FR', true, true, 'Cciv 440 al. 3 + 425 + 473 + 510', 'Tutelle (art. 440 al. 3 Cciv) : régime de protection juridique LE PLUS PROTECTEUR des 6 régimes. Il s''applique quand la personne ne peut PLUS POURVOIR SEULE à ses intérêts en raison d''une altération GRAVE et DURABLE de ses facultés mentales ou physiques (art. 425). Le tuteur REPRÉSENTE la personne dans tous les actes de la vie civile (différence majeure avec la curatelle qui se contente d''ASSISTER — art. 440 al. 1/472). La représentation est continue : signature seule du tuteur pour les actes courants, autorisation du juge des contentieux de la protection pour les actes graves (art. 505-507). Conditions de saisine : certificat médical circonstancié obligatoire (art. 431) délivré par un médecin inscrit sur la liste du procureur, audition de la personne (art. 432) sauf impossibilité médicale dûment justifiée, qualité à agir du demandeur (art. 430). Durée initiale 5 ans max, renouvelable jusqu''à 10 ans si l''altération n''apparaît manifestement pas susceptible de connaître une amélioration (art. 441). Délai prévisionnel devant le juge des contentieux de la protection : ~8 mois. Le tuteur rend compte annuellement au juge (art. 510). Utilisé par l''outil décisionnel F-FA-25 (Majeurs protégés). Critère DISCRIMINANT vs curatelle renforcée : l''altération grave et durable empêchant la personne de pourvoir seule à ses intérêts (altertationGrave = true → tutelle, sinon curatelle renforcée si incapacité quotidienne).', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM legal_referentials WHERE id = 'f1a04001-0000-0000-0000-000000000161';
+            </sql>
+            <dropColumn tableName="majeurs_proteges_analyses" columnName="altertation_grave"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

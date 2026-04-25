@@ -11,6 +11,9 @@ import java.util.UUID;
  * <p>SF-FA-25-03 : ajout des champs {@code incapaciteGestionQuotidienne}
  * (art. 472), {@code eligible} et {@code criteresNonRemplis} pour les
  * régimes curatelle simple/renforcée.
+ *
+ * <p>SF-FA-25-04 : ajout du champ {@code altertationGrave} (art. 440 al. 3)
+ * pour le régime tutelle.
  */
 public record MajeursProtegesResponse(
         UUID caseFileId,
@@ -26,6 +29,7 @@ public record MajeursProtegesResponse(
         boolean patrimoineSignificatif,
         boolean isolementSocial,
         boolean incapaciteGestionQuotidienne,
+        boolean altertationGrave,
         int scoreEligibilite,
         String regimeOptimalRecommande,
         String verdictAcceptabiliteJaf,

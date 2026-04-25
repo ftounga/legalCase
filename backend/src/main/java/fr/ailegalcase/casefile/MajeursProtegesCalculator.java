@@ -18,6 +18,13 @@ import java.util.Set;
  * quotidien). Le critère pivot {@code incapaciteGestionQuotidienne}
  * distingue les deux.
  *
+ * <p>SF-FA-25-04 : extension explicite du régime TUTELLE (art. 440 al. 3
+ * Cciv) — le plus protecteur des 6 régimes. Le tuteur REPRÉSENTE la
+ * personne (différence majeure avec la curatelle qui se contente
+ * d'ASSISTER). Le critère pivot {@code altertationGrave} (altération grave
+ * et durable empêchant la personne de pourvoir seule à ses intérêts dans
+ * les actes essentiels) distingue la tutelle des curatelles.
+ *
  * <p>L'outil :
  * <ul>
  *   <li>évalue un score 0-100 d'éligibilité (acceptabilité par le JCP)</li>
@@ -46,6 +53,9 @@ import java.util.Set;
  *       SAUVEGARDE_JUSTICE</li>
  *   <li>famille proche + consentement + altération mentale + non urgent →
  *       HABILITATION_FAMILIALE</li>
+ *   <li>SF-FA-25-04 : altération + cert médical + altertationGrave +
+ *       incapacité quotidienne + ≥ 2 catégories d'actes sans consentement →
+ *       TUTELLE</li>
  *   <li>SF-FA-25-03 : altération + cert médical + incapacité gestion
  *       quotidienne sans consentement → CURATELLE_RENFORCEE</li>
  *   <li>gestion patrimoine + patrimoine significatif + pas de consentement →
@@ -53,7 +63,7 @@ import java.util.Set;
  *   <li>SF-FA-25-03 : altération + cert médical + acte patrimonial important
  *       sans incapacité quotidienne → CURATELLE_SIMPLE</li>
  *   <li>altération mentale + isolement social + pas de consentement →
- *       TUTELLE</li>
+ *       TUTELLE (compat SF-FA-25-01)</li>
  *   <li>sinon → fallback sur regimeProtectionDemande</li>
  * </ol>
  *
@@ -105,6 +115,14 @@ public final class MajeursProtegesCalculator {
     public static final Set<String> ACTES_PATRIMONIAUX_IMPORTANTS = Set.of(
             "GESTION_PATRIMOINE", "DECISIONS_LOGEMENT");
 
+    /**
+     * SF-FA-25-04 : seuil minimum de catégories d'actes pour qualifier la
+     * représentation continue qu'implique une tutelle (vs assistance
+     * ponctuelle de la curatelle). Au moins 2 catégories distinctes
+     * d'actes envisagés.
+     */
+    public static final int MIN_CATEGORIES_ACTES_TUTELLE = 2;
+
     private static final String BASE_JURIDIQUE =
             "Art. 433-441 + 494-1 et s. Cciv";
 
@@ -113,7 +131,8 @@ public final class MajeursProtegesCalculator {
 
     /**
      * Surcharge SF-FA-25-01 (backward compatible) : appelle la version
-     * étendue avec {@code incapaciteGestionQuotidienne = false}.
+     * étendue avec {@code incapaciteGestionQuotidienne = false} et
+     * {@code altertationGrave = false}.
      */
     public static MajeursProtegesResult compute(String regimeProtectionDemande,
                                                 boolean altertationFacultesMentales,
@@ -137,13 +156,13 @@ public final class MajeursProtegesCalculator {
                 urgencePatrimoniale,
                 patrimoineSignificatif,
                 isolementSocial,
+                false,
                 false);
     }
 
     /**
-     * SF-FA-25-03 : version étendue avec critère
-     * {@code incapaciteGestionQuotidienne} (pivot art. 472 pour curatelle
-     * renforcée).
+     * Surcharge SF-FA-25-03 (backward compatible) : appelle la version
+     * étendue avec {@code altertationGrave = false}.
      */
     public static MajeursProtegesResult compute(String regimeProtectionDemande,
                                                 boolean altertationFacultesMentales,
@@ -157,6 +176,40 @@ public final class MajeursProtegesCalculator {
                                                 boolean patrimoineSignificatif,
                                                 boolean isolementSocial,
                                                 boolean incapaciteGestionQuotidienne) {
+        return compute(regimeProtectionDemande,
+                altertationFacultesMentales,
+                altertationFacultesPhysiques,
+                certificatMedicalCirconstancie,
+                dateCertificatMedical,
+                consentementPersonneAProteger,
+                demandeurFamilial,
+                actesEnvisages,
+                urgencePatrimoniale,
+                patrimoineSignificatif,
+                isolementSocial,
+                incapaciteGestionQuotidienne,
+                false);
+    }
+
+    /**
+     * SF-FA-25-04 : version étendue avec critères
+     * {@code incapaciteGestionQuotidienne} (pivot art. 472 pour curatelle
+     * renforcée) ET {@code altertationGrave} (pivot art. 440 al. 3 pour
+     * tutelle).
+     */
+    public static MajeursProtegesResult compute(String regimeProtectionDemande,
+                                                boolean altertationFacultesMentales,
+                                                boolean altertationFacultesPhysiques,
+                                                boolean certificatMedicalCirconstancie,
+                                                LocalDate dateCertificatMedical,
+                                                boolean consentementPersonneAProteger,
+                                                String demandeurFamilial,
+                                                List<String> actesEnvisages,
+                                                boolean urgencePatrimoniale,
+                                                boolean patrimoineSignificatif,
+                                                boolean isolementSocial,
+                                                boolean incapaciteGestionQuotidienne,
+                                                boolean altertationGrave) {
         validateRegime(regimeProtectionDemande);
         validateDemandeur(demandeurFamilial);
         List<String> actes = validateActes(actesEnvisages);
@@ -179,7 +232,8 @@ public final class MajeursProtegesCalculator {
                 urgencePatrimoniale,
                 patrimoineSignificatif,
                 isolementSocial,
-                incapaciteGestionQuotidienne);
+                incapaciteGestionQuotidienne,
+                altertationGrave);
 
         int delai = REGIMES_LONGS.contains(regimeOptimal)
                 ? DELAI_LONG_MOIS : DELAI_COURT_MOIS;
@@ -205,7 +259,8 @@ public final class MajeursProtegesCalculator {
                 consentementPersonneAProteger,
                 demandeurFamilial,
                 actes,
-                incapaciteGestionQuotidienne);
+                incapaciteGestionQuotidienne,
+                altertationGrave);
         boolean eligible = criteresNonRemplis.isEmpty();
 
         String formule = buildFormule(score, verdict, regimeOptimal,
@@ -219,7 +274,8 @@ public final class MajeursProtegesCalculator {
                 altertationFacultesMentales, altertationFacultesPhysiques,
                 demandeurFamilial, actes, patrimoineSignificatif,
                 isolementSocial, auditionObligatoire, expertisePsy,
-                incapaciteGestionQuotidienne, criteresNonRemplis);
+                incapaciteGestionQuotidienne, altertationGrave,
+                criteresNonRemplis);
 
         return new MajeursProtegesResult(
                 regimeProtectionDemande,
@@ -234,6 +290,7 @@ public final class MajeursProtegesCalculator {
                 patrimoineSignificatif,
                 isolementSocial,
                 incapaciteGestionQuotidienne,
+                altertationGrave,
                 score,
                 regimeOptimal,
                 verdict,
@@ -288,9 +345,11 @@ public final class MajeursProtegesCalculator {
                                            boolean urgence,
                                            boolean patrimoine,
                                            boolean isolement,
-                                           boolean incapaciteQuotidienne) {
+                                           boolean incapaciteQuotidienne,
+                                           boolean altertationGrave) {
         boolean alterationToute = alterationMentale || alterationPhysique;
         boolean actePat = actes.stream().anyMatch(ACTES_PATRIMONIAUX_IMPORTANTS::contains);
+        int categoriesActes = actes.size();
 
         // Sauvegarde de justice : urgence patrimoniale + altération (provisoire)
         if (urgence && alterationToute) {
@@ -303,6 +362,19 @@ public final class MajeursProtegesCalculator {
                 && alterationMentale
                 && !urgence) {
             return "HABILITATION_FAMILIALE";
+        }
+        // SF-FA-25-04 : Tutelle pivot art. 440 al. 3 — altération grave et
+        // durable empêchant la personne de pourvoir seule à ses intérêts.
+        // Critères cumulatifs : altération + cert + altertationGrave +
+        // incapacité quotidienne + ≥ 2 catégories d'actes (représentation
+        // continue) + sans consentement (incompatible avec habilitation).
+        if (altertationGrave
+                && alterationToute
+                && certificat
+                && incapaciteQuotidienne
+                && categoriesActes >= MIN_CATEGORIES_ACTES_TUTELLE
+                && !consentement) {
+            return "TUTELLE";
         }
         // SF-FA-25-03 : Curatelle renforcée pivot art. 472 — incapacité de
         // gestion du budget quotidien + altération + cert médical
@@ -330,7 +402,8 @@ public final class MajeursProtegesCalculator {
                 && !isolement) {
             return "CURATELLE_SIMPLE";
         }
-        // Tutelle : altération mentale + isolement social sans consentement
+        // Tutelle (compat SF-FA-25-01) : altération mentale + isolement
+        // social sans consentement (branche fallback historique)
         if (alterationMentale && isolement && !consentement) {
             return "TUTELLE";
         }
@@ -353,7 +426,7 @@ public final class MajeursProtegesCalculator {
     }
 
     // =========================================================================
-    // SF-FA-25-03 : Analyse des critères d'éligibilité par régime
+    // SF-FA-25-03 + SF-FA-25-04 : Analyse des critères d'éligibilité par régime
     // =========================================================================
 
     /**
@@ -370,10 +443,12 @@ public final class MajeursProtegesCalculator {
                                                 boolean consentement,
                                                 String demandeur,
                                                 List<String> actes,
-                                                boolean incapaciteQuotidienne) {
+                                                boolean incapaciteQuotidienne,
+                                                boolean altertationGrave) {
         List<String> ko = new ArrayList<>();
         boolean alterationToute = alterationMentale || alterationPhysique;
         boolean actePat = actes.stream().anyMatch(ACTES_PATRIMONIAUX_IMPORTANTS::contains);
+        int categoriesActes = actes.size();
 
         // Critères communs : certificat (art. 431) + altération (art. 425)
         if (!certificat) {
@@ -409,6 +484,28 @@ public final class MajeursProtegesCalculator {
                             + "renforcée (art. 472 Cciv)");
                 }
             }
+            case "TUTELLE" -> {
+                // SF-FA-25-04 : critères pivots de la tutelle (art. 440 al. 3)
+                if (!altertationGrave) {
+                    ko.add("Altération grave et durable des facultés requise "
+                            + "(art. 440 al. 3 Cciv) — la personne doit ne plus "
+                            + "pouvoir pourvoir seule à ses intérêts ; sinon "
+                            + "basculer vers la curatelle (art. 440 al. 1/472)");
+                }
+                if (!incapaciteQuotidienne) {
+                    ko.add("Incapacité de gestion quotidienne requise pour la "
+                            + "tutelle (art. 425 + 440 al. 3) — la "
+                            + "représentation continue suppose que la personne "
+                            + "ne peut plus assurer seule sa vie courante");
+                }
+                if (categoriesActes < MIN_CATEGORIES_ACTES_TUTELLE) {
+                    ko.add("Au moins " + MIN_CATEGORIES_ACTES_TUTELLE
+                            + " catégories d'actes envisagés requises pour la "
+                            + "tutelle (représentation continue art. 440 al. 3) "
+                            + "— une seule catégorie suggère une assistance "
+                            + "ponctuelle (curatelle)");
+                }
+            }
             case "HABILITATION_FAMILIALE" -> {
                 if (!consentement) {
                     ko.add("Consentement de la personne à protéger requis "
@@ -419,9 +516,9 @@ public final class MajeursProtegesCalculator {
                             + "ENFANT_MAJEUR ou PARENT — art. 494-1 al. 1)");
                 }
             }
-            case "SAUVEGARDE_JUSTICE", "TUTELLE", "MANDAT_PROTECTION_FUTURE" -> {
+            case "SAUVEGARDE_JUSTICE", "MANDAT_PROTECTION_FUTURE" -> {
                 // pas de critères spécifiques additionnels analysés ici
-                // (couverts par le scoring 0-100 pour SAUVEGARDE / TUTELLE,
+                // (couverts par le scoring 0-100 pour SAUVEGARDE,
                 // hors-scope pour MANDAT_PROTECTION_FUTURE)
             }
             default -> { }
@@ -491,6 +588,7 @@ public final class MajeursProtegesCalculator {
                                               boolean auditionObligatoire,
                                               boolean expertisePsy,
                                               boolean incapaciteQuotidienne,
+                                              boolean altertationGrave,
                                               List<String> criteresNonRemplis) {
         List<String> msgs = new ArrayList<>();
         msgs.add("Saisine du juge des contentieux de la protection (ex-JAF "
@@ -537,11 +635,17 @@ public final class MajeursProtegesCalculator {
                             + "Compte annuel de gestion à soumettre au juge "
                             + "(art. 510). Mesure plus lourde (~ 8 mois).");
             case "TUTELLE" -> msgs.add(
-                    "TUTELLE (art. 440 al. 3 et 473 Cciv) : représentation "
-                            + "continue de la personne dans tous les actes de "
-                            + "la vie civile. Mesure la plus protectrice, "
-                            + "réservée aux altérations sévères avec isolement "
-                            + "social et absence de consentement.");
+                    "TUTELLE (art. 440 al. 3 et 473 Cciv) : régime LE PLUS "
+                            + "PROTECTEUR — le tuteur REPRÉSENTE la personne "
+                            + "dans tous les actes de la vie civile (différence "
+                            + "majeure avec la curatelle qui se contente "
+                            + "d'ASSISTER). Réservée aux altérations graves et "
+                            + "durables empêchant la personne de pourvoir seule "
+                            + "à ses intérêts dans les actes essentiels. "
+                            + "Audition obligatoire art. 432 sauf dispense "
+                            + "médicale. Compte annuel de gestion au juge "
+                            + "(art. 510). Durée initiale 5 ans renouvelable. "
+                            + "Délai prévisionnel ~ 8 mois.");
             case "CURATELLE_SIMPLE" -> msgs.add(
                     "CURATELLE SIMPLE (art. 440 al. 1 Cciv) : ASSISTANCE pour "
                             + "les actes de disposition (vente immobilière, "
@@ -632,6 +736,15 @@ public final class MajeursProtegesCalculator {
             msgs.add("Incapacité de gestion quotidienne : critère pivot de la "
                     + "curatelle renforcée (art. 472 Cciv) — le curateur "
                     + "perçoit revenus et règle dépenses courantes.");
+        }
+
+        if (altertationGrave) {
+            msgs.add("Altération grave et durable : critère pivot de la "
+                    + "tutelle (art. 440 al. 3 Cciv) — la personne ne peut "
+                    + "plus pourvoir seule à ses intérêts dans les actes "
+                    + "essentiels, ce qui justifie la représentation "
+                    + "continue par un tuteur (et non la simple assistance "
+                    + "d'un curateur).");
         }
 
         if (!criteresNonRemplis.isEmpty()) {

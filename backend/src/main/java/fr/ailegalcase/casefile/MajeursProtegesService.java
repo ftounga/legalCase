@@ -83,6 +83,8 @@ public class MajeursProtegesService {
         boolean isolement = Boolean.TRUE.equals(request.isolementSocial());
         // SF-FA-25-03 : critère pivot art. 472 (curatelle renforcée) — null = false
         boolean incapaciteQuotidienne = Boolean.TRUE.equals(request.incapaciteGestionQuotidienne());
+        // SF-FA-25-04 : critère pivot art. 440 al. 3 (tutelle) — null = false
+        boolean altertationGrave = Boolean.TRUE.equals(request.altertationGrave());
 
         MajeursProtegesResult result;
         try {
@@ -98,7 +100,8 @@ public class MajeursProtegesService {
                     urgence,
                     patrimoine,
                     isolement,
-                    incapaciteQuotidienne);
+                    incapaciteQuotidienne,
+                    altertationGrave);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -120,8 +123,10 @@ public class MajeursProtegesService {
         entity.setUrgencePatrimoniale(result.urgencePatrimoniale());
         entity.setPatrimoineSignificatif(result.patrimoineSignificatif());
         entity.setIsolementSocial(result.isolementSocial());
-        // SF-FA-25-03 : persistance du critère pivot
+        // SF-FA-25-03 : persistance du critère pivot curatelle renforcée
         entity.setIncapaciteGestionQuotidienne(result.incapaciteGestionQuotidienne());
+        // SF-FA-25-04 : persistance du critère pivot tutelle
+        entity.setAltertationGrave(result.altertationGrave());
         entity.setCountry(country);
         entity.setResultData(serialize(result));
         repository.save(entity);
@@ -195,6 +200,7 @@ public class MajeursProtegesService {
                 r.patrimoineSignificatif(),
                 r.isolementSocial(),
                 r.incapaciteGestionQuotidienne(),
+                r.altertationGrave(),
                 r.scoreEligibilite(),
                 r.regimeOptimalRecommande(),
                 r.verdictAcceptabiliteJaf(),
