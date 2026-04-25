@@ -60,6 +60,14 @@ public class MajeursProtegesAnalysis {
     @Column(name = "isolement_social", nullable = false)
     private boolean isolementSocial;
 
+    /**
+     * SF-FA-25-03 : critère pivot art. 472 Cciv pour curatelle renforcée.
+     * Nullable pour rester compatible avec les analyses persistées avant la
+     * migration 159 (où la colonne n'existait pas).
+     */
+    @Column(name = "incapacite_gestion_quotidienne")
+    private Boolean incapaciteGestionQuotidienne;
+
     @Column(name = "country", nullable = false, length = 20)
     private String country;
 

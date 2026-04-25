@@ -81,6 +81,8 @@ public class MajeursProtegesService {
         boolean urgence = Boolean.TRUE.equals(request.urgencePatrimoniale());
         boolean patrimoine = Boolean.TRUE.equals(request.patrimoineSignificatif());
         boolean isolement = Boolean.TRUE.equals(request.isolementSocial());
+        // SF-FA-25-03 : critère pivot art. 472 (curatelle renforcée) — null = false
+        boolean incapaciteQuotidienne = Boolean.TRUE.equals(request.incapaciteGestionQuotidienne());
 
         MajeursProtegesResult result;
         try {
@@ -95,7 +97,8 @@ public class MajeursProtegesService {
                     request.actesEnvisages(),
                     urgence,
                     patrimoine,
-                    isolement);
+                    isolement,
+                    incapaciteQuotidienne);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -117,6 +120,8 @@ public class MajeursProtegesService {
         entity.setUrgencePatrimoniale(result.urgencePatrimoniale());
         entity.setPatrimoineSignificatif(result.patrimoineSignificatif());
         entity.setIsolementSocial(result.isolementSocial());
+        // SF-FA-25-03 : persistance du critère pivot
+        entity.setIncapaciteGestionQuotidienne(result.incapaciteGestionQuotidienne());
         entity.setCountry(country);
         entity.setResultData(serialize(result));
         repository.save(entity);
@@ -189,12 +194,15 @@ public class MajeursProtegesService {
                 r.urgencePatrimoniale(),
                 r.patrimoineSignificatif(),
                 r.isolementSocial(),
+                r.incapaciteGestionQuotidienne(),
                 r.scoreEligibilite(),
                 r.regimeOptimalRecommande(),
                 r.verdictAcceptabiliteJaf(),
                 r.delaiProcedureMoisPrevisionnel(),
                 r.auditionPersonneObligatoire(),
                 r.expertisePsyComplementaireRecommandee(),
+                r.eligible(),
+                r.criteresNonRemplis() != null ? r.criteresNonRemplis() : List.of(),
                 r.baseJuridique(),
                 r.formule(),
                 r.messages() != null ? r.messages() : List.of(),

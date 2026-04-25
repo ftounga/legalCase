@@ -10,6 +10,10 @@ import java.util.List;
  * SF-FA-25-01 : résultat du calcul d'éligibilité d'une mesure de protection
  * des majeurs (sauvegarde de justice + habilitation familiale en priorité).
  *
+ * <p>SF-FA-25-03 : extension pour curatelle simple (art. 440 al. 1) et
+ * renforcée (art. 472) — ajout des champs {@code incapaciteGestionQuotidienne}
+ * (input) + {@code eligible} et {@code criteresNonRemplis} (sortie).
+ *
  * <p>Outil single-country FR — DROIT_FAMILLE.
  */
 public record MajeursProtegesResult(
@@ -24,12 +28,15 @@ public record MajeursProtegesResult(
         boolean urgencePatrimoniale,
         boolean patrimoineSignificatif,
         boolean isolementSocial,
+        boolean incapaciteGestionQuotidienne,
         int scoreEligibilite,
         String regimeOptimalRecommande,
         String verdictAcceptabiliteJaf,
         int delaiProcedureMoisPrevisionnel,
         boolean auditionPersonneObligatoire,
         boolean expertisePsyComplementaireRecommandee,
+        boolean eligible,
+        List<String> criteresNonRemplis,
         String baseJuridique,
         String formule,
         List<String> messages
@@ -47,12 +54,15 @@ public record MajeursProtegesResult(
             @JsonProperty("urgencePatrimoniale") boolean urgencePatrimoniale,
             @JsonProperty("patrimoineSignificatif") boolean patrimoineSignificatif,
             @JsonProperty("isolementSocial") boolean isolementSocial,
+            @JsonProperty("incapaciteGestionQuotidienne") boolean incapaciteGestionQuotidienne,
             @JsonProperty("scoreEligibilite") int scoreEligibilite,
             @JsonProperty("regimeOptimalRecommande") String regimeOptimalRecommande,
             @JsonProperty("verdictAcceptabiliteJaf") String verdictAcceptabiliteJaf,
             @JsonProperty("delaiProcedureMoisPrevisionnel") int delaiProcedureMoisPrevisionnel,
             @JsonProperty("auditionPersonneObligatoire") boolean auditionPersonneObligatoire,
             @JsonProperty("expertisePsyComplementaireRecommandee") boolean expertisePsyComplementaireRecommandee,
+            @JsonProperty("eligible") boolean eligible,
+            @JsonProperty("criteresNonRemplis") List<String> criteresNonRemplis,
             @JsonProperty("baseJuridique") String baseJuridique,
             @JsonProperty("formule") String formule,
             @JsonProperty("messages") List<String> messages) {
@@ -68,12 +78,16 @@ public record MajeursProtegesResult(
         this.urgencePatrimoniale = urgencePatrimoniale;
         this.patrimoineSignificatif = patrimoineSignificatif;
         this.isolementSocial = isolementSocial;
+        this.incapaciteGestionQuotidienne = incapaciteGestionQuotidienne;
         this.scoreEligibilite = scoreEligibilite;
         this.regimeOptimalRecommande = regimeOptimalRecommande;
         this.verdictAcceptabiliteJaf = verdictAcceptabiliteJaf;
         this.delaiProcedureMoisPrevisionnel = delaiProcedureMoisPrevisionnel;
         this.auditionPersonneObligatoire = auditionPersonneObligatoire;
         this.expertisePsyComplementaireRecommandee = expertisePsyComplementaireRecommandee;
+        this.eligible = eligible;
+        this.criteresNonRemplis = criteresNonRemplis != null
+                ? List.copyOf(criteresNonRemplis) : List.of();
         this.baseJuridique = baseJuridique;
         this.formule = formule;
         this.messages = messages != null ? List.copyOf(messages) : List.of();
