@@ -1,0 +1,34 @@
+package fr.ailegalcase.casefile;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * SF-FA-25-01 : réponse de l'API mesures de protection des majeurs
+ * (art. 433-441 + 494-1 et s. Cciv).
+ */
+public record MajeursProtegesResponse(
+        UUID caseFileId,
+        String regimeProtectionDemande,
+        boolean altertationFacultesMentales,
+        boolean altertationFacultesPhysiques,
+        boolean certificatMedicalCirconstancie,
+        LocalDate dateCertificatMedical,
+        boolean consentementPersonneAProteger,
+        String demandeurFamilial,
+        List<String> actesEnvisages,
+        boolean urgencePatrimoniale,
+        boolean patrimoineSignificatif,
+        boolean isolementSocial,
+        int scoreEligibilite,
+        String regimeOptimalRecommande,
+        String verdictAcceptabiliteJaf,
+        int delaiProcedureMoisPrevisionnel,
+        boolean auditionPersonneObligatoire,
+        boolean expertisePsyComplementaireRecommandee,
+        String baseJuridique,
+        String formule,
+        List<String> messages,
+        String country
+) {}
