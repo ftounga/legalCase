@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="149-create-non-concurrence-analyses" author="legalcase">
+        <comment>
+            SF-DT-24-01 : table dédiée à l'outil décisionnel "Clause de non-concurrence —
+            validité 4 critères Cass. soc. 10/07/2002 (territoire, durée, objet,
+            contrepartie financière) + art. L.1221-1 C. trav." FRANCE uniquement
+            (variante BE = feature jumelle backlog : Loi 03/07/1978 art. 65 + CCT 1bis
+            du 04/03/1981).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI sans recalcul.
+
+            Règle d'affichage F-IA-04 : ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 60.
+        </comment>
+
+        <createTable tableName="non_concurrence_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_non_concurrence_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="non_concurrence_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_non_concurrence_analyses_case_file"/>
+
+        <createIndex tableName="non_concurrence_analyses"
+                     indexName="idx_non_concurrence_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql>
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000241', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-24-non-concurrence', 'ALWAYS_ON', NULL, NULL, 60);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000241';
+            </sql>
+            <dropTable tableName="non_concurrence_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
