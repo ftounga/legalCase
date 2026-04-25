@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="143-create-rappel-salaire-analyses" author="legalcase">
+        <comment>
+            SF-DT-20-01 : table dédiée à l'outil décisionnel "Rappel de salaire FR"
+            (art. L.3242-1 + L.3245-1 + L.3141-26 Code du travail + CCN).
+
+            Calcule le rappel dû à un salarié sur une période donnée, avec :
+            - différentiel mensuel × nombre de mois de la période,
+            - revalorisation INSEE optionnelle (taux saisi par l'avocat),
+            - prime d'ancienneté CCN (consultée via LegalReferentialService.getConventionBareme),
+            - congés payés sur rappel (10 % / maintien / aucun).
+
+            La table stocke l'input avocat ; le résultat complet (différentiel, revalorisation,
+            prime, totaux, formule, messages) est sérialisé dans result_data.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 57)
+            pour exposer l'outil sur tout dossier travail FR.
+
+            Outil single-country FRANCE — pas d'équivalent BE direct (BE = pécule de vacances
+            + prescription 5 ans art. 2262bis CC, feature jumelle F-DT-20-BE à ouvrir au backlog
+            si besoin).
+        </comment>
+
+        <createTable tableName="rappel_salaire_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rappel_salaire_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="periode_debut" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="periode_fin" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_salaire_du_mensuel_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_salaire_per_verse_mensuel_eur" type="numeric(12,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="convention_collective_code" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="anciennete_annees_prime" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="index_insee_revalorise" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="taux_revalorisation_pct" type="numeric(6,2)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="methode_cp_sur_rappel" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_avec_cp_eur" type="numeric(14,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)" defaultValue="FRANCE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rappel_salaire_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rappel_salaire_analyses_case_file"/>
+
+        <createIndex tableName="rappel_salaire_analyses"
+                     indexName="idx_rappel_salaire_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000201', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-20-rappel-salaire', 'ALWAYS_ON', NULL, NULL, 57);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000201';
+            </sql>
+            <dropTable tableName="rappel_salaire_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
