@@ -1,0 +1,289 @@
+<section class="lnd-section">
+  <header class="lnd-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="lnd-body">
+    <mat-icon class="lnd-icon">policy</mat-icon>
+    <span class="lnd-title">LICENCIEMENT NUL — DÉTECTION (ART. L.1235-3-1)</span>
+    @if (result()) {
+      <span class="lnd-chip-summary"
+            [class.lnd-chip-summary--ok]="result()!.verdictProbabiliteNullite === 'ELEVEE'"
+            [class.lnd-chip-summary--medium]="result()!.verdictProbabiliteNullite === 'MOYENNE'"
+            [class.lnd-chip-summary--ko]="result()!.verdictProbabiliteNullite === 'FAIBLE'">
+        {{ result()!.indemniteMinimumNuliteEur | number:'1.0-0' }} € · {{ result()!.scoreNullite }}/100
+      </span>
+    }
+    <mat-icon class="lnd-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="lnd-body" class="lnd-body">
+      @if (workspaceCountry !== 'FRANCE') {
+        <div class="lnd-country-banner">
+          <mat-icon>info_outline</mat-icon>
+          <span>Outil disponible en France uniquement (art. L.1235-3-1 al. 2 Code du travail). Le pendant Belgique (Loi 1978 art. 63 / CCT 109) est planifié séparément.</span>
+        </div>
+      } @else if (loading()) {
+        <div class="lnd-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="lnd-coherence-summary">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="lnd-form" (ngSubmit)="calculate()">
+            <!-- Date de notification du licenciement -->
+            <div class="lnd-field-with-alert lnd-full">
+              <mat-form-field appearance="outline">
+                <mat-label>Date de notification du licenciement</mat-label>
+                <input matInput type="date"
+                       [ngModel]="dateNotificationLicenciement()"
+                       (ngModelChange)="onDateNotificationChange($event)"
+                       name="dateNotificationLicenciement" required />
+              </mat-form-field>
+              @if (provenanceDateNotification() === 'IA') {
+                <span class="lnd-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                <span class="lnd-coherence-badge"
+                      [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Salaire mensuel brut + ancienneté -->
+            <div class="lnd-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelBrutEur()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEur" required />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="lnd-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (salaireEstDeduit()) {
+                <span class="lnd-hint-note">
+                  <mat-icon>info_outline</mat-icon>
+                  Salaire déduit d'un montant net &times; 1,30
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE; as alert) {
+                <span class="lnd-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <div class="lnd-field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Ancienneté (années — optionnel)</mat-label>
+                <input matInput type="number" min="0" step="1"
+                       [ngModel]="ancienneteAnnees()"
+                       (ngModelChange)="onAncienneteChange($event)"
+                       name="ancienneteAnnees" />
+              </mat-form-field>
+            </div>
+
+            <!-- Section toggles protections (en pleine largeur, regroupées) -->
+            <div class="lnd-toggles-block lnd-full">
+              <div class="lnd-toggles-header">
+                <span class="lnd-toggles-label">Protections en jeu (cocher si applicable)</span>
+                @if (provenanceProtections() === 'IA') {
+                  <span class="lnd-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().PROTECTIONS; as alert) {
+                  <span class="lnd-coherence-badge"
+                        [appCoherencePopover]="explanationFor('PROTECTIONS')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="lnd-toggles-grid">
+                <!-- Maternité -->
+                <div class="lnd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieEnceinte()"
+                      (ngModelChange)="onSalarieEnceinteChange($event)"
+                      name="salarieEnceinte">
+                    Salariée enceinte ou récemment accouchée (L.1225-4)
+                  </mat-slide-toggle>
+                  @if (salarieEnceinte()) {
+                    <mat-form-field appearance="outline" class="lnd-toggle-date">
+                      <mat-label>Date d'accouchement (si applicable)</mat-label>
+                      <input matInput type="date"
+                             [ngModel]="dateAccouchement()"
+                             (ngModelChange)="onDateAccouchementChange($event)"
+                             name="dateAccouchement" />
+                    </mat-form-field>
+                  }
+                </div>
+
+                <!-- Accident travail / maladie pro -->
+                <div class="lnd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieAccidentTravail()"
+                      (ngModelChange)="onSalarieAccidentTravailChange($event)"
+                      name="salarieAccidentTravail">
+                    Suspension accident du travail / maladie pro. (L.1226-9)
+                  </mat-slide-toggle>
+                  @if (salarieAccidentTravail()) {
+                    <mat-form-field appearance="outline" class="lnd-toggle-date">
+                      <mat-label>Date de consolidation AT (si applicable)</mat-label>
+                      <input matInput type="date"
+                             [ngModel]="dateConsolidationAT()"
+                             (ngModelChange)="onDateConsolidationATChange($event)"
+                             name="dateConsolidationAT" />
+                    </mat-form-field>
+                  }
+                </div>
+
+                <!-- Harcèlement -->
+                <div class="lnd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieHarceleAvere()"
+                      (ngModelChange)="onSalarieHarceleAvereChange($event)"
+                      name="salarieHarceleAvere">
+                    Harcèlement moral ou sexuel avéré (L.1152-3)
+                  </mat-slide-toggle>
+                </div>
+
+                <!-- Discrimination -->
+                <div class="lnd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieDiscriminationAlleguee()"
+                      (ngModelChange)="onSalarieDiscriminationAllegueeChange($event)"
+                      name="salarieDiscriminationAlleguee">
+                    Discrimination alléguée (L.1132-4)
+                  </mat-slide-toggle>
+                </div>
+
+                <!-- Lanceur d'alerte -->
+                <div class="lnd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieMotifLanceurAlerte()"
+                      (ngModelChange)="onSalarieMotifLanceurAlerteChange($event)"
+                      name="salarieMotifLanceurAlerte">
+                    Lanceur d'alerte éthique de bonne foi (L.1132-3-3)
+                  </mat-slide-toggle>
+                </div>
+
+                <!-- Mandat -->
+                <div class="lnd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieMandatRepresentant()"
+                      (ngModelChange)="onSalarieMandatRepresentantChange($event)"
+                      name="salarieMandatRepresentant">
+                    Salarié protégé (mandat syndical / représentant) (L.2411-1)
+                  </mat-slide-toggle>
+                </div>
+
+                <!-- Action en justice -->
+                <div class="lnd-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="salarieActionJustice()"
+                      (ngModelChange)="onSalarieActionJusticeChange($event)"
+                      name="salarieActionJustice">
+                    Action en justice du salarié / représailles (L.1132-1 al. dernier)
+                  </mat-slide-toggle>
+                </div>
+              </div>
+            </div>
+
+            <div class="lnd-actions">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Calculer la détection</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="lnd-result">
+            <!-- Bannière verdict — navy ELEVEE / or MOYENNE / rouge classique FAIBLE -->
+            <div [class]="verdictBannerClass(result()!.verdictProbabiliteNullite)">
+              <mat-icon>{{ verdictBannerIcon(result()!.verdictProbabiliteNullite) }}</mat-icon>
+              <span>{{ verdictBannerLabel(result()!.verdictProbabiliteNullite) }}</span>
+              <span class="lnd-verdict-score">Score : {{ result()!.scoreNullite }}/100</span>
+            </div>
+
+            <!-- Liste de chips colorés des protections détectées -->
+            @if (protectionsList().length > 0) {
+              <div class="lnd-chips-block">
+                <span class="lnd-chips-label">
+                  {{ result()!.nombreProtectionsActives }} protection(s) détectée(s)
+                </span>
+                <div class="lnd-chips-grid">
+                  @for (code of protectionsList(); track code) {
+                    <span [class]="protectionChipClass(code)">
+                      <mat-icon>shield</mat-icon>
+                      {{ protectionLabels[code].label }}
+                      <span class="lnd-chip-article">{{ protectionLabels[code].article }}</span>
+                    </span>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="lnd-no-protection">
+                <mat-icon>info_outline</mat-icon>
+                <span>Aucune protection automatiquement détectée — examiner les autres causes possibles (atteinte à une liberté fondamentale, etc.) avant d'écarter la nullité.</span>
+              </div>
+            }
+
+            <!-- Carte indemnité minimum 6 mois en grand JetBrains Mono -->
+            <div class="lnd-amount-block">
+              <span class="lnd-amount-label">Indemnité minimum {{ result()!.indemniteMinimumMois }} mois</span>
+              <span class="lnd-amount">{{ result()!.indemniteMinimumNuliteEur | number:'1.0-2' }} €</span>
+              @if (result()!.reintegrationOuverte) {
+                <span class="lnd-reintegration-badge">
+                  <mat-icon>how_to_reg</mat-icon>
+                  Réintégration ouverte (le salarié peut demander la réintégration OU l'indemnité)
+                </span>
+              }
+            </div>
+
+            <!-- Formule + base juridique -->
+            <div class="lnd-meta">
+              <span class="lnd-meta-formule">{{ result()!.formule }}</span>
+              <span class="lnd-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+
+            @if (result()!.messages?.length) {
+              <ul class="lnd-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
