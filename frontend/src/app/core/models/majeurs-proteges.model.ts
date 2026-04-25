@@ -32,6 +32,9 @@ export type ActeEnvisage =
 
 export type VerdictMajeurs = 'ELEVEE' | 'MOYENNE' | 'FAIBLE';
 
+/** SF-FA-25-06 : forme du mandat de protection future (art. 492 et 492-1 Cciv). */
+export type FormeMandatProtection = 'NOTARIE' | 'SOUS_SEING_PRIVE';
+
 export interface MajeursProtegesRequest {
   regimeProtectionDemande: RegimeProtection;
   altertationFacultesMentales: boolean;
@@ -45,6 +48,14 @@ export interface MajeursProtegesRequest {
   urgencePatrimoniale: boolean;
   patrimoineSignificatif: boolean;
   isolementSocial: boolean;
+  /** SF-FA-25-03 : pivot CURATELLE_RENFORCEE (art. 472 Cciv). */
+  incapaciteGestionQuotidienne?: boolean;
+  /** SF-FA-25-04 : pivot TUTELLE (art. 440 al. 3 Cciv). */
+  altertationGrave?: boolean;
+  /** SF-FA-25-05 : pivot MANDAT_PROTECTION_FUTURE (art. 477 Cciv). */
+  mandatPrealableSigne?: boolean;
+  /** SF-FA-25-05 : forme du mandat de protection future (art. 492+). */
+  formeMandatProtection?: FormeMandatProtection | null;
 }
 
 export interface MajeursProtegesResponse {
@@ -61,6 +72,14 @@ export interface MajeursProtegesResponse {
   urgencePatrimoniale: boolean;
   patrimoineSignificatif: boolean;
   isolementSocial: boolean;
+  /** SF-FA-25-03 : pivot CURATELLE_RENFORCEE (art. 472 Cciv). */
+  incapaciteGestionQuotidienne?: boolean;
+  /** SF-FA-25-04 : pivot TUTELLE (art. 440 al. 3 Cciv). */
+  altertationGrave?: boolean;
+  /** SF-FA-25-05 : pivot MANDAT_PROTECTION_FUTURE (art. 477 Cciv). */
+  mandatPrealableSigne?: boolean;
+  /** SF-FA-25-05 : forme du mandat (NOTARIE / SOUS_SEING_PRIVE / null). */
+  formeMandatProtection?: FormeMandatProtection | null;
   // Sortie décisionnelle.
   scoreEligibilite: number;
   /** Peut différer de `regimeProtectionDemande` (point différenciant). */
@@ -69,6 +88,10 @@ export interface MajeursProtegesResponse {
   delaiProcedureMoisPrevisionnel: number;
   auditionPersonneObligatoire: boolean;
   expertisePsyComplementaireRecommandee: boolean;
+  /** SF-FA-25-03+ : éligibilité au régime demandé compte tenu des critères. */
+  eligible?: boolean;
+  /** SF-FA-25-03+ : critères non remplis lorsque `eligible=false`. */
+  criteresNonRemplis?: string[];
   baseJuridique: string;
   formule: string;
   messages: string[];
@@ -120,6 +143,21 @@ export const ACTES_ENVISAGES_FR: ActeEnvisageOption[] = [
   { code: 'ACTES_ETAT_CIVIL', label: 'Actes d\'état civil' },
   { code: 'AUTRE', label: 'Autre' },
 ];
+
+/** SF-FA-25-06 : options pour la forme du mandat de protection future. */
+export interface FormeMandatProtectionOption {
+  code: FormeMandatProtection;
+  label: string;
+}
+
+export const FORMES_MANDAT_PROTECTION_FR: FormeMandatProtectionOption[] = [
+  { code: 'NOTARIE', label: 'Mandat notarié (art. 489 Cciv)' },
+  { code: 'SOUS_SEING_PRIVE', label: 'Mandat sous seing privé (art. 492 Cciv)' },
+];
+
+export function formeMandatProtectionLabel(code: FormeMandatProtection): string {
+  return FORMES_MANDAT_PROTECTION_FR.find((f) => f.code === code)?.label ?? code;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers d'affichage

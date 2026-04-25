@@ -147,6 +147,17 @@ export interface FamilleExtractedData {
   demandeurFamilialDetected?: string | null;
   actesEnvisagesDetected?: string[] | null;
   /**
+   * SF-FA-25-06 : pré-fill des 4 nouveaux champs spécifiques aux régimes
+   * curatelle renforcée (art. 472), tutelle (art. 440 al. 3) et mandat de
+   * protection future (art. 477+). Tous optionnels — le composant est no-op
+   * gracieux si l'IA n'a rien détecté.
+   */
+  incapaciteGestionQuotidienneDetected?: boolean | null;
+  altertationGraveDetected?: boolean | null;
+  mandatPrealableSigneDetected?: boolean | null;
+  /** Valeur attendue : `'NOTARIE'` ou `'SOUS_SEING_PRIVE'`. */
+  formeMandatProtectionDetected?: string | null;
+  /**
    * SF-FA-26-02 : pré-fill outil "Changement état civil" (art. 60 / 61-1 / 61-5
    * Cciv ; loi 2016-1547 / 2022-301). Toutes les valeurs sont optionnelles —
    * le composant est no-op gracieux si absent.

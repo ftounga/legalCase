@@ -34,12 +34,19 @@ describe('MajeursProtegesSectionComponent', () => {
       urgencePatrimoniale: false,
       patrimoineSignificatif: true,
       isolementSocial: false,
+      // SF-FA-25-06 : 4 nouveaux champs (defaults backward-compat).
+      incapaciteGestionQuotidienne: true,
+      altertationGrave: false,
+      mandatPrealableSigne: false,
+      formeMandatProtection: null,
       scoreEligibilite: 78,
       regimeOptimalRecommande: 'TUTELLE',
       verdictAcceptabiliteJaf: 'ELEVEE',
       delaiProcedureMoisPrevisionnel: 4,
       auditionPersonneObligatoire: true,
       expertisePsyComplementaireRecommandee: false,
+      eligible: true,
+      criteresNonRemplis: [],
       baseJuridique: 'Art. 425-494 Cciv + 494-1 Cciv',
       formule: 'score = 78/100',
       messages: [
@@ -572,5 +579,367 @@ describe('MajeursProtegesSectionComponent', () => {
     expectSourceExplanationCall();
 
     expect(component.actesEnvisages()).toEqual(['GESTION_PATRIMOINE', 'DECISIONS_SANTE']);
+  });
+
+  // ---------------------------------------------------------------------------
+  // SF-FA-25-06 : champs conditionnels selon régime + 4 nouveaux fields.
+  // ---------------------------------------------------------------------------
+
+  describe('SF-FA-25-06 : visibilité conditionnelle selon régime', () => {
+    beforeEach(() => {
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      expectSourceExplanationCall();
+    });
+
+    it('SAUVEGARDE_JUSTICE → aucun champ conditionnel', () => {
+      component.onRegimeChange('SAUVEGARDE_JUSTICE');
+      expect(component.showIncapaciteGestionQuotidienne()).toBe(false);
+      expect(component.showAltertationGrave()).toBe(false);
+      expect(component.showMandatPrealableSigne()).toBe(false);
+      expect(component.showFormeMandatProtection()).toBe(false);
+    });
+
+    it('HABILITATION_FAMILIALE → aucun champ conditionnel', () => {
+      component.onRegimeChange('HABILITATION_FAMILIALE');
+      expect(component.showIncapaciteGestionQuotidienne()).toBe(false);
+      expect(component.showAltertationGrave()).toBe(false);
+      expect(component.showMandatPrealableSigne()).toBe(false);
+    });
+
+    it('CURATELLE_SIMPLE → aucun champ conditionnel', () => {
+      component.onRegimeChange('CURATELLE_SIMPLE');
+      expect(component.showIncapaciteGestionQuotidienne()).toBe(false);
+      expect(component.showAltertationGrave()).toBe(false);
+      expect(component.showMandatPrealableSigne()).toBe(false);
+    });
+
+    it('CURATELLE_RENFORCEE → toggle incapaciteGestionQuotidienne visible', () => {
+      component.onRegimeChange('CURATELLE_RENFORCEE');
+      expect(component.showIncapaciteGestionQuotidienne()).toBe(true);
+      expect(component.showAltertationGrave()).toBe(false);
+      expect(component.showMandatPrealableSigne()).toBe(false);
+    });
+
+    it('TUTELLE → toggles altertationGrave + incapaciteGestionQuotidienne visibles', () => {
+      component.onRegimeChange('TUTELLE');
+      expect(component.showAltertationGrave()).toBe(true);
+      expect(component.showIncapaciteGestionQuotidienne()).toBe(true);
+      expect(component.showMandatPrealableSigne()).toBe(false);
+    });
+
+    it('MANDAT_PROTECTION_FUTURE → toggle mandatPrealableSigne visible', () => {
+      component.onRegimeChange('MANDAT_PROTECTION_FUTURE');
+      expect(component.showMandatPrealableSigne()).toBe(true);
+      expect(component.showFormeMandatProtection()).toBe(false);
+    });
+
+    it('MANDAT_PROTECTION_FUTURE + mandatPrealableSigne=true → forme du mandat visible', () => {
+      component.onRegimeChange('MANDAT_PROTECTION_FUTURE');
+      component.onMandatPrealableSigneChange(true);
+      expect(component.showFormeMandatProtection()).toBe(true);
+    });
+
+    it('changement régime depuis TUTELLE vers SAUVEGARDE → reset altertationGrave + incapacite', () => {
+      component.onRegimeChange('TUTELLE');
+      component.onAltertationGraveChange(true);
+      component.onIncapaciteGestionQuotidienneChange(true);
+      component.onRegimeChange('SAUVEGARDE_JUSTICE');
+      expect(component.altertationGrave()).toBe(false);
+      expect(component.incapaciteGestionQuotidienne()).toBe(false);
+    });
+
+    it('changement régime depuis MANDAT vers TUTELLE → reset mandatPrealableSigne + forme', () => {
+      component.onRegimeChange('MANDAT_PROTECTION_FUTURE');
+      component.onMandatPrealableSigneChange(true);
+      component.onFormeMandatProtectionChange('NOTARIE');
+      component.onRegimeChange('TUTELLE');
+      expect(component.mandatPrealableSigne()).toBe(false);
+      expect(component.formeMandatProtection()).toBeNull();
+    });
+
+    it('onMandatPrealableSigneChange(false) reset formeMandatProtection à null', () => {
+      component.onRegimeChange('MANDAT_PROTECTION_FUTURE');
+      component.onMandatPrealableSigneChange(true);
+      component.onFormeMandatProtectionChange('NOTARIE');
+      expect(component.formeMandatProtection()).toBe('NOTARIE');
+      component.onMandatPrealableSigneChange(false);
+      expect(component.formeMandatProtection()).toBeNull();
+    });
+  });
+
+  describe('SF-FA-25-06 : POST avec nouveaux champs sur les 4 nouveaux régimes', () => {
+    function fillBaseRequiredFields(): void {
+      component.demandeurFamilial.set('ENFANT_MAJEUR');
+      component.actesEnvisages.set(['GESTION_PATRIMOINE', 'DECISIONS_LOGEMENT']);
+      component.dateCertificatMedical.set('2026-04-15');
+      component.altertationFacultesMentales.set(true);
+      component.certificatMedicalCirconstancie.set(true);
+    }
+
+    it('POST CURATELLE_RENFORCEE → body inclut incapaciteGestionQuotidienne=true', () => {
+      component.onRegimeChange('CURATELLE_RENFORCEE');
+      fillBaseRequiredFields();
+      component.onIncapaciteGestionQuotidienneChange(true);
+      component.calculate();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url === BASE_URL);
+      expect(req.request.body.regimeProtectionDemande).toBe('CURATELLE_RENFORCEE');
+      expect(req.request.body.incapaciteGestionQuotidienne).toBe(true);
+      expect(req.request.body.altertationGrave).toBe(false);
+      expect(req.request.body.mandatPrealableSigne).toBe(false);
+      expect(req.request.body.formeMandatProtection).toBeNull();
+      req.flush(defaultResponse());
+    });
+
+    it('POST TUTELLE → body inclut altertationGrave=true et incapacite', () => {
+      component.onRegimeChange('TUTELLE');
+      fillBaseRequiredFields();
+      component.onAltertationGraveChange(true);
+      component.onIncapaciteGestionQuotidienneChange(true);
+      component.calculate();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url === BASE_URL);
+      expect(req.request.body.regimeProtectionDemande).toBe('TUTELLE');
+      expect(req.request.body.altertationGrave).toBe(true);
+      expect(req.request.body.incapaciteGestionQuotidienne).toBe(true);
+      req.flush(defaultResponse());
+    });
+
+    it('POST MANDAT_PROTECTION_FUTURE NOTARIE → body inclut formeMandatProtection', () => {
+      component.onRegimeChange('MANDAT_PROTECTION_FUTURE');
+      fillBaseRequiredFields();
+      component.onMandatPrealableSigneChange(true);
+      component.onFormeMandatProtectionChange('NOTARIE');
+      component.calculate();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url === BASE_URL);
+      expect(req.request.body.regimeProtectionDemande).toBe('MANDAT_PROTECTION_FUTURE');
+      expect(req.request.body.mandatPrealableSigne).toBe(true);
+      expect(req.request.body.formeMandatProtection).toBe('NOTARIE');
+      req.flush(defaultResponse());
+    });
+
+    it('POST MANDAT_PROTECTION_FUTURE SOUS_SEING_PRIVE → body inclut forme', () => {
+      component.onRegimeChange('MANDAT_PROTECTION_FUTURE');
+      fillBaseRequiredFields();
+      component.onMandatPrealableSigneChange(true);
+      component.onFormeMandatProtectionChange('SOUS_SEING_PRIVE');
+      component.calculate();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url === BASE_URL);
+      expect(req.request.body.formeMandatProtection).toBe('SOUS_SEING_PRIVE');
+      req.flush(defaultResponse());
+    });
+
+    it('POST MANDAT_PROTECTION_FUTURE sans mandatPrealable → forme null', () => {
+      component.onRegimeChange('MANDAT_PROTECTION_FUTURE');
+      fillBaseRequiredFields();
+      component.calculate();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url === BASE_URL);
+      expect(req.request.body.mandatPrealableSigne).toBe(false);
+      expect(req.request.body.formeMandatProtection).toBeNull();
+      req.flush(defaultResponse());
+    });
+
+    it('Régression : POST SAUVEGARDE_JUSTICE continue de fonctionner (4 nouveaux champs à valeur par défaut)', () => {
+      component.onRegimeChange('SAUVEGARDE_JUSTICE');
+      fillBaseRequiredFields();
+      component.calculate();
+
+      const req = httpMock.expectOne((r) => r.method === 'POST' && r.url === BASE_URL);
+      expect(req.request.body.regimeProtectionDemande).toBe('SAUVEGARDE_JUSTICE');
+      expect(req.request.body.incapaciteGestionQuotidienne).toBe(false);
+      expect(req.request.body.altertationGrave).toBe(false);
+      expect(req.request.body.mandatPrealableSigne).toBe(false);
+      expect(req.request.body.formeMandatProtection).toBeNull();
+      req.flush(defaultResponse());
+    });
+  });
+
+  describe('SF-FA-25-06 : formValid avec les nouveaux champs', () => {
+    function fillBaseRequiredFields(): void {
+      component.demandeurFamilial.set('ENFANT_MAJEUR');
+      component.actesEnvisages.set(['GESTION_PATRIMOINE']);
+      component.dateCertificatMedical.set('2026-04-15');
+      component.altertationFacultesMentales.set(true);
+    }
+
+    it('formValid TRUE pour CURATELLE_SIMPLE sans champ pivot supplémentaire', () => {
+      component.regimeProtectionDemande.set('CURATELLE_SIMPLE');
+      fillBaseRequiredFields();
+      expect(component.formValid()).toBe(true);
+    });
+
+    it('formValid FALSE si MANDAT_PROTECTION_FUTURE + mandatPrealable=true sans forme', () => {
+      component.regimeProtectionDemande.set('MANDAT_PROTECTION_FUTURE');
+      fillBaseRequiredFields();
+      component.mandatPrealableSigne.set(true);
+      component.formeMandatProtection.set(null);
+      expect(component.formValid()).toBe(false);
+    });
+
+    it('formValid TRUE si MANDAT_PROTECTION_FUTURE + mandatPrealable=true + forme renseignée', () => {
+      component.regimeProtectionDemande.set('MANDAT_PROTECTION_FUTURE');
+      fillBaseRequiredFields();
+      component.mandatPrealableSigne.set(true);
+      component.formeMandatProtection.set('NOTARIE');
+      expect(component.formValid()).toBe(true);
+    });
+
+    it('formValid TRUE si MANDAT_PROTECTION_FUTURE sans mandatPrealable (forme inutile)', () => {
+      component.regimeProtectionDemande.set('MANDAT_PROTECTION_FUTURE');
+      fillBaseRequiredFields();
+      component.mandatPrealableSigne.set(false);
+      component.formeMandatProtection.set(null);
+      expect(component.formValid()).toBe(true);
+    });
+  });
+
+  describe('SF-FA-25-06 : pré-fill IA des 4 nouveaux champs', () => {
+    it('prefillFromAi incapaciteGestionQuotidienneDetected=true → champ + provenance', () => {
+      component.aiData = {
+        incapaciteGestionQuotidienneDetected: true,
+      } as FamilleExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      expectSourceExplanationCall();
+
+      expect(component.incapaciteGestionQuotidienne()).toBe(true);
+      expect(component.provenanceIncapaciteGestionQuotidienne()).toBe('IA');
+    });
+
+    it('prefillFromAi altertationGraveDetected=true → champ + provenance', () => {
+      component.aiData = {
+        altertationGraveDetected: true,
+      } as FamilleExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      expectSourceExplanationCall();
+
+      expect(component.altertationGrave()).toBe(true);
+      expect(component.provenanceAltertationGrave()).toBe('IA');
+    });
+
+    it('prefillFromAi mandatPrealableSigneDetected + formeMandatProtectionDetected', () => {
+      component.aiData = {
+        mandatPrealableSigneDetected: true,
+        formeMandatProtectionDetected: 'NOTARIE',
+      } as FamilleExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      expectSourceExplanationCall();
+
+      expect(component.mandatPrealableSigne()).toBe(true);
+      expect(component.provenanceMandatPrealableSigne()).toBe('IA');
+      expect(component.formeMandatProtection()).toBe('NOTARIE');
+      expect(component.provenanceFormeMandatProtection()).toBe('IA');
+    });
+
+    it('prefillFromAi formeMandatProtection IA hors enum ignorée', () => {
+      component.aiData = {
+        formeMandatProtectionDetected: 'INEXISTANT',
+      } as FamilleExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      expectSourceExplanationCall();
+
+      expect(component.formeMandatProtection()).toBeNull();
+      expect(component.provenanceFormeMandatProtection()).toBeNull();
+    });
+
+    it('handler onIncapaciteGestionQuotidienneChange efface badge IA', () => {
+      component.aiData = {
+        incapaciteGestionQuotidienneDetected: true,
+      } as FamilleExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      expectSourceExplanationCall();
+
+      expect(component.provenanceIncapaciteGestionQuotidienne()).toBe('IA');
+      component.onIncapaciteGestionQuotidienneChange(false);
+      expect(component.provenanceIncapaciteGestionQuotidienne()).toBeNull();
+    });
+
+    it('handler onFormeMandatProtectionChange efface badge IA', () => {
+      component.aiData = {
+        mandatPrealableSigneDetected: true,
+        formeMandatProtectionDetected: 'NOTARIE',
+      } as FamilleExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+      expectSourceExplanationCall();
+
+      expect(component.provenanceFormeMandatProtection()).toBe('IA');
+      component.onFormeMandatProtectionChange('SOUS_SEING_PRIVE');
+      expect(component.formeMandatProtection()).toBe('SOUS_SEING_PRIVE');
+      expect(component.provenanceFormeMandatProtection()).toBeNull();
+    });
+  });
+
+  describe('SF-FA-25-06 : applyPersistedResult reprend les 4 nouveaux champs', () => {
+    it('GET 200 avec champs SF-06 → form rempli avec les valeurs persistées', () => {
+      const r = defaultResponse();
+      r.regimeProtectionDemande = 'MANDAT_PROTECTION_FUTURE';
+      r.incapaciteGestionQuotidienne = false;
+      r.altertationGrave = false;
+      r.mandatPrealableSigne = true;
+      r.formeMandatProtection = 'NOTARIE';
+      r.eligible = true;
+      r.criteresNonRemplis = [];
+
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush(r);
+      expectSourceExplanationCall();
+
+      expect(component.mandatPrealableSigne()).toBe(true);
+      expect(component.formeMandatProtection()).toBe('NOTARIE');
+      expect(component.provenanceMandatPrealableSigne()).toBeNull();
+      expect(component.provenanceFormeMandatProtection()).toBeNull();
+    });
+
+    it('applyPersistedResult formeMandatProtection invalide → null', () => {
+      const r = defaultResponse();
+      // Force une valeur invalide pour vérifier la défense.
+      (r as { formeMandatProtection?: string }).formeMandatProtection = 'BOGUS';
+
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush(r);
+      expectSourceExplanationCall();
+
+      expect(component.formeMandatProtection()).toBeNull();
+    });
+  });
+
+  describe('SF-FA-25-06 : éligibilité + criteresNonRemplis dans le résultat', () => {
+    it('Réponse eligible=false + criteresNonRemplis exposés dans result()', () => {
+      const r = defaultResponse();
+      r.regimeProtectionDemande = 'TUTELLE';
+      r.eligible = false;
+      r.criteresNonRemplis = [
+        'Altération grave et durable (art. 440 al. 3) — basculer vers curatelle',
+        'Au moins 2 catégories d\'actes envisagés',
+      ];
+
+      component.regimeProtectionDemande.set('TUTELLE');
+      component.demandeurFamilial.set('ENFANT_MAJEUR');
+      component.actesEnvisages.set(['GESTION_PATRIMOINE']);
+      component.dateCertificatMedical.set('2026-04-15');
+      component.altertationFacultesMentales.set(true);
+      component.certificatMedicalCirconstancie.set(true);
+      component.calculate();
+
+      const req = httpMock.expectOne((rr) => rr.method === 'POST' && rr.url === BASE_URL);
+      req.flush(r);
+
+      expect(component.result()!.eligible).toBe(false);
+      expect(component.result()!.criteresNonRemplis?.length).toBe(2);
+    });
+
+    it('formeMandatProtectionLabel mappe les 2 codes', () => {
+      expect(component.formeMandatProtectionLabel('NOTARIE')).toContain('notarié');
+      expect(component.formeMandatProtectionLabel('SOUS_SEING_PRIVE')).toContain('sous seing privé');
+    });
   });
 });

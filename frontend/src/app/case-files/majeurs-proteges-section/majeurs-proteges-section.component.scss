@@ -429,3 +429,76 @@
   font-style: italic;
   font-family: 'JetBrains Mono', 'Menlo', monospace;
 }
+
+/* ---------------------------------------------------------------------------
+ * SF-FA-25-06 — Champs conditionnels + indicateurs éligibilité.
+ * --------------------------------------------------------------------------- */
+
+.mp-field-conditional {
+  // Léger décalage visuel pour signaler que le champ a été rendu visible
+  // par le choix d'un régime spécifique (CURATELLE_RENFORCEE / TUTELLE /
+  // MANDAT_PROTECTION_FUTURE).
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  padding-left: 12px;
+  background: rgba(201, 165, 75, 0.04);
+}
+
+.mp-eligible-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &--ok {
+    color: var(--ds-success, #2e7d4f);
+  }
+
+  &--ko {
+    color: var(--ds-error, #b71c1c);
+  }
+}
+
+.mp-criteres-non-remplis-block {
+  // Palette rouge réservée à l'alerte critique (cf. DESIGN_SYSTEM.md).
+  border: 1px solid var(--ds-error, #b71c1c);
+  border-radius: 6px;
+  padding: 12px 16px;
+  background: rgba(183, 28, 28, 0.05);
+  margin: 12px 0;
+}
+
+.mp-criteres-non-remplis-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--ds-error, #b71c1c);
+  margin-bottom: 8px;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.mp-criteres-non-remplis-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mp-critere-non-rempli-chip {
+  background: rgba(183, 28, 28, 0.1) !important;
+  color: var(--ds-error, #b71c1c) !important;
+  font-size: 12px !important;
+}
