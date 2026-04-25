@@ -1,0 +1,299 @@
+<section class="nc-section">
+  <header class="nc-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="nc-body">
+    <mat-icon class="nc-icon">block</mat-icon>
+    <span class="nc-title">CLAUSE DE NON-CONCURRENCE (FR) — CASS. SOC. 10/07/2002</span>
+    @if (result()) {
+      <span class="nc-chip"
+            [class.nc-chip--strong]="result()!.verdictValidite === 'NULLE'"
+            [class.nc-chip--medium]="result()!.verdictValidite === 'RISQUE_NULLITE_PARTIELLE'"
+            [class.nc-chip--weak]="result()!.verdictValidite === 'VALIDE'">
+        {{ verdictValiditeNcLabel(result()!.verdictValidite) }}
+      </span>
+    }
+    <mat-icon class="nc-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="nc-body" class="nc-body">
+      @if (!isFrance()) {
+        <div class="nc-banner nc-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="nc-banner-content">
+            <div class="nc-banner-title">Outil France uniquement — régime non-concurrence distinct en Belgique</div>
+            <div class="nc-banner-sub">
+              La loi belge du 03/07/1978 (art. 65) et l'AR du 24/12/1969 prévoient un régime propre (durée plafond 12 mois, indemnité forfaitaire ½ rémunération brute correspondant à la durée). Voir l'outil belge dédié quand disponible.
+            </div>
+          </div>
+        </div>
+      } @else if (loading()) {
+        <div class="nc-loading">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Chargement&hellip;</span>
+        </div>
+      } @else {
+        @if (showForm()) {
+          @if (alertsSummary().total > 0) {
+            <div class="nc-coherence-summary" role="alert">
+              <mat-icon>warning</mat-icon>
+              <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+            </div>
+          }
+
+          <form class="nc-form" (ngSubmit)="calculate()">
+            <!-- Clause présente dans le contrat -->
+            <div class="nc-toggle-row nc-field-full">
+              <mat-slide-toggle
+                  [ngModel]="clausePresenteContrat()"
+                  (ngModelChange)="onClausePresenteContratChange($event)"
+                  name="clausePresenteContrat">
+                Clause de non-concurrence présente dans le contrat de travail
+              </mat-slide-toggle>
+            </div>
+
+            <!-- Critère 1 : Territoire -->
+            <div class="nc-pair nc-field-full">
+              <mat-slide-toggle
+                  [ngModel]="limiteTerritoireDefini()"
+                  (ngModelChange)="onLimiteTerritoireDefiniChange($event)"
+                  name="limiteTerritoireDefini">
+                Critère 1 — Limitation territoriale définie (Cass. soc. 10/07/2002)
+              </mat-slide-toggle>
+              @if (limiteTerritoireDefini()) {
+                <mat-form-field appearance="outline" class="nc-pair-detail">
+                  <mat-label>Description du territoire visé</mat-label>
+                  <textarea matInput rows="2"
+                            [ngModel]="territoireDescription()"
+                            (ngModelChange)="onTerritoireDescriptionChange($event)"
+                            name="territoireDescription" required></textarea>
+                  <mat-hint>Ex. : "départements 75, 92, 93, 94" — territoire suffisamment circonscrit pour ne pas empêcher le salarié d'exercer.</mat-hint>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Critère 2 : Durée -->
+            <div class="nc-pair nc-field-full">
+              <mat-slide-toggle
+                  [ngModel]="limiteDureeDefinie()"
+                  (ngModelChange)="onLimiteDureeDefinieChange($event)"
+                  name="limiteDureeDefinie">
+                Critère 2 — Limitation dans le temps (Cass. soc. 10/07/2002)
+              </mat-slide-toggle>
+              @if (limiteDureeDefinie()) {
+                <mat-form-field appearance="outline" class="nc-pair-detail">
+                  <mat-label>Durée d'application (mois)</mat-label>
+                  <input matInput type="number" min="0.5" step="0.5"
+                         [ngModel]="dureeMois()"
+                         (ngModelChange)="onDureeMoisChange($event)"
+                         name="dureeMois" required />
+                  <mat-hint>Durée jurisprudentielle usuelle 12 à 24 mois selon le secteur.</mat-hint>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Critère 3 : Objet -->
+            <div class="nc-pair nc-field-full">
+              <mat-slide-toggle
+                  [ngModel]="limiteObjetDefini()"
+                  (ngModelChange)="onLimiteObjetDefiniChange($event)"
+                  name="limiteObjetDefini">
+                Critère 3 — Limitation à un objet/activité défini (Cass. soc. 10/07/2002)
+              </mat-slide-toggle>
+              @if (limiteObjetDefini()) {
+                <mat-form-field appearance="outline" class="nc-pair-detail">
+                  <mat-label>Description de l'objet/activité visée</mat-label>
+                  <textarea matInput rows="2"
+                            [ngModel]="objetDescription()"
+                            (ngModelChange)="onObjetDescriptionChange($event)"
+                            name="objetDescription" required></textarea>
+                  <mat-hint>Ex. : "concurrence dans le développement logiciel CRM" — l'objet doit être proportionné à la sauvegarde des intérêts légitimes de l'employeur.</mat-hint>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Critère 4 : Contrepartie financière -->
+            <div class="nc-pair nc-field-full">
+              <mat-slide-toggle
+                  [ngModel]="contrepartieFinancierePresente()"
+                  (ngModelChange)="onContrepartieFinancierePresenteChange($event)"
+                  name="contrepartieFinancierePresente">
+                Critère 4 — Contrepartie financière prévue (Cass. soc. 10/07/2002)
+              </mat-slide-toggle>
+              @if (contrepartieFinancierePresente()) {
+                <mat-form-field appearance="outline" class="nc-pair-detail">
+                  <mat-label>Montant mensuel de la contrepartie (€)</mat-label>
+                  <input matInput type="number" min="0.01" step="0.01"
+                         [ngModel]="contrepartieMontantMensuelEur()"
+                         (ngModelChange)="onContrepartieMontantChange($event)"
+                         name="contrepartieMontantMensuelEur" required />
+                  <mat-hint>La contrepartie doit être proportionnée — usage 25 à 33 % du salaire selon les secteurs et la durée d'interdiction.</mat-hint>
+                </mat-form-field>
+              }
+            </div>
+
+            <!-- Salaire mensuel brut + pré-fill IA + alerte F-IA-03 -->
+            <div class="nc-field-with-alert">
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire mensuel brut (€)</mat-label>
+                <input matInput type="number" min="0.01" step="0.01"
+                       [ngModel]="salaireMensuelBrutEur()"
+                       (ngModelChange)="onSalaireChange($event)"
+                       name="salaireMensuelBrutEur" required />
+              </mat-form-field>
+              @if (provenanceSalaire() === 'IA') {
+                <span class="nc-provenance-note">
+                  <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                </span>
+              }
+              @if (coherenceAlerts().SALAIRE_MENSUEL; as alert) {
+                <span class="nc-coherence-badge"
+                      [appCoherencePopover]="explanationFor('SALAIRE_MENSUEL')"
+                      [appCoherencePopoverReason]="alertTooltip(alert)"
+                      [appCoherencePopoverCaseFileId]="caseFileId">
+                  <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                </span>
+              }
+            </div>
+
+            <!-- Secteur d'activité -->
+            <mat-form-field appearance="outline">
+              <mat-label>Secteur d'activité</mat-label>
+              <mat-select
+                  [ngModel]="secteurActivite()"
+                  (ngModelChange)="onSecteurActiviteChange($event)"
+                  name="secteurActivite" required>
+                @for (opt of secteurOptions; track opt.code) {
+                  <mat-option [value]="opt.code">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>Le secteur module les seuils jurisprudentiels de proportionnalité de la contrepartie.</mat-hint>
+            </mat-form-field>
+
+            <!-- Date de prise d'effet -->
+            <mat-form-field appearance="outline">
+              <mat-label>Date de prise d'effet de la clause</mat-label>
+              <input matInput type="date"
+                     [ngModel]="datePriseEffet()"
+                     (ngModelChange)="onDatePriseEffetChange($event)"
+                     name="datePriseEffet" required />
+              <mat-hint>Date à partir de laquelle la clause s'applique (généralement = date de fin du contrat).</mat-hint>
+            </mat-form-field>
+
+            <div class="nc-actions nc-field-full">
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="!formValid() || calculating()">
+                @if (calculating()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <ng-container>Analyser la validité</ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        } @else if (result()) {
+          <div class="nc-result">
+            <!-- Bannière verdict -->
+            <div [class]="verdictBannerClass(result()!.verdictValidite)" role="status">
+              <mat-icon>{{ verdictIcon(result()!.verdictValidite) }}</mat-icon>
+              <div class="nc-banner-content">
+                <div class="nc-banner-title">
+                  {{ verdictValiditeNcLabel(result()!.verdictValidite) }}
+                </div>
+                <div class="nc-banner-sub">
+                  Score : <span class="nc-score-mono">{{ result()!.scoreValidite }} / 100</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 cartes critères Cass. soc. 10/07/2002 -->
+            <div class="nc-criteres-grid">
+              <div class="nc-critere"
+                   [class.nc-critere--ok]="result()!.critere1TerritoireOk"
+                   [class.nc-critere--ko]="!result()!.critere1TerritoireOk">
+                <mat-icon>{{ result()!.critere1TerritoireOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                <div class="nc-critere-text">
+                  <span class="nc-critere-label">Critère 1 — Territoire</span>
+                  <span class="nc-critere-sub">Cass. soc. 10/07/2002</span>
+                </div>
+              </div>
+              <div class="nc-critere"
+                   [class.nc-critere--ok]="result()!.critere2DureeOk"
+                   [class.nc-critere--ko]="!result()!.critere2DureeOk">
+                <mat-icon>{{ result()!.critere2DureeOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                <div class="nc-critere-text">
+                  <span class="nc-critere-label">Critère 2 — Durée</span>
+                  <span class="nc-critere-sub">Cass. soc. 10/07/2002</span>
+                </div>
+              </div>
+              <div class="nc-critere"
+                   [class.nc-critere--ok]="result()!.critere3ObjetOk"
+                   [class.nc-critere--ko]="!result()!.critere3ObjetOk">
+                <mat-icon>{{ result()!.critere3ObjetOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                <div class="nc-critere-text">
+                  <span class="nc-critere-label">Critère 3 — Objet</span>
+                  <span class="nc-critere-sub">Cass. soc. 10/07/2002</span>
+                </div>
+              </div>
+              <div class="nc-critere"
+                   [class.nc-critere--ok]="result()!.critere4ContrepartieOk"
+                   [class.nc-critere--ko]="!result()!.critere4ContrepartieOk">
+                <mat-icon>{{ result()!.critere4ContrepartieOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                <div class="nc-critere-text">
+                  <span class="nc-critere-label">Critère 4 — Contrepartie</span>
+                  <span class="nc-critere-sub">Cass. soc. 10/07/2002</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini-carte ratio contrepartie / salaire -->
+            @if (result()!.contrepartieFinancierePresente) {
+              <div class="nc-ratio-card">
+                <span class="nc-ratio-label">Ratio contrepartie / salaire</span>
+                <span class="nc-ratio-value">{{ result()!.ratioContrepartiePct | number:'1.0-2' }} %</span>
+              </div>
+            }
+
+            <!-- 2 cartes montants -->
+            <div class="nc-cards-row">
+              <div class="nc-card nc-card--primary">
+                <span class="nc-card-label">Indemnité contrepartie due</span>
+                <span class="nc-card-value">{{ result()!.indemniteContrepartieDueEur | number:'1.0-2' }} €</span>
+                <span class="nc-card-sub">Montant mensuel à verser tant que la clause s'applique</span>
+              </div>
+              <div class="nc-card nc-card--total">
+                <span class="nc-card-label">Indemnité potentielle (nullité)</span>
+                <span class="nc-card-value">{{ result()!.indemnitePotentielleNulliteEur | number:'1.0-2' }} €</span>
+                <span class="nc-card-sub">Préjudice en cas de nullité judiciaire</span>
+              </div>
+            </div>
+
+            <!-- Messages -->
+            @if (result()!.messages?.length) {
+              <ul class="nc-messages">
+                @for (m of result()!.messages; track m) {
+                  <li [innerHTML]="m | legalCitations"></li>
+                }
+              </ul>
+            }
+
+            <!-- Formule -->
+            @if (result()!.formule) {
+              <div class="nc-formule-block">
+                <span class="nc-formule-label">Formule</span>
+                <span class="nc-formule">{{ result()!.formule }}</span>
+              </div>
+            }
+
+            <!-- Base juridique + bouton modifier -->
+            <div class="nc-meta">
+              <span class="nc-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+              <button mat-stroked-button type="button" (click)="editMode()">
+                <mat-icon>edit</mat-icon> Modifier
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</section>
