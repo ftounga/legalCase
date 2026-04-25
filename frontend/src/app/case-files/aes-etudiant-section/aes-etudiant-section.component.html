@@ -1,0 +1,340 @@
+<section class="aes-section">
+  <header class="aes-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="aes-etu-body">
+    <mat-icon class="aes-icon">school</mat-icon>
+    <span class="aes-title">AES VOIE ÉTUDIANTE (FR)</span>
+    @if (result()) {
+      <span class="aes-chip"
+            [class.aes-chip--success]="result()!.verdictProbabiliteAcceptation === 'ELEVEE'"
+            [class.aes-chip--danger]="result()!.verdictProbabiliteAcceptation === 'FAIBLE'">
+        {{ result()!.verdictProbabiliteAcceptation }}
+      </span>
+    }
+    <mat-icon class="aes-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="aes-etu-body" class="aes-body">
+      @if (!isFrance()) {
+        <div class="aes-banner aes-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="aes-banner-content">
+            <div class="aes-banner-title">AES voie étudiante — régime français uniquement</div>
+            <div class="aes-banner-sub">
+              Circulaire Valls 28/11/2012 (point III) actualisée Darmanin — art. L.412-1 CESEDA.
+              Pas d'équivalent direct en droit belge (régularisation humanitaire 9bis distincte).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="aes-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="aes-coherence-summary"
+                   [class.aes-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="aes-form" (ngSubmit)="calculate()">
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date d'entrée en France</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateEntreeFrance()"
+                         (ngModelChange)="onDateEntreeFranceChange($event)"
+                         name="dateEntreeFrance" />
+                </mat-form-field>
+                @if (provenanceDateEntreeFrance() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_ENTREE_FRANCE; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_ENTREE_FRANCE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Durée de présence en France (mois)</mat-label>
+                  <input matInput type="number" required
+                         min="0" max="600" step="1"
+                         [ngModel]="dureePresenceMois()"
+                         (ngModelChange)="onDureePresenceMoisChange($event)"
+                         name="dureePresenceMois" />
+                </mat-form-field>
+                @if (coherenceAlerts().DUREE_PRESENCE; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DUREE_PRESENCE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Années de scolarité consécutives en France</mat-label>
+                  <input matInput type="number" required
+                         min="0" max="20" step="1"
+                         [ngModel]="anneesScolariteEnFranceConsecutives()"
+                         (ngModelChange)="onAnneesScolariteChange($event)"
+                         name="anneesScolariteEnFranceConsecutives" />
+                </mat-form-field>
+              </div>
+
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Niveau d'études actuel</mat-label>
+                  <mat-select required
+                              [ngModel]="niveauEtudesActuel()"
+                              (ngModelChange)="onNiveauEtudesChange($event)"
+                              name="niveauEtudesActuel">
+                    @for (opt of niveauxOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Résultats académiques</mat-label>
+                  <mat-select required
+                              [ngModel]="resultatsAcademiques()"
+                              (ngModelChange)="onResultatsAcademiquesChange($event)"
+                              name="resultatsAcademiques">
+                    @for (opt of resultatsOptions; track opt.value) {
+                      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="aes-toggle-row aes-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="inscriptionEtablissementReconnu()"
+                    (ngModelChange)="onInscriptionChange($event)"
+                    name="inscriptionEtablissementReconnu">
+                  Inscription validée dans un établissement reconnu
+                </mat-slide-toggle>
+              </div>
+
+              <div class="aes-toggle-row aes-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="moyensSubsistance()"
+                    (ngModelChange)="onMoyensSubsistanceChange($event)"
+                    name="moyensSubsistance">
+                  Moyens de subsistance et d'hébergement stables
+                </mat-slide-toggle>
+              </div>
+
+              <div class="aes-toggle-row aes-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="menaceOrdrePublic()"
+                    (ngModelChange)="onMenaceOrdrePublicChange($event)"
+                    name="menaceOrdrePublic">
+                  Menace pour l'ordre public
+                </mat-slide-toggle>
+              </div>
+
+              <div class="aes-toggle-row aes-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="parcoursCoherent()"
+                    (ngModelChange)="onParcoursCoherentChange($event)"
+                    name="parcoursCoherent">
+                  Parcours scolaire cohérent (pas de réorientations répétées suspectes)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="aes-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de dépôt de la demande (optionnel)</mat-label>
+                  <input matInput type="date"
+                         [min]="dateEntreeFrance() || ''"
+                         [max]="todayIso"
+                         [ngModel]="dateDepotDemande()"
+                         (ngModelChange)="onDateDepotDemandeChange($event)"
+                         name="dateDepotDemande" />
+                </mat-form-field>
+                @if (provenanceDateDepotDemande() === 'IA') {
+                  <span class="provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_DEPOT_DEMANDE; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_DEPOT_DEMANDE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="aes-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser AES voie étudiante</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="aes-result">
+              <div [class]="bannerClass(result())" role="status">
+                <mat-icon>{{ bannerIcon(result()) }}</mat-icon>
+                <div class="aes-banner-content">
+                  <div class="aes-banner-title">{{ bannerLabel(result()) }}</div>
+                  <div class="aes-banner-sub">
+                    Score global : <span class="aes-score">{{ result()!.scoreGlobal }} / 100</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="aes-criteres-cards">
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.presence3AnsOk"
+                     [class.aes-card--ko]="!result()!.presence3AnsOk">
+                  <mat-icon>{{ result()!.presence3AnsOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Présence ≥ 3 ans en France</div>
+                    <div class="aes-card-status">{{ result()!.presence3AnsOk ? 'Validée' : 'Non remplie' }}</div>
+                  </div>
+                </div>
+
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.scolarite2AnsConsecutivesOk"
+                     [class.aes-card--ko]="!result()!.scolarite2AnsConsecutivesOk">
+                  <mat-icon>{{ result()!.scolarite2AnsConsecutivesOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Scolarité ≥ 2 ans consécutifs</div>
+                    <div class="aes-card-status">{{ result()!.scolarite2AnsConsecutivesOk ? 'Validée' : 'Non remplie' }}</div>
+                  </div>
+                </div>
+
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.resultatsAcceptables"
+                     [class.aes-card--ko]="!result()!.resultatsAcceptables">
+                  <mat-icon>{{ result()!.resultatsAcceptables ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Résultats académiques décents</div>
+                    <div class="aes-card-status">{{ resultatsLabel(result()!.resultatsAcademiques) }}</div>
+                  </div>
+                </div>
+
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.inscriptionValide"
+                     [class.aes-card--ko]="!result()!.inscriptionValide">
+                  <mat-icon>{{ result()!.inscriptionValide ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Inscription établissement reconnu</div>
+                    <div class="aes-card-status">{{ result()!.inscriptionValide ? 'Validée' : 'Non remplie' }}</div>
+                  </div>
+                </div>
+
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.moyensOk"
+                     [class.aes-card--ko]="!result()!.moyensOk">
+                  <mat-icon>{{ result()!.moyensOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Moyens de subsistance / hébergement</div>
+                    <div class="aes-card-status">{{ result()!.moyensOk ? 'Validés' : 'Non remplis' }}</div>
+                  </div>
+                </div>
+
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.pasMenace"
+                     [class.aes-card--ko]="!result()!.pasMenace">
+                  <mat-icon>{{ result()!.pasMenace ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Pas de menace ordre public</div>
+                    <div class="aes-card-status">{{ result()!.pasMenace ? 'Validé' : 'Risque détecté' }}</div>
+                  </div>
+                </div>
+
+                <div class="aes-card"
+                     [class.aes-card--ok]="result()!.parcoursCoherentOk"
+                     [class.aes-card--ko]="!result()!.parcoursCoherentOk">
+                  <mat-icon>{{ result()!.parcoursCoherentOk ? 'check_circle' : 'cancel' }}</mat-icon>
+                  <div class="aes-card-text">
+                    <div class="aes-card-label">Parcours cohérent</div>
+                    <div class="aes-card-status">{{ result()!.parcoursCoherentOk ? 'Validé' : 'Réorientations suspectes' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="aes-info-card">
+                <mat-icon>school</mat-icon>
+                <div>
+                  <div class="aes-info-label">Niveau d'études actuel</div>
+                  <div class="aes-info-value">{{ niveauLabel(result()!.niveauEtudesActuel) }}</div>
+                </div>
+              </div>
+
+              @if (result()!.dateExpirationInstructionSiDemande) {
+                <div class="aes-info-card">
+                  <mat-icon>schedule</mat-icon>
+                  <div>
+                    <div class="aes-info-label">Expiration instruction (silence vaut rejet)</div>
+                    <div class="aes-info-value">{{ result()!.dateExpirationInstructionSiDemande }}</div>
+                  </div>
+                </div>
+              }
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="aes-criteres-non-remplis">
+                  <span class="aes-criteres-label">Critères non remplis :</span>
+                  <mat-chip-set>
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip class="aes-chip-criterion">{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="aes-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="aes-formule-block">
+                  <span class="aes-formule-label">Formule</span>
+                  <span class="aes-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="aes-meta">
+                <span class="aes-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

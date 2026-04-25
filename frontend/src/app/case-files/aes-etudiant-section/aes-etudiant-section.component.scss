@@ -1,0 +1,392 @@
+// SF-IM-09-08 — AES voie étudiante (FR).
+// Palette canonique F-155 : navy + or, rouge réservé alerte critique
+// (`verdictProbabiliteAcceptation='FAIBLE'` ⇒ rejet AES = risque éloignement).
+
+.aes-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.aes-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.aes-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.aes-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.aes-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  &--success {
+    background: rgba(46, 125, 50, 0.12);
+    color: #1b5e20;
+  }
+  &--danger {
+    background: rgba(198, 40, 40, 0.12);
+    color: #b71c1c;
+  }
+}
+
+.aes-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.aes-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.aes-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// ---- Form ----
+.aes-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field { width: 100%; }
+}
+
+.aes-field-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field { width: 100%; }
+}
+
+.aes-toggle-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.aes-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// ---- Coherence summary banner (or) ----
+.aes-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &--critical {
+    background: #FEE2E2;
+    border-color: #DC2626;
+    color: #7F1D1D;
+    mat-icon { color: #DC2626; }
+  }
+}
+
+// ---- Provenance / coherence badges ----
+.provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+.coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+
+  &.coherence-critical {
+    background: #FEE2E2;
+    color: #7F1D1D;
+    mat-icon { color: #DC2626; }
+  }
+}
+
+// ---- Result ----
+.aes-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aes-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+  background: rgba(201, 165, 75, 0.08);
+
+  mat-icon { font-size: 28px; width: 28px; height: 28px; color: var(--ds-accent-gold, #c9a54b); }
+
+  &--info {
+    border-left-color: #1A3A5C;
+    background: rgba(26, 58, 92, 0.06);
+    mat-icon { color: #1A3A5C; }
+  }
+
+  &--success {
+    border-left-color: #1b5e20;
+    background: rgba(46, 125, 50, 0.08);
+    mat-icon { color: #1b5e20; }
+  }
+
+  // Rouge réservé : verdictProbabiliteAcceptation='FAIBLE' (risque éloignement)
+  &--danger {
+    border-left-color: #b71c1c;
+    background: rgba(198, 40, 40, 0.08);
+    mat-icon { color: #b71c1c; }
+  }
+}
+
+.aes-banner-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.aes-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  margin-top: 2px;
+}
+
+.aes-score {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+// ---- Cartes critères (7 critères : grille 2 colonnes responsive) ----
+.aes-criteres-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.aes-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-border, #e6e1d4);
+  background: rgba(0, 0, 0, 0.02);
+
+  mat-icon { font-size: 28px; width: 28px; height: 28px; }
+
+  &--ok {
+    border-left-color: #1b5e20;
+    mat-icon { color: #1b5e20; }
+  }
+
+  &--ko {
+    border-left-color: #b71c1c;
+    mat-icon { color: #b71c1c; }
+  }
+}
+
+.aes-card-text { display: flex; flex-direction: column; }
+
+.aes-card-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.aes-card-status {
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// ---- Cartes info (niveau études, dates) ----
+.aes-info-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(201, 165, 75, 0.06);
+
+  mat-icon { color: var(--ds-accent-gold, #c9a54b); }
+}
+
+.aes-info-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aes-info-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+// ---- Critères non remplis ----
+.aes-criteres-non-remplis {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aes-criteres-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aes-chip-criterion {
+  background: rgba(198, 40, 40, 0.08) !important;
+  color: #7F1D1D !important;
+}
+
+// ---- Messages ----
+.aes-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // F-155 SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+// ---- Formule + base juridique ----
+.aes-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(26, 58, 92, 0.04);
+}
+
+.aes-formule-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.aes-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.aes-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.aes-meta-base {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+}
+
+@media (max-width: 720px) {
+  .aes-form,
+  .aes-criteres-cards {
+    grid-template-columns: 1fr;
+  }
+}
