@@ -79,6 +79,7 @@ import { IndivisionSectionComponent } from '../indivision-section/indivision-sec
 import { PacsDissolutionSectionComponent } from '../pacs-dissolution-section/pacs-dissolution-section.component';
 import { MajeursProtegesSectionComponent } from '../majeurs-proteges-section/majeurs-proteges-section.component';
 import { ChangementEtatCivilSectionComponent } from '../changement-etat-civil-section/changement-etat-civil-section.component';
+import { AvantagesConventionnelsBeSectionComponent } from '../avantages-conventionnels-be-section/avantages-conventionnels-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -568,6 +569,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           workspaceCountry: ctx.workspaceCountry,
           // SF-DT-27-02 : pré-fill IA (dateLicenciement + salaireBrutMensuel)
           // + validation F-IA-03 (2 champs : DATE_RUPTURE + SALAIRE).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-DT-28-avantages-conventionnels-be', {
+        component: AvantagesConventionnelsBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // SF-DT-28-02 : pré-fill IA (salaireBrutMensuel) + validation
+          // F-IA-03 (1 champ SALAIRE). Autres champs non extraits par
+          // le prompt IA travail actuel.
           aiData: ctx.synthesis?.travailExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
