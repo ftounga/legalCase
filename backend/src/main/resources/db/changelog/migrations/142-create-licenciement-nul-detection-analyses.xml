@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="142-create-licenciement-nul-detection-analyses" author="legalcase">
+        <comment>
+            SF-DT-16-01 : table dédiée à l'outil décisionnel "Licenciement nul — détection
+            multi-protections + indemnité plancher 6 mois" (art. L.1235-3-1 al. 2 + L.1225-4
+            maternité + L.1226-9 AT/MP + L.1152-3 harcèlement + L.1132-4 discrimination +
+            L.1132-3-3 lanceur d'alerte + L.2411-1 mandat + L.1132-1 al. dernier action en
+            justice). FRANCE uniquement (pendant BE = feature jumelle backlog).
+
+            Snapshot JSON complet (inputs + outputs) pour permettre la restitution UI sans
+            recalcul.
+
+            Règle d'affichage F-IA-04 : ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 56.
+        </comment>
+
+        <createTable tableName="licenciement_nul_detection_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_licenciement_nul_detection_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="snapshot_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="licenciement_nul_detection_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_licenciement_nul_detection_analyses_case_file"/>
+
+        <createIndex tableName="licenciement_nul_detection_analyses"
+                     indexName="idx_licenciement_nul_detection_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql>
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000161', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-16-licenciement-nul-detection', 'ALWAYS_ON', NULL, NULL, 56);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000161';
+            </sql>
+            <dropTable tableName="licenciement_nul_detection_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
