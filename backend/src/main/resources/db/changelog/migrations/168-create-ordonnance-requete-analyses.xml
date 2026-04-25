@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="168-create-ordonnance-requete-analyses" author="legalcase">
+        <comment>
+            SF-FA-23-01 : table dédiée à l'outil décisionnel "Ordonnance sur requête"
+            (mesures urgentes familiales — art. 493 + 497 CPC FR / 1025 CJ BE).
+
+            Évalue la probabilité d'obtention d'une ordonnance sur requête
+            (procédure non-contradictoire) selon 3 critères structurants :
+            - urgence concrète justifiée
+            - dérogation au principe du contradictoire justifiée
+            - pièce justificative minimale fournie
+
+            5 motifs : DETOURNEMENT_PATRIMOINE (consultation dossier bancaire),
+            ENLEVEMENT_INTERNATIONAL (IST avec enfant — 24-72h), ORGANISATION_INSOLVABILITE
+            (saisies conservatoires), PREUVE_ABANDON (constat d'huissier domicile commun),
+            ACCES_PIECES (production forcée).
+
+            Outil applicable FRANCE et BELGIQUE — la procédure de requête unilatérale
+            existe à l'identique dans les 2 pays (CPC art. 493 FR / CJ art. 1025 BE).
+            Recours adverse : référé-rétractation art. 497 CPC dans 15 jours.
+
+            + 2 règles visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE + BELGIQUE,
+            priority 70).
+        </comment>
+
+        <createTable tableName="ordonnance_requete_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_ordonnance_requete_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="motif_requete" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="urgence_justifiee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="derogation_contradictoire_justifiee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="piece_justificative_fournie" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="presence_enfants" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="commentaire_urgence" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="ordonnance_requete_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_ordonnance_requete_analyses_case_file"/>
+
+        <createIndex tableName="ordonnance_requete_analyses"
+                     indexName="idx_ordonnance_requete_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa231', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-23-ordonnance-requete', 'ALWAYS_ON', NULL, NULL, 70);
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa232', 'DROIT_FAMILLE', 'BELGIQUE', 'F-FA-23-ordonnance-requete', 'ALWAYS_ON', NULL, NULL, 70);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id IN ('f1a04001-0000-0000-0000-ee00000fa231', 'f1a04001-0000-0000-0000-ee00000fa232');
+            </sql>
+            <dropTable tableName="ordonnance_requete_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
