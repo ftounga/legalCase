@@ -1,0 +1,258 @@
+<section class="ra-section">
+  <header class="ra-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="ra-body">
+    <mat-icon class="ra-icon">gavel</mat-icon>
+    <span class="ra-title">RÉFÉRÉS ADMINISTRATIFS L.521-1 / L.521-2 (FR)</span>
+    @if (result()) {
+      <span class="ra-chip"
+            [class.ra-chip--strong]="result()!.verdictRecommandation === 'REFERE_LIBERTE_PRIORITAIRE' || result()!.verdictRecommandation === 'LES_DEUX_CUMULES'"
+            [class.ra-chip--medium]="result()!.verdictRecommandation === 'REFERE_SUSPENSION_PRIORITAIRE'"
+            [class.ra-chip--info]="result()!.verdictRecommandation === 'AUCUN_PROBABLE'">
+        {{ verdictLabel(result()!.verdictRecommandation) }}
+      </span>
+      @if (result()!.verdictRecommandation === 'REFERE_LIBERTE_PRIORITAIRE'
+           || result()!.verdictRecommandation === 'LES_DEUX_CUMULES') {
+        <app-decisional-header-flag label="URGENCE 48h" icon="priority_high" variant="danger" />
+      }
+    }
+    <mat-icon class="ra-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="ra-body" class="ra-body">
+      @if (!isFrance()) {
+        <div class="ra-banner ra-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="ra-banner-content">
+            <div class="ra-banner-title">Référés administratifs — procédure française uniquement</div>
+            <div class="ra-banner-sub">
+              Pour la Belgique, voir le recours en suspension Conseil d'État (annexe 13).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="ra-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="ra-coherence-summary"
+                   [class.ra-coherence-summary--critical]="alertsSummary().blockers > 0">
+                <mat-icon>{{ alertsSummary().blockers > 0 ? 'error' : 'warning' }}</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="ra-form" (ngSubmit)="analyze()">
+              <div class="ra-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Type de référé</mat-label>
+                  <mat-select required
+                              [ngModel]="typeRefere()"
+                              (ngModelChange)="onTypeRefereChange($event)"
+                              name="typeRefere">
+                    @for (t of typesRefere; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div class="ra-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Décision contestée</mat-label>
+                  <mat-select required
+                              [ngModel]="decisionContestee()"
+                              (ngModelChange)="onDecisionContesteeChange($event)"
+                              name="decisionContestee">
+                    @for (d of decisionsContestees; track d.code) {
+                      <mat-option [value]="d.code">{{ d.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceDecisionContestee() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DECISION_CONTESTEE; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DECISION_CONTESTEE')"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="ra-field-wrap">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de notification de la décision</mat-label>
+                  <input matInput type="date" required
+                         [max]="todayIso"
+                         [ngModel]="dateNotificationDecision()"
+                         (ngModelChange)="onDateNotificationChange($event)"
+                         name="dateNotificationDecision" />
+                </mat-form-field>
+                @if (provenanceDateNotification() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+                @if (coherenceAlerts().DATE_NOTIFICATION; as alert) {
+                  <span class="coherence-badge coherence-warning"
+                        [appCoherencePopover]="explanationFor('DATE_NOTIFICATION')"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="ra-toggle-row ra-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="urgenceCaracterisee()"
+                    (ngModelChange)="onUrgenceChange($event)"
+                    name="urgenceCaracterisee">
+                  Urgence caractérisée (départ imminent / atteinte grave)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ra-toggle-row ra-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="atteinteLiberteFondamentale()"
+                    (ngModelChange)="onAtteinteLiberteChange($event)"
+                    name="atteinteLiberteFondamentale">
+                  Atteinte à une liberté fondamentale (L.521-2 uniquement)
+                </mat-slide-toggle>
+                @if (coherenceAlerts().ATTEINTE_LIBERTE; as alert) {
+                  <span class="coherence-badge coherence-critical"
+                        [appCoherencePopover]="explanationFor('ATTEINTE_LIBERTE')"
+                        [appCoherencePopoverReason]="alert.reason"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>error</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="ra-toggle-row ra-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="doutesSerieuxLegalite()"
+                    (ngModelChange)="onDoutesChange($event)"
+                    name="doutesSerieuxLegalite">
+                  Doutes sérieux sur la légalité (L.521-1 uniquement)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ra-field-wrap ra-full-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>Preuves d'urgence</mat-label>
+                  <mat-select multiple
+                              [ngModel]="preuvesUrgence()"
+                              (ngModelChange)="onPreuvesUrgenceChange($event)"
+                              name="preuvesUrgence">
+                    @for (p of preuvesUrgenceOptions; track p.code) {
+                      <mat-option [value]="p.code">{{ p.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenancePreuvesUrgence() === 'IA') {
+                  <span class="provenance-note"><mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse</span>
+                }
+              </div>
+
+              <div class="ra-toggle-row ra-field-wrap">
+                <mat-slide-toggle
+                    [ngModel]="demandeurDejaPrived()"
+                    (ngModelChange)="onDemandeurPrivedChange($event)"
+                    name="demandeurDejaPrived">
+                  Demandeur déjà privé de liberté (CRA / rétention)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="ra-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || analyzing()">
+                  @if (analyzing()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="ra-result">
+              <div [class]="verdictBannerClass(result()!.verdictRecommandation)" role="status">
+                <mat-icon>{{ verdictBannerIcon(result()!.verdictRecommandation) }}</mat-icon>
+                <div class="ra-banner-content">
+                  <div class="ra-banner-title-big">
+                    {{ verdictLabel(result()!.verdictRecommandation) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2 scores parallèles côte-à-côte -->
+              <div class="ra-scores-grid">
+                <div class="ra-score-card" [ngClass]="scoreClass(result()!.scoreSuccessProbabiliteSuspension)">
+                  <div class="ra-score-label">Référé suspension (L.521-1)</div>
+                  <div class="ra-score-value">{{ result()!.scoreSuccessProbabiliteSuspension }}<span class="ra-score-unit">/100</span></div>
+                  <div class="ra-score-delai">
+                    Délai juge TA : <span class="ra-delai-mono">{{ result()!.delaiJugeTaJoursL521_1 }} jour(s)</span>
+                  </div>
+                  <div class="ra-score-conditions">
+                    @if (result()!.conditionsCumulativesL521_1Ok) {
+                      <mat-icon class="ra-cond-ok">check_circle</mat-icon>
+                      <span>Conditions cumulatives remplies</span>
+                    } @else {
+                      <mat-icon class="ra-cond-ko">cancel</mat-icon>
+                      <span>Conditions cumulatives NON remplies</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="ra-score-card" [ngClass]="scoreClass(result()!.scoreSuccessProbabiliteLiberte)">
+                  <div class="ra-score-label">Référé liberté (L.521-2)</div>
+                  <div class="ra-score-value">{{ result()!.scoreSuccessProbabiliteLiberte }}<span class="ra-score-unit">/100</span></div>
+                  <div class="ra-score-delai">
+                    Délai juge TA : <span class="ra-delai-mono ra-delai-urgent">{{ result()!.delaiJugeTaHeuresL521_2 }} heures</span>
+                  </div>
+                  <div class="ra-score-conditions">
+                    @if (result()!.conditionsCumulativesL521_2Ok) {
+                      <mat-icon class="ra-cond-ok">check_circle</mat-icon>
+                      <span>Conditions cumulatives remplies</span>
+                    } @else {
+                      <mat-icon class="ra-cond-ko">cancel</mat-icon>
+                      <span>Conditions cumulatives NON remplies</span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.messages?.length) {
+                <ul class="ra-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="ra-formule-block">
+                  <span class="ra-formule-label">Formule</span>
+                  <span class="ra-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="ra-meta">
+                <span class="ra-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
