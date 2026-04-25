@@ -1,0 +1,243 @@
+<section class="desu-section">
+  <header class="desu-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button" [attr.aria-expanded]="!collapsed()" aria-controls="desu-body">
+    <mat-icon class="desu-icon">balance</mat-icon>
+    <span class="desu-title">DIVORCE BE — DÉSUNION IRRÉMÉDIABLE (ART. 229 CC)</span>
+    @if (result()) {
+      <span class="desu-chip">{{ result()!.verdictProbabilite }} ({{ result()!.scoreGlobal }}/100)</span>
+    }
+    <mat-icon class="desu-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="desu-body" class="desu-body">
+
+      @if (!isBelgiumGate()) {
+        <!-- Gate workspaceCountry FR : bannière info redirigeant vers F-FA-08 / F-FA-10. -->
+        <div class="desu-info-banner">
+          <mat-icon>info</mat-icon>
+          <div>
+            <strong>Outil disponible uniquement pour les dossiers BE.</strong>
+            <p>
+              En droit français, les procédures équivalentes sont le
+              <em>divorce pour altération définitive du lien conjugal</em>
+              (art. 237 Cciv — F-FA-08) et le <em>divorce accepté</em>
+              (art. 233 Cciv — F-FA-10).
+            </p>
+          </div>
+        </div>
+      } @else {
+
+        @if (loading()) {
+          <div class="desu-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+
+          @if (showForm()) {
+            <!-- Résumé incohérences détectées. -->
+            @if (alertsSummary().total > 0) {
+              <div class="desu-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="desu-form" (ngSubmit)="calculate()">
+              <!-- Date séparation -->
+              <div class="desu-field-with-alert">
+                <label class="desu-field-label" for="desu-date-separation">
+                  Date de séparation <span class="desu-required">*</span>
+                </label>
+                <input id="desu-date-separation" class="desu-date-input" type="date"
+                       [ngModel]="dateSeparation()"
+                       (ngModelChange)="onDateSeparationChange($event)"
+                       [max]="todayIso"
+                       name="dateSeparation" required />
+                @if (provenanceDateSeparation() === 'IA') {
+                  <span class="desu-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DATE_SEPARATION; as alert) {
+                  <span class="desu-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Date assignation (optionnelle) -->
+              <div class="desu-field-with-alert">
+                <label class="desu-field-label" for="desu-date-assignation">
+                  Date d'assignation (optionnelle)
+                </label>
+                <input id="desu-date-assignation" class="desu-date-input" type="date"
+                       [ngModel]="dateAssignation()"
+                       (ngModelChange)="onDateAssignationChange($event)"
+                       [max]="todayIso"
+                       [min]="dateSeparation() || ''"
+                       name="dateAssignation" />
+                <span class="desu-hint-note">
+                  <mat-icon>info_outline</mat-icon>
+                  Si absente, le délai est apprécié à la date du jour
+                </span>
+                @if (coherenceAlerts().DATE_ASSIGNATION; as alert) {
+                  <span class="desu-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Séparation consentue -->
+              <div class="desu-toggle-row desu-field-with-alert">
+                <mat-slide-toggle
+                    [ngModel]="separationConsentue()"
+                    (ngModelChange)="onSeparationConsentueChange($event)"
+                    name="separationConsentue"
+                    color="primary">
+                  Séparation consentue par les 2 époux
+                </mat-slide-toggle>
+                <span class="desu-toggle-hint">
+                  {{ separationConsentue() ? 'Seuil 6 mois (art. 229 §2 CC)' : 'Seuil 12 mois (art. 229 §3 CC)' }}
+                </span>
+                @if (provenanceSeparationConsentue() === 'IA') {
+                  <span class="desu-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().SEPARATION_CONSENTUE; as alert) {
+                  <span class="desu-coherence-badge"
+                        [appCoherencePopover]="[]"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="desu-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="preuvesSeparation()"
+                    (ngModelChange)="onPreuvesSeparationChange($event)"
+                    name="preuvesSeparation"
+                    color="primary">
+                  Preuves matérielles de séparation (déclaration, témoignages)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="desu-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="preuvesDocumentaires()"
+                    (ngModelChange)="onPreuvesDocumentairesChange($event)"
+                    name="preuvesDocumentaires"
+                    color="primary">
+                  Preuves documentaires (baux distincts, factures, attestations)
+                </mat-slide-toggle>
+              </div>
+
+              <div class="desu-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="tentativesReconciliation()"
+                    (ngModelChange)="onTentativesReconciliationChange($event)"
+                    name="tentativesReconciliation"
+                    color="primary">
+                  Tentatives de réconciliation signalées
+                </mat-slide-toggle>
+              </div>
+
+              <div class="desu-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="desu-result">
+              <!-- Bannière verdict (palette navy/or/rouge classique). -->
+              <div [class]="verdictClass(result()!.verdictProbabilite)">
+                <mat-icon class="verdict-icon">
+                  @switch (result()!.verdictProbabilite) {
+                    @case ('ELEVEE') { check_circle }
+                    @case ('MOYENNE') { warning }
+                    @case ('FAIBLE') { error_outline }
+                  }
+                </mat-icon>
+                <div class="verdict-text">
+                  <span class="verdict-label">{{ verdictLabel(result()!.verdictProbabilite) }}</span>
+                  <span class="verdict-score">Score {{ result()!.scoreGlobal }}/100</span>
+                </div>
+              </div>
+
+              <!-- Carte délai objectif. -->
+              <div class="desu-card desu-card--delai">
+                <div class="desu-card-header">
+                  <span class="desu-card-label">
+                    Délai objectif : {{ result()!.seuilSeparationMois }} mois de séparation
+                  </span>
+                  <mat-icon [class.desu-check-ok]="result()!.delaiObjectifOk"
+                            [class.desu-check-ko]="!result()!.delaiObjectifOk">
+                    {{ result()!.delaiObjectifOk ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </div>
+                <span class="desu-card-value">
+                  {{ result()!.dureeSeparationMois | number:'1.0-1' }} mois écoulé(s)
+                  / {{ result()!.seuilSeparationMois }} mois requis
+                </span>
+                <span class="desu-card-note">
+                  Art. 229 CC belge ({{ result()!.separationConsentue ? '§2 — séparation consentue' : '§3 — séparation non consentue' }})
+                </span>
+              </div>
+
+              <!-- Carte conditions. -->
+              <div class="desu-card desu-card--conditions">
+                <div class="desu-card-header">
+                  <span class="desu-card-label">Conditions réunies</span>
+                  <mat-icon [class.desu-check-ok]="result()!.conditionsReunies"
+                            [class.desu-check-ko]="!result()!.conditionsReunies">
+                    {{ result()!.conditionsReunies ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                </div>
+                <span class="desu-card-note">
+                  Délai objectif + preuves de séparation + absence de réconciliation
+                </span>
+              </div>
+
+              <!-- Meta : base juridique + bouton modifier. -->
+              <div class="desu-meta">
+                <span class="desu-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+
+              <!-- Formule détaillée. -->
+              <pre class="desu-formule">{{ result()!.formule }}</pre>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="desu-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+
+        }
+      }
+    </div>
+  }
+</section>
