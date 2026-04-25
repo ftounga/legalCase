@@ -1,0 +1,355 @@
+<section class="dp-section">
+  <header class="dp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="dp-body">
+    <mat-icon class="dp-icon">forum</mat-icon>
+    <span class="dp-title">DÉSACCORDS PARENTAUX (FR) — ART. 373-2-10 CCIV</span>
+    @if (result()) {
+      <span class="dp-chip"
+            [class.dp-chip--strong]="result()!.verdictProbabiliteAcceptation === 'ELEVEE'"
+            [class.dp-chip--medium]="result()!.verdictProbabiliteAcceptation === 'MOYENNE'"
+            [class.dp-chip--weak]="result()!.verdictProbabiliteAcceptation === 'FAIBLE'">
+        {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+      </span>
+    }
+    <mat-icon class="dp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="dp-body" class="dp-body">
+      @if (!isFrance()) {
+        <div class="dp-banner dp-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="dp-banner-content">
+            <div class="dp-banner-title">Désaccords parentaux — procédure française uniquement</div>
+            <div class="dp-banner-sub">
+              Pour la Belgique, voir l'outil cohabitation parentale (art. 373 CC — à venir).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="dp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="dp-coherence-summary" role="alert">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="dp-form" (ngSubmit)="calculate()">
+              <!-- Domaine désaccord. -->
+              <div class="dp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Domaine du désaccord</mat-label>
+                  <mat-select
+                      [ngModel]="domaineDesaccord()"
+                      (ngModelChange)="onDomaineChange($event)"
+                      name="domaineDesaccord" required>
+                    @for (d of domainesOptions; track d.code) {
+                      <mat-option [value]="d.code">{{ d.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceDomaine() === 'IA') {
+                  <span class="dp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().DOMAINE_DESACCORD; as alert) {
+                  <span class="dp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('DOMAINE_DESACCORD')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Intensité désaccord. -->
+              <div class="dp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Intensité du désaccord</mat-label>
+                  <mat-select
+                      [ngModel]="intensiteDesaccord()"
+                      (ngModelChange)="onIntensiteChange($event)"
+                      name="intensiteDesaccord" required>
+                    @for (i of intensitesOptions; track i.code) {
+                      <mat-option [value]="i.code">{{ i.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                @if (provenanceIntensite() === 'IA') {
+                  <span class="dp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().INTENSITE_DESACCORD; as alert) {
+                  <span class="dp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('INTENSITE_DESACCORD')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Tentatives médiation (multi-select). -->
+              <div class="dp-field-with-alert dp-field-full">
+                <mat-form-field appearance="outline">
+                  <mat-label>Tentatives de médiation préalables</mat-label>
+                  <mat-select multiple
+                              [ngModel]="tentativesMediation()"
+                              (ngModelChange)="onTentativesChange($event)"
+                              name="tentativesMediation" required>
+                    @for (t of tentativesOptions; track t.code) {
+                      <mat-option [value]="t.code">{{ t.label }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>Sélectionnez « Aucune tentative préalable » si pas de démarche.</mat-hint>
+                </mat-form-field>
+                @if (provenanceTentatives() === 'IA') {
+                  <span class="dp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().TENTATIVES_MEDIATION; as alert) {
+                  <span class="dp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('TENTATIVES_MEDIATION')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Âges enfants (CSV). -->
+              <div class="dp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Âges des enfants concernés</mat-label>
+                  <input matInput type="text"
+                         placeholder="Ex : 12, 8, 5"
+                         [ngModel]="ageEnfantsRaw()"
+                         (ngModelChange)="onAgeEnfantsRawChange($event)"
+                         name="ageEnfantsRaw" required />
+                  <mat-hint>Entrez les âges en années entières (séparés par virgules).</mat-hint>
+                </mat-form-field>
+                @if (provenanceAgeEnfants() === 'IA') {
+                  <span class="dp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().AGE_ENFANTS_CONCERNES; as alert) {
+                  <span class="dp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('AGE_ENFANTS_CONCERNES')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <!-- Date requête. -->
+              <div class="dp-field-with-alert">
+                <mat-form-field appearance="outline">
+                  <mat-label>Date de la requête JAF</mat-label>
+                  <input matInput type="date"
+                         [ngModel]="dateRequete()"
+                         (ngModelChange)="onDateRequeteChange($event)"
+                         name="dateRequete" required />
+                </mat-form-field>
+              </div>
+
+              <!-- Slide-toggle intérêt supérieur. -->
+              <div class="dp-field-with-alert dp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="interetSuperieurInvoque()"
+                    (ngModelChange)="onInteretSuperieurChange($event)"
+                    name="interetSuperieurInvoque">
+                  Intérêt supérieur de l'enfant explicitement invoqué (CIDE art. 3)
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Slide-toggle expertise déjà réalisée. -->
+              <div class="dp-field-with-alert dp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="expertiseDejaRealisee()"
+                    (ngModelChange)="onExpertiseDejaRealiseeChange($event)"
+                    name="expertiseDejaRealisee">
+                  Expertise psychiatrique / psychologique déjà réalisée
+                </mat-slide-toggle>
+              </div>
+
+              <!-- Slide-toggle urgence. -->
+              <div class="dp-field-with-alert dp-field-full">
+                <mat-slide-toggle
+                    [ngModel]="urgence()"
+                    (ngModelChange)="onUrgenceChange($event)"
+                    name="urgence">
+                  Urgence (délai de traitement réduit à 30 jours)
+                </mat-slide-toggle>
+                @if (provenanceUrgence() === 'IA') {
+                  <span class="dp-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+                @if (coherenceAlerts().URGENCE; as alert) {
+                  <span class="dp-coherence-badge"
+                        [appCoherencePopover]="explanationFor('URGENCE')"
+                        [appCoherencePopoverReason]="alertTooltip(alert)"
+                        [appCoherencePopoverCaseFileId]="caseFileId">
+                    <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                  </span>
+                }
+              </div>
+
+              <div class="dp-actions dp-field-full">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser les désaccords parentaux</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="dp-result">
+              <!-- Bannière verdict. -->
+              <div [class]="verdictBannerClass(result()!.verdictProbabiliteAcceptation)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictProbabiliteAcceptation === 'ELEVEE' ? 'gavel'
+                     : result()!.verdictProbabiliteAcceptation === 'MOYENNE' ? 'balance'
+                     : 'info_outline' }}
+                </mat-icon>
+                <div class="dp-banner-content">
+                  <div class="dp-banner-title">
+                    {{ verdictLabel(result()!.verdictProbabiliteAcceptation) }}
+                  </div>
+                  <div class="dp-banner-sub">
+                    Score d'éligibilité saisine JAF : {{ result()!.scoreEligibiliteJaf }} / 100
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3 cartes recommandations. -->
+              <div class="dp-cards-row">
+                <div class="dp-card"
+                     [class.dp-card--active]="result()!.mediationPrealableRecommandee">
+                  <span class="dp-card-label">Médiation préalable</span>
+                  <span class="dp-card-value">
+                    {{ result()!.mediationPrealableRecommandee ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  @if (result()!.mediationPrealableRecommandee) {
+                    <span class="dp-card-sub">
+                      Tenter une médiation familiale avant la saisine JAF
+                    </span>
+                  }
+                </div>
+
+                <div class="dp-card"
+                     [class.dp-card--active]="result()!.auditionEnfantsRecommandee">
+                  <span class="dp-card-label">Audition des enfants</span>
+                  <span class="dp-card-value">
+                    {{ result()!.auditionEnfantsRecommandee ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  @if (result()!.auditionEnfantsRecommandee) {
+                    <span class="dp-card-sub">
+                      Audition des enfants ≥ 13 ans (art. 388-1 Cciv)
+                    </span>
+                  }
+                </div>
+
+                <div class="dp-card"
+                     [class.dp-card--active]="result()!.expertisePsyRecommandee">
+                  <span class="dp-card-label">Expertise psy</span>
+                  <span class="dp-card-value">
+                    {{ result()!.expertisePsyRecommandee ? 'Recommandée' : 'Non recommandée' }}
+                  </span>
+                  @if (result()!.expertisePsyRecommandee) {
+                    <span class="dp-card-sub">
+                      Expertise psychiatrique pour étayer le dossier
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Carte délai prévisionnel. -->
+              <div class="dp-delai-card"
+                   [class.dp-delai-card--urgent]="result()!.urgence">
+                <mat-icon>schedule</mat-icon>
+                <div class="dp-delai-content">
+                  <span class="dp-delai-label">Délai prévisionnel de traitement</span>
+                  <span class="dp-delai-value">
+                    {{ result()!.delaiTraitementJoursPrevisionnel }} jours
+                  </span>
+                  @if (result()!.urgence) {
+                    <span class="dp-delai-sub">Délai accéléré (urgence invoquée)</span>
+                  } @else {
+                    <span class="dp-delai-sub">Délai standard JAF</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Récap saisie. -->
+              <div class="dp-recap">
+                <div class="dp-recap-row">
+                  <span class="dp-recap-label">Domaine</span>
+                  <span class="dp-recap-value">{{ domaineDesaccordLabel(result()!.domaineDesaccord) }}</span>
+                </div>
+                <div class="dp-recap-row">
+                  <span class="dp-recap-label">Intensité</span>
+                  <span class="dp-recap-value">{{ intensiteDesaccordLabel(result()!.intensiteDesaccord) }}</span>
+                </div>
+                <div class="dp-recap-row">
+                  <span class="dp-recap-label">Âges enfants</span>
+                  <span class="dp-recap-value">{{ result()!.ageEnfantsConcernes?.join(', ') }} an(s)</span>
+                </div>
+                @if (result()!.tentativesMediation?.length) {
+                  <div class="dp-recap-row">
+                    <span class="dp-recap-label">Tentatives</span>
+                    <mat-chip-set class="dp-recap-chips">
+                      @for (t of result()!.tentativesMediation; track t) {
+                        <mat-chip>{{ tentativeMediationLabel(t) }}</mat-chip>
+                      }
+                    </mat-chip-set>
+                  </div>
+                }
+              </div>
+
+              <!-- Messages. -->
+              @if (result()!.messages?.length) {
+                <ul class="dp-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule. -->
+              @if (result()!.formule) {
+                <div class="dp-formule-block">
+                  <span class="dp-formule-label">Formule</span>
+                  <span class="dp-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <!-- Base juridique + bouton modifier. -->
+              <div class="dp-meta">
+                <span class="dp-meta-base" [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

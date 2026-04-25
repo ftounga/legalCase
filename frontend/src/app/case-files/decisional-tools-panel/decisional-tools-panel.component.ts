@@ -70,6 +70,7 @@ import { TravailProcedureSectionComponent } from '../travail-procedure-section/t
 import { RecompensesSectionComponent } from '../recompenses-section/recompenses-section.component';
 import { AutoriteParentaleSectionComponent } from '../autorite-parentale-section/autorite-parentale-section.component';
 import { ChangementResidenceSectionComponent } from '../changement-residence-section/changement-residence-section.component';
+import { DesaccordsParentauxSectionComponent } from '../desaccords-parentaux-section/desaccords-parentaux-section.component';
 import { MesuresProvisoiresSectionComponent } from '../mesures-provisoires-section/mesures-provisoires-section.component';
 
 export interface DecisionToolContext {
@@ -673,6 +674,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
       ['F-FA-19-changement-residence', {
         component: ChangementResidenceSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-19-desaccords-parentaux', {
+        component: DesaccordsParentauxSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,

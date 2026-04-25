@@ -92,6 +92,15 @@ export interface FamilleExtractedData {
   consentementAutreParent?: boolean | null;
   interferenceVieEnfant?: boolean | null;
   ageEnfants?: number[] | null;
+  /**
+   * SF-FA-19-06 : pré-fill outil "Désaccords parentaux art. 373-2-10".
+   * Valeurs string brutes — converties en enum côté composant.
+   */
+  domaineDesaccordDetecte?: string | null;
+  intensiteDesaccordDetecte?: string | null;
+  tentativesMediationDetectees?: string[] | null;
+  /** SF-FA-19-06 : urgence détectée par l'IA → délai 30j au lieu de 90j. */
+  urgenceDetectee?: boolean | null;
   /** SF-FA-14-02 : pré-fill ordonnance de protection. */
   dateRequeteOP?: string | null;
   violencesAllegueesDetectees?: string[] | null;
