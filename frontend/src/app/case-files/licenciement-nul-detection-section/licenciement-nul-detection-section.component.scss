@@ -1,0 +1,503 @@
+/**
+ * SF-DT-16-02 : styles outil "Licenciement nul détection multi-protections"
+ * (F-DT-16). Aligné sur le template canonique `harcelement-licenciement-nul-section`
+ * + verdict 3 niveaux `divorce-accepte-section`.
+ *
+ * Palette : standard navy/or/rouge classique. Pas de gradation
+ * `--danger-medium/-strong/-dark` — pas d'urgence < 72h (le licenciement est
+ * notifié, pas dans une fenêtre 48h critique).
+ *
+ * Inter pour le texte courant, JetBrains Mono pour `formule`,
+ * `baseJuridique`, montants et durées.
+ */
+
+.lnd-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.lnd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.lnd-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.lnd-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.lnd-chip-summary {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+
+  &--ok {
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+  }
+  &--medium {
+    background: rgba(201, 165, 75, 0.15);
+    color: #8a6a16;
+  }
+  &--ko {
+    background: rgba(220, 53, 69, 0.10);
+    color: #B11A28;
+  }
+}
+
+.lnd-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lnd-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.lnd-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Bannière country-gate BE — palette navy info_outline (pas alarmiste).
+.lnd-country-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Form layout 2 colonnes
+.lnd-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.lnd-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lnd-field-with-alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  mat-form-field { width: 100%; }
+}
+
+.lnd-full {
+  grid-column: 1 / -1;
+}
+
+// Résumé global "N incohérence(s) avec l'analyse" — accent or.
+.lnd-coherence-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #FEF7E6;
+  border: 1px solid #F59E0B;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #92400E;
+
+  mat-icon {
+    color: #F59E0B;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Badge "Pré-rempli depuis l'analyse"
+.lnd-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #1A3A5C;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #C9973A;
+  }
+}
+
+// Note discrète "Salaire déduit d'un net × 1,30" (SF-130-01).
+.lnd-hint-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-text-secondary, #6a7485);
+  }
+}
+
+// Badge alerte cohérence (popover trigger F-IA-03-15b)
+.lnd-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6;
+  color: #92400E;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #F59E0B;
+  }
+}
+
+// Bloc de toggles — pleine largeur, regroupés visuellement
+.lnd-toggles-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+}
+
+.lnd-toggles-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lnd-toggles-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.lnd-toggles-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.lnd-toggle-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+
+  mat-slide-toggle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+  }
+}
+
+.lnd-toggle-date {
+  width: 100%;
+  max-width: 320px;
+  margin-left: 32px;
+  margin-top: 4px;
+}
+
+.lnd-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// --- Résultat ---
+
+.lnd-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Bannière verdict — palette standard navy/or/rouge classique.
+.lnd-verdict-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  // Navy "DISPONIBLE" — verdict ELEVEE.
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    border-left: 4px solid #1A3A5C;
+    color: #1A3A5C;
+    mat-icon { color: #1A3A5C; }
+  }
+
+  // Or — verdict MOYENNE.
+  &--medium {
+    background: rgba(201, 165, 75, 0.10);
+    border-left: 4px solid #c9a54b;
+    color: #8a6a16;
+    mat-icon { color: #c9a54b; }
+  }
+
+  // Rouge classique — verdict FAIBLE (pas de gradation, pas urgent).
+  &--danger {
+    background: rgba(220, 53, 69, 0.08);
+    border-left: 4px solid #B11A28;
+    color: #B11A28;
+    mat-icon { color: #B11A28; }
+  }
+}
+
+.lnd-verdict-score {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+// Bloc des chips de protections détectées
+.lnd-chips-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lnd-chips-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lnd-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lnd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+
+  // Navy par défaut (palette --available — protection détectée).
+  &--available {
+    background: rgba(26, 58, 92, 0.08);
+    color: #1A3A5C;
+    mat-icon {
+      color: #1A3A5C;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.lnd-chip-article {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  margin-left: 4px;
+}
+
+// Bloc "aucune protection détectée" — info navy
+.lnd-no-protection {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(26, 58, 92, 0.06);
+  border-left: 4px solid #1A3A5C;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #1A3A5C;
+  line-height: 1.5;
+
+  mat-icon {
+    color: #1A3A5C;
+    flex-shrink: 0;
+  }
+}
+
+// Carte indemnité 6 mois (en grand JetBrains Mono)
+.lnd-amount-block {
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(201, 165, 75, 0.08);
+  border-left: 4px solid var(--ds-accent-gold, #c9a54b);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lnd-amount-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lnd-amount {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+// Badge "Réintégration ouverte"
+.lnd-reintegration-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(26, 58, 92, 0.10);
+  color: #1A3A5C;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+
+  mat-icon {
+    color: #1A3A5C;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.lnd-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.lnd-meta-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lnd-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.lnd-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // Citations juridiques rendues en JetBrains Mono via LegalCitationsPipe (F-155 SF-155-01)
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
