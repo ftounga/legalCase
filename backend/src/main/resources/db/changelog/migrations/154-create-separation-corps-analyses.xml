@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="154-create-separation-corps-analyses" author="legalcase">
+        <comment>
+            SF-FA-21-01 : table dédiée à l'outil décisionnel "Séparation de
+            corps + conversion en divorce" (art. 296 et s. + 306 Code civil
+            français + Loi n° 2004-439 du 26/05/2004). Premier morceau backend
+            de F-FA-21.
+
+            La séparation de corps est une procédure matrimoniale autonome
+            prononcée selon les 4 mêmes modes que le divorce (art. 296 Cciv) :
+            CONSENTEMENT_MUTUEL, ACCEPTATION_PRINCIPE, FAUTE, ALTERATION_DEFINITIVE.
+            Conversion automatique en divorce art. 306 Cciv si délai 2 ans
+            atteint, sauf demande de réconciliation art. 305.
+
+            Logique de scoring 0-100 :
+            - délai 2 ans atteint : +40
+            - consentement mutuel à la conversion : +25
+            - pas de demande de réconciliation : +20
+            - pas d'enfants mineurs OU consentement mutuel : +15
+
+            Verdicts :
+            - RECONCILIATION_BLOQUE si demande réconciliation (priorité)
+            - PREMATUREE si délai 2 ans non atteint ou score &lt; 70
+            - POSSIBLE si score ≥ 70 + délai atteint + pas réconciliation
+
+            Outil single-country FRANCE — la séparation de corps belge
+            (art. 213 et s. Code civil BE) suit un régime distinct (juge de
+            paix, mécanique de conversion différente) — backlog jumeau si
+            besoin métier.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 83) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="separation_corps_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_separation_corps_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="mode_procedure" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_jugement_separation_corps" type="date"/>
+            <column name="date_requete_conversion" type="date"/>
+            <column name="duree_separation_annees" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_mutuel_conversion" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="patrimoine_commun" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enfants_mineurs" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demande_reconciliation_formulee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="separation_corps_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_separation_corps_analyses_case_file"/>
+
+        <createIndex tableName="separation_corps_analyses"
+                     indexName="idx_separation_corps_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee00000fa211', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-21-separation-corps', 'ALWAYS_ON', NULL, NULL, 83);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee00000fa211';
+            </sql>
+            <dropTable tableName="separation_corps_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
