@@ -173,6 +173,37 @@ describe('DecisionToolsPanelComponent', () => {
     expect(inputs['piecesManquantes']).toEqual({ foo: 'bar' });
   });
 
+  it('SF-FA-17-02 : resolves F-FA-17-partage-judiciaire to PartageJudiciaireSectionComponent + bindings IA', () => {
+    const entry = component.resolveEntry('F-FA-17-partage-judiciaire');
+    expect(entry).not.toBeNull();
+    expect(entry!.component.name).toBe('PartageJudiciaireSectionComponent');
+
+    component.caseFileId = 'case-pj-1';
+    component.workspaceCountry = 'FRANCE';
+    component.synthesis = {
+      familleExtractedData: {
+        pvDifficultesEtablisDetected: true,
+        nombreCoindivisairesDetecte: 3,
+      },
+      piecesManquantesDetails: [{ texte: 'PV difficultés', critereCode: 'PARTAGE_JUDICIAIRE_PV' }],
+    };
+    component.procedureChecks = [{ id: 'c1' } as any];
+    component.aiQuestions = [{ id: 'q1' } as any];
+
+    const inputs = component.componentInputsFor(entry!);
+    expect(inputs['caseFileId']).toBe('case-pj-1');
+    expect(inputs['workspaceCountry']).toBe('FRANCE');
+    expect(inputs['aiData']).toEqual({
+      pvDifficultesEtablisDetected: true,
+      nombreCoindivisairesDetecte: 3,
+    });
+    expect(inputs['procedureChecks']).toEqual([{ id: 'c1' }]);
+    expect(inputs['aiQuestions']).toEqual([{ id: 'q1' }]);
+    expect(inputs['piecesManquantes']).toEqual([
+      { texte: 'PV difficultés', critereCode: 'PARTAGE_JUDICIAIRE_PV' },
+    ]);
+  });
+
   it('SF-DT-21-02 : resolves F-DT-21-travail-dissimule to TravailDissimuleSectionComponent + bindings IA', () => {
     const entry = component.resolveEntry('F-DT-21-travail-dissimule');
     expect(entry).not.toBeNull();

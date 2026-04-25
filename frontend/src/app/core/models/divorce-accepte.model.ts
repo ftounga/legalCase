@@ -178,4 +178,21 @@ export interface FamilleExtractedData {
   majeurDemandeurDetected?: boolean | null;
   /** SF-FA-26-02 : consentement parental détecté (mineur). */
   consentementParentalDetected?: boolean | null;
+  /**
+   * SF-FA-17-02 : pré-fill outil "Partage judiciaire" (art. 840+ Cciv +
+   * 1364+ CPC). Toutes valeurs optionnelles — composant no-op gracieux.
+   *
+   * `pvDifficultesEtablisDetected` : PV de difficultés (art. 1366 CPC)
+   * dressé par le notaire — préalable obligatoire à la saisine.
+   */
+  pvDifficultesEtablisDetected?: boolean | null;
+  /**
+   * SF-FA-17-02 : tentative amiable épuisée (échec voie amiable —
+   * sinon refus pour défaut d'intérêt à agir).
+   */
+  tentativeAmiableEpuiseueeDetected?: boolean | null;
+  /** SF-FA-17-02 : nombre de co-indivisaires détecté par l'IA. */
+  nombreCoindivisairesDetecte?: number | null;
+  /** SF-FA-17-02 : valeur estimée des biens en indivision (€). */
+  valeurBiensIndivisionEur?: number | null;
 }

@@ -86,6 +86,7 @@ import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit
 import { PseSectionComponent } from '../pse-section/pse-section.component';
 import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
+import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -899,6 +900,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // F-IA-03 (1 champ TITRE_ACTUEL multi-sources IA / F96 /
           // QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-17-02 : partage judiciaire FR (art. 840+ Cciv + 1364+ + 1366 CPC).
+      // tool_id aligné avec la migration 169.
+      ['F-FA-17-partage-judiciaire', {
+        component: PartageJudiciaireSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (pvDifficultesEtablisDetected,
+          // tentativeAmiableEpuiseueeDetected, nombreCoindivisairesDetecte,
+          // valeurBiensIndivisionEur) + validation F-IA-03 (2 alertes :
+          // PV_DIFFICULTES + TENTATIVE_AMIABLE multi-sources IA / F96 /
+          // QUESTION_IA / PIECE_MANQUANTE).
+          aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
