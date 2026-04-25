@@ -84,4 +84,12 @@ export interface FamilleExtractedData {
    * l'outil F-FA-11 désunion irrémédiable BE.
    */
   separationConsentue?: boolean | null;
+  /**
+   * SF-FA-15-02 : régime matrimonial détecté par l'IA — pré-fill pour
+   * l'outil F-FA-15 récompenses (art. 1437/1469 Cciv). Valeurs attendues :
+   * `COMMUNAUTE_LEGALE` / `PARTICIPATION_AUX_ACQUETS` / `COMMUNAUTE_UNIVERSELLE` /
+   * `SEPARATION_BIENS` (cette dernière exclue de l'UI car récompenses N/A).
+   * Optionnel ; absent si le pipeline IA ne l'a pas extrait — graceful no-op.
+   */
+  regimeMatrimonialDetecte?: string | null;
 }
