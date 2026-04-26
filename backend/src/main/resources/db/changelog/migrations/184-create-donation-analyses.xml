@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="184-create-donation-analyses" author="legalcase">
+        <comment>
+            SF-FA-24-05 : table dédiée à l'outil décisionnel "Validité de la
+            donation entre vifs" (FR — art. 893-958 + 902-906 + 920+ Cciv).
+            5ème SF backend de F-FA-24 (chantier successions).
+
+            Évalue la validité d'une donation entre vifs selon :
+            - 4 formes (931 notariée, 894+ manuelle, don indirect, donation
+              déguisée)
+            - Capacité (902, 904, 906, 909)
+            - Vices de consentement (901+ — dol, violence, erreur)
+            - Objet (893+)
+            - Quotité disponible (913-920 — action en réduction si excès,
+              n'invalide pas la donation)
+            - Révocation (953-958 — ingratitude, inexécution charge).
+
+            Verdict VALIDE / CONTESTABLE / NUL + liste des risques de
+            requalification + délai de contestation 5 ans (art. 1304 / 2224
+            Cciv).
+
+            Outil single-country FRANCE — l'équivalent BE (CC BE art. 893+
+            avec exigences spécifiques notamment pour les donations entre
+            époux) sera traité dans une feature jumelle dédiée
+            (F-FA-24-BE-donation).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 93) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="donation_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_donation_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="forme_donation" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_donation" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="age_donateur_ans" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict_validite" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_en_reduction_possible" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="revocation_possible" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score_eligibilite" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="donation_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_donation_analyses_case_file"/>
+
+        <createIndex tableName="donation_analyses"
+                     indexName="idx_donation_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000184', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-donation', 'ALWAYS_ON', NULL, NULL, 93);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000184';
+            </sql>
+            <dropTable tableName="donation_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
