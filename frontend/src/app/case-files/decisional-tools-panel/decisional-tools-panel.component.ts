@@ -96,9 +96,11 @@ import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section
 import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/devolution-legale-section.component';
 import { TestamentValiditeSectionComponent } from '../testament-validite-section/testament-validite-section.component';
 import { DonationSectionComponent } from '../donation-section/donation-section.component';
+import { ReserveHeriditaireSectionComponent } from '../reserve-heriditaire-section/reserve-heriditaire-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { RecherchePaterniteSectionComponent } from '../recherche-paternite-section/recherche-paternite-section.component';
+import { PossessionEtatSectionComponent } from '../possession-etat-section/possession-etat-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
@@ -1035,6 +1037,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-FA-18-08 : possession d'état FR (art. 311-1 + 311-2 + 317 Cciv).
+      // tool_id aligné avec la migration 185.
+      ['F-FA-18-possession-etat', {
+        component: PossessionEtatSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux via possessionEtatConforme5AnsDetected
+          // (faisceau cardinal "conforme 5 ans") + validation F-IA-03
+          // (5 alertes sur tractatus / fama / continue / paisible / nonEquivoque).
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-FA-16-02 : communauté universelle FR (art. 1526 + 1527 al. 2 Cciv).
       ['F-FA-16-communaute-universelle', {
         component: CommunauteUniverselleSectionComponent,
@@ -1098,11 +1116,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
-      // SF-FA-24-06 : validité donation entre vifs FR (art. 893-958, 902-906,
-      // 920+, 931, 953-958 Cciv). tool_id aligné avec la migration 184
-      // (visibility ALWAYS_ON DROIT_FAMILLE FRANCE priority 93).
+      // SF-FA-24-06 : donation entre vifs FR.
       ['F-FA-24-donation', {
         component: DonationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-24-08 : réserve héréditaire FR.
+      ['F-FA-24-reserve-heriditaire', {
+        component: ReserveHeriditaireSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
