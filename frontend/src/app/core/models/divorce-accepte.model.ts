@@ -284,4 +284,10 @@ export interface FamilleExtractedData {
     | 'HERITIER_RESERVATAIRE_DESCENDANT'
     | 'CONJOINT_SURVIVANT'
     | null;
+  /**
+   * SF-FA-24-12 : pré-fill type d'indivision successorale (art. 815 / 1873-1
+   * / 815-1 Cciv). Réutilise `dateOuvertureSuccessionDetectee` (SF-FA-24-08
+   * ci-dessus) pour la date d'ouverture.
+   */
+  typeIndivisionSuccessoraleDetecte?: string | null;
 }
