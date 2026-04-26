@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="188-create-partage-successoral-analyses" author="legalcase">
+        <comment>
+            SF-FA-24-09 : table dédiée à l'outil décisionnel "Partage successoral"
+            (FR — art. 815-840 Cciv + 1364 CPC). 9ème SF du chantier F-FA-24
+            (Successions).
+
+            Distribution effective des biens d'une succession entre héritiers
+            après dévolution. 3 modalités possibles :
+
+            - PARTAGE_AMIABLE (art. 835) : entre tous les héritiers consentants ;
+              acte sous seing privé sauf si immeubles → notaire obligatoire.
+            - PARTAGE_JUDICIAIRE (art. 840 + 1364 CPC) : désaccord persistant
+              ou héritier protégé/absent ; TJ ordonne avec expertise notariale.
+            - PARTAGE_PARTIEL (art. 838) : sur seulement certains biens, le
+              reste demeure en indivision.
+
+            Bascule possible : si modePartageDemande = PARTAGE_AMIABLE mais
+            consentementsTous = false ou desaccordPersistant = true, le
+            modeRecommande bascule vers PARTAGE_JUDICIAIRE.
+
+            Sortie : verdictRecevabilite, modeRecommande, delaiInstructionMois
+            (3 amiable / 6-18 judiciaire), fraisEstimesPct (1-3%),
+            risqueLicitation (true si bien indivisible + désaccord),
+            baseJuridique, formule, messages.
+
+            Outil single-country FRANCE — l'équivalent BE (CJ art. 1207 et s.,
+            partage devant juge de paix) sera traité dans une feature jumelle
+            dédiée au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 97) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="partage_successoral_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_partage_successoral_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="mode_partage_demande" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nombre_coheritiers" type="int" defaultValueNumeric="2">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentements_tous" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="presence_immeubles" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="accords_valuation" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="desaccord_persistant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_deces" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valeur_masse_eur" type="double" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="partage_successoral_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_partage_successoral_analyses_case_file"/>
+
+        <createIndex tableName="partage_successoral_analyses"
+                     indexName="idx_partage_successoral_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000188', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-partage-successoral', 'ALWAYS_ON', NULL, NULL, 97);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000188';
+            </sql>
+            <dropTable tableName="partage_successoral_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
