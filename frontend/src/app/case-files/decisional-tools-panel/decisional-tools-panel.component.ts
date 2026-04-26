@@ -98,10 +98,13 @@ import { TestamentValiditeSectionComponent } from '../testament-validite-section
 import { DonationSectionComponent } from '../donation-section/donation-section.component';
 import { ReserveHeriditaireSectionComponent } from '../reserve-heriditaire-section/reserve-heriditaire-section.component';
 import { IndivisionSuccessoraleSectionComponent } from '../indivision-successorale-section/indivision-successorale-section.component';
+import { PartageSuccessoralSectionComponent } from '../partage-successoral-section/partage-successoral-section.component';
+import { RapportSuccessionSectionComponent } from '../rapport-succession-section/rapport-succession-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { RecherchePaterniteSectionComponent } from '../recherche-paternite-section/recherche-paternite-section.component';
 import { PossessionEtatSectionComponent } from '../possession-etat-section/possession-etat-section.component';
+import { AdoptionSectionComponent } from '../adoption-section/adoption-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
@@ -1062,6 +1065,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-FA-18-10 : adoption FR (art. 343-370-2 Cciv) — plénière / simple.
+      // Scoring niveau 5 (recevabilité) + bascule plénière → simple.
+      // FR uniquement (BE = feature jumelle au backlog).
+      ['F-FA-18-adoption', {
+        component: AdoptionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA via formeAdoptionDemandeeDetected / pupilleEtatDetected
+          // / adoptantMarieDetected / ageAdoptantDetecte / ageAdopteDetecte.
+          // Validation F-IA-03 sur 5 fields (FORME_ADOPTION / PUPILLE_ETAT /
+          // ADOPTANT_MARIE / AGE_ADOPTANT / AGE_ADOPTE).
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-FA-16-02 : communauté universelle FR (art. 1526 + 1527 al. 2 Cciv).
       ['F-FA-16-communaute-universelle', {
         component: CommunauteUniverselleSectionComponent,
@@ -1149,9 +1170,33 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-FA-24-10 : partage successoral FR.
+      ['F-FA-24-partage-successoral', {
+        component: PartageSuccessoralSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-FA-24-12 : indivision successorale FR.
       ['F-FA-24-indivision-successorale', {
         component: IndivisionSuccessoraleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-24-14 : rapport à succession FR (art. 843-863 + 919 Cciv).
+      ['F-FA-24-rapport-succession', {
+        component: RapportSuccessionSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,

@@ -285,9 +285,32 @@ export interface FamilleExtractedData {
     | 'CONJOINT_SURVIVANT'
     | null;
   /**
-   * SF-FA-24-12 : pré-fill type d'indivision successorale (art. 815 / 1873-1
-   * / 815-1 Cciv). Réutilise `dateOuvertureSuccessionDetectee` (SF-FA-24-08
-   * ci-dessus) pour la date d'ouverture.
+   * SF-FA-18-10 : pré-fill adoption (art. 343-370-2 Cciv).
+   */
+  formeAdoptionDemandeeDetected?: 'PLENIERE' | 'SIMPLE' | null;
+  pupilleEtatDetected?: boolean | null;
+  adoptantMarieDetected?: boolean | null;
+  ageAdoptantDetecte?: number | null;
+  ageAdopteDetecte?: number | null;
+  /**
+   * SF-FA-24-10 : pré-fill partage successoral (art. 815-840 Cciv).
+   */
+  modePartageDemandeDetecte?: string | null;
+  nombreCoheritiersDetecte?: number | null;
+  dateDecesDetectee?: string | null;
+  /**
+   * SF-FA-24-12 : pré-fill type d'indivision successorale (art. 815 / 1873-1+).
    */
   typeIndivisionSuccessoraleDetecte?: string | null;
+  /**
+   * SF-FA-24-14 : pré-fill rapport à succession (art. 843-863 + 919 Cciv).
+   */
+  montantDonationsRecuesEurDetecte?: number | null;
+  valeurDonationAuJourPartageEurDetectee?: number | null;
+  qualiteHeritierRapportDetectee?:
+    | 'DESCENDANT'
+    | 'CONJOINT_SURVIVANT'
+    | null;
+  donationDispenseDeRapportDetected?: boolean | null;
+  naturePresumeeNonRapportableDetected?: boolean | null;
 }
