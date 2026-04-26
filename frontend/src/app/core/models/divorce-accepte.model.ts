@@ -284,4 +284,20 @@ export interface FamilleExtractedData {
     | 'HERITIER_RESERVATAIRE_DESCENDANT'
     | 'CONJOINT_SURVIVANT'
     | null;
+  /**
+   * SF-FA-18-10 : pré-fill outil "Adoption" (art. 343-370-2 Cciv).
+   * Tous les champs sont optionnels — composant no-op gracieux si absent.
+   *
+   * `formeAdoptionDemandeeDetected` : forme demandée détectée par l'IA
+   * (`PLENIERE` ou `SIMPLE`). Toute autre valeur ignorée.
+   */
+  formeAdoptionDemandeeDetected?: 'PLENIERE' | 'SIMPLE' | null;
+  /** SF-FA-18-10 : adopté pupille de l'État détecté (art. 347 Cciv). */
+  pupilleEtatDetected?: boolean | null;
+  /** SF-FA-18-10 : adoptant marié détecté (impacte âge min + consentement conjoint). */
+  adoptantMarieDetected?: boolean | null;
+  /** SF-FA-18-10 : âge de l'adoptant détecté par l'IA. */
+  ageAdoptantDetecte?: number | null;
+  /** SF-FA-18-10 : âge de l'adopté détecté par l'IA. */
+  ageAdopteDetecte?: number | null;
 }

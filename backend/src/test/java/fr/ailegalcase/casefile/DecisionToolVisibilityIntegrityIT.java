@@ -92,6 +92,7 @@ class DecisionToolVisibilityIntegrityIT {
             "F-FA-15-recompenses",
             "F-FA-16-communaute-universelle",
             "F-FA-17-partage-judiciaire",
+            "F-FA-18-adoption",
             "F-FA-18-contestation-paternite",
             "F-FA-18-possession-etat",
             "F-FA-18-recherche-paternite",
