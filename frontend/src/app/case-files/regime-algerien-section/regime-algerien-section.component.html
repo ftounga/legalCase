@@ -1,0 +1,395 @@
+<section class="rgalg-section">
+  <header class="rgalg-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rgalg-body">
+    <mat-icon class="rgalg-icon">flag</mat-icon>
+    <span class="rgalg-title">RÉGIME ALGÉRIEN (FR)</span>
+    @if (result()) {
+      <span class="rgalg-chip"
+            [class.rgalg-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.rgalg-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.rgalg-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }}
+      </span>
+    }
+    <mat-icon class="rgalg-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rgalg-body" class="rgalg-body">
+      @if (!isFrance()) {
+        <div class="rgalg-banner rgalg-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rgalg-banner-content">
+            <div class="rgalg-banner-title">Régime bilatéral FR-DZ uniquement</div>
+            <div class="rgalg-banner-sub">
+              L'accord franco-algérien du 27/12/1968 (modifié par avenants
+              1985 / 1994 / 2001) ne s'applique qu'aux ressortissants
+              algériens présents en France. Aucun accord bilatéral
+              équivalent n'existe en Belgique.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rgalg-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            <!-- Gate nationalité algérienne -->
+            <fieldset class="rgalg-fieldset rgalg-gate-fieldset">
+              <legend class="rgalg-legend">
+                <mat-icon>badge</mat-icon>
+                Nationalité du demandeur
+              </legend>
+              <div class="rgalg-toggle-row">
+                <mat-slide-toggle
+                    [ngModel]="nationaliteAlgerienne()"
+                    (ngModelChange)="onNationaliteAlgerienneChange($event)"
+                    name="nationaliteAlgerienne">
+                  Le demandeur est ressortissant algérien
+                </mat-slide-toggle>
+                @if (provenanceNationalite() === 'IA') {
+                  <span class="rgalg-provenance-note">
+                    <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                  </span>
+                }
+              </div>
+              @if (!nationaliteAlgerienne()) {
+                <div class="rgalg-banner rgalg-banner--info" role="note">
+                  <mat-icon>info_outline</mat-icon>
+                  <div class="rgalg-banner-content">
+                    <div class="rgalg-banner-title">Outil non applicable</div>
+                    <div class="rgalg-banner-sub">
+                      Cet outil ne s'applique qu'aux ressortissants algériens
+                      (régime CESEDA distinct). Cochez la case ci-dessus pour
+                      activer l'analyse.
+                    </div>
+                  </div>
+                </div>
+              }
+            </fieldset>
+
+            @if (formActive()) {
+              @if (alertsSummary().total > 0) {
+                <div class="rgalg-coherence-summary">
+                  <mat-icon>warning</mat-icon>
+                  <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+                </div>
+              }
+
+              <form class="rgalg-form" (ngSubmit)="calculate()">
+
+                <!-- Section 1 : Voie -->
+                <fieldset class="rgalg-fieldset">
+                  <legend class="rgalg-legend">
+                    <mat-icon>route</mat-icon>
+                    Voie envisagée (5 voies de l'accord)
+                  </legend>
+
+                  <div class="rgalg-radio-group">
+                    <mat-radio-group required
+                                     [ngModel]="voieDemande()"
+                                     (ngModelChange)="onVoieChange($event)"
+                                     name="voieDemande">
+                      @for (opt of voieOptions; track opt.code) {
+                        <mat-radio-button [value]="opt.code">
+                          <div class="rgalg-radio-stack">
+                            <span class="rgalg-radio-label">{{ opt.label }}</span>
+                            <span class="rgalg-radio-sub">{{ opt.sub }}</span>
+                          </div>
+                        </mat-radio-button>
+                      }
+                    </mat-radio-group>
+                    <div class="rgalg-voie-meta">
+                      @if (provenanceVoie() === 'IA') {
+                        <span class="rgalg-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().VOIE; as alert) {
+                        <span class="rgalg-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </fieldset>
+
+                <!-- Champs voie CRA_1_AN -->
+                @if (showCra1AnFields()) {
+                  <fieldset class="rgalg-fieldset">
+                    <legend class="rgalg-legend">
+                      <mat-icon>article</mat-icon>
+                      Critères CRA 1 an (art. 5)
+                    </legend>
+
+                    <div class="rgalg-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Présence régulière en France (mois)</mat-label>
+                        <input matInput type="number" required
+                               min="0" step="1"
+                               [ngModel]="presenceReguliereFranceMois()"
+                               (ngModelChange)="onPresenceReguliereChange($event)"
+                               name="presenceReguliereCra1An" />
+                      </mat-form-field>
+                      <span class="rgalg-helper-text">
+                        Saisir 0 pour une 1ère demande sans présence préalable.
+                      </span>
+                    </div>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="visaLongSejourValide()"
+                          (ngModelChange)="onVisaLongSejourChange($event)"
+                          name="visaLongSejourValide">
+                        Visa long séjour valide à l'entrée
+                      </mat-slide-toggle>
+                    </div>
+                  </fieldset>
+                }
+
+                <!-- Champs voie CRA 10 ans (lien France) -->
+                @if (showLienFranceFields()) {
+                  <fieldset class="rgalg-fieldset">
+                    <legend class="rgalg-legend">
+                      <mat-icon>family_restroom</mat-icon>
+                      Critères CRA 10 ans — lien France (art. 6 al. 1, 2, 3)
+                    </legend>
+
+                    <div class="rgalg-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Durée présence régulière (mois)</mat-label>
+                        <input matInput type="number" required
+                               min="0" step="1"
+                               [ngModel]="presenceReguliereFranceMois()"
+                               (ngModelChange)="onPresenceReguliereChange($event)"
+                               name="presenceReguliereLienFr" />
+                      </mat-form-field>
+                      <span class="rgalg-helper-text">
+                        Seuil al. 3 : 120 mois (10 ans).
+                      </span>
+                    </div>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="conjointFrancais()"
+                          (ngModelChange)="onConjointFrancaisChange($event)"
+                          name="conjointFrancais">
+                        Conjoint(e) de nationalité française (al. 1)
+                      </mat-slide-toggle>
+                    </div>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="parentEnfantFrancais()"
+                          (ngModelChange)="onParentEnfantFrancaisChange($event)"
+                          name="parentEnfantFrancais">
+                        Parent d'un enfant français (al. 2)
+                      </mat-slide-toggle>
+                    </div>
+                  </fieldset>
+                }
+
+                <!-- Champs voie CRA 10 ans (résident ancien) -->
+                @if (showResidentAncienFields()) {
+                  <fieldset class="rgalg-fieldset">
+                    <legend class="rgalg-legend">
+                      <mat-icon>history_edu</mat-icon>
+                      Critères CRA 10 ans — résident ancien (art. 7bis)
+                    </legend>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="neEnFrance()"
+                          (ngModelChange)="onNeEnFranceChange($event)"
+                          name="neEnFrance">
+                        Né(e) en France
+                      </mat-slide-toggle>
+                    </div>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="arriveeAvant13Ans()"
+                          (ngModelChange)="onArriveeAvant13Change($event)"
+                          name="arriveeAvant13Ans">
+                        Arrivé(e) en France avant 13 ans
+                      </mat-slide-toggle>
+                    </div>
+                  </fieldset>
+                }
+
+                <!-- Champs voie changement vers travailleur -->
+                @if (showTravailleurFields()) {
+                  <fieldset class="rgalg-fieldset">
+                    <legend class="rgalg-legend">
+                      <mat-icon>work</mat-icon>
+                      Critères changement CRA Travailleur (art. 7)
+                    </legend>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="contratTravailValide()"
+                          (ngModelChange)="onContratTravailChange($event)"
+                          name="contratTravailValide">
+                        Contrat de travail valide en cours
+                      </mat-slide-toggle>
+                    </div>
+                  </fieldset>
+                }
+
+                <!-- Champs voie regroupement familial -->
+                @if (showRegroupementFields()) {
+                  <fieldset class="rgalg-fieldset">
+                    <legend class="rgalg-legend">
+                      <mat-icon>group</mat-icon>
+                      Critères regroupement familial (art. 4)
+                    </legend>
+
+                    <div class="rgalg-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Nombre de personnes au foyer</mat-label>
+                        <input matInput type="number" required
+                               min="0" step="1"
+                               [ngModel]="nombrePersonnesFoyer()"
+                               (ngModelChange)="onNombrePersonnesChange($event)"
+                               name="nombrePersonnesFoyer" />
+                      </mat-form-field>
+                      <span class="rgalg-helper-text">
+                        Le demandeur compris (conditions ressources réduites
+                        vs CESEDA).
+                      </span>
+                    </div>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="ressourcesSuffisantes()"
+                          (ngModelChange)="onRessourcesSuffisantesChange($event)"
+                          name="ressourcesSuffisantes">
+                        Ressources suffisantes (≥ SMIC ajusté pour la taille du foyer)
+                      </mat-slide-toggle>
+                    </div>
+
+                    <div class="rgalg-toggle-row">
+                      <mat-slide-toggle
+                          [ngModel]="logementDecent()"
+                          (ngModelChange)="onLogementDecentChange($event)"
+                          name="logementDecent">
+                        Logement décent et adapté à la taille de la famille
+                      </mat-slide-toggle>
+                    </div>
+                  </fieldset>
+                }
+
+                <!-- Critères transversaux -->
+                <fieldset class="rgalg-fieldset">
+                  <legend class="rgalg-legend">
+                    <mat-icon>verified_user</mat-icon>
+                    Critères transversaux
+                  </legend>
+
+                  <div class="rgalg-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="documentEtatCivilOriginal()"
+                        (ngModelChange)="onDocumentEtatCivilChange($event)"
+                        name="documentEtatCivilOriginal">
+                      Acte d'état civil algérien original (légalisé / apostillé)
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="rgalg-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="casierJudiciaireVierge()"
+                        (ngModelChange)="onCasierJudiciaireChange($event)"
+                        name="casierJudiciaireVierge">
+                      Casier judiciaire vierge (B3 + casier algérien)
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+
+                <div class="rgalg-actions">
+                  <button mat-flat-button color="primary" type="submit"
+                          [disabled]="!formValid() || calculating()">
+                    @if (calculating()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    } @else {
+                      <ng-container>Analyser la recevabilité</ng-container>
+                    }
+                  </button>
+                </div>
+              </form>
+            }
+          } @else if (result()) {
+            <div class="rgalg-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictRecevabilite) }}</mat-icon>
+                <div class="rgalg-banner-content">
+                  <div class="rgalg-banner-title">
+                    {{ bannerLabel(result()!.verdictRecevabilite) }}
+                  </div>
+                  <div class="rgalg-banner-sub">
+                    {{ result()!.voieRecommandee }}
+                    — Délai instruction :
+                    <span class="rgalg-delai">{{ result()!.delaiInstructionMois }} mois</span>
+                    — Durée titre :
+                    <span class="rgalg-delai">{{ result()!.dureeTitreAnnees }} an(s)</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="rgalg-section-block">
+                  <div class="rgalg-section-label">Critères non remplis</div>
+                  <mat-chip-set class="rgalg-chip-set">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip [class]="critereChipClass(c)">{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="rgalg-section-block">
+                  <div class="rgalg-section-label">Documents requis</div>
+                  <mat-chip-set class="rgalg-chip-set">
+                    @for (d of result()!.documentsRequis; track d) {
+                      <mat-chip class="rgalg-chip-doc">{{ d }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="rgalg-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="rgalg-formule-block">
+                  <span class="rgalg-formule-label">Formule</span>
+                  <span class="rgalg-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="rgalg-meta">
+                <span class="rgalg-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
