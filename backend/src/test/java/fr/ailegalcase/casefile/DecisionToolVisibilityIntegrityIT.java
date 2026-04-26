@@ -105,6 +105,7 @@ class DecisionToolVisibilityIntegrityIT {
             "F-FA-23-ordonnance-requete",
             "F-FA-24-devolution-legale",
             "F-FA-24-donation",
+            "F-FA-24-rapport-succession",
             "F-FA-24-reserve-heriditaire",
             "F-FA-24-testament-validite",
             "F-FA-25-majeurs-proteges",
