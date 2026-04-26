@@ -253,4 +253,17 @@ export interface FamilleExtractedData {
    * SF-FA-27-02 : pré-fill PMA / GPA / bioéthique.
    */
   dispositifBioethiqueDetecte?: string | null;
+  /**
+   * SF-FA-18-06 : pré-fill action en recherche de paternité (art. 327 + 340 Cciv).
+   */
+  qualiteDuDemandeurRechercheDetected?:
+    | 'ENFANT_MAJEUR'
+    | 'REPRESENTANT_LEGAL_MINEUR'
+    | 'MERE'
+    | null;
+  dateNaissanceEnfantRechercheDetectee?: string | null;
+  presomptionPossessionEtatRechercheDetected?: boolean | null;
+  expertiseAdnDemandeeRechercheDetected?: boolean | null;
+  pereDesigneRefuseADNDetected?: boolean | null;
+  motifsSerieuxRechercheDetected?: boolean | null;
 }

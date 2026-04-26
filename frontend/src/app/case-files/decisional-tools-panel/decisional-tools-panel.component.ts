@@ -97,6 +97,7 @@ import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/d
 import { TestamentValiditeSectionComponent } from '../testament-validite-section/testament-validite-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
+import { RecherchePaterniteSectionComponent } from '../recherche-paternite-section/recherche-paternite-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
@@ -1011,6 +1012,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // tool_id aligné avec la migration 181.
       ['F-FA-18-contestation-paternite', {
         component: ContestationPaterniteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-18-06 : action en recherche de paternité FR
+      // (art. 327 + 340 + 16-11 + 321 Cciv). tool_id aligné avec la migration 183.
+      ['F-FA-18-recherche-paternite', {
+        component: RecherchePaterniteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
