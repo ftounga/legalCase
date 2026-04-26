@@ -104,6 +104,14 @@ import { PossessionEtatSectionComponent } from '../possession-etat-section/posse
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
+// SF-164-01 : 5 entrées TOOL_REGISTRY manquantes pour des composants existants
+// (DB seedait `decision_tool_visibility_rules` sans entrée registry → outils
+// silencieusement masqués via `console.warn` dans `resolveEntry()`).
+import { CaseDeadlinesSectionComponent } from '../case-deadlines-section/case-deadlines-section.component';
+import { TransactionSectionComponent } from '../transaction-section/transaction-section.component';
+import { AesEtudiantSectionComponent } from '../aes-etudiant-section/aes-etudiant-section.component';
+import { AesHumanitaireSectionComponent } from '../aes-humanitaire-section/aes-humanitaire-section.component';
+import { DivorceDesunionBeSectionComponent } from '../divorce-desunion-be-section/divorce-desunion-be-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1147,6 +1155,60 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // ===================================================================
+      // SF-164-01 : entrées rétroactives pour composants existants seedés
+      // en DB sans entrée registry (régression silencieuse vague 2026-04-24).
+      // ===================================================================
+      ['F-DT-03-prescription-litige', {
+        component: CaseDeadlinesSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+        }),
+      }],
+      ['F-DT-31-transaction', {
+        component: TransactionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-09-aes-etudiant', {
+        component: AesEtudiantSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-IM-09-aes-humanitaire', {
+        component: AesHumanitaireSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      ['F-FA-11-desunion-irremediable-be', {
+        component: DivorceDesunionBeSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,

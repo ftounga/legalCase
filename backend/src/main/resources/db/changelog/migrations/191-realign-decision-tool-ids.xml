@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="191-realign-decision-tool-ids" author="legalcase">
+        <comment>
+            SF-164-01 : réalignement des `tool_id` entre `decision_tool_visibility_rules`
+            (DB) et `TOOL_REGISTRY` frontend.
+
+            Bug staging 2026-04-26 sur dossier E-36 : panel F-IA-04 quasi vide car
+            de nombreux tool_id seedés en DB sans entrée registry → outils
+            silencieusement masqués via `console.warn` dans `resolveEntry()`.
+
+            Cat A — Renommage (2 UPDATE) : aligne le nommage backend sur le frontend
+            existant.
+
+            Cat C — DELETE (11) : supprime les seeds dont aucun composant frontend
+            auto-suffisant n'existe au 2026-04-26 (les composants pour F-DT-03 /
+            F-DT-31 / F-IM-09-aes-etudiant / F-IM-09-aes-humanitaire /
+            F-FA-11-desunion-be existent côté frontend et leur entrée
+            TOOL_REGISTRY est ajoutée dans la même PR — pas de DELETE pour
+            ceux-là).
+
+            Note : F-152-divorce-consentement-scoring et F-153-fourchettes-jaf
+            sont DELETE car même si le composant
+            `divorce-consentement-scoring-section` existe côté frontend, c'est
+            un composant **présentationnel pur** (signatures `[detection]` +
+            `[scoring]`) intégré uniquement dans `synthesis.component`, pas
+            auto-suffisant pour le panel F-IA-04 (qui passe `caseFileId` +
+            sources IA). Une SF future pourra réintroduire ces deux outils
+            dans le panel via un wrapper auto-suffisant.
+
+            Les tables backend (services, controllers, analyses) sont inchangées :
+            seul l'aiguillage F-IA-04 est désactivé tant que le composant
+            frontend correspondant n'existe pas.
+
+            Symétrique de la règle CLAUDE.md `feedback_pre_merge_endpoint_check`
+            (frontend mergé sans backend) → nouvelle règle de gouvernance ajoutée
+            CLAUDE.md.
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- Cat A — Renommage (2 UPDATE) : aligner DB sur frontend
+-- =========================================================================
+
+-- F-DT-17 : ordre des mots inversé entre back et front
+UPDATE decision_tool_visibility_rules
+SET tool_id = 'F-DT-17-indemnite-precarite-cdd'
+WHERE tool_id = 'F-DT-17-cdd-indemnite-precarite';
+
+-- F-DT-35 : suffixe `-fr` côté frontend
+UPDATE decision_tool_visibility_rules
+SET tool_id = 'F-DT-35-contestation-are-fr'
+WHERE tool_id = 'F-DT-35-contestation-are';
+
+-- =========================================================================
+-- Cat C — DELETE (11) : tool_id sans composant frontend auto-suffisant au 2026-04-26.
+-- Les services backend (calculators, controllers, tables d'analyses)
+-- continuent d'exister pour les outils qui en ont un — seul l'aiguillage
+-- F-IA-04 est désactivé tant que le composant frontend n'est pas livré.
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-DT-01-calcul-indemnite-simple';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-DT-05-preavis-be';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-01-prestation-compensatoire';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-02-pension-alimentaire';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-04-liquidation-communaute';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-18-adoption';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-24-indivision-successorale';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-24-partage-successoral';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-24-rapport-succession';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-152-divorce-consentement-scoring';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-153-fourchettes-jaf';
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+-- Rollback Cat A : remettre les anciens tool_id
+UPDATE decision_tool_visibility_rules
+SET tool_id = 'F-DT-17-cdd-indemnite-precarite'
+WHERE tool_id = 'F-DT-17-indemnite-precarite-cdd';
+
+UPDATE decision_tool_visibility_rules
+SET tool_id = 'F-DT-35-contestation-are'
+WHERE tool_id = 'F-DT-35-contestation-are-fr';
+            </sql>
+            <comment>
+                Le rollback Cat C n'est pas réversible automatiquement : restaurer
+                les seeds DELETE nécessiterait de connaître les UUID, layer,
+                priority, trigger_field, trigger_value originaux. Les ré-INSERT
+                manuels devront passer par une nouvelle migration si besoin
+                (les seeds Cat C avaient été posés par diverses migrations entre
+                105 et 184 selon les SF d'origine).
+            </comment>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
