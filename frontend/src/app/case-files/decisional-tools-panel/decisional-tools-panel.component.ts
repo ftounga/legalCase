@@ -103,6 +103,7 @@ import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-pate
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { RecherchePaterniteSectionComponent } from '../recherche-paternite-section/recherche-paternite-section.component';
 import { PossessionEtatSectionComponent } from '../possession-etat-section/possession-etat-section.component';
+import { AdoptionSectionComponent } from '../adoption-section/adoption-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
@@ -1057,6 +1058,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           // Pré-fill IA gracieux via possessionEtatConforme5AnsDetected
           // (faisceau cardinal "conforme 5 ans") + validation F-IA-03
           // (5 alertes sur tractatus / fama / continue / paisible / nonEquivoque).
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-18-10 : adoption FR (art. 343-370-2 Cciv) — plénière / simple.
+      // Scoring niveau 5 (recevabilité) + bascule plénière → simple.
+      // FR uniquement (BE = feature jumelle au backlog).
+      ['F-FA-18-adoption', {
+        component: AdoptionSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA via formeAdoptionDemandeeDetected / pupilleEtatDetected
+          // / adoptantMarieDetected / ageAdoptantDetecte / ageAdopteDetecte.
+          // Validation F-IA-03 sur 5 fields (FORME_ADOPTION / PUPILLE_ETAT /
+          // ADOPTANT_MARIE / AGE_ADOPTANT / AGE_ADOPTE).
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

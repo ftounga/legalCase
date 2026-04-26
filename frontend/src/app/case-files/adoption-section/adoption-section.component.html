@@ -1,0 +1,403 @@
+<section class="adoption-section">
+  <header class="adoption-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="adoption-body">
+    <mat-icon class="adoption-icon">family_restroom</mat-icon>
+    <span class="adoption-title">ADOPTION (FR)</span>
+    @if (result()) {
+      <span class="adoption-chip"
+            [class.adoption-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.adoption-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.adoption-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }} — {{ result()!.formeRecommandee }}
+      </span>
+    }
+    <mat-icon class="adoption-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="adoption-body" class="adoption-body">
+      @if (!isFrance()) {
+        <div class="adoption-banner adoption-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="adoption-banner-content">
+            <div class="adoption-banner-title">Outil français uniquement</div>
+            <div class="adoption-banner-sub">
+              L'adoption (art. 343-370-2 Cciv) est régie par le droit français.
+              L'équivalent belge (CC art. 343 et s. — régime distinct,
+              conditions d'âge et procédure parquet propres) est traité dans
+              une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="adoption-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="adoption-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="adoption-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Forme demandée -->
+              <fieldset class="adoption-fieldset">
+                <legend class="adoption-legend">
+                  <mat-icon>assignment</mat-icon>
+                  Forme d'adoption demandée
+                </legend>
+
+                <mat-radio-group [ngModel]="formeAdoption()"
+                                 (ngModelChange)="onFormeAdoptionChange($event)"
+                                 name="formeAdoption"
+                                 class="adoption-radio-group">
+                  @for (opt of formeOptions; track opt.code) {
+                    <mat-radio-button [value]="opt.code" class="adoption-radio">
+                      <div class="adoption-radio-content">
+                        <div class="adoption-radio-label-strong">{{ opt.label }}</div>
+                        <div class="adoption-radio-sub">{{ opt.sub }}</div>
+                      </div>
+                    </mat-radio-button>
+                  }
+                </mat-radio-group>
+                <div class="adoption-field-meta">
+                  @if (provenanceFormeAdoption() === 'IA') {
+                    <span class="adoption-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                  @if (coherenceAlerts().FORME_ADOPTION; as alert) {
+                    <span class="adoption-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Adoptant -->
+              <fieldset class="adoption-fieldset">
+                <legend class="adoption-legend">
+                  <mat-icon>person</mat-icon>
+                  Adoptant
+                </legend>
+
+                <div class="adoption-grid">
+                  <div class="adoption-field-wrapper">
+                    <label class="adoption-radio-label" for="adoption-age-adoptant">
+                      Âge de l'adoptant
+                      <span class="adoption-required">*</span>
+                    </label>
+                    <input id="adoption-age-adoptant" type="number" min="0" max="120"
+                           class="adoption-input"
+                           [ngModel]="ageAdoptant()"
+                           (ngModelChange)="onAgeAdoptantChange($event)"
+                           name="ageAdoptant" />
+                    <div class="adoption-field-meta">
+                      @if (provenanceAgeAdoptant() === 'IA') {
+                        <span class="adoption-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                        </span>
+                      }
+                      @if (coherenceAlerts().AGE_ADOPTANT; as alert) {
+                        <span class="adoption-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="adoption-checkbox-row">
+                  <mat-checkbox [ngModel]="adoptantMarie()"
+                                (ngModelChange)="onAdoptantMarieChange($event)"
+                                name="adoptantMarie">
+                    Adoptant marié
+                    <span class="adoption-sub">(art. 343 — âge min. 26 ans en couple, sinon 28)</span>
+                  </mat-checkbox>
+                  <div class="adoption-field-meta">
+                    @if (provenanceAdoptantMarie() === 'IA') {
+                      <span class="adoption-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().ADOPTANT_MARIE; as alert) {
+                      <span class="adoption-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Adopté -->
+              <fieldset class="adoption-fieldset">
+                <legend class="adoption-legend">
+                  <mat-icon>child_care</mat-icon>
+                  Adopté
+                </legend>
+
+                <div class="adoption-grid">
+                  <div class="adoption-field-wrapper">
+                    <label class="adoption-radio-label" for="adoption-age-adopte">
+                      Âge de l'adopté
+                      <span class="adoption-required">*</span>
+                    </label>
+                    <input id="adoption-age-adopte" type="number" min="0" max="120"
+                           class="adoption-input"
+                           [ngModel]="ageAdopte()"
+                           (ngModelChange)="onAgeAdopteChange($event)"
+                           name="ageAdopte" />
+                    <div class="adoption-field-meta">
+                      @if (provenanceAgeAdopte() === 'IA') {
+                        <span class="adoption-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli
+                        </span>
+                      }
+                      @if (coherenceAlerts().AGE_ADOPTE; as alert) {
+                        <span class="adoption-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                @if (differenceAgeAns() !== null) {
+                  <div class="adoption-duree-live">
+                    <mat-icon>compare_arrows</mat-icon>
+                    Différence d'âge : <strong>{{ differenceAgeAns() }} an(s)</strong>
+                    @if (differenceAgeAns()! >= 15) {
+                      <span class="adoption-duree-badge adoption-duree-badge--info">
+                        ≥ 15 ans (art. 344 OK)
+                      </span>
+                    } @else {
+                      <span class="adoption-duree-badge adoption-duree-badge--warning">
+                        &lt; 15 ans (art. 344 — sauf circonstances exceptionnelles)
+                      </span>
+                    }
+                  </div>
+                }
+
+                <div class="adoption-checkbox-row">
+                  <mat-checkbox [ngModel]="pupilleEtat()"
+                                (ngModelChange)="onPupilleEtatChange($event)"
+                                name="pupilleEtat">
+                    Adopté pupille de l'État
+                    <span class="adoption-sub">(art. 347 — facilite la plénière)</span>
+                  </mat-checkbox>
+                  <div class="adoption-field-meta">
+                    @if (provenancePupilleEtat() === 'IA') {
+                      <span class="adoption-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().PUPILLE_ETAT; as alert) {
+                      <span class="adoption-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 4 : Consentements -->
+              <fieldset class="adoption-fieldset">
+                <legend class="adoption-legend">
+                  <mat-icon>verified_user</mat-icon>
+                  Consentements (art. 348, 360 al. 3)
+                </legend>
+
+                <div class="adoption-checkbox-row">
+                  <mat-checkbox [ngModel]="consentementParents()"
+                                (ngModelChange)="onConsentementParentsChange($event)"
+                                name="consentementParents">
+                    Consentement des parents biologiques
+                    <span class="adoption-sub">(art. 348 — sauf pupille de l'État)</span>
+                  </mat-checkbox>
+                </div>
+
+                <div class="adoption-checkbox-row">
+                  <mat-checkbox [ngModel]="consentementAdopte()"
+                                (ngModelChange)="onConsentementAdopteChange($event)"
+                                name="consentementAdopte">
+                    Consentement de l'adopté ≥ 13 ans
+                    <span class="adoption-sub">(art. 345 al. 3 / art. 360 al. 3)</span>
+                  </mat-checkbox>
+                </div>
+
+                <div class="adoption-checkbox-row">
+                  <mat-checkbox [ngModel]="consentementConjointAdoptant()"
+                                (ngModelChange)="onConsentementConjointChange($event)"
+                                name="consentementConjointAdoptant">
+                    Consentement du conjoint adoptant
+                    <span class="adoption-sub">(art. 343 — si adoptant marié)</span>
+                  </mat-checkbox>
+                </div>
+              </fieldset>
+
+              <!-- Section 5 : Enquêtes & placement (plénière) -->
+              <fieldset class="adoption-fieldset">
+                <legend class="adoption-legend">
+                  <mat-icon>fact_check</mat-icon>
+                  Enquêtes & placement
+                </legend>
+
+                <div class="adoption-checkbox-row">
+                  <mat-checkbox [ngModel]="enquetes()"
+                                (ngModelChange)="onEnquetesChange($event)"
+                                name="enquetes">
+                    Enquêtes sociales conduites
+                    <span class="adoption-sub">(art. L. 225-2 CASF — services départementaux)</span>
+                  </mat-checkbox>
+                </div>
+
+                <div class="adoption-checkbox-row">
+                  <mat-checkbox [ngModel]="placement6mois()"
+                                (ngModelChange)="onPlacement6moisChange($event)"
+                                name="placement6mois">
+                    Placement de 6 mois effectué
+                    <span class="adoption-sub">(art. 345-1 — obligatoire en plénière)</span>
+                  </mat-checkbox>
+                </div>
+              </fieldset>
+
+              <div class="adoption-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="adoption-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictRecevabilite === 'FAIBLE' ? 'gpp_bad' :
+                     result()!.verdictRecevabilite === 'MOYENNE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="adoption-banner-content">
+                  <div class="adoption-banner-title">
+                    Verdict : {{ result()!.verdictRecevabilite }}
+                  </div>
+                  <div class="adoption-banner-sub">
+                    Adoptant : {{ result()!.ageAdoptant }} ans —
+                    Adopté : {{ result()!.ageAdopte }} ans —
+                    Différence : {{ result()!.differenceAgeAns }} an(s)
+                  </div>
+                  <div class="adoption-meta-block">
+                    <span class="adoption-effet-chip">
+                      <mat-icon>gavel</mat-icon>
+                      Forme demandée : {{ result()!.formeAdoption }}
+                    </span>
+                    @if (result()!.formeRecommandee === 'AUCUNE') {
+                      <span class="adoption-delai-chip adoption-delai-chip--critical">
+                        <mat-icon>gpp_bad</mat-icon>
+                        Aucune forme recevable
+                      </span>
+                    } @else if (result()!.formeAdoption !== result()!.formeRecommandee) {
+                      <span class="adoption-delai-chip adoption-delai-chip--warning">
+                        <mat-icon>swap_horiz</mat-icon>
+                        Bascule recommandée → {{ result()!.formeRecommandee }}
+                      </span>
+                    } @else {
+                      <span class="adoption-effet-chip">
+                        <mat-icon>check_circle</mat-icon>
+                        Forme recommandée : {{ result()!.formeRecommandee }}
+                      </span>
+                    }
+                    <span class="adoption-effet-chip">
+                      <mat-icon>schedule</mat-icon>
+                      Délai instruction : {{ result()!.delaiInstructionMois }} mois
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="adoption-list-block adoption-list-block--warn">
+                  <div class="adoption-list-title">Critères non remplis</div>
+                  <ul class="adoption-list">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="adoption-list-block">
+                  <div class="adoption-list-title">Documents requis</div>
+                  <ul class="adoption-list">
+                    @for (d of result()!.documentsRequis; track d) {
+                      <li>{{ d }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.risqueRefus?.length) {
+                <div class="adoption-list-block adoption-list-block--warn">
+                  <div class="adoption-list-title">Risque de refus</div>
+                  <ul class="adoption-list">
+                    @for (r of result()!.risqueRefus; track r) {
+                      <li>{{ r }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="adoption-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="adoption-formule-block">
+                  <span class="adoption-formule-label">Formule</span>
+                  <span class="adoption-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="adoption-meta">
+                <span class="adoption-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
