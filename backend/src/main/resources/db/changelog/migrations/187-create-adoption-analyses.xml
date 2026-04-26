@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="187-create-adoption-analyses" author="legalcase">
+        <comment>
+            SF-FA-18-09 : table dédiée à l'outil décisionnel "Adoption"
+            (FR — art. 343-370-2 Cciv). 9ème SF du chantier F-FA-18 (Filiation).
+
+            L'outil évalue la recevabilité d'une adoption (plénière ou simple)
+            au regard des conditions cardinales du Code civil :
+
+            - Adoption plénière (art. 343-359) : remplace définitivement la
+              filiation d'origine. Conditions strictes (âge adoptant,
+              différence d'âge, âge adopté < 15 ans, placement 6 mois,
+              consentements multiples). Irrévocable.
+            - Adoption simple (art. 360-370-2) : ajoute un lien sans effacer
+              la filiation d'origine. Conditions plus souples. Révocable
+              pour motif grave (art. 370).
+
+            Le calculateur peut basculer plénière → simple si les conditions
+            de la plénière ne sont pas remplies mais celles de la simple le
+            sont (recommandation).
+
+            Outil single-country FRANCE — l'équivalent BE (CC art. 343 et s.,
+            régime distinct conditions d'âge + procédure parquet) sera traité
+            dans une feature jumelle dédiée au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 96) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="adoption_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_adoption_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="forme_adoption" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="age_adoptant" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="age_adopte" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_parents" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_adopte" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentement_conjoint_adoptant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enquetes" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="placement6mois" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pupille_etat" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="adoption_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_adoption_analyses_case_file"/>
+
+        <createIndex tableName="adoption_analyses"
+                     indexName="idx_adoption_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000187', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-18-adoption', 'ALWAYS_ON', NULL, NULL, 96);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000187';
+            </sql>
+            <dropTable tableName="adoption_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
