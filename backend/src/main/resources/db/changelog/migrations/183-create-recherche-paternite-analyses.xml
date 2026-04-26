@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="183-create-recherche-paternite-analyses" author="legalcase">
+        <comment>
+            SF-FA-18-05 : table dédiée à l'outil décisionnel "Action en
+            recherche de paternité" (FR — art. 327 + 340 + 16-11 + 321 Cciv).
+            5ème morceau du chantier F-FA-18 (Filiation, 4/8 SF déjà livrées),
+            symétrique inverse de SF-03 contestation paternité (création vs
+            annulation d'un lien de paternité).
+
+            Action en recherche de paternité — 3 qualités du demandeur
+            distinctes :
+            - ENFANT_MAJEUR (art. 327 al. 2) — délai 10 ans à compter de la
+              majorité (art. 321).
+            - REPRESENTANT_LEGAL_MINEUR (art. 327 al. 2) — délai suspendu
+              pendant la minorité (art. 321).
+            - MERE (art. 327) — agissant en représentation de l'enfant.
+              L'action de la mère à titre personnel art. 340 ancien est
+              caduque depuis l'ordonnance n°2005-759.
+
+            Critères évalués : qualité à agir, délai de prescription,
+            possession d'état (art. 311-1), expertise ADN demandée
+            (art. 16-11), motifs sérieux et concordants (Cass. 1ère civ.
+            28 mars 2000), refus d'ADN du défendeur (présomption en faveur
+            du demandeur).
+
+            Outil single-country FRANCE — l'équivalent BE (CC art. 322 al. 1,
+            332ter — qualités à agir, délais et présomptions ADN spécifiques)
+            sera traité dans une feature jumelle dédiée au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 92) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="recherche_paternite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_recherche_paternite_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="qualite_du_demandeur" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_naissance_enfant" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="presomption_possession_etat" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expertise_adn_demandee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pere_designe_refuse_adn" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motifs_serieux" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="recherche_paternite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_recherche_paternite_analyses_case_file"/>
+
+        <createIndex tableName="recherche_paternite_analyses"
+                     indexName="idx_recherche_paternite_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000183', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-18-recherche-paternite', 'ALWAYS_ON', NULL, NULL, 92);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000183';
+            </sql>
+            <dropTable tableName="recherche_paternite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
