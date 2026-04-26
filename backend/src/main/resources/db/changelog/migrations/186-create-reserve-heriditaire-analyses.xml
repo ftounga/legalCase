@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="186-create-reserve-heriditaire-analyses" author="legalcase">
+        <comment>
+            SF-FA-24-07 : table dédiée à l'outil décisionnel "Réserve
+            héréditaire et action en réduction" (FR — art. 913 + 914-1
+            + 920-928 Cciv). 7ème SF du chantier successions F-FA-24
+            (après SF-01/02 dévolution, SF-03/04 testament, SF-05 donation).
+
+            Calcule la quotité disponible et la réserve héréditaire selon
+            le barème art. 913 (0/1/2/3+ enfants), traite la réserve du
+            conjoint survivant en l'absence de descendants (art. 914-1),
+            détermine le montant excédentaire des libéralités (donations
+            + legs) et la recevabilité de l'action en réduction
+            (art. 920-928) en intégrant la prescription quinquennale de
+            l'art. 921.
+
+            Outil single-country FRANCE — l'équivalent BE (CC BE
+            art. 913+ avec barème différent) sera traité dans une feature
+            jumelle dédiée (F-FA-24-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE,
+            FRANCE, priority 95) pour exposer l'outil sur tout dossier
+            famille FR.
+        </comment>
+
+        <createTable tableName="reserve_heriditaire_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_reserve_heriditaire_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="nombre_enfants" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="conjoint_survivant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_succession" type="decimal(15,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="montant_libs_total" type="decimal(15,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_ouverture_succession" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="qualite_demandeur" type="varchar(48)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="reserve_heriditaire_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_reserve_heriditaire_analyses_case_file"/>
+
+        <createIndex tableName="reserve_heriditaire_analyses"
+                     indexName="idx_reserve_heriditaire_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000186', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-reserve-heriditaire', 'ALWAYS_ON', NULL, NULL, 95);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000186';
+            </sql>
+            <dropTable tableName="reserve_heriditaire_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
