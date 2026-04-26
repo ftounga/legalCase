@@ -1,0 +1,408 @@
+<section class="reserve-her-section">
+  <header class="reserve-her-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="reserve-her-body">
+    <mat-icon class="reserve-her-icon">balance</mat-icon>
+    <span class="reserve-her-title">RÉSERVE HÉRÉDITAIRE & ACTION EN RÉDUCTION (FR)</span>
+    @if (result()) {
+      <span class="reserve-her-chip"
+            [class.reserve-her-chip--critical]="result()!.actionReductionRecevable"
+            [class.reserve-her-chip--info]="!result()!.actionReductionRecevable">
+        {{ result()!.actionReductionRecevable ? 'Recevable' : 'Non recevable' }}
+        — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+    }
+    <mat-icon class="reserve-her-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="reserve-her-body" class="reserve-her-body">
+      @if (!isFrance()) {
+        <div class="reserve-her-banner reserve-her-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="reserve-her-banner-content">
+            <div class="reserve-her-banner-title">Outil français uniquement</div>
+            <div class="reserve-her-banner-sub">
+              La réserve héréditaire (art. 913 + 914-1 + 920-928 Cciv FR) est
+              propre au droit français. L'équivalent belge (CC BE — barème
+              différent) sera traité dans une feature jumelle au backlog
+              (F-FA-24-BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="reserve-her-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="reserve-her-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="reserve-her-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Composition successorale -->
+              <fieldset class="reserve-her-fieldset">
+                <legend class="reserve-her-legend">
+                  <mat-icon>family_restroom</mat-icon>
+                  Composition successorale (art. 913 + 914-1)
+                </legend>
+
+                <div class="reserve-her-grid">
+                  <div class="reserve-her-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nombre d'enfants</mat-label>
+                      <input matInput type="number" min="0" step="1" required
+                             [ngModel]="nombreEnfants()"
+                             (ngModelChange)="onNombreEnfantsChange($event)"
+                             name="nombreEnfants" />
+                    </mat-form-field>
+                    <div class="reserve-her-field-meta">
+                      @if (provenanceNombreEnfants() === 'IA') {
+                        <span class="reserve-her-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().NOMBRE_ENFANTS; as alert) {
+                        <span class="reserve-her-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="reserve-her-radio-group">
+                  <span class="reserve-her-radio-label">Conjoint survivant</span>
+                  <mat-radio-group required
+                                   [ngModel]="conjointSurvivant()"
+                                   (ngModelChange)="onConjointSurvivantChange($event)"
+                                   name="conjointSurvivant">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="reserve-her-field-meta">
+                    @if (provenanceConjoint() === 'IA') {
+                      <span class="reserve-her-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().CONJOINT_SURVIVANT; as alert) {
+                      <span class="reserve-her-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Montants -->
+              <fieldset class="reserve-her-fieldset">
+                <legend class="reserve-her-legend">
+                  <mat-icon>euro</mat-icon>
+                  Montants (succession + libéralités)
+                </legend>
+
+                <div class="reserve-her-grid">
+                  <div class="reserve-her-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Montant total de la succession (EUR)</mat-label>
+                      <input matInput type="number" min="0" step="100" required
+                             [ngModel]="montantSuccession()"
+                             (ngModelChange)="onMontantSuccessionChange($event)"
+                             name="montantSuccession" />
+                    </mat-form-field>
+                    <div class="reserve-her-field-meta">
+                      @if (provenanceMontantSuccession() === 'IA') {
+                        <span class="reserve-her-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().MONTANT_SUCCESSION; as alert) {
+                        <span class="reserve-her-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="reserve-her-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Total des libéralités (donations + legs, EUR)</mat-label>
+                      <input matInput type="number" min="0" step="100" required
+                             [ngModel]="montantLibsTotal()"
+                             (ngModelChange)="onMontantLibsChange($event)"
+                             name="montantLibsTotal" />
+                    </mat-form-field>
+                    <div class="reserve-her-field-meta">
+                      @if (provenanceMontantLibs() === 'IA') {
+                        <span class="reserve-her-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().MONTANT_LIBS; as alert) {
+                        <span class="reserve-her-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Date d'ouverture + qualité du demandeur -->
+              <fieldset class="reserve-her-fieldset">
+                <legend class="reserve-her-legend">
+                  <mat-icon>event</mat-icon>
+                  Ouverture & demandeur (art. 920-921)
+                </legend>
+
+                <div class="reserve-her-grid">
+                  <div class="reserve-her-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date d'ouverture de la succession</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateOuvertureSuccession()"
+                             (ngModelChange)="onDateOuvertureChange($event)"
+                             name="dateOuvertureSuccession" />
+                    </mat-form-field>
+                    @if (provenanceDateOuverture() === 'IA') {
+                      <span class="reserve-her-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="reserve-her-radio-group">
+                  <span class="reserve-her-radio-label">Qualité du demandeur</span>
+                  <mat-radio-group required
+                                   [ngModel]="qualiteDuDemandeur()"
+                                   (ngModelChange)="onQualiteDemandeurChange($event)"
+                                   name="qualiteDuDemandeur">
+                    @for (opt of qualiteDemandeurOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="reserve-her-field-meta">
+                    @if (provenanceQualiteDemandeur() === 'IA') {
+                      <span class="reserve-her-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().QUALITE_DEMANDEUR; as alert) {
+                      <span class="reserve-her-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 4 : Tableau pédagogique du barème (visible avant calcul) -->
+              <fieldset class="reserve-her-fieldset">
+                <legend class="reserve-her-legend">
+                  <mat-icon>info</mat-icon>
+                  Barème de la réserve (art. 913 + 914-1 Cciv)
+                </legend>
+                <table class="reserve-her-bareme-table">
+                  <thead>
+                    <tr>
+                      <th>Configuration</th>
+                      <th class="reserve-her-th-num">Quotité disponible</th>
+                      <th class="reserve-her-th-num">Réserve</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of baremeRows(); track trackBareme($index, row)) {
+                      <tr [class.reserve-her-bareme-row--highlight]="row.highlighted">
+                        <td>{{ row.configuration }}</td>
+                        <td class="reserve-her-td-num">{{ row.quotitePct | number:'1.0-2' }} %</td>
+                        <td class="reserve-her-td-num">{{ row.reservePct | number:'1.0-2' }} %</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </fieldset>
+
+              <div class="reserve-her-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la réserve</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="reserve-her-result">
+              <!-- Bandeau verdict -->
+              <div class="reserve-her-banner"
+                   [class.reserve-her-banner--critical]="result()!.actionReductionRecevable"
+                   [class.reserve-her-banner--info]="!result()!.actionReductionRecevable"
+                   role="status">
+                <mat-icon>
+                  {{ result()!.actionReductionRecevable ? 'gavel' : 'verified' }}
+                </mat-icon>
+                <div class="reserve-her-banner-content">
+                  <div class="reserve-her-banner-title">
+                    {{ verdictLabel(result()!.verdictRecevabilite) }}
+                  </div>
+                  <div class="reserve-her-banner-sub">
+                    Demandeur : {{ qualiteLabel(result()!.qualiteDuDemandeur) }} —
+                    Score : {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100
+                  </div>
+
+                  <div class="reserve-her-flags">
+                    @if (result()!.actionReductionRecevable) {
+                      <span class="reserve-her-flag-chip reserve-her-flag-chip--critical">
+                        <mat-icon>warning</mat-icon>
+                        Excédent réductible :
+                        {{ result()!.excedentReductibleEur | number:'1.2-2' }} €
+                      </span>
+                    }
+                    @if (prescriptionUrgent()) {
+                      <span class="reserve-her-flag-chip reserve-her-flag-chip--critical">
+                        <mat-icon>schedule</mat-icon>
+                        Prescription : {{ result()!.delaiPrescriptionRestantMois }} mois restants
+                      </span>
+                    } @else {
+                      <span class="reserve-her-flag-chip">
+                        <mat-icon>schedule</mat-icon>
+                        Prescription : {{ result()!.delaiPrescriptionRestantMois }} mois restants
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tableau visuel barème (config courante highlighted) -->
+              <div class="reserve-her-bareme-block">
+                <div class="reserve-her-bareme-label">Barème art. 913 + 914-1 Cciv</div>
+                <table class="reserve-her-bareme-table">
+                  <thead>
+                    <tr>
+                      <th>Configuration</th>
+                      <th class="reserve-her-th-num">Quotité disponible</th>
+                      <th class="reserve-her-th-num">Réserve</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of baremeRows(); track trackBareme($index, row)) {
+                      <tr [class.reserve-her-bareme-row--highlight]="row.highlighted">
+                        <td>{{ row.configuration }}</td>
+                        <td class="reserve-her-td-num">{{ row.quotitePct | number:'1.0-2' }} %</td>
+                        <td class="reserve-her-td-num">{{ row.reservePct | number:'1.0-2' }} %</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Montants synthèse -->
+              <div class="reserve-her-amounts-grid">
+                <div class="reserve-her-amount-card">
+                  <span class="reserve-her-amount-label">Réserve héréditaire</span>
+                  <span class="reserve-her-amount-value">
+                    {{ result()!.montantReserveEur | number:'1.2-2' }} €
+                  </span>
+                  <span class="reserve-her-amount-pct">
+                    {{ result()!.reservePct | number:'1.0-2' }} %
+                  </span>
+                </div>
+                <div class="reserve-her-amount-card">
+                  <span class="reserve-her-amount-label">Quotité disponible</span>
+                  <span class="reserve-her-amount-value">
+                    {{ result()!.montantQuotiteDispoEur | number:'1.2-2' }} €
+                  </span>
+                  <span class="reserve-her-amount-pct">
+                    {{ result()!.quotiteDisponiblePct | number:'1.0-2' }} %
+                  </span>
+                </div>
+                <div class="reserve-her-amount-card"
+                     [class.reserve-her-amount-card--critical]="result()!.excedentReductibleEur > 0">
+                  <span class="reserve-her-amount-label">Excédent réductible</span>
+                  <span class="reserve-her-amount-value">
+                    {{ result()!.excedentReductibleEur | number:'1.2-2' }} €
+                  </span>
+                </div>
+              </div>
+
+              <!-- Barre de progression libs / quotité disponible -->
+              <div class="reserve-her-progress-block">
+                <div class="reserve-her-progress-header">
+                  <span class="reserve-her-progress-label">
+                    Libéralités vs quotité disponible
+                  </span>
+                  <span class="reserve-her-progress-value">
+                    {{ result()!.montantLibsTotal | number:'1.2-2' }} €
+                    /
+                    {{ result()!.montantQuotiteDispoEur | number:'1.2-2' }} €
+                  </span>
+                </div>
+                <div class="reserve-her-progress-track">
+                  <div class="reserve-her-progress-fill"
+                       [class.reserve-her-progress-fill--critical]="libsBarCritical()"
+                       [style.width.%]="libsRatioPct()">
+                  </div>
+                  <div class="reserve-her-progress-marker" aria-hidden="true">
+                    <span class="reserve-her-progress-marker-line"></span>
+                    <span class="reserve-her-progress-marker-label">100 % QD</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="reserve-her-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="reserve-her-formule-block">
+                  <span class="reserve-her-formule-label">Formule</span>
+                  <span class="reserve-her-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="reserve-her-meta">
+                <span class="reserve-her-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
