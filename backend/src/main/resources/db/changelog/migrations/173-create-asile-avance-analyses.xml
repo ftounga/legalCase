@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="173-create-asile-avance-analyses" author="legalcase">
+        <comment>
+            SF-IM-12-01 : table dédiée à l'outil décisionnel "Asile avancé" (CESEDA Livre V — FR).
+            Évalue 5 dispositifs distincts du droit d'asile français :
+              - DUBLIN_III (Règlement UE 604/2013) — transfert vers EM responsable, délai 6/18 mois.
+              - PROCEDURE_ACCELEREE (CESEDA L.531-24) — pays sûrs / fraude / refus empreintes.
+              - REEXAMEN (CESEDA L.531-32) — éléments nouveaux postérieurs au rejet, recevabilité 8j.
+              - APATRIDIE (CESEDA L.512-1) — non-reconnaissance par tout État, instruction 12 mois.
+              - PROTECTION_SUBSIDIAIRE (CESEDA L.512-1+) — traitements graves, durée 4 ans.
+
+            Outil single-country FRANCE — l'équivalent BE (CGRA + Loi 15/12/1980) sera traité
+            dans une feature jumelle au backlog (F-IM-12-BE) si besoin métier.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, FRANCE, priority 75).
+        </comment>
+
+        <createTable tableName="asile_avance_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_asile_avance_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="dispositif_asile" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_decision_anterieure" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="elements_nouveaux" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="pays_origine_dans_liste_surs" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="empreintes_eurodac_autres_em" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="demandeur_en_fuite" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="motifs_exclusion" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="traitements_graves_etablis" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="fraude_documentaire_avere" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="refus_prise_empreintes" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="presence_reguliere" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="asile_avance_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_asile_avance_analyses_case_file"/>
+
+        <createIndex tableName="asile_avance_analyses"
+                     indexName="idx_asile_avance_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000173', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-12-asile-avance', 'ALWAYS_ON', NULL, NULL, 75);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000173';
+            </sql>
+            <dropTable tableName="asile_avance_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
