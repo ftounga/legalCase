@@ -89,6 +89,7 @@ import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
 import { NaturalisationSectionComponent } from '../naturalisation-section/naturalisation-section.component';
 import { MineursImmigrationSectionComponent } from '../mineurs-immigration-section/mineurs-immigration-section.component';
+import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avance-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 
 export interface DecisionToolContext {
@@ -920,6 +921,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-IM-19-02 : mineurs étrangers FR — MNA / L.435-3 / DCEM / TIR.
       ['F-IM-19-mineurs', {
         component: MineursImmigrationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-12-02 : asile avancé FR — Dublin III / accélérée / réexamen /
+      // apatridie / protection subsidiaire (CESEDA Livre V).
+      ['F-IM-12-asile-avance', {
+        component: AsileAvanceSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,

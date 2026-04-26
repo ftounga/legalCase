@@ -1,0 +1,329 @@
+<section class="asile-section">
+  <header class="asile-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="asile-body">
+    <mat-icon class="asile-icon">support</mat-icon>
+    <span class="asile-title">ASILE AVANCÉ (FR)</span>
+    @if (result()) {
+      <span class="asile-chip"
+            [class.asile-chip--info]="result()!.verdictRecevabilite !== 'IRRECEVABLE'
+              && result()!.verdictRecevabilite !== 'ACCELEREE_APPLICABLE'
+              && result()!.verdictRecevabilite !== 'ACCELEREE_NON_APPLICABLE'"
+            [class.asile-chip--warning]="result()!.verdictRecevabilite === 'ACCELEREE_APPLICABLE'
+              || result()!.verdictRecevabilite === 'ACCELEREE_NON_APPLICABLE'"
+            [class.asile-chip--critical]="result()!.verdictRecevabilite === 'IRRECEVABLE'">
+        {{ result()!.verdictRecevabilite }}
+      </span>
+    }
+    <mat-icon class="asile-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="asile-body" class="asile-body">
+      @if (!isFrance()) {
+        <div class="asile-banner asile-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="asile-banner-content">
+            <div class="asile-banner-title">Régime CESEDA français uniquement</div>
+            <div class="asile-banner-sub">
+              L'asile en France relève du CESEDA (Livre V) — propre au droit
+              français. L'équivalent belge (CGRA + Loi du 15/12/1980) sera
+              traité dans une feature jumelle au backlog (F-IM-12-BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="asile-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="asile-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="asile-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Dispositif d'asile -->
+              <fieldset class="asile-fieldset">
+                <legend class="asile-legend">
+                  <mat-icon>category</mat-icon>
+                  Dispositif d'asile envisagé
+                </legend>
+
+                <div class="asile-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="dispositifAsile()"
+                                   (ngModelChange)="onDispositifChange($event)"
+                                   name="dispositifAsile">
+                    @for (opt of dispositifOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">
+                        <div class="asile-radio-stack">
+                          <span class="asile-radio-label">{{ opt.label }}</span>
+                          <span class="asile-radio-sub">{{ opt.sub }}</span>
+                        </div>
+                      </mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="asile-disp-meta">
+                    @if (provenanceDispositif() === 'IA') {
+                      <span class="asile-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().DISPOSITIF_ASILE; as alert) {
+                      <span class="asile-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Champs DUBLIN_III -->
+              @if (showDublinFields()) {
+                <fieldset class="asile-fieldset">
+                  <legend class="asile-legend">
+                    <mat-icon>swap_horiz</mat-icon>
+                    Critères Dublin III (Règl. UE 604/2013)
+                  </legend>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="empreintesEurodacAutresEm()"
+                        (ngModelChange)="onEmpreintesChange($event)"
+                        name="empreintesEurodacAutresEm">
+                      Empreintes EURODAC déjà prises dans un autre EM
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="demandeurEnFuite()"
+                        (ngModelChange)="onFuiteChange($event)"
+                        name="demandeurEnFuite">
+                      Demandeur en fuite (passe le délai de transfert à 18 mois)
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 bis : Champs PROCEDURE_ACCELEREE -->
+              @if (showAccelereeFields()) {
+                <fieldset class="asile-fieldset">
+                  <legend class="asile-legend">
+                    <mat-icon>fast_forward</mat-icon>
+                    Critères procédure accélérée (CESEDA L.531-24)
+                  </legend>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="paysOrigineDansListeSurs()"
+                        (ngModelChange)="onPaysSurChange($event)"
+                        name="paysOrigineDansListeSurs">
+                      Pays d'origine sur la liste OFPRA des pays sûrs
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="fraudeDocumentaireAvere()"
+                        (ngModelChange)="onFraudeChange($event)"
+                        name="fraudeDocumentaireAvere">
+                      Fraude documentaire avérée
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="refusPriseEmpreintes()"
+                        (ngModelChange)="onRefusEmpreintesChange($event)"
+                        name="refusPriseEmpreintes">
+                      Refus de prise d'empreintes
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 ter : Champs REEXAMEN -->
+              @if (showReexamenFields()) {
+                <fieldset class="asile-fieldset">
+                  <legend class="asile-legend">
+                    <mat-icon>history</mat-icon>
+                    Critères réexamen (CESEDA L.531-32)
+                  </legend>
+
+                  <div class="asile-field-wrapper">
+                    <label class="asile-label" for="dateDecisionAnterieure">
+                      Date de la décision antérieure de rejet
+                    </label>
+                    <input id="dateDecisionAnterieure" type="date" required
+                           class="asile-date-input"
+                           [ngModel]="dateDecisionAnterieure()"
+                           (ngModelChange)="onDateDecisionChange($event)"
+                           name="dateDecisionAnterieure" />
+                    <span class="asile-helper-text">
+                      Date du rejet définitif de la précédente demande (OFPRA + CNDA).
+                    </span>
+                  </div>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="elementsNouveaux()"
+                        (ngModelChange)="onElementsNouveauxChange($event)"
+                        name="elementsNouveaux">
+                      Éléments nouveaux personnels postérieurs au rejet
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 quater : Champs APATRIDIE -->
+              @if (showApatridieFields()) {
+                <fieldset class="asile-fieldset">
+                  <legend class="asile-legend">
+                    <mat-icon>public_off</mat-icon>
+                    Critères apatridie (CESEDA L.512-1, Conv. NY 1954)
+                  </legend>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="motifsExclusion()"
+                        (ngModelChange)="onMotifsExclusionChange($event)"
+                        name="motifsExclusionApatridie">
+                      Motifs d'exclusion (crime de guerre, sécurité publique)
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="presenceReguliere()"
+                        (ngModelChange)="onPresenceReguliereChange($event)"
+                        name="presenceReguliere">
+                      Présence régulière en France
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 quinquies : Champs PROTECTION_SUBSIDIAIRE -->
+              @if (showProtectionSubFields()) {
+                <fieldset class="asile-fieldset">
+                  <legend class="asile-legend">
+                    <mat-icon>shield</mat-icon>
+                    Critères protection subsidiaire (CESEDA L.512-1+)
+                  </legend>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="traitementsGravesEtablis()"
+                        (ngModelChange)="onTraitementsGravesChange($event)"
+                        name="traitementsGravesEtablis">
+                      Crainte fondée de traitements graves dans le pays d'origine
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="asile-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="motifsExclusion()"
+                        (ngModelChange)="onMotifsExclusionChange($event)"
+                        name="motifsExclusionPS">
+                      Motifs d'exclusion (CESEDA L.512-2)
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <div class="asile-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la recevabilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="asile-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictRecevabilite) }}</mat-icon>
+                <div class="asile-banner-content">
+                  <div class="asile-banner-title">
+                    {{ bannerLabel(result()!.verdictRecevabilite) }}
+                  </div>
+                  <div class="asile-banner-sub">
+                    {{ result()!.dispositifLibelle }}
+                    — Délai instruction :
+                    <span class="asile-delai">{{ result()!.delaiInstructionMois }} mois</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.recoursPossible) {
+                <div class="asile-section-block">
+                  <div class="asile-section-label">Recours possible</div>
+                  <div class="asile-recours-text">{{ result()!.recoursPossible }}</div>
+                </div>
+              }
+
+              @if (result()!.risqueRefus?.length) {
+                <div class="asile-section-block">
+                  <div class="asile-section-label">Risques identifiés</div>
+                  <mat-chip-set class="asile-chip-set">
+                    @for (r of result()!.risqueRefus; track r) {
+                      <mat-chip [class]="risqueChipClass(r)">{{ r }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="asile-section-block">
+                  <div class="asile-section-label">Documents à produire</div>
+                  <mat-chip-set class="asile-chip-set">
+                    @for (d of result()!.documentsRequis; track d) {
+                      <mat-chip class="asile-chip-doc">{{ d }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="asile-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="asile-formule-block">
+                  <span class="asile-formule-label">Formule</span>
+                  <span class="asile-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="asile-meta">
+                <span class="asile-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
