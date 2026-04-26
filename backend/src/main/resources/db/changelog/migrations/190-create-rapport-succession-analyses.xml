@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="190-create-rapport-succession-analyses" author="legalcase">
+        <comment>
+            SF-FA-24-13 : table dédiée à l'outil décisionnel "Rapport à
+            succession" (FR — art. 843-863 + 919 Cciv). 13ème SF du chantier
+            successions F-FA-24 (après SF-01/02 dévolution, SF-03/04 testament,
+            SF-05/06 donation, SF-07/08 réserve héréditaire).
+
+            Mécanisme de l'art. 843 par lequel les héritiers réintègrent
+            fictivement à la masse à partager les donations reçues du défunt
+            de son vivant, pour assurer l'égalité entre cohéritiers. Détermine
+            le verdict d'obligation (RAPPORTABLE / EXEMPT art. 851/852 /
+            DISPENSÉ art. 919), le montant rapportable (évaluation au jour
+            du partage art. 860), le mode recommandé (en nature / en valeur /
+            en moins prenant — art. 858) et le délai de prescription
+            (5 ans art. 924-1).
+
+            Outil single-country FRANCE — l'équivalent BE (CC BE
+            art. 843+ avec barème différent) sera traité dans une feature
+            jumelle dédiée (F-FA-24-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE,
+            FRANCE, priority 99) pour exposer l'outil sur tout dossier
+            famille FR.
+        </comment>
+
+        <createTable tableName="rapport_succession_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_rapport_succession_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="donations_recues_eur" type="decimal(15,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_donation" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valeur_au_jour_partage" type="decimal(15,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="donation_dispense_de_rapport" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nature_presumee_non_rapportable" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="qualite_heritier" type="varchar(48)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="rapport_succession_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_rapport_succession_analyses_case_file"/>
+
+        <createIndex tableName="rapport_succession_analyses"
+                     indexName="idx_rapport_succession_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000190', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-rapport-succession', 'ALWAYS_ON', NULL, NULL, 99);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000190';
+            </sql>
+            <dropTable tableName="rapport_succession_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
