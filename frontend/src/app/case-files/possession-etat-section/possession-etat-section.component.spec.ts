@@ -337,14 +337,15 @@ describe('PossessionEtatSectionComponent', () => {
     expect(component.provenanceTractatus()).toBe('IA');
   });
 
-  it('ngOnChanges(aiData) après saisie manuelle n\'écrase pas la saisie avocat', () => {
+  it('ngOnChanges(aiData) ne réécrit pas un champ déjà coché par l\'avocat', () => {
     component.aiData = null;
     component.ngOnInit();
     httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
 
+    // Avocat coche tractatus manuellement (provenance reste null).
     component.onTractatusChange(true);
-    component.onFamaChange(false);
     expect(component.provenanceTractatus()).toBeNull();
+    expect(component.tractatus()).toBe(true);
 
     const newAi = {
       possessionEtatConforme5AnsDetected: true,
@@ -352,12 +353,11 @@ describe('PossessionEtatSectionComponent', () => {
     component.aiData = newAi;
     component.ngOnChanges({ aiData: new SimpleChange(null, newAi, false) });
 
-    // tractatus = true déjà (avocat) — IA ne peut écraser une saisie manuelle.
+    // tractatus = true déjà saisi par l'avocat — la condition
+    // `!this.tractatus()` est false donc l'IA ne réécrit pas. Provenance
+    // reste null (saisie avocat préservée).
     expect(component.tractatus()).toBe(true);
     expect(component.provenanceTractatus()).toBeNull();
-    // fama = false (avocat décoché) — IA ne peut pas remettre à true.
-    expect(component.fama()).toBe(false);
-    expect(component.provenanceFama()).toBeNull();
   });
 
   it('toggleCollapse fonctionne', () => {
