@@ -1,0 +1,285 @@
+<section class="indivision-section">
+  <header class="indivision-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="indivision-body">
+    <mat-icon class="indivision-icon">groups</mat-icon>
+    <span class="indivision-title">INDIVISION SUCCESSORALE (FR)</span>
+    @if (result()) {
+      <span [ngClass]="verdictChipClass(result()!.verdictGestion)">
+        {{ verdictLabel(result()!.verdictGestion) }} —
+        Score conflit {{ result()!.scoreConflictualite }}/100
+      </span>
+    }
+    <mat-icon class="indivision-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="indivision-body" class="indivision-body">
+      @if (!isFrance()) {
+        <div class="indivision-banner indivision-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="indivision-banner-content">
+            <div class="indivision-banner-title">Outil français uniquement</div>
+            <div class="indivision-banner-sub">
+              L'indivision successorale (art. 815 à 832-2 + 1873-1 et s. + 815-1
+              et s. Cciv) est propre au droit français. L'équivalent belge
+              (CC BE art. 577-2 et s.) est traité dans une feature jumelle au
+              backlog (F-FA-24-BE-indivision).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="indivision-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="indivision-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="indivision-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Type d'indivision -->
+              <fieldset class="indivision-fieldset">
+                <legend class="indivision-legend">
+                  <mat-icon>category</mat-icon>
+                  Régime d'indivision (art. 815 / 1873-1 / 815-1)
+                </legend>
+
+                <div class="indivision-radio-group">
+                  <span class="indivision-radio-label">Type</span>
+                  <mat-radio-group required
+                                   [ngModel]="typeIndivision()"
+                                   (ngModelChange)="onTypeIndivisionChange($event)"
+                                   name="typeIndivision">
+                    @for (opt of typeOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="indivision-field-meta">
+                    @if (provenanceTypeIndivision() === 'IA') {
+                      <span class="indivision-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().TYPE_INDIVISION; as alert) {
+                      <span class="indivision-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Origine + composition -->
+              <fieldset class="indivision-fieldset">
+                <legend class="indivision-legend">
+                  <mat-icon>event</mat-icon>
+                  Origine et composition de l'indivision
+                </legend>
+
+                <div class="indivision-grid">
+                  <div class="indivision-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date d'ouverture (décès)</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateOuvertureSuccession()"
+                             (ngModelChange)="onDateOuvertureChange($event)"
+                             name="dateOuvertureSuccession" />
+                    </mat-form-field>
+                    <div class="indivision-field-meta">
+                      @if (provenanceDateOuverture() === 'IA') {
+                        <span class="indivision-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().DATE_OUVERTURE_SUCCESSION; as alert) {
+                        <span class="indivision-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="indivision-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nombre d'héritiers (2-50)</mat-label>
+                      <input matInput type="number" min="2" max="50" step="1" required
+                             [ngModel]="nbHeritiers()"
+                             (ngModelChange)="onNbHeritiersChange($event)"
+                             name="nbHeritiers" />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="indivision-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Valeur patrimoine indivis (€)</mat-label>
+                      <input matInput type="number" min="0" step="100" required
+                             [ngModel]="valeurPatrimoineIndivisEur()"
+                             (ngModelChange)="onValeurPatrimoineChange($event)"
+                             name="valeurPatrimoineIndivisEur" />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="indivision-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Valeur du bien occupé (€, optionnel)</mat-label>
+                      <input matInput type="number" min="0" step="100"
+                             [ngModel]="valeurBienOccupeEur()"
+                             (ngModelChange)="onValeurBienOccupeChange($event)"
+                             name="valeurBienOccupeEur" />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Gestion + conflictualité -->
+              <fieldset class="indivision-fieldset">
+                <legend class="indivision-legend">
+                  <mat-icon>handshake</mat-icon>
+                  Gestion et conflictualité (art. 815-2 à 815-9)
+                </legend>
+
+                <div class="indivision-radio-group">
+                  <span class="indivision-radio-label">
+                    Consentements de tous les indivisaires (gestion unanime)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="consentementsTous()"
+                                   (ngModelChange)="onConsentementsTousChange($event)"
+                                   name="consentementsTous">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="indivision-radio-group">
+                  <span class="indivision-radio-label">
+                    Occupation exclusive d'un bien par un indivisaire (art. 815-9)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="occupationExclusive()"
+                                   (ngModelChange)="onOccupationExclusiveChange($event)"
+                                   name="occupationExclusive">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="indivision-radio-group">
+                  <span class="indivision-radio-label">
+                    Actes d'administration contestés
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="actesAdministrationContestes()"
+                                   (ngModelChange)="onActesAdministrationContestesChange($event)"
+                                   name="actesAdministrationContestes">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="indivision-radio-group">
+                  <span class="indivision-radio-label">
+                    Demande de partage formée (art. 815)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="demandePartage()"
+                                   (ngModelChange)="onDemandePartageChange($event)"
+                                   name="demandePartage">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <div class="indivision-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser l'indivision</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="indivision-result">
+              <!-- Bandeau verdict -->
+              <div [ngClass]="verdictBannerClass(result()!.verdictGestion)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdictGestion) }}</mat-icon>
+                <div class="indivision-banner-content">
+                  <div class="indivision-banner-title">
+                    {{ verdictLabel(result()!.verdictGestion) }}
+                  </div>
+                  <div class="indivision-banner-sub">
+                    Régime : {{ typeLabel(result()!.typeIndivision) }} ·
+                    Durée : {{ result()!.dureeIndivisionMois }} mois ·
+                    Score conflit :
+                    {{ result()!.scoreConflictualite | number:'1.0-0' }} / 100
+                  </div>
+                  <div class="indivision-flags">
+                    <span class="indivision-flag-chip indivision-flag-chip--strong">
+                      <mat-icon>recommend</mat-icon>
+                      Dispositif : {{ dispositifLabel(result()!.dispositifRecommande) }}
+                    </span>
+                    @if (result()!.indemniteOccupationDue) {
+                      <span class="indivision-flag-chip">
+                        <mat-icon>euro</mat-icon>
+                        Indemnité occupation :
+                        {{ result()!.indemniteOccupationDueEur | number:'1.0-2' }} €
+                      </span>
+                    }
+                    <span class="indivision-flag-chip">
+                      <mat-icon>account_balance_wallet</mat-icon>
+                      Frais gestion estimés :
+                      {{ result()!.fraisGestionEstimesEur | number:'1.0-2' }} €
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="indivision-messages">
+                  @for (m of result()!.messages; track trackMessage($index, m)) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="indivision-formule-block">
+                  <span class="indivision-formule-label">Formule</span>
+                  <span class="indivision-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="indivision-meta">
+                <span class="indivision-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

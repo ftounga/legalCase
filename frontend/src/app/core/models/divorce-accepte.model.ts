@@ -299,7 +299,7 @@ export interface FamilleExtractedData {
   nombreCoheritiersDetecte?: number | null;
   dateDecesDetectee?: string | null;
   /**
-   * SF-FA-24-12 : pré-fill type d'indivision successorale.
+   * SF-FA-24-12 : pré-fill type d'indivision successorale (art. 815 / 1873-1+).
    */
   typeIndivisionSuccessoraleDetecte?: string | null;
   /**
