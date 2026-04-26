@@ -1,0 +1,430 @@
+// SF-IM-13-02 — Naturalisation française (Cciv 21+).
+// Pattern jumeau `changement-statut-section` (SF-IM-11-02 PR #640) — palette
+// canonique navy/or/rouge. Rouge réservé verdict FAIBLE (recevabilité
+// compromise = critère bloquant : casier non vierge / opposition /
+// durée insuffisante). DESIGN_SYSTEM.md aligné.
+
+.nat-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.nat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.nat-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.nat-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.nat-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.16);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.12);
+    color: #b00020;
+  }
+}
+
+.nat-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.nat-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.nat-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// ---- Form ----
+.nat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nat-fieldset {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+  background: var(--ds-surface, #ffffff);
+}
+
+.nat-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ds-navy, #1a375f);
+
+  mat-icon {
+    color: var(--ds-accent-gold, #c9a54b);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.nat-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.nat-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+
+  mat-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.nat-radio-stack {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nat-radio-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.nat-radio-sub {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.nat-voie-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nat-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.nat-helper-text {
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.nat-info-block {
+  padding: 12px 14px;
+  background: rgba(26, 55, 95, 0.04);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  line-height: 1.5;
+}
+
+.nat-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+// ---- Coherence summary banner (or) ----
+.nat-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// ---- Provenance / coherence badges ----
+.nat-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.nat-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
+
+// ---- Result ----
+.nat-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nat-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--warning {
+    border-left-color: var(--ds-accent-gold, #c9a54b);
+    background: rgba(201, 165, 75, 0.10);
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+
+  &--critical {
+    border-left-color: #b00020;
+    background: rgba(176, 0, 32, 0.06);
+    mat-icon { color: #b00020; }
+  }
+}
+
+.nat-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.nat-banner-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.nat-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.nat-delai {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  color: var(--ds-text-primary, #1a2330);
+  font-weight: 600;
+}
+
+// ---- Sections (documents requis / critères) ----
+.nat-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(26, 55, 95, 0.04);
+}
+
+.nat-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.nat-chip-set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nat-chip-doc {
+  background: rgba(26, 55, 95, 0.10) !important;
+  color: var(--ds-navy, #1a375f) !important;
+  font-size: 12px;
+}
+
+.nat-chip-critere {
+  font-size: 12px;
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.16) !important;
+    color: var(--ds-accent-gold-dark, #8a6a16) !important;
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.12) !important;
+    color: #b00020 !important;
+  }
+}
+
+// ---- Messages ----
+.nat-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // Citations juridiques rendues en JetBrains Mono via LegalCitationsPipe.
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+// ---- Formule + base juridique ----
+.nat-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.nat-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.nat-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.nat-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nat-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .nat-fieldset {
+    padding: 10px 12px;
+  }
+}

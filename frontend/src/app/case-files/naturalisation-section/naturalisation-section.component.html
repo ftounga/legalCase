@@ -1,0 +1,395 @@
+<section class="nat-section">
+  <header class="nat-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="nat-body">
+    <mat-icon class="nat-icon">how_to_reg</mat-icon>
+    <span class="nat-title">NATURALISATION (FR)</span>
+    @if (result()) {
+      <span class="nat-chip"
+            [class.nat-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.nat-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.nat-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }}
+      </span>
+    }
+    <mat-icon class="nat-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="nat-body" class="nat-body">
+      @if (!isFrance()) {
+        <div class="nat-banner nat-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="nat-banner-content">
+            <div class="nat-banner-title">Régime Code civil français uniquement</div>
+            <div class="nat-banner-sub">
+              La naturalisation française relève du Code civil (art. 21+) —
+              propre au droit français. L'équivalent belge (Code de la
+              nationalité belge — CNB art. 12bis et s.) sera traité dans
+              une feature jumelle au backlog (F-IM-13-BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="nat-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="nat-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="nat-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Voie de naturalisation -->
+              <fieldset class="nat-fieldset">
+                <legend class="nat-legend">
+                  <mat-icon>route</mat-icon>
+                  Voie de naturalisation envisagée
+                </legend>
+
+                <div class="nat-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="voieNaturalisation()"
+                                   (ngModelChange)="onVoieChange($event)"
+                                   name="voieNaturalisation">
+                    @for (opt of voieOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">
+                        <div class="nat-radio-stack">
+                          <span class="nat-radio-label">{{ opt.label }}</span>
+                          <span class="nat-radio-sub">{{ opt.sub }}</span>
+                        </div>
+                      </mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="nat-voie-meta">
+                    @if (provenanceVoie() === 'IA') {
+                      <span class="nat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().VOIE_NATURALISATION; as alert) {
+                      <span class="nat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Champs voie DECRET -->
+              @if (showDecretFields()) {
+                <fieldset class="nat-fieldset">
+                  <legend class="nat-legend">
+                    <mat-icon>article</mat-icon>
+                    Critères décret (art. 21-15+)
+                  </legend>
+
+                  <div class="nat-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Durée de résidence régulière (années)</mat-label>
+                      <input matInput type="number" required
+                             min="0" step="1"
+                             [ngModel]="dureeResidenceReguliereAnnees()"
+                             (ngModelChange)="onDureeResidenceChange($event)"
+                             name="dureeResidenceDecret" />
+                    </mat-form-field>
+                    <span class="nat-helper-text">
+                      Seuil : 5 ans (ou 2 ans si études supérieures FR — Cciv art. 21-18).
+                    </span>
+                  </div>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="etudesSuperieuresFrance()"
+                        (ngModelChange)="onEtudesSuperieuresFranceChange($event)"
+                        name="etudesSuperieuresFrance">
+                      Études supérieures en France (réduit le seuil à 2 ans)
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="assimilationLangueB1()"
+                        (ngModelChange)="onAssimilationLangueB1Change($event)"
+                        name="assimilationLangueB1Decret">
+                      Assimilation linguistique B1 démontrée (DELF B1 ou équiv.)
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="ressourcesStables()"
+                        (ngModelChange)="onRessourcesStablesChange($event)"
+                        name="ressourcesStables">
+                      Ressources stables et suffisantes
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 bis : Champs voie MARIAGE -->
+              @if (showMariageFields()) {
+                <fieldset class="nat-fieldset">
+                  <legend class="nat-legend">
+                    <mat-icon>favorite</mat-icon>
+                    Critères mariage (art. 21-2)
+                  </legend>
+
+                  <div class="nat-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Durée du mariage (années)</mat-label>
+                      <input matInput type="number" required
+                             min="0" step="1"
+                             [ngModel]="dureeMariageAnnees()"
+                             (ngModelChange)="onDureeMariageChange($event)"
+                             name="dureeMariage" />
+                    </mat-form-field>
+                    <span class="nat-helper-text">
+                      Seuil : 4 ans si cohabitation continue, 5 ans sinon.
+                    </span>
+                  </div>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="cohabitationContinue()"
+                        (ngModelChange)="onCohabitationContinueChange($event)"
+                        name="cohabitationContinue">
+                      Cohabitation continue depuis le mariage
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="assimilationLangueB1()"
+                        (ngModelChange)="onAssimilationLangueB1Change($event)"
+                        name="assimilationLangueB1Mariage">
+                      Assimilation linguistique B1 démontrée
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 ter : Champs voie ASCENDANT -->
+              @if (showAscendantFields()) {
+                <fieldset class="nat-fieldset">
+                  <legend class="nat-legend">
+                    <mat-icon>elderly</mat-icon>
+                    Critères ascendant français (art. 21-13-1)
+                  </legend>
+
+                  <div class="nat-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Âge du demandeur (années)</mat-label>
+                      <input matInput type="number" required
+                             min="0" step="1"
+                             [ngModel]="ageDemandeur()"
+                             (ngModelChange)="onAgeChange($event)"
+                             name="ageDemandeur" />
+                    </mat-form-field>
+                    <span class="nat-helper-text">
+                      Seuil : 65 ans minimum.
+                    </span>
+                  </div>
+
+                  <div class="nat-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Durée de résidence régulière (années)</mat-label>
+                      <input matInput type="number" required
+                             min="0" step="1"
+                             [ngModel]="dureeResidenceReguliereAnnees()"
+                             (ngModelChange)="onDureeResidenceChange($event)"
+                             name="dureeResidenceAscendant" />
+                    </mat-form-field>
+                    <span class="nat-helper-text">
+                      Seuil : 25 ans de résidence régulière.
+                    </span>
+                  </div>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="ascendantDirectFrancais()"
+                        (ngModelChange)="onAscendantDirectFrancaisChange($event)"
+                        name="ascendantDirectFrancais">
+                      Lien d'ascendant direct d'un français établi
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 quater : Champs voie MINEUR -->
+              @if (showMineurFields()) {
+                <fieldset class="nat-fieldset">
+                  <legend class="nat-legend">
+                    <mat-icon>child_care</mat-icon>
+                    Critères mineur (art. 22-1 — effet collectif)
+                  </legend>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="parentAcquiertNationalite()"
+                        (ngModelChange)="onParentAcquiertNationaliteChange($event)"
+                        name="parentAcquiertNationalite">
+                      Un parent du mineur acquiert la nationalité française
+                    </mat-slide-toggle>
+                  </div>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="vitAvecParentAcquereur()"
+                        (ngModelChange)="onVitAvecParentAcquereurChange($event)"
+                        name="vitAvecParentAcquereur">
+                      Le mineur vit habituellement avec le parent acquéreur
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 quinquies : Champs voie REINTEGRATION -->
+              @if (showReintegrationFields()) {
+                <fieldset class="nat-fieldset">
+                  <legend class="nat-legend">
+                    <mat-icon>history</mat-icon>
+                    Critères réintégration (art. 24-1+)
+                  </legend>
+
+                  <div class="nat-toggle-row">
+                    <mat-slide-toggle
+                        [ngModel]="ancienFrancais()"
+                        (ngModelChange)="onAncienFrancaisChange($event)"
+                        name="ancienFrancais">
+                      Le demandeur a été français par le passé
+                    </mat-slide-toggle>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2 sexies : Voie OPPOSITION (info-only) -->
+              @if (showOppositionFields()) {
+                <fieldset class="nat-fieldset">
+                  <legend class="nat-legend">
+                    <mat-icon>gavel</mat-icon>
+                    Opposition gouvernementale (art. 21-4 / 27-2)
+                  </legend>
+                  <div class="nat-info-block">
+                    L'opposition gouvernementale est une voie de rejet d'une
+                    déclaration ou d'un décret de naturalisation. Le gouvernement
+                    dispose d'un délai d'1 an pour s'y opposer. Recours possible
+                    devant le Conseil d'État.
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 3 : Critères transversaux -->
+              <fieldset class="nat-fieldset">
+                <legend class="nat-legend">
+                  <mat-icon>verified_user</mat-icon>
+                  Critères transversaux (moralité)
+                </legend>
+
+                <div class="nat-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="casierJudiciaireVierge()"
+                      (ngModelChange)="onCasierJudiciaireChange($event)"
+                      name="casierJudiciaireVierge">
+                    Casier judiciaire vierge (B3 + casier étranger)
+                  </mat-slide-toggle>
+                </div>
+
+                <div class="nat-toggle-row">
+                  <mat-slide-toggle
+                      [ngModel]="oppositionGouvernementaleActive()"
+                      (ngModelChange)="onOppositionActiveChange($event)"
+                      name="oppositionGouvernementaleActive">
+                    Opposition gouvernementale active (bloque toute voie)
+                  </mat-slide-toggle>
+                </div>
+              </fieldset>
+
+              <div class="nat-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la recevabilité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="nat-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>{{ bannerIcon(result()!.verdictRecevabilite) }}</mat-icon>
+                <div class="nat-banner-content">
+                  <div class="nat-banner-title">
+                    {{ bannerLabel(result()!.verdictRecevabilite) }}
+                  </div>
+                  <div class="nat-banner-sub">
+                    {{ result()!.voieRecommandee }}
+                    — Délai instruction :
+                    <span class="nat-delai">{{ result()!.delaiInstructionMois }} mois</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.criteresNonRemplis?.length) {
+                <div class="nat-section-block">
+                  <div class="nat-section-label">Critères non remplis</div>
+                  <mat-chip-set class="nat-chip-set">
+                    @for (c of result()!.criteresNonRemplis; track c) {
+                      <mat-chip [class]="critereChipClass(c)">{{ c }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.documentsAFournir?.length) {
+                <div class="nat-section-block">
+                  <div class="nat-section-label">Documents à fournir</div>
+                  <mat-chip-set class="nat-chip-set">
+                    @for (d of result()!.documentsAFournir; track d) {
+                      <mat-chip class="nat-chip-doc">{{ d }}</mat-chip>
+                    }
+                  </mat-chip-set>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="nat-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="nat-formule-block">
+                  <span class="nat-formule-label">Formule</span>
+                  <span class="nat-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="nat-meta">
+                <span class="nat-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
