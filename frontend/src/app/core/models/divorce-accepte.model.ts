@@ -267,14 +267,18 @@ export interface FamilleExtractedData {
   pereDesigneRefuseADNDetected?: boolean | null;
   motifsSerieuxRechercheDetected?: boolean | null;
   /**
-   * SF-FA-24-08 : pré-fill outil "Réserve héréditaire et action en
-   * réduction" (F-FA-24, art. 913 + 914-1 + 920-928 Cciv). Tous champs
-   * optionnels — composant no-op gracieux si l'IA ne les a pas détectés.
+   * SF-FA-24-06 : pré-fill validité donation entre vifs (art. 893-958 Cciv).
+   */
+  formeDonationDetectee?: string | null;
+  dateDonationDetectee?: string | null;
+  saineDEspritDonateurDetected?: boolean | null;
+  respectQuotiteDisponibleDetected?: boolean | null;
+  /**
+   * SF-FA-24-08 : pré-fill réserve héréditaire (art. 913 + 914-1 + 920-928 Cciv).
    */
   nombreEnfantsSuccessionDetecte?: number | null;
   montantSuccessionEurDetecte?: number | null;
   montantLibsTotalEurDetecte?: number | null;
-  /** Format ISO `YYYY-MM-DD`. */
   dateOuvertureSuccessionDetectee?: string | null;
   qualiteDuDemandeurReserveDetecte?:
     | 'HERITIER_RESERVATAIRE_DESCENDANT'

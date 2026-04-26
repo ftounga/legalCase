@@ -95,6 +95,7 @@ import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avanc
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/devolution-legale-section.component';
 import { TestamentValiditeSectionComponent } from '../testament-validite-section/testament-validite-section.component';
+import { DonationSectionComponent } from '../donation-section/donation-section.component';
 import { ReserveHeriditaireSectionComponent } from '../reserve-heriditaire-section/reserve-heriditaire-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
@@ -1115,9 +1116,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
-      // SF-FA-24-08 : réserve héréditaire et action en réduction FR
-      // (art. 913 + 914-1 + 920-928 Cciv). tool_id aligné avec la migration
-      // 186 (visibility ALWAYS_ON DROIT_FAMILLE FRANCE priority 95).
+      // SF-FA-24-06 : donation entre vifs FR.
+      ['F-FA-24-donation', {
+        component: DonationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-24-08 : réserve héréditaire FR.
       ['F-FA-24-reserve-heriditaire', {
         component: ReserveHeriditaireSectionComponent,
         inputs: (ctx) => ({
