@@ -96,6 +96,7 @@ import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section
 import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/devolution-legale-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
+import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1037,6 +1038,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-17-02 : régime algérien FR — accord franco-algérien 27/12/1968
+      // modifié + avenants (5 voies CRA). tool_id aligné avec la migration 176
+      // (visibility ALWAYS_ON DROIT_IMMIGRATION FRANCE priority 77).
+      ['F-IM-17-regime-algerien', {
+        component: RegimeAlgerienSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (heuristique défensive sur typeProcedureDetectee
+          // → mapping voie + détection plausible nationalité algérienne) +
+          // validation F-IA-03 (1 champ VOIE multi-sources IA / F96 /
+          // QUESTION_IA / PIECE_MANQUANTE).
+          aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
