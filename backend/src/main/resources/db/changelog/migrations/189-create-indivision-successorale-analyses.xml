@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="189-create-indivision-successorale-analyses" author="legalcase">
+        <comment>
+            SF-FA-24-11 : table dédiée à l'outil décisionnel "Indivision
+            successorale" (FR — art. 815 à 832-2 Cciv pour l'indivision
+            légale, art. 1873-1 et s. Cciv pour l'indivision conventionnelle,
+            art. 815-1 et s. Cciv pour le maintien forcé).
+
+            À distinguer de F-FA-22 (indivision post-communautaire — suite
+            divorce) : ici l'origine est le décès, et la décision s'inscrit
+            dans la gestion successorale (rendez-vous notarial, médiation
+            familiale, partage amiable ou judiciaire selon conflictualité).
+
+            Score de conflictualité 0-100 :
+            - absence de consentement collectif : +30
+            - occupation exclusive : +25
+            - actes d'administration contestés : +30
+            - demande de partage + actes contestés : +15
+
+            Verdict :
+            - HARMONIEUSE : tous consentements + pas de conflit
+            - CONFLICTUELLE : occupation contestée OU actes contestés OU
+              absence de consentement
+            - BLOCAGE : partage demandé + actes contestés + pas de consentement
+
+            Dispositif recommandé selon verdict + type + demande de partage :
+            CONVENTION_INDIVISION_5_ANS (sécurisation),
+            MAINTIEN_INDIVISION_LEGALE, MAINTIEN_FORCE_PRESERVE,
+            MEDIATION_FAMILIALE (préalable obligatoire art. 1108 CPC),
+            PARTAGE_AMIABLE (art. 835 — acte notarié), PARTAGE_JUDICIAIRE
+            (art. 1364 CPC — renvoi vers F-FA-22).
+
+            Indemnité d'occupation (art. 815-9 al. 2) :
+            indemnite = valeurBienOccupe × 0.04 / 12 × dureeMois
+                        × (1 - 1/nbHeritiers)
+            taux 4 %/an conventionnel notarial (3 à 5 % selon expertise).
+
+            Frais de gestion estimés : 1 % du patrimoine indivis + 800 €/an
+            (entretien + actes administration + comptabilité), prorata
+            durée d'indivision.
+
+            Outil single-country FRANCE — la BE (CC BE art. 577-2 et s.)
+            repose sur une logique distincte non couverte ici.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 98) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="indivision_successorale_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_indivision_succ_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_ouverture_succession" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type_indivision" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_heritiers" type="integer" defaultValueNumeric="2">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valeur_patrimoine_indivis_eur" type="numeric(14,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="valeur_bien_occupe_eur" type="numeric(14,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="consentements_tous" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="occupation_exclusive" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actes_administration_contestes" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="demande_partage" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="indivision_successorale_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_indivision_succ_analyses_case_file"/>
+
+        <createIndex tableName="indivision_successorale_analyses"
+                     indexName="idx_indivision_succ_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000189', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-indivision-successorale', 'ALWAYS_ON', NULL, NULL, 98);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000189';
+            </sql>
+            <dropTable tableName="indivision_successorale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
