@@ -284,4 +284,22 @@ export interface FamilleExtractedData {
     | 'HERITIER_RESERVATAIRE_DESCENDANT'
     | 'CONJOINT_SURVIVANT'
     | null;
+  /**
+   * SF-FA-24-14 : pré-fill outil "Rapport à succession" (art. 843-863 + 919
+   * Cciv). Tous les champs sont optionnels — composant no-op gracieux si
+   * l'IA ne les a pas détectés.
+   */
+  /** Montant nominal de la donation reçue au jour de la donation (€). */
+  montantDonationsRecuesEurDetecte?: number | null;
+  /** Valeur retenue au jour du partage (€) — art. 860. */
+  valeurDonationAuJourPartageEurDetectee?: number | null;
+  /** Qualité de l'héritier — `DESCENDANT` ou `CONJOINT_SURVIVANT`. */
+  qualiteHeritierRapportDetectee?:
+    | 'DESCENDANT'
+    | 'CONJOINT_SURVIVANT'
+    | null;
+  /** Donation hors part successorale (dispense expresse art. 919). */
+  donationDispenseDeRapportDetected?: boolean | null;
+  /** Frais éducation (852) ou rémunératoire (851) → exempt de rapport. */
+  naturePresumeeNonRapportableDetected?: boolean | null;
 }
