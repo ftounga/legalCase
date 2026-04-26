@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="192-restore-decision-tool-ids-fa18-fa24" author="legalcase">
+        <comment>
+            Fix-up de SF-164-01 (PR #682 mergée 2026-04-26) : restauration des
+            4 seeds que la migration 191 avait DELETE en Cat C alors qu'elle
+            les considérait sans composant frontend.
+
+            Race condition découverte 2026-04-26 entre la migration 191 et 4
+            PRs frontend mergées juste après (#683 SF-FA-24-14 rapport
+            succession, #684 SF-FA-24-10 partage successoral, #685
+            SF-FA-18-10 adoption, #686 SF-FA-24-12 indivision successorale) :
+
+              - À l'étape Cat C de SF-164-01, ces 4 composants frontend
+                n'existaient pas → DELETE seed pour aligner DB sur registry.
+              - Juste après le merge de 191, les PRs frontend #683-#686 ont
+                ajouté les composants + entrées TOOL_REGISTRY.
+              - Liquibase joue les migrations 187/188/189/190 (INSERT) PUIS 191
+                (DELETE) → les seeds sont retirés au démarrage prod alors que
+                les composants frontend les attendent.
+
+            Cette migration restaure les 4 seeds avec leurs UUID, layer,
+            priority d'origine (extraits des migrations 187/188/189/190).
+
+            Le test DecisionToolVisibilityIntegrityIT passe après cette
+            migration : les 4 IDs sont à la fois dans la DB et dans
+            KNOWN_FRONTEND_TOOL_IDS / TOOL_REGISTRY frontend.
+
+            Leçon : la règle CLAUDE.md `feedback_pre_merge_visibility_seed_check`
+            ajoutée par F-164 protège backend → frontend, mais pas la fenêtre
+            où une SF backend est INSERT + une SF frontend est en cours de
+            développement quand un fix de cohérence rétroactif passe entre.
+            Mitigation : le test d'intégrité aurait détecté ce désalignement
+            si le frontend avait été mergé après mais avant le déploiement
+            staging — c'est exactement ce qui s'est passé ici.
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- Restauration des 4 seeds DELETE par la migration 191 (alors que les PRs
+-- frontend #683-#686 ont ajouté les composants Angular juste après).
+-- UUID/layer/priority extraits respectivement des migrations 187/188/189/190.
+-- =========================================================================
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000187', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-18-adoption', 'ALWAYS_ON', NULL, NULL, 96);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000188', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-partage-successoral', 'ALWAYS_ON', NULL, NULL, 97);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000189', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-indivision-successorale', 'ALWAYS_ON', NULL, NULL, 98);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000190', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-rapport-succession', 'ALWAYS_ON', NULL, NULL, 99);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-18-adoption';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-24-partage-successoral';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-24-indivision-successorale';
+DELETE FROM decision_tool_visibility_rules WHERE tool_id = 'F-FA-24-rapport-succession';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
