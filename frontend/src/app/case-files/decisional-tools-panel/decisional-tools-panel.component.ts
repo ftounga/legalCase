@@ -95,6 +95,7 @@ import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avanc
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/devolution-legale-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
+import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
 
@@ -995,6 +996,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-18-02 : reconnaissance paternelle FR (art. 316 + 332-335 + 372 Cciv).
       ['F-FA-18-reconnaissance-paternelle', {
         component: ReconnaissancePaternelleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-18-04 : contestation de paternité FR (art. 332-335 + 311-1 + 321 + 372 Cciv).
+      // tool_id aligné avec la migration 181.
+      ['F-FA-18-contestation-paternite', {
+        component: ContestationPaterniteSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,

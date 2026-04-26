@@ -227,4 +227,21 @@ export interface FamilleExtractedData {
   enfantsNonCommunsDetected?: boolean | null;
   clauseAttributionIntegraleDetected?: boolean | null;
   valeurCommunauteEurDetectee?: number | null;
+  /**
+   * SF-FA-18-04 : pré-fill contestation de paternité (art. 332-335 + 311-1
+   * + 321 + 372 Cciv). Tous les champs sont optionnels — le composant est
+   * no-op gracieux si l'IA ne les a pas détectés.
+   */
+  qualiteAagirContestationDetected?:
+    | 'PERE_DECLARE'
+    | 'PERE_BIOLOGIQUE_PRESUME'
+    | 'MERE'
+    | 'ENFANT_MAJEUR'
+    | null;
+  dateEtablissementFiliationDetectee?: string | null;
+  dateConnaissanceVeriteDetectee?: string | null;
+  dateMajoriteEnfantDetectee?: string | null;
+  possessionEtatConforme5AnsDetected?: boolean | null;
+  expertiseAdnDemandeeDetected?: boolean | null;
+  motifsSerieuxDetected?: boolean | null;
 }
