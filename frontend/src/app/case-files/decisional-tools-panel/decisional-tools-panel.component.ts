@@ -92,6 +92,7 @@ import { MineursImmigrationSectionComponent } from '../mineurs-immigration-secti
 import { MesuresEloignementSectionComponent } from '../mesures-eloignement-section/mesures-eloignement-section.component';
 import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avance-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
+import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -962,6 +963,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-16-02 : communauté universelle FR (art. 1526 + 1527 al. 2 Cciv).
+      // 4ᵉ régime matrimonial — 2 dispositifs : VALIDITE_CONVENTION +
+      // LIQUIDATION_DECES (avec/sans CAI + action en retranchement).
+      // tool_id aligné avec la migration 177.
+      ['F-FA-16-communaute-universelle', {
+        component: CommunauteUniverselleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (contratNotarieDetected, enfantsNonCommunsDetected,
+          // clauseAttributionIntegraleDetected, valeurCommunauteEurDetectee)
+          // + validation F-IA-03 (CONTRAT_NOTARIE + ENFANTS_NON_COMMUNS)
+          // multi-sources IA / F96 / QUESTION_IA / PIECE_MANQUANTE.
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

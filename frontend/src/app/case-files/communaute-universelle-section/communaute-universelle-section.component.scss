@@ -1,0 +1,449 @@
+// SF-FA-16-02 : outil "Communauté universelle" (FR — art. 1526 + 1527 Cciv).
+// Pattern jumeau `partage-judiciaire-section` (PR #638). Palette navy/or/rouge —
+// rouge réservé au verdict NUL (préalable absolu non rempli — art. 1394
+// Cciv) ET au chip "action en retranchement possible".
+// DESIGN_SYSTEM.md aligné.
+
+.comm-univ-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.comm-univ-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.comm-univ-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.comm-univ-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.comm-univ-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.16);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.12);
+    color: #b00020;
+  }
+}
+
+.comm-univ-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.comm-univ-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.comm-univ-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.comm-univ-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comm-univ-fieldset {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+  background: var(--ds-surface, #ffffff);
+}
+
+.comm-univ-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ds-navy, #1a375f);
+
+  mat-icon {
+    color: var(--ds-accent-gold, #c9a54b);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.comm-univ-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.comm-univ-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+
+  mat-radio-group {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+}
+
+.comm-univ-radio-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.comm-univ-radio-strong {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.comm-univ-radio-desc {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+  margin-top: 2px;
+}
+
+.comm-univ-field-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.comm-univ-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.comm-univ-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comm-univ-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--warning {
+    border-left-color: var(--ds-accent-gold, #c9a54b);
+    background: rgba(201, 165, 75, 0.10);
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+
+  &--critical {
+    border-left-color: #b00020;
+    background: rgba(176, 0, 32, 0.06);
+    mat-icon { color: #b00020; }
+  }
+}
+
+.comm-univ-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.comm-univ-banner-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.comm-univ-meta-tag {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-navy, #1a375f);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.comm-univ-banner-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.comm-univ-attribution-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.04);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.comm-univ-attribution-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.comm-univ-attribution-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.comm-univ-retranchement-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(176, 0, 32, 0.10);
+  color: #b00020;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  mat-icon {
+    color: #b00020;
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.comm-univ-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.comm-univ-risks {
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: rgba(176, 0, 32, 0.06);
+    border-left: 3px solid #b00020;
+  }
+}
+
+.comm-univ-risk-icon {
+  color: #b00020;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.comm-univ-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.comm-univ-formule-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.comm-univ-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.comm-univ-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comm-univ-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+// Pré-fill IA + validation F-IA-03 (palette canonique).
+.comm-univ-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.comm-univ-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.comm-univ-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
