@@ -1,0 +1,446 @@
+// SF-IM-12-02 — Asile avancé (CESEDA Livre V).
+// Pattern jumeau `naturalisation-section` (SF-IM-13-02 PR #646) — palette
+// canonique navy/or/rouge. Rouge réservé verdict IRRECEVABLE (motifs
+// d'exclusion / éléments nouveaux non démontrés / présence irrégulière /
+// traitements graves non établis). DESIGN_SYSTEM.md aligné.
+
+.asile-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+.asile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.asile-icon { color: var(--ds-accent-gold, #c9a54b); }
+
+.asile-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.asile-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.16);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.12);
+    color: #b00020;
+  }
+}
+
+.asile-toggle { color: var(--ds-text-secondary, #6a7485); }
+
+.asile-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.asile-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// ---- Form ----
+.asile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.asile-fieldset {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+  background: var(--ds-surface, #ffffff);
+}
+
+.asile-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ds-navy, #1a375f);
+
+  mat-icon {
+    color: var(--ds-accent-gold, #c9a54b);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.asile-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.asile-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+// Convention canonique : `<input type="date">` natif (pas MatDatepicker).
+.asile-date-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 4px;
+  background: var(--ds-surface, #ffffff);
+  color: var(--ds-text-primary, #1a2330);
+  max-width: 220px;
+
+  &:focus {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -1px;
+  }
+}
+
+.asile-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+
+  mat-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.asile-radio-stack {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.asile-radio-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.asile-radio-sub {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.asile-disp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.asile-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.asile-helper-text {
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+.asile-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+// ---- Coherence summary banner (or) ----
+.asile-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// ---- Provenance / coherence badges ----
+.asile-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.asile-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
+
+// ---- Result ----
+.asile-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.asile-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--warning {
+    border-left-color: var(--ds-accent-gold, #c9a54b);
+    background: rgba(201, 165, 75, 0.10);
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+
+  &--critical {
+    border-left-color: #b00020;
+    background: rgba(176, 0, 32, 0.06);
+    mat-icon { color: #b00020; }
+  }
+}
+
+.asile-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.asile-banner-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.asile-banner-sub {
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.asile-delai {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  color: var(--ds-text-primary, #1a2330);
+  font-weight: 600;
+}
+
+// ---- Sections (recours / documents / risques) ----
+.asile-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(26, 55, 95, 0.04);
+}
+
+.asile-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.asile-recours-text {
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  line-height: 1.5;
+}
+
+.asile-chip-set {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.asile-chip-doc {
+  background: rgba(26, 55, 95, 0.10) !important;
+  color: var(--ds-navy, #1a375f) !important;
+  font-size: 12px;
+}
+
+.asile-chip-risque {
+  font-size: 12px;
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.16) !important;
+    color: var(--ds-accent-gold-dark, #8a6a16) !important;
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.12) !important;
+    color: #b00020 !important;
+  }
+}
+
+// ---- Messages ----
+.asile-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // Citations juridiques rendues en JetBrains Mono via LegalCitationsPipe.
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+// ---- Formule + base juridique ----
+.asile-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.asile-formule-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.asile-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.asile-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.asile-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .asile-fieldset {
+    padding: 10px 12px;
+  }
+}

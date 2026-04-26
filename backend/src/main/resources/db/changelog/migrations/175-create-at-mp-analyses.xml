@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="175-create-at-mp-analyses" author="legalcase">
+        <comment>
+            SF-DT-33-01 : table dédiée à l'outil décisionnel AT/MP (FR — Code de la sécurité sociale).
+            Évalue la recevabilité d'une procédure AT/MP sur 3 dispositifs :
+              - RECONNAISSANCE_AT (CSS art. L.411-1 — présomption d'imputabilité au temps et lieu du travail)
+              - RECONNAISSANCE_MP (CSS art. L.461-1 — tableau ou système complémentaire CRRMP)
+              - CONTESTATION_TAUX_IPP (CSS art. L.434-2 — recours CMRA puis Pôle Social TJ)
+            Verdict ELEVEE / MOYENNE / FAIBLE selon : matérialité (lieu/CMI pour AT),
+            tableau visé / délai de prise en charge / saisine CRRMP (MP), écart de taux et
+            expertise médicale produite (IPP).
+            Délai instruction : 90j AT (R.441-13), 120j MP (R.461-9), 60j CMRA + 60j TJ Pôle Social (R.142-1, L.142-2).
+
+            Outil single-country FRANCE — l'équivalent BE (procédure FEDRIS) sera traité
+            dans une feature jumelle au backlog (F-DT-33-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_DU_TRAVAIL, FRANCE, priority 59).
+        </comment>
+
+        <createTable tableName="at_mp_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_at_mp_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="dispositif" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_accident" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="lieu_travail" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="declaration_employeur_dans_les_48h" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="certificat_medical_initial" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="numero_tableau" type="varchar(30)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="delai_prise_en_charge_respecte" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="date_exposition" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="taux_fixe_par_cpam" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="taux_revendique" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="expertise_medicale_produite" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="date_premier_avis_cpam" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="at_mp_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_at_mp_analyses_case_file"/>
+
+        <createIndex tableName="at_mp_analyses"
+                     indexName="idx_at_mp_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000175', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-33-at-mp', 'ALWAYS_ON', NULL, NULL, 59);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000175';
+            </sql>
+            <dropTable tableName="at_mp_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
