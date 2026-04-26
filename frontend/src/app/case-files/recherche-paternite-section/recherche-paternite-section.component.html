@@ -1,0 +1,319 @@
+<section class="rch-pat-section">
+  <header class="rch-pat-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rch-pat-body">
+    <mat-icon class="rch-pat-icon">family_restroom</mat-icon>
+    <span class="rch-pat-title">RECHERCHE DE PATERNITÉ (FR)</span>
+    @if (result()) {
+      <span class="rch-pat-chip"
+            [class.rch-pat-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.rch-pat-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.rch-pat-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }} — Score {{ result()!.scoreRecevabilite }}/100
+      </span>
+    }
+    <mat-icon class="rch-pat-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rch-pat-body" class="rch-pat-body">
+      @if (!isFrance()) {
+        <div class="rch-pat-banner rch-pat-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rch-pat-banner-content">
+            <div class="rch-pat-banner-title">Outil français uniquement</div>
+            <div class="rch-pat-banner-sub">
+              L'action en recherche de paternité (art. 327 + 340 + 16-11 + 321 Cciv)
+              est propre au droit français. L'équivalent belge (CC art. 322,
+              332ter, 332-1 — qualités à agir et délais distincts) est traité
+              dans une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rch-pat-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="rch-pat-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="rch-pat-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Qualité du demandeur (art. 327 al. 2 Cciv) -->
+              <fieldset class="rch-pat-fieldset">
+                <legend class="rch-pat-legend">
+                  <mat-icon>person</mat-icon>
+                  Qualité du demandeur (art. 327 al. 2 Cciv)
+                </legend>
+
+                <div class="rch-pat-radio-group rch-pat-radio-group--column">
+                  <mat-radio-group required
+                                   [ngModel]="qualiteDuDemandeur()"
+                                   (ngModelChange)="onQualiteChange($event)"
+                                   name="qualiteDuDemandeur">
+                    @for (opt of qualiteOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">
+                        <span class="rch-pat-qualite-label">{{ opt.label }}</span>
+                        <span class="rch-pat-qualite-sub">{{ opt.sub }}</span>
+                      </mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+                <div class="rch-pat-field-meta">
+                  @if (provenanceQualite() === 'IA') {
+                    <span class="rch-pat-provenance-note">
+                      <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                    </span>
+                  }
+                  @if (coherenceAlerts().QUALITE_DEMANDEUR; as alert) {
+                    <span class="rch-pat-coherence-badge"
+                          [appCoherencePopover]="[]"
+                          [appCoherencePopoverReason]="alertTooltip(alert)"
+                          [appCoherencePopoverCaseFileId]="caseFileId">
+                      <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                    </span>
+                  }
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Date de naissance (calcul majorité + prescription) -->
+              <fieldset class="rch-pat-fieldset">
+                <legend class="rch-pat-legend">
+                  <mat-icon>event</mat-icon>
+                  Date de naissance de l'enfant (art. 321 Cciv)
+                </legend>
+
+                <div class="rch-pat-grid">
+                  <div class="rch-pat-field-wrapper">
+                    <label class="rch-pat-radio-label" for="rch-pat-date-naissance">
+                      Date de naissance de l'enfant
+                      <span class="rch-pat-required">*</span>
+                    </label>
+                    <input id="rch-pat-date-naissance" type="date"
+                           class="rch-pat-input"
+                           [ngModel]="dateNaissanceEnfant()"
+                           (ngModelChange)="onDateNaissanceChange($event)"
+                           name="dateNaissanceEnfant" />
+                    @if (provenanceDateNaissance() === 'IA') {
+                      <span class="rch-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Critères de fond + ADN (art. 16-11 + jurisprudence) -->
+              <fieldset class="rch-pat-fieldset">
+                <legend class="rch-pat-legend">
+                  <mat-icon>science</mat-icon>
+                  Faisceau d'indices (art. 16-11 + Cass. 1ère civ. 28/03/2000)
+                </legend>
+
+                <div class="rch-pat-checkbox-row">
+                  <mat-checkbox [ngModel]="presomptionPossessionEtat()"
+                                (ngModelChange)="onPossessionEtatChange($event)"
+                                name="presomptionPossessionEtat">
+                    Possession d'état (traitement, fama, nomen — art. 311-1 Cciv)
+                  </mat-checkbox>
+                  <div class="rch-pat-field-meta">
+                    @if (provenancePossessionEtat() === 'IA') {
+                      <span class="rch-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().POSSESSION_ETAT; as alert) {
+                      <span class="rch-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rch-pat-checkbox-row">
+                  <mat-checkbox [ngModel]="expertiseAdnDemandee()"
+                                (ngModelChange)="onExpertiseAdnChange($event)"
+                                name="expertiseAdnDemandee">
+                    Expertise ADN demandée (art. 16-11 — Cass. 1ère civ. 28/03/2000)
+                  </mat-checkbox>
+                  <div class="rch-pat-field-meta">
+                    @if (provenanceExpertiseAdn() === 'IA') {
+                      <span class="rch-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().EXPERTISE_ADN; as alert) {
+                      <span class="rch-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rch-pat-checkbox-row">
+                  <mat-checkbox [ngModel]="pereDesigneRefuseADN()"
+                                (ngModelChange)="onRefusAdnChange($event)"
+                                name="pereDesigneRefuseADN">
+                    Père désigné refuse l'ADN sans motif légitime (présomption)
+                  </mat-checkbox>
+                  <div class="rch-pat-field-meta">
+                    @if (provenanceRefusAdn() === 'IA') {
+                      <span class="rch-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().REFUS_ADN; as alert) {
+                      <span class="rch-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rch-pat-checkbox-row">
+                  <mat-checkbox [ngModel]="motifsSerieux()"
+                                (ngModelChange)="onMotifsSerieuxChange($event)"
+                                name="motifsSerieux">
+                    Motifs sérieux (correspondances, témoignages, photos)
+                  </mat-checkbox>
+                  <div class="rch-pat-field-meta">
+                    @if (provenanceMotifsSerieux() === 'IA') {
+                      <span class="rch-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().MOTIFS_SERIEUX; as alert) {
+                      <span class="rch-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="rch-pat-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rch-pat-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictRecevabilite === 'FAIBLE' ? 'gpp_bad' :
+                     result()!.verdictRecevabilite === 'MOYENNE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="rch-pat-banner-content">
+                  <div class="rch-pat-banner-title">
+                    Verdict : {{ result()!.verdictRecevabilite }}
+                  </div>
+                  <div class="rch-pat-banner-sub">
+                    Score recevabilité : {{ result()!.scoreRecevabilite | number:'1.0-0' }} / 100
+                    — Qualité : {{ qualiteLabel(result()!.qualiteDuDemandeur) }}
+                  </div>
+                  <div class="rch-pat-meta-block">
+                    <span class="rch-pat-delai-chip"
+                          [class.rch-pat-delai-chip--critical]="delaiPrescriptionAlert() === 'critical'"
+                          [class.rch-pat-delai-chip--warning]="delaiPrescriptionAlert() === 'warning'">
+                      <mat-icon>schedule</mat-icon>
+                      Délai prescription : {{ result()!.delaiPrescriptionAns }} ans
+                      —
+                      @if (result()!.delaiPrescriptionRestantMois <= 0) {
+                        <span>prescription acquise</span>
+                      } @else {
+                        <span>{{ result()!.delaiPrescriptionRestantMois }} mois restants</span>
+                      }
+                    </span>
+                    @if (result()!.expertiseAdnRecommandee) {
+                      <span class="rch-pat-effet-chip">
+                        <mat-icon>science</mat-icon>
+                        Expertise ADN recommandée
+                      </span>
+                    }
+                    @if (result()!.presomptionRefusADN) {
+                      <span class="rch-pat-effet-chip">
+                        <mat-icon>policy</mat-icon>
+                        Présomption — refus ADN
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="rch-pat-list-block">
+                  <div class="rch-pat-list-title">Documents requis</div>
+                  <ul class="rch-pat-list">
+                    @for (d of result()!.documentsRequis; track d) {
+                      <li>{{ d }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.risquesRefus?.length) {
+                <div class="rch-pat-list-block rch-pat-list-block--warn">
+                  <div class="rch-pat-list-title">Risques de refus</div>
+                  <ul class="rch-pat-list">
+                    @for (r of result()!.risquesRefus; track r) {
+                      <li>{{ r }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="rch-pat-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="rch-pat-formule-block">
+                  <span class="rch-pat-formule-label">Formule</span>
+                  <span class="rch-pat-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="rch-pat-meta">
+                <span class="rch-pat-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
