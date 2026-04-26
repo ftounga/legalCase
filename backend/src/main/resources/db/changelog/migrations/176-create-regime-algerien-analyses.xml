@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="176-create-regime-algerien-analyses" author="legalcase">
+        <comment>
+            SF-IM-17-01 : table dédiée à l'outil décisionnel "Régime franco-algérien"
+            (accord du 27/12/1968 + avenants 1985 / 1994 / 2001).
+
+            Régime parallèle au CESEDA, applicable uniquement aux ressortissants algériens.
+            5 voies distinctes : CRA 1 an (art. 5), CRA 10 ans lien France (art. 6),
+            CRA 10 ans résident ancien (art. 7bis), changement vers travailleur (art. 7),
+            regroupement familial accord 1968 (art. 4).
+
+            Verdict ELEVEE / MOYENNE / FAIBLE selon : visa long séjour, lien avec la France,
+            naissance / arrivée précoce, contrat de travail, ressources / logement, casier
+            vierge, acte d'état civil algérien original.
+
+            Outil single-country FRANCE — aucun équivalent BE (accord bilatéral FR-DZ).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, FRANCE, priority 77).
+        </comment>
+
+        <createTable tableName="regime_algerien_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_regime_algerien_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="voie_demande" type="varchar(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nationalite_algerienne" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="document_etat_civil_original" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="presence_reguliere_france_mois" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="casier_judiciaire_vierge" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="visa_long_sejour_valide" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="conjoint_francais" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="parent_enfant_francais" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="ne_en_france" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="arrivee_avant_13_ans" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="contrat_travail_valide" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="ressources_suffisantes" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="logement_decent" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="nombre_personnes_foyer" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="regime_algerien_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_regime_algerien_analyses_case_file"/>
+
+        <createIndex tableName="regime_algerien_analyses"
+                     indexName="idx_regime_algerien_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000176', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-17-regime-algerien', 'ALWAYS_ON', NULL, NULL, 77);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000176';
+            </sql>
+            <dropTable tableName="regime_algerien_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

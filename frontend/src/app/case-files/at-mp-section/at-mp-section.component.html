@@ -1,0 +1,320 @@
+<section class="at-mp-section">
+  <header class="at-mp-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="at-mp-body">
+    <mat-icon class="at-mp-icon">healing</mat-icon>
+    <span class="at-mp-title">ACCIDENT DU TRAVAIL / MALADIE PROFESSIONNELLE (FR)</span>
+    @if (result()) {
+      <span class="at-mp-chip"
+            [class.at-mp-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.at-mp-chip--warning]="result()!.verdictRecevabilite !== 'ELEVEE'">
+        {{ verdictLabel(result()!.verdictRecevabilite) }}
+      </span>
+    }
+    <mat-icon class="at-mp-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="at-mp-body" class="at-mp-body">
+      @if (!isFrance()) {
+        <div class="at-mp-banner at-mp-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="at-mp-banner-content">
+            <div class="at-mp-banner-title">Outil français uniquement</div>
+            <div class="at-mp-banner-sub">
+              La procédure AT/MP française (Code de la sécurité sociale —
+              art. L.411-1 et s.) repose sur la CPAM, le CRRMP et le Pôle
+              Social du TJ. L'équivalent belge (FEDRIS — Agence fédérale
+              des risques professionnels, loi du 03/07/1967 et loi du
+              03/06/1970) est traité dans une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="at-mp-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="at-mp-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="at-mp-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Dispositif -->
+              <fieldset class="at-mp-fieldset">
+                <legend class="at-mp-legend">
+                  <mat-icon>gavel</mat-icon>
+                  Dispositif visé (CSS L.411-1 / L.461-1 / L.434-2)
+                </legend>
+
+                <div class="at-mp-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="dispositif()"
+                                   (ngModelChange)="onDispositifChange($event)"
+                                   name="dispositif">
+                    @for (opt of dispositifOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">
+                        <div class="at-mp-dispositif-row">
+                          <span class="at-mp-dispositif-label">{{ opt.label }}</span>
+                          <span class="at-mp-dispositif-sub">{{ opt.sub }}</span>
+                        </div>
+                      </mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Champs RECONNAISSANCE_AT -->
+              @if (isAt()) {
+                <fieldset class="at-mp-fieldset">
+                  <legend class="at-mp-legend">
+                    <mat-icon>event</mat-icon>
+                    Reconnaissance AT — éléments matériels (CSS L.411-1 + L.441-1 + L.441-6)
+                  </legend>
+
+                  <div class="at-mp-grid">
+                    <div class="at-mp-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Date de l'accident</mat-label>
+                        <input matInput type="date" required
+                               [ngModel]="dateAccident()"
+                               (ngModelChange)="onDateAccidentChange($event)"
+                               name="dateAccident" />
+                      </mat-form-field>
+                      <div class="at-mp-field-meta">
+                        @if (provenanceDateAccident() === 'IA') {
+                          <span class="at-mp-provenance-note">
+                            <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                          </span>
+                        }
+                        @if (coherenceAlerts().DATE_ACCIDENT; as alert) {
+                          <span class="at-mp-coherence-badge"
+                                [appCoherencePopover]="[]"
+                                [appCoherencePopoverReason]="alertTooltip(alert)"
+                                [appCoherencePopoverCaseFileId]="caseFileId">
+                            <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="at-mp-checkboxes">
+                    <mat-checkbox [ngModel]="lieuTravail()"
+                                  (ngModelChange)="onLieuTravailChange($event)"
+                                  name="lieuTravail">
+                      Accident survenu sur le lieu du travail
+                      <span class="at-mp-cb-sub">(présomption d'imputabilité L.411-1)</span>
+                    </mat-checkbox>
+                    <mat-checkbox [ngModel]="declarationEmployeurDansLes48h()"
+                                  (ngModelChange)="onDeclarationEmployeurChange($event)"
+                                  name="declarationEmployeur48h">
+                      Déclaration employeur dans les 48 h
+                      <span class="at-mp-cb-sub">(L.441-1 — sanction si dépassement, mais pas perte de droit)</span>
+                    </mat-checkbox>
+                    <mat-checkbox [ngModel]="certificatMedicalInitial()"
+                                  (ngModelChange)="onCertificatMedicalChange($event)"
+                                  name="cmiAt">
+                      Certificat médical initial (CMI) produit
+                      <span class="at-mp-cb-sub">(L.441-6)</span>
+                    </mat-checkbox>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 3 : Champs RECONNAISSANCE_MP -->
+              @if (isMp()) {
+                <fieldset class="at-mp-fieldset">
+                  <legend class="at-mp-legend">
+                    <mat-icon>biotech</mat-icon>
+                    Reconnaissance MP — tableau ou CRRMP (CSS L.461-1 + L.461-5)
+                  </legend>
+
+                  <div class="at-mp-grid">
+                    <div class="at-mp-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Numéro de tableau MP</mat-label>
+                        <input matInput type="text"
+                               placeholder="ex. 30, 57, 98…"
+                               [disabled]="numeroTableauIsHorsTableau()"
+                               [ngModel]="numeroTableauIsHorsTableau() ? '' : (numeroTableau() ?? '')"
+                               (ngModelChange)="onNumeroTableauChange($event)"
+                               name="numeroTableau" />
+                      </mat-form-field>
+                      <mat-checkbox [ngModel]="numeroTableauIsHorsTableau()"
+                                    (ngModelChange)="onHorsTableauChange($event)"
+                                    name="horsTableau">
+                        Hors tableau (système complémentaire CRRMP — L.461-1 al.4)
+                      </mat-checkbox>
+                    </div>
+
+                    <div class="at-mp-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Date d'exposition</mat-label>
+                        <input matInput type="date" required
+                               [ngModel]="dateExposition()"
+                               (ngModelChange)="onDateExpositionChange($event)"
+                               name="dateExposition" />
+                      </mat-form-field>
+                    </div>
+                  </div>
+
+                  <div class="at-mp-checkboxes">
+                    <mat-checkbox [ngModel]="delaiPriseEnChargeRespecte()"
+                                  (ngModelChange)="onDelaiPriseEnChargeRespecteChange($event)"
+                                  [disabled]="numeroTableauIsHorsTableau()"
+                                  name="delaiPriseEnCharge">
+                      Délai de prise en charge respecté
+                      <span class="at-mp-cb-sub">(condition cumulative du tableau)</span>
+                    </mat-checkbox>
+                    <mat-checkbox [ngModel]="certificatMedicalInitial()"
+                                  (ngModelChange)="onCertificatMedicalChange($event)"
+                                  name="cmiMp">
+                      Certificat médical initial (CMI) produit
+                      <span class="at-mp-cb-sub">(L.461-5)</span>
+                    </mat-checkbox>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 4 : Champs CONTESTATION_TAUX_IPP -->
+              @if (isIpp()) {
+                <fieldset class="at-mp-fieldset">
+                  <legend class="at-mp-legend">
+                    <mat-icon>percent</mat-icon>
+                    Contestation taux IPP (CSS L.434-2 + L.142-2)
+                  </legend>
+
+                  <div class="at-mp-grid">
+                    <div class="at-mp-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Taux IPP fixé par la CPAM (%)</mat-label>
+                        <input matInput type="number" min="0" max="100" step="1" required
+                               [ngModel]="tauxFixeParCpam()"
+                               (ngModelChange)="onTauxFixeChange($event)"
+                               name="tauxFixe" />
+                      </mat-form-field>
+                    </div>
+
+                    <div class="at-mp-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Taux IPP revendiqué (%)</mat-label>
+                        <input matInput type="number" min="0" max="100" step="1" required
+                               [ngModel]="tauxRevendique()"
+                               (ngModelChange)="onTauxRevendiqueChange($event)"
+                               name="tauxRevendique" />
+                      </mat-form-field>
+                    </div>
+
+                    <div class="at-mp-field-wrapper">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Date du premier avis CPAM</mat-label>
+                        <input matInput type="date" required
+                               [ngModel]="datePremierAvisCpam()"
+                               (ngModelChange)="onDatePremierAvisCpamChange($event)"
+                               name="datePremierAvisCpam" />
+                      </mat-form-field>
+                    </div>
+                  </div>
+
+                  <div class="at-mp-checkboxes">
+                    <mat-checkbox [ngModel]="expertiseMedicaleProduite()"
+                                  (ngModelChange)="onExpertiseMedicaleChange($event)"
+                                  name="expertiseMedicaleProduite">
+                      Rapport d'expertise médicale produit à l'appui
+                      <span class="at-mp-cb-sub">(L.141-1 — expertise systématique en TJ)</span>
+                    </mat-checkbox>
+                  </div>
+                </fieldset>
+              }
+
+              <div class="at-mp-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="at-mp-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictRecevabilite === 'ELEVEE' ? 'verified' :
+                     result()!.verdictRecevabilite === 'MOYENNE' ? 'warning' : 'info' }}
+                </mat-icon>
+                <div class="at-mp-banner-content">
+                  <div class="at-mp-banner-title">
+                    {{ result()!.dispositifLibelle }} — {{ verdictLabel(result()!.verdictRecevabilite) }}
+                  </div>
+                  <div class="at-mp-banner-sub">
+                    Délai d'instruction : {{ result()!.delaiInstructionJours }} jours
+                    — Compétence : {{ competenceLabel(result()!.competence) }}
+                    @if (result()!.expertiseRequise) {
+                      — Expertise médicale requise
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="at-mp-criteres at-mp-criteres--ok">
+                  <div class="at-mp-criteres-label">Documents requis ({{ result()!.documentsRequis.length }})</div>
+                  <ul class="at-mp-criteres-list">
+                    @for (doc of result()!.documentsRequis; track doc) {
+                      <li>{{ doc }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.risqueRefus?.length) {
+                <div class="at-mp-criteres at-mp-criteres--ko">
+                  <div class="at-mp-criteres-label">Risques de refus ({{ result()!.risqueRefus.length }})</div>
+                  <ul class="at-mp-criteres-list">
+                    @for (r of result()!.risqueRefus; track r) {
+                      <li>{{ r }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="at-mp-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="at-mp-formule-block">
+                  <span class="at-mp-formule-label">Formule</span>
+                  <span class="at-mp-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="at-mp-meta">
+                <span class="at-mp-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

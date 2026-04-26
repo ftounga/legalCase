@@ -212,4 +212,19 @@ export interface FamilleExtractedData {
   tousDescendantsCommunsAvecConjointDetected?: boolean | null;
   /** SF-FA-24-02 : nombre de frères/sœurs détecté par l'IA. */
   nbFreresSoeursDetecte?: number | null;
+  /**
+   * SF-FA-18-02 : pré-fill reconnaissance paternelle (art. 316 Cciv).
+   */
+  consentementLibreDuPereDetected?: boolean | null;
+  paterniteVraisemblableDetected?: boolean | null;
+  enfantNonReconnuParAutrePereDetected?: boolean | null;
+  procedureRespecteeReconnaissanceDetected?: boolean | null;
+  dateNaissanceEnfantDetectee?: string | null;
+  /**
+   * SF-FA-16-02 : pré-fill communauté universelle (art. 1526 + 1527 al. 2 Cciv).
+   */
+  contratNotarieDetected?: boolean | null;
+  enfantsNonCommunsDetected?: boolean | null;
+  clauseAttributionIntegraleDetected?: boolean | null;
+  valeurCommunauteEurDetectee?: number | null;
 }
