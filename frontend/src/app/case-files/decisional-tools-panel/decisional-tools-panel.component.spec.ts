@@ -204,6 +204,41 @@ describe('DecisionToolsPanelComponent', () => {
     ]);
   });
 
+  it('SF-FA-18-02 : resolves F-FA-18-reconnaissance-paternelle to ReconnaissancePaternelleSectionComponent + bindings IA', () => {
+    const entry = component.resolveEntry('F-FA-18-reconnaissance-paternelle');
+    expect(entry).not.toBeNull();
+    expect(entry!.component.name).toBe('ReconnaissancePaternelleSectionComponent');
+
+    component.caseFileId = 'case-rp-1';
+    component.workspaceCountry = 'FRANCE';
+    component.synthesis = {
+      familleExtractedData: {
+        consentementLibreDuPereDetected: true,
+        paterniteVraisemblableDetected: true,
+        dateNaissanceEnfantDetectee: '2024-03-15',
+      },
+      piecesManquantesDetails: [
+        { texte: 'Acte naissance', critereCode: 'RECONNAISSANCE_PATERNELLE_PROCEDURE' },
+      ],
+    };
+    component.procedureChecks = [{ id: 'c1' } as any];
+    component.aiQuestions = [{ id: 'q1' } as any];
+
+    const inputs = component.componentInputsFor(entry!);
+    expect(inputs['caseFileId']).toBe('case-rp-1');
+    expect(inputs['workspaceCountry']).toBe('FRANCE');
+    expect(inputs['aiData']).toEqual({
+      consentementLibreDuPereDetected: true,
+      paterniteVraisemblableDetected: true,
+      dateNaissanceEnfantDetectee: '2024-03-15',
+    });
+    expect(inputs['procedureChecks']).toEqual([{ id: 'c1' }]);
+    expect(inputs['aiQuestions']).toEqual([{ id: 'q1' }]);
+    expect(inputs['piecesManquantes']).toEqual([
+      { texte: 'Acte naissance', critereCode: 'RECONNAISSANCE_PATERNELLE_PROCEDURE' },
+    ]);
+  });
+
   it('SF-DT-21-02 : resolves F-DT-21-travail-dissimule to TravailDissimuleSectionComponent + bindings IA', () => {
     const entry = component.resolveEntry('F-DT-21-travail-dissimule');
     expect(entry).not.toBeNull();

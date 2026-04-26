@@ -195,4 +195,32 @@ export interface FamilleExtractedData {
   nombreCoindivisairesDetecte?: number | null;
   /** SF-FA-17-02 : valeur estimée des biens en indivision (€). */
   valeurBiensIndivisionEur?: number | null;
+  /**
+   * SF-FA-18-02 : pré-fill outil "Reconnaissance paternelle" (art. 316 Cciv).
+   * Toutes valeurs optionnelles — composant no-op gracieux si l'IA n'a rien détecté.
+   *
+   * `consentementLibreDuPereDetected` : pas de vice de consentement décelé
+   * dans l'analyse du dossier (1130 Cciv).
+   */
+  consentementLibreDuPereDetected?: boolean | null;
+  /**
+   * SF-FA-18-02 : paternité vraisemblable (présomption — pas d'examen ADN
+   * à ce stade).
+   */
+  paterniteVraisemblableDetected?: boolean | null;
+  /**
+   * SF-FA-18-02 : enfant non déjà reconnu par un autre père (sinon
+   * contestation préalable nécessaire).
+   */
+  enfantNonReconnuParAutrePereDetected?: boolean | null;
+  /**
+   * SF-FA-18-02 : procédure respectée (présence du père OU procuration
+   * spéciale notariée).
+   */
+  procedureRespecteeReconnaissanceDetected?: boolean | null;
+  /**
+   * SF-FA-18-02 : date de naissance de l'enfant (ISO YYYY-MM-DD) pour
+   * pré-fill F-FA-18 reconnaissance post-natale.
+   */
+  dateNaissanceEnfantDetectee?: string | null;
 }
