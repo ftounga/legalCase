@@ -195,28 +195,18 @@ export interface FamilleExtractedData {
   nombreCoindivisairesDetecte?: number | null;
   /** SF-FA-17-02 : valeur estimée des biens en indivision (€). */
   valeurBiensIndivisionEur?: number | null;
+   * SF-FA-18-02 : pré-fill reconnaissance paternelle (art. 316 Cciv).
+   */
+  consentementLibreDuPereDetected?: boolean | null;
+  paterniteVraisemblableDetected?: boolean | null;
+  enfantNonReconnuParAutrePereDetected?: boolean | null;
+  procedureRespecteeReconnaissanceDetected?: boolean | null;
+  dateNaissanceEnfantDetectee?: string | null;
   /**
-   * SF-FA-16-02 : pré-fill outil "Communauté universelle"
-   * (art. 1526 + 1527 al. 2 Cciv). Toutes valeurs optionnelles —
-   * composant no-op gracieux si aiData absent.
-   *
-   * `contratNotarieDetected` : contrat de mariage notarié détecté
-   * (préalable de validité — art. 1394 Cciv).
+   * SF-FA-16-02 : pré-fill communauté universelle (art. 1526 + 1527 al. 2 Cciv).
    */
   contratNotarieDetected?: boolean | null;
-  /**
-   * SF-FA-16-02 : présence d'enfants non communs (1er lit) détectée —
-   * déclenche l'action en retranchement potentielle si CAI.
-   */
   enfantsNonCommunsDetected?: boolean | null;
-  /**
-   * SF-FA-16-02 : clause d'attribution intégrale (CAI) au conjoint
-   * survivant détectée dans le contrat.
-   */
   clauseAttributionIntegraleDetected?: boolean | null;
-  /**
-   * SF-FA-16-02 : valeur de la communauté universelle (€) si l'IA
-   * l'a extraite (utilisée pour la liquidation au décès).
-   */
   valeurCommunauteEurDetectee?: number | null;
 }

@@ -85,6 +85,7 @@ import { ReferePrudhomalSectionComponent } from '../refere-prudhomal-section/ref
 import { CreditTempsBeSectionComponent } from '../credit-temps-be-section/credit-temps-be-section.component';
 import { PseSectionComponent } from '../pse-section/pse-section.component';
 import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
+import { AtMpSectionComponent } from '../at-mp-section/at-mp-section.component';
 import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section/ordonnance-requete-section.component';
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
 import { NaturalisationSectionComponent } from '../naturalisation-section/naturalisation-section.component';
@@ -92,6 +93,7 @@ import { MineursImmigrationSectionComponent } from '../mineurs-immigration-secti
 import { MesuresEloignementSectionComponent } from '../mesures-eloignement-section/mesures-eloignement-section.component';
 import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avance-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
+import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 
 export interface DecisionToolContext {
@@ -669,6 +671,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-DT-33-02 : Accident du travail / Maladie professionnelle (FR uniquement,
+      // CSS L.411-1 / L.461-1 / L.434-2 + L.142-2 + R.142-1 + R.441-13 + R.461-9).
+      // 3 dispositifs : RECONNAISSANCE_AT / RECONNAISSANCE_MP / CONTESTATION_TAUX_IPP.
+      // tool_id aligné avec la migration 175.
+      ['F-DT-33-at-mp', {
+        component: AtMpSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (dateLicenciement → dateAccident proxy
+          // RECONNAISSANCE_AT seul — pipeline IA n'extrait pas encore une
+          // dateAccident dédiée) + validation F-IA-03 (1 champ DATE_ACCIDENT
+          // multi-sources IA / F96 / QUESTION_IA / PIECE_MANQUANTE).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       ['F-IM-14-40ter-familial-belge-be', {
         component: Belgian40terSectionComponent,
         inputs: (ctx) => ({
@@ -969,19 +990,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-FA-18-02 : reconnaissance paternelle FR (art. 316 + 332-335 + 372 Cciv).
+      ['F-FA-18-reconnaissance-paternelle', {
+        component: ReconnaissancePaternelleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-FA-16-02 : communauté universelle FR (art. 1526 + 1527 al. 2 Cciv).
-      // 4ᵉ régime matrimonial — 2 dispositifs : VALIDITE_CONVENTION +
-      // LIQUIDATION_DECES (avec/sans CAI + action en retranchement).
-      // tool_id aligné avec la migration 177.
       ['F-FA-16-communaute-universelle', {
         component: CommunauteUniverselleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
-          // Pré-fill IA gracieux (contratNotarieDetected, enfantsNonCommunsDetected,
-          // clauseAttributionIntegraleDetected, valeurCommunauteEurDetectee)
-          // + validation F-IA-03 (CONTRAT_NOTARIE + ENFANTS_NON_COMMUNS)
-          // multi-sources IA / F96 / QUESTION_IA / PIECE_MANQUANTE.
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

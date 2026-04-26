@@ -1,0 +1,327 @@
+<section class="rec-pat-section">
+  <header class="rec-pat-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rec-pat-body">
+    <mat-icon class="rec-pat-icon">family_restroom</mat-icon>
+    <span class="rec-pat-title">RECONNAISSANCE PATERNELLE (FR)</span>
+    @if (result()) {
+      <span class="rec-pat-chip"
+            [class.rec-pat-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.rec-pat-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.rec-pat-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }} — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+    }
+    <mat-icon class="rec-pat-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rec-pat-body" class="rec-pat-body">
+      @if (!isFrance()) {
+        <div class="rec-pat-banner rec-pat-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rec-pat-banner-content">
+            <div class="rec-pat-banner-title">Outil français uniquement</div>
+            <div class="rec-pat-banner-sub">
+              La reconnaissance paternelle (art. 316 + 332-335 + 372 Cciv) est
+              propre au droit français. L'équivalent belge (CC art. 327 et s. —
+              consentement maternel obligatoire) est traité dans une feature
+              jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rec-pat-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="rec-pat-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="rec-pat-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Sous-type (art. 316 al. 1/2/3) -->
+              <fieldset class="rec-pat-fieldset">
+                <legend class="rec-pat-legend">
+                  <mat-icon>category</mat-icon>
+                  Sous-type de reconnaissance (art. 316 Cciv)
+                </legend>
+
+                <div class="rec-pat-radio-group rec-pat-radio-group--column">
+                  <mat-radio-group required
+                                   [ngModel]="sousType()"
+                                   (ngModelChange)="onSousTypeChange($event)"
+                                   name="sousType">
+                    @for (opt of sousTypeOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">
+                        <span class="rec-pat-sous-type-label">{{ opt.label }}</span>
+                        <span class="rec-pat-sous-type-sub">{{ opt.sub }}</span>
+                      </mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Dates -->
+              <fieldset class="rec-pat-fieldset">
+                <legend class="rec-pat-legend">
+                  <mat-icon>event</mat-icon>
+                  Dates
+                </legend>
+
+                <div class="rec-pat-grid">
+                  <div class="rec-pat-field-wrapper">
+                    <label class="rec-pat-radio-label" for="rec-pat-date-naissance">
+                      Date de naissance de l'enfant
+                      @if (!isPrenatal()) {
+                        <span class="rec-pat-required">*</span>
+                      } @else {
+                        <span class="rec-pat-optional">(facultatif — prénatale)</span>
+                      }
+                    </label>
+                    <input id="rec-pat-date-naissance" type="date"
+                           class="rec-pat-input"
+                           [ngModel]="dateNaissanceEnfant()"
+                           (ngModelChange)="onDateNaissanceChange($event)"
+                           name="dateNaissanceEnfant" />
+                    @if (provenanceDateNaissance() === 'IA') {
+                      <span class="rec-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="rec-pat-field-wrapper">
+                    <label class="rec-pat-radio-label" for="rec-pat-date-reconnaissance">
+                      Date de la reconnaissance
+                      <span class="rec-pat-optional">(facultatif)</span>
+                    </label>
+                    <input id="rec-pat-date-reconnaissance" type="date"
+                           class="rec-pat-input"
+                           [ngModel]="dateReconnaissance()"
+                           (ngModelChange)="onDateReconnaissanceChange($event)"
+                           name="dateReconnaissance" />
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Critères de validité -->
+              <fieldset class="rec-pat-fieldset">
+                <legend class="rec-pat-legend">
+                  <mat-icon>fact_check</mat-icon>
+                  Critères de validité (art. 316 + 1130 Cciv)
+                </legend>
+
+                <div class="rec-pat-radio-group">
+                  <span class="rec-pat-radio-label">Consentement libre du père (1130 Cciv)</span>
+                  <mat-radio-group required
+                                   [ngModel]="consentementLibreDuPere()"
+                                   (ngModelChange)="onConsentementLibreChange($event)"
+                                   name="consentementLibreDuPere">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="rec-pat-field-meta">
+                    @if (provenanceConsentementLibre() === 'IA') {
+                      <span class="rec-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().CONSENTEMENT_LIBRE; as alert) {
+                      <span class="rec-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rec-pat-radio-group">
+                  <span class="rec-pat-radio-label">Paternité vraisemblable (présomption)</span>
+                  <mat-radio-group required
+                                   [ngModel]="paterniteVraisemblable()"
+                                   (ngModelChange)="onPaterniteVraisemblableChange($event)"
+                                   name="paterniteVraisemblable">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="rec-pat-field-meta">
+                    @if (provenancePaterniteVraisemblable() === 'IA') {
+                      <span class="rec-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().PATERNITE_VRAISEMBLABLE; as alert) {
+                      <span class="rec-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rec-pat-radio-group">
+                  <span class="rec-pat-radio-label">Enfant non déjà reconnu par un autre père</span>
+                  <mat-radio-group required
+                                   [ngModel]="enfantNonReconnuParAutrePere()"
+                                   (ngModelChange)="onEnfantNonReconnuChange($event)"
+                                   name="enfantNonReconnuParAutrePere">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="rec-pat-field-meta">
+                    @if (provenanceEnfantNonReconnu() === 'IA') {
+                      <span class="rec-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().ENFANT_NON_RECONNU; as alert) {
+                      <span class="rec-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rec-pat-radio-group">
+                  <span class="rec-pat-radio-label">Procédure respectée (présence ou procuration)</span>
+                  <mat-radio-group required
+                                   [ngModel]="procedureRespectee()"
+                                   (ngModelChange)="onProcedureRespecteeChange($event)"
+                                   name="procedureRespectee">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="rec-pat-field-meta">
+                    @if (provenanceProcedureRespectee() === 'IA') {
+                      <span class="rec-pat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().PROCEDURE_RESPECTEE; as alert) {
+                      <span class="rec-pat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rec-pat-checkbox-row">
+                  <mat-checkbox [ngModel]="presenceParProcuration()"
+                                (ngModelChange)="onPresenceProcurationChange($event)"
+                                name="presenceParProcuration">
+                    Reconnaissance par procuration spéciale notariée
+                  </mat-checkbox>
+                </div>
+              </fieldset>
+
+              <div class="rec-pat-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rec-pat-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictRecevabilite === 'FAIBLE' ? 'gpp_bad' :
+                     result()!.verdictRecevabilite === 'MOYENNE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="rec-pat-banner-content">
+                  <div class="rec-pat-banner-title">
+                    Verdict : {{ result()!.verdictRecevabilite }}
+                  </div>
+                  <div class="rec-pat-banner-sub">
+                    Score recevabilité : {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100
+                    — Sous-type : {{ sousTypeLabel(result()!.sousType) }}
+                  </div>
+                  <div class="rec-pat-meta-block">
+                    @if (result()!.effetFiliation) {
+                      <span class="rec-pat-effet-chip">
+                        <mat-icon>schedule</mat-icon>
+                        Effet filiation : {{ result()!.effetFiliation }}
+                      </span>
+                    }
+                    <span class="rec-pat-delai-chip">
+                      <mat-icon>gavel</mat-icon>
+                      Délai contestation : {{ result()!.delaiContestationAns }} ans
+                      (art. 332-335)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="rec-pat-list-block">
+                  <div class="rec-pat-list-title">Documents requis</div>
+                  <ul class="rec-pat-list">
+                    @for (d of result()!.documentsRequis; track d) {
+                      <li>{{ d }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.risquesContestation?.length) {
+                <div class="rec-pat-list-block rec-pat-list-block--warn">
+                  <div class="rec-pat-list-title">Risques de contestation</div>
+                  <ul class="rec-pat-list">
+                    @for (r of result()!.risquesContestation; track r) {
+                      <li>{{ r }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="rec-pat-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="rec-pat-formule-block">
+                  <span class="rec-pat-formule-label">Formule</span>
+                  <span class="rec-pat-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="rec-pat-meta">
+                <span class="rec-pat-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
