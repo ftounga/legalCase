@@ -1,0 +1,301 @@
+<section class="comm-univ-section">
+  <header class="comm-univ-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="comm-univ-body">
+    <mat-icon class="comm-univ-icon">family_restroom</mat-icon>
+    <span class="comm-univ-title">COMMUNAUTÉ UNIVERSELLE (FR)</span>
+    @if (result()) {
+      <span class="comm-univ-chip"
+            [class.comm-univ-chip--info]="result()!.verdictValidite === 'VALIDE' && !result()!.actionRetranchementPossible"
+            [class.comm-univ-chip--warning]="result()!.verdictValidite === 'CONTESTABLE' || (result()!.verdictValidite === 'VALIDE' && result()!.actionRetranchementPossible)"
+            [class.comm-univ-chip--critical]="result()!.verdictValidite === 'NUL'">
+        {{ result()!.verdictValidite }} — Score {{ result()!.scoreValidite }}/100
+      </span>
+    }
+    <mat-icon class="comm-univ-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="comm-univ-body" class="comm-univ-body">
+      @if (!isFrance()) {
+        <div class="comm-univ-banner comm-univ-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="comm-univ-banner-content">
+            <div class="comm-univ-banner-title">Outil français uniquement</div>
+            <div class="comm-univ-banner-sub">
+              La communauté universelle (art. 1526 + 1527 al. 2 Cciv) est
+              propre au droit français. L'équivalent belge (régimes
+              conventionnels du Code civil livre III) est traité dans
+              une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="comm-univ-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="comm-univ-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="comm-univ-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Dispositif d'analyse -->
+              <fieldset class="comm-univ-fieldset">
+                <legend class="comm-univ-legend">
+                  <mat-icon>tune</mat-icon>
+                  Dispositif d'analyse
+                </legend>
+
+                <div class="comm-univ-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="dispositifAnalyse()"
+                                   (ngModelChange)="onDispositifChange($event)"
+                                   name="dispositifAnalyse">
+                    @for (opt of dispositifOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">
+                        <span class="comm-univ-radio-strong">{{ opt.label }}</span>
+                        <span class="comm-univ-radio-desc">{{ opt.description }}</span>
+                      </mat-radio-button>
+                    }
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Préalable absolu (art. 1394 Cciv) -->
+              <fieldset class="comm-univ-fieldset">
+                <legend class="comm-univ-legend">
+                  <mat-icon>fact_check</mat-icon>
+                  Préalable absolu (art. 1394 Cciv)
+                </legend>
+
+                <div class="comm-univ-radio-group">
+                  <span class="comm-univ-radio-label">Contrat de mariage notarié</span>
+                  <mat-radio-group required
+                                   [ngModel]="contratNotarie()"
+                                   (ngModelChange)="onContratNotarieChange($event)"
+                                   name="contratNotarie">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="comm-univ-field-meta">
+                    @if (provenanceContratNotarie() === 'IA') {
+                      <span class="comm-univ-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().CONTRAT_NOTARIE; as alert) {
+                      <span class="comm-univ-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3a : Critères VALIDITE_CONVENTION -->
+              @if (isValiditeConvention()) {
+                <fieldset class="comm-univ-fieldset">
+                  <legend class="comm-univ-legend">
+                    <mat-icon>verified_user</mat-icon>
+                    Critères de validité (art. 1526 + 1527 Cciv)
+                  </legend>
+
+                  <div class="comm-univ-radio-group">
+                    <span class="comm-univ-radio-label">Inscription état civil (opposabilité aux tiers)</span>
+                    <mat-radio-group required
+                                     [ngModel]="inscriptionEtatCivil()"
+                                     (ngModelChange)="onInscriptionEtatCivilChange($event)"
+                                     name="inscriptionEtatCivil">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="comm-univ-radio-group">
+                    <span class="comm-univ-radio-label">Consentement libre des époux</span>
+                    <mat-radio-group required
+                                     [ngModel]="consentementLibreDesEpoux()"
+                                     (ngModelChange)="onConsentementLibreChange($event)"
+                                     name="consentementLibreDesEpoux">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="comm-univ-radio-group">
+                    <span class="comm-univ-radio-label">Réserve héréditaire respectée (art. 1527 al. 2)</span>
+                    <mat-radio-group required
+                                     [ngModel]="respectReserveHereditaire()"
+                                     (ngModelChange)="onRespectReserveHereditaireChange($event)"
+                                     name="respectReserveHereditaire">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 3b : Critères LIQUIDATION_DECES -->
+              @if (isLiquidationDeces()) {
+                <fieldset class="comm-univ-fieldset">
+                  <legend class="comm-univ-legend">
+                    <mat-icon>account_balance</mat-icon>
+                    Liquidation au décès (art. 1527 al. 2 Cciv)
+                  </legend>
+
+                  <div class="comm-univ-radio-group">
+                    <span class="comm-univ-radio-label">Clause d'attribution intégrale (CAI)</span>
+                    <mat-radio-group required
+                                     [ngModel]="clauseAttributionIntegrale()"
+                                     (ngModelChange)="onClauseAttributionIntegraleChange($event)"
+                                     name="clauseAttributionIntegrale">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                    @if (provenanceClauseAttributionIntegrale() === 'IA') {
+                      <span class="comm-univ-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="comm-univ-radio-group">
+                    <span class="comm-univ-radio-label">Enfants non communs (1er lit) présents</span>
+                    <mat-radio-group required
+                                     [ngModel]="enfantsNonCommuns()"
+                                     (ngModelChange)="onEnfantsNonCommunsChange($event)"
+                                     name="enfantsNonCommuns">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                    <div class="comm-univ-field-meta">
+                      @if (provenanceEnfantsNonCommuns() === 'IA') {
+                        <span class="comm-univ-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().ENFANTS_NON_COMMUNS; as alert) {
+                        <span class="comm-univ-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="comm-univ-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Valeur de la communauté (€)</mat-label>
+                      <input matInput type="number" min="0" step="1000" required
+                             [ngModel]="valeurCommunauteEur()"
+                             (ngModelChange)="onValeurCommunauteChange($event)"
+                             name="valeurCommunauteEur" />
+                    </mat-form-field>
+                    @if (provenanceValeurCommunaute() === 'IA') {
+                      <span class="comm-univ-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+                </fieldset>
+              }
+
+              <div class="comm-univ-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="comm-univ-result">
+              <div [class]="bannerClass(result()!.verdictValidite, result()!.actionRetranchementPossible)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictValidite === 'NUL' ? 'gpp_bad' :
+                     result()!.verdictValidite === 'CONTESTABLE' ? 'warning' :
+                     result()!.actionRetranchementPossible ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="comm-univ-banner-content">
+                  <div class="comm-univ-banner-title">
+                    Verdict : {{ result()!.verdictValidite }}
+                    <span class="comm-univ-meta-tag">
+                      {{ dispositifLabel(result()!.dispositifAnalyse) }}
+                    </span>
+                  </div>
+                  <div class="comm-univ-banner-sub">
+                    Score validité : {{ result()!.scoreValidite | number:'1.0-0' }} / 100
+                    — Part conjoint : {{ result()!.partAttributionConjointPct | number:'1.0-0' }} %
+                  </div>
+                  @if (result()!.dispositifAnalyse === 'LIQUIDATION_DECES') {
+                    <div class="comm-univ-attribution-block">
+                      <span class="comm-univ-attribution-label">Valeur d'attribution conjoint</span>
+                      <span class="comm-univ-attribution-value">
+                        {{ result()!.valeurAttributionEur | number:'1.2-2' }} €
+                      </span>
+                      @if (result()!.actionRetranchementPossible) {
+                        <span class="comm-univ-retranchement-chip">
+                          <mat-icon>gavel</mat-icon> Action en retranchement possible (art. 1527 al. 2 Cciv)
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              @if (result()!.risquesIdentifies?.length) {
+                <ul class="comm-univ-messages comm-univ-risks">
+                  @for (r of result()!.risquesIdentifies; track r) {
+                    <li>
+                      <mat-icon class="comm-univ-risk-icon">flag</mat-icon>
+                      <span>{{ r }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="comm-univ-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="comm-univ-formule-block">
+                  <span class="comm-univ-formule-label">Formule</span>
+                  <span class="comm-univ-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="comm-univ-meta">
+                <span class="comm-univ-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

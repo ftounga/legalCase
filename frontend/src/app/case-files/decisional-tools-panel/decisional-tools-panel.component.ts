@@ -94,6 +94,7 @@ import { MesuresEloignementSectionComponent } from '../mesures-eloignement-secti
 import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avance-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
+import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -990,9 +991,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         }),
       }],
       // SF-FA-18-02 : reconnaissance paternelle FR (art. 316 + 332-335 + 372 Cciv).
-      // tool_id aligné avec la migration 178.
       ['F-FA-18-reconnaissance-paternelle', {
         component: ReconnaissancePaternelleSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-16-02 : communauté universelle FR (art. 1526 + 1527 al. 2 Cciv).
+      ['F-FA-16-communaute-universelle', {
+        component: CommunauteUniverselleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
