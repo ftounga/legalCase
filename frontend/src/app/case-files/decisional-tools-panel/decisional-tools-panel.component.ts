@@ -99,6 +99,7 @@ import { ReserveHeriditaireSectionComponent } from '../reserve-heriditaire-secti
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { RecherchePaterniteSectionComponent } from '../recherche-paternite-section/recherche-paternite-section.component';
+import { PossessionEtatSectionComponent } from '../possession-etat-section/possession-etat-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
@@ -1029,6 +1030,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-18-08 : possession d'état FR (art. 311-1 + 311-2 + 317 Cciv).
+      // tool_id aligné avec la migration 185.
+      ['F-FA-18-possession-etat', {
+        component: PossessionEtatSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux via possessionEtatConforme5AnsDetected
+          // (faisceau cardinal "conforme 5 ans") + validation F-IA-03
+          // (5 alertes sur tractatus / fama / continue / paisible / nonEquivoque).
           aiData: ctx.synthesis?.familleExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,

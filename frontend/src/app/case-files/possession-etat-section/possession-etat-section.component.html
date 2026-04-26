@@ -1,0 +1,350 @@
+<section class="pos-etat-section">
+  <header class="pos-etat-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pos-etat-body">
+    <mat-icon class="pos-etat-icon">family_restroom</mat-icon>
+    <span class="pos-etat-title">POSSESSION D'ÉTAT (FR)</span>
+    @if (result()) {
+      <span class="pos-etat-chip"
+            [class.pos-etat-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.pos-etat-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.pos-etat-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }} — Score {{ result()!.scoreRecevabilite }}/100
+      </span>
+    }
+    <mat-icon class="pos-etat-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pos-etat-body" class="pos-etat-body">
+      @if (!isFrance()) {
+        <div class="pos-etat-banner pos-etat-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="pos-etat-banner-content">
+            <div class="pos-etat-banner-title">Outil français uniquement</div>
+            <div class="pos-etat-banner-sub">
+              La possession d'état (art. 311-1 + 311-2 + 317 Cciv) est propre
+              au droit français. L'équivalent belge (CC art. 331-1 — possession
+              d'état comme mode de preuve résiduel, conditions et délais
+              propres) est traité dans une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="pos-etat-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="pos-etat-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="pos-etat-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Période de la possession -->
+              <fieldset class="pos-etat-fieldset">
+                <legend class="pos-etat-legend">
+                  <mat-icon>event</mat-icon>
+                  Période alléguée de possession d'état
+                </legend>
+
+                <div class="pos-etat-grid">
+                  <div class="pos-etat-field-wrapper">
+                    <label class="pos-etat-radio-label" for="pos-etat-date-debut">
+                      Date de début
+                      <span class="pos-etat-required">*</span>
+                    </label>
+                    <input id="pos-etat-date-debut" type="date"
+                           class="pos-etat-input"
+                           [ngModel]="dateDebutPossession()"
+                           (ngModelChange)="onDateDebutChange($event)"
+                           name="dateDebutPossession" />
+                  </div>
+
+                  <div class="pos-etat-field-wrapper">
+                    <label class="pos-etat-radio-label" for="pos-etat-date-fin">
+                      Date de fin
+                      <span class="pos-etat-required">*</span>
+                    </label>
+                    <input id="pos-etat-date-fin" type="date"
+                           class="pos-etat-input"
+                           [ngModel]="dateFinPossession()"
+                           (ngModelChange)="onDateFinChange($event)"
+                           name="dateFinPossession" />
+                  </div>
+                </div>
+
+                @if (dureePossessionAnnees() !== null) {
+                  <div class="pos-etat-duree-live">
+                    <mat-icon>schedule</mat-icon>
+                    Durée calculée : <strong>{{ dureePossessionAnnees() }} an(s)</strong>
+                    @if (dureePossessionAnnees()! >= 5) {
+                      <span class="pos-etat-duree-badge pos-etat-duree-badge--info">
+                        ≥ 5 ans — possession publique longue (art. 317)
+                      </span>
+                    } @else {
+                      <span class="pos-etat-duree-badge pos-etat-duree-badge--warning">
+                        &lt; 5 ans — preuve judiciaire seule (art. 311-1)
+                      </span>
+                    }
+                  </div>
+                }
+              </fieldset>
+
+              <!-- Section 2 : Critères constitutifs (faisceau d'indices) -->
+              <fieldset class="pos-etat-fieldset">
+                <legend class="pos-etat-legend">
+                  <mat-icon>fact_check</mat-icon>
+                  Faisceau d'indices (art. 311-1 Cciv)
+                </legend>
+
+                <div class="pos-etat-checkbox-row">
+                  <mat-checkbox [ngModel]="tractatus()"
+                                (ngModelChange)="onTractatusChange($event)"
+                                name="tractatus">
+                    Tractatus — l'enfant a été traité comme tel (logé, nourri, éduqué, présenté)
+                  </mat-checkbox>
+                  <div class="pos-etat-field-meta">
+                    @if (provenanceTractatus() === 'IA') {
+                      <span class="pos-etat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().TRACTATUS; as alert) {
+                      <span class="pos-etat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="pos-etat-checkbox-row">
+                  <mat-checkbox [ngModel]="fama()"
+                                (ngModelChange)="onFamaChange($event)"
+                                name="fama">
+                    Fama — la famille, la société, l'autorité publique le considèrent comme tel
+                  </mat-checkbox>
+                  <div class="pos-etat-field-meta">
+                    @if (provenanceFama() === 'IA') {
+                      <span class="pos-etat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().FAMA; as alert) {
+                      <span class="pos-etat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="pos-etat-checkbox-row">
+                  <mat-checkbox [ngModel]="nomen()"
+                                (ngModelChange)="onNomenChange($event)"
+                                name="nomen">
+                    Nomen — port du nom de famille du parent
+                    <span class="pos-etat-sub">(facultatif depuis l'ord. n°2005-759)</span>
+                  </mat-checkbox>
+                  <div class="pos-etat-field-meta">
+                    @if (provenanceNomen() === 'IA') {
+                      <span class="pos-etat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Conditions cardinales (art. 311-2) -->
+              <fieldset class="pos-etat-fieldset">
+                <legend class="pos-etat-legend">
+                  <mat-icon>verified</mat-icon>
+                  Conditions cardinales (art. 311-2 Cciv) — toutes obligatoires
+                </legend>
+
+                <div class="pos-etat-checkbox-row">
+                  <mat-checkbox [ngModel]="continueCondition()"
+                                (ngModelChange)="onContinueChange($event)"
+                                name="continueCondition">
+                    Continue — sans interruption notable
+                  </mat-checkbox>
+                  <div class="pos-etat-field-meta">
+                    @if (provenanceContinue() === 'IA') {
+                      <span class="pos-etat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().CONTINUE; as alert) {
+                      <span class="pos-etat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="pos-etat-checkbox-row">
+                  <mat-checkbox [ngModel]="paisible()"
+                                (ngModelChange)="onPaisibleChange($event)"
+                                name="paisible">
+                    Paisible — sans contestation contemporaine
+                  </mat-checkbox>
+                  <div class="pos-etat-field-meta">
+                    @if (provenancePaisible() === 'IA') {
+                      <span class="pos-etat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().PAISIBLE; as alert) {
+                      <span class="pos-etat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="pos-etat-checkbox-row">
+                  <mat-checkbox [ngModel]="nonEquivoque()"
+                                (ngModelChange)="onNonEquivoqueChange($event)"
+                                name="nonEquivoque">
+                    Non équivoque — lien clair, sans ambiguïté
+                  </mat-checkbox>
+                  <div class="pos-etat-field-meta">
+                    @if (provenanceNonEquivoque() === 'IA') {
+                      <span class="pos-etat-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().NON_EQUIVOQUE; as alert) {
+                      <span class="pos-etat-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="pos-etat-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="pos-etat-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictRecevabilite === 'FAIBLE' ? 'gpp_bad' :
+                     result()!.verdictRecevabilite === 'MOYENNE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="pos-etat-banner-content">
+                  <div class="pos-etat-banner-title">
+                    Verdict : {{ result()!.verdictRecevabilite }}
+                  </div>
+                  <div class="pos-etat-banner-sub">
+                    Score recevabilité : {{ result()!.scoreRecevabilite | number:'1.0-0' }} / 100
+                    — Durée : {{ result()!.dureePossessionAnnees }} an(s)
+                  </div>
+                  <div class="pos-etat-meta-block">
+                    <span class="pos-etat-effet-chip">
+                      <mat-icon>gavel</mat-icon>
+                      {{ dispositifLabel(result()!.dispositifApplicable) }}
+                    </span>
+                    @if (result()!.dispositifApplicable === 'CONSTAT_NOTAIRE') {
+                      <span class="pos-etat-delai-chip">
+                        <mat-icon>schedule</mat-icon>
+                        Contestation acte : {{ result()!.delaiContestationActeAns }} ans
+                      </span>
+                    }
+                    @if (result()!.dispositifApplicable === 'PREUVE_JUSTICE') {
+                      <span class="pos-etat-delai-chip pos-etat-delai-chip--warning">
+                        <mat-icon>schedule</mat-icon>
+                        Délai depuis cessation : {{ result()!.delaiContestationCessationAns }} ans
+                      </span>
+                    }
+                    @if (result()!.dispositifApplicable === 'AUCUN') {
+                      <span class="pos-etat-delai-chip pos-etat-delai-chip--critical">
+                        <mat-icon>gpp_bad</mat-icon>
+                        Aucun dispositif — voies alternatives à étudier
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.criteresRemplis?.length) {
+                <div class="pos-etat-list-block">
+                  <div class="pos-etat-list-title">Critères remplis</div>
+                  <ul class="pos-etat-list">
+                    @for (c of result()!.criteresRemplis; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.criteresManquants?.length) {
+                <div class="pos-etat-list-block pos-etat-list-block--warn">
+                  <div class="pos-etat-list-title">Critères manquants</div>
+                  <ul class="pos-etat-list">
+                    @for (c of result()!.criteresManquants; track c) {
+                      <li>{{ c }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="pos-etat-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="pos-etat-formule-block">
+                  <span class="pos-etat-formule-label">Formule</span>
+                  <span class="pos-etat-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="pos-etat-meta">
+                <span class="pos-etat-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
