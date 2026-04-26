@@ -97,6 +97,7 @@ import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/d
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
+import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -1043,16 +1044,25 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
-      // SF-FA-27-02 : PMA / GPA / bioéthique FR (loi 2/8/2021,
-      // art. 342-9 / 16-8-1 Cciv ; Cass. ass. plén. 18/12/2022).
-      // tool_id aligné avec la migration 180 (visibility ALWAYS_ON
-      // DROIT_FAMILLE FRANCE priority 89).
+      // SF-FA-27-02 : PMA / GPA / bioéthique FR.
       ['F-FA-27-pma-gpa', {
         component: PmaGpaBioethiqueSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
           aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-17-02 : régime algérien FR.
+      ['F-IM-17-regime-algerien', {
+        component: RegimeAlgerienSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
