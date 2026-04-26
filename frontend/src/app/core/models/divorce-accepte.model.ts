@@ -227,4 +227,28 @@ export interface FamilleExtractedData {
   enfantsNonCommunsDetected?: boolean | null;
   clauseAttributionIntegraleDetected?: boolean | null;
   valeurCommunauteEurDetectee?: number | null;
+  /**
+   * SF-FA-24-04 : pré-fill outil "Validité testament" (F-FA-24, art.
+   * 967-1035 + 901-911 + 920+ Cciv). Tous les champs sont optionnels —
+   * le composant est no-op gracieux si l'IA ne les a pas détectés.
+   *
+   * `formeTestamentDetectee` : forme du testament détectée par l'IA.
+   * Valeur attendue parmi `'TESTAMENT_OLOGRAPHE'` / `'TESTAMENT_AUTHENTIQUE'`
+   * / `'TESTAMENT_MYSTIQUE'` / `'TESTAMENT_INTERNATIONAL'` (ou alias court
+   * `'OLOGRAPHE'` / `'AUTHENTIQUE'` / `'MYSTIQUE'` / `'INTERNATIONAL'`) —
+   * toute autre valeur ignorée.
+   */
+  formeTestamentDetectee?: string | null;
+  /** SF-FA-24-04 : date de rédaction du testament (ISO YYYY-MM-DD). */
+  dateRedactionTestamentDetectee?: string | null;
+  /**
+   * SF-FA-24-04 : testateur sain d'esprit au moment de la rédaction
+   * (art. 901 Cciv) — détecté par l'IA.
+   */
+  saineDEspritTestateurDetected?: boolean | null;
+  /**
+   * SF-FA-24-04 : legs excède la quotité disponible (art. 913+) —
+   * ouvre l'action en réduction (art. 920+, délai 5 ans art. 921).
+   */
+  legsExcedeQuotiteDisponibleDetected?: boolean | null;
 }
