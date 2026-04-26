@@ -1,0 +1,468 @@
+<section class="testament-section">
+  <header class="testament-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="testament-body">
+    <mat-icon class="testament-icon">history_edu</mat-icon>
+    <span class="testament-title">VALIDITÉ TESTAMENT (FR)</span>
+    @if (result()) {
+      <span [ngClass]="verdictChipClass(result()!.verdictValidite)">
+        {{ verdictLabel(result()!.verdictValidite) }} — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+    }
+    <mat-icon class="testament-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="testament-body" class="testament-body">
+      @if (!isFrance()) {
+        <div class="testament-banner testament-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="testament-banner-content">
+            <div class="testament-banner-title">Outil français uniquement</div>
+            <div class="testament-banner-sub">
+              La validité d'un testament (art. 967-1035 + 901-911 + 920+ Cciv)
+              est propre au droit français. L'équivalent belge (CC BE art. 895+,
+              formes équivalentes mais quelques exigences et délais différents)
+              est traité dans une feature jumelle au backlog
+              (F-FA-24-BE-testament).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="testament-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="testament-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="testament-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Forme du testament -->
+              <fieldset class="testament-fieldset">
+                <legend class="testament-legend">
+                  <mat-icon>auto_stories</mat-icon>
+                  Forme du testament (art. 967, 970, 971-975, 976-980)
+                </legend>
+
+                <div class="testament-radio-group">
+                  <span class="testament-radio-label">Forme</span>
+                  <mat-radio-group required
+                                   [ngModel]="formeTestament()"
+                                   (ngModelChange)="onFormeTestamentChange($event)"
+                                   name="formeTestament">
+                    @for (opt of formeOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="testament-field-meta">
+                    @if (provenanceForme() === 'IA') {
+                      <span class="testament-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().FORME; as alert) {
+                      <span class="testament-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Identité + capacité (art. 901-911) -->
+              <fieldset class="testament-fieldset">
+                <legend class="testament-legend">
+                  <mat-icon>badge</mat-icon>
+                  Testateur (art. 901-911)
+                </legend>
+
+                <div class="testament-grid">
+                  <div class="testament-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date de rédaction</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateRedaction()"
+                             (ngModelChange)="onDateRedactionChange($event)"
+                             name="dateRedaction" />
+                    </mat-form-field>
+                    @if (provenanceDateRedaction() === 'IA') {
+                      <span class="testament-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="testament-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Âge du testateur (à la rédaction)</mat-label>
+                      <input matInput type="number" min="0" max="130" step="1" required
+                             [ngModel]="ageTestateurAnsRedaction()"
+                             (ngModelChange)="onAgeTestateurChange($event)"
+                             name="ageTestateurAnsRedaction" />
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <div class="testament-radio-group">
+                  <span class="testament-radio-label">Sain d'esprit (art. 901)</span>
+                  <mat-radio-group required
+                                   [ngModel]="saineDEsprit()"
+                                   (ngModelChange)="onSaineDEspritChange($event)"
+                                   name="saineDEsprit">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="testament-field-meta">
+                    @if (provenanceSaineEsprit() === 'IA') {
+                      <span class="testament-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().SAINE_ESPRIT; as alert) {
+                      <span class="testament-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="testament-radio-group">
+                  <span class="testament-radio-label">
+                    Majeur protégé (curatelle/tutelle) avec assistance ?
+                  </span>
+                  <mat-radio-group [ngModel]="majeurProtegeAvecAssistance()"
+                                   (ngModelChange)="onMajeurProtegeChange($event)"
+                                   name="majeurProtegeAvecAssistance">
+                    <mat-radio-button [value]="true">Oui (avec assistance)</mat-radio-button>
+                    <mat-radio-button [value]="false">Non (sans assistance)</mat-radio-button>
+                    <mat-radio-button [value]="null">Non protégé / N/A</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Champs olographe (art. 970) -->
+              @if (isOlographe()) {
+                <fieldset class="testament-fieldset">
+                  <legend class="testament-legend">
+                    <mat-icon>edit</mat-icon>
+                    Critères olographe (art. 970)
+                  </legend>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Écriture manuscrite intégrale</span>
+                    <mat-radio-group required
+                                     [ngModel]="ecritureManuscritIntegrale()"
+                                     (ngModelChange)="onEcritureManuscritIntegraleChange($event)"
+                                     name="ecritureManuscritIntegrale">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non (tapuscrit, dictée…)</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Date complète (jour + mois + année)</span>
+                    <mat-radio-group required
+                                     [ngModel]="dateComplete()"
+                                     (ngModelChange)="onDateCompleteChange($event)"
+                                     name="dateComplete">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Signature du testateur</span>
+                    <mat-radio-group required
+                                     [ngModel]="signatureTestateur()"
+                                     (ngModelChange)="onSignatureTestateurChange($event)"
+                                     name="signatureTestateur">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 4 : Champs authentique (art. 971-975) -->
+              @if (isAuthentique()) {
+                <fieldset class="testament-fieldset">
+                  <legend class="testament-legend">
+                    <mat-icon>gavel</mat-icon>
+                    Critères authentique (art. 971-975)
+                  </legend>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">
+                      Présence de 2 notaires OU 1 notaire + 2 témoins
+                    </span>
+                    <mat-radio-group required
+                                     [ngModel]="presenceNotaireEtTemoinsConforme()"
+                                     (ngModelChange)="onPresenceNotaireEtTemoinsConformeChange($event)"
+                                     name="presenceNotaireEtTemoinsConforme">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Dicté en présence du notaire</span>
+                    <mat-radio-group required
+                                     [ngModel]="dicteEnPresence()"
+                                     (ngModelChange)="onDicteEnPresenceChange($event)"
+                                     name="dicteEnPresence">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Lecture finale au testateur</span>
+                    <mat-radio-group required
+                                     [ngModel]="lectureFinaleAuTestateur()"
+                                     (ngModelChange)="onLectureFinaleAuTestateurChange($event)"
+                                     name="lectureFinaleAuTestateur">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Signatures complètes</span>
+                    <mat-radio-group required
+                                     [ngModel]="signaturesCompletes()"
+                                     (ngModelChange)="onSignaturesCompletesChange($event)"
+                                     name="signaturesCompletesAuth">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 5 : Champs mystique (art. 976-980) -->
+              @if (isMystique()) {
+                <fieldset class="testament-fieldset">
+                  <legend class="testament-legend">
+                    <mat-icon>lock</mat-icon>
+                    Critères mystique (art. 976-980)
+                  </legend>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Remise sous pli cacheté au notaire</span>
+                    <mat-radio-group required
+                                     [ngModel]="remiseSousPliCache()"
+                                     (ngModelChange)="onRemiseSousPliCacheChange($event)"
+                                     name="remiseSousPliCache">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Déclaration devant 2 témoins</span>
+                    <mat-radio-group required
+                                     [ngModel]="declarationDevant2Temoins()"
+                                     (ngModelChange)="onDeclarationDevant2TemoinsChange($event)"
+                                     name="declarationDevant2Temoins">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Acte de suscription dressé par le notaire</span>
+                    <mat-radio-group required
+                                     [ngModel]="acteSuscriptionNotaire()"
+                                     (ngModelChange)="onActeSuscriptionNotaireChange($event)"
+                                     name="acteSuscriptionNotaire">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 6 : Champs international (Conv. Washington 1973) -->
+              @if (isInternational()) {
+                <fieldset class="testament-fieldset">
+                  <legend class="testament-legend">
+                    <mat-icon>language</mat-icon>
+                    Critères international (Conv. Washington 1973)
+                  </legend>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Forme Washington respectée</span>
+                    <mat-radio-group required
+                                     [ngModel]="respecteFormeWashington()"
+                                     (ngModelChange)="onRespecteFormeWashingtonChange($event)"
+                                     name="respecteFormeWashington">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="testament-radio-group">
+                    <span class="testament-radio-label">Signatures complètes</span>
+                    <mat-radio-group required
+                                     [ngModel]="signaturesCompletes()"
+                                     (ngModelChange)="onSignaturesCompletesChange($event)"
+                                     name="signaturesCompletesIntl">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 7 : Vices consentement + révocation + quotité -->
+              <fieldset class="testament-fieldset">
+                <legend class="testament-legend">
+                  <mat-icon>report_problem</mat-icon>
+                  Vices, révocation, quotité disponible
+                </legend>
+
+                <div class="testament-checkbox-grid">
+                  <mat-checkbox [checked]="vicesConsentementDol()"
+                                (change)="onVicesConsentementDolChange($event.checked)">
+                    Vice consentement — dol/violence (art. 901)
+                  </mat-checkbox>
+                  <mat-checkbox [checked]="erreurSubstantielle()"
+                                (change)="onErreurSubstantielleChange($event.checked)">
+                    Erreur substantielle (art. 901)
+                  </mat-checkbox>
+                  <mat-checkbox [checked]="testamentPosterieurContradictoire()"
+                                (change)="onTestamentPosterieurContradictoireChange($event.checked)">
+                    Testament postérieur contradictoire (art. 1036)
+                  </mat-checkbox>
+                  <mat-checkbox [checked]="dechirureVolontaireOriginal()"
+                                (change)="onDechirureVolontaireOriginalChange($event.checked)">
+                    Déchirure volontaire de l'original (art. 1038)
+                  </mat-checkbox>
+                </div>
+
+                <div class="testament-checkbox-row">
+                  <mat-checkbox [checked]="legsExcedeQuotiteDisponible()"
+                                (change)="onLegsExcedeQuotiteDisponibleChange($event.checked)">
+                    Legs excède la quotité disponible (art. 913+)
+                  </mat-checkbox>
+                  <div class="testament-field-meta">
+                    @if (provenanceLegsExcedeQuotite() === 'IA') {
+                      <span class="testament-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().LEGS_EXCEDE_QUOTITE; as alert) {
+                      <span class="testament-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="testament-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la validité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="testament-result">
+              <!-- Bandeau verdict -->
+              <div [ngClass]="verdictBannerClass(result()!.verdictValidite)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdictValidite) }}</mat-icon>
+                <div class="testament-banner-content">
+                  <div class="testament-banner-title">
+                    {{ verdictLabel(result()!.verdictValidite) }}
+                  </div>
+                  <div class="testament-banner-sub">
+                    Forme : {{ formeLabel(result()!.formeTestament) }} · Score :
+                    {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100
+                  </div>
+                  <div class="testament-flags">
+                    @if (result()!.actionEnReductionPossible) {
+                      <span class="testament-flag-chip">
+                        <mat-icon>balance</mat-icon> Action en réduction possible (art. 920+)
+                      </span>
+                    }
+                    @if (result()!.delaiContestationAns > 0
+                         && result()!.verdictValidite !== 'NUL') {
+                      <span class="testament-flag-chip">
+                        <mat-icon>schedule</mat-icon>
+                        Délai de contestation : {{ result()!.delaiContestationAns }} ans (art. 1304)
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Vices identifiés -->
+              @if (result()!.vicesIdentifies?.length) {
+                <div class="testament-vices-block">
+                  <div class="testament-vices-label">
+                    <mat-icon>warning</mat-icon>
+                    Vices identifiés
+                  </div>
+                  <ul class="testament-vices-list">
+                    @for (v of result()!.vicesIdentifies; track trackVice($index, v)) {
+                      <li class="testament-vice-chip" [title]="v.description">
+                        {{ viceLabel(v.code) }}
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="testament-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="testament-formule-block">
+                  <span class="testament-formule-label">Formule</span>
+                  <span class="testament-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="testament-meta">
+                <span class="testament-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

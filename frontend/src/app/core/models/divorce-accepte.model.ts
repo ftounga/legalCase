@@ -228,6 +228,13 @@ export interface FamilleExtractedData {
   clauseAttributionIntegraleDetected?: boolean | null;
   valeurCommunauteEurDetectee?: number | null;
   /**
+   * SF-FA-24-04 : pré-fill validité testament (art. 967-1035 Cciv).
+   */
+  formeTestamentDetectee?: string | null;
+  dateRedactionTestamentDetectee?: string | null;
+  saineDEspritTestateurDetected?: boolean | null;
+  legsExcedeQuotiteDisponibleDetected?: boolean | null;
+  /**
    * SF-FA-18-04 : pré-fill contestation de paternité (art. 332-335 Cciv).
    */
   qualiteAagirContestationDetected?:
@@ -243,8 +250,7 @@ export interface FamilleExtractedData {
   expertiseAdnDemandeeDetected?: boolean | null;
   motifsSerieuxDetected?: boolean | null;
   /**
-   * SF-FA-27-02 : pré-fill PMA / GPA / bioéthique. Valeurs attendues :
-   * PMA_RECONNAISSANCE_ANTICIPEE / GPA_TRANSCRIPTION_ETAT_CIVIL / DON_GAMETES_ACCES_ORIGINES.
+   * SF-FA-27-02 : pré-fill PMA / GPA / bioéthique.
    */
   dispositifBioethiqueDetecte?: string | null;
 }

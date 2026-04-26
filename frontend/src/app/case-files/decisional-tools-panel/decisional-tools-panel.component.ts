@@ -94,6 +94,7 @@ import { MesuresEloignementSectionComponent } from '../mesures-eloignement-secti
 import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avance-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/devolution-legale-section.component';
+import { TestamentValiditeSectionComponent } from '../testament-validite-section/testament-validite-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
@@ -1061,6 +1062,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-27-02 : PMA / GPA / bioéthique FR.
       ['F-FA-27-pma-gpa', {
         component: PmaGpaBioethiqueSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-24-04 : validité testament FR.
+      ['F-FA-24-testament-validite', {
+        component: TestamentValiditeSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
