@@ -1,0 +1,408 @@
+// SF-DT-33-02 : outil "Accident du travail / Maladie professionnelle" (FR).
+// Pattern jumeau `protection-rp-section` (SF-DT-30-02) + multi-dispositifs
+// `mesures-eloignement-section` (SF-IM-20-02). Palette navy/or — rouge non
+// utilisé (verdict FAIBLE = warning, pas critical : recevabilité faible
+// n'est pas un vice de procédure absolu type L.2422-1).
+// DESIGN_SYSTEM.md aligné.
+
+.at-mp-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.at-mp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.at-mp-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.at-mp-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.at-mp-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+
+  &--warning {
+    background: rgba(201, 165, 75, 0.16);
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
+
+.at-mp-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.at-mp-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.at-mp-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.at-mp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.at-mp-fieldset {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+  background: var(--ds-surface, #ffffff);
+}
+
+.at-mp-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ds-navy, #1a375f);
+
+  mat-icon {
+    color: var(--ds-accent-gold, #c9a54b);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.at-mp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.at-mp-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.at-mp-field-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.at-mp-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+
+  mat-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+.at-mp-dispositif-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.at-mp-dispositif-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.at-mp-dispositif-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.at-mp-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.at-mp-cb-sub {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-secondary, #6a7485);
+  margin-top: 2px;
+}
+
+.at-mp-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.at-mp-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.at-mp-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--warning {
+    border-left-color: var(--ds-accent-gold, #c9a54b);
+    background: rgba(201, 165, 75, 0.10);
+    mat-icon { color: var(--ds-accent-gold-dark, #8a6a16); }
+  }
+}
+
+.at-mp-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.at-mp-banner-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.at-mp-banner-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.at-mp-criteres {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+
+  &--ok {
+    background: rgba(26, 55, 95, 0.05);
+    border-left: 3px solid var(--ds-navy, #1a375f);
+  }
+
+  &--ko {
+    background: rgba(201, 165, 75, 0.06);
+    border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.at-mp-criteres-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.at-mp-criteres-list {
+  list-style: disc;
+  padding-left: 18px;
+  margin: 0;
+
+  li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+}
+
+.at-mp-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.at-mp-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.at-mp-formule-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.at-mp-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.at-mp-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.at-mp-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+// Pré-fill IA + validation F-IA-03 (palette canonique).
+.at-mp-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.at-mp-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.at-mp-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
