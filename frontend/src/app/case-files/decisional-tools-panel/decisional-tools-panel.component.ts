@@ -89,6 +89,7 @@ import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
 import { NaturalisationSectionComponent } from '../naturalisation-section/naturalisation-section.component';
 import { MineursImmigrationSectionComponent } from '../mineurs-immigration-section/mineurs-immigration-section.component';
+import { MesuresEloignementSectionComponent } from '../mesures-eloignement-section/mesures-eloignement-section.component';
 import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avance-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 
@@ -930,8 +931,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
-      // SF-IM-12-02 : asile avancé FR — Dublin III / accélérée / réexamen /
-      // apatridie / protection subsidiaire (CESEDA Livre V).
+      // SF-IM-20-02 : mesures d'éloignement avancées FR — Expulsion + IRTF + IAT.
+      ['F-IM-20-mesures-eloignement', {
+        component: MesuresEloignementSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-12-02 : asile avancé FR — Dublin III / accélérée / réexamen / apatridie / PS.
       ['F-IM-12-asile-avance', {
         component: AsileAvanceSectionComponent,
         inputs: (ctx) => ({
