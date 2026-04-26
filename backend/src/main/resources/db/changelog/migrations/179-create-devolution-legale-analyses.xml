@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="179-create-devolution-legale-analyses" author="legalcase">
+        <comment>
+            SF-FA-24-01 : table dédiée à l'outil décisionnel "Dévolution légale
+            successorale" (FR — art. 731 et s. Cciv). Premier morceau backend
+            de F-FA-24 (chantier successions, ~8-10 SF — futures : testament
+            967+, donation 893+, réserve 913+, action en réduction, partage
+            successoral, indivision successorale, rapport à succession).
+
+            Détermine les héritiers et leurs quotes-parts à partir de la
+            composition familiale du défunt en l'absence de testament :
+            - 4 ordres d'héritiers (734 descendants, 738 privilégiés,
+              739 ascendants ordinaires, 740 collatéraux ordinaires)
+            - Spécial conjoint survivant (757 et s.) : option ¼ pleine
+              propriété OU usufruit total (descendants tous communs) ;
+              ¼ obligatoire (recomposée) ; conjoint exclut ordres 3-4 si
+              pas de descendants ni parents (757-2)
+            - Représentation 751-755 (descendants ou neveux/nièces)
+            - Fente successorale 746-749 pour les ascendants ordinaires.
+
+            Outil single-country FRANCE — l'équivalent BE (CC BE art. 731+
+            avec quotités, fente et réserve différentes) sera traité dans
+            une feature jumelle dédiée (F-FA-24-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 88) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="devolution_legale_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_devolution_legale_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="conjoint_survivant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_descendants" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tous_descendants_communs" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_descendants_predecedes" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_petits_enfants_representation" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pere_vivant" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mere_vivante" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_freres_soeurs" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nb_freres_soeurs_predecedes" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ascendants_ordinaires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="collateral_ordinaires" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="option_conjoint" type="varchar(16)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="devolution_legale_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_devolution_legale_analyses_case_file"/>
+
+        <createIndex tableName="devolution_legale_analyses"
+                     indexName="idx_devolution_legale_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000179', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-devolution-legale', 'ALWAYS_ON', NULL, NULL, 88);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000179';
+            </sql>
+            <dropTable tableName="devolution_legale_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
