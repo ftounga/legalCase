@@ -1,0 +1,337 @@
+<section class="rapport-succ-section">
+  <header class="rapport-succ-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="rapport-succ-body">
+    <mat-icon class="rapport-succ-icon">account_balance</mat-icon>
+    <span class="rapport-succ-title">RAPPORT À SUCCESSION (FR)</span>
+    @if (result()) {
+      <span [ngClass]="verdictChipClass(result()!.verdictObligation)">
+        {{ verdictLabel(result()!.verdictObligation) }}
+        — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+    }
+    <mat-icon class="rapport-succ-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="rapport-succ-body" class="rapport-succ-body">
+      @if (!isFrance()) {
+        <div class="rapport-succ-banner rapport-succ-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="rapport-succ-banner-content">
+            <div class="rapport-succ-banner-title">Outil français uniquement</div>
+            <div class="rapport-succ-banner-sub">
+              Le rapport à succession (art. 843-863 + 919 Cciv FR) est propre
+              au droit français. L'équivalent belge (CC BE — barème
+              différent) sera traité dans une feature jumelle au backlog
+              (F-FA-24-BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="rapport-succ-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="rapport-succ-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="rapport-succ-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Qualité de l'héritier -->
+              <fieldset class="rapport-succ-fieldset">
+                <legend class="rapport-succ-legend">
+                  <mat-icon>family_restroom</mat-icon>
+                  Qualité de l'héritier (art. 843)
+                </legend>
+
+                <div class="rapport-succ-radio-group">
+                  <span class="rapport-succ-radio-label">Qualité vis-à-vis du rapport</span>
+                  <mat-radio-group required
+                                   [ngModel]="qualiteHeritier()"
+                                   (ngModelChange)="onQualiteHeritierChange($event)"
+                                   name="qualiteHeritier">
+                    @for (opt of qualiteHeritierOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="rapport-succ-field-meta">
+                    @if (provenanceQualiteHeritier() === 'IA') {
+                      <span class="rapport-succ-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().QUALITE_HERITIER; as alert) {
+                      <span class="rapport-succ-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Donation -->
+              <fieldset class="rapport-succ-fieldset">
+                <legend class="rapport-succ-legend">
+                  <mat-icon>euro</mat-icon>
+                  Donation reçue (art. 860)
+                </legend>
+
+                <div class="rapport-succ-grid">
+                  <div class="rapport-succ-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Montant nominal au jour de la donation (EUR)</mat-label>
+                      <input matInput type="number" min="0" step="100" required
+                             [ngModel]="donationsRecuesEur()"
+                             (ngModelChange)="onDonationsRecuesChange($event)"
+                             name="donationsRecuesEur" />
+                    </mat-form-field>
+                    <div class="rapport-succ-field-meta">
+                      @if (provenanceDonationsRecues() === 'IA') {
+                        <span class="rapport-succ-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().DONATIONS_RECUES_EUR; as alert) {
+                        <span class="rapport-succ-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="rapport-succ-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Valeur au jour du partage (EUR — art. 860)</mat-label>
+                      <input matInput type="number" min="0" step="100" required
+                             [ngModel]="valeurAuJourPartage()"
+                             (ngModelChange)="onValeurPartageChange($event)"
+                             name="valeurAuJourPartage" />
+                    </mat-form-field>
+                    <div class="rapport-succ-field-meta">
+                      @if (provenanceValeurPartage() === 'IA') {
+                        <span class="rapport-succ-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().VALEUR_AU_JOUR_PARTAGE; as alert) {
+                        <span class="rapport-succ-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rapport-succ-grid">
+                  <div class="rapport-succ-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date de la donation</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateDonation()"
+                             (ngModelChange)="onDateDonationChange($event)"
+                             name="dateDonation" />
+                    </mat-form-field>
+                    <div class="rapport-succ-field-meta">
+                      @if (provenanceDateDonation() === 'IA') {
+                        <span class="rapport-succ-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().DATE_DONATION; as alert) {
+                        <span class="rapport-succ-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Exemptions / dispenses -->
+              <fieldset class="rapport-succ-fieldset">
+                <legend class="rapport-succ-legend">
+                  <mat-icon>verified_user</mat-icon>
+                  Exemptions & dispenses (art. 851 / 852 / 919)
+                </legend>
+
+                <div class="rapport-succ-toggles">
+                  <div class="rapport-succ-toggle-row">
+                    <mat-slide-toggle
+                      [ngModel]="donationDispenseDeRapport()"
+                      (ngModelChange)="onDispenseChange($event)"
+                      name="donationDispenseDeRapport">
+                      Dispense expresse de rapport (art. 919) — donation hors part
+                      successorale
+                    </mat-slide-toggle>
+                    <div class="rapport-succ-field-meta">
+                      @if (provenanceDispense() === 'IA') {
+                        <span class="rapport-succ-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().DONATION_DISPENSE; as alert) {
+                        <span class="rapport-succ-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="rapport-succ-toggle-row">
+                    <mat-slide-toggle
+                      [ngModel]="naturePresumeeNonRapportable()"
+                      (ngModelChange)="onNatureNonRapportableChange($event)"
+                      name="naturePresumeeNonRapportable">
+                      Frais d'éducation / d'entretien (art. 852) ou donation
+                      rémunératoire (art. 851)
+                    </mat-slide-toggle>
+                    <div class="rapport-succ-field-meta">
+                      @if (provenanceNatureNonRapportable() === 'IA') {
+                        <span class="rapport-succ-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().NATURE_NON_RAPPORTABLE; as alert) {
+                        <span class="rapport-succ-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="rapport-succ-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le rapport</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="rapport-succ-result">
+              <!-- Bandeau verdict -->
+              <div class="rapport-succ-banner"
+                   [class.rapport-succ-banner--critical]="result()!.verdictObligation === 'RAPPORTABLE'"
+                   [class.rapport-succ-banner--info]="result()!.verdictObligation !== 'RAPPORTABLE'"
+                   role="status">
+                <mat-icon>
+                  {{ result()!.verdictObligation === 'RAPPORTABLE' ? 'gavel' : 'verified' }}
+                </mat-icon>
+                <div class="rapport-succ-banner-content">
+                  <div class="rapport-succ-banner-title">
+                    {{ verdictLabel(result()!.verdictObligation) }}
+                  </div>
+                  <div class="rapport-succ-banner-sub">
+                    Héritier : {{ qualiteLabel(result()!.qualiteHeritier) }} —
+                    Score : {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100
+                  </div>
+
+                  <div class="rapport-succ-flags">
+                    @if (result()!.verdictObligation === 'RAPPORTABLE') {
+                      <span class="rapport-succ-flag-chip rapport-succ-flag-chip--critical">
+                        <mat-icon>swap_horiz</mat-icon>
+                        {{ modeLabel(result()!.modeRapportRecommande) }}
+                      </span>
+                    }
+                    <span class="rapport-succ-flag-chip">
+                      <mat-icon>schedule</mat-icon>
+                      Prescription : {{ result()!.delaiPrescriptionAns }} ans (art. 924-1)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Montants synthèse -->
+              <div class="rapport-succ-amounts-grid">
+                <div class="rapport-succ-amount-card">
+                  <span class="rapport-succ-amount-label">Montant nominal</span>
+                  <span class="rapport-succ-amount-value">
+                    {{ result()!.donationsRecuesEur | number:'1.2-2' }} €
+                  </span>
+                  <span class="rapport-succ-amount-pct">
+                    Au jour de la donation
+                  </span>
+                </div>
+                <div class="rapport-succ-amount-card">
+                  <span class="rapport-succ-amount-label">Valeur au partage</span>
+                  <span class="rapport-succ-amount-value">
+                    {{ result()!.valeurAuJourPartage | number:'1.2-2' }} €
+                  </span>
+                  <span class="rapport-succ-amount-pct">
+                    Art. 860
+                  </span>
+                </div>
+                <div class="rapport-succ-amount-card"
+                     [class.rapport-succ-amount-card--critical]="result()!.montantRapportable > 0">
+                  <span class="rapport-succ-amount-label">Montant rapportable</span>
+                  <span class="rapport-succ-amount-value">
+                    {{ result()!.montantRapportable | number:'1.2-2' }} €
+                  </span>
+                  <span class="rapport-succ-amount-pct">
+                    {{ result()!.verdictObligation === 'RAPPORTABLE' ? 'À réintégrer' : 'Pas de rapport' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="rapport-succ-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="rapport-succ-formule-block">
+                  <span class="rapport-succ-formule-label">Formule</span>
+                  <span class="rapport-succ-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="rapport-succ-meta">
+                <span class="rapport-succ-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
