@@ -93,6 +93,7 @@ import { MineursImmigrationSectionComponent } from '../mineurs-immigration-secti
 import { MesuresEloignementSectionComponent } from '../mesures-eloignement-section/mesures-eloignement-section.component';
 import { AsileAvanceSectionComponent } from '../asile-avance-section/asile-avance-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
+import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/devolution-legale-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
 
@@ -1018,6 +1019,20 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // FR + BE actifs (art. 493 + 497 CPC FR / art. 1025 et s. CJ BE).
       ['F-FA-23-ordonnance-requete', {
         component: OrdonnanceRequeteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-24-02 : dévolution légale successorale FR (art. 731 et s. Cciv).
+      // tool_id aligné avec la migration 179 (visibility ALWAYS_ON
+      // DROIT_FAMILLE FRANCE priority 88).
+      ['F-FA-24-devolution-legale', {
+        component: DevolutionLegaleSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
