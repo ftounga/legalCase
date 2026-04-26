@@ -228,9 +228,7 @@ export interface FamilleExtractedData {
   clauseAttributionIntegraleDetected?: boolean | null;
   valeurCommunauteEurDetectee?: number | null;
   /**
-   * SF-FA-18-04 : pré-fill contestation de paternité (art. 332-335 + 311-1
-   * + 321 + 372 Cciv). Tous les champs sont optionnels — le composant est
-   * no-op gracieux si l'IA ne les a pas détectés.
+   * SF-FA-18-04 : pré-fill contestation de paternité (art. 332-335 Cciv).
    */
   qualiteAagirContestationDetected?:
     | 'PERE_DECLARE'
@@ -244,4 +242,9 @@ export interface FamilleExtractedData {
   possessionEtatConforme5AnsDetected?: boolean | null;
   expertiseAdnDemandeeDetected?: boolean | null;
   motifsSerieuxDetected?: boolean | null;
+  /**
+   * SF-FA-27-02 : pré-fill PMA / GPA / bioéthique. Valeurs attendues :
+   * PMA_RECONNAISSANCE_ANTICIPEE / GPA_TRANSCRIPTION_ETAT_CIVIL / DON_GAMETES_ACCES_ORIGINES.
+   */
+  dispositifBioethiqueDetecte?: string | null;
 }
