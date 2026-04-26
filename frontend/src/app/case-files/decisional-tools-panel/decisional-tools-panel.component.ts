@@ -96,7 +96,9 @@ import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section
 import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/devolution-legale-section.component';
 import { TestamentValiditeSectionComponent } from '../testament-validite-section/testament-validite-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
+import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { CommunauteUniverselleSectionComponent } from '../communaute-universelle-section/communaute-universelle-section.component';
+import { PmaGpaBioethiqueSectionComponent } from '../pma-gpa-bioethique-section/pma-gpa-bioethique-section.component';
 import { RegimeAlgerienSectionComponent } from '../regime-algerien-section/regime-algerien-section.component';
 
 export interface DecisionToolContext {
@@ -1005,6 +1007,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
+      // SF-FA-18-04 : contestation de paternité FR (art. 332-335 + 311-1 + 321 + 372 Cciv).
+      // tool_id aligné avec la migration 181.
+      ['F-FA-18-contestation-paternite', {
+        component: ContestationPaterniteSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
       // SF-FA-16-02 : communauté universelle FR (art. 1526 + 1527 al. 2 Cciv).
       ['F-FA-16-communaute-universelle', {
         component: CommunauteUniverselleSectionComponent,
@@ -1044,9 +1059,19 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
-      // SF-FA-24-04 : validité testament FR (art. 967-1035 + 901-911 + 920+
-      // Cciv). tool_id aligné avec la migration 182 (visibility ALWAYS_ON
-      // DROIT_FAMILLE FRANCE priority 91).
+      // SF-FA-27-02 : PMA / GPA / bioéthique FR.
+      ['F-FA-27-pma-gpa', {
+        component: PmaGpaBioethiqueSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-24-04 : validité testament FR.
       ['F-FA-24-testament-validite', {
         component: TestamentValiditeSectionComponent,
         inputs: (ctx) => ({
@@ -1058,18 +1083,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
-      // SF-IM-17-02 : régime algérien FR — accord franco-algérien 27/12/1968
-      // modifié + avenants (5 voies CRA). tool_id aligné avec la migration 176
-      // (visibility ALWAYS_ON DROIT_IMMIGRATION FRANCE priority 77).
+      // SF-IM-17-02 : régime algérien FR.
       ['F-IM-17-regime-algerien', {
         component: RegimeAlgerienSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
-          // Pré-fill IA gracieux (heuristique défensive sur typeProcedureDetectee
-          // → mapping voie + détection plausible nationalité algérienne) +
-          // validation F-IA-03 (1 champ VOIE multi-sources IA / F96 /
-          // QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
