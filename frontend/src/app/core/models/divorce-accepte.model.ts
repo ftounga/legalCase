@@ -266,4 +266,15 @@ export interface FamilleExtractedData {
   expertiseAdnDemandeeRechercheDetected?: boolean | null;
   pereDesigneRefuseADNDetected?: boolean | null;
   motifsSerieuxRechercheDetected?: boolean | null;
+  /**
+   * SF-FA-24-06 : pré-fill validité donation entre vifs (art. 893-958 Cciv).
+   * Valeur attendue parmi `FormeDonation` (`DONATION_NOTARIEE` /
+   * `DONATION_MANUELLE` / `DON_INDIRECT` / `DONATION_DEGUISEE`) ou alias court
+   * (`NOTARIEE`/`MANUELLE`/`INDIRECT`/`DEGUISEE`) — toute autre valeur
+   * ignorée. Le composant `donation-section` est no-op gracieux si absent.
+   */
+  formeDonationDetectee?: string | null;
+  dateDonationDetectee?: string | null;
+  saineDEspritDonateurDetected?: boolean | null;
+  respectQuotiteDisponibleDetected?: boolean | null;
 }

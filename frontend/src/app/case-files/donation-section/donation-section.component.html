@@ -1,0 +1,488 @@
+<section class="donation-section">
+  <header class="donation-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="donation-body">
+    <mat-icon class="donation-icon">redeem</mat-icon>
+    <span class="donation-title">VALIDITÉ DONATION ENTRE VIFS (FR)</span>
+    @if (result()) {
+      <span [ngClass]="verdictChipClass(result()!.verdictValidite)">
+        {{ verdictLabel(result()!.verdictValidite) }} — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+    }
+    <mat-icon class="donation-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="donation-body" class="donation-body">
+      @if (!isFrance()) {
+        <div class="donation-banner donation-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="donation-banner-content">
+            <div class="donation-banner-title">Outil français uniquement</div>
+            <div class="donation-banner-sub">
+              La validité d'une donation entre vifs (art. 893-958, 902-906,
+              920+, 931, 953-958 Cciv) est propre au droit français.
+              L'équivalent belge (CC BE art. 893+, formes équivalentes mais
+              quelques exigences spécifiques notamment pour les donations entre
+              époux) est traité dans une feature jumelle au backlog
+              (F-FA-24-BE-donation).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="donation-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="donation-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="donation-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Forme de la donation -->
+              <fieldset class="donation-fieldset">
+                <legend class="donation-legend">
+                  <mat-icon>category</mat-icon>
+                  Forme de la donation (art. 893+, 931)
+                </legend>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">Forme</span>
+                  <mat-radio-group required
+                                   [ngModel]="formeDonation()"
+                                   (ngModelChange)="onFormeDonationChange($event)"
+                                   name="formeDonation">
+                    @for (opt of formeOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="donation-field-meta">
+                    @if (provenanceForme() === 'IA') {
+                      <span class="donation-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().FORME; as alert) {
+                      <span class="donation-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Donateur + capacité (art. 901-902) -->
+              <fieldset class="donation-fieldset">
+                <legend class="donation-legend">
+                  <mat-icon>badge</mat-icon>
+                  Donateur (art. 901-902)
+                </legend>
+
+                <div class="donation-grid">
+                  <div class="donation-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date de la donation</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateDonation()"
+                             (ngModelChange)="onDateDonationChange($event)"
+                             name="dateDonation" />
+                    </mat-form-field>
+                    @if (provenanceDateDonation() === 'IA') {
+                      <span class="donation-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="donation-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Âge du donateur (à la donation)</mat-label>
+                      <input matInput type="number" min="0" max="130" step="1" required
+                             [ngModel]="ageDonateurAns()"
+                             (ngModelChange)="onAgeDonateurChange($event)"
+                             name="ageDonateurAns" />
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">Sain d'esprit (art. 901)</span>
+                  <mat-radio-group required
+                                   [ngModel]="saineDEsprit()"
+                                   (ngModelChange)="onSaineDEspritChange($event)"
+                                   name="saineDEsprit">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="donation-field-meta">
+                    @if (provenanceSaineEsprit() === 'IA') {
+                      <span class="donation-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().SAINE_ESPRIT; as alert) {
+                      <span class="donation-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">
+                    Capacité du donateur (art. 902 — ≥ 16 ans, sain d'esprit)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="capaciteDonateur()"
+                                   (ngModelChange)="onCapaciteDonateurChange($event)"
+                                   name="capaciteDonateur">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">
+                    Capacité du récipiendaire (art. 906, 909 — pas d'incapacité absolue)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="capaciteRecipiendaire()"
+                                   (ngModelChange)="onCapaciteRecipiendaireChange($event)"
+                                   name="capaciteRecipiendaire">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non (médecin, etc.)</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Consentement / objet / formalisme / quotité -->
+              <fieldset class="donation-fieldset">
+                <legend class="donation-legend">
+                  <mat-icon>verified_user</mat-icon>
+                  Conditions générales (art. 893+, 913+, 931+)
+                </legend>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">Consentement libre (art. 901)</span>
+                  <mat-radio-group required
+                                   [ngModel]="consentementLibre()"
+                                   (ngModelChange)="onConsentementLibreChange($event)"
+                                   name="consentementLibre">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non (vice : dol/erreur/violence)</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">Objet déterminé (art. 893+)</span>
+                  <mat-radio-group required
+                                   [ngModel]="objetDetermine()"
+                                   (ngModelChange)="onObjetDetermineChange($event)"
+                                   name="objetDetermine">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">Formalisme respecté (art. 931+)</span>
+                  <mat-radio-group required
+                                   [ngModel]="respectFormalisme()"
+                                   (ngModelChange)="onRespectFormalismeChange($event)"
+                                   name="respectFormalisme">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="donation-radio-group">
+                  <span class="donation-radio-label">
+                    Quotité disponible respectée (art. 913+)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="respectQuotiteDisponible()"
+                                   (ngModelChange)="onRespectQuotiteDisponibleChange($event)"
+                                   name="respectQuotiteDisponible">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non (excès → action en réduction art. 920+)</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="donation-field-meta">
+                    @if (provenanceRespectQuotite() === 'IA') {
+                      <span class="donation-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().RESPECT_QUOTITE; as alert) {
+                      <span class="donation-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 4 : Notariée (art. 931) -->
+              @if (isNotariee()) {
+                <fieldset class="donation-fieldset">
+                  <legend class="donation-legend">
+                    <mat-icon>gavel</mat-icon>
+                    Critères notariée (art. 931)
+                  </legend>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Acte authentique (devant notaire)</span>
+                    <mat-radio-group required
+                                     [ngModel]="acteAuthentique()"
+                                     (ngModelChange)="onActeAuthentiqueChange($event)"
+                                     name="acteAuthentique">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Acceptation expresse du donataire</span>
+                    <mat-radio-group required
+                                     [ngModel]="acceptationExpresse()"
+                                     (ngModelChange)="onAcceptationExpresseChange($event)"
+                                     name="acceptationExpresse">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 5 : Manuelle -->
+              @if (isManuelle()) {
+                <fieldset class="donation-fieldset">
+                  <legend class="donation-legend">
+                    <mat-icon>pan_tool</mat-icon>
+                    Critères donation manuelle (jurisprudence constante)
+                  </legend>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Remise effective (tradition)</span>
+                    <mat-radio-group required
+                                     [ngModel]="remiseEffective()"
+                                     (ngModelChange)="onRemiseEffectiveChange($event)"
+                                     name="remiseEffective">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Bien meuble (cash, chèque, virement, bijoux…)</span>
+                    <mat-radio-group required
+                                     [ngModel]="bienMeuble()"
+                                     (ngModelChange)="onBienMeubleChange($event)"
+                                     name="bienMeuble">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non (immeuble — forme inadaptée)</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 6 : Don indirect -->
+              @if (isIndirect()) {
+                <fieldset class="donation-fieldset">
+                  <legend class="donation-legend">
+                    <mat-icon>swap_horiz</mat-icon>
+                    Critères don indirect
+                  </legend>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Intention libérale démontrée</span>
+                    <mat-radio-group required
+                                     [ngModel]="intentionLiberale()"
+                                     (ngModelChange)="onIntentionLiberaleChange($event)"
+                                     name="intentionLiberale">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Acte principal neutre (renonciation, remise de dette…)</span>
+                    <mat-radio-group required
+                                     [ngModel]="actePrincipalNeutre()"
+                                     (ngModelChange)="onActePrincipalNeutreChange($event)"
+                                     name="actePrincipalNeutre">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 7 : Donation déguisée -->
+              @if (isDeguisee()) {
+                <fieldset class="donation-fieldset">
+                  <legend class="donation-legend">
+                    <mat-icon>masks</mat-icon>
+                    Critères donation déguisée
+                  </legend>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Apparence onéreuse (vente, par ex.)</span>
+                    <mat-radio-group required
+                                     [ngModel]="apparenceOnerueuse()"
+                                     (ngModelChange)="onApparenceOnerueuseChange($event)"
+                                     name="apparenceOnerueuse">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="donation-radio-group">
+                    <span class="donation-radio-label">Prix incohérent (vil, fictif…)</span>
+                    <mat-radio-group required
+                                     [ngModel]="prixIncoherent()"
+                                     (ngModelChange)="onPrixIncoherentChange($event)"
+                                     name="prixIncoherent">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 8 : Vices consentement + révocation -->
+              <fieldset class="donation-fieldset">
+                <legend class="donation-legend">
+                  <mat-icon>report_problem</mat-icon>
+                  Vices, révocation post-formation
+                </legend>
+
+                <div class="donation-checkbox-grid">
+                  <mat-checkbox [checked]="vicesConsentementDol()"
+                                (change)="onVicesConsentementDolChange($event.checked)">
+                    Vice consentement — dol/violence (art. 901)
+                  </mat-checkbox>
+                  <mat-checkbox [checked]="erreurSubstantielle()"
+                                (change)="onErreurSubstantielleChange($event.checked)">
+                    Erreur substantielle (art. 901)
+                  </mat-checkbox>
+                  <mat-checkbox [checked]="ingratitudeAvere()"
+                                (change)="onIngratitudeAvereChange($event.checked)">
+                    Ingratitude avérée (art. 955-958 — révocation)
+                  </mat-checkbox>
+                  <mat-checkbox [checked]="inexecutionCharge()"
+                                (change)="onInexecutionChargeChange($event.checked)">
+                    Inexécution d'une charge (art. 953 — révocation)
+                  </mat-checkbox>
+                </div>
+              </fieldset>
+
+              <div class="donation-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la validité</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="donation-result">
+              <!-- Bandeau verdict -->
+              <div [ngClass]="verdictBannerClass(result()!.verdictValidite)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdictValidite) }}</mat-icon>
+                <div class="donation-banner-content">
+                  <div class="donation-banner-title">
+                    {{ verdictLabel(result()!.verdictValidite) }}
+                  </div>
+                  <div class="donation-banner-sub">
+                    Forme : {{ formeLabel(result()!.formeDonation) }} · Score :
+                    {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100
+                  </div>
+                  <div class="donation-flags">
+                    @if (result()!.actionEnReductionPossible) {
+                      <span class="donation-flag-chip">
+                        <mat-icon>balance</mat-icon> Action en réduction possible (art. 920+)
+                      </span>
+                    }
+                    @if (result()!.revocationPossible) {
+                      <span class="donation-flag-chip">
+                        <mat-icon>undo</mat-icon> Révocation possible (art. 953-958)
+                      </span>
+                    }
+                    @if (result()!.delaiContestationAns > 0
+                         && result()!.verdictValidite !== 'NUL') {
+                      <span class="donation-flag-chip">
+                        <mat-icon>schedule</mat-icon>
+                        Délai de contestation : {{ result()!.delaiContestationAns }} ans
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Risques de requalification -->
+              @if (result()!.risquesRequalification?.length) {
+                <div class="donation-risques-block">
+                  <div class="donation-risques-label">
+                    <mat-icon>warning</mat-icon>
+                    Risques de requalification
+                  </div>
+                  <ul class="donation-risques-list">
+                    @for (r of result()!.risquesRequalification; track trackRisque($index, r)) {
+                      <li class="donation-risque-chip" [title]="r.description">
+                        {{ risqueLabel(r.code) }}
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="donation-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="donation-formule-block">
+                  <span class="donation-formule-label">Formule</span>
+                  <span class="donation-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="donation-meta">
+                <span class="donation-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
