@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="182-create-testament-validite-analyses" author="legalcase">
+        <comment>
+            SF-FA-24-03 : table dédiée à l'outil décisionnel "Validité du
+            testament" (FR — art. 967-1035 + 901-911 Cciv). 3ème SF backend
+            de F-FA-24 (chantier successions, après SF-01 dévolution légale
+            et SF-02 frontend dévolution).
+
+            Évalue la validité d'un testament selon :
+            - 4 formes (970 olographe, 971-975 authentique, 976-980 mystique,
+              Convention Washington 1973 international)
+            - Capacité (901, 904, 470/476 majeur protégé)
+            - Vices de consentement (901+ — dol, violence, erreur)
+            - Révocation (1035-1038 — testament postérieur, déchirure)
+            - Quotité disponible (913-920 — action en réduction si excès,
+              n'invalide pas le testament).
+
+            Verdict VALIDE / CONTESTABLE / NUL + liste des vices identifiés
+            + délai de contestation 5 ans (art. 1304 Cciv).
+
+            Outil single-country FRANCE — l'équivalent BE (CC BE art. 895+
+            avec exigences et délais différents) sera traité dans une feature
+            jumelle dédiée (F-FA-24-BE-testament).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 91) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="testament_validite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_testament_validite_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="forme_testament" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_redaction" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="age_testateur_ans" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verdict_validite" type="varchar(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="action_en_reduction_possible" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="score_eligibilite" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="testament_validite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_testament_validite_analyses_case_file"/>
+
+        <createIndex tableName="testament_validite_analyses"
+                     indexName="idx_testament_validite_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000182', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-24-testament-validite', 'ALWAYS_ON', NULL, NULL, 91);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000182';
+            </sql>
+            <dropTable tableName="testament_validite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
