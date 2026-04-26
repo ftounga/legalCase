@@ -162,15 +162,21 @@ public final class PartageSuccessoralCalculator {
         if (modeRecommande == modePartageDemande) score += 15;
 
         // ----- Verdict -----
+        // La bascule amiable→judiciaire signale un frottement procédural
+        // (procédure en deux temps, durée allongée, coût supérieur), donc
+        // verdict MOYENNE même si le judiciaire final + désaccord persistant
+        // serait classé ELEVEE pour un partage demandé directement en
+        // judiciaire. La précédence `bascule → MOYENNE` doit donc précéder
+        // `JUDICIAIRE && desaccord → ELEVEE`.
         VerdictRecevabilite verdict;
         if (modeRecommande == ModePartage.PARTAGE_AMIABLE
                 && consentementsTous && !desaccordPersistant) {
             verdict = VerdictRecevabilite.ELEVEE;
+        } else if (bascule || modePartageDemande == ModePartage.PARTAGE_PARTIEL) {
+            verdict = VerdictRecevabilite.MOYENNE;
         } else if (modeRecommande == ModePartage.PARTAGE_JUDICIAIRE
                 && desaccordPersistant) {
             verdict = VerdictRecevabilite.ELEVEE;
-        } else if (bascule || modePartageDemande == ModePartage.PARTAGE_PARTIEL) {
-            verdict = VerdictRecevabilite.MOYENNE;
         } else if (score >= 70) {
             verdict = VerdictRecevabilite.MOYENNE;
         } else {

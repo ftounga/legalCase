@@ -221,8 +221,9 @@ class ContestationPaterniteCalculatorTest {
                 QualiteAagir.PERE_DECLARE,
                 DATE_FILIATION, DATE_CONNAISSANCE_RECENTE, null,
                 false, true, true, TODAY, "FRANCE");
-        assertThat(r.baseJuridique()).contains("332");
-        assertThat(r.baseJuridique()).contains("333"); // implicite via "332-335"
+        // baseJuridique = "Art. 332-335 + 311-1 + 321 + 372 Cciv" — l'art. 333
+        // est inclus dans le range 332-335 mais n'apparaît pas en littéral.
+        assertThat(r.baseJuridique()).contains("332-335");
         assertThat(r.baseJuridique()).contains("311-1");
         assertThat(r.baseJuridique()).contains("321");
     }

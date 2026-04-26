@@ -13,8 +13,11 @@ class RecherchePaterniteCalculatorTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 4, 26);
 
-    // Enfant majeur jeune (25 ans) — naissance 2001-04-15, majorité 2019-04-15, forclusion 2029-04-15
-    private static final LocalDate NAISSANCE_MAJEUR_JEUNE = LocalDate.of(2001, 4, 15);
+    // Enfant majeur jeune (19 ans) — naissance 2007-04-15, majorité 2025-04-15, forclusion 2035-04-15.
+    // Choix : il faut que l'enfant ait consommé < 50% du délai de prescription
+    // (10 ans à compter de la majorité) pour bénéficier du bonus +10 du calculator
+    // sur le score (cf. branche `pctRestant > 0.5`). À 19 ans, pctRestant ≈ 0.91 → bonus appliqué.
+    private static final LocalDate NAISSANCE_MAJEUR_JEUNE = LocalDate.of(2007, 4, 15);
     // Enfant majeur âgé (35 ans, prescription acquise) — naissance 1990-01-15, majorité 2008-01-15, forclusion 2018-01-15
     private static final LocalDate NAISSANCE_MAJEUR_AGE = LocalDate.of(1990, 1, 15);
     // Enfant mineur (8 ans) — naissance 2018-01-15
@@ -164,8 +167,8 @@ class RecherchePaterniteCalculatorTest {
                 NAISSANCE_MAJEUR_JEUNE,
                 false, true, false, true,
                 TODAY, "FRANCE");
-        // Naissance 2001-04-15 + 18 ans = 2019-04-15. Forclusion = 2029-04-15. TODAY = 2026-04-26 → ~36 mois
-        assertThat(r.delaiPrescriptionRestantMois()).isBetween(30L, 40L);
+        // Naissance 2007-04-15 + 18 ans = 2025-04-15. Forclusion = 2035-04-15. TODAY = 2026-04-26 → ~107 mois
+        assertThat(r.delaiPrescriptionRestantMois()).isBetween(100L, 110L);
     }
 
     // ============ Documents ============
