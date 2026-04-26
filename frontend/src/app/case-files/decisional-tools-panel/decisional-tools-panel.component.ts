@@ -89,6 +89,7 @@ import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
 import { NaturalisationSectionComponent } from '../naturalisation-section/naturalisation-section.component';
 import { MineursImmigrationSectionComponent } from '../mineurs-immigration-section/mineurs-immigration-section.component';
+import { MesuresEloignementSectionComponent } from '../mesures-eloignement-section/mesures-eloignement-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 
 export interface DecisionToolContext {
@@ -923,6 +924,22 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-20-02 : mesures d'éloignement avancées FR — Expulsion (L.631-1 /
+      // L.631-2 / L.631-3) + IRTF (L.612-6+) + IAT (L.222-1+).
+      ['F-IM-20-mesures-eloignement', {
+        component: MesuresEloignementSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA (typeProcedureDetectee → dispositif via mapping libre)
+          // + validation F-IA-03 (DISPOSITIF + MOTIF_MENACE multi-sources
+          // IA / F96 / QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
