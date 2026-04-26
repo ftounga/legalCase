@@ -87,6 +87,7 @@ import { PseSectionComponent } from '../pse-section/pse-section.component';
 import { ProtectionRpSectionComponent } from '../protection-rp-section/protection-rp-section.component';
 import { OrdonnanceRequeteSectionComponent } from '../ordonnance-requete-section/ordonnance-requete-section.component';
 import { ChangementStatutSectionComponent } from '../changement-statut-section/changement-statut-section.component';
+import { NaturalisationSectionComponent } from '../naturalisation-section/naturalisation-section.component';
 import { PartageJudiciaireSectionComponent } from '../partage-judiciaire-section/partage-judiciaire-section.component';
 
 export interface DecisionToolContext {
@@ -897,6 +898,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.immigrationExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-IM-13-02 : naturalisation française (FR uniquement,
+      // Code civil art. 21-15+ — 6 voies DECRET/MARIAGE/ASCENDANT/MINEUR/
+      // REINTEGRATION/OPPOSITION). tool_id aligné migration 171.
+      ['F-IM-13-naturalisation', {
+        component: NaturalisationSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          // Pré-fill IA gracieux (no-op tant que le prompt IA Immigration
+          // n'expose pas les champs naturalisation directs) + validation
+          // F-IA-03 (1 alerte VOIE_NATURALISATION multi-sources IA / F96 /
+          // QUESTION_IA / PIECE_MANQUANTE).
           aiData: ctx.synthesis?.immigrationExtractedData,
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
