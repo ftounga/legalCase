@@ -285,21 +285,24 @@ export interface FamilleExtractedData {
     | 'CONJOINT_SURVIVANT'
     | null;
   /**
-   * SF-FA-24-14 : pré-fill outil "Rapport à succession" (art. 843-863 + 919
-   * Cciv). Tous les champs sont optionnels — composant no-op gracieux si
-   * l'IA ne les a pas détectés.
+   * SF-FA-24-10 : pré-fill partage successoral (art. 815-840 Cciv).
    */
-  /** Montant nominal de la donation reçue au jour de la donation (€). */
+  modePartageDemandeDetecte?: string | null;
+  nombreCoheritiersDetecte?: number | null;
+  dateDecesDetectee?: string | null;
+  /**
+   * SF-FA-24-12 : pré-fill type d'indivision successorale (art. 815 + 1873-1+).
+   */
+  typeIndivisionSuccessoraleDetecte?: string | null;
+  /**
+   * SF-FA-24-14 : pré-fill rapport à succession (art. 843-863 + 919 Cciv).
+   */
   montantDonationsRecuesEurDetecte?: number | null;
-  /** Valeur retenue au jour du partage (€) — art. 860. */
   valeurDonationAuJourPartageEurDetectee?: number | null;
-  /** Qualité de l'héritier — `DESCENDANT` ou `CONJOINT_SURVIVANT`. */
   qualiteHeritierRapportDetectee?:
     | 'DESCENDANT'
     | 'CONJOINT_SURVIVANT'
     | null;
-  /** Donation hors part successorale (dispense expresse art. 919). */
   donationDispenseDeRapportDetected?: boolean | null;
-  /** Frais éducation (852) ou rémunératoire (851) → exempt de rapport. */
   naturePresumeeNonRapportableDetected?: boolean | null;
 }
