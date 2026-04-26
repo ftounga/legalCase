@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="181-create-contestation-paternite-analyses" author="legalcase">
+        <comment>
+            SF-FA-18-03 : table dédiée à l'outil décisionnel "Contestation de
+            paternité" (FR — art. 332-335 + 311-1 + 321 + 372 Cciv). 3ème
+            morceau du chantier F-FA-18 (Filiation, 5-7 SF prévues), aux côtés
+            de SF-01 (reconnaissance volontaire art. 316) et SF-02 (frontend
+            reconnaissance).
+
+            Action en remise en cause d'une filiation paternelle déjà établie
+            (par reconnaissance, par effet de la loi, ou par possession
+            d'état). 4 qualités à agir distinctes :
+            - PERE_DECLARE (art. 332-333) — délai 5 ans à compter de la
+              connaissance de la non-paternité.
+            - PERE_BIOLOGIQUE_PRESUME (art. 333) — délai 5 ans.
+            - MERE (art. 333) — délai 5 ans.
+            - ENFANT_MAJEUR (art. 333 + 321) — délai 10 ans à compter de la
+              majorité.
+
+            Fin de non-recevoir art. 333 al. 2 : la possession d'état conforme
+            à la filiation pendant 5 ans rend l'action irrecevable, sauf pour
+            l'enfant lui-même.
+
+            Critères évalués : qualité à agir, délai de prescription restant,
+            possession d'état, expertise ADN demandée, motifs sérieux et
+            concordants (Cass. 1ère civ. 28 mars 2000).
+
+            Outil single-country FRANCE — l'équivalent BE (CC art. 318, 330 —
+            délais et qualités à agir spécifiques) sera traité dans une
+            feature jumelle dédiée au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 90) pour exposer l'outil sur tout dossier famille FR.
+
+            Note UUID : 'ee0000000181' déjà utilisé par migration 132
+            (F-DT-18-fin-mission-interim) — on disambigue via 'ee000000181a'.
+        </comment>
+
+        <createTable tableName="contestation_paternite_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_contestation_paternite_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="qualite_a_agir" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_etablissement_filiation" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_connaissance_verite" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_majorite_enfant" type="date"/>
+            <column name="possession_etat_conforme_5ans" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expertise_adn_demandee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motifs_serieux" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="contestation_paternite_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_contestation_paternite_analyses_case_file"/>
+
+        <createIndex tableName="contestation_paternite_analyses"
+                     indexName="idx_contestation_paternite_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee000000181a', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-18-contestation-paternite', 'ALWAYS_ON', NULL, NULL, 90);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee000000181a';
+            </sql>
+            <dropTable tableName="contestation_paternite_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
