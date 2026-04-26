@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="185-create-possession-etat-analyses" author="legalcase">
+        <comment>
+            SF-FA-18-07 : table dédiée à l'outil décisionnel "Possession d'état"
+            (FR — art. 311-1 + 311-2 + 317 Cciv). 7ème SF du chantier F-FA-18
+            (Filiation).
+
+            La possession d'état est un mode de preuve de la filiation par les
+            faits, constituée par un faisceau d'indices (art. 311-1) :
+            - Tractatus : traitement comme enfant
+            - Fama : réputation publique (famille, société, autorité)
+            - Nomen : port du nom (facultatif depuis l'ord. n°2005-759 du
+              4 juillet 2005)
+
+            Conditions cardinales (art. 311-2) : continue, paisible, publique,
+            non équivoque — toutes obligatoires.
+
+            Effets selon le dispositif :
+            - CONSTAT_NOTAIRE (art. 317) : possession ≥ 5 ans + critères
+              cardinaux → acte de notoriété, force probante (5 ans pour
+              contester l'acte).
+            - PREUVE_JUSTICE : à l'occasion d'une action en recherche /
+              contestation, 10 ans depuis la cessation.
+
+            Outil single-country FRANCE — l'équivalent BE (CC art. 331-1 —
+            possession d'état comme mode de preuve résiduel, conditions et
+            délais propres) sera traité dans une feature jumelle dédiée au
+            backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 94) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="possession_etat_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_possession_etat_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="date_debut_possession" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_fin_possession" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tractatus" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fama" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="nomen" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="continue_condition" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="paisible" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="non_equivoque" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="possession_etat_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_possession_etat_analyses_case_file"/>
+
+        <createIndex tableName="possession_etat_analyses"
+                     indexName="idx_possession_etat_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000185', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-18-possession-etat', 'ALWAYS_ON', NULL, NULL, 94);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000185';
+            </sql>
+            <dropTable tableName="possession_etat_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
