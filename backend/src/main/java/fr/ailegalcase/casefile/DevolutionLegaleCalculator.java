@@ -90,7 +90,7 @@ public final class DevolutionLegaleCalculator {
 
     /** Base juridique consolidée. */
     private static final String BASE_JURIDIQUE =
-            "Art. 731, 734, 738, 745-749, 751-755, 757 et s. Cciv";
+            "Art. 731, 734, 738, 745, 746, 747-749, 751-755, 757 et s. Cciv";
 
     private DevolutionLegaleCalculator() {}
 
