@@ -1,0 +1,334 @@
+<section class="pma-gpa-section">
+  <header class="pma-gpa-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="pma-gpa-body">
+    <mat-icon class="pma-gpa-icon">child_friendly</mat-icon>
+    <span class="pma-gpa-title">PMA / GPA / BIOÉTHIQUE (FR)</span>
+    @if (result()) {
+      <span class="pma-gpa-chip"
+            [class.pma-gpa-chip--info]="result()!.verdictRecevabilite === 'ELEVEE'"
+            [class.pma-gpa-chip--warning]="result()!.verdictRecevabilite === 'MOYENNE'"
+            [class.pma-gpa-chip--critical]="result()!.verdictRecevabilite === 'FAIBLE'">
+        {{ result()!.verdictRecevabilite }} — Risque {{ result()!.risqueRefus }}
+      </span>
+    }
+    <mat-icon class="pma-gpa-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="pma-gpa-body" class="pma-gpa-body">
+      @if (!isFrance()) {
+        <div class="pma-gpa-banner pma-gpa-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="pma-gpa-banner-content">
+            <div class="pma-gpa-banner-title">Outil français uniquement</div>
+            <div class="pma-gpa-banner-sub">
+              Cet outil couvre la loi de bioéthique française (loi 2/8/2021,
+              art. 342-9 Cciv ; Cass. ass. plén. 18/12/2022 ; art. 16-8-1 Cciv).
+              L'équivalent belge (loi 6/7/2007 PMA BE — la GPA n'y est pas
+              encadrée explicitement) est traité dans une feature jumelle
+              au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="pma-gpa-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="pma-gpa-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="pma-gpa-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Dispositif -->
+              <fieldset class="pma-gpa-fieldset">
+                <legend class="pma-gpa-legend">
+                  <mat-icon>tune</mat-icon>
+                  Dispositif d'analyse
+                </legend>
+
+                <div class="pma-gpa-radio-group">
+                  <mat-radio-group required
+                                   [ngModel]="dispositif()"
+                                   (ngModelChange)="onDispositifChange($event)"
+                                   name="dispositif">
+                    @for (opt of dispositifOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">
+                        <span class="pma-gpa-radio-strong">{{ opt.label }}</span>
+                        <span class="pma-gpa-radio-desc">{{ opt.description }}</span>
+                      </mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="pma-gpa-field-meta">
+                    @if (provenanceDispositif() === 'IA') {
+                      <span class="pma-gpa-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().DISPOSITIF; as alert) {
+                      <span class="pma-gpa-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2a : Critères PMA -->
+              @if (isPma()) {
+                <fieldset class="pma-gpa-fieldset">
+                  <legend class="pma-gpa-legend">
+                    <mat-icon>fact_check</mat-icon>
+                    PMA — Reconnaissance anticipée (art. 342-9 Cciv)
+                  </legend>
+
+                  <div class="pma-gpa-radio-group">
+                    <span class="pma-gpa-radio-label">Consentement et reconnaissance reçus par notaire</span>
+                    <mat-radio-group required
+                                     [ngModel]="consentementsConjointsNotaire()"
+                                     (ngModelChange)="onConsentementsNotaireChange($event)"
+                                     name="consentementsConjointsNotaire">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="pma-gpa-field-wrapper">
+                    <label class="pma-gpa-radio-label" for="dateReconnaissance">
+                      Date de la reconnaissance anticipée (notariée)
+                    </label>
+                    <input id="dateReconnaissance" type="date" class="pma-gpa-date"
+                           [ngModel]="dateReconnaissanceAnterieurePMA()"
+                           (ngModelChange)="onDateReconnaissanceChange($event)"
+                           name="dateReconnaissanceAnterieurePMA" />
+                  </div>
+
+                  <div class="pma-gpa-field-wrapper">
+                    <label class="pma-gpa-radio-label" for="datePMA">Date de la PMA</label>
+                    <input id="datePMA" type="date" class="pma-gpa-date"
+                           [ngModel]="datePMA()"
+                           (ngModelChange)="onDatePMAChange($event)"
+                           name="datePMA" />
+                    <span class="pma-gpa-hint">
+                      La reconnaissance doit impérativement précéder la PMA (art. 342-11 Cciv).
+                    </span>
+                  </div>
+
+                  <div class="pma-gpa-radio-group">
+                    <span class="pma-gpa-radio-label">Conditions d'accès à la PMA remplies</span>
+                    <mat-radio-group required
+                                     [ngModel]="conditionsAccesPMA()"
+                                     (ngModelChange)="onConditionsAccesPMAChange($event)"
+                                     name="conditionsAccesPMA">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                    <span class="pma-gpa-hint">
+                      Couple de femmes ou femme seule, ≥ 18 ans, pas de séparation, capacité.
+                    </span>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2b : Critères GPA -->
+              @if (isGpa()) {
+                <fieldset class="pma-gpa-fieldset">
+                  <legend class="pma-gpa-legend">
+                    <mat-icon>public</mat-icon>
+                    GPA — Transcription état civil (Cass. 18/12/2022)
+                  </legend>
+
+                  <div class="pma-gpa-radio-group">
+                    <span class="pma-gpa-radio-label">Pays où la GPA a été pratiquée</span>
+                    <mat-radio-group required
+                                     [ngModel]="paysGPACode()"
+                                     (ngModelChange)="onPaysGPAChange($event)"
+                                     name="paysGPACode">
+                      @for (p of paysOptions; track p.code) {
+                        <mat-radio-button [value]="p.code">
+                          {{ p.label }}
+                        </mat-radio-button>
+                      }
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="pma-gpa-radio-group">
+                    <span class="pma-gpa-radio-label">Parent biologique avéré (lien génétique)</span>
+                    <mat-radio-group required
+                                     [ngModel]="parentBiologiqueAvere()"
+                                     (ngModelChange)="onParentBiologiqueChange($event)"
+                                     name="parentBiologiqueAvere">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="pma-gpa-radio-group">
+                    <span class="pma-gpa-radio-label">Décision étrangère établissant la filiation produite</span>
+                    <mat-radio-group required
+                                     [ngModel]="decisionEtrangereProduite()"
+                                     (ngModelChange)="onDecisionEtrangereChange($event)"
+                                     name="decisionEtrangereProduite">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="pma-gpa-radio-group">
+                    <span class="pma-gpa-radio-label">Adoption simple demandée pour l'autre parent</span>
+                    <mat-radio-group required
+                                     [ngModel]="adoptionDemande()"
+                                     (ngModelChange)="onAdoptionDemandeChange($event)"
+                                     name="adoptionDemande">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                </fieldset>
+              }
+
+              <!-- Section 2c : Critères DON gamètes -->
+              @if (isDon()) {
+                <fieldset class="pma-gpa-fieldset">
+                  <legend class="pma-gpa-legend">
+                    <mat-icon>fingerprint</mat-icon>
+                    Don de gamètes — Accès aux origines (art. 16-8-1 Cciv)
+                  </legend>
+
+                  <div class="pma-gpa-field-wrapper">
+                    <label class="pma-gpa-radio-label" for="dateDon">Date du don de gamètes</label>
+                    <input id="dateDon" type="date" class="pma-gpa-date"
+                           [ngModel]="dateDon()"
+                           (ngModelChange)="onDateDonChange($event)"
+                           name="dateDon" />
+                    @if (!isDonPosterieurReforme()) {
+                      <span class="pma-gpa-hint pma-gpa-hint--warning">
+                        Don antérieur au 1/9/2022 — l'accès à l'identité requiert le consentement du donneur.
+                      </span>
+                    } @else if (dateDon()) {
+                      <span class="pma-gpa-hint">
+                        Don postérieur au 1/9/2022 — accès à l'identité de plein droit.
+                      </span>
+                    }
+                  </div>
+
+                  <div class="pma-gpa-radio-group">
+                    <span class="pma-gpa-radio-label">Demande formelle déposée (CAPADD)</span>
+                    <mat-radio-group required
+                                     [ngModel]="demandeAcces()"
+                                     (ngModelChange)="onDemandeAccesChange($event)"
+                                     name="demandeAcces">
+                      <mat-radio-button [value]="true">Oui</mat-radio-button>
+                      <mat-radio-button [value]="false">Non</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                  <div class="pma-gpa-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Âge du demandeur (années)</mat-label>
+                      <input matInput type="number" min="0" max="120" step="1" required
+                             [ngModel]="ageDemandeur()"
+                             (ngModelChange)="onAgeDemandeurChange($event)"
+                             name="ageDemandeur" />
+                    </mat-form-field>
+                    <span class="pma-gpa-hint">
+                      L'accès aux origines est ouvert au seul enfant majeur (≥ 18 ans).
+                    </span>
+                  </div>
+                </fieldset>
+              }
+
+              <div class="pma-gpa-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="pma-gpa-result">
+              <div [class]="bannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>
+                  {{ result()!.verdictRecevabilite === 'FAIBLE' ? 'gpp_bad' :
+                     result()!.verdictRecevabilite === 'MOYENNE' ? 'warning' : 'verified' }}
+                </mat-icon>
+                <div class="pma-gpa-banner-content">
+                  <div class="pma-gpa-banner-title">
+                    Recevabilité : {{ result()!.verdictRecevabilite }}
+                    <span class="pma-gpa-meta-tag">
+                      {{ dispositifLabel(result()!.dispositif) }}
+                    </span>
+                  </div>
+                  <div class="pma-gpa-banner-sub">
+                    Risque de refus : {{ result()!.risqueRefus }}
+                    — Délai d'instruction : {{ result()!.delaiInstructionMois }} mois
+                  </div>
+                </div>
+              </div>
+
+              @if (result()!.proceduresAFollow?.length) {
+                <div class="pma-gpa-procedures-block">
+                  <span class="pma-gpa-block-label">Procédures à mener</span>
+                  <ol class="pma-gpa-list">
+                    @for (p of result()!.proceduresAFollow; track p; let i = $index) {
+                      <li>{{ p }}</li>
+                    }
+                  </ol>
+                </div>
+              }
+
+              @if (result()!.documentsRequis?.length) {
+                <div class="pma-gpa-documents-block">
+                  <span class="pma-gpa-block-label">Documents requis</span>
+                  <ul class="pma-gpa-list">
+                    @for (d of result()!.documentsRequis; track d) {
+                      <li>{{ d }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              @if (result()!.messages?.length) {
+                <ul class="pma-gpa-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              @if (result()!.formule) {
+                <div class="pma-gpa-formule-block">
+                  <span class="pma-gpa-formule-label">Formule</span>
+                  <span class="pma-gpa-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="pma-gpa-meta">
+                <span class="pma-gpa-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>
