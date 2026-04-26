@@ -1,0 +1,281 @@
+<section class="partage-section">
+  <header class="partage-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="partage-body">
+    <mat-icon class="partage-icon">handshake</mat-icon>
+    <span class="partage-title">PARTAGE SUCCESSORAL (FR)</span>
+    @if (result()) {
+      <span [ngClass]="verdictChipClass(result()!.verdictRecevabilite)">
+        {{ verdictLabel(result()!.verdictRecevabilite) }} — {{ modeLabel(result()!.modeRecommande) }}
+      </span>
+    }
+    <mat-icon class="partage-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="partage-body" class="partage-body">
+      @if (!isFrance()) {
+        <div class="partage-banner partage-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="partage-banner-content">
+            <div class="partage-banner-title">Outil français uniquement</div>
+            <div class="partage-banner-sub">
+              Le partage successoral (art. 815-840 Cciv + 1364 CPC) est
+              propre au droit français. L'équivalent belge (CJ art. 1207
+              et s. — partage judiciaire devant juge de paix) est traité
+              dans une feature jumelle au backlog.
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="partage-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="partage-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="partage-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Modalité demandée -->
+              <fieldset class="partage-fieldset">
+                <legend class="partage-legend">
+                  <mat-icon>category</mat-icon>
+                  Modalité demandée (art. 815, 835, 838, 840 Cciv)
+                </legend>
+
+                <div class="partage-radio-group">
+                  <span class="partage-radio-label">Mode de partage</span>
+                  <mat-radio-group required
+                                   [ngModel]="modePartageDemande()"
+                                   (ngModelChange)="onModePartageChange($event)"
+                                   name="modePartageDemande">
+                    @for (opt of modeOptions; track opt.code) {
+                      <mat-radio-button [value]="opt.code">{{ opt.label }}</mat-radio-button>
+                    }
+                  </mat-radio-group>
+                  <div class="partage-field-meta">
+                    @if (provenanceMode() === 'IA') {
+                      <span class="partage-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().MODE_PARTAGE; as alert) {
+                      <span class="partage-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Cohéritiers + dates -->
+              <fieldset class="partage-fieldset">
+                <legend class="partage-legend">
+                  <mat-icon>group</mat-icon>
+                  Cohéritiers et succession
+                </legend>
+
+                <div class="partage-grid">
+                  <div class="partage-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nombre de cohéritiers (≥ 2)</mat-label>
+                      <input matInput type="number" min="2" max="50" step="1" required
+                             [ngModel]="nombreCoheritiers()"
+                             (ngModelChange)="onNombreCoheritiersChange($event)"
+                             name="nombreCoheritiers" />
+                    </mat-form-field>
+                    @if (provenanceNombreCoheritiers() === 'IA') {
+                      <span class="partage-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="partage-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Date du décès</mat-label>
+                      <input matInput type="date" required
+                             [ngModel]="dateDeces()"
+                             (ngModelChange)="onDateDecesChange($event)"
+                             name="dateDeces" />
+                    </mat-form-field>
+                    @if (provenanceDateDeces() === 'IA') {
+                      <span class="partage-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="partage-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Valeur de la masse (€) — optionnel</mat-label>
+                      <input matInput type="number" min="0" step="1000"
+                             [ngModel]="valeurMasseEur()"
+                             (ngModelChange)="onValeurMasseEurChange($event)"
+                             name="valeurMasseEur" />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 3 : Conditions du partage -->
+              <fieldset class="partage-fieldset">
+                <legend class="partage-legend">
+                  <mat-icon>verified_user</mat-icon>
+                  Conditions du partage
+                </legend>
+
+                <div class="partage-radio-group">
+                  <span class="partage-radio-label">Tous les héritiers consentent (art. 835)</span>
+                  <mat-radio-group required
+                                   [ngModel]="consentementsTous()"
+                                   (ngModelChange)="onConsentementsTousChange($event)"
+                                   name="consentementsTous">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="partage-field-meta">
+                    @if (coherenceAlerts().CONSENTEMENTS; as alert) {
+                      <span class="partage-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="partage-radio-group">
+                  <span class="partage-radio-label">Présence d'immeubles dans la masse</span>
+                  <mat-radio-group required
+                                   [ngModel]="presenceImmeubles()"
+                                   (ngModelChange)="onPresenceImmeublesChange($event)"
+                                   name="presenceImmeubles">
+                    <mat-radio-button [value]="true">Oui (notaire obligatoire)</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="partage-field-meta">
+                    @if (coherenceAlerts().PRESENCE_IMMEUBLES; as alert) {
+                      <span class="partage-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="partage-radio-group">
+                  <span class="partage-radio-label">Accord sur les évaluations</span>
+                  <mat-radio-group required
+                                   [ngModel]="accordsValuation()"
+                                   (ngModelChange)="onAccordsValuationChange($event)"
+                                   name="accordsValuation">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="partage-radio-group">
+                  <span class="partage-radio-label">Désaccord persistant (déclenche judiciaire — art. 840)</span>
+                  <mat-radio-group required
+                                   [ngModel]="desaccordPersistant()"
+                                   (ngModelChange)="onDesaccordPersistantChange($event)"
+                                   name="desaccordPersistant">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <div class="partage-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser le partage</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="partage-result">
+              <!-- Bandeau verdict -->
+              <div [ngClass]="verdictBannerClass(result()!.verdictRecevabilite)" role="status">
+                <mat-icon>{{ verdictIcon(result()!.verdictRecevabilite) }}</mat-icon>
+                <div class="partage-banner-content">
+                  <div class="partage-banner-title">
+                    {{ verdictLabel(result()!.verdictRecevabilite) }}
+                    — {{ modeLabel(result()!.modeRecommande) }}
+                  </div>
+                  <div class="partage-banner-sub">
+                    Score : {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100 ·
+                    Délai instruction : {{ result()!.delaiInstructionMois }} mois ·
+                    Frais estimés :
+                    {{ (result()!.fraisEstimesPct * 100) | number:'1.1-1' }} %
+                    @if (result()!.fraisEstimesEur > 0) {
+                      ({{ result()!.fraisEstimesEur | number:'1.0-0' }} €)
+                    }
+                  </div>
+                  <div class="partage-flags">
+                    @if (result()!.basculeMode) {
+                      <span class="partage-flag-chip">
+                        <mat-icon>swap_horiz</mat-icon>
+                        Bascule amiable → judiciaire
+                      </span>
+                    }
+                    @if (result()!.risqueLicitation) {
+                      <span class="partage-flag-chip">
+                        <mat-icon>gavel</mat-icon>
+                        Risque de licitation (bien indivisible)
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="partage-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="partage-formule-block">
+                  <span class="partage-formule-label">Formule</span>
+                  <span class="partage-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="partage-meta">
+                <span class="partage-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

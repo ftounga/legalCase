@@ -284,4 +284,19 @@ export interface FamilleExtractedData {
     | 'HERITIER_RESERVATAIRE_DESCENDANT'
     | 'CONJOINT_SURVIVANT'
     | null;
+  /**
+   * SF-FA-24-10 : pré-fill partage successoral (art. 815-840 Cciv +
+   * 1364 CPC). Tous les champs optionnels — l'IA peut détecter une
+   * modalité indicative (avocat tranche), un nombre de cohéritiers et
+   * une date de décès.
+   */
+  modePartageDemandeDetecte?: string | null;
+  nombreCoheritiersDetecte?: number | null;
+  dateDecesDetectee?: string | null;
+  /**
+   * SF-FA-24-12 : pré-fill type d'indivision successorale (art. 815 / 1873-1
+   * / 815-1 Cciv). Réutilise `dateOuvertureSuccessionDetectee` (SF-FA-24-08)
+   * pour la date d'ouverture.
+   */
+  typeIndivisionSuccessoraleDetecte?: string | null;
 }

@@ -97,6 +97,7 @@ import { DevolutionLegaleSectionComponent } from '../devolution-legale-section/d
 import { TestamentValiditeSectionComponent } from '../testament-validite-section/testament-validite-section.component';
 import { DonationSectionComponent } from '../donation-section/donation-section.component';
 import { ReserveHeriditaireSectionComponent } from '../reserve-heriditaire-section/reserve-heriditaire-section.component';
+import { PartageSuccessoralSectionComponent } from '../partage-successoral-section/partage-successoral-section.component';
 import { ReconnaissancePaternelleSectionComponent } from '../reconnaissance-paternelle-section/reconnaissance-paternelle-section.component';
 import { ContestationPaterniteSectionComponent } from '../contestation-paternite-section/contestation-paternite-section.component';
 import { RecherchePaterniteSectionComponent } from '../recherche-paternite-section/recherche-paternite-section.component';
@@ -1139,6 +1140,18 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       // SF-FA-24-08 : réserve héréditaire FR.
       ['F-FA-24-reserve-heriditaire', {
         component: ReserveHeriditaireSectionComponent,
+        inputs: (ctx) => ({
+          caseFileId: ctx.caseFileId,
+          workspaceCountry: ctx.workspaceCountry,
+          aiData: ctx.synthesis?.familleExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+        }),
+      }],
+      // SF-FA-24-10 : partage successoral FR.
+      ['F-FA-24-partage-successoral', {
+        component: PartageSuccessoralSectionComponent,
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           workspaceCountry: ctx.workspaceCountry,
