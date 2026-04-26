@@ -228,13 +228,23 @@ export interface FamilleExtractedData {
   clauseAttributionIntegraleDetected?: boolean | null;
   valeurCommunauteEurDetectee?: number | null;
   /**
-   * SF-FA-27-02 : pré-fill PMA / GPA / bioéthique (loi 2/8/2021, art. 342-9
-   * Cciv ; Cass. 18/12/2022 ; art. 16-8-1 Cciv). Le pipeline IA peut
-   * détecter le dispositif évoqué dans le dossier (PMA / GPA / accès origines).
-   * Valeur attendue parmi `DispositifBioethique` :
-   * `PMA_RECONNAISSANCE_ANTICIPEE` / `GPA_TRANSCRIPTION_ETAT_CIVIL` /
-   * `DON_GAMETES_ACCES_ORIGINES`. Toute autre valeur est ignorée par le
-   * composant (no-op gracieux).
+   * SF-FA-18-04 : pré-fill contestation de paternité (art. 332-335 Cciv).
+   */
+  qualiteAagirContestationDetected?:
+    | 'PERE_DECLARE'
+    | 'PERE_BIOLOGIQUE_PRESUME'
+    | 'MERE'
+    | 'ENFANT_MAJEUR'
+    | null;
+  dateEtablissementFiliationDetectee?: string | null;
+  dateConnaissanceVeriteDetectee?: string | null;
+  dateMajoriteEnfantDetectee?: string | null;
+  possessionEtatConforme5AnsDetected?: boolean | null;
+  expertiseAdnDemandeeDetected?: boolean | null;
+  motifsSerieuxDetected?: boolean | null;
+  /**
+   * SF-FA-27-02 : pré-fill PMA / GPA / bioéthique. Valeurs attendues :
+   * PMA_RECONNAISSANCE_ANTICIPEE / GPA_TRANSCRIPTION_ETAT_CIVIL / DON_GAMETES_ACCES_ORIGINES.
    */
   dispositifBioethiqueDetecte?: string | null;
 }
