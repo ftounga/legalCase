@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="174-create-mesures-eloignement-analyses" author="legalcase">
+        <comment>
+            SF-IM-20-01 : table dédiée à l'outil décisionnel "Mesures d'éloignement avancées" (FR).
+            Évalue la légalité d'une mesure administrative d'éloignement autre que l'OQTF (F-IM-08) :
+              - EXPULSION_PREFECTORALE (CESEDA art. L.631-1 — menace grave à l'ordre public)
+              - EXPULSION_MINISTERIELLE (CESEDA art. L.631-2 — urgence absolue)
+              - EXPULSION_SECURITE_ETAT (CESEDA art. L.631-3 — nécessité impérieuse sécurité État)
+              - IRTF (CESEDA art. L.612-6 et s. — interdiction de retour, sanction associée OQTF)
+              - IAT (CESEDA art. L.222-1 et s. — interdiction administrative préventive)
+            Verdict VALIDE / CONTESTABLE / NUL selon : motif qualifié, procédure commission
+            respectée (sauf urgence absolue), durée présence irrégulière (IRTF), comportement.
+            Délai recours : 15j TA (IRTF), 30j TA (préfectorale), 60j CE (ministérielle / sécurité État / IAT).
+
+            Outil single-country FRANCE — l'équivalent BE (Loi 15/12/1980 art. 20-21, 74/15)
+            sera traité dans une feature jumelle au backlog (F-IM-20-BE).
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_IMMIGRATION, FRANCE, priority 76).
+        </comment>
+
+        <createTable tableName="mesures_eloignement_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mesures_eloignement_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="dispositif" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motif_menace" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="procedure_commission_respectee" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="urgence_absolue_justifiee" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="duree_circularite_precaire" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="duree_presence_irreguliere_mois" type="int">
+                <constraints nullable="true"/>
+            </column>
+            <column name="comportement_aggravant" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+            <column name="recours_delai" type="date">
+                <constraints nullable="true"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="mesures_eloignement_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_mesures_eloignement_analyses_case_file"/>
+
+        <createIndex tableName="mesures_eloignement_analyses"
+                     indexName="idx_mesures_eloignement_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000174', 'DROIT_IMMIGRATION', 'FRANCE', 'F-IM-20-mesures-eloignement', 'ALWAYS_ON', NULL, NULL, 76);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000174';
+            </sql>
+            <dropTable tableName="mesures_eloignement_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
