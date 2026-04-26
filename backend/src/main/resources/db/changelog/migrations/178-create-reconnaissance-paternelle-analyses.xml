@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="178-create-reconnaissance-paternelle-analyses" author="legalcase">
+        <comment>
+            SF-FA-18-01 : table dédiée à l'outil décisionnel "Reconnaissance
+            paternelle" (FR — art. 316 + 332-335 + 372 Cciv). Premier morceau
+            backend du chantier F-FA-18 (Filiation, 5-7 SF prévues : contestation
+            paternité 332-335, action en recherche, possession d'état, adoption
+            simple/plénière à venir).
+
+            Mécanisme volontaire et unilatéral. 3 sous-types prévus à l'art. 316 :
+            - RECONNAISSANCE_PRENATALE (al. 1) — avant la naissance, devant tout
+              officier d'état civil. Effet à la naissance.
+            - RECONNAISSANCE_POST_NATALE_NAISSANCE (al. 2) — pendant
+              l'établissement de l'acte de naissance, le père est nommé sur
+              l'acte.
+            - RECONNAISSANCE_POST_NATALE_ULTERIEURE (al. 3) — à tout moment
+              après la naissance, devant officier d'état civil ou notaire.
+
+            Critères de validité (verdict ELEVEE) : consentement libre du père
+            (sinon nullité absolue), paternité vraisemblable, enfant non déjà
+            reconnu par autre père, procédure respectée (présence ou
+            procuration spéciale notariée).
+
+            Effets : filiation établie rétroactivement à la naissance, autorité
+            parentale (372 Cciv sous conditions), nom (311-21), succession.
+            Recours en contestation possible 10 ans (art. 333 Cciv).
+
+            Outil single-country FRANCE — l'équivalent BE (CC art. 327 et s.,
+            consentement maternel requis pour reconnaissance d'enfant déjà
+            reconnu par la mère) sera traité dans une feature jumelle dédiée
+            au backlog.
+
+            + 1 règle visibility F-IA-04 (ALWAYS_ON, DROIT_FAMILLE, FRANCE,
+            priority 87) pour exposer l'outil sur tout dossier famille FR.
+        </comment>
+
+        <createTable tableName="reconnaissance_paternelle_analyses">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_reconnaissance_paternelle_analyses_case_file"
+                             referencedTableName="case_files"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="sous_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_naissance_enfant" type="date"/>
+            <column name="date_reconnaissance" type="date"/>
+            <column name="consentement_libre_du_pere" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="paternite_vraisemblable" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enfant_non_reconnu_par_autre_pere" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="procedure_respectee" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="presence_par_procuration" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result_data" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint tableName="reconnaissance_paternelle_analyses"
+                             columnNames="case_file_id"
+                             constraintName="uq_reconnaissance_paternelle_analyses_case_file"/>
+
+        <createIndex tableName="reconnaissance_paternelle_analyses"
+                     indexName="idx_reconnaissance_paternelle_analyses_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <sql splitStatements="true">
+            INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+            VALUES ('f1a04001-0000-0000-0000-ee0000000178', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-18-reconnaissance-paternelle', 'ALWAYS_ON', NULL, NULL, 87);
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM decision_tool_visibility_rules
+                WHERE id = 'f1a04001-0000-0000-0000-ee0000000178';
+            </sql>
+            <dropTable tableName="reconnaissance_paternelle_analyses"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
