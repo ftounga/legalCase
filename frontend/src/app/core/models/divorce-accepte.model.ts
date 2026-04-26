@@ -266,4 +266,18 @@ export interface FamilleExtractedData {
   expertiseAdnDemandeeRechercheDetected?: boolean | null;
   pereDesigneRefuseADNDetected?: boolean | null;
   motifsSerieuxRechercheDetected?: boolean | null;
+  /**
+   * SF-FA-24-08 : pré-fill outil "Réserve héréditaire et action en
+   * réduction" (F-FA-24, art. 913 + 914-1 + 920-928 Cciv). Tous champs
+   * optionnels — composant no-op gracieux si l'IA ne les a pas détectés.
+   */
+  nombreEnfantsSuccessionDetecte?: number | null;
+  montantSuccessionEurDetecte?: number | null;
+  montantLibsTotalEurDetecte?: number | null;
+  /** Format ISO `YYYY-MM-DD`. */
+  dateOuvertureSuccessionDetectee?: string | null;
+  qualiteDuDemandeurReserveDetecte?:
+    | 'HERITIER_RESERVATAIRE_DESCENDANT'
+    | 'CONJOINT_SURVIVANT'
+    | null;
 }

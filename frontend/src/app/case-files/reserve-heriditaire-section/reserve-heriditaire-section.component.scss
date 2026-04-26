@@ -1,0 +1,596 @@
+// SF-FA-24-08 : outil "Réserve héréditaire et action en réduction"
+// (FR — art. 913 + 914-1 + 920-928 Cciv).
+// Pattern jumeau `devolution-legale-section` (PR #658). Palette navy/or —
+// rouge réservé aux alertes critiques (action recevable, prescription
+// imminente < 12 mois, excédent réductible > 0).
+// DESIGN_SYSTEM.md aligné.
+
+.reserve-her-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.reserve-her-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.reserve-her-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.reserve-her-title {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.reserve-her-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(26, 55, 95, 0.10);
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.12);
+    color: #b00020;
+  }
+}
+
+.reserve-her-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.reserve-her-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
+.reserve-her-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.reserve-her-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reserve-her-fieldset {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+  background: var(--ds-surface, #ffffff);
+}
+
+.reserve-her-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ds-navy, #1a375f);
+
+  mat-icon {
+    color: var(--ds-accent-gold, #c9a54b);
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.reserve-her-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reserve-her-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.reserve-her-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+
+  mat-radio-group {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+}
+
+.reserve-her-radio-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reserve-her-field-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.reserve-her-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.reserve-her-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reserve-her-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--ds-navy, #1a375f);
+  background: rgba(26, 55, 95, 0.06);
+
+  mat-icon {
+    color: var(--ds-navy, #1a375f);
+    flex-shrink: 0;
+  }
+
+  &--info {
+    border-left-color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.06);
+    mat-icon { color: var(--ds-navy, #1a375f); }
+  }
+
+  &--critical {
+    border-left-color: #b00020;
+    background: rgba(176, 0, 32, 0.06);
+    mat-icon { color: #b00020; }
+  }
+}
+
+.reserve-her-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.reserve-her-banner-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.reserve-her-banner-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.reserve-her-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.reserve-her-flag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.10);
+    color: #b00020;
+    mat-icon { color: #b00020; }
+  }
+}
+
+// Tableau barème (config courante highlighted)
+.reserve-her-bareme-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reserve-her-bareme-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reserve-her-bareme-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(26, 35, 48, 0.02);
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--ds-border, #e6e1d4);
+  }
+
+  th {
+    font-weight: 700;
+    color: var(--ds-navy, #1a375f);
+    background: rgba(26, 55, 95, 0.04);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .reserve-her-th-num {
+    text-align: right;
+  }
+
+  .reserve-her-td-num {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-weight: 700;
+    text-align: right;
+    color: var(--ds-text-primary, #1a2330);
+  }
+}
+
+.reserve-her-bareme-row--highlight {
+  background: rgba(201, 165, 75, 0.10) !important;
+  td {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
+
+// Cards montants synthèse
+.reserve-her-amounts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reserve-her-amount-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: rgba(26, 55, 95, 0.04);
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.06);
+    border-color: rgba(176, 0, 32, 0.30);
+
+    .reserve-her-amount-value {
+      color: #b00020;
+    }
+  }
+}
+
+.reserve-her-amount-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reserve-her-amount-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ds-text-primary, #1a2330);
+}
+
+.reserve-her-amount-pct {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 12px;
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+// Barre de progression libs / quotité disponible
+.reserve-her-progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 6px;
+  background: rgba(26, 35, 48, 0.02);
+}
+
+.reserve-her-progress-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reserve-her-progress-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reserve-her-progress-value {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  font-weight: 600;
+}
+
+.reserve-her-progress-track {
+  position: relative;
+  height: 18px;
+  background: rgba(26, 55, 95, 0.06);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.reserve-her-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--ds-navy, #1a375f);
+  transition: width 0.3s ease;
+
+  &--critical {
+    background: #b00020;
+  }
+}
+
+.reserve-her-progress-marker {
+  position: absolute;
+  top: 0;
+  left: 66.66%; // 100 % du QD = 66.66 % de la track (track va jusqu'à 150 %)
+  height: 100%;
+  pointer-events: none;
+}
+
+.reserve-her-progress-marker-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--ds-accent-gold-dark, #8a6a16);
+}
+
+.reserve-her-progress-marker-label {
+  position: absolute;
+  top: -16px;
+  left: 4px;
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  white-space: nowrap;
+}
+
+.reserve-her-messages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    padding: 8px 12px;
+    background: rgba(201, 165, 75, 0.06);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ds-text-primary, #1a2330);
+    line-height: 1.5;
+  }
+
+  // SF-155-01 — citations juridiques rendues en JetBrains Mono via LegalCitationsPipe
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.95em;
+    background: rgba(26, 35, 48, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.reserve-her-formule-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(26, 35, 48, 0.03);
+  border-left: 3px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 4px;
+}
+
+.reserve-her-formule-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ds-text-secondary, #6a7485);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reserve-her-formule {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-primary, #1a2330);
+  white-space: pre-wrap;
+}
+
+.reserve-her-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reserve-her-meta-base {
+  font-family: 'JetBrains Mono', 'Menlo', monospace;
+  font-size: 13px;
+  color: var(--ds-text-secondary, #6a7485);
+  font-style: italic;
+}
+
+// Pré-fill IA + validation F-IA-03 (palette canonique).
+.reserve-her-provenance-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--ds-text-primary, #1a2330);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold, #c9a54b);
+  }
+}
+
+.reserve-her-coherence-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  background: rgba(201, 165, 75, 0.14);
+  border: 1px solid var(--ds-accent-gold, #c9a54b);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    color: var(--ds-accent-gold-dark, #8a6a16);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.reserve-her-coherence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: help;
+  background: rgba(201, 165, 75, 0.14);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: var(--ds-accent-gold-dark, #8a6a16);
+  }
+}
+
+// Verdict chip helper class (used in TS)
+.reserve-her-verdict-chip {
+  &--info {
+    background: rgba(26, 55, 95, 0.12);
+    color: var(--ds-navy, #1a375f);
+  }
+
+  &--critical {
+    background: rgba(176, 0, 32, 0.12);
+    color: #b00020;
+  }
+}
