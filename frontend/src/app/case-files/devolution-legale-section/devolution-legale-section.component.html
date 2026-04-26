@@ -1,0 +1,401 @@
+<section class="devolution-leg-section">
+  <header class="devolution-leg-header" (click)="toggleCollapse()" (keydown.enter)="toggleCollapse()"
+          tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="devolution-leg-body">
+    <mat-icon class="devolution-leg-icon">family_restroom</mat-icon>
+    <span class="devolution-leg-title">DÉVOLUTION LÉGALE SUCCESSORALE (FR)</span>
+    @if (result()) {
+      <span class="devolution-leg-chip"
+            [class.devolution-leg-chip--info]="result()!.ordreActif !== 'DESHERENCE'"
+            [class.devolution-leg-chip--critical]="result()!.ordreActif === 'DESHERENCE'">
+        Ordre {{ ordreNumero(result()!.ordreActif) }} — Score {{ result()!.scoreEligibilite }}/100
+      </span>
+    }
+    <mat-icon class="devolution-leg-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
+
+  @if (!collapsed()) {
+    <div id="devolution-leg-body" class="devolution-leg-body">
+      @if (!isFrance()) {
+        <div class="devolution-leg-banner devolution-leg-banner--info" role="note">
+          <mat-icon>info_outline</mat-icon>
+          <div class="devolution-leg-banner-content">
+            <div class="devolution-leg-banner-title">Outil français uniquement</div>
+            <div class="devolution-leg-banner-sub">
+              La dévolution légale successorale (art. 731 et s. Cciv) est propre
+              au droit français. L'équivalent belge (CC BE art. 731+, quotités
+              et fente différentes) est traité dans une feature jumelle au
+              backlog (F-FA-24-BE).
+            </div>
+          </div>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="devolution-leg-loading">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          @if (showForm()) {
+            @if (alertsSummary().total > 0) {
+              <div class="devolution-leg-coherence-summary">
+                <mat-icon>warning</mat-icon>
+                <span>{{ alertsSummary().total }} incohérence(s) avec l'analyse</span>
+              </div>
+            }
+
+            <form class="devolution-leg-form" (ngSubmit)="calculate()">
+
+              <!-- Section 1 : Conjoint survivant (art. 757 et s. Cciv) -->
+              <fieldset class="devolution-leg-fieldset">
+                <legend class="devolution-leg-legend">
+                  <mat-icon>favorite</mat-icon>
+                  Conjoint survivant (art. 757 et s. Cciv)
+                </legend>
+
+                <div class="devolution-leg-radio-group">
+                  <span class="devolution-leg-radio-label">Conjoint survivant</span>
+                  <mat-radio-group required
+                                   [ngModel]="conjointSurvivant()"
+                                   (ngModelChange)="onConjointSurvivantChange($event)"
+                                   name="conjointSurvivant">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                  <div class="devolution-leg-field-meta">
+                    @if (provenanceConjoint() === 'IA') {
+                      <span class="devolution-leg-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                    @if (coherenceAlerts().CONJOINT; as alert) {
+                      <span class="devolution-leg-coherence-badge"
+                            [appCoherencePopover]="[]"
+                            [appCoherencePopoverReason]="alertTooltip(alert)"
+                            [appCoherencePopoverCaseFileId]="caseFileId">
+                        <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 2 : Descendants (art. 734) -->
+              <fieldset class="devolution-leg-fieldset">
+                <legend class="devolution-leg-legend">
+                  <mat-icon>child_care</mat-icon>
+                  Descendants (Ordre 1 — art. 734)
+                </legend>
+
+                <div class="devolution-leg-grid">
+                  <div class="devolution-leg-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nombre de descendants vivants</mat-label>
+                      <input matInput type="number" min="0" step="1" required
+                             [ngModel]="nbDescendants()"
+                             (ngModelChange)="onNbDescendantsChange($event)"
+                             name="nbDescendants" />
+                    </mat-form-field>
+                    @if (provenanceNbDescendants() === 'IA') {
+                      <span class="devolution-leg-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="devolution-leg-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Descendants prédécédés (représentation)</mat-label>
+                      <input matInput type="number" min="0" step="1"
+                             [ngModel]="nbDescendantsPredecedes()"
+                             (ngModelChange)="onNbDescendantsPredecedesChange($event)"
+                             [disabled]="(nbDescendants() ?? 0) === 0"
+                             name="nbDescendantsPredecedes" />
+                    </mat-form-field>
+                  </div>
+
+                  <div class="devolution-leg-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Petits-enfants par représentation</mat-label>
+                      <input matInput type="number" min="0" step="1"
+                             [ngModel]="nbPetitsEnfantsParRepresentation()"
+                             (ngModelChange)="onNbPetitsEnfantsParRepresentationChange($event)"
+                             [disabled]="(nbDescendants() ?? 0) === 0"
+                             name="nbPetitsEnfantsParRepresentation" />
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                @if (tousCommunsRequired()) {
+                  <div class="devolution-leg-radio-group">
+                    <span class="devolution-leg-radio-label">
+                      Descendants tous communs au défunt et au conjoint
+                    </span>
+                    <mat-radio-group required
+                                     [ngModel]="tousDescendantsCommunsAvecConjoint()"
+                                     (ngModelChange)="onTousCommunsChange($event)"
+                                     name="tousDescendantsCommunsAvecConjoint">
+                      <mat-radio-button [value]="true">Oui (option ¼ ou usufruit)</mat-radio-button>
+                      <mat-radio-button [value]="false">Non — recomposée (¼ obligatoire)</mat-radio-button>
+                    </mat-radio-group>
+                    <div class="devolution-leg-field-meta">
+                      @if (provenanceTousCommuns() === 'IA') {
+                        <span class="devolution-leg-provenance-note">
+                          <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                        </span>
+                      }
+                      @if (coherenceAlerts().DESCENDANTS_COMMUNS; as alert) {
+                        <span class="devolution-leg-coherence-badge"
+                              [appCoherencePopover]="[]"
+                              [appCoherencePopoverReason]="alertTooltip(alert)"
+                              [appCoherencePopoverCaseFileId]="caseFileId">
+                          <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (optionConjointRequired()) {
+                  <div class="devolution-leg-radio-group">
+                    <span class="devolution-leg-radio-label">Option du conjoint (art. 757)</span>
+                    <mat-radio-group required
+                                     [ngModel]="optionConjoint()"
+                                     (ngModelChange)="onOptionConjointChange($event)"
+                                     name="optionConjoint">
+                      <mat-radio-button value="QUART">¼ en pleine propriété</mat-radio-button>
+                      <mat-radio-button value="USUFRUIT">Usufruit total</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                }
+              </fieldset>
+
+              <!-- Section 3 : Ascendants privilégiés (art. 738) -->
+              <fieldset class="devolution-leg-fieldset">
+                <legend class="devolution-leg-legend">
+                  <mat-icon>elderly</mat-icon>
+                  Ascendants privilégiés (Ordre 2 — art. 738)
+                </legend>
+
+                <div class="devolution-leg-radio-group">
+                  <span class="devolution-leg-radio-label">Père vivant</span>
+                  <mat-radio-group required
+                                   [ngModel]="pereVivant()"
+                                   (ngModelChange)="onPereVivantChange($event)"
+                                   name="pereVivant">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="devolution-leg-radio-group">
+                  <span class="devolution-leg-radio-label">Mère vivante</span>
+                  <mat-radio-group required
+                                   [ngModel]="mereVivant()"
+                                   (ngModelChange)="onMereVivanteChange($event)"
+                                   name="mereVivant">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <!-- Section 4 : Frères/Sœurs (collatéraux privilégiés) -->
+              <fieldset class="devolution-leg-fieldset">
+                <legend class="devolution-leg-legend">
+                  <mat-icon>group</mat-icon>
+                  Frères/Sœurs (Ordre 2 — collatéraux privilégiés)
+                </legend>
+
+                <div class="devolution-leg-grid">
+                  <div class="devolution-leg-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nombre de frères/sœurs vivants</mat-label>
+                      <input matInput type="number" min="0" step="1" required
+                             [ngModel]="nbFreresSoeurs()"
+                             (ngModelChange)="onNbFreresSoeursChange($event)"
+                             name="nbFreresSoeurs" />
+                    </mat-form-field>
+                    @if (provenanceNbFreresSoeurs() === 'IA') {
+                      <span class="devolution-leg-provenance-note">
+                        <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+                      </span>
+                    }
+                  </div>
+
+                  <div class="devolution-leg-field-wrapper">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Frères/Sœurs prédécédés</mat-label>
+                      <input matInput type="number" min="0" step="1"
+                             [ngModel]="nbFreresSoeursPredecedes()"
+                             (ngModelChange)="onNbFreresSoeursPredecedesChange($event)"
+                             [disabled]="(nbFreresSoeurs() ?? 0) === 0"
+                             name="nbFreresSoeursPredecedes" />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Section 5 : Ordres 3 + 4 -->
+              <fieldset class="devolution-leg-fieldset">
+                <legend class="devolution-leg-legend">
+                  <mat-icon>account_tree</mat-icon>
+                  Autres ordres (3 et 4 — art. 739, 740)
+                </legend>
+
+                <div class="devolution-leg-radio-group">
+                  <span class="devolution-leg-radio-label">
+                    Ascendants ordinaires (grands-parents, art. 739)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="ascendantsOrdinaires()"
+                                   (ngModelChange)="onAscendantsOrdinairesChange($event)"
+                                   name="ascendantsOrdinaires">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+
+                <div class="devolution-leg-radio-group">
+                  <span class="devolution-leg-radio-label">
+                    Collatéraux ordinaires (jusqu'au 6ème degré, art. 740)
+                  </span>
+                  <mat-radio-group required
+                                   [ngModel]="collateralOrdinaires()"
+                                   (ngModelChange)="onCollateralOrdinairesChange($event)"
+                                   name="collateralOrdinaires">
+                    <mat-radio-button [value]="true">Oui</mat-radio-button>
+                    <mat-radio-button [value]="false">Non</mat-radio-button>
+                  </mat-radio-group>
+                </div>
+              </fieldset>
+
+              <div class="devolution-leg-actions">
+                <button mat-flat-button color="primary" type="submit"
+                        [disabled]="!formValid() || calculating()">
+                  @if (calculating()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <ng-container>Analyser la dévolution</ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          } @else if (result()) {
+            <div class="devolution-leg-result">
+              <!-- Bandeau ordre actif -->
+              <div class="devolution-leg-banner"
+                   [class.devolution-leg-banner--critical]="result()!.ordreActif === 'DESHERENCE'"
+                   [class.devolution-leg-banner--info]="result()!.ordreActif !== 'DESHERENCE'"
+                   role="status">
+                <mat-icon>
+                  {{ result()!.ordreActif === 'DESHERENCE' ? 'gpp_bad' : 'verified' }}
+                </mat-icon>
+                <div class="devolution-leg-banner-content">
+                  <div class="devolution-leg-banner-title">
+                    {{ ordreLabel(result()!.ordreActif) }}
+                  </div>
+                  <div class="devolution-leg-banner-sub">
+                    Score : {{ result()!.scoreEligibilite | number:'1.0-0' }} / 100
+                  </div>
+                  <div class="devolution-leg-flags">
+                    @if (result()!.representationActive) {
+                      <span class="devolution-leg-flag-chip">
+                        <mat-icon>account_tree</mat-icon> Représentation active (art. 751-755)
+                      </span>
+                    }
+                    @if (result()!.fenteApplicable) {
+                      <span class="devolution-leg-flag-chip">
+                        <mat-icon>call_split</mat-icon> Fente successorale 50/50 (art. 746-749)
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tableau héritiers désignés -->
+              @if (result()!.heritiersDesignes?.length) {
+                <div class="devolution-leg-heritiers-block">
+                  <div class="devolution-leg-heritiers-label">Héritiers désignés</div>
+                  <table class="devolution-leg-heritiers-table">
+                    <thead>
+                      <tr>
+                        <th>Qualité</th>
+                        <th>Ordre</th>
+                        <th class="devolution-leg-th-num">Quote-part</th>
+                        <th>Modalité</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (h of result()!.heritiersDesignes; track trackHeritier($index, h)) {
+                        <tr>
+                          <td>{{ qualiteLabel(h.qualite) }}</td>
+                          <td>
+                            <span class="devolution-leg-row-ordre"
+                                  [class.devolution-leg-row-ordre--conjoint]="h.ordre === 0">
+                              {{ h.ordre === 0 ? 'C' : h.ordre }}
+                            </span>
+                          </td>
+                          <td class="devolution-leg-td-num">
+                            {{ h.quotePartPct | number:'1.2-2' }} %
+                          </td>
+                          <td>
+                            <span class="devolution-leg-modalite-chip"
+                                  [class.devolution-leg-modalite-chip--np]="h.modalite === 'NUE_PROPRIETE'"
+                                  [class.devolution-leg-modalite-chip--us]="h.modalite === 'USUFRUIT'">
+                              {{ modaliteLabel(h.modalite) }}
+                            </span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+
+              <!-- Risques contentieux -->
+              @if (result()!.risquesContentieux?.length) {
+                <div class="devolution-leg-risques-block">
+                  <div class="devolution-leg-risques-label">
+                    <mat-icon>warning</mat-icon>
+                    Risques de contentieux
+                  </div>
+                  <ul class="devolution-leg-risques-list">
+                    @for (r of result()!.risquesContentieux; track r) {
+                      <li class="devolution-leg-risque-chip">{{ r }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+
+              <!-- Messages -->
+              @if (result()!.messages?.length) {
+                <ul class="devolution-leg-messages">
+                  @for (m of result()!.messages; track m) {
+                    <li [innerHTML]="m | legalCitations"></li>
+                  }
+                </ul>
+              }
+
+              <!-- Formule -->
+              @if (result()!.formule) {
+                <div class="devolution-leg-formule-block">
+                  <span class="devolution-leg-formule-label">Formule</span>
+                  <span class="devolution-leg-formule">{{ result()!.formule }}</span>
+                </div>
+              }
+
+              <div class="devolution-leg-meta">
+                <span class="devolution-leg-meta-base"
+                      [innerHTML]="result()!.baseJuridique | legalCitations"></span>
+                <button mat-stroked-button type="button" (click)="editMode()">
+                  <mat-icon>edit</mat-icon> Modifier
+                </button>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+  }
+</section>

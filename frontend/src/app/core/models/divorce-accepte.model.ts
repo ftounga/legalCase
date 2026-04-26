@@ -195,4 +195,21 @@ export interface FamilleExtractedData {
   nombreCoindivisairesDetecte?: number | null;
   /** SF-FA-17-02 : valeur estimée des biens en indivision (€). */
   valeurBiensIndivisionEur?: number | null;
+  /**
+   * SF-FA-24-02 : pré-fill outil "Dévolution légale successorale"
+   * (F-FA-24, art. 731 et s. Cciv). Tous les champs sont optionnels —
+   * le composant est no-op gracieux si l'IA ne les a pas détectés.
+   *
+   * `conjointSurvivantDetected` : présence d'un conjoint survivant.
+   */
+  conjointSurvivantDetected?: boolean | null;
+  /** SF-FA-24-02 : nombre de descendants détecté par l'IA. */
+  nbDescendantsDetecte?: number | null;
+  /**
+   * SF-FA-24-02 : descendants tous communs au défunt + au conjoint
+   * (vs famille recomposée). Détermine si l'option ¼/usufruit est ouverte.
+   */
+  tousDescendantsCommunsAvecConjointDetected?: boolean | null;
+  /** SF-FA-24-02 : nombre de frères/sœurs détecté par l'IA. */
+  nbFreresSoeursDetecte?: number | null;
 }
