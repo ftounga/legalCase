@@ -95,6 +95,59 @@ $theme: mat.m2-define-light-theme((
   --spacing-3xl: 64px;
 }
 
+// ─── F-165 SF-165-03 : CSS fallback global pour les composants décisionnels
+// utilisant le pattern `<section class="*-section"><header class="*-header">`
+// dont le SCSS scopé ne s'applique pas correctement (bug Angular/hydration).
+// Sans ce fallback, les cards de F-DT-11/12/13/14/15/16/17/18/19/20/21/22/23/24/25/26/30/31/32/33/34/35
+// apparaissent comme des rectangles blancs sans titre visible.
+// ──────────────────────────────────────────────────────────────────────────
+section[class$="-section"]:has(> header[class$="-header"]) {
+  border: 1px solid #e6e1d4;
+  border-radius: 8px;
+  margin: 16px 0;
+  background: #ffffff;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+
+  > header[class$="-header"] {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+
+    &:focus-visible {
+      outline: 2px solid #c9a54b;
+      outline-offset: -2px;
+    }
+
+    > mat-icon[class$="-icon"]:first-of-type {
+      color: #c9a54b;
+      flex-shrink: 0;
+    }
+
+    > span[class$="-title"] {
+      flex: 1;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      color: #1a2330;
+      font-family: 'Inter', sans-serif;
+    }
+
+    > mat-icon[class$="-toggle"] {
+      color: #6b7a8d;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+  }
+}
+
 // ─── Animations globales ──────────────────────────────────────────────────
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
