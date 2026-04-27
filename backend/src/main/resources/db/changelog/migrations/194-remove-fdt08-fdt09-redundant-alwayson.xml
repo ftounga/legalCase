@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="194-remove-fdt08-fdt09-redundant-alwayson" author="legalcase">
+        <comment>
+            Fix-up F-165 SF-165-02 : suppression des entrées ALWAYS_ON
+            redondantes pour F-DT-08 et F-DT-09 Travail FR.
+
+            Constat post-déploiement F-165 SF-165-01 sur staging 2026-04-27 :
+            ces 2 outils ont à la fois une entrée ALWAYS_ON (seed initial 105
+            ligne UUIDs aaaa..21 / aaaa..22) ET des entrées CONTEXTUAL sur
+            type_rupture LICENCIEMENT/LICENCIEMENT_ECONOMIQUE/RUPTURE_CONVENTIONNELLE
+            (seeds 105 ligne UUIDs aaaa..05/06/07/08/09).
+
+            La présence d'ALWAYS_ON rend les CONTEXTUAL inutiles : F-DT-08 et
+            F-DT-09 s'affichent toujours, peu importe la détection IA. Cela
+            produit 2 cards "blanches" sur tout dossier vide.
+
+            Cette migration supprime les ALWAYS_ON redondants (FRANCE
+            uniquement — Belgique laissé inchangé tant que pas de signal terrain).
+
+            Les CONTEXTUAL existants prennent le relais quand l'IA détecte un
+            type_rupture pertinent.
+
+            Effet : 13 → 11 ALWAYS_ON Travail FR sur dossier vide.
+        </comment>
+
+        <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id IN (
+    'f1a04001-0000-0000-0000-aaaaaaaaaa21',  -- F-DT-08-licenciement-validity ALWAYS_ON FR
+    'f1a04001-0000-0000-0000-aaaaaaaaaa22'   -- F-DT-09-comparateur-indemnites ALWAYS_ON FR
+);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa21', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-08-licenciement-validity', 'ALWAYS_ON', NULL, NULL, 50);
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-aaaaaaaaaa22', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'ALWAYS_ON', NULL, NULL, 60);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
