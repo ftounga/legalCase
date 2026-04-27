@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="195-fdt09-trigger-rupture-conventionnelle" author="legalcase">
+        <comment>
+            Fix-up F-165 SF-165-04 : ajout trigger CONTEXTUAL `type_rupture =
+            RUPTURE_CONVENTIONNELLE` pour F-DT-09-comparateur-indemnites Travail FR.
+
+            Constat staging 2026-04-27 sur dossier E-38 : l'avocat ne voit plus
+            le comparateur d'indemnités sur un dossier RUPTURE_CONVENTIONNELLE,
+            alors qu'il l'avait avant. Or le comparateur reste juridiquement
+            pertinent en RC : l'avocat compare l'indemnité spécifique de
+            rupture conventionnelle (≥ indemnité légale licenciement, libre
+            au-delà) aux fourchettes jurisprudentielles.
+
+            Avant F-165 : F-DT-09 était ALWAYS_ON FR → toujours visible.
+            Après F-165 SF-165-01 + SF-165-02 : F-DT-09 est purement CONTEXTUAL
+            sur LICENCIEMENT/LICENCIEMENT_ECONOMIQUE → caché en RC.
+
+            Ce trigger restaure la visibilité de F-DT-09 sur les dossiers RC.
+
+            Cohérence avec F-DT-25 indemnite-preavis et F-DT-26 conges-payes
+            qui ont déjà ce trigger RUPTURE_CONVENTIONNELLE depuis F-165.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000095', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'RUPTURE_CONVENTIONNELLE', 60);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04001-0000-0000-0000-eeee00000095';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
