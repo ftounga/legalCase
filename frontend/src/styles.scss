@@ -95,65 +95,13 @@ $theme: mat.m2-define-light-theme((
   --spacing-3xl: 64px;
 }
 
-// (re-trigger build 2026-04-27 : push initial du tag c1ff20f vers ECR avait timeout)
-// ─── F-165 SF-165-03 (v2 SF-165-06) : CSS fallback global pour les composants
-// décisionnels avec pattern `<section class="*-section"><header class="*-header">`
-// dont le SCSS scopé ne s'applique pas (bug Angular/hydration).
-//
-// v2 : retrait de `:has()` (compat) et de `[class$="-icon"]/"-toggle"` qui ne
-// matchaient PAS les `mat-icon` (classes multiples — la valeur de class finit
-// par "mat-icon-no-color", pas par "-icon"). On cible nominativement les
-// 17 préfixes connus ; le `<span>` reste suffisant pour rendre les titres
-// visibles, le styling de `<mat-icon>` est laissé au comportement par défaut
-// (toujours visible : material-icons).
-// ──────────────────────────────────────────────────────────────────────────
-.td-section, .rsal-section, .protection-rp-section, .at-mp-section,
-.nc-section, .tx-section, .rp-section, .ca-section, .cp-section,
-.indpre-section, .dfc-section, .rci-section, .hln-section, .lnd-section,
-.discrim-section, .inap-section, .hs-section,
-.ipc-section, .fmi-section, .rcc-section, .ric-section {
-  display: block;
-  border: 1px solid #e6e1d4;
-  border-radius: 8px;
-  margin: 16px 0;
-  background: #ffffff;
-  overflow: hidden;
-  font-family: 'Inter', sans-serif;
-
-  > header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    cursor: pointer;
-    user-select: none;
-    background: transparent;
-    border: none;
-    width: 100%;
-    text-align: left;
-
-    > span {
-      flex: 1;
-      font-weight: 700;
-      font-size: 14px;
-      letter-spacing: 0.04em;
-      color: #1a2330;
-      font-family: 'Inter', sans-serif;
-    }
-
-    > mat-icon {
-      flex-shrink: 0;
-
-      &:first-child {
-        color: #c9a54b;
-      }
-
-      &:last-child {
-        color: #6b7a8d;
-      }
-    }
-  }
-}
+// SF-165-08 : ne plus avoir besoin du CSS fallback global pour les cards
+// décisionnelles. Le bug "cards blanches" venait de `landing.component.scss`
+// (ViewEncapsulation.None) qui définissait `header { position: fixed }`
+// et `section { padding: 96px 5% }` au niveau global, polluant tous les
+// `<section><header>` de l'app. Fix réel : scope `app-landing` ajouté
+// dans landing.component.scss. Les SCSS scopés des composants
+// décisionnels reprennent leur effet normal.
 
 // ─── Animations globales ──────────────────────────────────────────────────
 @keyframes fadeInUp {

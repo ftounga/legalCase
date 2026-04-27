@@ -29,7 +29,11 @@ body {
 }
 
 /* ─── HEADER ─── */
-header {
+/* SF-165-08 : ViewEncapsulation.None sur ce composant — toutes les règles
+   tag-level sont globales et polluent le reste de l'app (cf. cards
+   décisionnelles vidées par `header { position: fixed }` et
+   `section { padding: 96px 5% }`). Scope à `app-landing >` pour limiter. */
+app-landing > header {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
@@ -53,15 +57,15 @@ header {
 }
 .logo span { color: var(--gold); }
 
-nav { display: flex; align-items: center; gap: 2rem; }
-nav a {
+app-landing nav { display: flex; align-items: center; gap: 2rem; }
+app-landing nav a {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
   transition: color 0.2s;
 }
-nav a:hover { color: var(--navy); }
+app-landing nav a:hover { color: var(--navy); }
 
 .btn-primary {
   display: inline-flex;
@@ -355,7 +359,7 @@ nav a:hover { color: var(--navy); }
 }
 
 /* ─── SECTIONS COMMUNES ─── */
-section { padding: 96px 5%; }
+app-landing section { padding: 96px 5%; }
 
 .section-eyebrow {
   display: inline-flex;
@@ -984,7 +988,7 @@ section { padding: 96px 5%; }
 }
 
 /* ─── FOOTER ─── */
-footer {
+app-landing footer {
   background: var(--navy-deep);
   padding: 3rem 5%;
   text-align: center;
