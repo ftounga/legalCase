@@ -1250,4 +1250,55 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // ── SF-170-01 — Section Documents en accordéon ─────────────────────────
+
+  describe('SF-170-01 docsCollapsed accordion', () => {
+    afterEach(() => {
+      try { sessionStorage.clear(); } catch { /* fail-silent */ }
+      jest.restoreAllMocks();
+    });
+
+    it('SF-170-01 T-01: docsCollapsed est false par défaut quand sessionStorage est vide', () => {
+      try { sessionStorage.clear(); } catch { /* fail-silent */ }
+      // ngOnInit a déjà été appelé dans le beforeEach. On rappelle restore explicitement
+      // pour vérifier qu'avec sessionStorage vide, l'état est bien false.
+      (component as any).restoreDocsCollapsedFromSession('cf1');
+      expect(component.docsCollapsed()).toBe(false);
+    });
+
+    it('SF-170-01 T-02: docsCollapsed=true si sessionStorage contient "true"', () => {
+      sessionStorage.setItem('case-file-cf1-docs-collapsed', 'true');
+      (component as any).restoreDocsCollapsedFromSession('cf1');
+      expect(component.docsCollapsed()).toBe(true);
+    });
+
+    it('SF-170-01 T-03: toggleDocsCollapsed() bascule + écrit sessionStorage', () => {
+      try { sessionStorage.clear(); } catch { /* fail-silent */ }
+      (component as any).restoreDocsCollapsedFromSession('cf1');
+      expect(component.docsCollapsed()).toBe(false);
+
+      component.toggleDocsCollapsed();
+      expect(component.docsCollapsed()).toBe(true);
+      expect(sessionStorage.getItem('case-file-cf1-docs-collapsed')).toBe('true');
+
+      component.toggleDocsCollapsed();
+      expect(component.docsCollapsed()).toBe(false);
+      expect(sessionStorage.getItem('case-file-cf1-docs-collapsed')).toBe('false');
+    });
+
+    it('SF-170-01 T-04: sessionStorage indisponible — pas de crash + toggle reste fonctionnel', () => {
+      jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('SecurityError');
+      });
+      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('SecurityError');
+      });
+
+      expect(() => (component as any).restoreDocsCollapsedFromSession('cf1')).not.toThrow();
+      expect(() => component.toggleDocsCollapsed()).not.toThrow();
+      // Toggle bascule l'état en mémoire malgré l'échec d'écriture sessionStorage.
+      expect(component.docsCollapsed()).toBe(true);
+    });
+  });
+
 });

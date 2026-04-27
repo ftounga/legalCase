@@ -91,6 +91,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   synthesisLoading = signal(false);
   questionsLoading = signal(false);
   questionsLoaded = signal(false);
+  // SF-170-01 : section Documents repliable en accordéon (état persisté sessionStorage)
+  readonly docsCollapsed = signal(false);
   currentMemberRole = signal<string | null>(null);
   workspaceCountry = signal<string>('FRANCE');
 
@@ -326,6 +328,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
 
+    // SF-170-01 : restaurer l'état replié de la section Documents pour ce dossier.
+    this.restoreDocsCollapsedFromSession(id);
+
     // SF-IA-03-19 : scroll vers la section cible quand on arrive via un popover d'incohérence.
     this.route.queryParamMap?.subscribe(params => {
       const section = params.get('section');
@@ -383,6 +388,37 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.eventsSub?.unsubscribe();
+  }
+
+  // ── SF-170-01 : accordéon section Documents ────────────────────────────
+
+  /**
+   * Clé sessionStorage par dossier : un repli n'affecte que le dossier courant.
+   * Accepte un caseFileId optionnel pour les contextes où `this.caseFile()` n'est
+   * pas encore peuplé (au moment du ngOnInit, on a juste l'id de la route).
+   */
+  private docsCollapsedKey(caseFileId?: string): string {
+    const id = caseFileId ?? this.caseFile()?.id ?? '';
+    return `case-file-${id}-docs-collapsed`;
+  }
+
+  private restoreDocsCollapsedFromSession(caseFileId: string): void {
+    try {
+      const v = sessionStorage.getItem(this.docsCollapsedKey(caseFileId));
+      this.docsCollapsed.set(v === 'true');
+    } catch {
+      // sessionStorage indisponible (incognito strict) — fail-silent.
+    }
+  }
+
+  toggleDocsCollapsed(): void {
+    const next = !this.docsCollapsed();
+    this.docsCollapsed.set(next);
+    try {
+      sessionStorage.setItem(this.docsCollapsedKey(), String(next));
+    } catch {
+      // fail-silent : sessionStorage indisponible.
+    }
   }
 
   /** SF-IA-03-19 : scroll + highlight pulse 2s sur une section. Retry 3× car le rendu est async. */

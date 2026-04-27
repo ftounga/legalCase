@@ -196,6 +196,65 @@
   color: var(--color-text-primary);
 }
 
+// SF-170-01 : section Documents en accordéon (pattern canonique td-section).
+.td-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
+}
+
+.td-section--documents {
+  margin-top: var(--spacing-2xl);
+}
+
+.td-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.td-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.td-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
+  font-family: 'Inter', sans-serif;
+}
+
+.td-chip {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(201, 165, 75, 0.12);
+  color: var(--ds-accent-gold-dark, #8a6a16);
+  font-weight: 600;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+}
+
+.td-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
+
+.td-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
+}
+
 .btn-spinner {
   display: inline-block;
   margin-right: var(--spacing-xs);
