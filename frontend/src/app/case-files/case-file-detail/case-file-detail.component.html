@@ -91,14 +91,30 @@
         </mat-card>
       }
 
-      <div id="section-documents" class="section-header">
-        <h2 class="section-title">Documents</h2>
-        <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden (change)="onFileSelected($event)">
-        <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn" (click)="triggerUpload()" [disabled]="!canUpload()">
-          <mat-icon>add</mat-icon>
-          Ajouter des documents
-        </button>
-      </div>
+      <section id="section-documents" class="td-section td-section--documents">
+        <header class="td-header"
+                (click)="toggleDocsCollapsed()"
+                (keydown.enter)="toggleDocsCollapsed()"
+                tabindex="0" role="button"
+                [attr.aria-expanded]="!docsCollapsed()"
+                aria-controls="section-documents-body">
+          <mat-icon class="td-icon">folder</mat-icon>
+          <span class="td-title">DOCUMENTS</span>
+          @if (documents().length > 0) {
+            <span class="td-chip">{{ documents().length }} document{{ documents().length > 1 ? 's' : '' }}</span>
+          }
+          <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden (change)="onFileSelected($event)">
+          <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn"
+                  (click)="triggerUpload(); $event.stopPropagation()"
+                  [disabled]="!canUpload()">
+            <mat-icon>add</mat-icon>
+            Ajouter des documents
+          </button>
+          <mat-icon class="td-toggle">{{ docsCollapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+        </header>
+
+        @if (!docsCollapsed()) {
+        <div id="section-documents-body" class="td-body">
 
       <!-- SF-122-05 : bandeau retry OCR si ≥ 1 doc FAILED éligible -->
       @if (ocrRetryPreview(); as preview) {
@@ -327,6 +343,9 @@
           </table>
         </mat-card>
       }
+        </div>
+        }
+      </section>
     </div>
 
     <!-- Colonne droite : analyse -->
