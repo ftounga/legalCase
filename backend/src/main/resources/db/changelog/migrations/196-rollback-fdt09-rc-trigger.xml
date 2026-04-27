@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="196-rollback-fdt09-rc-trigger" author="legalcase">
+        <comment>
+            Rollback de la migration 195 (F-165 SF-165-04).
+
+            Décision produit 2026-04-27 (validée par l'utilisateur après
+            challenge) : F-DT-09 comparateur d'indemnités N'EST PAS pertinent
+            sur un dossier RUPTURE_CONVENTIONNELLE.
+
+            Raisonnement :
+              - F-DT-09 compare une indemnité à des fourchettes
+                jurisprudentielles (cas typique : barème Macron art. L.1235-3
+                après un licenciement abusif).
+              - En RC, l'indemnité est négociée librement entre les parties,
+                il n'y a pas de jurisprudence "un juge a accordé X €" pour
+                comparer.
+              - Le minimum légal est calculé par F-132-rupture-conv-indemnite
+                (déjà CONTEXTUAL sur RC) et c'est lui l'outil dédié.
+
+            Garder F-DT-09 visible en RC = afficher un outil non pertinent =
+            bruit qui dégrade la qualité perçue du produit. Va à l'encontre
+            de la philosophie F-IA-04 et de la mémoire
+            `feedback_decision_tools_one_per_situation.md`.
+
+            La migration 195 (PR #692) avait été créée sur signal terrain
+            "j'ai perdu le comparateur" mais l'utilisateur voyait F-DT-09
+            avant F-165 simplement parce qu'il était ALWAYS_ON (sur-affichage
+            que F-165 cherche à éliminer), pas parce qu'il était pertinent.
+
+            Cette migration restaure le mapping post F-165 : F-DT-09 reste
+            CONTEXTUAL uniquement sur LICENCIEMENT et LICENCIEMENT_ECONOMIQUE.
+        </comment>
+
+        <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules
+WHERE id = 'f1a04001-0000-0000-0000-eeee00000095';
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000095', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-09-comparateur-indemnites', 'CONTEXTUAL', 'type_rupture', 'RUPTURE_CONVENTIONNELLE', 60);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
