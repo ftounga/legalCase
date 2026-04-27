@@ -12,32 +12,27 @@
         </mat-card-content>
       </mat-card>
     } @else {
-      @if (resolvedAlwaysOn().length > 0) {
-        <section class="tool-section">
-          <h2 class="section-title">Outils principaux</h2>
-          @for (item of resolvedAlwaysOn(); track item.toolId) {
-            <ng-container
-              *ngComponentOutlet="
-                item.entry.component;
-                inputs: componentInputsFor(item.entry)
-              ">
-            </ng-container>
+      @let themed = themedTools();
+      @for (theme of themesOrdered; track theme.key) {
+        @if (themed.get(theme.key); as items) {
+          @if (items.length > 0) {
+            <section class="theme-section" [attr.data-theme]="theme.key">
+              <h2 class="theme-title">{{ theme.label }}</h2>
+              <div class="theme-grid">
+                @for (item of items; track item.toolId) {
+                  <div class="theme-grid-item">
+                    <ng-container
+                      *ngComponentOutlet="
+                        item.entry.component;
+                        inputs: componentInputsFor(item.entry)
+                      ">
+                    </ng-container>
+                  </div>
+                }
+              </div>
+            </section>
           }
-        </section>
-      }
-
-      @if (resolvedContextual().length > 0) {
-        <section class="tool-section">
-          <h2 class="section-title">Outils contextuels</h2>
-          @for (item of resolvedContextual(); track item.toolId) {
-            <ng-container
-              *ngComponentOutlet="
-                item.entry.component;
-                inputs: componentInputsFor(item.entry)
-              ">
-            </ng-container>
-          }
-        </section>
+        }
       }
 
       @if (visibility()!.catalog.length > 0) {
