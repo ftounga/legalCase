@@ -240,6 +240,122 @@ class DecisionToolVisibilityServiceTest {
         assertThat(r.catalog()).isNotEmpty();
     }
 
+    // ─────── F-165 SF-165-01 : 5 nouveaux trigger_field Travail FR ──────────
+
+    @Test
+    void travailFr_typeContrat_CDD_active_F_DT_17_F_DT_22() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"type_contrat\":\"CDD\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual())
+                .contains("F-DT-17-indemnite-precarite-cdd")
+                .contains("F-DT-22-requalification-cdd-cdi")
+                .doesNotContain("F-DT-18-fin-mission-interim")
+                .doesNotContain("F-DT-23-requalification-interim-cdi");
+    }
+
+    @Test
+    void travailFr_typeContrat_INTERIM_active_F_DT_18_F_DT_23() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"type_contrat\":\"INTERIM\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual())
+                .contains("F-DT-18-fin-mission-interim")
+                .contains("F-DT-23-requalification-interim-cdi")
+                .doesNotContain("F-DT-17-indemnite-precarite-cdd");
+    }
+
+    @Test
+    void travailFr_origine_inaptitude_active_F_DT_15() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"origine_inaptitude_pressentie\":\"MALADIE_PROFESSIONNELLE\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-15-inaptitude");
+    }
+
+    @Test
+    void travailFr_motif_nullite_HARCELEMENT_active_F_DT_11() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"motif_nullite_pressenti\":\"HARCELEMENT_MORAL\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual())
+                .contains("F-DT-11-harcelement-licenciement-nul")
+                .doesNotContain("F-DT-12-discrimination-dommages-interets");
+    }
+
+    @Test
+    void travailFr_heures_sup_objet_present_active_F_DT_19() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson(
+                "{\"travail_extracted_data\":{\"heures_sup_mentionnees\":{\"total_declarees_25pct\":12}}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-19-heures-sup");
+    }
+
+    @Test
+    void travailFr_heures_sup_node_null_pas_de_trigger() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"heures_sup_mentionnees\":null}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).doesNotContain("F-DT-19-heures-sup");
+    }
+
+    @Test
+    void travailFr_dossier_vide_aucun_contextuel_F165() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        // Pas d'analyse → pas de detection → seulement les ALWAYS_ON
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                eq(CF_ID), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).isEmpty();
+        assertThat(r.alwaysOn())
+                .contains("F-DT-03-prescription-litige")
+                .contains("F-DT-04-fiche-prudhomale")
+                .contains("F-DT-07-anciennete-conges-prime")
+                .doesNotContain("F-DT-15-inaptitude")
+                .doesNotContain("F-DT-17-indemnite-precarite-cdd");
+    }
+
+    /** Reproduit le seeding réel post F-165 SF-165-01 (migration 193). */
+    private void givenTravailFrRulesF165() {
+        List<DecisionToolVisibilityRule> rules = new ArrayList<>();
+        // Essentiels ALWAYS_ON
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-03-prescription-litige", ALWAYS_ON, null, null, 10));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-04-fiche-prudhomale", ALWAYS_ON, null, null, 20));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-07-anciennete-conges-prime", ALWAYS_ON, null, null, 30));
+        // F-165 SF-165-01 : nouvelles entrées CONTEXTUAL
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-17-indemnite-precarite-cdd", CONTEXTUAL, "type_contrat", "CDD", 50));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-22-requalification-cdd-cdi", CONTEXTUAL, "type_contrat", "CDD", 54));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-18-fin-mission-interim", CONTEXTUAL, "type_contrat", "INTERIM", 51));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-23-requalification-interim-cdi", CONTEXTUAL, "type_contrat", "INTERIM", 58));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-15-inaptitude", CONTEXTUAL, "origine_inaptitude_pressentie", "MALADIE_PROFESSIONNELLE", 54));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-11-harcelement-licenciement-nul", CONTEXTUAL, "motif_nullite_pressenti", "HARCELEMENT_MORAL", 52));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-12-discrimination-dommages-interets", CONTEXTUAL, "motif_nullite_pressenti", "DISCRIMINATION", 53));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-19-heures-sup", CONTEXTUAL, "heures_sup_mentionnees", "PRESENT", 55));
+        when(ruleRepository.findForDomainAndCountry("DROIT_DU_TRAVAIL", "FRANCE")).thenReturn(rules);
+    }
+
     // ─────────────────────────── Helpers ────────────────────────────────────
 
     private void givenTravailFrRules() {
