@@ -95,6 +95,7 @@ $theme: mat.m2-define-light-theme((
   --spacing-3xl: 64px;
 }
 
+// (re-trigger build 2026-04-27 : push initial du tag c1ff20f vers ECR avait timeout)
 // ─── F-165 SF-165-03 (v2 SF-165-06) : CSS fallback global pour les composants
 // décisionnels avec pattern `<section class="*-section"><header class="*-header">`
 // dont le SCSS scopé ne s'applique pas (bug Angular/hydration).
