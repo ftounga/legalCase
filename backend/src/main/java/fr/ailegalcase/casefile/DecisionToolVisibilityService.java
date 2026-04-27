@@ -124,6 +124,22 @@ public class DecisionToolVisibilityService {
                 readString(root.path("liquidation_communaute_data").path("regime_matrimonial")));
         addIfPresent(detected, "mode_garde_detaille",
                 readString(root.path("pension_alimentaire_data").path("mode_garde_detaille")));
+
+        // F-165 SF-165-01 : 5 nouveaux trigger_field lus depuis travail_extracted_data
+        // pour basculer 14 outils Travail FR ALWAYS_ON → CONTEXTUAL.
+        JsonNode travailNode = root.path("travail_extracted_data");
+        addIfPresent(detected, "type_contrat", readString(travailNode.path("type_contrat")));
+        addIfPresent(detected, "motif_licenciement", readString(travailNode.path("motif_licenciement")));
+        addIfPresent(detected, "origine_inaptitude_pressentie",
+                readString(travailNode.path("origine_inaptitude_pressentie")));
+        addIfPresent(detected, "motif_nullite_pressenti",
+                readString(travailNode.path("motif_nullite_pressenti")));
+        // heures_sup_mentionnees est un objet JSON ({total_declarees_25pct, ...} ou null) ;
+        // on émet le trigger "PRESENT" dès qu'au moins le node est un objet non vide.
+        JsonNode heuresSupNode = travailNode.path("heures_sup_mentionnees");
+        if (heuresSupNode != null && heuresSupNode.isObject() && !heuresSupNode.isEmpty()) {
+            addIfPresent(detected, "heures_sup_mentionnees", "PRESENT");
+        }
         return detected;
     }
 

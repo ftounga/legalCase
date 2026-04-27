@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="193-shift-tools-to-contextual-travail-fr" author="legalcase">
+        <comment>
+            F-165 SF-165-01 : conversion ALWAYS_ON → CONTEXTUAL pour 14 outils
+            décisionnels Travail FR.
+
+            Bug staging 2026-04-27 sur dossier E-37 (vide) : le panel F-IA-04
+            affiche 27 cards "blanches" car les nouveaux outils des 61 features
+            récentes ont tous été seedés ALWAYS_ON. Cette migration les passe
+            en CONTEXTUAL avec triggers IA déjà disponibles dans le JSON
+            analysis_result, sans modifier les prompts Sonnet.
+
+            Effet : 27 ALWAYS_ON → 11 ALWAYS_ON (3 essentiels + 8 backlog F-166).
+
+            Travail BELGIQUE : non touché (5 ALWAYS_ON déjà raisonnables, et le
+            bug n'a pas été observé sur ce domaine). À ré-évaluer si signal
+            terrain.
+
+            UUID namespace `f1a04001-0000-0000-0000-eeee...` pour les nouvelles
+            entrées CONTEXTUAL F-165 (distinct de l'espace `ee...` initial).
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE : 14 ALWAYS_ON Travail FR à supprimer
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules
+WHERE country = 'FRANCE' AND layer = 'ALWAYS_ON' AND tool_id IN (
+    'F-DT-11-harcelement-licenciement-nul',
+    'F-DT-12-discrimination-dommages-interets',
+    'F-DT-13-licenciement-economique',
+    'F-DT-14-pse-validite',
+    'F-DT-15-inaptitude',
+    'F-DT-16-licenciement-nul-detection',
+    'F-DT-17-indemnite-precarite-cdd',
+    'F-DT-18-fin-mission-interim',
+    'F-DT-19-heures-sup',
+    'F-DT-22-requalification-cdd-cdi',
+    'F-DT-23-requalification-interim-cdi',
+    'F-DT-25-indemnite-preavis',
+    'F-DT-26-conges-payes-indemnite',
+    'F-DT-32-documents-fin-contrat'
+);
+
+-- =========================================================================
+-- INSERT : nouvelles entrées CONTEXTUAL avec triggers IA
+-- =========================================================================
+
+-- ----- type_rupture (déjà supporté par extractDetectedSituations) -----
+
+-- F-DT-13 licenciement-economique (1 trigger)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000131', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-13-licenciement-economique', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 55);
+
+-- F-DT-14 pse-validite (1 trigger)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000141', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-14-pse-validite', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 56);
+
+-- F-DT-16 licenciement-nul-detection (2 triggers)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000161', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-16-licenciement-nul-detection', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 56);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000162', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-16-licenciement-nul-detection', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 56);
+
+-- F-DT-25 indemnite-preavis (3 triggers)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000251', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-25-indemnite-preavis', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 53);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000252', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-25-indemnite-preavis', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 53);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000253', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-25-indemnite-preavis', 'CONTEXTUAL', 'type_rupture', 'RUPTURE_CONVENTIONNELLE', 53);
+
+-- F-DT-26 conges-payes-indemnite (3 triggers)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000261', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-26-conges-payes-indemnite', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 52);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000262', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-26-conges-payes-indemnite', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 52);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000263', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-26-conges-payes-indemnite', 'CONTEXTUAL', 'type_rupture', 'RUPTURE_CONVENTIONNELLE', 52);
+
+-- F-DT-32 documents-fin-contrat (3 triggers)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000321', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-32-documents-fin-contrat', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT', 59);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000322', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-32-documents-fin-contrat', 'CONTEXTUAL', 'type_rupture', 'LICENCIEMENT_ECONOMIQUE', 59);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000323', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-32-documents-fin-contrat', 'CONTEXTUAL', 'type_rupture', 'RUPTURE_CONVENTIONNELLE', 59);
+
+-- ----- type_contrat (nouveau trigger SF-165-01) -----
+
+-- F-DT-17 indemnite-precarite-cdd
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000171', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-17-indemnite-precarite-cdd', 'CONTEXTUAL', 'type_contrat', 'CDD', 50);
+
+-- F-DT-22 requalification-cdd-cdi
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000221', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-22-requalification-cdd-cdi', 'CONTEXTUAL', 'type_contrat', 'CDD', 54);
+
+-- F-DT-18 fin-mission-interim
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000181', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-18-fin-mission-interim', 'CONTEXTUAL', 'type_contrat', 'INTERIM', 51);
+
+-- F-DT-23 requalification-interim-cdi
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000231', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-23-requalification-interim-cdi', 'CONTEXTUAL', 'type_contrat', 'INTERIM', 58);
+
+-- ----- origine_inaptitude_pressentie (nouveau trigger SF-165-01) -----
+
+-- F-DT-15 inaptitude (3 triggers)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000151', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-15-inaptitude', 'CONTEXTUAL', 'origine_inaptitude_pressentie', 'ACCIDENT_TRAVAIL', 54);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000152', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-15-inaptitude', 'CONTEXTUAL', 'origine_inaptitude_pressentie', 'MALADIE_PROFESSIONNELLE', 54);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000153', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-15-inaptitude', 'CONTEXTUAL', 'origine_inaptitude_pressentie', 'MALADIE_ORDINAIRE', 54);
+
+-- ----- motif_nullite_pressenti (nouveau trigger SF-165-01) -----
+
+-- F-DT-11 harcelement-licenciement-nul (2 triggers)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000111', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-11-harcelement-licenciement-nul', 'CONTEXTUAL', 'motif_nullite_pressenti', 'HARCELEMENT_MORAL', 52);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000112', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-11-harcelement-licenciement-nul', 'CONTEXTUAL', 'motif_nullite_pressenti', 'HARCELEMENT_SEXUEL', 52);
+
+-- F-DT-12 discrimination-dommages-interets (1 trigger)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000121', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-12-discrimination-dommages-interets', 'CONTEXTUAL', 'motif_nullite_pressenti', 'DISCRIMINATION', 53);
+
+-- ----- heures_sup_mentionnees (custom logic SF-165-01) -----
+
+-- F-DT-19 heures-sup (trigger PRESENT si node objet non vide)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee00000191', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-19-heures-sup', 'CONTEXTUAL', 'heures_sup_mentionnees', 'PRESENT', 55);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+-- Restaurer les 14 ALWAYS_ON Travail FR
+DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee%';
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000111', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-11-harcelement-licenciement-nul', 'ALWAYS_ON', NULL, NULL, 52);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000121', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-12-discrimination-dommages-interets', 'ALWAYS_ON', NULL, NULL, 53);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000131', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-13-licenciement-economique', 'ALWAYS_ON', NULL, NULL, 55);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000164', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-14-pse-validite', 'ALWAYS_ON', NULL, NULL, 56);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000151', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-15-inaptitude', 'ALWAYS_ON', NULL, NULL, 54);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000161', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-16-licenciement-nul-detection', 'ALWAYS_ON', NULL, NULL, 56);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000017', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-17-indemnite-precarite-cdd', 'ALWAYS_ON', NULL, NULL, 50);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000181', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-18-fin-mission-interim', 'ALWAYS_ON', NULL, NULL, 51);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000191', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-19-heures-sup', 'ALWAYS_ON', NULL, NULL, 55);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000221', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-22-requalification-cdd-cdi', 'ALWAYS_ON', NULL, NULL, 54);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000231', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-23-requalification-interim-cdi', 'ALWAYS_ON', NULL, NULL, 58);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000251', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-25-indemnite-preavis', 'ALWAYS_ON', NULL, NULL, 53);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000261', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-26-conges-payes-indemnite', 'ALWAYS_ON', NULL, NULL, 52);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000321', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-32-documents-fin-contrat', 'ALWAYS_ON', NULL, NULL, 59);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
