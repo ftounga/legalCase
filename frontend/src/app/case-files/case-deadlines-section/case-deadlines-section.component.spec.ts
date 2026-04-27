@@ -117,7 +117,7 @@ describe('CaseDeadlinesSectionComponent', () => {
     fixture.detectChanges();
     expect(component.collapsed()).toBe(false);
     expect(fixture.nativeElement.querySelector('.add-deadline-form')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.section-badge')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.td-chip')).toBeNull();
   });
 
   it('SF71-U-03: double toggle — retour à l\'état replié, badge visible', () => {
@@ -127,7 +127,7 @@ describe('CaseDeadlinesSectionComponent', () => {
     component.toggleCollapsed();
     fixture.detectChanges();
     expect(component.collapsed()).toBe(true);
-    const badge = fixture.nativeElement.querySelector('.section-badge');
+    const badge = fixture.nativeElement.querySelector('.td-chip');
     expect(badge).toBeTruthy();
     expect(badge.textContent).toContain('2 délais');
   });

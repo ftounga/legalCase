@@ -1,15 +1,16 @@
-<div class="anciennete-section">
-  <button class="section-header" (click)="toggleCollapsed()">
-    <mat-icon class="section-icon">calendar_month</mat-icon>
-    <span class="section-title">Ancienneté et congés</span>
+<section class="td-section">
+  <header class="td-header" (click)="toggleCollapsed()" (keydown.enter)="toggleCollapsed()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="td-body">
+    <mat-icon class="td-icon">calendar_month</mat-icon>
+    <span class="td-title">ANCIENNETÉ ET CONGÉS</span>
     @if (result() && !showForm()) {
-      <span class="section-badge">{{ result()!.ancienneteAnnees }} an(s) {{ result()!.ancienneteMois }} mois</span>
+      <span class="td-chip">{{ result()!.ancienneteAnnees }} an(s) {{ result()!.ancienneteMois }} mois</span>
     }
-    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
-  </button>
+    <mat-icon class="td-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
 
   @if (!collapsed()) {
-    <div class="anciennete-body">
+    <div id="td-body" class="td-body anciennete-body">
 
       @if (loading()) {
         <div class="loading-row">
@@ -221,4 +222,4 @@
 
     </div>
   }
-</div>
+</section>

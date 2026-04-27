@@ -1,19 +1,20 @@
-<div class="rc-section">
-  <button class="section-header" (click)="toggleCollapsed()">
-    <mat-icon class="section-icon">gavel</mat-icon>
-    <span class="section-title">Validité de la rupture conventionnelle</span>
+<section class="td-section">
+  <header class="td-header" (click)="toggleCollapsed()" (keydown.enter)="toggleCollapsed()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="td-body">
+    <mat-icon class="td-icon">gavel</mat-icon>
+    <span class="td-title">VALIDITÉ DE LA RUPTURE CONVENTIONNELLE</span>
     @if (result()) {
-      <span class="section-badge"
+      <span class="td-chip"
             [style.background]="verdictColor(result()!.verdict) + '20'"
             [style.color]="verdictColor(result()!.verdict)">
         {{ verdictLabel(result()!.verdict) }} — {{ result()!.scoreRisque }}/100
       </span>
     }
-    <mat-icon class="section-chevron">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
-  </button>
+    <mat-icon class="td-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
 
   @if (!collapsed()) {
-    <div class="rc-body">
+    <div id="td-body" class="td-body rc-body">
       <div class="legal-ref">
         <mat-icon>info</mat-icon>
         <span>Rupture conventionnelle individuelle — articles L1237-11 à L1237-16 du Code du travail.</span>
@@ -142,4 +143,4 @@
       }
     </div>
   }
-</div>
+</section>

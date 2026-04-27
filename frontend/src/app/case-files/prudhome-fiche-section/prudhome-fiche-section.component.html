@@ -1,11 +1,13 @@
-<div class="fiche-section">
-  <button class="section-header" type="button" (click)="toggleCollapsed()" aria-label="Afficher/masquer la fiche prud'homale">
-    <mat-icon class="section-icon">gavel</mat-icon>
-    <span class="section-title">Fiche prud'homale</span>
-    <mat-icon class="section-chevron">{{ collapsed() ? 'chevron_right' : 'expand_more' }}</mat-icon>
-  </button>
+<section class="td-section">
+  <header class="td-header" (click)="toggleCollapsed()" (keydown.enter)="toggleCollapsed()" tabindex="0" role="button"
+          [attr.aria-expanded]="!collapsed()" aria-controls="td-body">
+    <mat-icon class="td-icon">gavel</mat-icon>
+    <span class="td-title">FICHE PRUD'HOMALE</span>
+    <mat-icon class="td-toggle">{{ collapsed() ? 'expand_more' : 'expand_less' }}</mat-icon>
+  </header>
 
   @if (!collapsed()) {
+    <div id="td-body" class="td-body">
     <div class="fiche-info-banner">
       <mat-icon>info</mat-icon>
       <span>Document pré-rempli à environ 60-70%. À vérifier et compléter avant tout usage.</span>
@@ -150,5 +152,6 @@
       </div>
 
     </form>
+    </div>
   }
-</div>
+</section>
