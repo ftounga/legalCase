@@ -131,6 +131,18 @@ export interface DecisionToolRegistryEntry {
   inputs: (ctx: DecisionToolContext) => Record<string, unknown>;
 }
 
+/**
+ * F-169 SF-169-01 : thème métier auquel un outil décisionnel appartient.
+ * Le panel affiche les outils groupés par thème (au lieu de la distinction
+ * technique ALWAYS_ON / CONTEXTUAL) afin d'offrir une lecture par usage métier.
+ */
+export type ThemeKey = 'INDEMNITES' | 'VALIDITE' | 'DELAIS' | 'DOCUMENTS' | 'DIAGNOSTIC';
+
+export interface ThemeDescriptor {
+  key: ThemeKey;
+  label: string;
+}
+
 @Component({
   selector: 'app-decisional-tools-panel',
   standalone: true,
@@ -1274,6 +1286,134 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       }],
     ]);
 
+  /**
+   * F-169 SF-169-01 : ordre d'affichage des thèmes métier dans le panel.
+   * "Indemnités d'abord" → ce qui chiffre une créance pour le client.
+   * "Validité" → ce qui sécurise / conteste un acte.
+   * "Délais" → temporalité et procédure.
+   * "Documents" → livrables.
+   * "Diagnostic" → orientation / arbres décisionnels (fallback par défaut).
+   */
+  static readonly THEMES_ORDERED: readonly ThemeDescriptor[] = [
+    { key: 'INDEMNITES', label: 'Indemnités & calculs' },
+    { key: 'VALIDITE', label: 'Validité & contestation' },
+    { key: 'DELAIS', label: 'Délais & procédure' },
+    { key: 'DOCUMENTS', label: 'Documents' },
+    { key: 'DIAGNOSTIC', label: 'Diagnostic situation' },
+  ];
+
+  /**
+   * F-169 SF-169-01 : mapping `tool_id → thème métier`. Couvre l'ensemble
+   * des entrées de TOOL_REGISTRY. Tout `tool_id` non mappé tombe sur le
+   * fallback `DIAGNOSTIC` avec un `console.warn`.
+   */
+  static readonly THEME_BY_TOOL_ID: ReadonlyMap<string, ThemeKey> = new Map<string, ThemeKey>([
+    // ── Indemnités & calculs ───────────────────────────────────────────
+    ['F-DT-07-anciennete-conges-prime', 'INDEMNITES'],
+    ['F-DT-09-comparateur-indemnites', 'INDEMNITES'],
+    ['F-DT-12-discrimination-dommages-interets', 'INDEMNITES'],
+    ['F-DT-15-inaptitude', 'INDEMNITES'],
+    ['F-DT-17-indemnite-precarite-cdd', 'INDEMNITES'],
+    ['F-DT-18-fin-mission-interim', 'INDEMNITES'],
+    ['F-DT-19-heures-sup', 'INDEMNITES'],
+    ['F-DT-20-rappel-salaire', 'INDEMNITES'],
+    ['F-DT-21-travail-dissimule', 'INDEMNITES'],
+    ['F-DT-25-indemnite-preavis', 'INDEMNITES'],
+    ['F-DT-26-conges-payes-indemnite', 'INDEMNITES'],
+    ['F-DT-28-avantages-conventionnels-be', 'INDEMNITES'],
+    ['F-DT-31-transaction', 'INDEMNITES'],
+    ['F-DT-35-contestation-are-fr', 'INDEMNITES'],
+    ['F-132-rupture-conv-indemnite', 'INDEMNITES'],
+    ['F-FA-15-recompenses', 'INDEMNITES'],
+
+    // ── Validité & contestation ────────────────────────────────────────
+    ['F-DT-08-licenciement-validity', 'VALIDITE'],
+    ['F-DT-10-rupture-conv-validity', 'VALIDITE'],
+    ['F-DT-11-harcelement-licenciement-nul', 'VALIDITE'],
+    ['F-DT-13-licenciement-economique', 'VALIDITE'],
+    ['F-DT-14-pse-validite', 'VALIDITE'],
+    ['F-DT-16-licenciement-nul-detection', 'VALIDITE'],
+    ['F-DT-22-requalification-cdd-cdi', 'VALIDITE'],
+    ['F-DT-23-requalification-interim-cdi', 'VALIDITE'],
+    ['F-DT-24-non-concurrence', 'VALIDITE'],
+    ['F-DT-27-motif-grave-be', 'VALIDITE'],
+    ['F-DT-30-protection-rp', 'VALIDITE'],
+    ['F-FA-08-divorce-alteration', 'VALIDITE'],
+    ['F-FA-09-divorce-faute', 'VALIDITE'],
+    ['F-FA-10-divorce-accepte', 'VALIDITE'],
+    ['F-FA-11-desunion-irremediable-be', 'VALIDITE'],
+    ['F-FA-18-contestation-paternite', 'VALIDITE'],
+    ['F-FA-18-recherche-paternite', 'VALIDITE'],
+    ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],
+    ['F-FA-18-possession-etat', 'VALIDITE'],
+    ['F-FA-24-testament-validite', 'VALIDITE'],
+
+    // ── Délais & procédure ─────────────────────────────────────────────
+    ['F-DT-03-prescription-litige', 'DELAIS'],
+    ['F-DT-29-credit-temps-be', 'DELAIS'],
+    ['F-DT-33-at-mp', 'DELAIS'],
+    ['F-DT-34-refere-prudhomal', 'DELAIS'],
+    ['F-FA-12-mesures-provisoires', 'DELAIS'],
+    ['F-FA-13-revisions-post-divorce', 'DELAIS'],
+    ['F-FA-14-ordonnance-protection', 'DELAIS'],
+    ['F-FA-23-ordonnance-requete', 'DELAIS'],
+    ['F-IM-06-recours', 'DELAIS'],
+    ['F-IM-08-oqtf-avec-delai-fr', 'DELAIS'],
+    ['F-IM-08-oqtf-sans-delai-fr', 'DELAIS'],
+    ['F-IM-08-referes-admin-fr', 'DELAIS'],
+    ['F-IM-08-annexe13-be', 'DELAIS'],
+    ['F-IM-20-mesures-eloignement', 'DELAIS'],
+    ['F-136-travail-procedure', 'DELAIS'],
+
+    // ── Documents ──────────────────────────────────────────────────────
+    ['F-DT-04-fiche-prudhomale', 'DOCUMENTS'],
+    ['F-DT-06-requete-tribunal-travail', 'DOCUMENTS'],
+    ['F-DT-32-documents-fin-contrat', 'DOCUMENTS'],
+    ['F-IM-01-checklist-pieces', 'DOCUMENTS'],
+    ['F-FA-07-checklist-divorce', 'DOCUMENTS'],
+    ['F-132-rupture-amiable-info', 'DOCUMENTS'],
+
+    // ── Diagnostic situation ───────────────────────────────────────────
+    ['F-IM-05-arbre-decisionnel-titre', 'DIAGNOSTIC'],
+    ['F-IM-07-droit-au-travail', 'DIAGNOSTIC'],
+    ['F-IM-09-aes-etudiant', 'DIAGNOSTIC'],
+    ['F-IM-09-aes-famille', 'DIAGNOSTIC'],
+    ['F-IM-09-aes-humanitaire', 'DIAGNOSTIC'],
+    ['F-IM-09-aes-metiers-tension', 'DIAGNOSTIC'],
+    ['F-IM-11-changement-statut', 'DIAGNOSTIC'],
+    ['F-IM-12-asile-avance', 'DIAGNOSTIC'],
+    ['F-IM-13-naturalisation', 'DIAGNOSTIC'],
+    ['F-IM-14-40bis-cohabitant-ue-be', 'DIAGNOSTIC'],
+    ['F-IM-14-40ter-familial-belge-be', 'DIAGNOSTIC'],
+    ['F-IM-14-9bis-humanitaire-be', 'DIAGNOSTIC'],
+    ['F-IM-14-9ter-medical-be', 'DIAGNOSTIC'],
+    ['F-IM-17-regime-algerien', 'DIAGNOSTIC'],
+    ['F-IM-19-mineurs', 'DIAGNOSTIC'],
+    ['F-FA-05-partage-immobilier', 'DIAGNOSTIC'],
+    ['F-FA-06-calendrier-garde', 'DIAGNOSTIC'],
+    ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
+    ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
+    ['F-FA-18-adoption', 'DIAGNOSTIC'],
+    ['F-FA-19-autorite-parentale', 'DIAGNOSTIC'],
+    ['F-FA-19-changement-residence', 'DIAGNOSTIC'],
+    ['F-FA-19-desaccords-parentaux', 'DIAGNOSTIC'],
+    ['F-FA-20-pacs-dissolution', 'DIAGNOSTIC'],
+    ['F-FA-21-separation-corps', 'DIAGNOSTIC'],
+    ['F-FA-22-indivision', 'DIAGNOSTIC'],
+    ['F-FA-24-devolution-legale', 'DIAGNOSTIC'],
+    ['F-FA-24-donation', 'DIAGNOSTIC'],
+    ['F-FA-24-reserve-heriditaire', 'DIAGNOSTIC'],
+    ['F-FA-24-partage-successoral', 'DIAGNOSTIC'],
+    ['F-FA-24-indivision-successorale', 'DIAGNOSTIC'],
+    ['F-FA-24-rapport-succession', 'DIAGNOSTIC'],
+    ['F-FA-25-majeurs-proteges', 'DIAGNOSTIC'],
+    ['F-FA-26-changement-etat-civil', 'DIAGNOSTIC'],
+    ['F-FA-27-pma-gpa', 'DIAGNOSTIC'],
+  ]);
+
+  /** Expose THEMES_ORDERED au template (les statics ne sont pas accessibles directement). */
+  readonly themesOrdered = DecisionToolsPanelComponent.THEMES_ORDERED;
+
   ngOnInit(): void {
     if (this.caseFileId) {
       this.loadVisibility(true);
@@ -1338,6 +1478,28 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     return v.contextual
       .map((toolId) => ({ toolId, entry: this.resolveEntry(toolId) }))
       .filter((x): x is { toolId: string; entry: DecisionToolRegistryEntry } => x.entry !== null);
+  }
+
+  /**
+   * F-169 SF-169-01 : regroupe les outils résolus (always-on + contextual)
+   * par thème métier. Un toolId sans entrée dans `THEME_BY_TOOL_ID` tombe
+   * sur `DIAGNOSTIC` avec un `console.warn` pour signaler la dette.
+   */
+  themedTools(): Map<ThemeKey, { toolId: string; entry: DecisionToolRegistryEntry }[]> {
+    const all = [...this.resolvedAlwaysOn(), ...this.resolvedContextual()];
+    const byTheme = new Map<ThemeKey, { toolId: string; entry: DecisionToolRegistryEntry }[]>();
+    for (const item of all) {
+      let theme = DecisionToolsPanelComponent.THEME_BY_TOOL_ID.get(item.toolId);
+      if (!theme) {
+        // eslint-disable-next-line no-console
+        console.warn(`[decisional-tools-panel] toolId sans mapping thème : ${item.toolId} → fallback DIAGNOSTIC`);
+        theme = 'DIAGNOSTIC';
+      }
+      const list = byTheme.get(theme) ?? [];
+      list.push(item);
+      byTheme.set(theme, list);
+    }
+    return byTheme;
   }
 
   isEmpty(): boolean {

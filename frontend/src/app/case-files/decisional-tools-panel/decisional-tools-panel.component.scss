@@ -49,6 +49,39 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+// F-169 SF-169-01 : sections par thème métier (Indemnités / Validité / etc.)
+.theme-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.theme-title {
+  font-family: 'Merriweather', serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: #1c2b3a;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+// Grid 2 colonnes ≥ 1024px, 1 colonne en dessous (responsive).
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 1023px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Chaque outil prend 100 % de sa colonne (override des éventuels min-width des cards).
+.theme-grid-item {
+  min-width: 0;
+}
+
 .catalog-section {
   .catalog-description {
     font-family: 'Inter', sans-serif;

@@ -263,6 +263,72 @@ describe('DecisionToolsPanelComponent', () => {
       { texte: 'Bulletins', critereCode: 'SALAIRE_BRUT_MENSUEL' },
     ]);
   });
+
+  // ── SF-169-01 — Grid 2 colonnes + groupement par thème métier ────────────
+
+  it('SF-169-01 T-01: THEME_BY_TOOL_ID couvre tous les tool_ids du TOOL_REGISTRY', () => {
+    const registryIds = Array.from(DecisionToolsPanelComponent.TOOL_REGISTRY.keys());
+    const mappedIds = Array.from(DecisionToolsPanelComponent.THEME_BY_TOOL_ID.keys());
+    const unmapped = registryIds.filter((id) => !mappedIds.includes(id));
+    expect(unmapped).toEqual([]);
+  });
+
+  it('SF-169-01 T-02: outils classés dans le bon thème', () => {
+    const map = DecisionToolsPanelComponent.THEME_BY_TOOL_ID;
+    expect(map.get('F-DT-25-indemnite-preavis')).toBe('INDEMNITES');
+    expect(map.get('F-DT-08-licenciement-validity')).toBe('VALIDITE');
+    expect(map.get('F-DT-03-prescription-litige')).toBe('DELAIS');
+    expect(map.get('F-DT-04-fiche-prudhomale')).toBe('DOCUMENTS');
+    expect(map.get('F-IM-05-arbre-decisionnel-titre')).toBe('DIAGNOSTIC');
+  });
+
+  it('SF-169-01 T-03: thème sans outils est exclu de themedTools()', () => {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: [],
+      catalog: [],
+    });
+
+    const themed = component.themedTools();
+    expect(themed.get('INDEMNITES')?.length).toBe(1);
+    expect(themed.has('VALIDITE')).toBe(false);
+    expect(themed.has('DELAIS')).toBe(false);
+    expect(themed.has('DOCUMENTS')).toBe(false);
+    expect(themed.has('DIAGNOSTIC')).toBe(false);
+  });
+
+  it('SF-169-01 T-04: tool_id non mappé tombe sur DIAGNOSTIC + warn console', () => {
+    // Note : F-IM-19-mineurs est mappé en DIAGNOSTIC, on triche en spyant le mapping
+    // pour simuler un toolId présent dans TOOL_REGISTRY mais absent de THEME_BY_TOOL_ID.
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const originalGet = DecisionToolsPanelComponent.THEME_BY_TOOL_ID.get.bind(
+      DecisionToolsPanelComponent.THEME_BY_TOOL_ID
+    );
+    const getSpy = jest
+      .spyOn(DecisionToolsPanelComponent.THEME_BY_TOOL_ID, 'get')
+      .mockImplementation((id: string) =>
+        id === 'F-DT-25-indemnite-preavis' ? undefined : originalGet(id)
+      );
+
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush({
+      alwaysOn: ['F-DT-25-indemnite-preavis'],
+      contextual: [],
+      catalog: [],
+    });
+
+    const themed = component.themedTools();
+    expect(themed.get('DIAGNOSTIC')?.map((x) => x.toolId)).toEqual([
+      'F-DT-25-indemnite-preavis',
+    ]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('F-DT-25-indemnite-preavis')
+    );
+
+    getSpy.mockRestore();
+    warnSpy.mockRestore();
+  });
 });
 
 describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRefreshService', () => {
