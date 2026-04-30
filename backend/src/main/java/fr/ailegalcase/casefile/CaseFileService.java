@@ -7,6 +7,8 @@ import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -58,7 +60,7 @@ public class CaseFileService {
         long openCount = caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(workspace.getId(), "OPEN");
         int maxOpen = planLimitService.getMaxOpenCaseFilesForWorkspace(workspace.getId());
         if (openCount >= maxOpen) {
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+            throw new PaymentRequiredException(PaymentRequiredCode.CASE_FILE_OPEN_LIMIT_EXCEEDED,
                     "Limite de dossiers actifs atteinte pour votre plan.");
         }
 

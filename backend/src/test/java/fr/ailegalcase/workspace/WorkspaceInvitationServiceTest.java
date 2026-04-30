@@ -4,6 +4,8 @@ import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.billing.StripeSeatService;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -238,8 +240,9 @@ class WorkspaceInvitationServiceTest {
 
         WorkspaceInvitationRequest request = new WorkspaceInvitationRequest("invitee@example.com", "LAWYER");
         assertThatThrownBy(() -> service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("402")
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.SEAT_LIMIT_EXCEEDED))
                 .hasMessageContaining("TEAM");
     }
 
@@ -264,8 +267,9 @@ class WorkspaceInvitationServiceTest {
 
         WorkspaceInvitationRequest request = new WorkspaceInvitationRequest("invitee@example.com", "LAWYER");
         assertThatThrownBy(() -> service.createInvitation(request, buildOidcUser("sub-owner", "owner@example.com"), "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("402")
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.SEAT_LIMIT_EXCEEDED))
                 .hasMessageContaining("PRO");
     }
 

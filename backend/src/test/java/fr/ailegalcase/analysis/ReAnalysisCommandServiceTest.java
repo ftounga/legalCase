@@ -6,6 +6,8 @@ import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.chat.ChatMessageRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -23,11 +25,11 @@ import java.util.UUID;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.PAYMENT_REQUIRED;
 
 @ExtendWith(MockitoExtension.class)
 class ReAnalysisCommandServiceTest {
@@ -108,11 +110,9 @@ class ReAnalysisCommandServiceTest {
         when(planLimitService.isReAnalysisLimitReached(CASE_FILE_ID, WORKSPACE_ID)).thenReturn(true);
 
         assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    var rse = (ResponseStatusException) ex;
-                    assert rse.getStatusCode() == PAYMENT_REQUIRED;
-                });
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.CASE_ANALYSIS_LIMIT_EXCEEDED));
 
         verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
     }
@@ -224,11 +224,9 @@ class ReAnalysisCommandServiceTest {
         when(planLimitService.isMonthlyTokenBudgetExceeded(WORKSPACE_ID)).thenReturn(true);
 
         assertThatThrownBy(() -> service.triggerReAnalysis(CASE_FILE_ID, oidcUser, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    var rse = (ResponseStatusException) ex;
-                    assert rse.getStatusCode() == PAYMENT_REQUIRED;
-                });
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.TOKEN_BUDGET_EXCEEDED));
 
         verify(rabbitTemplate, never()).convertAndSend(anyString(), anyString(), any(Object.class));
     }

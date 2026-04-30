@@ -17,6 +17,8 @@ import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.document.ExtractionStatus;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -97,7 +99,7 @@ public class ChatService {
         }
 
         if (planLimitService.isChatMessageLimitReached(workspaceId)) {
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+            throw new PaymentRequiredException(PaymentRequiredCode.CHAT_MESSAGE_LIMIT_EXCEEDED,
                     "Limite de messages chat atteinte.");
         }
 

@@ -4,14 +4,14 @@ import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.SubscriptionItem;
 import com.stripe.param.SubscriptionItemUpdateParams;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -92,7 +92,7 @@ public class StripeSeatService {
             } catch (StripeException e) {
                 log.error("Stripe update failed for workspace {} (sub {}): {}",
                         workspaceId, sub.getStripeSubscriptionId(), e.getMessage());
-                throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                throw new PaymentRequiredException(PaymentRequiredCode.SEAT_LIMIT_EXCEEDED,
                         "Paiement refusé — mettez à jour votre carte avant d'ajouter un membre", e);
             }
         }

@@ -9,6 +9,8 @@ import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.ExtractionStatus;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.http.HttpStatus;
@@ -92,7 +94,7 @@ public class CaseFileStatusService {
             long openCount = caseFileRepository.countByWorkspace_IdAndStatusAndDeletedAtIsNull(workspaceId, STATUS_OPEN);
             int maxOpen = planLimitService.getMaxOpenCaseFilesForWorkspace(workspaceId);
             if (openCount >= maxOpen) {
-                throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+                throw new PaymentRequiredException(PaymentRequiredCode.CASE_FILE_OPEN_LIMIT_EXCEEDED,
                         "Limite de dossiers actifs atteinte. Passez à un plan supérieur.");
             }
 

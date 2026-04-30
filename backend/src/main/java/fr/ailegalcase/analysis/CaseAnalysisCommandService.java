@@ -5,6 +5,8 @@ import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -78,12 +80,12 @@ public class CaseAnalysisCommandService {
         }
 
         if (planLimitService.isCaseAnalysisLimitReached(caseFileId, workspace.getId())) {
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+            throw new PaymentRequiredException(PaymentRequiredCode.CASE_ANALYSIS_LIMIT_EXCEEDED,
                     "Limite d'analyses atteinte pour ce dossier.");
         }
 
         if (planLimitService.isMonthlyTokenBudgetExceeded(workspace.getId())) {
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+            throw new PaymentRequiredException(PaymentRequiredCode.TOKEN_BUDGET_EXCEEDED,
                     "Budget tokens mensuel dépassé.");
         }
 

@@ -9,6 +9,8 @@ import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.ExtractionStatus;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -197,9 +199,9 @@ class CaseFileStatusServiceTest {
         when(planLimitService.getMaxOpenCaseFilesForWorkspace(workspace.getId())).thenReturn(3);
 
         assertThatThrownBy(() -> service.reopen(caseFile.getId(), oidcUser, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
-                .isEqualTo(PAYMENT_REQUIRED);
+                .isInstanceOf(PaymentRequiredException.class)
+                .extracting(e -> ((PaymentRequiredException) e).getCode())
+                .isEqualTo(PaymentRequiredCode.CASE_FILE_OPEN_LIMIT_EXCEEDED);
     }
 
     @Test

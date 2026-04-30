@@ -5,6 +5,8 @@ import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -16,8 +18,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class CaseAnalysisCommandServiceTest {
@@ -98,8 +102,9 @@ class CaseAnalysisCommandServiceTest {
         when(planLimitService.isCaseAnalysisLimitReached(ctx.caseFileId(), ctx.workspaceId())).thenReturn(true);
 
         assertThatThrownBy(() -> service.triggerCaseAnalysis(ctx.caseFileId(), null, null, null))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("402");
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.CASE_ANALYSIS_LIMIT_EXCEEDED));
     }
 
     // C-06 : budget tokens dépassé → 402
@@ -112,8 +117,9 @@ class CaseAnalysisCommandServiceTest {
         when(planLimitService.isMonthlyTokenBudgetExceeded(ctx.workspaceId())).thenReturn(true);
 
         assertThatThrownBy(() -> service.triggerCaseAnalysis(ctx.caseFileId(), null, null, null))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("402");
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.TOKEN_BUDGET_EXCEEDED));
     }
 
     // C-07 : isolation workspace — dossier d'un autre workspace → 404

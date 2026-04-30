@@ -6,6 +6,8 @@ import fr.ailegalcase.audit.AuditLogRepository;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -120,8 +122,9 @@ class CaseFileServiceTest {
         CaseFileRequest request = new CaseFileRequest("Nouveau dossier", null);
 
         assertThatThrownBy(() -> service.create(request, oidcUser, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(PAYMENT_REQUIRED));
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.CASE_FILE_OPEN_LIMIT_EXCEEDED));
     }
 
     // U-05 : quota non atteint (Starter 2/3) → création autorisée
