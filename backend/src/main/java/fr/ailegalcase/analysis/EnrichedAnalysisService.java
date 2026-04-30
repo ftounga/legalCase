@@ -208,12 +208,17 @@ public class EnrichedAnalysisService {
         try {
             log.info("Enriched analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            // SF : bump à 16384 car l'enriched sur dossiers riches (source_explanations
-            // volumineux + full aggregation) dépassait 8192 tokens → troncature silencieuse
-            // observée sur E27 (JSON coupé en pleine phrase → compensationEstimate=null
-             // → UI fallback permissif = "Validité licenciement" s'affichait à tort).
+            // SF : bump initial à 16384 car l'enriched sur dossiers riches
+            // (source_explanations volumineux + full aggregation) dépassait 8192 tokens
+            // → troncature silencieuse observée sur E27 (JSON coupé en pleine phrase →
+            // compensationEstimate=null → UI fallback permissif = "Validité licenciement"
+            // s'affichait à tort).
+            // F-161 SF-161-02 : second bump 16384→64000 pour absorber les nouveaux caps
+            // SF-161-01 (faits 80, points 80, risques 40, timeline 60-80, etc.).
+            // Worst case ~34-36 K tokens output sur dossiers extraordinaires.
+            // Sonnet 4.x supporte 64 K output natif.
             // F-142-04 : prompt caching ephemeral (cf. CaseAnalysisService).
-            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 16384);
+            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 64000);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Enriched analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
