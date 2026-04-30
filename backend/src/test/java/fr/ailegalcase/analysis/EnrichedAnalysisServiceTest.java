@@ -364,6 +364,30 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("on VÉRIFIE dans points_procedure, on PROPOSE dans pistes_strategiques, on ALERTE dans risques");
     }
 
+    // U-SF-IM-21-03-01 : les 18 codes IM21_* sont reconnus comme sourceKey valides pour F-IA-03 (prompt enrichi)
+    @Test
+    void systemPrompt_listsIm21CodesAsValidSourceKeys() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_IMMIGRATION", "FRANCE", l,
+                java.util.List.of("OQTF_AVEC_DELAI"));
+        // La ligne "Codes F96 :" doit lister les 18 codes IM21_*
+        int codesF96Idx = prompt.indexOf("Codes F96 :");
+        assertThat(codesF96Idx).isGreaterThan(0);
+        String codesF96Section = prompt.substring(codesF96Idx);
+        java.util.List<String> codes = java.util.List.of(
+                "IM21_REGULARITE_SEJOUR_FR", "IM21_DELAI_DEPOT_FR", "IM21_PIECE_IDENTITE_FR",
+                "IM21_JUSTIF_DOMICILE_FR", "IM21_ETAT_CIVIL_FR", "IM21_PHOTO_FR",
+                "IM21_TIMBRE_FISCAL_FR", "IM21_PIECES_MARIAGE_FR", "IM21_COMMUNAUTE_VIE_FR",
+                "IM21_RESSOURCES_FR", "IM21_CONVENTION_ACCUEIL_FR",
+                "IM21_REGULARITE_SEJOUR_BE", "IM21_PIECE_IDENTITE_BE",
+                "IM21_PIECES_COHABITATION_BE", "IM21_RESSOURCES_BE",
+                "IM21_LOGEMENT_BE", "IM21_ASSURANCE_BE", "IM21_EXTRAIT_CASIER_BE");
+        for (String code : codes) {
+            assertThat(codesF96Section).as("Code IM21 %s doit être dans la liste source_explanations enrichie", code).contains(code);
+        }
+    }
+
     // U-SF-IM-21-02-01 : le prompt enrichi liste les 18 codes binaires F-IM-21 (FR + BE)
     @Test
     void systemPrompt_containsIm21BinaryCriteriaCodes() {
