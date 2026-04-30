@@ -14,9 +14,12 @@ import { AnalyticsService } from '../../core/services/analytics.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
-import { of, throwError } from 'rxjs';
+import { StrategicOptionService } from '../../core/services/strategic-option.service';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { of, throwError, Subject } from 'rxjs';
 import { AnalysisItem, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
+import { StrategicOption } from '../../core/models/strategic-option.model';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TimeService } from '../../core/services/time.service';
 import { TimeEntryResponse } from '../../core/models/time-tracking.models';
@@ -61,17 +64,39 @@ const makeCheck = (id: string, ordre: number, statut: 'TO_CHECK' | 'VERIFIED' | 
   id, ordre, description: `Point ${ordre}`, statut
 });
 
+const makeOption = (
+  id: string,
+  ordre: number,
+  texte: string,
+  statut: 'TO_STUDY' | 'RETAINED' | 'DISCARDED' = 'TO_STUDY',
+  raisonDiscard: string | null = null
+): StrategicOption => ({
+  id, ordre, texte, statut, raisonDiscard,
+  baseJuridique: null, horizonTemporel: null, conditions: [], source: null,
+  createdAt: '2026-04-30T10:00:00Z', updatedAt: '2026-04-30T10:00:00Z'
+});
+
 describe('SynthesisComponent', () => {
   let fixture: ComponentFixture<SynthesisComponent>;
   let component: SynthesisComponent;
   let caseAnalysisService: jest.Mocked<CaseAnalysisService>;
   let aiQuestionService: jest.Mocked<AiQuestionService>;
   let procedureCheckService: jest.Mocked<ProcedureCheckService>;
+  let strategicOptionService: jest.Mocked<StrategicOptionService>;
+  let matDialogMock: { open: jest.Mock };
+  let dialogResultSubject: Subject<string | null | undefined>;
 
   beforeEach(async () => {
     caseAnalysisService = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getByVersion', 'getAnalysis']);
     aiQuestionService = jasmine.createSpyObj('AiQuestionService', ['getQuestions', 'getQuestionsByAnalysisId']);
     procedureCheckService = jasmine.createSpyObj('ProcedureCheckService', ['list', 'updateStatus']);
+    strategicOptionService = jasmine.createSpyObj('StrategicOptionService', ['list', 'updateStatus']);
+    strategicOptionService.list.mockReturnValue(of([]));
+
+    dialogResultSubject = new Subject();
+    matDialogMock = {
+      open: jest.fn().mockReturnValue({ afterClosed: () => dialogResultSubject.asObservable() } as Partial<MatDialogRef<unknown>>)
+    };
 
     const caseFileService = jasmine.createSpyObj('CaseFileService', ['getById']);
     caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier test' }));
@@ -104,6 +129,8 @@ describe('SynthesisComponent', () => {
         { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export', 'exportChecklist']) },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
+        { provide: StrategicOptionService, useValue: strategicOptionService },
+        { provide: MatDialog, useValue: matDialogMock },
         { provide: TimeService, useValue: timeServiceMock },
         { provide: DocumentService, useValue: { list: jest.fn().mockReturnValue(of([])) } },
       ]
@@ -816,5 +843,113 @@ describe('SynthesisComponent', () => {
     btn.click();
 
     expect(pdfExportService.exportChecklist).toHaveBeenCalled();
+  });
+
+  // SF-176-02 T-01 : chargement initial des pistes stratégiques
+  it('SF-176-02 T-01: loads strategic options on init for the most recent version', () => {
+    const options = [makeOption('o1', 0, 'Piste 1'), makeOption('o2', 1, 'Piste 2', 'RETAINED')];
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    strategicOptionService.list.mockReturnValue(of(options));
+
+    fixture.detectChanges();
+
+    expect(strategicOptionService.list).toHaveBeenCalledWith(CASE_FILE_ID, 'analysis-1');
+    expect(component.strategicOptions().length).toBe(2);
+  });
+
+  // SF-176-02 T-02 : computed signals filtrent par statut
+  it('SF-176-02 T-02: computed signals filter options by status', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    strategicOptionService.list.mockReturnValue(of([
+      makeOption('o1', 0, 'Étudier 1', 'TO_STUDY'),
+      makeOption('o2', 1, 'Retenue 1', 'RETAINED'),
+      makeOption('o3', 2, 'Écartée 1', 'DISCARDED'),
+      makeOption('o4', 3, 'Étudier 2', 'TO_STUDY')
+    ]));
+    fixture.detectChanges();
+
+    expect(component.optionsToStudy().map(o => o.id)).toEqual(['o1', 'o4']);
+    expect(component.optionsRetained().map(o => o.id)).toEqual(['o2']);
+    expect(component.optionsDiscarded().map(o => o.id)).toEqual(['o3']);
+  });
+
+  // SF-176-02 T-03 : updateOptionStatus RETAINED → appel direct au service
+  it('SF-176-02 T-03: updateOptionStatus to RETAINED calls service directly', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    const option = makeOption('o1', 0, 'Piste');
+    strategicOptionService.list.mockReturnValue(of([option]));
+    strategicOptionService.updateStatus.mockReturnValue(of({ ...option, statut: 'RETAINED' }));
+    fixture.detectChanges();
+
+    component.updateOptionStatus(option, 'RETAINED');
+
+    expect(matDialogMock.open).not.toHaveBeenCalled();
+    expect(strategicOptionService.updateStatus).toHaveBeenCalledWith('o1', 'RETAINED', undefined);
+    expect(component.strategicOptions()[0].statut).toBe('RETAINED');
+  });
+
+  // SF-176-02 T-04 : updateOptionStatus DISCARDED → ouvre dialog puis appelle service avec raison
+  it('SF-176-02 T-04: updateOptionStatus to DISCARDED opens dialog and calls service with reason', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    const option = makeOption('o1', 0, 'Piste à écarter');
+    strategicOptionService.list.mockReturnValue(of([option]));
+    strategicOptionService.updateStatus.mockReturnValue(of({
+      ...option, statut: 'DISCARDED', raisonDiscard: 'déjà tenté'
+    }));
+    fixture.detectChanges();
+
+    component.updateOptionStatus(option, 'DISCARDED');
+    expect(matDialogMock.open).toHaveBeenCalled();
+
+    dialogResultSubject.next('déjà tenté');
+    dialogResultSubject.complete();
+
+    expect(strategicOptionService.updateStatus).toHaveBeenCalledWith('o1', 'DISCARDED', 'déjà tenté');
+    expect(component.strategicOptions()[0].raisonDiscard).toBe('déjà tenté');
+  });
+
+  // SF-176-02 T-05 : annulation du dialog Écarter → service non appelé
+  it('SF-176-02 T-05: cancelling discard dialog does not call service', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    const option = makeOption('o1', 0, 'Piste');
+    strategicOptionService.list.mockReturnValue(of([option]));
+    fixture.detectChanges();
+
+    component.updateOptionStatus(option, 'DISCARDED');
+    dialogResultSubject.next(undefined);
+    dialogResultSubject.complete();
+
+    expect(strategicOptionService.updateStatus).not.toHaveBeenCalled();
+  });
+
+  // SF-176-02 T-06 : reset des pistes stratégiques au changement de version
+  it('SF-176-02 T-06: resets strategic options on version change', () => {
+    const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(2, 'STANDARD')));
+    strategicOptionService.list.mockReturnValueOnce(of([makeOption('o1', 0, 'Piste v2')]));
+    fixture.detectChanges();
+    expect(component.strategicOptions().length).toBe(1);
+
+    strategicOptionService.list.mockReturnValueOnce(of([]));
+    component.onVersionChange(1);
+
+    expect(strategicOptionService.list).toHaveBeenCalledWith(CASE_FILE_ID, 'analysis-1');
+    expect(component.strategicOptions().length).toBe(0);
+  });
+
+  // SF-176-02 T-07 : erreur GET → liste vide, pas de blocage
+  it('SF-176-02 T-07: GET error sets empty list silently', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    strategicOptionService.list.mockReturnValue(throwError(() => new Error('boom')));
+    fixture.detectChanges();
+
+    expect(component.strategicOptions()).toEqual([]);
   });
 });

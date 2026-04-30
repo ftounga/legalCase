@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DatePipe, LowerCasePipe } from '@angular/common';
+import { DatePipe, LowerCasePipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +10,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
@@ -21,6 +22,9 @@ import { AnalyticsService } from '../../core/services/analytics.service';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
+import { StrategicOptionService } from '../../core/services/strategic-option.service';
+import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
+import { DiscardReasonDialogComponent, DiscardReasonDialogData } from './discard-reason-dialog.component';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
@@ -40,7 +44,7 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
   selector: 'app-synthesis',
   standalone: true,
   imports: [
-    RouterLink, DatePipe, LowerCasePipe, FormsModule,
+    RouterLink, DatePipe, LowerCasePipe, NgTemplateOutlet, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatExpansionModule,
     MatCheckboxModule, MatTooltipModule,
@@ -88,6 +92,19 @@ export class SynthesisComponent implements OnInit {
   procedureChecks = signal<ProcedureCheck[]>([]);
   updatingCheckId = signal<string | null>(null);
 
+  strategicOptions = signal<StrategicOption[]>([]);
+  updatingOptionId = signal<string | null>(null);
+
+  readonly optionsToStudy = computed(() =>
+    this.strategicOptions().filter(o => o.statut === 'TO_STUDY').sort((a, b) => a.ordre - b.ordre)
+  );
+  readonly optionsRetained = computed(() =>
+    this.strategicOptions().filter(o => o.statut === 'RETAINED').sort((a, b) => a.ordre - b.ordre)
+  );
+  readonly optionsDiscarded = computed(() =>
+    this.strategicOptions().filter(o => o.statut === 'DISCARDED').sort((a, b) => a.ordre - b.ordre)
+  );
+
   chatMessages = signal<ChatMessage[]>([]);
   chatLoading = signal(false);
   chatDisabled = signal(false);
@@ -127,7 +144,9 @@ export class SynthesisComponent implements OnInit {
     private docxExportService: DocxExportService,
     private analyticsService: AnalyticsService,
     private procedureCheckService: ProcedureCheckService,
-    private timeService: TimeService
+    private strategicOptionService: StrategicOptionService,
+    private timeService: TimeService,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -188,6 +207,7 @@ export class SynthesisComponent implements OnInit {
           this.loadSynthesisForVersion(caseFileId, versions[0].version);
           this.loadQuestionsForVersion(caseFileId, versions[0].id);
           this.loadChecksForVersion(caseFileId, versions[0].id);
+          this.loadStrategicOptionsForVersion(caseFileId, versions[0].id);
         } else {
           this.loading.set(false);
         }
@@ -223,6 +243,68 @@ export class SynthesisComponent implements OnInit {
       next: checks => this.procedureChecks.set(checks),
       error: () => this.procedureChecks.set([])
     });
+  }
+
+  loadStrategicOptionsForVersion(caseFileId: string, analysisId: string): void {
+    this.strategicOptionService.list(caseFileId, analysisId).subscribe({
+      next: options => this.strategicOptions.set(options),
+      error: () => this.strategicOptions.set([])
+    });
+  }
+
+  updateOptionStatus(option: StrategicOption, statut: StrategicOptionStatus): void {
+    if (this.updatingOptionId() === option.id) return;
+    if (statut === 'DISCARDED') {
+      this.openDiscardDialog(option);
+      return;
+    }
+    this.applyOptionStatus(option.id, statut, undefined);
+  }
+
+  editDiscardReason(option: StrategicOption): void {
+    this.openDiscardDialog(option);
+  }
+
+  private openDiscardDialog(option: StrategicOption): void {
+    const data: DiscardReasonDialogData = {
+      initialReason: option.raisonDiscard,
+      pisteTexte: option.texte
+    };
+    const ref = this.dialog.open(DiscardReasonDialogComponent, { data, width: '480px' });
+    ref.afterClosed().subscribe(result => {
+      if (result === undefined) return;
+      this.applyOptionStatus(option.id, 'DISCARDED', result);
+    });
+  }
+
+  private applyOptionStatus(
+    optionId: string,
+    statut: StrategicOptionStatus,
+    raisonDiscard: string | null | undefined
+  ): void {
+    this.updatingOptionId.set(optionId);
+    this.strategicOptionService.updateStatus(optionId, statut, raisonDiscard).subscribe({
+      next: updated => {
+        this.strategicOptions.update(list =>
+          list.map(o => o.id === updated.id ? updated : o)
+        );
+        this.updatingOptionId.set(null);
+      },
+      error: () => {
+        this.updatingOptionId.set(null);
+        this.snackBar.open('Erreur lors de la mise à jour de la piste', 'Fermer', {
+          duration: 4000, panelClass: ['snack-error']
+        });
+      }
+    });
+  }
+
+  optionStatusLabel(statut: StrategicOptionStatus): string {
+    switch (statut) {
+      case 'RETAINED': return 'Retenue';
+      case 'DISCARDED': return 'Écartée';
+      default: return 'À étudier';
+    }
   }
 
   updateCheckStatus(check: ProcedureCheck, statut: ProcedureCheckStatus): void {
@@ -268,10 +350,12 @@ export class SynthesisComponent implements OnInit {
     this.synthesis.set(null);
     this.questions.set([]);
     this.procedureChecks.set([]);
+    this.strategicOptions.set([]);
     this.editingQuestionId.set(null);
     this.loadSynthesisForVersion(caseFileId, selected.version);
     this.loadQuestionsForVersion(caseFileId, selected.id);
     this.loadChecksForVersion(caseFileId, selected.id);
+    this.loadStrategicOptionsForVersion(caseFileId, selected.id);
   }
 
   startEdit(question: AiQuestion): void {
