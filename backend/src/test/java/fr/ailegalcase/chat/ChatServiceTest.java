@@ -13,6 +13,8 @@ import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.document.DocumentExtractionRepository;
 import fr.ailegalcase.document.DocumentRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -121,8 +123,9 @@ class ChatServiceTest {
 
         assertThatThrownBy(() -> service.sendMessage(
                 CASE_FILE_ID, new ChatMessageRequest("Question", false), null, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(PAYMENT_REQUIRED));
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.CHAT_MESSAGE_LIMIT_EXCEEDED));
 
         verifyNoInteractions(anthropicService);
     }

@@ -337,7 +337,8 @@ class DocumentControllerIT {
         mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
                         .file(sixthFile)
                         .with(authentication(auth)))
-                .andExpect(status().isPaymentRequired());
+                .andExpect(status().isPaymentRequired())
+                .andExpect(jsonPath("$.code").value("DOCUMENT_LIMIT_EXCEEDED"));
     }
 
     // I-13 : DELETE document valide → 204 et document supprimé

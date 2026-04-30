@@ -17,6 +17,18 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(PaymentRequiredException.class)
+    public ResponseEntity<Map<String, String>> handlePaymentRequired(PaymentRequiredException ex,
+                                                                     HttpServletRequest request) {
+        log.warn("{} {} → 402 {} ({})", request.getMethod(), request.getRequestURI(),
+                ex.getMessage(), ex.getCode());
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                .body(Map.of(
+                        "error", HttpStatus.PAYMENT_REQUIRED.toString(),
+                        "message", ex.getMessage(),
+                        "code", ex.getCode().name()));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException ex,
                                                                     HttpServletRequest request) {

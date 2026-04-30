@@ -5,6 +5,8 @@ import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMember;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -101,11 +103,9 @@ class DocumentServiceTest {
         MockMultipartFile file = new MockMultipartFile("file", "doc.pdf", "application/pdf", "content".getBytes());
 
         assertThatThrownBy(() -> service.upload(CASE_FILE_ID, file, oidcUser, "GOOGLE", null))
-                .isInstanceOf(ResponseStatusException.class)
-                .satisfies(ex -> {
-                    var rse = (ResponseStatusException) ex;
-                    assert rse.getStatusCode() == PAYMENT_REQUIRED;
-                });
+                .isInstanceOf(PaymentRequiredException.class)
+                .satisfies(ex -> assertThat(((PaymentRequiredException) ex).getCode())
+                        .isEqualTo(PaymentRequiredCode.DOCUMENT_LIMIT_EXCEEDED));
 
         verify(storageService, never()).upload(anyString(), any(), anyString(), anyLong());
     }

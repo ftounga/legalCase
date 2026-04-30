@@ -4,6 +4,8 @@ import fr.ailegalcase.auth.User;
 import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.billing.StripeSeatService;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
@@ -73,7 +75,7 @@ public class WorkspaceInvitationService {
                 .findByWorkspaceIdAndStatus(workspace.getId(), STATUS_PENDING).size();
         int maxSeats = planLimitService.getMaxSeatsForWorkspace(workspace.getId());
         if (currentMembers + currentPending + 1 > maxSeats) {
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+            throw new PaymentRequiredException(PaymentRequiredCode.SEAT_LIMIT_EXCEEDED,
                     seatLimitMessage(workspace.getId()));
         }
 

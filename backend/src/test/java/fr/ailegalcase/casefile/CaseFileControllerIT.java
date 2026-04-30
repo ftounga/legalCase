@@ -445,7 +445,8 @@ class CaseFileControllerIT {
 
         mockMvc.perform(patch("/api/v1/case-files/" + closedId + "/reopen")
                         .with(authentication(auth)))
-                .andExpect(status().isPaymentRequired());
+                .andExpect(status().isPaymentRequired())
+                .andExpect(jsonPath("$.code").value("CASE_FILE_OPEN_LIMIT_EXCEEDED"));
     }
 
     // I-18 : PATCH /{id}/reopen → 403 si LAWYER

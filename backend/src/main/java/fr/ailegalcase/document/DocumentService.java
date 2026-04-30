@@ -5,6 +5,8 @@ import fr.ailegalcase.billing.PlanLimitService;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
 import fr.ailegalcase.shared.CurrentUserResolver;
+import fr.ailegalcase.shared.PaymentRequiredCode;
+import fr.ailegalcase.shared.PaymentRequiredException;
 import fr.ailegalcase.storage.StorageService;
 import fr.ailegalcase.workspace.Workspace;
 import fr.ailegalcase.workspace.WorkspaceMemberRepository;
@@ -147,7 +149,7 @@ public class DocumentService {
         long docCount = documentRepository.countByCaseFileId(caseFileId);
         int maxDocs = planLimitService.getMaxDocumentsPerCaseFileForWorkspace(workspace.getId());
         if (docCount >= maxDocs) {
-            throw new ResponseStatusException(HttpStatus.PAYMENT_REQUIRED,
+            throw new PaymentRequiredException(PaymentRequiredCode.DOCUMENT_LIMIT_EXCEEDED,
                     "Limite de documents atteinte pour votre plan.");
         }
 
