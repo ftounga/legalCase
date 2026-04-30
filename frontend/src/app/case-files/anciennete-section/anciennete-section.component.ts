@@ -42,8 +42,14 @@ export type AncienneteCoherenceAlert = CoherenceAlert<AncienneteAlertField>;
   styleUrl: './anciennete-section.component.scss'
 })
 export class AncienneteSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'ANCIENNETÉ ET CONGÉS';
+  static readonly TOOL_ICON = 'calendar_month';
+
   @Input() caseFileId!: string;
   @Input() aiData?: TravailExtractedData | null;
+  // F-177 SF-177-03 : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
 
@@ -228,6 +234,9 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03 : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     this.aiDataSignal.set(this.aiData);
     // SF-155-14 : garde-fou — pré-remplit au mount si aiData est déjà disponible
     // (cas : pipeline déjà tourné avant ouverture du dossier). Aligné sur pattern
@@ -312,6 +321,9 @@ export class AncienneteSectionComponent implements OnInit, OnChanges {
 
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03 : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+
     if (changes['aiData']) {
       this.aiDataSignal.set(this.aiData);
       if (this.showForm() && !this.result()) {

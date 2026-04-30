@@ -55,8 +55,15 @@ export type PrudhomeCoherenceAlert = CoherenceAlert<PrudhomeAlertField>;
   styleUrl: './prudhome-fiche-section.component.scss'
 })
 export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'FICHE PRUD\'HOMALE';
+  static readonly TOOL_ICON = 'gavel';
+
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
+  // F-177 SF-177-03 : force l'expansion au mount/change (utilisé quand le composant
+  // est rendu dans le modal F-177).
+  @Input() forceExpanded = false;
   // SF-173-01 : inputs IA pour pré-fill + validation F-IA-03 (pattern canonique
   // F-155 emprunté à `immigration-title-decision-section`).
   @Input() aiData?: TravailExtractedData | null;
@@ -163,6 +170,9 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
+    // F-177 SF-177-03 : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     // SF-173-01 : push inputs vers signals avant toute évaluation computed.
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -185,6 +195,9 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03 : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+
     // SF-173-01 : ré-hydrater les signals à chaque changement d'input.
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
