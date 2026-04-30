@@ -1,0 +1,140 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  border: 1px solid var(--ds-border, #E0E4EA);
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+  background: var(--ds-surface, #FFFFFF);
+  cursor: pointer;
+  transition: box-shadow 150ms ease, border-color 150ms ease, transform 150ms ease;
+  outline: none;
+
+  &:hover:not(.tool-card--disabled) {
+    box-shadow: 0 2px 12px rgba(11, 33, 71, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(201, 165, 75, 0.35);
+  }
+
+  &--ok {
+    border-left-color: #3F7B3F;
+  }
+
+  &--warning {
+    border-left-color: #E68900;
+  }
+
+  &--alert {
+    border-left-color: #C62828;
+  }
+
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &:hover {
+      box-shadow: none;
+      transform: none;
+    }
+  }
+}
+
+.tool-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tool-card__icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+  color: #C9A54B;
+}
+
+.tool-card__title {
+  flex: 1 1 auto;
+  font-family: 'JetBrains Mono', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  color: #0B2147;
+  text-transform: uppercase;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-card__badges {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tool-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+
+  &--prefill {
+    background: rgba(201, 165, 75, 0.15);
+    color: #C9A54B;
+  }
+
+  &--coherence {
+    background: rgba(198, 40, 40, 0.15);
+    color: #C62828;
+  }
+
+  &--metier {
+    background: rgba(230, 137, 0, 0.15);
+    color: #E68900;
+  }
+}
+
+.tool-card__body {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  padding-left: 34px;
+}
+
+.tool-card__verdict {
+  color: #0B2147;
+  font-weight: 500;
+
+  .tool-card--ok & {
+    color: #3F7B3F;
+  }
+  .tool-card--warning & {
+    color: #E68900;
+  }
+  .tool-card--alert & {
+    color: #C62828;
+  }
+}
+
+.tool-card__placeholder {
+  color: rgba(11, 33, 71, 0.5);
+  font-style: italic;
+}
