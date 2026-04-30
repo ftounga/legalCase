@@ -347,6 +347,48 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("transfert_imminent_detected");
     }
 
+    // U-SF-96-06-01 : le prompt enrichi contient la règle de durcissement points_procedure
+    @Test
+    void systemPrompt_containsStrategicOptionsExclusionRuleForPointsProcedure() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_IMMIGRATION", "FRANCE", l,
+                java.util.List.of("OQTF_AVEC_DELAI"));
+        assertThat(prompt).contains("SF-96-06");
+        assertThat(prompt).contains("vérifications binaires factuelles");
+        assertThat(prompt).contains("options stratégiques");
+        assertThat(prompt).contains("opportunités futures");
+        assertThat(prompt).contains("recommandations d'action");
+        assertThat(prompt).contains("on VÉRIFIE dans points_procedure, on PROPOSE dans questions_ouvertes, on ALERTE dans risques");
+    }
+
+    // U-SF-96-06-02 : non-régression — les codes énumérés F-DT-08/10, F-IM-05/06/07, F-FA-06/07, F-DT-09 restent inchangés
+    @Test
+    void systemPrompt_keepsExistingEnumeratedCriteriaCodesIntact() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l,
+                java.util.List.of("LICENCIEMENT_SANS_CAUSE_REELLE"));
+        // F-DT-08 codes (binaires)
+        assertThat(prompt).contains("FR_CONVOCATION");
+        assertThat(prompt).contains("FR_ENTRETIEN");
+        assertThat(prompt).contains("BE_PREAVIS");
+        // F-DT-10 codes (rupture conventionnelle)
+        assertThat(prompt).contains("RC_CONSENTEMENT");
+        assertThat(prompt).contains("RC_DELAI_RETRACTATION");
+        // F-IM-05/06/07 codes (énumérés)
+        assertThat(prompt).contains("IM05_MOTIF");
+        assertThat(prompt).contains("IM06_RECOURS_TYPE");
+        assertThat(prompt).contains("IM07_TITRE_TYPE");
+        // F-FA-06/07 codes
+        assertThat(prompt).contains("FA06_MODE_GARDE");
+        assertThat(prompt).contains("FR_CHOIX_AVOCATS");
+        // F-DT-09 énuméré
+        assertThat(prompt).contains("DT09_TYPE_RUPTURE");
+        // Règle générale d'usage du critere_code
+        assertThat(prompt).contains("Pour tout point sans lien avec ces critères, \"critere_code\" et \"expected_value\" restent null");
+    }
+
     // TC-01 : buildEnrichedPrompt avec checks NON_COMPLIANT → section injectée
     @Test
     void buildEnrichedPrompt_withNonCompliantChecks_injectsSection() {
