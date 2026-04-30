@@ -350,6 +350,9 @@
 
     <!-- Colonne droite : analyse -->
     <div class="col-right" @fadeInUp>
+      <!-- SF-171-02 : bandeau quota persistant (lit QuotaErrorStateService). -->
+      <app-quota-error-banner></app-quota-error-banner>
+
       <div id="section-analyse" class="section-header section-header--first">
         <h2 class="section-title">Analyse du dossier</h2>
         @if (fullAnalysisRunning()) {
@@ -376,14 +379,16 @@
           <div class="analyze-action-group">
             <button mat-raised-button color="accent" data-tour-target="analyze-btn"
                     (click)="onAnalysisButtonClick()"
-                    [disabled]="analyzing() || reAnalyzing()">
+                    [disabled]="analyzing() || reAnalyzing() || analysisQuotaBlocked()"
+                    [matTooltip]="analysisQuotaBlocked() ? analysisQuotaTooltip : ''"
+                    [matTooltipDisabled]="!analysisQuotaBlocked()">
               <mat-icon>auto_fix_high</mat-icon>
               {{ analysisButtonLabel() }}
             </button>
             @if (canEnrichSynthesis()) {
               <button mat-icon-button [matMenuTriggerFor]="analysisMenu"
                       aria-label="Autres actions d'analyse"
-                      [disabled]="analyzing() || reAnalyzing()">
+                      [disabled]="analyzing() || reAnalyzing() || analysisQuotaBlocked()">
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #analysisMenu="matMenu">

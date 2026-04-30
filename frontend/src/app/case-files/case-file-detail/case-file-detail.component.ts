@@ -53,8 +53,10 @@ import { AnalysisPipelineComponent } from '../analysis-pipeline/analysis-pipelin
 import { CaseDeadlineService } from '../../core/services/case-deadline.service';
 import { CaseDeadline } from '../../core/models/case-deadline.model';
 import { OcrRetryService, OcrRetryPreview } from '../../core/services/ocr-retry.service';
+import { QuotaErrorStateService } from '../../core/services/quota-error-state.service';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.component';
+import { QuotaErrorBannerComponent } from '../../shared/quota-error-banner/quota-error-banner.component';
 
 @Component({
   selector: 'app-case-file-detail',
@@ -67,7 +69,8 @@ import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.com
     CaseDeadlinesSectionComponent, CaseDashboardStepperComponent,
     TimerWidgetComponent,
     CaseDashboardComponent, AnalysisPipelineComponent,
-    DecisionToolsPanelComponent
+    DecisionToolsPanelComponent,
+    QuotaErrorBannerComponent
   ],
   templateUrl: './case-file-detail.component.html',
   styleUrl: './case-file-detail.component.scss',
@@ -299,6 +302,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
   private eventsSub: Subscription | null = null;
+  // SF-171-02 : nettoyage du state quota au switch de workspace.
+  private workspaceSwitchSub: Subscription | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -322,8 +327,18 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private caseDeadlineService: CaseDeadlineService,
     private procedureCheckService: ProcedureCheckService,
     private dashboardRefreshService: CaseDashboardRefreshService,
-    private ocrRetryService: OcrRetryService
+    private ocrRetryService: OcrRetryService,
+    protected quotaErrorState: QuotaErrorStateService
   ) {}
+
+  // SF-171-02 : signal des codes 402 qui doivent désactiver les boutons d'analyse.
+  readonly analysisQuotaBlocked = computed(() => {
+    const code = this.quotaErrorState.error()?.code;
+    return code === 'TOKEN_BUDGET_EXCEEDED' || code === 'CASE_ANALYSIS_LIMIT_EXCEEDED';
+  });
+
+  // SF-171-02 : tooltip standard pour boutons en disabled-quota.
+  readonly analysisQuotaTooltip = 'Quota mensuel atteint — passez au plan supérieur';
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
@@ -332,7 +347,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.restoreDocsCollapsedFromSession(id);
 
     // SF-IA-03-19 : scroll vers la section cible quand on arrive via un popover d'incohérence.
+    // SF-171-02 : ?upgraded=success → vide le state quota (retour Stripe checkout success).
     this.route.queryParamMap?.subscribe(params => {
+      if (params.get('upgraded') === 'success') {
+        this.quotaErrorState.clear();
+      }
       const section = params.get('section');
       const doc = params.get('doc');
       // Priorité au document précis si présent (highlight ligne), sinon la section.
@@ -346,6 +365,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
                      : section === 'deadlines' ? 'section-deadlines'
                      : null;
       if (anchorId) this.scrollAndHighlight(anchorId);
+    });
+
+    // SF-171-02 : reset du state quota au switch de workspace.
+    this.workspaceSwitchSub = this.workspaceService.workspaceSwitched$.subscribe(() => {
+      this.quotaErrorState.clear();
     });
 
     this.eventsSub = this.globalNotificationService.events$
@@ -388,6 +412,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopPolling();
     this.eventsSub?.unsubscribe();
+    this.workspaceSwitchSub?.unsubscribe();
   }
 
   // ── SF-170-01 : accordéon section Documents ────────────────────────────
@@ -805,10 +830,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.loadAnalysisJobs(id);
         this.loadSynthesis(id);
         // Questions will be reloaded inside loadSynthesis once synthesis id is known
+        // SF-171-02 : 402 géré par paymentRequiredInterceptor + QuotaErrorState (bandeau persistant).
         if (err.status === 402) {
-          this.snackBar.open("Limite d'analyses atteinte pour ce dossier. Passez au plan supérieur.", 'Fermer', {
-            duration: 5000, panelClass: ['snack-error']
-          });
+          // no-op
         } else if (err.status === 409) {
           this.snackBar.open('Une analyse est déjà en cours.', 'Fermer', { duration: 4000 });
         } else if (err.status === 422) {
@@ -879,10 +903,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.reAnalyzing.set(false);
+        // SF-171-02 : 402 géré par paymentRequiredInterceptor + QuotaErrorState (bandeau persistant).
         if (err.status === 402) {
-          this.snackBar.open("Limite d'analyses atteinte pour ce dossier. Passez au plan supérieur.", 'Fermer', {
-            duration: 5000, panelClass: ['snack-error']
-          });
+          // no-op
         } else if (err.status === 409) {
           this.snackBar.open(
             'Aucune nouvelle réponse, message chat ou action sur la checklist procédurale depuis la dernière analyse enrichie.',
@@ -1103,12 +1126,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           'Fermer', { duration: 5000, panelClass: ['snack-error'] }
         );
       } else {
+        // SF-171-02 : 402 (DOCUMENT_LIMIT_EXCEEDED / OCR_QUOTA_EXCEEDED) géré par paymentRequiredInterceptor + QuotaErrorState.
         const is402 = failed.some((f: any) => f.error?.status === 402);
-        if (is402) {
-          this.snackBar.open("Limite de documents atteinte. Passez au plan supérieur.", 'Fermer', {
-            duration: 5000, panelClass: ['snack-error']
-          });
-        } else {
+        if (!is402) {
           this.snackBar.open("Erreur lors de l'upload. Vérifiez le type et la taille des fichiers (max 50 Mo).", 'Fermer', {
             duration: 5000, panelClass: ['snack-error']
           });
@@ -1244,11 +1264,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.snackBar.open('Dossier réouvert', 'Fermer', { duration: 3000, panelClass: ['snack-success'] });
       },
       error: (err: any) => {
-        if (err.status === 402) {
-          this.snackBar.open('Limite de dossiers actifs atteinte. Passez à un plan supérieur.', 'Fermer', {
-            duration: 5000, panelClass: ['snack-error']
-          });
-        } else {
+        // SF-171-02 : 402 (CASE_FILE_OPEN_LIMIT_EXCEEDED) géré par paymentRequiredInterceptor + QuotaErrorState.
+        if (err.status !== 402) {
           this.snackBar.open('Une erreur est survenue. Veuillez réessayer.', 'Fermer', {
             duration: 4000, panelClass: ['snack-error']
           });

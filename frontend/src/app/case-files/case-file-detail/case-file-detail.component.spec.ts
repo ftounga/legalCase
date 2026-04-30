@@ -95,6 +95,7 @@ describe('CaseFileDetailComponent', () => {
 
     const workspaceServiceSpy = jasmine.createSpyObj('WorkspaceService', ['getCurrentWorkspace']);
     workspaceServiceSpy.getCurrentWorkspace.mockReturnValue(of({ id: 'ws1', name: 'Test', slug: 'test', planCode: 'STARTER', status: 'ACTIVE', country: 'FRANCE' }));
+    (workspaceServiceSpy as any).workspaceSwitched$ = new Subject<void>().asObservable();
 
     caseFileServiceSpy.getById.mockReturnValue(of(mockCaseFile));
     caseFileStatusServiceSpy.close.mockReturnValue(of({ ...mockCaseFile, status: 'CLOSED' }));
@@ -417,12 +418,14 @@ describe('CaseFileDetailComponent', () => {
     expect(analyticsServiceSpy.trackEvent).toHaveBeenCalledWith('analysis_launched', { type: 'STANDARD' });
   });
 
-  it('triggerAnalysis — 402 → snackbar "Limite atteinte"', () => {
+  it('triggerAnalysis — 402 ne déclenche plus de snackbar local (SF-171-02 : géré par paymentRequiredInterceptor + QuotaErrorState)', () => {
     caseAnalysisCommandServiceSpy.triggerAnalysis.mockReturnValue(throwError(() => ({ status: 402 })));
+    snackBarSpy.open.mockClear();
     component.triggerAnalysis();
-    expect(snackBarSpy.open).toHaveBeenCalledWith(
-      expect.stringContaining('Limite'), expect.any(String), expect.any(Object)
+    const callsWithLimit = snackBarSpy.open.mock.calls.filter(
+      (call: any[]) => typeof call[0] === 'string' && (call[0].includes('Limite') || call[0].includes('plan'))
     );
+    expect(callsWithLimit.length).toBe(0);
   });
 
   it('triggerAnalysis — 409 → snackbar "déjà en cours"', () => {
@@ -1298,6 +1301,65 @@ describe('CaseFileDetailComponent', () => {
       expect(() => component.toggleDocsCollapsed()).not.toThrow();
       // Toggle bascule l'état en mémoire malgré l'échec d'écriture sessionStorage.
       expect(component.docsCollapsed()).toBe(true);
+    });
+  });
+
+  describe('SF-171-02 — bandeau quota persistant + état disabled-quota', () => {
+    it('analysisQuotaBlocked = true quand QuotaErrorState a TOKEN_BUDGET_EXCEEDED', () => {
+      const stateService = (component as any).quotaErrorState;
+      stateService.set({ code: 'TOKEN_BUDGET_EXCEEDED', message: 'Budget tokens dépassé', sourceUrl: '/api/v1/x', receivedAt: Date.now() });
+      expect(component.analysisQuotaBlocked()).toBe(true);
+    });
+
+    it('analysisQuotaBlocked = true quand QuotaErrorState a CASE_ANALYSIS_LIMIT_EXCEEDED', () => {
+      const stateService = (component as any).quotaErrorState;
+      stateService.set({ code: 'CASE_ANALYSIS_LIMIT_EXCEEDED', message: 'msg', sourceUrl: '/api/v1/x', receivedAt: Date.now() });
+      expect(component.analysisQuotaBlocked()).toBe(true);
+    });
+
+    it('analysisQuotaBlocked = false sur autre code (ex. SEAT_LIMIT)', () => {
+      const stateService = (component as any).quotaErrorState;
+      stateService.set({ code: 'SEAT_LIMIT_EXCEEDED', message: 'msg', sourceUrl: '/api/v1/x', receivedAt: Date.now() });
+      expect(component.analysisQuotaBlocked()).toBe(false);
+    });
+
+    it('analysisQuotaBlocked = false quand QuotaErrorState est null', () => {
+      const stateService = (component as any).quotaErrorState;
+      stateService.clear();
+      expect(component.analysisQuotaBlocked()).toBe(false);
+    });
+
+    it('triggerAnalysis — 402 ne declenche plus de snackbar local (gere par interceptor)', () => {
+      caseAnalysisCommandServiceSpy.triggerAnalysis.mockReturnValue(throwError(() => ({ status: 402, error: { code: 'TOKEN_BUDGET_EXCEEDED', message: 'Budget tokens depasse' } })));
+      caseFileServiceSpy.getById.mockReturnValue(of(mockCaseFile));
+      component.caseFile.set(mockCaseFile);
+      snackBarSpy.open.mockClear();
+
+      component.triggerAnalysis();
+
+      const callsWithLimit = snackBarSpy.open.mock.calls.filter(
+        (call: any[]) => typeof call[0] === 'string' && (call[0].includes('Limite') || call[0].includes('plan'))
+      );
+      expect(callsWithLimit.length).toBe(0);
+      expect(component.analyzing()).toBe(false);
+    });
+
+    it('reopenCaseFile — 402 ne declenche plus de snackbar local (gere par interceptor)', () => {
+      caseFileStatusServiceSpy.reopen.mockReturnValue(throwError(() => ({ status: 402, error: { code: 'CASE_FILE_OPEN_LIMIT_EXCEEDED', message: 'Limite atteinte' } })));
+      component.caseFile.set(mockCaseFile);
+      snackBarSpy.open.mockClear();
+
+      component.reopenCaseFile();
+
+      const callsWithLimit = snackBarSpy.open.mock.calls.filter(
+        (call: any[]) => typeof call[0] === 'string' && call[0].includes('Limite')
+      );
+      expect(callsWithLimit.length).toBe(0);
+    });
+
+    it('le bandeau app-quota-error-banner est present dans le DOM', () => {
+      const banner = fixture.nativeElement.querySelector('app-quota-error-banner');
+      expect(banner).not.toBeNull();
     });
   });
 
