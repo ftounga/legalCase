@@ -1,29 +1,45 @@
-.fiche-section {
-  margin-top: 24px;
+.td-section {
+  border: 1px solid var(--ds-border, #e6e1d4);
+  border-radius: 8px;
+  margin: 16px 0;
+  background: var(--ds-surface, #ffffff);
+  overflow: hidden;
 }
 
-.section-header {
-  width: 100%;
+.td-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: none;
-  border: none;
+  gap: 12px;
+  padding: 12px 16px;
   cursor: pointer;
-  padding: 0;
-  margin-bottom: 12px;
-  text-align: left;
+  user-select: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--ds-accent-gold, #c9a54b);
+    outline-offset: -2px;
+  }
+}
+
+.td-icon {
+  color: var(--ds-accent-gold, #c9a54b);
+}
+
+.td-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--ds-text-primary, #1a2330);
   font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: #1A3A5C;
+}
 
-  &:hover { opacity: 0.8; }
+.td-toggle {
+  color: var(--ds-text-secondary, #6a7485);
+}
 
-  .section-icon { color: #C9973A; }
-  .section-title { flex: 1; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+.td-body {
+  padding: 16px 20px;
+  border-top: 1px solid var(--ds-border, #e6e1d4);
 }
 
 .fiche-info-banner {
@@ -122,4 +138,22 @@
   display: flex;
   justify-content: flex-end;
   padding-bottom: 8px;
+}
+
+/* SF-173-01 : badge IA + alerte F-IA-03 (pattern canonique F-155). */
+.field-with-alert { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; color: #1A3A5C;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #C9973A; }
+}
+
+.coherence-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  align-self: flex-start; padding: 2px 8px; border-radius: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6; color: #92400E;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #F59E0B; }
 }

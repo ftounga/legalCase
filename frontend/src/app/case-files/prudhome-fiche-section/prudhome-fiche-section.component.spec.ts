@@ -1,10 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Overlay } from '@angular/cdk/overlay';
 import { of, throwError } from 'rxjs';
+import { SimpleChange } from '@angular/core';
 import { PrudhomeFicheSectionComponent } from './prudhome-fiche-section.component';
 import { PrudhomeFicheService } from '../../core/services/prudhome-fiche.service';
 import { PrudhomeFiche } from '../../core/models/prudhome-fiche.model';
+import { TravailExtractedData } from '../../core/models/case-analysis.model';
 
 function makeFiche(overrides: Partial<PrudhomeFiche> = {}): PrudhomeFiche {
   return {
@@ -38,8 +43,12 @@ describe('PrudhomeFicheSectionComponent', () => {
     await TestBed.configureTestingModule({
       imports: [PrudhomeFicheSectionComponent, NoopAnimationsModule],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: PrudhomeFicheService, useValue: ficheServiceSpy },
-        { provide: MatSnackBar, useValue: snackBarSpy }
+        { provide: MatSnackBar, useValue: snackBarSpy },
+        // Stub Overlay (CoherencePopoverTriggerDirective le requiert via DI).
+        { provide: Overlay, useValue: { create: jest.fn(), position: jest.fn(), scrollStrategies: { reposition: jest.fn() } } }
       ]
     }).compileComponents();
 
@@ -47,6 +56,9 @@ describe('PrudhomeFicheSectionComponent', () => {
     component = fixture.componentInstance;
     component.caseFileId = 'cf-1';
     fixture.detectChanges();
+    // Absorbe la requête source-explanations émise par ngOnInit (fail-open).
+    const httpMock = TestBed.inject(HttpTestingController);
+    httpMock.match(/\/source-explanations$/).forEach(r => r.flush({}));
   });
 
   // SFDT02-01 : chargement fiche existante → formulaire pré-rempli
@@ -60,13 +72,10 @@ describe('PrudhomeFicheSectionComponent', () => {
 
   // SFDT02-02 : GET en erreur → formulaire conserve ses valeurs par défaut (vides)
   it('SFDT02-02 should keep default empty form values on GET error', () => {
-    // Re-invoke ngOnInit with error — the form was already populated in beforeEach
-    // We simulate a fresh component state by patching the service and calling ngOnInit
     component.form.reset();
     component.demandesArray.clear();
     ficheServiceSpy.get.mockReturnValue(throwError(() => new Error('Network error')));
 
-    // ngOnInit calls get() — on error the form should stay empty
     component.ngOnInit();
 
     expect(component.form.get('demandeur.nom')?.value).toBeFalsy();
@@ -103,5 +112,123 @@ describe('PrudhomeFicheSectionComponent', () => {
 
     component.removeDemande(0);
     expect(component.demandesArray.length).toBe(before);
+  });
+
+  // SF-173-01 — Pré-fill IA tests
+
+  function makeAi(overrides: Partial<TravailExtractedData> = {}): TravailExtractedData {
+    return {
+      poste: 'Ingénieur logiciel',
+      ...overrides
+    };
+  }
+
+  function buildFreshComponent(getResponse: ReturnType<typeof of> | ReturnType<typeof throwError>) {
+    ficheServiceSpy.get.mockReturnValue(getResponse as never);
+    const fixture2 = TestBed.createComponent(PrudhomeFicheSectionComponent);
+    const c = fixture2.componentInstance;
+    c.caseFileId = 'cf-2';
+    const httpMock = TestBed.inject(HttpTestingController);
+    return {
+      fixture: fixture2,
+      component: c,
+      flushSourceExplanations: () => httpMock.match(/\/source-explanations$/).forEach(r => r.flush({})),
+    };
+  }
+
+  // SF-173-01-T1 : prefill sans aiData → pas de valeurs IA, pas de badge.
+  it('SF-173-01-T1 prefill sans aiData → formulaire vide (pas de provenance IA)', () => {
+    const ctx = buildFreshComponent(throwError(() => new Error('404')));
+    ctx.component.aiData = null;
+    ctx.fixture.detectChanges();
+
+    expect(ctx.component.form.get('demandeur.profession')?.value).toBeFalsy();
+    expect(ctx.component.provenanceProfession()).toBeNull();
+  });
+
+  // SF-173-01-T2 : prefill avec aiData → champ rempli + badge IA présent.
+  it('SF-173-01-T2 prefill avec aiData complet → profession remplie + badge présent', () => {
+    const ctx = buildFreshComponent(throwError(() => new Error('404')));
+    ctx.component.aiData = makeAi({ poste: 'Cariste' });
+    ctx.fixture.detectChanges();
+    ctx.component.collapsed.set(false); // déplie pour que les badges soient rendus
+    ctx.fixture.detectChanges();
+
+    expect(ctx.component.form.get('demandeur.profession')?.value).toBe('Cariste');
+    expect(ctx.component.provenanceProfession()).toBe('IA');
+
+    const html = ctx.fixture.nativeElement.innerHTML;
+    expect(html).toContain('auto_awesome');
+  });
+
+  // SF-173-01-T3 : prefill partiel (poste null) → champ vide, badge absent.
+  it('SF-173-01-T3 prefill partiel : poste null → profession vide, badge absent', () => {
+    const ctx = buildFreshComponent(throwError(() => new Error('404')));
+    ctx.component.aiData = makeAi({ poste: null });
+    ctx.fixture.detectChanges();
+
+    expect(ctx.component.form.get('demandeur.profession')?.value).toBeFalsy();
+    expect(ctx.component.provenanceProfession()).toBeNull();
+  });
+
+  // SF-173-01-T4 : changement manuel → badge disparaît.
+  it('SF-173-01-T4 saisie manuelle après prefill → provenance IA effacée', () => {
+    const ctx = buildFreshComponent(throwError(() => new Error('404')));
+    ctx.component.aiData = makeAi({ poste: 'Ingénieur' });
+    ctx.fixture.detectChanges();
+
+    expect(ctx.component.provenanceProfession()).toBe('IA');
+
+    ctx.component.form.get('demandeur.profession')?.setValue('Technicien supérieur');
+    expect(ctx.component.provenanceProfession()).toBeNull();
+  });
+
+  // SF-173-01-T5 : re-analyse (ngOnChanges aiData) ne renverse pas une saisie manuelle existante.
+  it('SF-173-01-T5 re-analyse : saisies manuelles préservées', () => {
+    const ctx = buildFreshComponent(throwError(() => new Error('404')));
+    ctx.component.aiData = makeAi({ poste: 'Ingénieur' });
+    ctx.fixture.detectChanges();
+
+    // Avocat saisit
+    ctx.component.form.get('demandeur.profession')?.setValue('Technicien');
+    expect(ctx.component.provenanceProfession()).toBeNull();
+
+    // Re-analyse arrive avec une autre valeur IA
+    const newAi = makeAi({ poste: 'Cadre' });
+    ctx.component.aiData = newAi;
+    ctx.component.ngOnChanges({
+      aiData: new SimpleChange(makeAi({ poste: 'Ingénieur' }), newAi, false),
+    });
+
+    // La valeur saisie par l'avocat reste — la garde "champ vide" empêche l'écrasement.
+    expect(ctx.component.form.get('demandeur.profession')?.value).toBe('Technicien');
+  });
+
+  // SF-173-01-T6 : F-IA-03 alerte sur divergence profession.
+  it('SF-173-01-T6 coherenceAlerts émet une alerte sur divergence profession', () => {
+    const ctx = buildFreshComponent(throwError(() => new Error('404')));
+    ctx.component.aiData = makeAi({ poste: 'Ingénieur' });
+    ctx.fixture.detectChanges();
+
+    // L'avocat change la profession → alerte F-IA-03 attendue (divergence avec IA).
+    ctx.component.form.get('demandeur.profession')?.setValue('Cariste');
+    ctx.fixture.detectChanges();
+
+    const alerts = ctx.component.coherenceAlerts();
+    expect(alerts.PROFESSION).toBeDefined();
+    expect(alerts.PROFESSION?.expectedDisplay).toBe('Ingénieur');
+    expect(alerts.PROFESSION?.source).toBe('IA');
+  });
+
+  // SF-173-01-T7 : fiche persistée chargée → pas d'alerte F-IA-03 (les valeurs ont déjà été validées).
+  it('SF-173-01-T7 fiche persistée chargée → pas d\'alerte F-IA-03', () => {
+    // ficheServiceSpy.get retourne déjà une fiche (beforeEach) → hasPersistedFiche = true.
+    component.aiData = makeAi({ poste: 'Cadre' });
+    component.ngOnChanges({
+      aiData: new SimpleChange(undefined, component.aiData, false),
+    });
+    fixture.detectChanges();
+
+    expect(component.coherenceAlerts().PROFESSION).toBeUndefined();
   });
 });
