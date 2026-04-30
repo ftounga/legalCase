@@ -235,16 +235,24 @@ class CaseAnalysisServiceTest {
     }
 
     // U-07 : le system prompt contient les contraintes de longueur SF-28-01
+    // Mise à jour F-161 SF-161-01 : reformulation "jusqu'à N… pas de minimum"
     @Test
     void systemPrompt_containsLengthConstraints() {
         AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
-        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        l.setFaits(80); l.setPointsJuridiques(80); l.setRisques(40);
+        l.setQuestionsOuvertes(40); l.setTimeline(60);
+        l.setPiecesManquantes(40); l.setPointsProcedure(30); l.setPistesStrategiques(20);
         String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_DU_TRAVAIL", "FRANCE", l);
-        assertThat(prompt).contains("5 entrées timeline maximum");
-        assertThat(prompt).contains("7 faits maximum");
-        assertThat(prompt).contains("5 points_juridiques maximum");
-        assertThat(prompt).contains("5 risques maximum");
-        assertThat(prompt).contains("5 questions_ouvertes maximum");
+        assertThat(prompt).contains("produis jusqu'à 60 entrées timeline");
+        assertThat(prompt).contains("80 faits");
+        assertThat(prompt).contains("80 points_juridiques");
+        assertThat(prompt).contains("40 risques");
+        assertThat(prompt).contains("40 questions_ouvertes");
+        assertThat(prompt).contains("40 pièces manquantes");
+        assertThat(prompt).contains("30 points procédure");
+        assertThat(prompt).contains("20 pistes stratégiques");
+        assertThat(prompt).contains("Pas de minimum");
+        assertThat(prompt).contains("sans rembourrer");
     }
 
     // U-SF-96-06-01 : le system prompt contient la règle de durcissement points_procedure
