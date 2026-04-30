@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="198-seed-immigration-validation-criteria" author="legalcase">
+        <comment>
+            SF-IM-21-01 : seedage des critères binaires de validité dossier immigration
+            (équivalent F-DT-08, FR + BE).
+
+            Référentiel consommé par CaseAnalysisService.SYSTEM_PROMPT_TEMPLATE
+            (SF-IM-21-02) pour produire des critères binaires VERIFIED/NON_COMPLIANT/TO_CHECK
+            dans points_procedure pour les dossiers immigration.
+
+            18 critères :
+            - 11 France : régularité séjour, délai dépôt, pièce identité, justif domicile,
+              état civil, photo, timbre fiscal, pièces mariage, communauté de vie,
+              ressources, convention d'accueil chercheur
+            - 7 Belgique : régularité séjour, pièce identité, pièces cohabitation,
+              ressources, logement, assurance, extrait casier
+
+            UUIDs f1100001-...-1a0 à 1b1 (plage libre vérifiée).
+
+            Description SF-140-03 obligatoire renseignée pour chaque entrée.
+        </comment>
+
+        <sql splitStatements="true">
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a0', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_REGULARITE_SEJOUR_FR', '{"binaire":true,"description":"Le demandeur est-il en situation régulière au moment du dépôt (titre en cours de validité, récépissé, ou pré-droit ouvert) ?"}', 'Régularité du séjour au moment du dépôt', 'FRANCE', true, true, 'Art. R.431-2 CESEDA', 'Critère binaire F-IM-21 — Vérifie la régularité du séjour au moment du dépôt de la demande de titre. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR (VERIFIED/NON_COMPLIANT/TO_CHECK).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a1', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_DELAI_DEPOT_FR', '{"binaire":true,"description":"La demande de renouvellement a-t-elle été déposée dans les 2 mois précédant l''expiration du titre en cours ?"}', 'Délai de dépôt avant expiration', 'FRANCE', true, true, 'Art. R.431-5 CESEDA', 'Critère binaire F-IM-21 — Vérifie le respect du délai de dépôt (2 mois avant expiration). Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR (renouvellement).', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a2', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_PIECE_IDENTITE_FR', '{"binaire":true,"description":"Le passeport ou la pièce d''identité du demandeur est-il valide pour la durée du séjour demandé ?"}', 'Passeport ou pièce d''identité valide', 'FRANCE', true, true, 'Art. R.431-10 CESEDA', 'Critère binaire F-IM-21 — Vérifie la validité du passeport ou pièce d''identité. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a3', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_JUSTIF_DOMICILE_FR', '{"binaire":true,"description":"Le demandeur produit-il un justificatif de domicile en France de moins de 6 mois (facture, attestation hébergement, bail) ?"}', 'Justificatif de domicile en France', 'FRANCE', true, true, 'Art. R.431-10 CESEDA', 'Critère binaire F-IM-21 — Vérifie la production d''un justificatif de domicile en France récent. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a4', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_ETAT_CIVIL_FR', '{"binaire":true,"description":"Les actes d''état civil étrangers sont-ils traduits par traducteur assermenté et légalisés/apostillés selon le pays d''origine ?"}', 'Pièces d''état civil traduites/légalisées', 'FRANCE', true, true, 'Art. R.431-10 CESEDA + Conv. La Haye 1961', 'Critère binaire F-IM-21 — Vérifie la traduction et légalisation/apostille des actes d''état civil étrangers. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a5', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_PHOTO_FR', '{"binaire":true,"description":"Les photos d''identité respectent-elles la norme préfecture (récentes, fond uni, format 35x45 mm) ?"}', 'Photo d''identité conforme', 'FRANCE', true, true, 'Art. R.431-10 CESEDA', 'Critère binaire F-IM-21 — Vérifie la conformité des photos d''identité à la norme préfecture. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a6', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_TIMBRE_FISCAL_FR', '{"binaire":true,"description":"Le timbre fiscal correspondant au type de titre demandé est-il acquitté et présenté ?"}', 'Timbre fiscal acquitté', 'FRANCE', true, true, 'Art. L.311-13 CESEDA', 'Critère binaire F-IM-21 — Vérifie l''acquittement du timbre fiscal pour le type de titre demandé. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a7', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_PIECES_MARIAGE_FR', '{"binaire":true,"description":"Pour les titres VPF conjoint francais : l''acte de mariage est-il transcrit en France (ou pris en compte sans transcription si mariage en France) ?"}', 'Acte de mariage transcrit', 'FRANCE', true, true, 'Art. L.423-1 CESEDA + Art. 47 Cciv', 'Critère binaire F-IM-21 — Vérifie la transcription de l''acte de mariage pour les titres VPF conjoint français. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a8', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_COMMUNAUTE_VIE_FR', '{"binaire":true,"description":"Pour les titres VPF conjoint : la communauté de vie effective et continue est-elle justifiée (factures communes, témoignages, photos) ?"}', 'Communauté de vie justifiée', 'FRANCE', true, true, 'Art. L.423-1 CESEDA', 'Critère binaire F-IM-21 — Vérifie la justification de la communauté de vie pour les titres VPF conjoint. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001a9', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_RESSOURCES_FR', '{"binaire":true,"description":"Pour les titres exigeant des ressources (étudiant, salarié, regroupement) : les ressources sont-elles stables et au moins égales au seuil légal du titre concerné ?"}', 'Ressources stables et suffisantes', 'FRANCE', true, true, 'Art. L.423-2+ CESEDA', 'Critère binaire F-IM-21 — Vérifie la stabilité et le niveau des ressources pour les titres l''exigeant. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001aa', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_CONVENTION_ACCUEIL_FR', '{"binaire":true,"description":"Pour le Passeport talent — Chercheur : la convention d''accueil signée par un organisme de recherche habilité (CNRS, INRIA, université, etc.) est-elle présente ?"}', 'Convention d''accueil organisme recherche', 'FRANCE', true, true, 'Art. L.421-14 CESEDA + Art. R.421-21', 'Critère binaire F-IM-21 — Vérifie la présence de la convention d''accueil pour le Passeport talent Chercheur. Utilisé par la checklist procédurale F-96 pour les dossiers immigration FR.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001ab', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_REGULARITE_SEJOUR_BE', '{"binaire":true,"description":"Le demandeur est-il en situation régulière au moment du dépôt (annexe 19, annexe 15, carte en cours) ou justifie-t-il d''une demande pour circonstances exceptionnelles ?"}', 'Régularité du séjour au moment du dépôt', 'BELGIQUE', true, true, 'Art. 9 + 9bis Loi 15/12/1980', 'Critère binaire F-IM-21 — Vérifie la régularité du séjour au moment du dépôt de la demande. Utilisé par la checklist procédurale F-96 pour les dossiers immigration BE.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001ac', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_PIECE_IDENTITE_BE', '{"binaire":true,"description":"Le passeport du demandeur est-il valide et couvre-t-il au minimum 1 an au-delà de la date de demande ?"}', 'Passeport valide', 'BELGIQUE', true, true, 'Art. 41 Loi 15/12/1980', 'Critère binaire F-IM-21 — Vérifie la validité du passeport pour la durée du séjour demandé. Utilisé par la checklist procédurale F-96 pour les dossiers immigration BE.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001ad', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_PIECES_COHABITATION_BE', '{"binaire":true,"description":"Pour les titres familiaux (40ter, cohabitant légal, regroupement) : l''acte de mariage ou contrat de cohabitation légale est-il enregistré et la composition de ménage commune produite ?"}', 'Pièces cohabitation/mariage', 'BELGIQUE', true, true, 'Art. 40bis + 40ter + 10 + 11 Loi 15/12/1980', 'Critère binaire F-IM-21 — Vérifie la production des pièces cohabitation/mariage pour les titres familiaux. Utilisé par la checklist procédurale F-96 pour les dossiers immigration BE.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001ae', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_RESSOURCES_BE', '{"binaire":true,"description":"Pour les titres familiaux et étudiants : les revenus mensuels nets sont-ils >= 120 % du RIS (revenu d''intégration sociale) ?"}', 'Ressources suffisantes', 'BELGIQUE', true, true, 'Art. 10 §5 + 40ter §2 Loi 15/12/1980', 'Critère binaire F-IM-21 — Vérifie le niveau des ressources pour les titres familiaux et étudiants. Utilisé par la checklist procédurale F-96 pour les dossiers immigration BE.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001af', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_LOGEMENT_BE', '{"binaire":true,"description":"Le demandeur (ou regroupant) dispose-t-il d''un logement suffisant pour héberger sa famille (dimensions, salubrité, attestation commune) ?"}', 'Logement suffisant', 'BELGIQUE', true, true, 'Art. 10 §2 1° Loi 15/12/1980', 'Critère binaire F-IM-21 — Vérifie la disponibilité d''un logement suffisant pour le regroupement familial. Utilisé par la checklist procédurale F-96 pour les dossiers immigration BE.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001b0', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_ASSURANCE_BE', '{"binaire":true,"description":"Le demandeur dispose-t-il d''une assurance maladie couvrant la durée du séjour demandé (mutuelle, attestation employeur, ou européenne) ?"}', 'Assurance maladie', 'BELGIQUE', true, true, 'Art. 9 Loi 15/12/1980 + AR 8/10/1981', 'Critère binaire F-IM-21 — Vérifie la couverture assurance maladie du demandeur pour la durée du séjour. Utilisé par la checklist procédurale F-96 pour les dossiers immigration BE.', NOW(), NULL);
+
+INSERT INTO legal_referentials (id, workspace_id, legal_domain, referential_type, entry_key, value_json, label, country, is_system, is_active, source_ref, description, updated_at, updated_by)
+VALUES ('f1100001-0000-0000-0000-0000000001b1', NULL, 'DROIT_IMMIGRATION', 'IM21_VALIDITY_CRITERES', 'IM21_EXTRAIT_CASIER_BE', '{"binaire":true,"description":"L''extrait de casier judiciaire du pays d''origine de moins de 6 mois est-il fourni et traduit ?"}', 'Extrait de casier judiciaire', 'BELGIQUE', true, true, 'Art. 9 + 13 Loi 15/12/1980', 'Critère binaire F-IM-21 — Vérifie la production d''un extrait de casier judiciaire récent et traduit. Utilisé par la checklist procédurale F-96 pour les dossiers immigration BE.', NOW(), NULL);
+        </sql>
+
+        <rollback>
+            DELETE FROM legal_referentials WHERE id IN (
+                'f1100001-0000-0000-0000-0000000001a0',
+                'f1100001-0000-0000-0000-0000000001a1',
+                'f1100001-0000-0000-0000-0000000001a2',
+                'f1100001-0000-0000-0000-0000000001a3',
+                'f1100001-0000-0000-0000-0000000001a4',
+                'f1100001-0000-0000-0000-0000000001a5',
+                'f1100001-0000-0000-0000-0000000001a6',
+                'f1100001-0000-0000-0000-0000000001a7',
+                'f1100001-0000-0000-0000-0000000001a8',
+                'f1100001-0000-0000-0000-0000000001a9',
+                'f1100001-0000-0000-0000-0000000001aa',
+                'f1100001-0000-0000-0000-0000000001ab',
+                'f1100001-0000-0000-0000-0000000001ac',
+                'f1100001-0000-0000-0000-0000000001ad',
+                'f1100001-0000-0000-0000-0000000001ae',
+                'f1100001-0000-0000-0000-0000000001af',
+                'f1100001-0000-0000-0000-0000000001b0',
+                'f1100001-0000-0000-0000-0000000001b1'
+            );
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
