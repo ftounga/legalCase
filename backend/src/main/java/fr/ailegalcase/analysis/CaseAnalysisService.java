@@ -166,13 +166,18 @@ public class CaseAnalysisService {
             // F-146/F-148 : l'injection de PiecesPromptContext + descriptions Vision
             // fait gonfler la sortie attendue (11 pièces × sourceRef + éventuelles
             // visual_description → facilement 8 000+ tokens de JSON). On aligne sur
-            // EnrichedAnalysisService (16384) pour éviter la troncature silencieuse
+            // EnrichedAnalysisService pour éviter la troncature silencieuse
             // constatée en staging 2026-04-23 (dossier E-35).
+            // F-161 SF-161-02 : bump 16384→64000 pour absorber les nouveaux caps
+            // SF-161-01 (faits 80, points 80, risques 40, timeline 60-80, etc.).
+            // Worst case ~34-36 K tokens output sur dossiers extraordinaires,
+            // sinon stop_reason=max_tokens → JSON tronqué silencieusement.
+            // Sonnet 4.x supporte 64 K output natif, sans header beta.
             // F-142-04 : prompt caching ephemeral — le system prompt (plusieurs milliers
             // de tokens : domaine, limites, instruction, PiecesPromptContext) est
             // réutilisé entre appels successifs (re-analyse, question chat). Gain ~85 %
             // de latence prefill sur les appels dans la fenêtre de 5 min.
-            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 16384);
+            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 64000);
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Case analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
