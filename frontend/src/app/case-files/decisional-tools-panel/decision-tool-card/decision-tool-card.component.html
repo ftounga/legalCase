@@ -1,0 +1,51 @@
+<div
+  [ngClass]="['tool-card', alertLevelClass, disabled ? 'tool-card--disabled' : '']"
+  role="button"
+  [attr.tabindex]="disabled ? -1 : 0"
+  [attr.aria-label]="title"
+  [attr.aria-disabled]="disabled"
+  [attr.data-tool-id]="toolId"
+  [attr.data-theme]="theme"
+  (click)="onClick()"
+  (keydown)="onKeydown($event)">
+
+  <header class="tool-card__header">
+    <mat-icon class="tool-card__icon">{{ icon }}</mat-icon>
+    <span class="tool-card__title">{{ title }}</span>
+
+    <div class="tool-card__badges">
+      @if (showPrefillBadge) {
+        <span
+          class="tool-card__badge tool-card__badge--prefill"
+          [matTooltip]="prefillTooltip"
+          aria-label="Pré-rempli par l'IA">
+          <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+        </span>
+      }
+      @if (showCoherenceBadge) {
+        <span
+          class="tool-card__badge tool-card__badge--coherence"
+          [matTooltip]="coherenceTooltip"
+          aria-label="Alerte cohérence IA">
+          <mat-icon aria-hidden="true">error</mat-icon>
+        </span>
+      }
+      @if (showMetierBadge) {
+        <span
+          class="tool-card__badge tool-card__badge--metier"
+          matTooltip="Alerte métier"
+          aria-label="Alerte métier">
+          <mat-icon aria-hidden="true">warning</mat-icon>
+        </span>
+      }
+    </div>
+  </header>
+
+  <div class="tool-card__body">
+    @if (formattedSummary) {
+      <span class="tool-card__verdict">{{ formattedSummary }}</span>
+    } @else {
+      <span class="tool-card__placeholder">Cliquer pour utiliser</span>
+    }
+  </div>
+</div>
