@@ -46,4 +46,24 @@ export class ImmigrationEventsSectionComponent {
         return 'new_releases';
     }
   }
+
+  /**
+   * F-172 SF-172-02 : retourne true si l'événement est programmé dans le futur
+   * (event_date > today). Permet de distinguer un événement acquis (mariage célébré)
+   * d'un événement à venir (soutenance prévue) via un badge "Événement programmé".
+   *
+   * Comportement fail-open : null, undefined, format invalide → false (pas de badge).
+   */
+  isProgrammedEvent(eventDate: string | null | undefined): boolean {
+    if (!eventDate) {
+      return false;
+    }
+    const parsed = Date.parse(eventDate);
+    if (isNaN(parsed)) {
+      return false;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return parsed > today.getTime();
+  }
 }

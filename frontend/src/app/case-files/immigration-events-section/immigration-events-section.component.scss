@@ -53,10 +53,35 @@
   line-height: 1.35;
 }
 
+.event-card-date-line {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 .event-card-date {
   font-size: 12px;
   color: #6B7A8D;
   font-variant-numeric: tabular-nums;
+}
+
+// F-172 SF-172-02 : badge subtil "Événement programmé" affiché à côté de la
+// date pour les événements à venir (event_date > today). Palette navy/or
+// DESIGN_SYSTEM, typographie Inter 500 12px, padding 4-8px multiples de 4.
+.event-programmed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #FFF8E1;
+  color: #1A3A5C;
+  border: 1px solid #C9973A;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
 }
 
 .event-card-justification {
