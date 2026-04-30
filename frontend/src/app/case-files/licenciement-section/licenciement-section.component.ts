@@ -66,12 +66,18 @@ const CRITERE_CODES = new Set([
   styleUrl: './licenciement-section.component.scss'
 })
 export class LicenciementSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'VALIDITÉ DU LICENCIEMENT';
+  static readonly TOOL_ICON = 'gavel';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   @Input() aiData?: LicenciementValidityDetection | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03 : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   private hasSavedResult = false;
   private aiDataSignal = signal<LicenciementValidityDetection | null | undefined>(undefined);
@@ -336,6 +342,9 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03 : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     this.country.set(this.workspaceCountry);
     this.criteresForm.set(this.buildInitialForm(this.country()));
     this.aiDataSignal.set(this.aiData);
@@ -360,6 +369,9 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03 : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+
     if (changes['aiData']) {
       this.aiDataSignal.set(this.aiData);
       if (!changes['aiData'].firstChange) {

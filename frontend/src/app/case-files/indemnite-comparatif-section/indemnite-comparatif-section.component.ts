@@ -66,6 +66,10 @@ const TYPES_BE: TypeRuptureOption[] = [
   styleUrl: './indemnite-comparatif-section.component.scss'
 })
 export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03 : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'COMPARATEUR INDEMNITÉS';
+  static readonly TOOL_ICON = 'euro_symbol';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   @Input() aiData?: TravailExtractedData | null;
@@ -73,6 +77,8 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03 : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
   private synthesisSignal = signal<CaseAnalysisResult | null | undefined>(undefined);
@@ -293,6 +299,9 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03 : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     // SF-106-06 : initialiser le pays depuis le workspace (plus de FRANCE en dur).
     this.country.set(this.workspaceCountry);
     this.typeRupture.set(this.workspaceCountry === 'BELGIQUE' ? 'LICENCIEMENT_ORDINAIRE' : 'LICENCIEMENT');
@@ -323,6 +332,9 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03 : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['synthesis']) this.synthesisSignal.set(this.synthesis);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
