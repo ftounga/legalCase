@@ -127,4 +127,26 @@ class LegalDomainPromptBuilderTest {
         assertThat(instruction).contains("imminents documentés");
         assertThat(instruction).contains("preuve documentaire");
     }
+
+    // SF-166-01 : prompt Travail enrichi des 8 flags décisionnels niveau 3
+    @Test
+    void domainSpecificInstruction_travail_contains8NiveauTroisFlags() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("rappel_salaire_detecte");      // F-DT-20
+        assertThat(instruction).contains("travail_dissimule_detecte");   // F-DT-21
+        assertThat(instruction).contains("clause_non_concurrence_detectee"); // F-DT-24
+        assertThat(instruction).contains("statut_protege_detecte");      // F-DT-30
+        assertThat(instruction).contains("transaction_envisagee");       // F-DT-31
+        assertThat(instruction).contains("at_mp_detecte");               // F-DT-33
+        assertThat(instruction).contains("urgence_procedurale");         // F-DT-34
+        assertThat(instruction).contains("contestation_are_envisagee");  // F-DT-35
+    }
+
+    @Test
+    void domainSpecificInstruction_travail_niveauTroisFlags_explicitlyExcludeBE() {
+        // Tous les 8 flags doivent rester false pour un dossier travail BE
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_DU_TRAVAIL");
+        assertThat(instruction).contains("FRANCE UNIQUEMENT");
+        assertThat(instruction).contains("BELGIQUE, TOUS ces 8 flags DOIVENT rester false");
+    }
 }

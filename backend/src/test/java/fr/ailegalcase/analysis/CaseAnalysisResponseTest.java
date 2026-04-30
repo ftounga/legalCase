@@ -1466,4 +1466,224 @@ class CaseAnalysisResponseTest {
         assertThat(im.motifOqtCodeBe()).isNull();
         assertThat(im.transfertImminentDetected()).isNull();
     }
+
+    // SF-166-01 : 8 flags décisionnels niveau 3 (F-DT-20/21/24/30/31/33/34/35) — Travail FR uniquement
+    @Test
+    void from_travailExtractedData_rappelSalaireDetecte_isolated_true_othersFalse() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "rappel_salaire_detecte": true } }
+                """)).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rappelSalaireDetecte()).isTrue();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.statutProtegeDetecte()).isFalse();
+        assertThat(t.transactionEnvisagee()).isFalse();
+        assertThat(t.atMpDetecte()).isFalse();
+        assertThat(t.urgenceProcedurale()).isFalse();
+        assertThat(t.contestationAreEnvisagee()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_travailDissimuleDetecte_isolated_true() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "travail_dissimule_detecte": true } }
+                """)).travailExtractedData();
+        assertThat(t.travailDissimuleDetecte()).isTrue();
+        assertThat(t.rappelSalaireDetecte()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_clauseNonConcurrenceDetectee_isolated_true() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "clause_non_concurrence_detectee": true } }
+                """)).travailExtractedData();
+        assertThat(t.clauseNonConcurrenceDetectee()).isTrue();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_statutProtegeDetecte_isolated_true() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "statut_protege_detecte": true } }
+                """)).travailExtractedData();
+        assertThat(t.statutProtegeDetecte()).isTrue();
+        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_transactionEnvisagee_isolated_true() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "transaction_envisagee": true } }
+                """)).travailExtractedData();
+        assertThat(t.transactionEnvisagee()).isTrue();
+        assertThat(t.statutProtegeDetecte()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_atMpDetecte_isolated_true() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "at_mp_detecte": true } }
+                """)).travailExtractedData();
+        assertThat(t.atMpDetecte()).isTrue();
+        assertThat(t.transactionEnvisagee()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_urgenceProcedurale_isolated_true() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "urgence_procedurale": true } }
+                """)).travailExtractedData();
+        assertThat(t.urgenceProcedurale()).isTrue();
+        assertThat(t.atMpDetecte()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_contestationAreEnvisagee_isolated_true() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "contestation_are_envisagee": true } }
+                """)).travailExtractedData();
+        assertThat(t.contestationAreEnvisagee()).isTrue();
+        assertThat(t.urgenceProcedurale()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_allFlagsExplicitlyFalse() {
+        var t = CaseAnalysisResponse.from(analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "rappel_salaire_detecte": false,
+                    "travail_dissimule_detecte": false,
+                    "clause_non_concurrence_detectee": false,
+                    "statut_protege_detecte": false,
+                    "transaction_envisagee": false,
+                    "at_mp_detecte": false,
+                    "urgence_procedurale": false,
+                    "contestation_are_envisagee": false
+                  }
+                }
+                """)).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rappelSalaireDetecte()).isFalse();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.statutProtegeDetecte()).isFalse();
+        assertThat(t.transactionEnvisagee()).isFalse();
+        assertThat(t.atMpDetecte()).isFalse();
+        assertThat(t.urgenceProcedurale()).isFalse();
+        assertThat(t.contestationAreEnvisagee()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_noFlagsInJson_allDefaultFalse() {
+        // Rétrocompat : analyse antérieure à SF-166-01 ne contient aucun des 8 flags
+        var t = CaseAnalysisResponse.from(analysis("""
+                { "travail_extracted_data": { "convention_collective": "SYNTEC", "salaire_brut_mensuel": 3200 } }
+                """)).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rappelSalaireDetecte()).isFalse();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.statutProtegeDetecte()).isFalse();
+        assertThat(t.transactionEnvisagee()).isFalse();
+        assertThat(t.atMpDetecte()).isFalse();
+        assertThat(t.urgenceProcedurale()).isFalse();
+        assertThat(t.contestationAreEnvisagee()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_nonBooleanValues_failSafeToFalse() {
+        // Fail-safe : valeurs non-boolean (number, object) ne lèvent pas d'exception et restent false
+        var t = CaseAnalysisResponse.from(analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "rappel_salaire_detecte": "yes",
+                    "travail_dissimule_detecte": 1,
+                    "clause_non_concurrence_detectee": null,
+                    "statut_protege_detecte": "TRUE_INVALID"
+                  }
+                }
+                """)).travailExtractedData();
+        assertThat(t).isNotNull();
+        assertThat(t.rappelSalaireDetecte()).isFalse();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.statutProtegeDetecte()).isFalse();
+    }
+
+    @Test
+    void from_travailExtractedData_stringTrueAndFalse_recognizedCaseInsensitive() {
+        // booleanOrNull tolère les chaînes "true" / "false" — réutilisé par booleanOrFalse
+        var t = CaseAnalysisResponse.from(analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "rappel_salaire_detecte": "true",
+                    "travail_dissimule_detecte": "false",
+                    "clause_non_concurrence_detectee": "TRUE",
+                    "statut_protege_detecte": "False"
+                  }
+                }
+                """)).travailExtractedData();
+        assertThat(t.rappelSalaireDetecte()).isTrue();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.clauseNonConcurrenceDetectee()).isTrue();
+        assertThat(t.statutProtegeDetecte()).isFalse();
+    }
+
+    @Test
+    void travailExtractedData_constructeur9Args_legacy_setsAllFlagsToFalse() {
+        // Constructeur le plus ancien (9 champs) : les 8 flags niveau 3 doivent être false par défaut
+        var t = new CaseAnalysisResponse.TravailExtractedData(
+                "SYNTEC", "2020-01-01", 3200.0,
+                "CDI", "Développeur", "Faute simple", "2024-06-15",
+                25, 0.5);
+        assertThat(t.rappelSalaireDetecte()).isFalse();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.clauseNonConcurrenceDetectee()).isFalse();
+        assertThat(t.statutProtegeDetecte()).isFalse();
+        assertThat(t.transactionEnvisagee()).isFalse();
+        assertThat(t.atMpDetecte()).isFalse();
+        assertThat(t.urgenceProcedurale()).isFalse();
+        assertThat(t.contestationAreEnvisagee()).isFalse();
+    }
+
+    @Test
+    void travailExtractedData_constructeur23Args_legacy_setsAllFlagsToFalse() {
+        // Constructeur 23 args (avant SF-166-01) : les 8 flags niveau 3 doivent être false par défaut
+        var t = new CaseAnalysisResponse.TravailExtractedData(
+                "SYNTEC", "2020-01-01", 3200.0,
+                "CDI", "Développeur", "Faute simple", "2024-06-15",
+                25, 0.5,
+                "Dupont", "Jean", "12 rue de la Paix",
+                "Acme SAS", "5 avenue des Champs",
+                "12345678901234", null, "Martin Dupond", false,
+                "HARCELEMENT_MORAL", null, "2024-06-01",
+                null, null);
+        assertThat(t.rappelSalaireDetecte()).isFalse();
+        assertThat(t.contestationAreEnvisagee()).isFalse();
+        assertThat(t.motifNullitePressenti()).isEqualTo("HARCELEMENT_MORAL");
+    }
+
+    @Test
+    void from_travailExtractedData_multipleFlagsTrue_independent() {
+        // Plusieurs flags true en même temps (cas réaliste : dossier complexe)
+        var t = CaseAnalysisResponse.from(analysis("""
+                {
+                  "travail_extracted_data": {
+                    "convention_collective": "SYNTEC",
+                    "rappel_salaire_detecte": true,
+                    "urgence_procedurale": true,
+                    "transaction_envisagee": true
+                  }
+                }
+                """)).travailExtractedData();
+        assertThat(t.rappelSalaireDetecte()).isTrue();
+        assertThat(t.urgenceProcedurale()).isTrue();
+        assertThat(t.transactionEnvisagee()).isTrue();
+        assertThat(t.travailDissimuleDetecte()).isFalse();
+        assertThat(t.contestationAreEnvisagee()).isFalse();
+    }
 }
