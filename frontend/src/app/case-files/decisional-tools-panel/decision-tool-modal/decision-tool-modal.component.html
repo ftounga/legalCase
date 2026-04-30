@@ -1,0 +1,33 @@
+<header class="modal-header" [attr.data-tool-id]="data.toolId">
+  <mat-icon class="modal-header__icon">{{ data.icon }}</mat-icon>
+  <h2 class="modal-header__title">{{ data.title }}</h2>
+  <button
+    mat-icon-button
+    type="button"
+    class="modal-header__close"
+    aria-label="Fermer"
+    (click)="onCancel()">
+    <mat-icon>close</mat-icon>
+  </button>
+</header>
+
+<mat-dialog-content class="modal-content">
+  <ng-container *ngComponentOutlet="data.component; inputs: data.inputs"></ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="modal-actions">
+  <button mat-stroked-button type="button" (click)="onCancel()">Annuler</button>
+  @if (hasOnSave) {
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      [disabled]="saving()"
+      (click)="onSave()">
+      @if (saving()) {
+        <mat-progress-spinner diameter="16" mode="indeterminate"></mat-progress-spinner>
+      }
+      <span>Enregistrer</span>
+    </button>
+  }
+</mat-dialog-actions>
