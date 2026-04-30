@@ -140,7 +140,42 @@ public class DecisionToolVisibilityService {
         if (heuresSupNode != null && heuresSupNode.isObject() && !heuresSupNode.isEmpty()) {
             addIfPresent(detected, "heures_sup_mentionnees", "PRESENT");
         }
+
+        // F-166 SF-166-02 : 8 flags décisionnels niveau 3 — booleans dans travail_extracted_data.
+        // Émettre la string "true" dans la map quand le flag est à true (consommé par CONTEXTUAL
+        // rules de la migration 199 : F-DT-20/21/24/30/31/33/34/35).
+        addBooleanFlagIfTrue(detected, travailNode, "rappel_salaire_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "travail_dissimule_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "clause_non_concurrence_detectee");
+        addBooleanFlagIfTrue(detected, travailNode, "statut_protege_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "transaction_envisagee");
+        addBooleanFlagIfTrue(detected, travailNode, "at_mp_detecte");
+        addBooleanFlagIfTrue(detected, travailNode, "urgence_procedurale");
+        addBooleanFlagIfTrue(detected, travailNode, "contestation_are_envisagee");
         return detected;
+    }
+
+    /**
+     * F-166 SF-166-02 : émet la string "true" dans la map detected[field] quand le node JSON
+     * contient le champ avec la valeur boolean true (ou string "true"). Skip silencieux si le
+     * champ est absent, null, false, ou non-boolean — comportement aligné sur le helper
+     * {@code booleanOrFalse} côté CaseAnalysisResponse (SF-166-01).
+     */
+    private static void addBooleanFlagIfTrue(Map<String, Set<String>> detected, JsonNode parent, String field) {
+        if (parent == null || !parent.has(field)) return;
+        JsonNode v = parent.get(field);
+        if (v == null || v.isNull()) return;
+        boolean isTrue;
+        if (v.isBoolean()) {
+            isTrue = v.asBoolean();
+        } else if (v.isTextual()) {
+            isTrue = "true".equalsIgnoreCase(v.asText());
+        } else {
+            isTrue = false;
+        }
+        if (isTrue) {
+            addIfPresent(detected, field, "true");
+        }
     }
 
     private static String readString(JsonNode node) {
