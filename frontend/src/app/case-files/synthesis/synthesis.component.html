@@ -457,6 +457,113 @@
         </mat-expansion-panel>
       }
 
+      @if (strategicOptions().length > 0) {
+        <mat-expansion-panel expanded id="section-pistes">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="panel-icon panel-icon--pistes">lightbulb</mat-icon>
+              Pistes stratégiques
+            </mat-panel-title>
+            <mat-panel-description>
+              {{ strategicOptions().length }} piste(s)
+              @if (optionsRetained().length > 0) {
+                — {{ optionsRetained().length }} retenue(s)
+              }
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          @if (optionsToStudy().length > 0) {
+            <div class="pistes-section pistes-section--to-study">
+              <h4 class="pistes-section-title">À étudier</h4>
+              @for (option of optionsToStudy(); track option.id) {
+                <ng-container *ngTemplateOutlet="pisteTpl; context: { $implicit: option }"></ng-container>
+              }
+            </div>
+          }
+
+          @if (optionsRetained().length > 0) {
+            <div class="pistes-section pistes-section--retained">
+              <h4 class="pistes-section-title">Retenues</h4>
+              @for (option of optionsRetained(); track option.id) {
+                <ng-container *ngTemplateOutlet="pisteTpl; context: { $implicit: option }"></ng-container>
+              }
+            </div>
+          }
+
+          @if (optionsDiscarded().length > 0) {
+            <div class="pistes-section pistes-section--discarded">
+              <h4 class="pistes-section-title">Écartées</h4>
+              @for (option of optionsDiscarded(); track option.id) {
+                <ng-container *ngTemplateOutlet="pisteTpl; context: { $implicit: option }"></ng-container>
+              }
+            </div>
+          }
+
+          <ng-template #pisteTpl let-option>
+            <div class="piste-item">
+              <div class="piste-content">
+                <p class="piste-texte">{{ option.texte }}</p>
+                @if (option.baseJuridique) {
+                  <p class="piste-base-juridique">
+                    <mat-icon class="piste-icon">gavel</mat-icon>
+                    {{ option.baseJuridique }}
+                  </p>
+                }
+                @if (option.horizonTemporel) {
+                  <span class="piste-horizon">{{ option.horizonTemporel }}</span>
+                }
+                @if (option.conditions && option.conditions.length > 0) {
+                  <div class="piste-conditions">
+                    <span class="piste-conditions-label">Conditions :</span>
+                    <ul>
+                      @for (cond of option.conditions; track cond) {
+                        <li>{{ cond }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
+                @if (option.source) {
+                  <p class="piste-source">Source : {{ option.source }}</p>
+                }
+                @if (option.statut === 'DISCARDED' && option.raisonDiscard) {
+                  <p class="piste-raison-discard">
+                    <span class="piste-raison-label">Raison :</span> {{ option.raisonDiscard }}
+                    <button mat-icon-button class="edit-btn" (click)="editDiscardReason(option)"
+                            matTooltip="Modifier la raison">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  </p>
+                }
+              </div>
+              <div class="piste-actions">
+                @if (updatingOptionId() === option.id) {
+                  <mat-spinner diameter="20" class="check-spinner"></mat-spinner>
+                } @else {
+                  <button class="status-btn status-btn--retained"
+                          [class.status-btn--active]="option.statut === 'RETAINED'"
+                          (click)="updateOptionStatus(option, 'RETAINED')">
+                    <mat-icon>check_circle</mat-icon>
+                    Retenir
+                  </button>
+                  <button class="status-btn status-btn--discarded"
+                          [class.status-btn--active]="option.statut === 'DISCARDED'"
+                          (click)="updateOptionStatus(option, 'DISCARDED')">
+                    <mat-icon>cancel</mat-icon>
+                    Écarter
+                  </button>
+                  <button class="status-btn status-btn--to-study"
+                          [class.status-btn--active]="option.statut === 'TO_STUDY'"
+                          (click)="updateOptionStatus(option, 'TO_STUDY')">
+                    <mat-icon>help_outline</mat-icon>
+                    À étudier
+                  </button>
+                }
+              </div>
+            </div>
+          </ng-template>
+        </mat-expansion-panel>
+      }
+
       @if (procedureChecks().length > 0) {
         <mat-expansion-panel expanded id="section-checklist">
           <mat-expansion-panel-header>
