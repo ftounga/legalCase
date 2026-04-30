@@ -41,7 +41,7 @@ public class CaseAnalysisService {
             Tu reçois les analyses de plusieurs documents d'un dossier juridique.
             Produis une synthèse globale du dossier en agrégeant ces analyses.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "delais_detectes": [{"label": "...", "date_detectee": "YYYY-MM-DD", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>"}]}
+            Format attendu : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "pistes_strategiques": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "delais_detectes": [{"label": "...", "date_detectee": "YYYY-MM-DD", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>"}]}
             Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus) et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
             F-146 : ajoute AUSSI à chaque item un champ "sourceRef" précisant la pièce juridique exacte, au format {"documentName": "<nom fichier>", "pieceType": "<type pièce parmi la liste du contexte>", "pieceLabel": "<label de la pièce tel qu'indiqué dans la section PIÈCES IDENTIFIÉES>", "pageStart": <page début>, "pageEnd": <page fin>}. Utilise les informations de la section "=== PIÈCES IDENTIFIÉES DANS LES DOCUMENTS ===" fournie dans le prompt utilisateur. Si la pièce n'est pas identifiable ou si le dossier n'a pas de pièces détectées (dossier pré-F-145), utilise "sourceRef": null. Ne jamais inventer un label de pièce qui n'apparaît pas dans la section PIÈCES IDENTIFIÉES.
             La timeline doit lister les événements clés du dossier par ordre chronologique. Si aucune date n'est identifiable, utilise "timeline": [].
@@ -58,7 +58,8 @@ public class CaseAnalysisService {
             - Critère F-IM-07 Droit au travail (droit de l'immigration, énuméré) : IM07_TITRE_TYPE. Renseigne obligatoirement "expected_value" avec le code du titre de séjour parmi les 16 codes (identiques à F-IM-05) : VLS_TS_ETUDIANT, VLS_TS_SALARIE, CST_SALARIE, CARTE_PLURIANNUELLE, CARTE_RESIDENT, APS, CST_VPF, RECEPISSE_ASILE (France), CARTE_A_TRAVAIL, CARTE_A_ETUDES, CARTE_A_FAMILLE, CARTE_B, CARTE_C, PERMIS_UNIQUE, ANNEXE_15, ATTESTATION_IMMATRICULATION (Belgique). Ne renseigner ce critère que si le point évoque spécifiquement le droit au travail attaché à un titre.
             - Critère F-DT-09 Type de rupture (énuméré) : DT09_TYPE_RUPTURE. Pour ce critère, renseigne obligatoirement "expected_value" avec la valeur affirmée par le point, parmi : LICENCIEMENT, LICENCIEMENT_ECONOMIQUE, RUPTURE_CONVENTIONNELLE (France), LICENCIEMENT_ORDINAIRE, RUPTURE_AMIABLE (Belgique). Exemple : {"texte": "Convention de rupture conventionnelle homologuée présente au dossier", "critere_code": "DT09_TYPE_RUPTURE", "expected_value": "RUPTURE_CONVENTIONNELLE"}.
             Pour tout point sans lien avec ces critères, "critere_code" et "expected_value" restent null. Rétrocompat : format string legacy accepté. Si la procédure semble conforme, utilise "points_procedure": [].
-            SF-96-06 — Durcissement : quand "critere_code" est null, "points_procedure" ne doit contenir QUE des vérifications binaires factuelles d'étapes légalement requises sur le dossier en cours (les 3 statuts ✅Vérifié / ❌Non conforme / ⚠️À vérifier doivent tous avoir du sens sur l'item). SONT INTERDITS dans "points_procedure" et doivent être redirigés ailleurs : (a) options stratégiques ("En cas de demande…", "Si l'avocat envisage…", "Possibilité de demander…", "Alternative…") → mettre dans "questions_ouvertes" ; (b) opportunités futures à plus de 6 mois ("Après N ans de mariage…", "À partir de…", "Une fois N années révolues…") → "risques" si elles imposent un délai à respecter, sinon "questions_ouvertes" ; (c) recommandations d'action ("Demande à déposer auprès de…", "Joindre la convention…", "Prendre attache avec…") → "questions_ouvertes". Règle de répartition : on VÉRIFIE dans points_procedure, on PROPOSE dans questions_ouvertes, on ALERTE dans risques.
+            SF-96-06 — Durcissement : quand "critere_code" est null, "points_procedure" ne doit contenir QUE des vérifications binaires factuelles d'étapes légalement requises sur le dossier en cours (les 3 statuts ✅Vérifié / ❌Non conforme / ⚠️À vérifier doivent tous avoir du sens sur l'item). SONT INTERDITS dans "points_procedure" et doivent être redirigés ailleurs : (a) options stratégiques ("En cas de demande…", "Si l'avocat envisage…", "Possibilité de demander…", "Alternative…") → mettre dans "pistes_strategiques" (cf. ci-dessous) ; (b) opportunités futures à plus de 6 mois ("Après N ans de mariage…", "À partir de…", "Une fois N années révolues…") → "pistes_strategiques" si c'est une option à étudier, "risques" si elles imposent un délai à respecter ; (c) recommandations d'action ("Demande à déposer auprès de…", "Joindre la convention…", "Prendre attache avec…") → "pistes_strategiques" si c'est une décision stratégique, "questions_ouvertes" si ça suppose une réponse de l'avocat. Règle de répartition : on VÉRIFIE dans points_procedure, on PROPOSE dans pistes_strategiques, on ALERTE dans risques, on QUESTIONNE dans questions_ouvertes.
+            F-176 — Le champ "pistes_strategiques" liste les options stratégiques, opportunités futures et recommandations d'action que l'avocat peut envisager pour ce dossier (c'est-à-dire ce que la règle SF-96-06 ci-dessus exclut de "points_procedure"). Chaque élément est un objet {"texte": "<description de la piste>", "base_juridique": "<articles, lois, jurisprudence référencés>" ou null, "horizon_temporel": "<court terme | moyen terme | long terme + délai approximatif>" ou null, "conditions": ["<condition 1>", "<condition 2>"] (array de strings, [] si aucune), "source": "<source factuelle dans le dossier>" ou null}. Exemples : {"texte": "Demande de Passeport talent — Chercheur (art. L.421-14 CESEDA)", "base_juridique": "Art. L.421-14 CESEDA", "horizon_temporel": "Court terme (3-6 mois)", "conditions": ["Convention d'accueil signée par INRIA/CNRS/LISN", "Doctorat soutenu ou en cours"], "source": null} ou {"texte": "Carte de résident envisageable après 3 ans de mariage", "base_juridique": "Art. L.423-6 CESEDA", "horizon_temporel": "Long terme (3 ans)", "conditions": ["Communauté de vie maintenue", "Intégration républicaine"], "source": null}. Si aucune piste stratégique pertinente, utilise "pistes_strategiques": [].
             Le champ "score_risque" est obligatoire : évalue le niveau de risque global du dossier. "niveau" est l'un de "FAIBLE", "MOYEN" ou "ELEVE". "valeur" est un entier entre 0 et 100 reflétant l'intensité du risque (0 = aucun risque, 100 = risque maximum).
             Le champ "delais_detectes" liste les délais légaux détectés dans les documents (ex: délai de recours, délai de prescription). Format : [{"label": "Délai de recours prud'homal", "date_detectee": "YYYY-MM-DD", "source": "<nom exact du fichier>"}]. Si aucun délai détectable, utilise "delais_detectes": [].
 
@@ -70,7 +71,7 @@ public class CaseAnalysisService {
             sourceKeys génériques attendus si la donnée est dans la synthèse : convention_collective, date_entree, salaire_brut_mensuel, conges_contractuels, prime_anciennete_contractuelle, type_rupture, date_licenciement, duree_mariage, revenus_conjoints, nationalite_ue, type_titre_sejour, type_recours, date_notification_decision_contestee. Codes F96 additionnels possibles : FR_CONVOCATION, FR_MOTIVATION, BE_AUDITION, RC_CONSENTEMENT, RC_DELAI_RETRACTATION, DT09_TYPE_RUPTURE, FA05_VALEUR_VENALE, FA06_MODE_GARDE, IM05_MOTIF, IM06_RECOURS_TYPE, IM07_TITRE_TYPE, etc. Produis uniquement les sourcekeys dont la donnée est concrète dans la synthèse ; omet les autres. Aucune invention : un label DOCUMENT doit correspondre à un fichier réellement listé dans le prompt utilisateur. Si aucune source unique n'est identifiable, utilise sourceType="ANALYSIS_DETECTION" et label="Synthèse du dossier". Si aucune donnée factuelle pertinente, "source_explanations": [].
             IMPORTANT : si plusieurs sources corroborent la même donnée (ex. un document ET une réponse à une question confirment la même convention), produis PLUSIEURS entries avec le MÊME sourceKey, chacune avec un sourceType et label différents. Cela permet d'afficher les sources côte à côte. Exemple : [{"sourceKey": "convention_collective", "sourceType": "DOCUMENT", "label": "contrat.pdf", ...}, {"sourceKey": "convention_collective", "sourceType": "QUESTION_AI", "label": "Quelle convention ?", ...}].
 
-            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
+            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum, %d pistes stratégiques maximum. Sois concis.
             """;
 
     static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits) {
@@ -78,7 +79,7 @@ public class CaseAnalysisService {
                 LegalDomainPromptBuilder.domainLabel(legalDomain, country),
                 limits.getTimeline(), limits.getFaits(),
                 limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes(),
-                limits.getPiecesManquantes(), limits.getPointsProcedure())
+                limits.getPiecesManquantes(), limits.getPointsProcedure(), limits.getPistesStrategiques())
                 + LegalDomainPromptBuilder.domainSpecificInstruction(legalDomain);
     }
 
@@ -103,6 +104,7 @@ public class CaseAnalysisService {
     private final AnalysisDocumentSnapshotService analysisDocumentSnapshotService;
     private final AnalysisLimitsProperties analysisLimitsProperties;
     private final ProcedureCheckService procedureCheckService;
+    private final StrategicOptionService strategicOptionService;
     private final CaseDeadlineService caseDeadlineService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
     private final SourceExplanationService sourceExplanationService;
@@ -123,6 +125,7 @@ public class CaseAnalysisService {
                                AnalysisDocumentSnapshotService analysisDocumentSnapshotService,
                                AnalysisLimitsProperties analysisLimitsProperties,
                                ProcedureCheckService procedureCheckService,
+                               StrategicOptionService strategicOptionService,
                                CaseDeadlineService caseDeadlineService,
                                SourceExplanationGenerator sourceExplanationGenerator,
                                SourceExplanationService sourceExplanationService,
@@ -139,6 +142,7 @@ public class CaseAnalysisService {
         this.analysisDocumentSnapshotService = analysisDocumentSnapshotService;
         this.analysisLimitsProperties = analysisLimitsProperties;
         this.procedureCheckService = procedureCheckService;
+        this.strategicOptionService = strategicOptionService;
         this.caseDeadlineService = caseDeadlineService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
         this.sourceExplanationService = sourceExplanationService;
@@ -259,6 +263,11 @@ public class CaseAnalysisService {
 
         if (failure == null) {
             procedureCheckService.createChecks(analysis, analysis.getAnalysisResult());
+            try {
+                strategicOptionService.persistFromAnalysis(analysis, analysis.getAnalysisResult());
+            } catch (Exception e) {
+                log.warn("Fail-open: strategic options persistence failed for analysis {}: {}", analysis.getId(), e.getMessage());
+            }
             try {
                 caseDeadlineService.createAiDetectedDeadlines(analysis, analysis.getAnalysisResult());
             } catch (Exception e) {

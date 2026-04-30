@@ -40,6 +40,7 @@ class AnalysisJsonTruncator {
             truncateArray(root, "timeline", limits.getTimeline());
             truncateArray(root, "pieces_manquantes", limits.getPiecesManquantes());
             truncateArray(root, "points_procedure", limits.getPointsProcedure());
+            truncateArray(root, "pistes_strategiques", limits.getPistesStrategiques());
             return MAPPER.writeValueAsString(root);
         } catch (Exception e) {
             // JSON invalide (ex: tronqué par max_tokens) — on retourne tel quel

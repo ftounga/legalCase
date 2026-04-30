@@ -41,11 +41,12 @@ class CaseAnalysisServiceTest {
     private final SourceExplanationGenerator sourceExplanationGenerator = mock(SourceExplanationGenerator.class);
     private final SourceExplanationService sourceExplanationService = mock(SourceExplanationService.class);
     private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
+    private final StrategicOptionService strategicOptionService = mock(StrategicOptionService.class);
 
     private final CaseAnalysisService service = new CaseAnalysisService(
             documentAnalysisRepository, documentExtractionRepository, caseAnalysisRepository, caseFileRepository,
             anthropicService, analysisJobRepository, rabbitTemplate, usageEventService, eventPublisher,
-            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, caseDeadlineService,
+            analysisDocumentSnapshotService, analysisLimitsProperties, procedureCheckService, strategicOptionService, caseDeadlineService,
             sourceExplanationGenerator, sourceExplanationService, piecesPromptContext);
 
     @BeforeEach
@@ -247,6 +248,7 @@ class CaseAnalysisServiceTest {
     }
 
     // U-SF-96-06-01 : le system prompt contient la règle de durcissement points_procedure
+    // Mise à jour F-176 SF-176-01 : la règle de répartition redirige désormais vers pistes_strategiques
     @Test
     void systemPrompt_containsStrategicOptionsExclusionRuleForPointsProcedure() {
         AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
@@ -257,7 +259,21 @@ class CaseAnalysisServiceTest {
         assertThat(prompt).contains("options stratégiques");
         assertThat(prompt).contains("opportunités futures");
         assertThat(prompt).contains("recommandations d'action");
-        assertThat(prompt).contains("on VÉRIFIE dans points_procedure, on PROPOSE dans questions_ouvertes, on ALERTE dans risques");
+        assertThat(prompt).contains("on VÉRIFIE dans points_procedure, on PROPOSE dans pistes_strategiques, on ALERTE dans risques");
+    }
+
+    // U-SF-176-01-01 : le system prompt contient le champ pistes_strategiques (F-176)
+    @Test
+    void systemPrompt_containsPistesStrategiquesField() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = CaseAnalysisService.buildSystemPrompt("DROIT_IMMIGRATION", "FRANCE", l);
+        assertThat(prompt).contains("\"pistes_strategiques\": [...]");
+        assertThat(prompt).contains("F-176");
+        assertThat(prompt).contains("base_juridique");
+        assertThat(prompt).contains("horizon_temporel");
+        assertThat(prompt).contains("conditions");
+        assertThat(prompt).contains("Passeport talent — Chercheur");
     }
 
     // U-SF-96-06-02 : non-régression — les codes énumérés F-DT-08 / F-IM-05/06/07 / F-FA-06/07 / F-DT-09 restent inchangés

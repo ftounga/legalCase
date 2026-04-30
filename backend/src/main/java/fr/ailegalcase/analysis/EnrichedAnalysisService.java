@@ -37,7 +37,7 @@ public class EnrichedAnalysisService {
             Tu reçois la synthèse globale d'un dossier juridique ainsi que les réponses de l'avocat à des questions complémentaires.
             Produis une synthèse enrichie et mise à jour en intégrant ces nouvelles informations.
             Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ni après.
-            Format attendu (inclure tous les champs) : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "checks_a_requalifier": [{"description": "...", "nouveau_statut": "NON_COMPLIANT"|"TO_CHECK", "raison": "..."}], "type_litige_detecte": "LICENCIEMENT_SANS_CAUSE_REELLE"|"LICENCIEMENT_ECONOMIQUE"|"PRISE_ACTE_RUPTURE"|"HARCELEMENT_MORAL"|"DISCRIMINATION"|"HEURES_SUPPLEMENTAIRES"|"RAPPEL_SALAIRE"|null, "date_reference_prescription": "YYYY-MM-DD"|null, "compensation_data": {"type_rupture": "LICENCIEMENT"|"LICENCIEMENT_ECONOMIQUE"|"RUPTURE_CONVENTIONNELLE"|"DEMISSION"|"PRISE_ACTE"|"RESILIATION_JUDICIAIRE"|"LICENCIEMENT_ORDINAIRE"|"RUPTURE_AMIABLE", "anciennete_annees": <entier>|null, "anciennete_mois": <entier>|null, "salaire_reference_mensuel": <décimal>|null}|null}
+            Format attendu (inclure tous les champs) : {"timeline": [{"date": "YYYY-MM-DD", "evenement": "..."}], "faits": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "points_juridiques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "risques": [{"texte": "...", "source": "<nom exact du fichier tel qu'il apparaît dans le prompt ci-dessus>", "extrait": "..."}], "questions_ouvertes": [...], "pieces_manquantes": [...], "points_procedure": [...], "pistes_strategiques": [...], "score_risque": {"niveau": "FAIBLE"|"MOYEN"|"ELEVE", "valeur": <0-100>}, "checks_a_requalifier": [{"description": "...", "nouveau_statut": "NON_COMPLIANT"|"TO_CHECK", "raison": "..."}], "type_litige_detecte": "LICENCIEMENT_SANS_CAUSE_REELLE"|"LICENCIEMENT_ECONOMIQUE"|"PRISE_ACTE_RUPTURE"|"HARCELEMENT_MORAL"|"DISCRIMINATION"|"HEURES_SUPPLEMENTAIRES"|"RAPPEL_SALAIRE"|null, "date_reference_prescription": "YYYY-MM-DD"|null, "compensation_data": {"type_rupture": "LICENCIEMENT"|"LICENCIEMENT_ECONOMIQUE"|"RUPTURE_CONVENTIONNELLE"|"DEMISSION"|"PRISE_ACTE"|"RESILIATION_JUDICIAIRE"|"LICENCIEMENT_ORDINAIRE"|"RUPTURE_AMIABLE", "anciennete_annees": <entier>|null, "anciennete_mois": <entier>|null, "salaire_reference_mensuel": <décimal>|null}|null}
             Pour les champs "faits", "points_juridiques" et "risques", chaque élément est un objet avec "texte" (le contenu), "source" (nom exact du fichier tel qu'il apparaît dans la synthèse précédente) et "extrait" (phrase exacte tirée du document). Si la source n'est pas identifiable, utilise "source": null et "extrait": null.
             F-146 : ajoute AUSSI à chaque item un champ "sourceRef" précisant la pièce juridique exacte : {"documentName": "<nom fichier>", "pieceType": "<type>", "pieceLabel": "<label de la pièce>", "pageStart": <début>, "pageEnd": <fin>}. Utilise la section "=== PIÈCES IDENTIFIÉES DANS LES DOCUMENTS ===" fournie dans le prompt utilisateur. "sourceRef": null si non identifiable. Ne jamais inventer un label absent de cette section.
             Le champ "pieces_manquantes" liste les pièces habituellement attendues dans ce type de dossier qui sont absentes des documents fournis. Chaque élément est un objet {"texte": "<description de la pièce>", "critere_code": "<code ou null>"}. "critere_code" est rempli UNIQUEMENT si l'absence de cette pièce correspond à un code surveillé :
@@ -57,7 +57,8 @@ public class EnrichedAnalysisService {
             - Critère F-IM-07 Droit au travail (droit de l'immigration, énuméré) : IM07_TITRE_TYPE. "expected_value" obligatoire parmi les 16 codes de titre (identiques à F-IM-05).
             - Critère F-DT-09 Type de rupture (énuméré) : DT09_TYPE_RUPTURE. Pour ce critère, renseigne obligatoirement "expected_value" avec la valeur affirmée par le point, parmi : LICENCIEMENT, LICENCIEMENT_ECONOMIQUE, RUPTURE_CONVENTIONNELLE (France), LICENCIEMENT_ORDINAIRE, RUPTURE_AMIABLE (Belgique).
             Pour tout point sans lien avec ces critères, "critere_code" et "expected_value" restent null. Rétrocompat : format string legacy accepté. Si la procédure semble conforme, utilise "points_procedure": [].
-            SF-96-06 — Durcissement : quand "critere_code" est null, "points_procedure" ne doit contenir QUE des vérifications binaires factuelles d'étapes légalement requises sur le dossier en cours (les 3 statuts ✅Vérifié / ❌Non conforme / ⚠️À vérifier doivent tous avoir du sens sur l'item). SONT INTERDITS dans "points_procedure" et doivent être redirigés ailleurs : (a) options stratégiques ("En cas de demande…", "Si l'avocat envisage…", "Possibilité de demander…", "Alternative…") → mettre dans "questions_ouvertes" ; (b) opportunités futures à plus de 6 mois ("Après N ans de mariage…", "À partir de…", "Une fois N années révolues…") → "risques" si elles imposent un délai à respecter, sinon "questions_ouvertes" ; (c) recommandations d'action ("Demande à déposer auprès de…", "Joindre la convention…", "Prendre attache avec…") → "questions_ouvertes". Règle de répartition : on VÉRIFIE dans points_procedure, on PROPOSE dans questions_ouvertes, on ALERTE dans risques.
+            SF-96-06 — Durcissement : quand "critere_code" est null, "points_procedure" ne doit contenir QUE des vérifications binaires factuelles d'étapes légalement requises sur le dossier en cours (les 3 statuts ✅Vérifié / ❌Non conforme / ⚠️À vérifier doivent tous avoir du sens sur l'item). SONT INTERDITS dans "points_procedure" et doivent être redirigés ailleurs : (a) options stratégiques ("En cas de demande…", "Si l'avocat envisage…", "Possibilité de demander…", "Alternative…") → mettre dans "pistes_strategiques" (cf. ci-dessous) ; (b) opportunités futures à plus de 6 mois ("Après N ans de mariage…", "À partir de…", "Une fois N années révolues…") → "pistes_strategiques" si c'est une option à étudier, "risques" si elles imposent un délai à respecter ; (c) recommandations d'action ("Demande à déposer auprès de…", "Joindre la convention…", "Prendre attache avec…") → "pistes_strategiques" si c'est une décision stratégique, "questions_ouvertes" si ça suppose une réponse de l'avocat. Règle de répartition : on VÉRIFIE dans points_procedure, on PROPOSE dans pistes_strategiques, on ALERTE dans risques, on QUESTIONNE dans questions_ouvertes.
+            F-176 — Le champ "pistes_strategiques" liste les options stratégiques, opportunités futures et recommandations d'action que l'avocat peut envisager pour ce dossier (c'est-à-dire ce que la règle SF-96-06 ci-dessus exclut de "points_procedure"). Chaque élément est un objet {"texte": "<description de la piste>", "base_juridique": "<articles, lois, jurisprudence référencés>" ou null, "horizon_temporel": "<court terme | moyen terme | long terme + délai approximatif>" ou null, "conditions": ["<condition 1>", "<condition 2>"] (array de strings, [] si aucune), "source": "<source factuelle dans le dossier>" ou null}. Si aucune piste, utilise "pistes_strategiques": []. RÈGLE PROPAGATION : si le prompt utilisateur contient une section [Pistes stratégiques retenues à approfondir], développe ces pistes (les remettre + les enrichir avec base_juridique précise et conditions actualisées). Si le prompt contient [Pistes stratégiques écartées — NE PAS re-proposer], ne remets PAS ces pistes dans "pistes_strategiques" — l'avocat les a déjà étudiées et écartées.
             Le champ "score_risque" est obligatoire : évalue le niveau de risque global du dossier. "niveau" est l'un de "FAIBLE", "MOYEN" ou "ELEVE". "valeur" est un entier entre 0 et 100 reflétant l'intensité du risque (0 = aucun risque, 100 = risque maximum).
             Le champ "checks_a_requalifier" liste les points procéduraux marqués "vérifiés" dans le prompt que tu estimes devoir requalifier à la lumière des nouvelles informations. Pour chaque point : "description" doit correspondre exactement au libellé fourni dans le prompt, "nouveau_statut" est "NON_COMPLIANT" si le point est manifestement non respecté ou "TO_CHECK" si des doutes subsistent, "raison" explique brièvement pourquoi ce point doit être revu. Si aucun point vérifié ne doit être requalifié, utilise "checks_a_requalifier": [].
             ========== RÈGLE CRITIQUE DE PRÉSERVATION BASELINE (mode enrichi) ==========
@@ -98,7 +99,7 @@ public class EnrichedAnalysisService {
             Format : [{"sourceKey": "<snake_case|UPPER_F96_CODE>", "sourceType": "DOCUMENT"|"QUESTION_AI"|"CHECKLIST_F96"|"MISSING_PIECE"|"ANALYSIS_DETECTION", "label": "…", "sentence": "…", "secondaryText": "…", "anchorDocName": "<nom exact doc ou null>"}]. sourceKeys génériques : convention_collective, date_entree, salaire_brut_mensuel, conges_contractuels, prime_anciennete_contractuelle, type_rupture, date_licenciement, duree_mariage, revenus_conjoints, nationalite_ue, type_titre_sejour, type_recours, date_notification_decision_contestee. Codes F96 : FR_CONVOCATION, FR_MOTIVATION, BE_AUDITION, RC_CONSENTEMENT, RC_DELAI_RETRACTATION, DT09_TYPE_RUPTURE, FA05_VALEUR_VENALE, FA06_MODE_GARDE, IM05_MOTIF, IM06_RECOURS_TYPE, IM07_TITRE_TYPE. Omet les sourcekeys sans donnée. Si aucune source unique identifiable → sourceType="ANALYSIS_DETECTION", label="Synthèse du dossier". Si rien de pertinent, "source_explanations": [].
             IMPORTANT : si plusieurs sources corroborent la même donnée, produis PLUSIEURS entries avec le MÊME sourceKey, chacune avec un sourceType et label différents.
 
-            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum. Sois concis.
+            Contraintes de longueur : %d entrées timeline maximum, %d faits maximum, %d points_juridiques maximum, %d risques maximum, %d questions_ouvertes maximum, %d pièces manquantes maximum, %d points procédure maximum, %d pistes stratégiques maximum. Sois concis.
             """;
 
     static String buildSystemPrompt(String legalDomain, String country, AnalysisLimitsProperties.LevelLimits limits,
@@ -111,7 +112,7 @@ public class EnrichedAnalysisService {
                 litigationTypes,
                 limits.getTimeline(), limits.getFaits(),
                 limits.getPointsJuridiques(), limits.getRisques(), limits.getQuestionsOuvertes(),
-                limits.getPiecesManquantes(), limits.getPointsProcedure())
+                limits.getPiecesManquantes(), limits.getPointsProcedure(), limits.getPistesStrategiques())
                 + LegalDomainPromptBuilder.domainSpecificInstruction(legalDomain);
     }
 
@@ -131,6 +132,7 @@ public class EnrichedAnalysisService {
     private final AnalysisLimitsProperties analysisLimitsProperties;
     private final ChatMessageRepository chatMessageRepository;
     private final ProcedureCheckService procedureCheckService;
+    private final StrategicOptionService strategicOptionService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
@@ -161,6 +163,7 @@ public class EnrichedAnalysisService {
                                    AnalysisLimitsProperties analysisLimitsProperties,
                                    ChatMessageRepository chatMessageRepository,
                                    ProcedureCheckService procedureCheckService,
+                                   StrategicOptionService strategicOptionService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
@@ -181,6 +184,7 @@ public class EnrichedAnalysisService {
         this.analysisLimitsProperties = analysisLimitsProperties;
         this.chatMessageRepository = chatMessageRepository;
         this.procedureCheckService = procedureCheckService;
+        this.strategicOptionService = strategicOptionService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
@@ -302,8 +306,20 @@ public class EnrichedAnalysisService {
             log.warn("listVerified failed for caseFile {} — enriched analysis will proceed without it", caseFileId, e);
             verifiedChecks = List.of();
         }
+        StrategicOptionService.EnrichmentSnapshot strategicSnapshot;
+        try {
+            strategicSnapshot = strategicOptionService.collectForEnrichment(previousAnalysis.getId());
+            if (strategicSnapshot == null) {
+                strategicSnapshot = StrategicOptionService.EnrichmentSnapshot.empty();
+            }
+        } catch (Exception e) {
+            log.warn("collectForEnrichment failed for previousAnalysis {} — enriched analysis will proceed without it",
+                    previousAnalysis.getId(), e);
+            strategicSnapshot = StrategicOptionService.EnrichmentSnapshot.empty();
+        }
         String basePrompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
-                nonCompliantChecks, toCheckChecks, verifiedChecks);
+                nonCompliantChecks, toCheckChecks, verifiedChecks,
+                strategicSnapshot.retainedTexts(), strategicSnapshot.discardedTexts());
         // F-146 SF-146-01 : préfixe le prompt avec la liste des pièces pour que
         // la re-synthèse enrichie produise aussi des sourceRef précis.
         String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
@@ -336,6 +352,14 @@ public class EnrichedAnalysisService {
         if (failure == null) {
             procedureCheckService.createChecksWithVerifiedPropagation(enrichedAnalysis,
                     enrichedAnalysis.getAnalysisResult(), previousAnalysisId);
+            // F-176 SF-176-01 : extraire les nouvelles pistes IA + cloner les RETAINED + DISCARDED de l'analyse précédente
+            try {
+                strategicOptionService.persistFromAnalysis(enrichedAnalysis, enrichedAnalysis.getAnalysisResult());
+                strategicOptionService.propagateRetainedAndDiscarded(previousAnalysisId, enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: strategic options persistence/propagation failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,
                     enrichedAnalysis.getAnalysisResult());
             // SF-IA-03-18 : la synthèse enrichie régénère aussi les explications de source via Haiku (fail-open).
@@ -426,9 +450,18 @@ public class EnrichedAnalysisService {
         }
     }
 
+    /** Overload F-96 (sans pistes stratégiques) — utilisé par les tests existants. */
     String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
                                 List<String> nonCompliantChecks, List<String> toCheckChecks,
                                 List<String> verifiedChecks) {
+        return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks, List.of(), List.of());
+    }
+
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks,
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -478,6 +511,17 @@ public class EnrichedAnalysisService {
         if (verifiedChecks != null && !verifiedChecks.isEmpty()) {
             prompt.append("\n\n[Points procéduraux vérifiés — à reconsidérer si nécessaire]\n");
             verifiedChecks.forEach(c -> prompt.append("- ").append(c).append("\n"));
+        }
+
+        // F-176 SF-176-01 : injection des pistes stratégiques de l'analyse précédente
+        if (retainedStrategicOptions != null && !retainedStrategicOptions.isEmpty()) {
+            prompt.append("\n\n[Pistes stratégiques retenues à approfondir]\n");
+            retainedStrategicOptions.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        if (discardedStrategicOptions != null && !discardedStrategicOptions.isEmpty()) {
+            prompt.append("\n\n[Pistes stratégiques écartées — NE PAS re-proposer]\n");
+            discardedStrategicOptions.forEach(p -> prompt.append("- ").append(p).append("\n"));
         }
 
         return prompt.toString();

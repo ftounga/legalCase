@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="197-create-strategic-options" author="ailegalcase">
+        <createTable tableName="strategic_options">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_analysis_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_strategic_options_case_analysis"
+                             references="case_analyses(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_strategic_options_workspace"
+                             references="workspaces(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="ordre" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="texte" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="base_juridique" type="VARCHAR(500)"/>
+            <column name="horizon_temporel" type="VARCHAR(255)"/>
+            <column name="conditions_json" type="TEXT"/>
+            <column name="source" type="VARCHAR(500)"/>
+            <column name="statut" type="VARCHAR(20)" defaultValue="TO_STUDY">
+                <constraints nullable="false"/>
+            </column>
+            <column name="raison_discard" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="strategic_options" indexName="idx_strategic_options_case_analysis_id">
+            <column name="case_analysis_id"/>
+        </createIndex>
+
+        <createIndex tableName="strategic_options" indexName="idx_strategic_options_workspace_id">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
