@@ -51,13 +51,16 @@ app:
           questions-ouvertes: 3
           timeline: 0
         dossier:
-          faits: 7
-          points-juridiques: 5
-          risques: 5
-          questions-ouvertes: 5
-          timeline: 5
-          pieces-manquantes: 5
-          points-procedure: 8
+          # F-161 SF-161-01 — caps relevés ~5x. L'IA produit "jusqu'à N selon la richesse",
+          # pas de minimum (cf. CaseAnalysisService / EnrichedAnalysisService prompts).
+          faits: 80
+          points-juridiques: 80
+          risques: 40
+          questions-ouvertes: 40
+          timeline: 60
+          pieces-manquantes: 40
+          points-procedure: 30
+          pistes-strategiques: 20
       droit-immigration:
         document:
           faits: 7
@@ -66,13 +69,16 @@ app:
           questions-ouvertes: 3
           timeline: 0
         dossier:
-          faits: 10
-          points-juridiques: 6
-          risques: 6
-          questions-ouvertes: 5
-          timeline: 8
-          pieces-manquantes: 5
-          points-procedure: 8
+          # F-161 SF-161-01 — variation immigration : timeline 80 (chronologies souvent
+          # plus longues : entrées, demandes successives, refus, recours).
+          faits: 80
+          points-juridiques: 80
+          risques: 40
+          questions-ouvertes: 40
+          timeline: 80
+          pieces-manquantes: 40
+          points-procedure: 30
+          pistes-strategiques: 20
       droit-famille:
         document:
           faits: 5
@@ -81,13 +87,15 @@ app:
           questions-ouvertes: 3
           timeline: 0
         dossier:
-          faits: 7
-          points-juridiques: 5
-          risques: 4
-          questions-ouvertes: 5
-          timeline: 5
-          pieces-manquantes: 5
-          points-procedure: 8
+          # F-161 SF-161-01 — caps identiques au droit du travail.
+          faits: 80
+          points-juridiques: 80
+          risques: 40
+          questions-ouvertes: 40
+          timeline: 60
+          pieces-manquantes: 40
+          points-procedure: 30
+          pistes-strategiques: 20
   # SF-148-01 : enrichissement visuel Claude Vision — stratégie hybride signaux + config.
   # Désactivé par défaut. Activer progressivement via VISION_ENABLED=true par environnement.
   # Signal 1 (OCR pauvre < min-ocr-chars-per-page) : prioritaire — force vision même sur blacklist.

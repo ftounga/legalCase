@@ -175,6 +175,49 @@ class AnalysisJsonTruncatorTest {
         assertThat(result).contains("f10").doesNotContain("f11");
     }
 
+    // U-15 : F-161 SF-161-01 — caps relevés. Vérifie que truncateCaseAnalysis honore
+    // les nouveaux caps (faits 80, pistes_strategiques 20). 80 faits → conservés ; 81 → tronqué.
+    @Test
+    void truncateCaseAnalysis_f161_newCaps_faits80_intactBelowAndCutAtCap() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(80); l.setPointsJuridiques(80); l.setRisques(40);
+        l.setQuestionsOuvertes(40); l.setTimeline(60);
+        l.setPiecesManquantes(40); l.setPointsProcedure(30); l.setPistesStrategiques(20);
+
+        // Génère 81 faits — le 81ème doit être tronqué, le 80ème conservé.
+        StringBuilder faitsArr = new StringBuilder("[");
+        for (int i = 1; i <= 81; i++) {
+            if (i > 1) faitsArr.append(",");
+            faitsArr.append("\"f").append(i).append("\"");
+        }
+        faitsArr.append("]");
+        String json = "{\"timeline\":[],\"faits\":" + faitsArr +
+                ",\"points_juridiques\":[],\"risques\":[],\"questions_ouvertes\":[]}";
+
+        String result = AnalysisJsonTruncator.truncateCaseAnalysis(json, l);
+        assertThat(result).contains("\"f80\"").doesNotContain("\"f81\"");
+    }
+
+    // U-16 : F-161 SF-161-01 — pistes_strategiques cap 20 honoré.
+    @Test
+    void truncateCaseAnalysis_f161_pistesStrategiquesCapHonored() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(80); l.setPointsJuridiques(80); l.setRisques(40);
+        l.setQuestionsOuvertes(40); l.setTimeline(60);
+        l.setPiecesManquantes(40); l.setPointsProcedure(30); l.setPistesStrategiques(20);
+
+        StringBuilder pistesArr = new StringBuilder("[");
+        for (int i = 1; i <= 21; i++) {
+            if (i > 1) pistesArr.append(",");
+            pistesArr.append("{\"texte\":\"piste-").append(i).append("\"}");
+        }
+        pistesArr.append("]");
+        String json = "{\"timeline\":[],\"faits\":[],\"points_juridiques\":[],\"risques\":[],\"questions_ouvertes\":[],\"pistes_strategiques\":" + pistesArr + "}";
+
+        String result = AnalysisJsonTruncator.truncateCaseAnalysis(json, l);
+        assertThat(result).contains("piste-20").doesNotContain("piste-21");
+    }
+
     // U-09 : JSON invalide → retourné tel quel sans exception
     @Test
     void truncate_invalidJson_returnedAsIs() {
