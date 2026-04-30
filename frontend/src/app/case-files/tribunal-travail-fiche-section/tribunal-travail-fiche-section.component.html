@@ -82,10 +82,25 @@
               <mat-option value="DE">Allemand</mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Commission paritaire</mat-label>
-            <input matInput formControlName="commissionParitaire">
-          </mat-form-field>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline">
+              <mat-label>Commission paritaire</mat-label>
+              <input matInput formControlName="commissionParitaire" (change)="onCommissionParitaireChange()">
+            </mat-form-field>
+            @if (provenanceCommissionParitaire() === 'IA') {
+              <span class="provenance-note" matTooltip="Pré-rempli depuis l'analyse">
+                <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+              </span>
+            }
+            @if (coherenceAlerts().COMMISSION_PARITAIRE; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="explanationFor('COMMISSION_PARITAIRE')"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="caseFileId">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
+            }
+          </div>
         </div>
       </div>
 
@@ -93,25 +108,77 @@
       <div class="fiche-card">
         <h3 class="fiche-card__title">Contrat de travail</h3>
         <div formGroupName="contratInfo" class="fiche-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Type de contrat</mat-label>
-            <mat-select formControlName="typeContrat">
-              <mat-option value="EMPLOYE">Employé</mat-option>
-              <mat-option value="OUVRIER">Ouvrier</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Motif de rupture</mat-label>
-            <input matInput formControlName="motifRupture">
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Date de début</mat-label>
-            <input matInput formControlName="dateDebut" placeholder="AAAA-MM-JJ">
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Date de fin</mat-label>
-            <input matInput formControlName="dateFin" placeholder="AAAA-MM-JJ">
-          </mat-form-field>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline">
+              <mat-label>Type de contrat</mat-label>
+              <mat-select formControlName="typeContrat" (selectionChange)="onTypeContratChange()">
+                <mat-option value="EMPLOYE">Employé</mat-option>
+                <mat-option value="OUVRIER">Ouvrier</mat-option>
+              </mat-select>
+            </mat-form-field>
+            @if (provenanceTypeContrat() === 'IA') {
+              <span class="provenance-note" matTooltip="Pré-rempli depuis l'analyse">
+                <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+              </span>
+            }
+            @if (coherenceAlerts().TYPE_CONTRAT; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="explanationFor('TYPE_CONTRAT')"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="caseFileId">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
+            }
+          </div>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline">
+              <mat-label>Motif de rupture</mat-label>
+              <input matInput formControlName="motifRupture" (change)="onMotifRuptureChange()">
+            </mat-form-field>
+            @if (provenanceMotifRupture() === 'IA') {
+              <span class="provenance-note" matTooltip="Pré-rempli depuis l'analyse">
+                <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+              </span>
+            }
+            @if (coherenceAlerts().MOTIF_RUPTURE; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="explanationFor('MOTIF_RUPTURE')"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="caseFileId">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
+            }
+          </div>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline">
+              <mat-label>Date de début</mat-label>
+              <input matInput formControlName="dateDebut" placeholder="AAAA-MM-JJ" (change)="onDateDebutChange()">
+            </mat-form-field>
+            @if (provenanceDateDebut() === 'IA') {
+              <span class="provenance-note" matTooltip="Pré-rempli depuis l'analyse">
+                <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+              </span>
+            }
+            @if (coherenceAlerts().DATE_DEBUT; as alert) {
+              <span class="coherence-badge coherence-warning"
+                    [appCoherencePopover]="explanationFor('DATE_DEBUT')"
+                    [appCoherencePopoverReason]="alertTooltip(alert)"
+                    [appCoherencePopoverCaseFileId]="caseFileId">
+                <mat-icon>warning</mat-icon> {{ alertBadgeLabel(alert) }}
+              </span>
+            }
+          </div>
+          <div class="field-with-alert">
+            <mat-form-field appearance="outline">
+              <mat-label>Date de fin</mat-label>
+              <input matInput formControlName="dateFin" placeholder="AAAA-MM-JJ" (change)="onDateFinChange()">
+            </mat-form-field>
+            @if (provenanceDateFin() === 'IA') {
+              <span class="provenance-note" matTooltip="Pré-rempli depuis l'analyse">
+                <mat-icon>auto_awesome</mat-icon> Pré-rempli depuis l'analyse
+              </span>
+            }
+          </div>
         </div>
       </div>
 

@@ -139,3 +139,21 @@
   justify-content: flex-end;
   padding-bottom: 8px;
 }
+
+/* SF-173-01 : badge IA + alerte F-IA-03 (pattern canonique F-155). */
+.field-with-alert { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+
+.provenance-note {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; color: #1A3A5C;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #C9973A; }
+}
+
+.coherence-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  align-self: flex-start; padding: 2px 8px; border-radius: 4px;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  cursor: help;
+  background: #FEF7E6; color: #92400E;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; color: #F59E0B; }
+}

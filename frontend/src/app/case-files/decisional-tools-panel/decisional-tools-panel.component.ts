@@ -186,6 +186,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           caseFileTitle: ctx.caseFileTitle,
+          // SF-173-01 : pré-fill IA + validation F-IA-03 (pattern canonique F-155).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
       ['F-DT-06-requete-tribunal-travail', {
@@ -193,6 +198,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         inputs: (ctx) => ({
           caseFileId: ctx.caseFileId,
           caseFileTitle: ctx.caseFileTitle,
+          // SF-173-02 : pré-fill IA + validation F-IA-03 (pattern canonique F-155).
+          aiData: ctx.synthesis?.travailExtractedData,
+          procedureChecks: ctx.procedureChecks,
+          aiQuestions: ctx.aiQuestions,
+          piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
         }),
       }],
       ['F-DT-07-anciennete-conges-prime', {
