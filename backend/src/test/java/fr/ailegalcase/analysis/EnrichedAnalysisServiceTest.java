@@ -48,12 +48,13 @@ class EnrichedAnalysisServiceTest {
     private final fr.ailegalcase.document.DocumentExtractionRepository documentExtractionRepository =
             mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
     private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
+    private final StrategicOptionService strategicOptionService = mock(StrategicOptionService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, statutoryDeadlineService, legalReferentialService,
+            chatMessageRepository, procedureCheckService, strategicOptionService, statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 
@@ -348,6 +349,7 @@ class EnrichedAnalysisServiceTest {
     }
 
     // U-SF-96-06-01 : le prompt enrichi contient la règle de durcissement points_procedure
+    // Mise à jour F-176 SF-176-01 : la règle de répartition redirige désormais vers pistes_strategiques
     @Test
     void systemPrompt_containsStrategicOptionsExclusionRuleForPointsProcedure() {
         AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
@@ -359,7 +361,49 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("options stratégiques");
         assertThat(prompt).contains("opportunités futures");
         assertThat(prompt).contains("recommandations d'action");
-        assertThat(prompt).contains("on VÉRIFIE dans points_procedure, on PROPOSE dans questions_ouvertes, on ALERTE dans risques");
+        assertThat(prompt).contains("on VÉRIFIE dans points_procedure, on PROPOSE dans pistes_strategiques, on ALERTE dans risques");
+    }
+
+    // U-SF-176-01-01 : le prompt enrichi contient le champ pistes_strategiques (F-176)
+    @Test
+    void systemPrompt_containsPistesStrategiquesField() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_IMMIGRATION", "FRANCE", l,
+                java.util.List.of("OQTF_AVEC_DELAI"));
+        assertThat(prompt).contains("\"pistes_strategiques\": [...]");
+        assertThat(prompt).contains("F-176");
+        assertThat(prompt).contains("base_juridique");
+        assertThat(prompt).contains("horizon_temporel");
+        assertThat(prompt).contains("conditions");
+    }
+
+    // U-SF-176-01-02 : le prompt enrichi instruit Claude de NE PAS re-proposer les pistes DISCARDED
+    @Test
+    void systemPrompt_instructsClaudeNotToReProposeDiscarded() {
+        AnalysisLimitsProperties.LevelLimits l = new AnalysisLimitsProperties.LevelLimits();
+        l.setFaits(7); l.setPointsJuridiques(5); l.setRisques(5); l.setQuestionsOuvertes(5); l.setTimeline(5);
+        String prompt = EnrichedAnalysisService.buildSystemPrompt("DROIT_IMMIGRATION", "FRANCE", l,
+                java.util.List.of("OQTF_AVEC_DELAI"));
+        assertThat(prompt).contains("Pistes stratégiques retenues à approfondir");
+        assertThat(prompt).contains("Pistes stratégiques écartées — NE PAS re-proposer");
+        assertThat(prompt).contains("ne remets PAS ces pistes");
+    }
+
+    // U-SF-176-01-03 : buildEnrichedPrompt injecte les sections de pistes stratégiques retenues + écartées
+    @Test
+    void buildEnrichedPrompt_injectsStrategicOptionsRetainedAndDiscardedSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(java.util.List.of());
+        when(documentRepository.findByCaseFile_IdOrderByCreatedAtDesc(caseFileId)).thenReturn(java.util.List.of());
+        java.util.List<String> retained = java.util.List.of("Demande de Passeport talent — Chercheur (art. L.421-14 CESEDA)");
+        java.util.List<String> discarded = java.util.List.of("Recours gracieux préfet (rejeté antérieurement)");
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                java.util.List.of(), java.util.List.of(), java.util.List.of(), retained, discarded);
+        assertThat(prompt).contains("[Pistes stratégiques retenues à approfondir]");
+        assertThat(prompt).contains("Demande de Passeport talent — Chercheur");
+        assertThat(prompt).contains("[Pistes stratégiques écartées — NE PAS re-proposer]");
+        assertThat(prompt).contains("Recours gracieux préfet");
     }
 
     // U-SF-96-06-02 : non-régression — les codes énumérés F-DT-08/10, F-IM-05/06/07, F-FA-06/07, F-DT-09 restent inchangés
