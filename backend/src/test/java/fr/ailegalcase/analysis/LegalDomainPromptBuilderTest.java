@@ -113,4 +113,18 @@ class LegalDomainPromptBuilderTest {
         // Règle "null pour dossiers FR" doit être explicite
         assertThat(instruction).contains("FR");
     }
+
+    // SF-172-01 : élargissement détection événements immigration FR aux faits imminents documentés.
+    // C1 — la phrase de biais conservateur a été supprimée du prompt trigger_events.
+    // C2 — la nouvelle règle d'inclusion forward-looking est présente, avec la notion de preuve documentaire.
+    @Test
+    void domainSpecificInstruction_immigration_triggerEvents_dropsConservativeBiasAndAddsImminentRule() {
+        String instruction = LegalDomainPromptBuilder.domainSpecificInstruction("DROIT_IMMIGRATION");
+        // C1 — phrase de biais retirée
+        assertThat(instruction)
+                .doesNotContain("c'est le cas attendu pour la plupart des dossiers de renouvellement simple");
+        // C2 — mots-clés de la nouvelle règle d'inclusion
+        assertThat(instruction).contains("imminents documentés");
+        assertThat(instruction).contains("preuve documentaire");
+    }
 }

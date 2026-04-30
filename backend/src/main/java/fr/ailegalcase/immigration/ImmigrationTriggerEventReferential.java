@@ -27,7 +27,7 @@ public final class ImmigrationTriggerEventReferential {
 
     private static final Map<ImmigrationTriggerEventCode, EventDefinition> DEFINITIONS = Map.ofEntries(
             Map.entry(ImmigrationTriggerEventCode.MARIAGE_RESSORTISSANT_FR, new EventDefinition(
-                    "Mariage avec un ressortissant français",
+                    "Mariage célébré ou publié avec un ressortissant français",
                     "Art. L.423-1 CESEDA — conjoint de Français",
                     "CST_VPF",
                     "Carte de séjour temporaire « Vie privée et familiale »"
@@ -39,19 +39,19 @@ public final class ImmigrationTriggerEventReferential {
                     "Carte de séjour temporaire « Vie privée et familiale »"
             )),
             Map.entry(ImmigrationTriggerEventCode.NAISSANCE_ENFANT_FR, new EventDefinition(
-                    "Naissance d'un enfant français",
+                    "Naissance ou reconnaissance imminente d'un enfant français",
                     "Art. L.423-7 CESEDA — parent d'enfant français",
                     "CST_VPF",
                     "Carte de séjour temporaire « Vie privée et familiale — parent d'enfant français »"
             )),
             Map.entry(ImmigrationTriggerEventCode.DOCTORAT_OBTENU, new EventDefinition(
-                    "Obtention d'un doctorat en France",
+                    "Doctorat obtenu ou soutenance programmée en France",
                     "Art. L.421-14 CESEDA — passeport-talent chercheur",
                     "CARTE_PLURIANNUELLE",
                     "Carte pluriannuelle « Passeport talent — chercheur »"
             )),
             Map.entry(ImmigrationTriggerEventCode.CDI_OBTENU_SALARIE, new EventDefinition(
-                    "Signature d'un contrat de travail à durée indéterminée",
+                    "CDI signé (même non commencé)",
                     "Art. L.421-1 CESEDA — salarié",
                     "CST_SALARIE",
                     "Carte de séjour temporaire « Salarié »"

@@ -40,7 +40,7 @@ class ImmigrationTriggerEventParsingTest {
         assertThat(events).hasSize(1);
         ImmigrationTriggerEvent e = events.get(0);
         assertThat(e.eventCode()).isEqualTo("MARIAGE_RESSORTISSANT_FR");
-        assertThat(e.eventLabel()).isEqualTo("Mariage avec un ressortissant français");
+        assertThat(e.eventLabel()).isEqualTo("Mariage célébré ou publié avec un ressortissant français");
         assertThat(e.eventDate()).isEqualTo("2025-03-15");
         assertThat(e.sourceDocument()).isEqualTo("acte_mariage_n127.pdf");
         assertThat(e.justification()).contains("15/03/2025");
