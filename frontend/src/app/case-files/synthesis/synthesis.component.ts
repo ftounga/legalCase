@@ -24,6 +24,7 @@ import { ProcedureCheckService } from '../../core/services/procedure-check.servi
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
+import { QuotaErrorBannerComponent } from '../../shared/quota-error-banner/quota-error-banner.component';
 import { ImmigrationEventsSectionComponent } from '../immigration-events-section/immigration-events-section.component';
 import { ImmigrationStrategyComparatorSectionComponent } from '../immigration-strategy-comparator-section/immigration-strategy-comparator-section.component';
 import { DivorceConsentementScoringSectionComponent } from '../divorce-consentement-scoring-section/divorce-consentement-scoring-section.component';
@@ -44,6 +45,7 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
     MatProgressSpinnerModule, MatExpansionModule,
     MatCheckboxModule, MatTooltipModule,
     SourceRefComponent,
+    QuotaErrorBannerComponent,
     ImmigrationEventsSectionComponent,
     ImmigrationStrategyComparatorSectionComponent,
     DivorceConsentementScoringSectionComponent
@@ -439,10 +441,9 @@ export class SynthesisComponent implements OnInit {
       },
       error: (err: any) => {
         this.chatLoading.set(false);
+        // SF-171-02 : 402 (CHAT_MESSAGE_LIMIT_EXCEEDED / TOKEN_BUDGET_EXCEEDED) géré par paymentRequiredInterceptor + QuotaErrorState.
         if (err.status === 402) {
-          this.snackBar.open('Limite de messages atteinte pour ce mois', 'Fermer', {
-            duration: 4000, panelClass: ['snack-error']
-          });
+          // no-op
         } else if (err.status === 424) {
           this.chatDisabled.set(true);
         } else {
@@ -470,6 +471,7 @@ export class SynthesisComponent implements OnInit {
       },
       error: (err: any) => {
         this.submittingAnswer.set(null);
+        // SF-171-02 : 402 géré par paymentRequiredInterceptor + QuotaErrorState (bandeau persistant).
         if (err.status === 402) return;
         this.snackBar.open('Erreur lors de la soumission de la réponse', 'Fermer', {
           duration: 4000, panelClass: ['snack-error']
@@ -519,6 +521,7 @@ export class SynthesisComponent implements OnInit {
       },
       error: (err: any) => {
         this.reAnalyzing.set(false);
+        // SF-171-02 : 402 géré par paymentRequiredInterceptor + QuotaErrorState (bandeau persistant).
         if (err.status === 402) return;
         if (err.status === 409) {
           this.snackBar.open(

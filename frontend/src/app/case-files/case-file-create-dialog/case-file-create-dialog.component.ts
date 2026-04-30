@@ -7,13 +7,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CaseFileService } from '../../core/services/case-file.service';
+import { QuotaErrorBannerComponent } from '../../shared/quota-error-banner/quota-error-banner.component';
 
 @Component({
   selector: 'app-case-file-create-dialog',
   standalone: true,
   imports: [
     ReactiveFormsModule, MatDialogModule, MatFormFieldModule,
-    MatInputModule, MatButtonModule, MatIconModule
+    MatInputModule, MatButtonModule, MatIconModule,
+    QuotaErrorBannerComponent
   ],
   templateUrl: './case-file-create-dialog.component.html',
   styleUrl: './case-file-create-dialog.component.scss'
@@ -41,6 +43,8 @@ export class CaseFileCreateDialogComponent {
       next: caseFile => this.dialogRef.close(caseFile),
       error: (err: any) => {
         this.saving = false;
+        // SF-171-02 : 402 (CASE_FILE_OPEN_LIMIT_EXCEEDED) géré par paymentRequiredInterceptor + QuotaErrorState
+        // → bandeau visible directement dans la dialog.
         if (err.status === 402) return;
         this.snackBar.open('Erreur lors de la création du dossier', 'Fermer', {
           duration: 4000,

@@ -1,0 +1,26 @@
+@if (visible()) {
+  <div class="quota-banner" role="alert" aria-live="polite">
+    <mat-icon class="quota-banner__icon" aria-hidden="true">lock</mat-icon>
+    <div class="quota-banner__content">
+      <h3 class="quota-banner__title">{{ mapping().title }}</h3>
+      @if (currentMessage()) {
+        <p class="quota-banner__message">{{ currentMessage() }}</p>
+      }
+    </div>
+    <div class="quota-banner__actions">
+      <button mat-flat-button color="primary"
+              class="quota-banner__primary"
+              (click)="goToPrimaryAction()">
+        {{ mapping().primaryLabel }}
+      </button>
+      @if (mapping().secondaryLabel) {
+        <button mat-stroked-button
+                class="quota-banner__secondary"
+                [disabled]="mapping().secondaryDisabled"
+                [attr.title]="mapping().secondaryDisabled ? 'Bientôt disponible' : null">
+          {{ mapping().secondaryLabel }}
+        </button>
+      }
+    </div>
+  </div>
+}

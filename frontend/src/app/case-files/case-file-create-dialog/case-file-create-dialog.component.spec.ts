@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CaseFileService } from '../../core/services/case-file.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { CaseFile } from '../../core/models/case-file.model';
 
@@ -31,7 +32,8 @@ describe('CaseFileCreateDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: {} },
         { provide: CaseFileService, useValue: caseFileServiceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        provideAnimationsAsync()
+        provideAnimationsAsync(),
+        provideRouter([])
       ]
     }).compileComponents();
     fixture = TestBed.createComponent(CaseFileCreateDialogComponent);

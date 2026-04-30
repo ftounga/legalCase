@@ -1,6 +1,9 @@
 <h2 mat-dialog-title>Nouveau dossier</h2>
 
 <mat-dialog-content>
+  <!-- SF-171-02 : bandeau quota persistant (lit QuotaErrorStateService). -->
+  <app-quota-error-banner></app-quota-error-banner>
+
   <form [formGroup]="form" class="create-form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Titre</mat-label>
