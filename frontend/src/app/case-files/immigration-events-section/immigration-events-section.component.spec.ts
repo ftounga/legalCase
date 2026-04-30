@@ -86,4 +86,83 @@ describe('ImmigrationEventsSectionComponent', () => {
     expect(cards[0].textContent).toContain('Mariage');
     expect(cards[1].textContent).toContain('doctorat');
   });
+
+  // F-172 SF-172-02 : badge "Événement programmé" sur événements futurs
+
+  describe('F-172 SF-172-02 — isProgrammedEvent', () => {
+    let c: ImmigrationEventsSectionComponent;
+
+    beforeEach(() => {
+      c = TestBed.runInInjectionContext(() => new ImmigrationEventsSectionComponent());
+    });
+
+    it('U-06 — date future (2 ans plus tard) → true', () => {
+      const future = new Date();
+      future.setFullYear(future.getFullYear() + 2);
+      const futureStr = future.toISOString().slice(0, 10);
+      expect(c.isProgrammedEvent(futureStr)).toBe(true);
+    });
+
+    it('U-07 — date passée (1 an plus tôt) → false', () => {
+      const past = new Date();
+      past.setFullYear(past.getFullYear() - 1);
+      const pastStr = past.toISOString().slice(0, 10);
+      expect(c.isProgrammedEvent(pastStr)).toBe(false);
+    });
+
+    it('U-08 — eventDate null → false', () => {
+      expect(c.isProgrammedEvent(null)).toBe(false);
+    });
+
+    it('U-09 — eventDate undefined → false', () => {
+      expect(c.isProgrammedEvent(undefined)).toBe(false);
+    });
+
+    it('U-10 — format de date invalide → false (fail-open)', () => {
+      expect(c.isProgrammedEvent('invalid')).toBe(false);
+      expect(c.isProgrammedEvent('not-a-date')).toBe(false);
+      expect(c.isProgrammedEvent('')).toBe(false);
+    });
+
+    it('U-11 — date égale à aujourd\'hui → false (événement acquis)', () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().slice(0, 10);
+      expect(c.isProgrammedEvent(todayStr)).toBe(false);
+    });
+  });
+
+  describe('F-172 SF-172-02 — badge dans le DOM', () => {
+    function buildEventWithDate(eventDate: string | null): ImmigrationTriggerEvent {
+      return {
+        ...mariage,
+        eventCode: 'DOCTORAT_OBTENU',
+        eventLabel: 'Obtention d\'un doctorat en France',
+        eventDate,
+      };
+    }
+
+    it('U-12 — événement futur → badge "Événement programmé" présent dans le DOM', async () => {
+      const future = new Date();
+      future.setFullYear(future.getFullYear() + 2);
+      const futureStr = future.toISOString().slice(0, 10);
+      await setup([buildEventWithDate(futureStr)]);
+      const el: HTMLElement = fixture.nativeElement;
+      const badge = el.querySelector('.event-programmed-badge');
+      expect(badge).not.toBeNull();
+      expect(badge?.textContent?.trim()).toBe('Événement programmé');
+    });
+
+    it('U-13 — événement passé → pas de badge dans le DOM', async () => {
+      await setup([buildEventWithDate('2025-03-15')]);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.event-programmed-badge')).toBeNull();
+    });
+
+    it('U-14 — événement sans date → pas de badge dans le DOM', async () => {
+      await setup([buildEventWithDate(null)]);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.event-programmed-badge')).toBeNull();
+    });
+  });
 });
