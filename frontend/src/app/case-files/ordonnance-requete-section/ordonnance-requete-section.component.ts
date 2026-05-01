@@ -87,6 +87,10 @@ export type OrdonnanceRequeteCoherenceAlert =
   styleUrl: './ordonnance-requete-section.component.scss',
 })
 export class OrdonnanceRequeteSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'ORDONNANCE SUR REQUÊTE (FR/BE)';
+  static readonly TOOL_ICON = 'gavel';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   @Input() aiData?: FamilleExtractedData | null;
@@ -99,6 +103,9 @@ export class OrdonnanceRequeteSectionComponent implements OnInit, OnChanges {
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
   private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
+
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -163,6 +170,8 @@ export class OrdonnanceRequeteSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
@@ -172,6 +181,8 @@ export class OrdonnanceRequeteSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
