@@ -84,7 +84,13 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   styleUrl: './travail-procedure-section.component.scss',
 })
 export class TravailProcedureSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'CALENDRIER PROCÉDURAL — DROIT DU TRAVAIL';
+  static readonly TOOL_ICON = 'event';
+
   @Input() caseFileId!: string;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   @Input() aiData?: TravailExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
@@ -148,6 +154,9 @@ export class TravailProcedureSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     this.workspaceCountrySignal.set(this.workspaceCountry);
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -157,6 +166,9 @@ export class TravailProcedureSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+
     if (changes['workspaceCountry']) {
       this.workspaceCountrySignal.set(this.workspaceCountry);
     }

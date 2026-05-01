@@ -95,6 +95,10 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
   styleUrl: './harcelement-licenciement-nul-section.component.scss',
 })
 export class HarcelementLicenciementNulSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'INDEMNITÉ LICENCIEMENT NUL — HARCÈLEMENT';
+  static readonly TOOL_ICON = 'gavel';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   // SF-155-04-A1 : inputs IA (tous optionnels — null-safe partout).
@@ -102,6 +106,8 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   // SF-155-04-A1 : snapshots signal des inputs IA pour que `computed` réagisse.
   // Même pattern qu'`immigration-title-decision-section`.
@@ -158,6 +164,9 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     // SF-155-04-A1 : push inputs vers signals avant toute évaluation computed.
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -168,6 +177,9 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+
     // SF-155-04-A1 : ré-hydrater les signals à chaque changement d'input.
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
