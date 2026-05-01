@@ -153,6 +153,20 @@ Dès que l'utilisateur confirme le merge ("mergé", "PR mergée", ou équivalent
 
 ---
 
+### Étape 7 — Sync backlog DB (automatique post-merge — F-178)
+
+Toute modification de `docs/PRODUCT_SPEC.md` ou `docs/MARKETING_BACKLOG.md` doit aboutir à une synchronisation des tables `backlog_features`, `backlog_subfeatures`, `backlog_marketing_tasks` consommées par l'écran super-admin `/super-admin/backlog` (F-178).
+
+**Mode normal — automatique** : tâche `@Scheduled` cron 5 min qui parse les 2 fichiers et upsert les tables. Audit dans `backlog_sync_runs` (timestamp, durée, count, success/error). **Aucun artefact obligatoire côté contributeur** — le merge sur master suffit.
+
+**Mode resync manuelle — opérationnel** : si une modification doit être visible immédiatement (démo, présentation, debug), cliquer **"Resync now"** dans l'écran `/super-admin/backlog` (super-admin only). L'écran affiche un indicateur de fraîcheur ("Synchronisé il y a X minutes") visible en haut.
+
+**Si la sync échoue répétitivement** (visible dans `backlog_sync_runs.success = false` sur plusieurs runs consécutifs) : ouvrir un ticket — ne pas éditer la DB à la main (les MD restent la source de vérité, la DB sera ré-écrasée au prochain cron réussi).
+
+**REFUS si** : édition directe des tables `backlog_*` sans passer par l'édition du fichier MD source. Les MD sont la source de vérité (Option A retenue F-178), la DB est un cache de lecture.
+
+---
+
 ## Blocages automatiques
 
 Ces situations déclenchent un refus immédiat. Répondre avec le format de refus standard.
