@@ -99,6 +99,10 @@ const FIELD_CRITERE_CODES: Readonly<Record<B9bisAlertField, readonly string[]>> 
   styleUrl: './belgian-9bis-section.component.scss',
 })
 export class Belgian9bisSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = '9BIS HUMANITAIRE — RÉGULARISATION (BE)';
+  static readonly TOOL_ICON = 'gavel';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
   /** SF-IM-14-05 : pré-fill IA depuis ImmigrationExtractedData (BE). */
@@ -109,6 +113,8 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -191,6 +197,8 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     // SF-155-08 : push inputs vers signals avant toute évaluation computed.
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -206,6 +214,8 @@ export class Belgian9bisSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     // SF-155-08 : ré-hydrater les signals à chaque changement d'input.
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);

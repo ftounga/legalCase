@@ -1,4 +1,4 @@
-import { Component, computed, Input, OnInit, signal } from '@angular/core';
+import { Component, computed, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core';
 import { LowerCasePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -28,9 +28,15 @@ const STATUT_CYCLE: Record<ImmigrationStatut, ImmigrationStatut> = {
   templateUrl: './immigration-checklist-section.component.html',
   styleUrl: './immigration-checklist-section.component.scss'
 })
-export class ImmigrationChecklistSectionComponent implements OnInit {
+export class ImmigrationChecklistSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'CHECKLIST PIÈCES IMMIGRATION';
+  static readonly TOOL_ICON = 'assignment_turned_in';
+
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   /** SF-IM-01-04 : type pré-sélectionné via analyse IA (F-IM-01 auto-prefill). */
   private _inferredChecklistType: string | null = null;
@@ -85,7 +91,14 @@ export class ImmigrationChecklistSectionComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     this.load();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
   }
 
   toggleCollapsed(): void {
