@@ -7,94 +7,18 @@
     <h3 class="dash-title"><mat-icon class="dash-title-icon">dashboard</mat-icon> Tableau de bord décisionnel</h3>
 
     <div class="dash-grid">
-
-      @if (dashboard()!.riskScore != null) {
-        <div class="dash-card">
-          <span class="card-label">Évaluation des risques</span>
-          <span class="card-value" [style.color]="riskColor()">{{ dashboard()!.riskScore }}%</span>
-          <span class="card-sub">{{ dashboard()!.riskLevel }}</span>
-        </div>
+      @for (tile of tiles(); track tile.toolId) {
+        <app-decision-tool-card
+          [toolId]="tile.toolId"
+          [theme]="tile.theme"
+          [icon]="tile.icon"
+          [title]="tile.title"
+          [summary]="tile.summary"
+          [metierAlertLevel]="tile.metierAlertLevel ?? null"
+          [disabled]="tile.disabled"
+          (open)="openTile(tile)">
+        </app-decision-tool-card>
       }
-
-      @if (dashboard()!.licenciement) {
-        <div class="dash-card" [class.card-alert]="dashboard()!.licenciement!.verdict === 'INVALIDE'">
-          <span class="card-label">Validité licenciement</span>
-          <span class="card-value">{{ dashboard()!.licenciement!.scoreRisque }}%</span>
-          <span class="card-sub">{{ dashboard()!.licenciement!.verdict }} — {{ dashboard()!.licenciement!.criteresNonConformes }}/{{ dashboard()!.licenciement!.criteresTotal }} non conformes</span>
-        </div>
-      }
-
-      @if (dashboard()!.indemnites) {
-        <div class="dash-card">
-          <span class="card-label">Indemnités estimées</span>
-          <span class="card-value">{{ dashboard()!.indemnites!.fourchetteBasse | number:'1.0-0' }} — {{ dashboard()!.indemnites!.fourhetteHaute | number:'1.0-0' }} €</span>
-          <span class="card-sub">{{ dashboard()!.indemnites!.baremeSource }}</span>
-        </div>
-      }
-
-      @if (dashboard()!.anciennete) {
-        <div class="dash-card" [class.card-alert]="dashboard()!.anciennete!.ecartsDetectes > 0">
-          <span class="card-label">Ancienneté</span>
-          <span class="card-value">{{ dashboard()!.anciennete!.annees }} an(s) {{ dashboard()!.anciennete!.mois }} mois</span>
-          <span class="card-sub">{{ dashboard()!.anciennete!.congesTotalJours }}j congés — {{ dashboard()!.anciennete!.ecartsDetectes }} écart(s)</span>
-        </div>
-      }
-
-      @if (dashboard()!.titleDecision) {
-        <div class="dash-card">
-          <span class="card-label">Titre recommandé</span>
-          <span class="card-value">{{ dashboard()!.titleDecision!.nbRecommandations }} titre(s)</span>
-          <span class="card-sub">{{ dashboard()!.titleDecision!.premierTitreLabel }}</span>
-        </div>
-      }
-
-      @if (dashboard()!.workRight) {
-        <div class="dash-card" [class.card-ok]="dashboard()!.workRight!.droitTravail === 'OUI'"
-             [class.card-alert]="dashboard()!.workRight!.droitTravail === 'NON'">
-          <span class="card-label">Droit au travail</span>
-          <span class="card-value">{{ dashboard()!.workRight!.droitTravail }}</span>
-          <span class="card-sub">{{ dashboard()!.workRight!.titreLabel }}</span>
-        </div>
-      }
-
-      @if (dashboard()!.recours) {
-        <div class="dash-card" [class.card-alert]="dashboard()!.recours!.dateLimiteDepassee">
-          <span class="card-label">Recours</span>
-          <span class="card-value">{{ dashboard()!.recours!.recoursLabel }}</span>
-          <span class="card-sub">
-            @if (dashboard()!.recours!.dateLimiteDepassee) { DÉLAI DÉPASSÉ }
-            @else { Limite : {{ dashboard()!.recours!.dateLimite }} }
-          </span>
-        </div>
-      }
-
-      @if (dashboard()!.partage) {
-        <div class="dash-card">
-          <span class="card-label">Partage immobilier</span>
-          <span class="card-value">{{ dashboard()!.partage!.soulte | number:'1.0-0' }} €</span>
-          <span class="card-sub">Coût total : {{ dashboard()!.partage!.coutTotal | number:'1.0-0' }} €</span>
-        </div>
-      }
-
-      @if (dashboard()!.garde) {
-        <div class="dash-card">
-          <span class="card-label">Garde</span>
-          <span class="card-value">{{ dashboard()!.garde!.gardeLabel }}</span>
-          <span class="card-sub">{{ dashboard()!.garde!.joursParentA }}j / {{ dashboard()!.garde!.joursParentB }}j</span>
-        </div>
-      }
-
-      @if (dashboard()!.divorce) {
-        <div class="dash-card">
-          <span class="card-label">Divorce</span>
-          <div class="progress-mini">
-            <div class="progress-mini-bar" [style.width.%]="dashboard()!.divorce!.progressionPct"></div>
-          </div>
-          <span class="card-value">{{ dashboard()!.divorce!.progressionPct }}%</span>
-          <span class="card-sub">{{ dashboard()!.divorce!.etapesCompletees }}/{{ dashboard()!.divorce!.etapesTotal }} étapes — {{ dashboard()!.divorce!.piecesPresentes }}/{{ dashboard()!.divorce!.piecesTotal }} pièces</span>
-        </div>
-      }
-
     </div>
   </div>
 }
