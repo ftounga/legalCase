@@ -77,7 +77,13 @@ const ANCIENNETE_DIVERGENCE_YEARS = 1; // tolérance ≥ 1 an pour déclencher a
   styleUrl: './rupture-conv-indemnite-section.component.scss'
 })
 export class RuptureConvIndemniteSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'INDEMNITÉ RUPTURE CONVENTIONNELLE';
+  static readonly TOOL_ICON = 'euro_symbol';
+
   @Input() caseFileId!: string;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
   /** Rétro-compat SF-132-02 : fallback `compensationEstimate.ancienneteAnnees/salaireReference`. */
   @Input() synthesis?: CaseAnalysisResult | null;
   // SF-155-12 : inputs IA (tous optionnels — null-safe partout).
@@ -135,6 +141,9 @@ export class RuptureConvIndemniteSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     // SF-155-12 : push inputs vers signals avant toute évaluation computed.
     this.aiDataSignal.set(this.aiData);
     this.synthesisSignal.set(this.synthesis);
@@ -149,6 +158,9 @@ export class RuptureConvIndemniteSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
+
     // SF-155-12 : ré-hydrater les signals à chaque changement d'input.
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['synthesis']) this.synthesisSignal.set(this.synthesis);

@@ -1,4 +1,4 @@
-import { Component, computed, Input, OnInit, signal } from '@angular/core';
+import { Component, computed, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,8 +22,14 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
   templateUrl: './case-deadlines-section.component.html',
   styleUrl: './case-deadlines-section.component.scss'
 })
-export class CaseDeadlinesSectionComponent implements OnInit {
+export class CaseDeadlinesSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'DÉLAIS LÉGAUX';
+  static readonly TOOL_ICON = 'event';
+
   @Input() caseFileId!: string;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   deadlines = signal<CaseDeadline[]>([]);
   collapsed = signal(true);
@@ -55,7 +61,15 @@ export class CaseDeadlinesSectionComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
+
     this.loadDeadlines();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
   }
 
   loadDeadlines(): void {
