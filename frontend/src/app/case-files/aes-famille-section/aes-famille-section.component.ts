@@ -75,12 +75,18 @@ const DUREE_PRESENCE_DIVERGENCE_MOIS = 6;
   styleUrl: './aes-famille-section.component.scss',
 })
 export class AesFamilleSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'AES — VOIE FAMILIALE (L.435-1)';
+  static readonly TOOL_ICON = 'family_restroom';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   @Input() aiData?: ImmigrationExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
@@ -134,6 +140,8 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
@@ -145,6 +153,8 @@ export class AesFamilleSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);

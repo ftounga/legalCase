@@ -84,6 +84,10 @@ const TRIGGER_TO_CRITERIA: Record<string, { motif: string; situationFamiliale?: 
   styleUrl: './immigration-title-decision-section.component.scss'
 })
 export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'TITRE DE SÉJOUR RECOMMANDÉ';
+  static readonly TOOL_ICON = 'account_tree';
+
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
   /** SF-IM-05-04 : événements déclencheurs F-150 — priorité sur aiData pour déduire motif+situation. */
@@ -91,6 +95,8 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   private aiDataSignal = signal<ImmigrationExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
@@ -183,6 +189,8 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   });
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
     this.aiQuestionsSignal.set(this.aiQuestions ?? []);
@@ -195,6 +203,8 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);

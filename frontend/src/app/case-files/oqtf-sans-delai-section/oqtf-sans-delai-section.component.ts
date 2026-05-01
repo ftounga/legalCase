@@ -88,7 +88,13 @@ const MS_48H = 48 * MS_ONE_HOUR;
   styleUrl: './oqtf-sans-delai-section.component.scss',
 })
 export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'OQTF SANS DÉLAI DE DÉPART VOLONTAIRE (FR) — 48H';
+  static readonly TOOL_ICON = 'gavel';
+
   @Input() caseFileId!: string;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   // SF-155-04-B2 fix : setter-backed signal pour que `isFrance` (computed)
   // réagisse aux assignations @Input de workspaceCountry, y compris quand
@@ -206,6 +212,8 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     // SF-155-06 : hydrate les signals miroirs avant évaluations computed.
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -251,6 +259,8 @@ export class OqtfSansDelaiSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     // SF-155-06 : ré-hydrate les signals miroirs à chaque changement d'input.
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);

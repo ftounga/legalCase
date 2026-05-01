@@ -99,6 +99,10 @@ export type Belgian9terCoherenceAlert = CoherenceAlert<Belgian9terAlertField>;
   styleUrl: './belgian-9ter-section.component.scss',
 })
 export class Belgian9terSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'RÉGULARISATION 9TER MÉDICAL (BE)';
+  static readonly TOOL_ICON = 'medical_services';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'BELGIQUE';
   /**
@@ -112,6 +116,8 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   // SF-155-09 : snapshots signal des inputs IA/F96/Q/Piece pour que
   // `coherenceAlerts` (computed) réagisse. Même pattern que
@@ -201,6 +207,8 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     // SF-155-09 : push inputs vers signals avant toute évaluation computed.
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -213,6 +221,8 @@ export class Belgian9terSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     // SF-155-09 : ré-hydrater les signals à chaque changement d'input.
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);

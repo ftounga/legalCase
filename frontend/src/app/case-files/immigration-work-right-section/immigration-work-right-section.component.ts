@@ -60,6 +60,10 @@ export type IM07CoherenceAlert = CoherenceAlert<IM07AlertField>;
   styleUrl: './immigration-work-right-section.component.scss'
 })
 export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'DROIT AU TRAVAIL';
+  static readonly TOOL_ICON = 'work';
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   // SF-155-11 : inputs IA (tous optionnels — null-safe partout).
@@ -67,6 +71,8 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   // SF-155-11 : snapshots signal des inputs IA pour que `computed` réagisse.
   // Même pattern qu'`immigration-title-decision-section` (F-IM-05).
@@ -169,6 +175,8 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     // SF-155-11 : push inputs vers signals avant toute évaluation computed.
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -187,6 +195,8 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     if (changes['aiData']) this.aiDataSignal.set(this.aiData);
     if (changes['procedureChecks']) this.procedureChecksSignal.set(this.procedureChecks ?? []);
     if (changes['aiQuestions']) this.aiQuestionsSignal.set(this.aiQuestions ?? []);
