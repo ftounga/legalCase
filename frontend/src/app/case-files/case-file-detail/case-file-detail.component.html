@@ -498,7 +498,13 @@
       [currentUserEmail]="authService.currentUser()?.email ?? null">
     </app-case-notes-section>
 
-    <app-case-dashboard [caseFileId]="caseFile()!.id"></app-case-dashboard>
+    <app-case-dashboard
+      [caseFileId]="caseFile()!.id"
+      [synthesis]="synthesis()"
+      [workspaceCountry]="workspaceCountry()"
+      [procedureChecks]="procedureChecks()"
+      [aiQuestions]="questions()">
+    </app-case-dashboard>
 
     <app-decisional-tools-panel
       [caseFileId]="caseFile()!.id"
