@@ -20,13 +20,15 @@
               <h2 class="theme-title">{{ theme.label }}</h2>
               <div class="theme-grid">
                 @for (item of items; track item.toolId) {
+                  @let meta = cardMetadataFor(item.entry, item.toolId);
                   <div class="theme-grid-item">
-                    <ng-container
-                      *ngComponentOutlet="
-                        item.entry.component;
-                        inputs: componentInputsFor(item.entry)
-                      ">
-                    </ng-container>
+                    <app-decision-tool-card
+                      [toolId]="item.toolId"
+                      [theme]="theme.key"
+                      [icon]="meta.icon"
+                      [title]="meta.label"
+                      (open)="openTool(item.toolId, item.entry)">
+                    </app-decision-tool-card>
                   </div>
                 }
               </div>

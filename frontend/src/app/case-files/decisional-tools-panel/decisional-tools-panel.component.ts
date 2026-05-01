@@ -21,6 +21,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { DecisionToolCardComponent } from './decision-tool-card/decision-tool-card.component';
+import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
+import { getToolMetadata } from './decision-tool.contract';
 import { AncienneteSectionComponent } from '../anciennete-section/anciennete-section.component';
 import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
 import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
@@ -153,6 +156,7 @@ export interface ThemeDescriptor {
     MatIconModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    DecisionToolCardComponent,
   ],
   templateUrl: './decisional-tools-panel.component.html',
   styleUrls: ['./decisional-tools-panel.component.scss'],
@@ -162,6 +166,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
+  private readonly modalService = inject(DecisionToolModalService);
 
   @Input({ required: true }) caseFileId!: string;
   @Input() synthesis: any | null = null;
@@ -1526,6 +1531,39 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       caseFileTitle: this.caseFileTitle,
       procedureChecks: this.procedureChecks,
       aiQuestions: this.aiQuestions,
+    });
+  }
+
+  /**
+   * F-177 SF-177-11 : metadata d'affichage card pour un toolId.
+   * Lit `TOOL_LABEL` + `TOOL_ICON` exposés en statics par le composant outil
+   * (instrumentés via SF-177-03/03b/05/07). Fallback sur `extension` + `toolId`
+   * si un composant ne les expose pas (forward-compat).
+   */
+  cardMetadataFor(entry: DecisionToolRegistryEntry, toolId: string): { label: string; icon: string } {
+    const meta = getToolMetadata(entry.component);
+    return meta ?? { label: toolId, icon: 'extension' };
+  }
+
+  /**
+   * F-177 SF-177-11 : ouvre l'outil dans un MatDialog 90vw/90vh.
+   * Le composant outil est instancié dans le modal avec `forceExpanded: true`
+   * pour qu'il apparaisse déplié immédiatement. Pas de bouton Save dans cette
+   * étape (les composants gèrent leur propre persistence) — onSave restera
+   * undefined → bouton caché.
+   */
+  openTool(toolId: string, entry: DecisionToolRegistryEntry): void {
+    const meta = this.cardMetadataFor(entry, toolId);
+    const inputs = {
+      ...this.componentInputsFor(entry),
+      forceExpanded: true,
+    };
+    this.modalService.open({
+      toolId,
+      title: meta.label,
+      icon: meta.icon,
+      component: entry.component,
+      inputs,
     });
   }
 }
