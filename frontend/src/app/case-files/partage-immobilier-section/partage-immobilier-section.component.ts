@@ -81,6 +81,10 @@ export type PartageCoherenceAlert = CoherenceAlert<PartageAlertField>;
   styleUrl: './partage-immobilier-section.component.scss'
 })
 export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
+  // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
+  static readonly TOOL_LABEL = 'PARTAGE IMMOBILIER';
+  static readonly TOOL_ICON = 'home';
+
   @Input() caseFileId!: string;
   /**
    * SF-FA-05-04 : liquidation communauté détectée — alimente le panneau
@@ -104,6 +108,9 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);
   private aiQuestionsSignal = signal<AiQuestion[]>([]);
   private piecesManquantesSignal = signal<PieceManquanteEntry[]>([]);
+
+  // F-177 SF-177-03b : force l'expansion (mode modal F-177).
+  @Input() forceExpanded = false;
 
   collapsed = signal(true);
   loading = signal(false);
@@ -192,6 +199,8 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
+    // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.
+    if (this.forceExpanded) this.collapsed.set(false);
     this.liquidationSignal.set(this.liquidationCommunaute);
     this.aiDataSignal.set(this.aiData);
     this.procedureChecksSignal.set(this.procedureChecks ?? []);
@@ -205,6 +214,8 @@ export class PartageImmobilierSectionComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    // F-177 SF-177-03b : applique le forceExpanded quand il passe à true en cours de vie.
+    if (changes['forceExpanded'] && this.forceExpanded) this.collapsed.set(false);
     if (changes['liquidationCommunaute']) {
       this.liquidationSignal.set(this.liquidationCommunaute);
     }
