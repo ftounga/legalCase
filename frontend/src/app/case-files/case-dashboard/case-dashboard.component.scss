@@ -37,3 +37,20 @@
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
 }
+
+// F-167 SF-167-01 : grid pour les tiles génériques (`<app-dashboard-tile>`).
+// Responsive : 1 col < 768px, 2 cols < 1280px, 3 cols sinon.
+.generic-tiles-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 16px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

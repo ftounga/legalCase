@@ -28,7 +28,13 @@ public record CaseFileDashboardResponse(
         // Famille
         PartageSummary partage,
         GardeSummary garde,
-        DivorceSummary divorce
+        DivorceSummary divorce,
+
+        // F-167 SF-167-01 — Liste générique de tiles décisionnelles (étend
+        // progressivement la couverture du dashboard à tous les outils
+        // décisionnels). Coexiste avec les 9 records typés ci-dessus pendant
+        // la transition ; SF-167-05 fusionnera et supprimera ces records.
+        List<DashboardTile> tiles
 ) {
     public record LicenciementSummary(int scoreRisque, String verdict, int criteresNonConformes, int criteresTotal) {}
     public record IndemniteSummary(String country, BigDecimal fourchetteBasse, BigDecimal fourhetteHaute, String baremeSource) {}

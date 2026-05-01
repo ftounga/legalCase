@@ -20,5 +20,18 @@
         </app-decision-tool-card>
       }
     </div>
+
+    <!-- F-167 SF-167-01 : grid générique alimenté par dashboard.tiles ; coexiste
+         avec le grid typé ci-dessus pendant la transition (fusion en SF-167-05). -->
+    @if (genericTiles().length > 0) {
+      <div class="generic-tiles-grid">
+        @for (tile of genericTiles(); track tile.toolId) {
+          <app-dashboard-tile
+            [tile]="tile"
+            (open)="openGenericTool($event)">
+          </app-dashboard-tile>
+        }
+      </div>
+    }
   </div>
 }
