@@ -119,6 +119,11 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
 
   /** Provenance IA — badge "Pré-rempli depuis l'analyse" effaçable. */
   provenanceTitreActuel = signal<'IA' | null>(null);
+  /** SF-IM-11-03 : provenance IA pour la durée restante calculée depuis dateExpirationTitre. */
+  provenanceDureeRestante = signal<'IA' | null>(null);
+
+  /** SF-IM-11-03 : flag de log "warn date malformée" — émis une seule fois par instance. */
+  private dateExpirationParseWarned = false;
 
   /** Listes pour mat-radio. */
   readonly titreOptions = TITRE_SEJOUR_LABELS;
@@ -214,6 +219,8 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
 
   onDureeRestanteChange(value: number | null): void {
     this.dureeRestanteSurTitreActuelMois.set(value === null || value === undefined ? null : value);
+    // SF-IM-11-03 : toute saisie manuelle efface la provenance IA (badge masqué).
+    this.provenanceDureeRestante.set(null);
   }
 
   onDocumentJustificatifChange(value: boolean): void {
@@ -286,6 +293,34 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
           || this.provenanceTitreActuel() === 'IA') {
         this.titreActuel.set(iaTitreFromText);
         this.provenanceTitreActuel.set('IA');
+      }
+    }
+
+    // SF-IM-11-03 : durée restante ← floor((dateExpirationTitre - aujourd'hui) / 30.44 jours).
+    // Plancher à 0 si la date est passée. Pas d'écrasement si l'avocat a saisi manuellement.
+    const dateStr = ai.dateExpirationTitre;
+    if (dateStr && typeof dateStr === 'string' && dateStr.trim() !== '') {
+      const expiration = new Date(dateStr);
+      if (Number.isNaN(expiration.getTime())) {
+        if (!this.dateExpirationParseWarned) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[changement-statut-section] dateExpirationTitre malformée, ignorée : "${dateStr}"`,
+          );
+          this.dateExpirationParseWarned = true;
+        }
+      } else {
+        const today = new Date();
+        const diffMs = expiration.getTime() - today.getTime();
+        const moisCalcules = Math.max(
+          0,
+          Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44)),
+        );
+        if (this.dureeRestanteSurTitreActuelMois() === null
+            || this.provenanceDureeRestante() === 'IA') {
+          this.dureeRestanteSurTitreActuelMois.set(moisCalcules);
+          this.provenanceDureeRestante.set('IA');
+        }
       }
     }
   }
@@ -445,6 +480,7 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
         this.casierJudiciaireVierge.set(r.casierJudiciaireVierge);
         // Provenance reset — valeurs persistées = saisie avocat.
         this.provenanceTitreActuel.set(null);
+        this.provenanceDureeRestante.set(null);
         this.showForm.set(false);
         this.loading.set(false);
       },
