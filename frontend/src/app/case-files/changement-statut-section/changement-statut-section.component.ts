@@ -87,6 +87,41 @@ export class ChangementStatutSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'CHANGEMENT DE STATUT (FR)';
   static readonly TOOL_ICON = 'swap_horiz';
 
+  /**
+   * F-177 SF-177-12 — Compte les champs que `prefillFromAi()` poserait, sans
+   * instancier le composant. Stricte parité avec la logique runtime :
+   *   - `titreActuel` : posé si `mapTitreSejourFromIa(typeTitreSejourCode)`
+   *     retourne un titre, sinon fallback sur `typeTitreSejour`.
+   *   - `dureeRestanteSurTitreActuelMois` : posé si `dateExpirationTitre`
+   *     est une string non vide ET parse en date valide. Le runtime plancher
+   *     à 0 si la date est passée — le champ est posé dans tous les cas.
+   */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    const ai = input.aiData;
+    if (!ai) return 0;
+    let count = 0;
+
+    const fromCode = mapTitreSejourFromIa(ai.typeTitreSejourCode ?? null);
+    const fromText = fromCode ?? mapTitreSejourFromIa(ai.typeTitreSejour ?? null);
+    if (fromText) count++;
+
+    const dateStr = ai.dateExpirationTitre;
+    if (typeof dateStr === 'string' && dateStr.trim() !== '') {
+      const expiration = new Date(dateStr);
+      if (!Number.isNaN(expiration.getTime())) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   // Sources IA pour pré-fill + alertes de cohérence F-IA-03.

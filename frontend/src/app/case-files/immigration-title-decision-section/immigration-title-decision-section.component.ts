@@ -88,6 +88,79 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   static readonly TOOL_LABEL = 'TITRE DE SÉJOUR RECOMMANDÉ';
   static readonly TOOL_ICON = 'account_tree';
 
+  /**
+   * F-177 SF-177-12 — Compte les champs que `prefillFromAi()` poserait, sans
+   * instancier le composant. Stricte parité avec la logique runtime ci-dessous :
+   *   1. `nationaliteUe` : posé si `aiData.nationaliteUe` est un boolean.
+   *   2. `motif` (+ optionnellement `situationFamiliale`) : posé en priorité
+   *      depuis `triggerEvents[0].eventCode` mappé via TRIGGER_TO_CRITERIA,
+   *      sinon depuis `aiData.typeTitreSejourCode` (CODE_TO_MOTIF), sinon
+   *      depuis l'heuristique texte sur `aiData.typeTitreSejour`.
+   *
+   * Divergence avec `prefillFromAi()` runtime = bug (badge faux) — tout ajout
+   * dans la méthode runtime doit être reflété ici.
+   */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    const ai = input.aiData;
+    // Le runtime sort tôt si ni aiData ni triggerEvents.
+    const triggers = Array.isArray(input.triggerEvents) ? input.triggerEvents : [];
+    if (!ai && triggers.length === 0) return 0;
+
+    let count = 0;
+
+    // 1. Nationalité UE — posée si aiData.nationaliteUe est un boolean.
+    if (ai && typeof ai.nationaliteUe === 'boolean') {
+      count++;
+    }
+
+    // 2. Motif (+ situationFamiliale) — priorité aux trigger_events.
+    //    Support des 2 conventions de field (eventCode runtime / event_code legacy).
+    const firstTrigger = triggers[0];
+    const firstTriggerCode = firstTrigger?.eventCode ?? firstTrigger?.event_code;
+    if (firstTriggerCode && TRIGGER_TO_CRITERIA[firstTriggerCode]) {
+      const criteria = TRIGGER_TO_CRITERIA[firstTriggerCode];
+      count++; // motif posé
+      if (criteria.situationFamiliale) {
+        count++; // situationFamiliale posée
+      }
+      return count;
+    }
+
+    if (!ai) return count;
+
+    // 2b. Fallback : aiData.typeTitreSejourCode mappé via CODE_TO_MOTIF.
+    const code = typeof ai.typeTitreSejourCode === 'string'
+      ? ai.typeTitreSejourCode.toUpperCase()
+      : null;
+    if (code && CODE_TO_MOTIF[code]) {
+      count++;
+      return count;
+    }
+
+    // 2c. Heuristique texte libre sur typeTitreSejour.
+    if (typeof ai.typeTitreSejour === 'string' && ai.typeTitreSejour.length > 0) {
+      const type = ai.typeTitreSejour
+        .toUpperCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (
+        type.includes('ETUDIANT') || type.includes('STUDENT')
+        || type.includes('SALARIE') || type.includes('TRAVAIL')
+        || type.includes('FAMILLE') || type.includes('VPF')
+        || type.includes('ASILE') || type.includes('REFUGIE')
+      ) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
   /** SF-IM-05-04 : événements déclencheurs F-150 — priorité sur aiData pour déduire motif+situation. */

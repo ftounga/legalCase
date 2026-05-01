@@ -27,6 +27,7 @@
                       [theme]="theme.key"
                       [icon]="meta.icon"
                       [title]="meta.label"
+                      [prefillCount]="prefillCountFor(item.toolId)"
                       (open)="openTool(item.toolId, item.entry)">
                     </app-decision-tool-card>
                   </div>

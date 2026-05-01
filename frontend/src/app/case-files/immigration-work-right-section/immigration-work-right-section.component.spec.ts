@@ -363,3 +363,52 @@ describe('ImmigrationWorkRightSectionComponent', () => {
     expect(component.alertBadgeLabel(mkAlert('MULTI'))).toContain('Incohérence multiple');
   });
 });
+
+// F-177 SF-177-12 — couvre le static `getPrefillCount` exposé pour la card du panel.
+describe('ImmigrationWorkRightSectionComponent.getPrefillCount', () => {
+  it('returns 0 when aiData is absent', () => {
+    expect(ImmigrationWorkRightSectionComponent.getPrefillCount({})).toBe(0);
+  });
+
+  it('returns 0 when typeTitreSejourCode is missing', () => {
+    expect(
+      ImmigrationWorkRightSectionComponent.getPrefillCount({ aiData: {} }),
+    ).toBe(0);
+  });
+
+  it('returns 1 for a FR titre code with workspaceCountry=FRANCE', () => {
+    expect(
+      ImmigrationWorkRightSectionComponent.getPrefillCount({
+        aiData: { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' },
+        workspaceCountry: 'FRANCE',
+      }),
+    ).toBe(1);
+  });
+
+  it('returns 0 for a FR titre code with workspaceCountry=BELGIQUE (mismatch pays)', () => {
+    expect(
+      ImmigrationWorkRightSectionComponent.getPrefillCount({
+        aiData: { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' },
+        workspaceCountry: 'BELGIQUE',
+      }),
+    ).toBe(0);
+  });
+
+  it('returns 1 for a BE titre code with workspaceCountry=BELGIQUE', () => {
+    expect(
+      ImmigrationWorkRightSectionComponent.getPrefillCount({
+        aiData: { typeTitreSejourCode: 'CARTE_A_TRAVAIL' },
+        workspaceCountry: 'BELGIQUE',
+      }),
+    ).toBe(1);
+  });
+
+  it('returns 0 for an unknown titre code', () => {
+    expect(
+      ImmigrationWorkRightSectionComponent.getPrefillCount({
+        aiData: { typeTitreSejourCode: 'INCONNU_XYZ' },
+        workspaceCountry: 'FRANCE',
+      }),
+    ).toBe(0);
+  });
+});
