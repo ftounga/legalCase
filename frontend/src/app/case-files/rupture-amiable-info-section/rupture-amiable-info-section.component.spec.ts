@@ -40,4 +40,27 @@ describe('RuptureAmiableInfoSectionComponent', () => {
     // Le composant est purement informationnel — aucun service/appel attendu
     httpMock.expectNone(() => true);
   });
+
+  // F-177 SF-177-11 : pattern B (statics + forceExpanded)
+  it('SF-177-11 T-06 : expose TOOL_LABEL et TOOL_ICON statics', () => {
+    expect(RuptureAmiableInfoSectionComponent.TOOL_LABEL).toBe('RUPTURE AMIABLE');
+    expect(RuptureAmiableInfoSectionComponent.TOOL_ICON).toBe('handshake');
+  });
+
+  it('SF-177-11 T-04 : forceExpanded=true au mount → collapsed reste false', () => {
+    const f = TestBed.createComponent(RuptureAmiableInfoSectionComponent);
+    f.componentInstance.caseFileId = 'case-1';
+    f.componentInstance.forceExpanded = true;
+    f.componentInstance.collapsed.set(true);
+    f.componentRef.setInput('forceExpanded', true);
+    f.componentInstance.ngOnInit();
+    expect(f.componentInstance.collapsed()).toBe(false);
+  });
+
+  it('SF-177-11 T-05 : forceExpanded passe à true en cours de vie → re-expand', () => {
+    component.collapsed.set(true);
+    fixture.componentRef.setInput('forceExpanded', true);
+    fixture.detectChanges();
+    expect(component.collapsed()).toBe(false);
+  });
 });

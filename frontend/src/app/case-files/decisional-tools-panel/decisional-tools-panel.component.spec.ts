@@ -5,6 +5,8 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DecisionToolsPanelComponent } from './decisional-tools-panel.component';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
+import { AncienneteSectionComponent } from '../anciennete-section/anciennete-section.component';
 
 describe('DecisionToolsPanelComponent', () => {
   let component: DecisionToolsPanelComponent;
@@ -296,6 +298,50 @@ describe('DecisionToolsPanelComponent', () => {
     expect(themed.has('DELAIS')).toBe(false);
     expect(themed.has('DOCUMENTS')).toBe(false);
     expect(themed.has('DIAGNOSTIC')).toBe(false);
+  });
+
+  // ── SF-177-11 — Bascule cards + modal ────────────────────────────────────
+
+  it('SF-177-11 T-01 : cardMetadataFor lit TOOL_LABEL/TOOL_ICON statics du composant', () => {
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    const meta = component.cardMetadataFor(entry, 'F-DT-07-anciennete-conges-prime');
+    expect(meta.label).toBe(AncienneteSectionComponent.TOOL_LABEL);
+    expect(meta.icon).toBe(AncienneteSectionComponent.TOOL_ICON);
+  });
+
+  it('SF-177-11 T-02 : cardMetadataFor fallback {toolId, extension} si statics absents', () => {
+    class StubWithoutStatics {}
+    const fakeEntry = {
+      component: StubWithoutStatics as any,
+      inputs: () => ({}),
+    };
+    const meta = component.cardMetadataFor(fakeEntry as any, 'X-FAKE');
+    expect(meta).toEqual({ label: 'X-FAKE', icon: 'extension' });
+  });
+
+  it('SF-177-11 T-03 : openTool délègue au modalService avec forceExpanded:true + meta', () => {
+    const openSpy = jest
+      .spyOn(TestBed.inject(DecisionToolModalService), 'open')
+      .mockReturnValue({ close: jest.fn() } as any);
+
+    component.caseFileId = 'cf-177-11';
+    component.workspaceCountry = 'FRANCE';
+    component.synthesis = { travailExtractedData: { foo: 'bar' } };
+    component.procedureChecks = [];
+    component.aiQuestions = [];
+
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    component.openTool('F-DT-07-anciennete-conges-prime', entry);
+
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    const args = openSpy.mock.calls[0][0];
+    expect(args.toolId).toBe('F-DT-07-anciennete-conges-prime');
+    expect(args.title).toBe(AncienneteSectionComponent.TOOL_LABEL);
+    expect(args.icon).toBe(AncienneteSectionComponent.TOOL_ICON);
+    expect(args.component).toBe(AncienneteSectionComponent);
+    expect(args.inputs['forceExpanded']).toBe(true);
+    expect(args.inputs['caseFileId']).toBe('cf-177-11');
+    expect(args.onSave).toBeUndefined();
   });
 
   it('SF-169-01 T-04: tool_id non mappé tombe sur DIAGNOSTIC + warn console', () => {
