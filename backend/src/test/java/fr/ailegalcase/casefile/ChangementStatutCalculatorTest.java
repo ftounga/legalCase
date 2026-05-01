@@ -187,6 +187,111 @@ class ChangementStatutCalculatorTest {
                 assertThat(m).contains("Casier judiciaire"));
     }
 
+    // ---- SF-IM-11-04 : transitions vers VPF -------------------------------
+
+    @Test
+    void etudiantVersVpf_avecJustificatif_verdictEleve() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "ETUDIANT", "VPF",
+                4, true, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("ELEVEE");
+        assertThat(r.baseJuridique()).contains("L.423-1");
+        assertThat(r.documentsRequis()).anySatisfy(d ->
+                assertThat(d).contains("Acte civil de référence"));
+        assertThat(r.documentsRequis()).anySatisfy(d ->
+                assertThat(d).contains("Justificatif de domicile commun"));
+        assertThat(r.formule()).contains("ETUDIANT").contains("VPF");
+    }
+
+    @Test
+    void etudiantVersVpf_sansJustificatif_verdictFaible() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "ETUDIANT", "VPF",
+                4, false, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("FAIBLE");
+        assertThat(r.risqueRefus()).anySatisfy(m ->
+                assertThat(m).contains("Acte civil de référence")
+                        .contains("non produit"));
+    }
+
+    @Test
+    void visiteurVersVpf_verdictEleve() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "VISITEUR", "VPF",
+                6, true, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("ELEVEE");
+        assertThat(r.baseJuridique()).contains("L.423-1");
+    }
+
+    @Test
+    void salarieVersVpf_verdictEleve() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "SALARIE", "VPF",
+                6, true, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("ELEVEE");
+        assertThat(r.baseJuridique()).contains("L.423-1");
+    }
+
+    @Test
+    void passeportTalentVersVpf_verdictEleve() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "PASSEPORT_TALENT_SALARIE_QUALIFIE", "VPF",
+                8, true, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("ELEVEE");
+        assertThat(r.baseJuridique()).contains("L.423-1");
+    }
+
+    @Test
+    void apsVersVpf_delai2Mois() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "APS", "VPF",
+                6, true, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("ELEVEE");
+        // APS spécifique préservé : délai d'instruction 2 mois (APS source ou destination).
+        assertThat(r.delaiInstructionMois()).isEqualTo(2);
+    }
+
+    @Test
+    void vpfDureeBloque_dureeRestante1Mois_retrogradeFaible() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "ETUDIANT", "VPF",
+                1, true, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("FAIBLE");
+        assertThat(r.risqueRefus()).anySatisfy(m ->
+                assertThat(m).contains("Durée restante"));
+    }
+
+    @Test
+    void vpfCasierNonVierge_retrogradeFaible() {
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "ETUDIANT", "VPF",
+                4, true, null, false);
+
+        assertThat(r.verdictTransition()).isEqualTo("FAIBLE");
+        assertThat(r.risqueRefus()).anySatisfy(m ->
+                assertThat(m).contains("Casier judiciaire"));
+    }
+
+    @Test
+    void vpfRemunerationNonExigee() {
+        // La rémunération n'est PAS exigée pour les transitions vers VPF
+        // (à la différence des transitions vers SALARIE qui imposent SMIC × 1,5).
+        ChangementStatutResult r = ChangementStatutCalculator.compute(
+                "ETUDIANT", "VPF",
+                4, true, null, true);
+
+        assertThat(r.verdictTransition()).isEqualTo("ELEVEE");
+        assertThat(r.risqueRefus())
+                .noneSatisfy(m -> assertThat(m).contains("SMIC"));
+    }
+
     // ---- Validations / erreurs --------------------------------------------
 
     @Test
@@ -199,8 +304,10 @@ class ChangementStatutCalculatorTest {
 
     @Test
     void transitionNonSupportee_throws() {
+        // SF-IM-11-04 : SALARIE → VPF est désormais supportée. On utilise une paire
+        // explicitement non couverte (ASILE → VPF) pour valider la branche d'erreur.
         assertThatThrownBy(() -> ChangementStatutCalculator.compute(
-                "SALARIE", "VPF", 10, true, null, true))
+                "ASILE", "VPF", 10, true, null, true))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("non supportée");
     }
