@@ -13,6 +13,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.Arrays;
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -20,13 +23,19 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
     private final CustomOidcUserService customOidcUserService;
     private final String frontendUrl;
+    private final List<String> allowedFrontendUrls;
 
     public SecurityConfig(ObjectMapper objectMapper,
                           CustomOidcUserService customOidcUserService,
-                          @Value("${app.frontend-url}") String frontendUrl) {
+                          @Value("${app.frontend-url}") String frontendUrl,
+                          @Value("${app.allowed-frontend-urls:${app.frontend-url}}") String allowedFrontendUrlsCsv) {
         this.objectMapper = objectMapper;
         this.customOidcUserService = customOidcUserService;
         this.frontendUrl = frontendUrl;
+        this.allowedFrontendUrls = Arrays.stream(allowedFrontendUrlsCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 
     @Bean
@@ -55,7 +64,7 @@ public class SecurityConfig {
                 .userInfoEndpoint(userInfo -> userInfo
                     .oidcUserService(customOidcUserService)
                 )
-                .defaultSuccessUrl(frontendUrl + "/dashboard", true)
+                .successHandler(new HostAwareSuccessHandler(allowedFrontendUrls, frontendUrl))
             )
             .logout(logout -> logout
                 .logoutUrl("/api/logout")

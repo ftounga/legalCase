@@ -11,9 +11,41 @@ spec:
   tls:
     - hosts:
         - legalcase.ng-itconsulting.com
+        - legalcase.fr
       secretName: legalcase-tls-prod
   rules:
     - host: legalcase.ng-itconsulting.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: legalcase-backend
+                port:
+                  number: 8080
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: legalcase-backend
+                port:
+                  number: 8080
+          - path: /login/oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: legalcase-backend
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: legalcase-frontend
+                port:
+                  number: 80
+    - host: legalcase.fr
       http:
         paths:
           - path: /api
