@@ -1253,53 +1253,77 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
-  // ── SF-170-01 — Section Documents en accordéon ─────────────────────────
+  // ── SF-170-02 — Section Documents en accordéon (sans persistance, auto-expand) ─────
 
-  describe('SF-170-01 docsCollapsed accordion', () => {
+  describe('SF-170-02 docsCollapsed accordion (no persistence)', () => {
     afterEach(() => {
-      try { sessionStorage.clear(); } catch { /* fail-silent */ }
       jest.restoreAllMocks();
     });
 
-    it('SF-170-01 T-01: docsCollapsed est false par défaut quand sessionStorage est vide', () => {
-      try { sessionStorage.clear(); } catch { /* fail-silent */ }
-      // ngOnInit a déjà été appelé dans le beforeEach. On rappelle restore explicitement
-      // pour vérifier qu'avec sessionStorage vide, l'état est bien false.
-      (component as any).restoreDocsCollapsedFromSession('cf1');
+    it('SF-170-02 T-01: docsCollapsed est false par défaut au ngOnInit', () => {
       expect(component.docsCollapsed()).toBe(false);
     });
 
-    it('SF-170-01 T-02: docsCollapsed=true si sessionStorage contient "true"', () => {
-      sessionStorage.setItem('case-file-cf1-docs-collapsed', 'true');
-      (component as any).restoreDocsCollapsedFromSession('cf1');
-      expect(component.docsCollapsed()).toBe(true);
-    });
-
-    it('SF-170-01 T-03: toggleDocsCollapsed() bascule + écrit sessionStorage', () => {
-      try { sessionStorage.clear(); } catch { /* fail-silent */ }
-      (component as any).restoreDocsCollapsedFromSession('cf1');
+    it('SF-170-02 T-03: toggleDocsCollapsed() bascule la valeur SANS écrire en sessionStorage', () => {
+      const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
       expect(component.docsCollapsed()).toBe(false);
 
       component.toggleDocsCollapsed();
       expect(component.docsCollapsed()).toBe(true);
-      expect(sessionStorage.getItem('case-file-cf1-docs-collapsed')).toBe('true');
 
       component.toggleDocsCollapsed();
       expect(component.docsCollapsed()).toBe(false);
-      expect(sessionStorage.getItem('case-file-cf1-docs-collapsed')).toBe('false');
+
+      const docsKeyCalls = setItemSpy.mock.calls.filter(([k]) =>
+        typeof k === 'string' && k.includes('docs-collapsed')
+      );
+      expect(docsKeyCalls.length).toBe(0);
     });
 
-    it('SF-170-01 T-04: sessionStorage indisponible — pas de crash + toggle reste fonctionnel', () => {
-      jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-        throw new Error('SecurityError');
-      });
-      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-        throw new Error('SecurityError');
-      });
+    it('SF-170-02 T-05: onFileSelected déplie la section si elle était repliée', () => {
+      component.docsCollapsed.set(true);
+      expect(component.docsCollapsed()).toBe(true);
 
-      expect(() => (component as any).restoreDocsCollapsedFromSession('cf1')).not.toThrow();
-      expect(() => component.toggleDocsCollapsed()).not.toThrow();
-      // Toggle bascule l'état en mémoire malgré l'échec d'écriture sessionStorage.
+      const fakeFile = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+      const fakeEvent = { target: { files: [fakeFile], value: '' } } as unknown as Event;
+      component.onFileSelected(fakeEvent);
+
+      expect(component.pendingFiles().length).toBe(1);
+      expect(component.docsCollapsed()).toBe(false);
+    });
+
+    it('SF-170-02 T-06: onFileSelected ne perturbe pas l\'état si déjà déplié', () => {
+      expect(component.docsCollapsed()).toBe(false);
+
+      const fakeFile = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+      const fakeEvent = { target: { files: [fakeFile], value: '' } } as unknown as Event;
+      component.onFileSelected(fakeEvent);
+
+      expect(component.docsCollapsed()).toBe(false);
+    });
+
+    it('SF-170-02 T-07: removePendingFile et upload-clear ne re-collapse jamais', () => {
+      component.docsCollapsed.set(true);
+      const fakeFile = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+      const fakeEvent = { target: { files: [fakeFile], value: '' } } as unknown as Event;
+      component.onFileSelected(fakeEvent);
+      expect(component.docsCollapsed()).toBe(false);
+
+      component.removePendingFile(fakeFile);
+      expect(component.docsCollapsed()).toBe(false);
+
+      component.pendingFiles.set([]);
+      expect(component.docsCollapsed()).toBe(false);
+    });
+
+    it('SF-170-02 T-08: onFileSelected ne déplie pas si tous les fichiers sont rejetés (oversized)', () => {
+      component.docsCollapsed.set(true);
+      const oversized = new File([new ArrayBuffer(60 * 1024 * 1024)], 'big.pdf', { type: 'application/pdf' });
+      const fakeEvent = { target: { files: [oversized], value: '' } } as unknown as Event;
+      component.onFileSelected(fakeEvent);
+
+      expect(component.pendingFiles().length).toBe(0);
+      // Aucun fichier valide ajouté → pas de raison d'auto-déplier.
       expect(component.docsCollapsed()).toBe(true);
     });
   });
