@@ -152,6 +152,122 @@ describe('ChangementStatutSectionComponent (SF-IM-11-02)', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // 2bis. SF-IM-11-03 — Pré-fill durée restante depuis dateExpirationTitre
+  // ---------------------------------------------------------------------------
+
+  describe('SF-IM-11-03 — pré-fill durée restante', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      // 2026-05-01 00:00 UTC : aligné avec l'interprétation civile de la date
+      // "today = 2026-05-01" → delta vers '2026-08-31' = 122 jours → 4 mois.
+      jest.setSystemTime(new Date('2026-05-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('calcule 4 mois quand dateExpirationTitre = 2026-08-31 et today = 2026-05-01', () => {
+      component.aiData = {
+        dateExpirationTitre: '2026-08-31',
+      } as ImmigrationExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(component.dureeRestanteSurTitreActuelMois()).toBe(4);
+      expect(component.provenanceDureeRestante()).toBe('IA');
+    });
+
+    it('ne touche pas le champ quand aiData = null', () => {
+      component.aiData = null;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(component.dureeRestanteSurTitreActuelMois()).toBeNull();
+      expect(component.provenanceDureeRestante()).toBeNull();
+    });
+
+    it('ne touche pas le champ quand dateExpirationTitre est null ou chaîne vide', () => {
+      component.aiData = { dateExpirationTitre: null } as ImmigrationExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(component.dureeRestanteSurTitreActuelMois()).toBeNull();
+      expect(component.provenanceDureeRestante()).toBeNull();
+
+      // Reset pour second cas (chaîne vide).
+      const fixture2 = TestBed.createComponent(ChangementStatutSectionComponent);
+      const c2 = fixture2.componentInstance;
+      c2.caseFileId = 'case-1';
+      c2.workspaceCountry = 'FRANCE';
+      c2.aiData = { dateExpirationTitre: '' } as ImmigrationExtractedData;
+      c2.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(c2.dureeRestanteSurTitreActuelMois()).toBeNull();
+      expect(c2.provenanceDureeRestante()).toBeNull();
+    });
+
+    it('pose 0 quand dateExpirationTitre est dans le passé', () => {
+      component.aiData = {
+        dateExpirationTitre: '2024-01-01',
+      } as ImmigrationExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(component.dureeRestanteSurTitreActuelMois()).toBe(0);
+      expect(component.provenanceDureeRestante()).toBe('IA');
+    });
+
+    it('n\'écrase pas une valeur saisie manuellement (provenance null)', () => {
+      // Saisie manuelle préalable.
+      component.dureeRestanteSurTitreActuelMois.set(7);
+      component.provenanceDureeRestante.set(null);
+
+      component.aiData = {
+        dateExpirationTitre: '2026-08-31',
+      } as ImmigrationExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      // La saisie avocat (7) doit être préservée.
+      expect(component.dureeRestanteSurTitreActuelMois()).toBe(7);
+      expect(component.provenanceDureeRestante()).toBeNull();
+    });
+
+    it('onDureeRestanteChange remet provenanceDureeRestante à null', () => {
+      component.aiData = {
+        dateExpirationTitre: '2026-08-31',
+      } as ImmigrationExtractedData;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(component.provenanceDureeRestante()).toBe('IA');
+
+      component.onDureeRestanteChange(5);
+      expect(component.dureeRestanteSurTitreActuelMois()).toBe(5);
+      expect(component.provenanceDureeRestante()).toBeNull();
+    });
+
+    it('aiData arrivant après le mount via ngOnChanges déclenche le pré-fill', () => {
+      component.aiData = null;
+      component.ngOnInit();
+      httpMock.expectOne(BASE_URL).flush({}, { status: 404, statusText: 'Not Found' });
+
+      expect(component.dureeRestanteSurTitreActuelMois()).toBeNull();
+
+      const newAi = {
+        dateExpirationTitre: '2026-08-31',
+      } as ImmigrationExtractedData;
+      component.aiData = newAi;
+      component.ngOnChanges({ aiData: new SimpleChange(null, newAi, false) });
+
+      expect(component.dureeRestanteSurTitreActuelMois()).toBe(4);
+      expect(component.provenanceDureeRestante()).toBe('IA');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // 3. Form validation
   // ---------------------------------------------------------------------------
 
