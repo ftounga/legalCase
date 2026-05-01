@@ -5,10 +5,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DecimalPipe } from '@angular/common';
 import { debounceTime } from 'rxjs';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
-import { DashboardResponse } from '../../core/models/case-dashboard.model';
+import { DashboardResponse, DashboardTile as BackendDashboardTile } from '../../core/models/case-dashboard.model';
 import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
+import { DashboardTileComponent } from './dashboard-tile/dashboard-tile.component';
 import { DecisionToolCardComponent } from '../decisional-tools-panel/decision-tool-card/decision-tool-card.component';
 import { DecisionToolModalService } from '../decisional-tools-panel/decision-tool-modal/decision-tool-modal.service';
+import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { DecisionToolSummary, MetierAlertLevel } from '../decisional-tools-panel/decision-tool-summary.model';
 import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
@@ -25,7 +27,7 @@ import { DivorceChecklistSectionComponent } from '../divorce-checklist-section/d
  * F-177 SF-177-09 — Tile dashboard agrégé reproduit via `<app-decision-tool-card>`.
  * Le riskScore est rendu en tile spécial non-cliquable (pas de tool correspondant).
  */
-export interface DashboardTile {
+export interface DashboardCardTile {
   toolId: string;
   theme: string;
   title: string;
@@ -40,7 +42,7 @@ export interface DashboardTile {
 @Component({
   selector: 'app-case-dashboard',
   standalone: true,
-  imports: [MatIconModule, MatProgressSpinnerModule, DecimalPipe, DecisionToolCardComponent],
+  imports: [MatIconModule, MatProgressSpinnerModule, DecimalPipe, DecisionToolCardComponent, DashboardTileComponent],
   templateUrl: './case-dashboard.component.html',
   styleUrl: './case-dashboard.component.scss'
 })
@@ -60,7 +62,19 @@ export class CaseDashboardComponent implements OnInit {
     const d = this.dashboard();
     if (!d) return false;
     return d.licenciement || d.indemnites || d.anciennete || d.titleDecision ||
-           d.workRight || d.recours || d.partage || d.garde || d.divorce || d.riskScore != null;
+           d.workRight || d.recours || d.partage || d.garde || d.divorce || d.riskScore != null
+           // F-167 SF-167-01 : prend également en compte les tiles génériques.
+           || (d.tiles && d.tiles.length > 0);
+  });
+
+  /**
+   * F-167 SF-167-01 — Liste des tiles génériques renvoyées par le backend.
+   * Coexiste avec les 9 tiles typées en haut du dashboard pendant la
+   * transition (SF-167-01 → SF-167-04). SF-167-05 fusionnera et supprimera
+   * les tiles typées.
+   */
+  readonly genericTiles = computed<BackendDashboardTile[]>(() => {
+    return this.dashboard()?.tiles ?? [];
   });
 
   /**
@@ -68,7 +82,7 @@ export class CaseDashboardComponent implements OnInit {
    * riskScore en tête (non cliquable), puis 9 tiles ordonnées (Travail → Immigration → Famille).
    * Les champs nuls sont filtrés.
    */
-  readonly tiles = computed<DashboardTile[]>(() => {
+  readonly tiles = computed<DashboardCardTile[]>(() => {
     const d = this.dashboard();
     if (!d) return [];
     return this.tilesFromDashboard(d);
@@ -95,7 +109,7 @@ export class CaseDashboardComponent implements OnInit {
    * F-177 SF-177-09 — ouvre le composant outil de la tile dans le modal 90vw/90vh.
    * Tile riskScore : disabled === true → no-op.
    */
-  openTile(tile: DashboardTile): void {
+  openTile(tile: DashboardCardTile): void {
     if (tile.disabled || !tile.component) return;
     this.modalService.open({
       toolId: tile.toolId,
@@ -106,8 +120,39 @@ export class CaseDashboardComponent implements OnInit {
     });
   }
 
-  tilesFromDashboard(d: DashboardResponse): DashboardTile[] {
-    const tiles: DashboardTile[] = [];
+  /**
+   * F-167 SF-167-01 — Ouvre le modal du composant outil correspondant à une
+   * tile générique. Résout le composant via TOOL_REGISTRY (même logique que
+   * `<app-decisional-tools-panel>`). Si le toolId est inconnu, no-op +
+   * console.warn (cohérent avec resolveEntry du panel).
+   */
+  openGenericTool(toolId: string): void {
+    const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
+    if (!entry) {
+      // eslint-disable-next-line no-console
+      console.warn(`[case-dashboard] Unknown toolId for generic tile: ${toolId}`);
+      return;
+    }
+    const meta = getToolMetadata(entry.component);
+    const inputs = entry.inputs({
+      caseFileId: this.caseFileId,
+      synthesis: this.synthesis,
+      workspaceCountry: this.workspaceCountry,
+      caseFileTitle: '',
+      procedureChecks: this.procedureChecks,
+      aiQuestions: this.aiQuestions,
+    });
+    this.modalService.open({
+      toolId,
+      title: meta?.label ?? toolId,
+      icon: meta?.icon ?? 'extension',
+      component: entry.component,
+      inputs: { ...inputs, forceExpanded: true },
+    });
+  }
+
+  tilesFromDashboard(d: DashboardResponse): DashboardCardTile[] {
+    const tiles: DashboardCardTile[] = [];
 
     if (d.riskScore != null) {
       tiles.push({
@@ -259,7 +304,7 @@ export class CaseDashboardComponent implements OnInit {
     component: Type<unknown>;
     summary: DecisionToolSummary;
     metierAlertLevel?: MetierAlertLevel;
-  }): DashboardTile {
+  }): DashboardCardTile {
     const meta = getToolMetadata(args.component);
     return {
       toolId: args.toolId,

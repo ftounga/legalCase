@@ -18,7 +18,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
 public class CaseFileDashboardService {
@@ -39,6 +43,7 @@ public class CaseFileDashboardService {
     private final PartageImmobilierRepository partageRepo;
     private final CalendrierGardeRepository gardeRepo;
     private final DivorceChecklistRepository divorceRepo;
+    private final ChangementStatutRepository changementStatutRepo;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -53,7 +58,8 @@ public class CaseFileDashboardService {
                                      ImmigrationRecoursRepository recoursRepo,
                                      PartageImmobilierRepository partageRepo,
                                      CalendrierGardeRepository gardeRepo,
-                                     DivorceChecklistRepository divorceRepo) {
+                                     DivorceChecklistRepository divorceRepo,
+                                     ChangementStatutRepository changementStatutRepo) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -69,6 +75,7 @@ public class CaseFileDashboardService {
         this.partageRepo = partageRepo;
         this.gardeRepo = gardeRepo;
         this.divorceRepo = divorceRepo;
+        this.changementStatutRepo = changementStatutRepo;
     }
 
     @Transactional(readOnly = true)
@@ -100,8 +107,266 @@ public class CaseFileDashboardService {
                 buildRecours(caseFileId),
                 buildPartage(caseFileId),
                 buildGarde(caseFileId),
-                buildDivorce(caseFileId)
+                buildDivorce(caseFileId),
+                assembleTiles(caseFileId)
         );
+    }
+
+    /**
+     * F-167 SF-167-01 — Assemble la liste générique de {@link DashboardTile} pour
+     * les 10 outils pilotes. Chaque mapper est exécuté en isolation : si un
+     * repository échoue (ou si la désérialisation crashe), seule la tile
+     * concernée est absente — les autres restent visibles (fail-open par tile).
+     *
+     * <p>Ordre stable par {@code toolId} pour faciliter la lecture client.</p>
+     */
+    List<DashboardTile> assembleTiles(UUID caseFileId) {
+        List<DashboardTile> tiles = new ArrayList<>();
+        addSafely(tiles, () -> tileFromLicenciementAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromIndemniteComparatifAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAncienneteAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromImmigrationTitleDecisionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromImmigrationWorkRightAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromImmigrationRecoursAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromChangementStatutAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromPartageImmobilierAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromCalendrierGardeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromChecklistDivorceAnalysis(caseFileId));
+        tiles.sort(Comparator.comparing(DashboardTile::toolId));
+        return tiles;
+    }
+
+    private void addSafely(List<DashboardTile> tiles, Supplier<DashboardTile> supplier) {
+        try {
+            DashboardTile t = supplier.get();
+            if (t != null) {
+                tiles.add(t);
+            }
+        } catch (Exception e) {
+            log.warn("F-167 SF-167-01 — fail-open per tile: {}", e.toString());
+        }
+    }
+
+    // ---- Mappers par outil pilote ------------------------------------------
+
+    private DashboardTile tileFromLicenciementAnalysis(UUID caseFileId) {
+        return licenciementRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), LicenciementAnalysisResult.class);
+                int nonConformes = (int) r.criteres().stream().filter(c -> "NON".equals(c.reponse())).count();
+                String alertLevel = "VALIDE".equals(r.verdict()) ? "OK" : "ALERT";
+                return new DashboardTile(
+                        "F-DT-08-licenciement-validity",
+                        "VALIDITE",
+                        "Validité licenciement",
+                        r.verdict(),
+                        nonConformes + "/" + r.criteres().size() + " critères non conformes",
+                        alertLevel);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private DashboardTile tileFromIndemniteComparatifAnalysis(UUID caseFileId) {
+        // Réutilise la logique éprouvée de buildIndemnite() pour préserver la
+        // priorité RuptureConv > Macron observée par SF-132-02. SF-167-05 fera
+        // converger vers une lecture directe.
+        var summary = buildIndemnite(caseFileId);
+        if (summary == null) {
+            return null;
+        }
+        BigDecimal basse = summary.fourchetteBasse();
+        BigDecimal haute = summary.fourhetteHaute();
+        String primary = formatEuros(basse) + " – " + formatEuros(haute) + " €";
+        return new DashboardTile(
+                "F-DT-09-comparateur-indemnites",
+                "INDEMNITES",
+                "Indemnités",
+                primary,
+                summary.baremeSource(),
+                null);
+    }
+
+    private DashboardTile tileFromAncienneteAnalysis(UUID caseFileId) {
+        return ancienneteRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AncienneteResult.class);
+                int ecarts = (int) r.ecarts().stream().filter(ec -> "ECART".equals(ec.verdict())).count();
+                String primary = r.ancienneteAnnees() + " an(s) " + r.ancienneteMois() + " mois";
+                String secondary = r.congesTotalJours() + " jours congés";
+                return new DashboardTile(
+                        "F-DT-07-anciennete-conges-prime",
+                        "INDEMNITES",
+                        "Ancienneté & congés",
+                        primary,
+                        secondary,
+                        ecarts > 0 ? "WARNING" : "OK");
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private DashboardTile tileFromImmigrationTitleDecisionAnalysis(UUID caseFileId) {
+        return titleDecisionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var recs = objectMapper.readValue(e.getRecommendedTitles(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, TitleRecommendation.class));
+                @SuppressWarnings("unchecked")
+                List<TitleRecommendation> list = (List<TitleRecommendation>) recs;
+                String primary = list.size() + " recommandation(s)";
+                String secondary = list.isEmpty() ? null : list.get(0).label();
+                return new DashboardTile(
+                        "F-IM-05-arbre-decisionnel-titre",
+                        "DIAGNOSTIC",
+                        "Titre de séjour recommandé",
+                        primary,
+                        secondary,
+                        "OK");
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private DashboardTile tileFromImmigrationWorkRightAnalysis(UUID caseFileId) {
+        return workRightRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), WorkRightResult.class);
+                String alert = "OUI".equals(r.droitTravail())
+                        ? "OK"
+                        : ("NON".equals(r.droitTravail()) ? "ALERT" : "WARNING");
+                return new DashboardTile(
+                        "F-IM-07-droit-au-travail",
+                        "DIAGNOSTIC",
+                        "Droit au travail",
+                        r.droitTravail(),
+                        r.titreLabel(),
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private DashboardTile tileFromImmigrationRecoursAnalysis(UUID caseFileId) {
+        return recoursRepo.findByCaseFileId(caseFileId).map(e -> {
+            var type = ImmigrationRecoursReferentiel.getByCode(e.getRecoursType());
+            String label = type != null ? type.label() : e.getRecoursType();
+            String dateLimite = e.getDateLimite() != null ? e.getDateLimite().toString() : null;
+            boolean depasse = e.getDateLimite() != null && java.time.LocalDate.now().isAfter(e.getDateLimite());
+            return new DashboardTile(
+                    "F-IM-06-recours",
+                    "DELAIS",
+                    "Recours",
+                    label,
+                    dateLimite,
+                    depasse ? "ALERT" : "OK");
+        }).orElse(null);
+    }
+
+    /**
+     * F-167 SF-167-01 — F-IM-11 Changement de statut.
+     * <strong>Cas réel "Immigration Chen 5"</strong> : avant cette SF, l'analyse
+     * persistait mais n'apparaissait pas dans le dashboard. Cette tile la rend
+     * visible immédiatement.
+     */
+    private DashboardTile tileFromChangementStatutAnalysis(UUID caseFileId) {
+        return changementStatutRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ChangementStatutResult.class);
+                String primary = r.titreActuel() + " → " + r.titreEnvisage()
+                        + " (" + r.verdictTransition() + ")";
+                String secondary = r.dureeRestanteMois() + " mois restants";
+                String alert;
+                switch (r.verdictTransition() == null ? "" : r.verdictTransition()) {
+                    case "ELEVEE" -> alert = "OK";
+                    case "FAIBLE" -> alert = "ALERT";
+                    default -> alert = "WARNING";
+                }
+                return new DashboardTile(
+                        "F-IM-11-changement-statut",
+                        "VALIDITE",
+                        "Changement de statut",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private DashboardTile tileFromPartageImmobilierAnalysis(UUID caseFileId) {
+        return partageRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), PartageImmobilierResult.class);
+                String primary = r.soulte() != null
+                        ? "Soulte : " + formatEuros(r.soulte()) + " €"
+                        : "—";
+                String secondary = r.coutTotal() != null
+                        ? "Coût total : " + formatEuros(r.coutTotal()) + " €"
+                        : null;
+                return new DashboardTile(
+                        "F-FA-05-partage-immobilier",
+                        "INDEMNITES",
+                        "Partage immobilier",
+                        primary,
+                        secondary,
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private DashboardTile tileFromCalendrierGardeAnalysis(UUID caseFileId) {
+        return gardeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), CalendrierGardeResult.class);
+                String secondary = r.joursParAnParentA() + "j / " + r.joursParAnParentB() + "j";
+                return new DashboardTile(
+                        "F-FA-06-calendrier-garde",
+                        "DOCUMENTS",
+                        "Calendrier de garde",
+                        r.gardeLabel(),
+                        secondary,
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private DashboardTile tileFromChecklistDivorceAnalysis(UUID caseFileId) {
+        return divorceRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DivorceChecklistResult.class);
+                int total = r.etapesTotal() + r.piecesTotal();
+                int done = r.etapesCompletees() + r.piecesPresentes();
+                int pct = total > 0 ? (done * 100) / total : 0;
+                String primary = r.etapesCompletees() + "/" + r.etapesTotal() + " étapes";
+                String secondary = pct + "%";
+                return new DashboardTile(
+                        "F-FA-07-checklist-divorce",
+                        "DIAGNOSTIC",
+                        "Checklist divorce",
+                        primary,
+                        secondary,
+                        pct < 50 ? "WARNING" : "OK");
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    private static String formatEuros(BigDecimal amount) {
+        if (amount == null) {
+            return "0";
+        }
+        return java.text.NumberFormat.getNumberInstance(java.util.Locale.FRANCE)
+                .format(amount.setScale(0, java.math.RoundingMode.HALF_UP));
     }
 
     private CaseFileDashboardResponse.LicenciementSummary buildLicenciement(UUID caseFileId) {

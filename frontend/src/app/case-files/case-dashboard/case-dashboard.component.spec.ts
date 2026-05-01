@@ -193,3 +193,110 @@ describe('CaseDashboardComponent — SF-177-09 cards + modal', () => {
     expect(modalService.open).not.toHaveBeenCalled();
   });
 });
+
+describe('CaseDashboardComponent — SF-167-01 generic dashboard tiles', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+
+  // Dashboard exposant 1 tile typée (licenciement) + 2 tiles génériques (F-IM-11 + F-DT-07).
+  // Vérifie que le grid typé et le grid générique coexistent.
+  const dashboardWithTiles: DashboardResponse = {
+    caseFileId: 'case-1',
+    riskScore: null,
+    riskLevel: null,
+    licenciement: { scoreRisque: 70, verdict: 'INVALIDE', criteresNonConformes: 3, criteresTotal: 8 },
+    indemnites: null,
+    anciennete: null,
+    titleDecision: null,
+    workRight: null,
+    recours: null,
+    partage: null,
+    garde: null,
+    divorce: null,
+    tiles: [
+      {
+        toolId: 'F-IM-11-changement-statut',
+        theme: 'VALIDITE',
+        label: 'Changement de statut',
+        primaryValue: 'ETUDIANT → VPF (ELEVEE)',
+        secondaryValue: '8 mois restants',
+        alertLevel: 'OK',
+      },
+      {
+        toolId: 'F-DT-07-anciennete-conges-prime',
+        theme: 'INDEMNITES',
+        label: 'Ancienneté & congés',
+        primaryValue: '4 an(s) 6 mois',
+        secondaryValue: '25 jours congés',
+        alertLevel: 'OK',
+      },
+    ],
+  } as unknown as DashboardResponse;
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithTiles)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('SF-167-01 T-01 : displays generic tiles when dashboard.tiles is non-empty', () => {
+    fixture.detectChanges();
+    expect(component.genericTiles()).toHaveLength(2);
+    expect(component.genericTiles().map((t) => t.toolId))
+      .toEqual(['F-IM-11-changement-statut', 'F-DT-07-anciennete-conges-prime']);
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('app-dashboard-tile');
+  });
+
+  it('SF-167-01 T-02 : coexists with the typed tiles grid', () => {
+    fixture.detectChanges();
+    // Tiles typées : licenciement présent → 1 tile typée (pas de riskScore).
+    const typedTiles = component.tilesFromDashboard(dashboardWithTiles);
+    expect(typedTiles).toHaveLength(1);
+    expect(typedTiles[0].toolId).toBe('F-DT-08-licenciement-validity');
+    // Tiles génériques également présentes en parallèle.
+    expect(component.genericTiles()).toHaveLength(2);
+  });
+
+  it('SF-167-01 T-03 : openGenericTool ouvre le modal du composant résolu', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-IM-11-changement-statut');
+    expect(modalService.open).toHaveBeenCalledTimes(1);
+    const args = modalService.open.mock.calls[0][0];
+    expect(args.toolId).toBe('F-IM-11-changement-statut');
+    expect(args.component).toBeDefined();
+    expect(args.inputs['forceExpanded']).toBe(true);
+    expect(args.inputs['caseFileId']).toBe('case-1');
+  });
+
+  it('SF-167-01 T-04 : openGenericTool no-op + warn sur toolId inconnu', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    fixture.detectChanges();
+    component.openGenericTool('unknown-tool-id');
+    expect(modalService.open).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('SF-167-01 T-05 : genericTiles est vide quand dashboard.tiles est absent', () => {
+    const noTilesDashboard = { ...dashboardWithTiles, tiles: undefined } as DashboardResponse;
+    dashboardService.get.mockReturnValue(of(noTilesDashboard));
+    fixture.detectChanges();
+    expect(component.genericTiles()).toEqual([]);
+  });
+});
