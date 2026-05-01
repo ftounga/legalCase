@@ -34,3 +34,73 @@ export function getToolMetadata(component: Type<unknown>): DecisionToolMetadata 
   }
   return null;
 }
+
+/**
+ * F-177 SF-177-12 — Input du static `getPrefillCount` exposé par les composants
+ * outils décisionnels. Pattern miroir des `inputs:` de TOOL_REGISTRY (couplage
+ * faible — chaque composant cast vers son type fort en interne).
+ *
+ * `triggerEvents` et `workspaceCountry` sont ajoutés en top-level pour refléter
+ * fidèlement les `@Input` réels des composants pilotes (ex. immigration-title-decision
+ * lit `triggerEvents` séparément, immigration-work-right gate sur `workspaceCountry`).
+ */
+export interface PrefillCountInput {
+  aiData?: any;
+  procedureChecks?: any[];
+  aiQuestions?: any[];
+  piecesManquantes?: any[];
+  triggerEvents?: any[];
+  workspaceCountry?: string;
+}
+
+/**
+ * F-177 SF-177-12 — Static optionnel exposé par les composants outils :
+ * retourne le nombre de champs du formulaire que `prefillFromAi()` poserait
+ * si le composant était instancié maintenant avec ces inputs.
+ *
+ * - Stricte parité avec la logique de `prefillFromAi()` (mêmes guards).
+ * - 0 si rien à pré-remplir (aiData absent, champs vides…).
+ * - Permet à la card du panel d'afficher le badge `auto_awesome` AVANT
+ *   l'instanciation effective du composant outil.
+ */
+export interface DecisionToolPrefillStatic {
+  getPrefillCount(input: PrefillCountInput): number;
+}
+
+let prefillWarnings = new Set<string>();
+
+/**
+ * F-177 SF-177-12 — Lit le static `getPrefillCount` du composant outil.
+ * Retourne `null` si :
+ *   - le static n'est pas exposé (composant pas encore instrumenté), OU
+ *   - le static throw à l'exécution (log `console.warn` 1x par composant).
+ *
+ * Le panel passe `null` à `<app-decision-tool-card [prefillCount]>` ce qui
+ * masque silencieusement le badge (fallback safe).
+ */
+export function getToolPrefillCount(
+  component: Type<unknown>,
+  input: PrefillCountInput,
+): number | null {
+  const candidate = component as unknown as Partial<DecisionToolPrefillStatic>;
+  if (typeof candidate.getPrefillCount !== 'function') {
+    return null;
+  }
+  try {
+    const value = candidate.getPrefillCount(input);
+    return typeof value === 'number' && value >= 0 ? value : null;
+  } catch (err) {
+    const name = (component as { name?: string }).name ?? '<anonymous>';
+    if (!prefillWarnings.has(name)) {
+      prefillWarnings.add(name);
+      // eslint-disable-next-line no-console
+      console.warn(`[decision-tool] getPrefillCount threw on ${name}:`, err);
+    }
+    return null;
+  }
+}
+
+/** Test helper — reset l'idempotence du `console.warn`. */
+export function _resetPrefillWarningsForTests(): void {
+  prefillWarnings = new Set<string>();
+}

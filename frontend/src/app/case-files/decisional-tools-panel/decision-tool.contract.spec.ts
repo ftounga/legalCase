@@ -1,6 +1,11 @@
 import { Component, Type } from '@angular/core';
 
-import { getToolMetadata } from './decision-tool.contract';
+import {
+  PrefillCountInput,
+  _resetPrefillWarningsForTests,
+  getToolMetadata,
+  getToolPrefillCount,
+} from './decision-tool.contract';
 
 @Component({ selector: 'app-with-meta', standalone: true, template: '' })
 class WithMetaComponent {
@@ -30,5 +35,37 @@ describe('getToolMetadata', () => {
 
   it('retourne null si seulement TOOL_LABEL défini', () => {
     expect(getToolMetadata(PartialMetaComponent as Type<unknown>)).toBeNull();
+  });
+});
+
+describe('getToolPrefillCount', () => {
+  beforeEach(() => _resetPrefillWarningsForTests());
+
+  it('returns null when component does not expose getPrefillCount', () => {
+    class NoStaticComponent {}
+    expect(getToolPrefillCount(NoStaticComponent as Type<unknown>, {})).toBeNull();
+  });
+
+  it('returns the count from static getPrefillCount', () => {
+    class WithStatic {
+      static getPrefillCount(input: PrefillCountInput): number {
+        return input.aiData ? 2 : 0;
+      }
+    }
+    expect(getToolPrefillCount(WithStatic as Type<unknown>, {})).toBe(0);
+    expect(getToolPrefillCount(WithStatic as Type<unknown>, { aiData: {} })).toBe(2);
+  });
+
+  it('captures errors and returns null (warn 1x per component)', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    class Throwy {
+      static getPrefillCount(): number {
+        throw new Error('boom');
+      }
+    }
+    expect(getToolPrefillCount(Throwy as Type<unknown>, {})).toBeNull();
+    expect(getToolPrefillCount(Throwy as Type<unknown>, {})).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });

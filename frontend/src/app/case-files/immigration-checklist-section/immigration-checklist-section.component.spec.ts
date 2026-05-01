@@ -131,3 +131,40 @@ describe('ImmigrationChecklistSectionComponent', () => {
     );
   });
 });
+
+// F-177 SF-177-12 — couvre le static `getPrefillCount` exposé pour la card du panel.
+describe('ImmigrationChecklistSectionComponent.getPrefillCount', () => {
+  it('returns 0 when aiData is absent', () => {
+    expect(ImmigrationChecklistSectionComponent.getPrefillCount({})).toBe(0);
+  });
+
+  it('returns 0 when inferredChecklistType is missing', () => {
+    expect(
+      ImmigrationChecklistSectionComponent.getPrefillCount({ aiData: {} }),
+    ).toBe(0);
+  });
+
+  it('returns 1 for a known regime (VISA_ETUDIANT)', () => {
+    expect(
+      ImmigrationChecklistSectionComponent.getPrefillCount({
+        aiData: { inferredChecklistType: 'VISA_ETUDIANT' },
+      }),
+    ).toBe(1);
+  });
+
+  it('returns 1 for another known regime (CST_VPF_CONJOINT_FR)', () => {
+    expect(
+      ImmigrationChecklistSectionComponent.getPrefillCount({
+        aiData: { inferredChecklistType: 'CST_VPF_CONJOINT_FR' },
+      }),
+    ).toBe(1);
+  });
+
+  it('returns 0 for an unknown regime string', () => {
+    expect(
+      ImmigrationChecklistSectionComponent.getPrefillCount({
+        aiData: { inferredChecklistType: 'INCONNU_XYZ' },
+      }),
+    ).toBe(0);
+  });
+});

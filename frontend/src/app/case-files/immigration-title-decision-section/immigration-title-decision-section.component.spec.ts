@@ -378,3 +378,47 @@ describe('ImmigrationTitleDecisionSectionComponent', () => {
     expect(alert?.source).toBe('MULTI');
   });
 });
+
+// F-177 SF-177-12 — couvre le static `getPrefillCount` exposé pour la card du panel.
+describe('ImmigrationTitleDecisionSectionComponent.getPrefillCount', () => {
+  it('returns 0 when neither aiData nor triggerEvents present', () => {
+    expect(ImmigrationTitleDecisionSectionComponent.getPrefillCount({})).toBe(0);
+  });
+
+  it('returns 1 when only typeTitreSejourCode is present', () => {
+    expect(
+      ImmigrationTitleDecisionSectionComponent.getPrefillCount({
+        aiData: { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' },
+      }),
+    ).toBe(1);
+  });
+
+  it('returns 3 for the Chen 5 case (nationaliteUe + typeTitreSejourCode + MARIAGE_RESSORTISSANT_FR trigger)', () => {
+    expect(
+      ImmigrationTitleDecisionSectionComponent.getPrefillCount({
+        aiData: {
+          nationaliteUe: false,
+          typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE',
+        },
+        triggerEvents: [{ eventCode: 'MARIAGE_RESSORTISSANT_FR' }],
+      }),
+    ).toBe(3);
+  });
+
+  it('returns 2 for a trigger event with no situationFamiliale (NAISSANCE_ENFANT_FR) + nationaliteUe', () => {
+    expect(
+      ImmigrationTitleDecisionSectionComponent.getPrefillCount({
+        aiData: { nationaliteUe: true },
+        triggerEvents: [{ eventCode: 'NAISSANCE_ENFANT_FR' }],
+      }),
+    ).toBe(2); // motif (FAMILLE) + nationaliteUe
+  });
+
+  it('accepts both eventCode and event_code field conventions', () => {
+    expect(
+      ImmigrationTitleDecisionSectionComponent.getPrefillCount({
+        triggerEvents: [{ event_code: 'MARIAGE_RESSORTISSANT_FR' }],
+      }),
+    ).toBe(2); // motif + situationFamiliale (no nationaliteUe → no aiData)
+  });
+});

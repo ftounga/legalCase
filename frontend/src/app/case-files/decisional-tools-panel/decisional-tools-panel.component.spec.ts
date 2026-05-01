@@ -138,6 +138,29 @@ describe('DecisionToolsPanelComponent', () => {
     expect(inputs['piecesManquantes']).toEqual({ p: 1 });
   });
 
+  // F-177 SF-177-12 — la card du panel doit afficher le badge `auto_awesome`
+  // dès que le composant outil expose un static `getPrefillCount` qui renvoie > 0.
+  it('prefillCountFor returns count for instrumented Immigration tool (Chen 5 case)', () => {
+    component.synthesis = {
+      immigrationExtractedData: {
+        nationaliteUe: false,
+        typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE',
+      },
+      immigrationTriggerEvents: [{ eventCode: 'MARIAGE_RESSORTISSANT_FR' }],
+      piecesManquantesDetails: [],
+    };
+    expect(component.prefillCountFor('F-IM-05-arbre-decisionnel-titre')).toBe(3);
+  });
+
+  it('prefillCountFor returns null for an unknown tool id (fallback safe)', () => {
+    expect(component.prefillCountFor('F-XX-999-unknown')).toBeNull();
+  });
+
+  it('prefillCountFor returns null for a tool without static getPrefillCount', () => {
+    // F-DT-07 (anciennete) n'expose pas encore `getPrefillCount` dans cette SF.
+    expect(component.prefillCountFor('F-DT-07-anciennete-conges-prime')).toBeNull();
+  });
+
   it('resolves F-132-rupture-amiable-info to RuptureAmiableInfoSectionComponent', () => {
     const entry = component.resolveEntry('F-132-rupture-amiable-info');
     expect(entry).not.toBeNull();

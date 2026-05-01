@@ -531,3 +531,52 @@ describe('ChangementStatutSectionComponent (SF-IM-11-02)', () => {
     expect(component.titreLabel(null)).toBe('');
   });
 });
+
+// F-177 SF-177-12 — couvre le static `getPrefillCount` exposé pour la card du panel.
+describe('ChangementStatutSectionComponent.getPrefillCount', () => {
+  it('returns 0 when aiData is absent', () => {
+    expect(ChangementStatutSectionComponent.getPrefillCount({})).toBe(0);
+  });
+
+  it('returns 0 when aiData has none of the recognised fields', () => {
+    expect(
+      ChangementStatutSectionComponent.getPrefillCount({ aiData: {} }),
+    ).toBe(0);
+  });
+
+  it('returns 1 for a typeTitreSejourCode that maps to a known titre', () => {
+    expect(
+      ChangementStatutSectionComponent.getPrefillCount({
+        aiData: { typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE' },
+      }),
+    ).toBe(1);
+  });
+
+  it('returns 2 when titre + valid future expiration date are both present (Chen 4/5)', () => {
+    expect(
+      ChangementStatutSectionComponent.getPrefillCount({
+        aiData: {
+          typeTitreSejourCode: 'CARTE_PLURIANNUELLE_ETUDIANT_RECHERCHE',
+          dateExpirationTitre: '2030-08-31',
+        },
+      }),
+    ).toBe(2);
+  });
+
+  it('returns 1 when only a valid past date is present (titre absent)', () => {
+    // Date passée → mois calculé = 0 mais le champ EST posé par le runtime.
+    expect(
+      ChangementStatutSectionComponent.getPrefillCount({
+        aiData: { dateExpirationTitre: '2020-01-01' },
+      }),
+    ).toBe(1);
+  });
+
+  it('returns 0 when dateExpirationTitre is a malformed string', () => {
+    expect(
+      ChangementStatutSectionComponent.getPrefillCount({
+        aiData: { dateExpirationTitre: 'pas-une-date' },
+      }),
+    ).toBe(0);
+  });
+});

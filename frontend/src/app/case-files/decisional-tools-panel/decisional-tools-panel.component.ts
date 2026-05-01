@@ -23,7 +23,7 @@ import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.s
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { DecisionToolCardComponent } from './decision-tool-card/decision-tool-card.component';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
-import { getToolMetadata } from './decision-tool.contract';
+import { getToolMetadata, getToolPrefillCount, PrefillCountInput } from './decision-tool.contract';
 import { AncienneteSectionComponent } from '../anciennete-section/anciennete-section.component';
 import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
 import { RuptureConvSectionComponent } from '../rupture-conv-section/rupture-conv-section.component';
@@ -1543,6 +1543,39 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   cardMetadataFor(entry: DecisionToolRegistryEntry, toolId: string): { label: string; icon: string } {
     const meta = getToolMetadata(entry.component);
     return meta ?? { label: toolId, icon: 'extension' };
+  }
+
+  /**
+   * F-177 SF-177-12 — Calcule le nombre de champs pré-remplis par l'IA pour
+   * un toolId. Utilisé par le template via `[prefillCount]` sur la card.
+   *
+   * Retourne `null` si le composant n'expose pas le static `getPrefillCount`
+   * (composant non instrumenté → la card masque le badge silencieusement).
+   *
+   * Le contexte construit ici reflète les inputs réels passés via
+   * `componentInputsFor` (TOOL_REGISTRY) — `aiData` est mappé selon le
+   * domaine détecté dans la synthèse, `triggerEvents` et `workspaceCountry`
+   * sont exposés en top-level pour les composants qui en dépendent
+   * (immigration-title-decision, immigration-work-right).
+   */
+  prefillCountFor(toolId: string): number | null {
+    const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
+    if (!entry) return null;
+    const synthesis = this.synthesis;
+    const aiData =
+      synthesis?.travailExtractedData
+      ?? synthesis?.immigrationExtractedData
+      ?? synthesis?.familleExtractedData
+      ?? null;
+    const input: PrefillCountInput = {
+      aiData,
+      procedureChecks: this.procedureChecks ?? [],
+      aiQuestions: this.aiQuestions ?? [],
+      piecesManquantes: synthesis?.piecesManquantesDetails ?? [],
+      triggerEvents: synthesis?.immigrationTriggerEvents ?? [],
+      workspaceCountry: this.workspaceCountry,
+    };
+    return getToolPrefillCount(entry.component, input);
   }
 
   /**

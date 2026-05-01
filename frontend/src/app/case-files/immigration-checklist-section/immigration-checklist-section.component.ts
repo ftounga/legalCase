@@ -16,6 +16,19 @@ const STATUT_CYCLE: Record<ImmigrationStatut, ImmigrationStatut> = {
   ABSENT:  'INCONNU',
 };
 
+/**
+ * F-177 SF-177-12 — Liste exhaustive des 13 régimes juridiques exposés par
+ * `titreTypes`. Utilisé par le static `getPrefillCount` pour valider une
+ * valeur `inferredChecklistType` venant de l'IA. Doit rester synchronisé
+ * avec `titreTypes` (la divergence rend le badge faux).
+ */
+const KNOWN_TITRE_TYPES = new Set<string>([
+  'VISA_ETUDIANT', 'APS_POST_ETUDES', 'TITRE_SALARIE', 'PASSEPORT_TALENT',
+  'CST_VPF_CONJOINT_FR', 'CST_VPF_PARENT_ENFANT_FR', 'CST_VPF_LIENS_PERSONNELS',
+  'REGROUPEMENT_FAMILIAL', 'ADMISSION_EXCEPTIONNELLE_AES', 'ASILE_OFPRA',
+  'PROTECTION_SUBSIDIAIRE', 'CARTE_RESIDENT_10ANS', 'NATURALISATION',
+]);
+
 @Component({
   selector: 'app-immigration-checklist-section',
   standalone: true,
@@ -32,6 +45,31 @@ export class ImmigrationChecklistSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'CHECKLIST PIÈCES IMMIGRATION';
   static readonly TOOL_ICON = 'assignment_turned_in';
+
+  /**
+   * F-177 SF-177-12 — Compte les champs pré-remplis par l'IA, sans instancier
+   * le composant. Le composant n'a pas de `prefillFromAi()` à proprement parler ;
+   * son seul mécanisme IA est le setter `inferredChecklistType` (input venant de
+   * `synthesis.immigrationExtractedData.inferredChecklistType` via la TOOL_REGISTRY)
+   * qui sélectionne le `titreType` parmi les 13 régimes connus.
+   *
+   * Retourne 1 si `aiData.inferredChecklistType` est un des 13 régimes valides,
+   * 0 sinon.
+   */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    const ai = input.aiData;
+    if (!ai) return 0;
+    const inferred = ai.inferredChecklistType;
+    if (typeof inferred !== 'string' || inferred.length === 0) return 0;
+    return KNOWN_TITRE_TYPES.has(inferred) ? 1 : 0;
+  }
 
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';

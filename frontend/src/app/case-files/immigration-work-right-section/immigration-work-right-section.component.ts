@@ -64,6 +64,41 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'DROIT AU TRAVAIL';
   static readonly TOOL_ICON = 'work';
 
+  /**
+   * F-177 SF-177-12 — Compte les champs que `prefillFromAi()` poserait, sans
+   * instancier le composant. Stricte parité avec la logique runtime :
+   *   - `titreType` : posé si `aiData.typeTitreSejourCode` est présent ET
+   *     compatible avec `workspaceCountry` (FR_TITRE_CODES si FRANCE,
+   *     BE_TITRE_CODES si BELGIQUE).
+   *
+   * `country` n'est pas comptabilisé : le runtime aligne juste la valeur
+   * locale sur `workspaceCountry` (pas un champ formulaire pré-rempli au
+   * sens IA — c'est de la cohérence interne).
+   */
+  static getPrefillCount(input: {
+    aiData?: any;
+    procedureChecks?: any[];
+    aiQuestions?: any[];
+    piecesManquantes?: any[];
+    triggerEvents?: any[];
+    workspaceCountry?: string;
+  }): number {
+    const ai = input.aiData;
+    if (!ai) return 0;
+    const code = typeof ai.typeTitreSejourCode === 'string'
+      ? ai.typeTitreSejourCode.toUpperCase()
+      : null;
+    if (!code) return 0;
+    const isFR = FR_TITRE_CODES.has(code);
+    const isBE = BE_TITRE_CODES.has(code);
+    if (!isFR && !isBE) return 0;
+    const country = input.workspaceCountry ?? 'FRANCE';
+    if ((country === 'FRANCE' && isFR) || (country === 'BELGIQUE' && isBE)) {
+      return 1;
+    }
+    return 0;
+  }
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   // SF-155-11 : inputs IA (tous optionnels — null-safe partout).
