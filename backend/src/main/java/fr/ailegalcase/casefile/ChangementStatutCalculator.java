@@ -111,7 +111,11 @@ public final class ChangementStatutCalculator {
             verdictFinal = VERDICT_FAIBLE;
         }
 
-        int delai = t.dst().equals(TITRE_APS) ? DELAI_INSTRUCTION_APS_MOIS : DELAI_INSTRUCTION_DEFAULT_MOIS;
+        // Le délai APS spécifique (2 mois) s'applique tant que la transition implique
+        // l'APS — que ce soit en source (post-études → VPF) ou en destination (étudiant → APS).
+        int delai = (t.dst().equals(TITRE_APS) || t.src().equals(TITRE_APS))
+                ? DELAI_INSTRUCTION_APS_MOIS
+                : DELAI_INSTRUCTION_DEFAULT_MOIS;
 
         String formule = buildFormule(t, verdictFinal, dureeRestanteMois, remunerationContratEur);
         messages.add("Délai d'instruction estimatif : " + delai + " mois en préfecture.");
@@ -192,6 +196,33 @@ public final class ChangementStatutCalculator {
         if (isTalent(src) && TITRE_SALARIE.equals(dst)) {
             return new Transition(src, dst, TransitionKind.TALENT_SALARIE,
                     "CESEDA L.421-1 + R.5221-3 (sortie passeport talent)");
+        }
+
+        // SF-IM-11-04 : transitions vers VPF (conjoint FR / parent enfant FR / PACS)
+        // ETUDIANT → VPF
+        if (TITRE_ETUDIANT.equals(src) && TITRE_VPF.equals(dst)) {
+            return new Transition(src, dst, TransitionKind.ETUDIANT_VPF,
+                    "CESEDA L.423-1 (conjoint FR) / L.423-7 (parent enfant FR) / L.423-8 (PACS)");
+        }
+        // VISITEUR → VPF
+        if (TITRE_VISITEUR.equals(src) && TITRE_VPF.equals(dst)) {
+            return new Transition(src, dst, TransitionKind.VISITEUR_VPF,
+                    "CESEDA L.423-1 / L.423-7 / L.423-8");
+        }
+        // SALARIE → VPF
+        if (TITRE_SALARIE.equals(src) && TITRE_VPF.equals(dst)) {
+            return new Transition(src, dst, TransitionKind.SALARIE_VPF,
+                    "CESEDA L.423-1 / L.423-7 / L.423-8");
+        }
+        // PASSEPORT_TALENT_* → VPF
+        if (isTalent(src) && TITRE_VPF.equals(dst)) {
+            return new Transition(src, dst, TransitionKind.TALENT_VPF,
+                    "CESEDA L.423-1 / L.423-7 / L.423-8 (sortie passeport talent)");
+        }
+        // APS → VPF
+        if (TITRE_APS.equals(src) && TITRE_VPF.equals(dst)) {
+            return new Transition(src, dst, TransitionKind.APS_VPF,
+                    "CESEDA L.423-1 / L.423-7 / L.423-8");
         }
 
         throw new IllegalArgumentException(
@@ -317,9 +348,45 @@ public final class ChangementStatutCalculator {
                 messages.add("Sortie du dispositif passeport talent vers salarié de droit commun :"
                         + " perte des avantages talent (durée 4 ans, mobilité européenne).");
                 return VERDICT_MOYENNE;
+
+            // SF-IM-11-04 : transitions vers VPF (conjoint FR / parent enfant FR / PACS)
+            case ETUDIANT_VPF:
+            case VISITEUR_VPF:
+            case SALARIE_VPF:
+            case TALENT_VPF:
+            case APS_VPF:
+                return applyTransitionVersVpf(justificatif, documentsRequis, risqueRefus, messages);
         }
         // unreachable
         return VERDICT_FAIBLE;
+    }
+
+    /**
+     * Logique commune aux 5 transitions vers VPF (CESEDA L.423-1 / L.423-7 / L.423-8).
+     *
+     * <p>Spécificité : la rémunération n'est <b>pas</b> exigée (différent des transitions
+     * vers SALARIE qui imposent SMIC × 1,5). Le verdict de base dépend uniquement de la
+     * production du justificatif (acte de mariage / acte de naissance / convention PACS).
+     */
+    private static String applyTransitionVersVpf(boolean justificatif,
+                                                 List<String> documentsRequis,
+                                                 List<String> risqueRefus,
+                                                 List<String> messages) {
+        documentsRequis.add("Acte civil de référence (acte de mariage / acte de naissance d'enfant FR / convention PACS)");
+        documentsRequis.add("Justificatif de domicile commun");
+        documentsRequis.add("Attestation de communauté de vie effective (mariage > 6 mois — L.423-1)");
+        documentsRequis.add("Passeport en cours de validité");
+
+        messages.add("Communauté de vie effective requise : 6 mois minimum (L.423-1) "
+                + "ou 1 an pour délivrance directe carte de résident (L.423-2).");
+        messages.add("Rupture de la vie commune dans les 3 ans entraîne retrait du titre (L.432-4).");
+
+        if (!justificatif) {
+            risqueRefus.add("Acte civil de référence (mariage / naissance enfant FR / PACS) "
+                    + "non produit — pièce essentielle pour passage VPF.");
+            return VERDICT_FAIBLE;
+        }
+        return VERDICT_ELEVEE;
     }
 
     private static String buildFormule(Transition t,
@@ -348,6 +415,12 @@ public final class ChangementStatutCalculator {
         VPF_SALARIE,
         VPF_ETUDIANT,
         TALENT_INTRA,
-        TALENT_SALARIE
+        TALENT_SALARIE,
+        // SF-IM-11-04 : transitions vers VPF (conjoint FR / parent enfant FR / PACS)
+        ETUDIANT_VPF,
+        VISITEUR_VPF,
+        SALARIE_VPF,
+        TALENT_VPF,
+        APS_VPF
     }
 }

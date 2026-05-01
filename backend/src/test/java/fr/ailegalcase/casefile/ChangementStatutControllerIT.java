@@ -169,7 +169,8 @@ class ChangementStatutControllerIT {
 
     @Test
     void POST_transitionInvalide_returns400() throws Exception {
-        Map<String, Object> b = body("SALARIE", "VPF", 10, true, null, true);
+        // SF-IM-11-04 : SALARIE → VPF est désormais supportée. ASILE → VPF reste hors scope.
+        Map<String, Object> b = body("ASILE", "VPF", 10, true, null, true);
         mockMvc.perform(post("/api/v1/case-files/" + immFrCf.getId() + "/changement-statut-analysis")
                         .with(authentication(authFr)).contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(b)))
@@ -245,6 +246,41 @@ class ChangementStatutControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.verdictTransition").value("ELEVEE"))
                 .andExpect(jsonPath("$.delaiInstructionMois").value(2));
+    }
+
+    // ---- SF-IM-11-04 : transitions vers VPF -------------------------------
+
+    @Test
+    void POST_etudiantVersVpf_avecJustificatif_returnsELEVEE() throws Exception {
+        Map<String, Object> b = body("ETUDIANT", "VPF", 4, true, null, true);
+        mockMvc.perform(post("/api/v1/case-files/" + immFrCf.getId() + "/changement-statut-analysis")
+                        .with(authentication(authFr)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(b)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.country").value("FRANCE"))
+                .andExpect(jsonPath("$.titreActuel").value("ETUDIANT"))
+                .andExpect(jsonPath("$.titreEnvisage").value("VPF"))
+                .andExpect(jsonPath("$.verdictTransition").value("ELEVEE"))
+                .andExpect(jsonPath("$.baseJuridique")
+                        .value(org.hamcrest.Matchers.containsString("L.423-1")));
+
+        // Persistance : le GET ultérieur doit retrouver l'analyse.
+        mockMvc.perform(get("/api/v1/case-files/" + immFrCf.getId() + "/changement-statut-analysis")
+                        .with(authentication(authFr)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.titreEnvisage").value("VPF"))
+                .andExpect(jsonPath("$.verdictTransition").value("ELEVEE"));
+    }
+
+    @Test
+    void POST_etudiantVersVpf_sansJustificatif_returnsFAIBLE() throws Exception {
+        Map<String, Object> b = body("ETUDIANT", "VPF", 4, false, null, true);
+        mockMvc.perform(post("/api/v1/case-files/" + immFrCf.getId() + "/changement-statut-analysis")
+                        .with(authentication(authFr)).contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(b)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.titreEnvisage").value("VPF"))
+                .andExpect(jsonPath("$.verdictTransition").value("FAIBLE"));
     }
 
     // ---- helpers ----
