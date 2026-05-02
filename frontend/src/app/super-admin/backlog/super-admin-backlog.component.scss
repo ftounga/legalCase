@@ -1,0 +1,142 @@
+.backlog-screen {
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+}
+
+.backlog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+
+  .title-block h1 {
+    font-family: 'Merriweather', serif;
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: #1c2b3a;
+  }
+
+  .subtitle {
+    color: #6b7a8d;
+    font-size: 14px;
+    margin: 0;
+    max-width: 640px;
+  }
+
+  .freshness-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+}
+
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &.freshness--ok    { background: #dcefe1; color: #1f7a3f; }
+  &.freshness--stale { background: #fdf3dd; color: #8a6618; }
+  &.freshness--error { background: #f9e2df; color: #c0392b; }
+  &.freshness--unknown { background: #f5f6fa; color: #6b7a8d; }
+}
+
+.tab-content {
+  padding: 16px 0;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  align-items: flex-start;
+
+  mat-form-field {
+    min-width: 180px;
+  }
+
+  .search-field {
+    flex: 1;
+    min-width: 240px;
+  }
+}
+
+.table-wrap {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e0e4ea;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .loading {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+  }
+}
+
+.backlog-table {
+  width: 100%;
+
+  th.mat-mdc-header-cell {
+    color: #6b7a8d;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  td.mat-mdc-cell {
+    color: #1c2b3a;
+    font-size: 14px;
+  }
+
+  .cell-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #1a3a5c;
+    font-weight: 500;
+  }
+
+  .cell-title {
+    max-width: 480px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .empty-row .empty-cell {
+    text-align: center;
+    padding: 24px;
+    color: #6b7a8d;
+    font-style: italic;
+  }
+}
+
+@media (max-width: 768px) {
+  .backlog-header {
+    flex-direction: column;
+  }
+
+  .freshness-block {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}

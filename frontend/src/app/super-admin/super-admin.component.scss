@@ -2,12 +2,27 @@
   padding: 24px;
   max-width: 1280px;
 
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
   .page-title {
     font-family: Merriweather, serif;
     font-size: 24px;
     font-weight: 700;
     color: #1C2B3A;
-    margin-bottom: 24px;
+    margin: 0;
+  }
+
+  .backlog-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .loading-center {

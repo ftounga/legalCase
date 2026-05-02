@@ -82,6 +82,11 @@ export const routes: Routes = [
         path: 'super-admin',
         loadComponent: () => import('./super-admin/super-admin.component')
           .then(m => m.SuperAdminComponent)
+      },
+      {
+        path: 'super-admin/backlog',
+        loadComponent: () => import('./super-admin/backlog/super-admin-backlog.component')
+          .then(m => m.SuperAdminBacklogComponent)
       }
     ]
   },

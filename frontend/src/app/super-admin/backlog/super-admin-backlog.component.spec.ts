@@ -1,0 +1,213 @@
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideRouter, Router } from '@angular/router';
+import { signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { SuperAdminBacklogComponent } from './super-admin-backlog.component';
+import { BacklogAdminService } from '../../core/services/backlog-admin.service';
+import { AuthService } from '../../core/services/auth.service';
+import {
+  BacklogFeatureSummary,
+  BacklogFreshness,
+  BacklogMarketingTaskSummary,
+  BacklogSyncResult,
+} from '../../core/models/backlog.model';
+import { PageResponse } from '../../core/models/super-admin.model';
+
+const mockFreshness: BacklogFreshness = {
+  lastSyncAt: '2026-05-02T00:55:00Z',
+  lastSuccessAt: '2026-05-02T00:55:00Z',
+  status: 'OK',
+  minutesSinceLastSync: 3,
+};
+
+const mockFeature: BacklogFeatureSummary = {
+  id: 'fid-1',
+  code: 'F-178',
+  title: 'Visualiseur de backlog',
+  targetVersion: 'V8+',
+  status: 'IN_PROGRESS',
+  domain: 'TRANSVERSAL',
+  priority: 'MEDIUM',
+  updatedAt: '2026-05-02T00:00:00Z',
+};
+
+const mockMarketing: BacklogMarketingTaskSummary = {
+  id: 'mid-1',
+  code: 'M-71',
+  title: 'Cadrage budget marketing 2026 H2',
+  status: 'TERMINE',
+  category: 'Cadrage stratégique',
+  updatedAt: '2026-04-30T00:00:00Z',
+};
+
+const mockSyncResult: BacklogSyncResult = {
+  runId: 'run-1', durationMs: 312, featuresCount: 184,
+  subfeaturesCount: 612, marketingCount: 76, orphansMarked: 0, success: true,
+};
+
+function pageOf<T>(content: T[]): PageResponse<T> {
+  return { content, totalElements: content.length, totalPages: 1, size: 50, number: 0 };
+}
+
+describe('SuperAdminBacklogComponent', () => {
+  let component: SuperAdminBacklogComponent;
+  let fixture: ComponentFixture<SuperAdminBacklogComponent>;
+  let backlogService: any;
+  let snackBar: any;
+  let router: Router;
+
+  function setup(isSuperAdmin: boolean) {
+    backlogService = jasmine.createSpyObj('BacklogAdminService', [
+      'searchFeatures', 'searchMarketingTasks', 'getFreshness',
+      'triggerSync', 'getFeatureDetail',
+    ]);
+    snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+
+    backlogService.getFreshness.mockReturnValue(of(mockFreshness));
+    backlogService.searchFeatures.mockReturnValue(of(pageOf([mockFeature])));
+    backlogService.searchMarketingTasks.mockReturnValue(of(pageOf([mockMarketing])));
+    backlogService.triggerSync.mockReturnValue(of(mockSyncResult));
+
+    const currentUser = signal<any>({ id: 'u-sa', email: 'sa@test.com', isSuperAdmin });
+    const authService = { currentUser };
+
+    TestBed.configureTestingModule({
+      imports: [SuperAdminBacklogComponent, NoopAnimationsModule],
+      providers: [
+        { provide: BacklogAdminService, useValue: backlogService },
+        { provide: AuthService, useValue: authService },
+        { provide: MatSnackBar, useValue: snackBar },
+        provideRouter([{ path: 'case-files', component: SuperAdminBacklogComponent }]),
+      ],
+    });
+
+    router = TestBed.inject(Router);
+    spyOn(router, 'navigate');
+
+    fixture = TestBed.createComponent(SuperAdminBacklogComponent);
+    component = fixture.componentInstance;
+  }
+
+  it('redirects non-super-admin users to /case-files', () => {
+    setup(false);
+    fixture.detectChanges();
+    expect(router.navigate).toHaveBeenCalledWith(['/case-files']);
+    expect(backlogService.searchFeatures).not.toHaveBeenCalled();
+  });
+
+  it('loads freshness + features on init for super-admin', () => {
+    setup(true);
+    fixture.detectChanges();
+    expect(backlogService.getFreshness).toHaveBeenCalledTimes(1);
+    expect(backlogService.searchFeatures).toHaveBeenCalledTimes(1);
+    expect(component.freshness()?.status).toBe('OK');
+    expect(component.features()).toEqual([mockFeature]);
+    expect(component.featuresTotal()).toBe(1);
+  });
+
+  it('lazy-loads marketing tab on first switch', () => {
+    setup(true);
+    fixture.detectChanges();
+    expect(backlogService.searchMarketingTasks).not.toHaveBeenCalled();
+    component.onTabChange(1);
+    expect(backlogService.searchMarketingTasks).toHaveBeenCalledTimes(1);
+    expect(component.marketing()).toEqual([mockMarketing]);
+    expect(component.marketingLoaded()).toBe(true);
+  });
+
+  it('reloads features and resets to page 0 when filter changes', () => {
+    setup(true);
+    fixture.detectChanges();
+    backlogService.searchFeatures.mockClear();
+    component.featuresPage.set(3);
+    component.filterStatus.set('BLOCKED');
+    component.onFilterFeatureChange();
+    expect(component.featuresPage()).toBe(0);
+    expect(backlogService.searchFeatures).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'BLOCKED' }),
+      0,
+      50,
+    );
+  });
+
+  it('debounces feature search input by 250ms', fakeAsync(() => {
+    setup(true);
+    fixture.detectChanges();
+    backlogService.searchFeatures.mockClear();
+
+    component.onFeatureSearchInput('immi');
+    component.onFeatureSearchInput('immig');
+    component.onFeatureSearchInput('immigration');
+    tick(100);
+    expect(backlogService.searchFeatures).not.toHaveBeenCalled();
+
+    tick(200);
+    expect(backlogService.searchFeatures).toHaveBeenCalledTimes(1);
+    expect(backlogService.searchFeatures).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'immigration' }),
+      0,
+      50,
+    );
+  }));
+
+  it('triggers resync, shows success snackbar and reloads data', () => {
+    setup(true);
+    fixture.detectChanges();
+    backlogService.searchFeatures.mockClear();
+    backlogService.getFreshness.mockClear();
+
+    component.triggerResync();
+
+    expect(component.resyncing()).toBe(false);
+    expect(backlogService.triggerSync).toHaveBeenCalledTimes(1);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('Resync OK'),
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-success'] }),
+    );
+    expect(backlogService.getFreshness).toHaveBeenCalledTimes(1);
+    expect(backlogService.searchFeatures).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles resync error with error snackbar without crashing', () => {
+    setup(true);
+    fixture.detectChanges();
+    backlogService.triggerSync.mockReturnValue(throwError(() => new Error('boom')));
+
+    component.triggerResync();
+
+    expect(component.resyncing()).toBe(false);
+    expect(snackBar.open).toHaveBeenCalledWith(
+      expect.stringContaining('Échec'),
+      'Fermer',
+      expect.objectContaining({ panelClass: ['snack-error'] }),
+    );
+  });
+
+  it('maps freshness status to correct tone and label', () => {
+    setup(true);
+    fixture.detectChanges();
+
+    component.freshness.set({ ...mockFreshness, status: 'OK', minutesSinceLastSync: 4 });
+    expect(component.freshnessTone()).toBe('ok');
+    expect(component.freshnessLabel()).toContain('Synchronisé il y a 4');
+
+    component.freshness.set({ ...mockFreshness, status: 'STALE', minutesSinceLastSync: 12 });
+    expect(component.freshnessTone()).toBe('stale');
+    expect(component.freshnessLabel()).toContain('obsolète');
+
+    component.freshness.set({ ...mockFreshness, status: 'ERROR', minutesSinceLastSync: null });
+    expect(component.freshnessTone()).toBe('error');
+    expect(component.freshnessLabel()).toContain('erreur');
+  });
+
+  it('flags freshnessError when freshness fetch fails (without disrupting feature list)', () => {
+    setup(true);
+    backlogService.getFreshness.mockReturnValue(throwError(() => new Error('net')));
+    fixture.detectChanges();
+    expect(component.freshnessError()).toBe(true);
+    expect(component.features()).toEqual([mockFeature]);
+  });
+});
