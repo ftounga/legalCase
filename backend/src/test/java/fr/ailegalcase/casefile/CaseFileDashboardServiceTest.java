@@ -74,6 +74,39 @@ class CaseFileDashboardServiceTest {
     private MotifGraveBeRepository motifGraveBeRepo;
     private AvantagesConventionnelsBeRepository avantagesConventionnelsBeRepo;
     private CreditTempsBeRepository creditTempsBeRepo;
+    // SF-167-03 — Famille FR + BE
+    private DivorceAlterationRepository divorceAlterationRepo;
+    private DivorceFauteRepository divorceFauteRepo;
+    private DivorceAccepteRepository divorceAccepteRepo;
+    private DivorceDesunionIrremediableBeRepository divorceDesunionIrremediableBeRepo;
+    private MesuresProvisoiresRepository mesuresProvisoiresRepo;
+    private RevisionsPostDivorceRepository revisionsPostDivorceRepo;
+    private OrdonnanceProtectionRepository ordonnanceProtectionRepo;
+    private RecompensesRepository recompensesRepo;
+    private CommunauteUniverselleRepository communauteUniverselleRepo;
+    private PartageJudiciaireRepository partageJudiciaireRepo;
+    private AdoptionRepository adoptionRepo;
+    private ContestationPaterniteRepository contestationPaterniteRepo;
+    private RecherchePaterniteRepository recherchePaterniteRepo;
+    private ReconnaissancePaterneleRepository reconnaissancePaterneleRepo;
+    private PossessionEtatRepository possessionEtatRepo;
+    private AutoriteParentaleRepository autoriteParentaleRepo;
+    private ChangementResidenceRepository changementResidenceRepo;
+    private DesaccordsParentauxRepository desaccordsParentauxRepo;
+    private PacsDissolutionRepository pacsDissolutionRepo;
+    private SeparationCorpsRepository separationCorpsRepo;
+    private IndivisionRepository indivisionRepo;
+    private OrdonnanceRequeteRepository ordonnanceRequeteRepo;
+    private DevolutionLegaleRepository devolutionLegaleRepo;
+    private DonationRepository donationRepo;
+    private IndivisionSuccessoraleRepository indivisionSuccessoraleRepo;
+    private PartageSuccessoralRepository partageSuccessoralRepo;
+    private RapportSuccessionRepository rapportSuccessionRepo;
+    private ReserveHereditaireRepository reserveHereditaireRepo;
+    private TestamentValiditeRepository testamentValiditeRepo;
+    private MajeursProtegesRepository majeursProtegesRepo;
+    private ChangementEtatCivilRepository changementEtatCivilRepo;
+    private PmaGpaBioethiqueRepository pmaGpaBioethiqueRepo;
 
     private CaseFileDashboardService service;
 
@@ -116,6 +149,38 @@ class CaseFileDashboardServiceTest {
         motifGraveBeRepo = mock(MotifGraveBeRepository.class);
         avantagesConventionnelsBeRepo = mock(AvantagesConventionnelsBeRepository.class);
         creditTempsBeRepo = mock(CreditTempsBeRepository.class);
+        divorceAlterationRepo = mock(DivorceAlterationRepository.class);
+        divorceFauteRepo = mock(DivorceFauteRepository.class);
+        divorceAccepteRepo = mock(DivorceAccepteRepository.class);
+        divorceDesunionIrremediableBeRepo = mock(DivorceDesunionIrremediableBeRepository.class);
+        mesuresProvisoiresRepo = mock(MesuresProvisoiresRepository.class);
+        revisionsPostDivorceRepo = mock(RevisionsPostDivorceRepository.class);
+        ordonnanceProtectionRepo = mock(OrdonnanceProtectionRepository.class);
+        recompensesRepo = mock(RecompensesRepository.class);
+        communauteUniverselleRepo = mock(CommunauteUniverselleRepository.class);
+        partageJudiciaireRepo = mock(PartageJudiciaireRepository.class);
+        adoptionRepo = mock(AdoptionRepository.class);
+        contestationPaterniteRepo = mock(ContestationPaterniteRepository.class);
+        recherchePaterniteRepo = mock(RecherchePaterniteRepository.class);
+        reconnaissancePaterneleRepo = mock(ReconnaissancePaterneleRepository.class);
+        possessionEtatRepo = mock(PossessionEtatRepository.class);
+        autoriteParentaleRepo = mock(AutoriteParentaleRepository.class);
+        changementResidenceRepo = mock(ChangementResidenceRepository.class);
+        desaccordsParentauxRepo = mock(DesaccordsParentauxRepository.class);
+        pacsDissolutionRepo = mock(PacsDissolutionRepository.class);
+        separationCorpsRepo = mock(SeparationCorpsRepository.class);
+        indivisionRepo = mock(IndivisionRepository.class);
+        ordonnanceRequeteRepo = mock(OrdonnanceRequeteRepository.class);
+        devolutionLegaleRepo = mock(DevolutionLegaleRepository.class);
+        donationRepo = mock(DonationRepository.class);
+        indivisionSuccessoraleRepo = mock(IndivisionSuccessoraleRepository.class);
+        partageSuccessoralRepo = mock(PartageSuccessoralRepository.class);
+        rapportSuccessionRepo = mock(RapportSuccessionRepository.class);
+        reserveHereditaireRepo = mock(ReserveHereditaireRepository.class);
+        testamentValiditeRepo = mock(TestamentValiditeRepository.class);
+        majeursProtegesRepo = mock(MajeursProtegesRepository.class);
+        changementEtatCivilRepo = mock(ChangementEtatCivilRepository.class);
+        pmaGpaBioethiqueRepo = mock(PmaGpaBioethiqueRepository.class);
 
         // Default empties — chaque test surcharge ce qu'il a besoin.
         when(licenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -155,6 +220,38 @@ class CaseFileDashboardServiceTest {
         when(motifGraveBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(avantagesConventionnelsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(creditTempsBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(divorceAlterationRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(divorceFauteRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(divorceAccepteRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(divorceDesunionIrremediableBeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(mesuresProvisoiresRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(revisionsPostDivorceRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(ordonnanceProtectionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(recompensesRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(communauteUniverselleRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(partageJudiciaireRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(adoptionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(contestationPaterniteRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(recherchePaterniteRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(reconnaissancePaterneleRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(possessionEtatRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(autoriteParentaleRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(changementResidenceRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(desaccordsParentauxRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(pacsDissolutionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(separationCorpsRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(indivisionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(ordonnanceRequeteRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(devolutionLegaleRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(donationRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(indivisionSuccessoraleRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(partageSuccessoralRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(rapportSuccessionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(reserveHereditaireRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(testamentValiditeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(majeursProtegesRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(changementEtatCivilRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(pmaGpaBioethiqueRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
 
         service = new CaseFileDashboardService(
                 objectMapper,
@@ -174,7 +271,20 @@ class CaseFileDashboardServiceTest {
                 indemnitePreavisRepo, indemniteCongesPayesRepo, protectionRpRepo,
                 transactionRepo, documentsFinContratRepo, atMpRepo,
                 referePrudhomalRepo, contestationAreRepo, motifGraveBeRepo,
-                avantagesConventionnelsBeRepo, creditTempsBeRepo);
+                avantagesConventionnelsBeRepo, creditTempsBeRepo,
+                divorceAlterationRepo, divorceFauteRepo, divorceAccepteRepo,
+                divorceDesunionIrremediableBeRepo, mesuresProvisoiresRepo,
+                revisionsPostDivorceRepo, ordonnanceProtectionRepo,
+                recompensesRepo, communauteUniverselleRepo, partageJudiciaireRepo,
+                adoptionRepo, contestationPaterniteRepo, recherchePaterniteRepo,
+                reconnaissancePaterneleRepo, possessionEtatRepo,
+                autoriteParentaleRepo, changementResidenceRepo,
+                desaccordsParentauxRepo, pacsDissolutionRepo, separationCorpsRepo,
+                indivisionRepo, ordonnanceRequeteRepo, devolutionLegaleRepo,
+                donationRepo, indivisionSuccessoraleRepo, partageSuccessoralRepo,
+                rapportSuccessionRepo, reserveHereditaireRepo,
+                testamentValiditeRepo, majeursProtegesRepo,
+                changementEtatCivilRepo, pmaGpaBioethiqueRepo);
     }
 
     @Test
@@ -815,6 +925,109 @@ class CaseFileDashboardServiceTest {
                     "CCT 103", "—", List.of());
             e.setResultData(objectMapper.writeValueAsString(r));
             when(creditTempsBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // SF-167-03 — Tests représentatifs Famille FR + BE
+    // (mini-spec : 2-3 outils — F-FA-09, F-FA-11, F-FA-24-rapport-succession)
+    // ────────────────────────────────────────────────────────────────────
+
+    @Test
+    void assembleTiles_divorceFaute_returnsCompleteTile() throws Exception {
+        seedDivorceFaute();
+        UUID caseFileId = UUID.randomUUID();
+
+        DashboardTile tile = service.assembleTiles(caseFileId).stream()
+                .filter(t -> "F-FA-09-divorce-faute".equals(t.toolId()))
+                .findFirst().orElseThrow();
+        assertThat(tile.theme()).isEqualTo("VALIDITE");
+        assertThat(tile.label()).isEqualTo("Divorce pour faute");
+        assertThat(tile.primaryValue()).isEqualTo("PROBABLE");
+        assertThat(tile.secondaryValue()).contains("faute(s) invoquée(s)").contains("/100");
+        assertThat(tile.alertLevel()).isIn("OK", "WARNING", "ALERT", null);
+    }
+
+    @Test
+    void assembleTiles_desunionIrremediableBe_returnsCompleteTile() throws Exception {
+        seedDesunionIrremediableBe();
+        UUID caseFileId = UUID.randomUUID();
+
+        DashboardTile tile = service.assembleTiles(caseFileId).stream()
+                .filter(t -> "F-FA-11-desunion-irremediable-be".equals(t.toolId()))
+                .findFirst().orElseThrow();
+        assertThat(tile.theme()).isEqualTo("VALIDITE");
+        assertThat(tile.label()).isEqualTo("Désunion irrémédiable BE");
+        assertThat(tile.primaryValue()).isEqualTo("ELEVEE");
+        assertThat(tile.secondaryValue()).contains("/").contains("mois");
+    }
+
+    @Test
+    void assembleTiles_rapportSuccession_returnsCompleteTile() throws Exception {
+        seedRapportSuccession();
+        UUID caseFileId = UUID.randomUUID();
+
+        DashboardTile tile = service.assembleTiles(caseFileId).stream()
+                .filter(t -> "F-FA-24-rapport-succession".equals(t.toolId()))
+                .findFirst().orElseThrow();
+        assertThat(tile.theme()).isEqualTo("DIAGNOSTIC");
+        assertThat(tile.label()).isEqualTo("Rapport à succession");
+        assertThat(tile.primaryValue()).isEqualTo("RAPPORTABLE");
+        assertThat(tile.secondaryValue()).contains("Rapportable").contains("€");
+        assertThat(tile.alertLevel()).isEqualTo("WARNING");
+    }
+
+    // ---- Helpers de seed SF-167-03 ----------------------------------------
+
+    private void seedDivorceFaute() {
+        try {
+            DivorceFauteAnalysis e = new DivorceFauteAnalysis();
+            DivorceFauteResult r = new DivorceFauteResult(
+                    List.of("VIOLENCE_PHYSIQUE"), true, false, 8,
+                    new BigDecimal("45000"), new BigDecimal("60000"),
+                    LocalDate.of(2026, 3, 1),
+                    1, true, false,
+                    65, "PROBABLE", "TORTS_EXCLUSIFS",
+                    new BigDecimal("3000"), new BigDecimal("8000"),
+                    new BigDecimal("12000"), new BigDecimal("36000"),
+                    List.of(), "—",
+                    "art. 242-246 + 266 + 270 Cciv", List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(divorceFauteRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    private void seedDesunionIrremediableBe() {
+        try {
+            DivorceDesunionIrremediableBeAnalysis e = new DivorceDesunionIrremediableBeAnalysis();
+            DivorceDesunionIrremediableBeResult r = new DivorceDesunionIrremediableBeResult(
+                    LocalDate.of(2025, 1, 1), false, true, true, false,
+                    LocalDate.of(2026, 4, 1),
+                    15, 12, true, true,
+                    80, "ELEVEE",
+                    "art. 229 §3 Code civil belge",
+                    "Délai 15 mois >= 12 mois (unilateral)",
+                    List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(divorceDesunionIrremediableBeRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    private void seedRapportSuccession() {
+        try {
+            RapportSuccessionAnalysis e = new RapportSuccessionAnalysis();
+            RapportSuccessionResult r = new RapportSuccessionResult(
+                    new BigDecimal("50000"), LocalDate.of(2018, 6, 1),
+                    new BigDecimal("75000"), false, false,
+                    RapportSuccessionCalculator.QualiteHeritier.DESCENDANT,
+                    "FRANCE",
+                    RapportSuccessionCalculator.VerdictObligation.RAPPORTABLE,
+                    RapportSuccessionCalculator.ModeRapport.RAPPORT_EN_VALEUR,
+                    new BigDecimal("75000"),
+                    5, 90, "art. 843 + 860 Cciv",
+                    "Valeur au jour partage", List.of());
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(rapportSuccessionRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
         } catch (Exception ex) { throw new RuntimeException(ex); }
     }
 }
