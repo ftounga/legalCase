@@ -40,8 +40,7 @@ public class BacklogQueryService {
                                                      BacklogPriority priority,
                                                      String search,
                                                      Pageable pageable) {
-        String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
-        return featureRepository.search(status, domain, priority, normalizedSearch, pageable)
+        return featureRepository.search(status, domain, priority, toSearchPattern(search), pageable)
                 .map(this::toSummary);
     }
 
@@ -73,9 +72,26 @@ public class BacklogQueryService {
     public Page<BacklogMarketingTaskSummary> searchMarketingTasks(BacklogMarketingStatus status,
                                                                   String search,
                                                                   Pageable pageable) {
-        String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
-        return marketingRepository.search(status, normalizedSearch, pageable)
+        return marketingRepository.search(status, toSearchPattern(search), pageable)
                 .map(this::toMarketingSummary);
+    }
+
+    /**
+     * Pré-formate le terme de recherche en pattern LIKE pour PostgreSQL.
+     *
+     * <p>Évite le bug PostgreSQL "function lower(bytea) does not exist" : quand
+     * Hibernate binde un paramètre {@code String} null sans type explicite via
+     * JDBC, PostgreSQL infère {@code bytea} et l'expression
+     * {@code LOWER(CONCAT('%', ?, '%'))} échoue au type-check parce que
+     * {@code lower} n'accepte pas bytea. En pré-formattant côté Java, le
+     * paramètre est toujours bindé comme texte non-null (ou null géré par le
+     * test {@code :searchPattern IS NULL} en amont).</p>
+     */
+    private static String toSearchPattern(String search) {
+        if (search == null || search.isBlank()) {
+            return null;
+        }
+        return "%" + search.trim().toLowerCase() + "%";
     }
 
     public List<BacklogSyncRunSummary> recentSyncRuns(int limit) {

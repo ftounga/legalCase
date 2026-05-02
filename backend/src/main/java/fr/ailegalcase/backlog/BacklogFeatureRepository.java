@@ -21,15 +21,15 @@ public interface BacklogFeatureRepository extends JpaRepository<BacklogFeatureEn
             WHERE (:status IS NULL OR f.status = :status)
               AND (:domain IS NULL OR f.domain = :domain)
               AND (:priority IS NULL OR f.priority = :priority)
-              AND (:search IS NULL OR LOWER(f.code) LIKE LOWER(CONCAT('%', :search, '%'))
-                                    OR LOWER(f.title) LIKE LOWER(CONCAT('%', :search, '%'))
-                                    OR LOWER(COALESCE(f.description, '')) LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:searchPattern IS NULL OR LOWER(f.code) LIKE :searchPattern
+                                          OR LOWER(f.title) LIKE :searchPattern
+                                          OR (f.description IS NOT NULL AND LOWER(f.description) LIKE :searchPattern))
               AND f.orphaned = false
             """)
     Page<BacklogFeatureEntity> search(@Param("status") BacklogStatus status,
                                       @Param("domain") BacklogDomain domain,
                                       @Param("priority") BacklogPriority priority,
-                                      @Param("search") String search,
+                                      @Param("searchPattern") String searchPattern,
                                       Pageable pageable);
 
     List<BacklogFeatureEntity> findByOrphanedFalse();
