@@ -234,4 +234,69 @@ describe('SuperAdminBacklogComponent', () => {
     component.openFeatureDetail('');
     expect(dialog.open).not.toHaveBeenCalled();
   });
+
+  // ── SF-178-05 — Vue kanban ─────────────────────────────────────────────
+
+  it('defaults viewMode to list and switches to kanban via onViewModeChange', () => {
+    setup(true);
+    fixture.detectChanges();
+    expect(component.viewMode()).toBe('list');
+    component.onViewModeChange('kanban');
+    expect(component.viewMode()).toBe('kanban');
+  });
+
+  it('reloads features with kanbanPageSize=200 when switching to kanban', () => {
+    setup(true);
+    fixture.detectChanges();
+    backlogService.searchFeatures.mockClear();
+    component.onViewModeChange('kanban');
+    expect(backlogService.searchFeatures).toHaveBeenCalledTimes(1);
+    const call = backlogService.searchFeatures.mock.calls[0];
+    expect(call[2]).toBe(200);
+  });
+
+  it('groupedFeatures buckets statuses into 5 main columns + OTHER', () => {
+    setup(true);
+    fixture.detectChanges();
+    component.features.set([
+      { ...mockFeature, id: '1', code: 'F-100', status: 'READY' },
+      { ...mockFeature, id: '2', code: 'F-101', status: 'IN_PROGRESS' },
+      { ...mockFeature, id: '3', code: 'F-102', status: 'BLOCKED' },
+      { ...mockFeature, id: '4', code: 'F-103', status: 'DONE' },
+      { ...mockFeature, id: '5', code: 'F-104', status: 'PLANNED' },
+      { ...mockFeature, id: '6', code: 'F-105', status: 'PARTIAL' },
+      { ...mockFeature, id: '7', code: 'F-106', status: 'ABSORBED' },
+    ]);
+    const groups = component.groupedFeatures();
+    expect(groups.get('READY')!.length).toBe(1);
+    expect(groups.get('IN_PROGRESS')!.length).toBe(1);
+    expect(groups.get('BLOCKED')!.length).toBe(1);
+    expect(groups.get('DONE')!.length).toBe(1);
+    expect(groups.get('PLANNED')!.length).toBe(1);
+    expect(groups.get('OTHER')!.length).toBe(2);
+  });
+
+  it('showOtherColumn returns true only when OTHER bucket is non-empty', () => {
+    setup(true);
+    fixture.detectChanges();
+
+    component.features.set([
+      { ...mockFeature, id: '1', code: 'F-100', status: 'READY' },
+    ]);
+    expect(component.showOtherColumn()).toBe(false);
+
+    component.features.set([
+      { ...mockFeature, id: '1', code: 'F-100', status: 'READY' },
+      { ...mockFeature, id: '2', code: 'F-101', status: 'PARTIAL' },
+    ]);
+    expect(component.showOtherColumn()).toBe(true);
+  });
+
+  it('onViewModeChange is a no-op when called with the current mode', () => {
+    setup(true);
+    fixture.detectChanges();
+    backlogService.searchFeatures.mockClear();
+    component.onViewModeChange('list');
+    expect(backlogService.searchFeatures).not.toHaveBeenCalled();
+  });
 });
