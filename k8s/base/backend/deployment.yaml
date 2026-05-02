@@ -30,17 +30,22 @@ spec:
                 name: backend-config
             - secretRef:
                 name: backend-secrets
-          readinessProbe:
+          startupProbe:
             httpGet:
               path: /api/actuator/health
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: 8080
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /api/actuator/health
               port: 8080
-            initialDelaySeconds: 60
             periodSeconds: 30
           resources:
             requests:
