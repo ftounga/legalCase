@@ -43,6 +43,22 @@
     <mat-tab label="Produit">
       <div class="tab-content">
 
+        <div class="view-toggle">
+          <mat-button-toggle-group
+              [value]="viewMode()"
+              (change)="onViewModeChange($event.value)"
+              aria-label="Mode d'affichage">
+            <mat-button-toggle value="list">
+              <mat-icon>view_list</mat-icon>
+              Liste
+            </mat-button-toggle>
+            <mat-button-toggle value="kanban">
+              <mat-icon>view_kanban</mat-icon>
+              Kanban
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
         <div class="filters">
           <mat-form-field appearance="outline">
             <mat-label>Statut</mat-label>
@@ -84,74 +100,115 @@
           </mat-form-field>
         </div>
 
-        <div class="table-wrap">
-          @if (featuresLoading()) {
-            <div class="loading">
-              <mat-spinner diameter="32"></mat-spinner>
-            </div>
-          }
+        @if (viewMode() === 'list') {
+          <div class="table-wrap">
+            @if (featuresLoading()) {
+              <div class="loading">
+                <mat-spinner diameter="32"></mat-spinner>
+              </div>
+            }
 
-          <table mat-table [dataSource]="features()" class="backlog-table">
-            <ng-container matColumnDef="code">
-              <th mat-header-cell *matHeaderCellDef>Code</th>
-              <td mat-cell *matCellDef="let row" class="cell-code">{{ row.code }}</td>
-            </ng-container>
+            <table mat-table [dataSource]="features()" class="backlog-table">
+              <ng-container matColumnDef="code">
+                <th mat-header-cell *matHeaderCellDef>Code</th>
+                <td mat-cell *matCellDef="let row" class="cell-code">{{ row.code }}</td>
+              </ng-container>
 
-            <ng-container matColumnDef="title">
-              <th mat-header-cell *matHeaderCellDef>Titre</th>
-              <td mat-cell *matCellDef="let row" class="cell-title">{{ row.title }}</td>
-            </ng-container>
+              <ng-container matColumnDef="title">
+                <th mat-header-cell *matHeaderCellDef>Titre</th>
+                <td mat-cell *matCellDef="let row" class="cell-title">{{ row.title }}</td>
+              </ng-container>
 
-            <ng-container matColumnDef="targetVersion">
-              <th mat-header-cell *matHeaderCellDef>Cible</th>
-              <td mat-cell *matCellDef="let row">{{ row.targetVersion || '—' }}</td>
-            </ng-container>
+              <ng-container matColumnDef="targetVersion">
+                <th mat-header-cell *matHeaderCellDef>Cible</th>
+                <td mat-cell *matCellDef="let row">{{ row.targetVersion || '—' }}</td>
+              </ng-container>
 
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Statut</th>
-              <td mat-cell *matCellDef="let row">
-                <app-backlog-status-badge [status]="row.status" kind="feature"></app-backlog-status-badge>
-              </td>
-            </ng-container>
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Statut</th>
+                <td mat-cell *matCellDef="let row">
+                  <app-backlog-status-badge [status]="row.status" kind="feature"></app-backlog-status-badge>
+                </td>
+              </ng-container>
 
-            <ng-container matColumnDef="domain">
-              <th mat-header-cell *matHeaderCellDef>Domaine</th>
-              <td mat-cell *matCellDef="let row">{{ domainLabel(row.domain) }}</td>
-            </ng-container>
+              <ng-container matColumnDef="domain">
+                <th mat-header-cell *matHeaderCellDef>Domaine</th>
+                <td mat-cell *matCellDef="let row">{{ domainLabel(row.domain) }}</td>
+              </ng-container>
 
-            <ng-container matColumnDef="priority">
-              <th mat-header-cell *matHeaderCellDef>Priorité</th>
-              <td mat-cell *matCellDef="let row">{{ priorityLabel(row.priority) }}</td>
-            </ng-container>
+              <ng-container matColumnDef="priority">
+                <th mat-header-cell *matHeaderCellDef>Priorité</th>
+                <td mat-cell *matCellDef="let row">{{ priorityLabel(row.priority) }}</td>
+              </ng-container>
 
-            <ng-container matColumnDef="updatedAt">
-              <th mat-header-cell *matHeaderCellDef>Mis à jour</th>
-              <td mat-cell *matCellDef="let row">{{ row.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
-            </ng-container>
+              <ng-container matColumnDef="updatedAt">
+                <th mat-header-cell *matHeaderCellDef>Mis à jour</th>
+                <td mat-cell *matCellDef="let row">{{ row.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="featureColumns"></tr>
-            <tr mat-row
-                *matRowDef="let row; columns: featureColumns;"
-                class="row-clickable"
-                (click)="openFeatureDetail(row.code)"></tr>
+              <tr mat-header-row *matHeaderRowDef="featureColumns"></tr>
+              <tr mat-row
+                  *matRowDef="let row; columns: featureColumns;"
+                  class="row-clickable"
+                  (click)="openFeatureDetail(row.code)"></tr>
 
-            <tr class="empty-row" *matNoDataRow>
-              <td [attr.colspan]="featureColumns.length" class="empty-cell">
-                @if (!featuresLoading()) {
-                  Aucun élément ne correspond aux filtres.
+              <tr class="empty-row" *matNoDataRow>
+                <td [attr.colspan]="featureColumns.length" class="empty-cell">
+                  @if (!featuresLoading()) {
+                    Aucun élément ne correspond aux filtres.
+                  }
+                </td>
+              </tr>
+            </table>
+
+            <mat-paginator
+              [length]="featuresTotal()"
+              [pageSize]="featuresSize()"
+              [pageIndex]="featuresPage()"
+              [pageSizeOptions]="[50, 100, 200]"
+              (page)="onFeaturePage($event)">
+            </mat-paginator>
+          </div>
+        } @else {
+          <div class="kanban-wrap">
+            @if (featuresLoading()) {
+              <div class="loading">
+                <mat-spinner diameter="32"></mat-spinner>
+              </div>
+            }
+
+            <div class="kanban-board">
+              @for (col of kanbanColumns; track col.key) {
+                @if (col.key !== 'OTHER' || showOtherColumn()) {
+                  <section class="kanban-column kanban-column--{{ col.key | lowercase }}">
+                    <header class="kanban-col-header">
+                      <span class="kanban-col-label">{{ col.label }}</span>
+                      <span class="kanban-col-count">{{ (groupedFeatures().get(col.key) || []).length }}</span>
+                    </header>
+                    <div class="kanban-cards">
+                      @for (f of (groupedFeatures().get(col.key) || []); track f.id) {
+                        <article class="kanban-card" (click)="openFeatureDetail(f.code)">
+                          <div class="card-head">
+                            <span class="card-code">{{ f.code }}</span>
+                            <app-backlog-status-badge [status]="f.status" kind="feature"></app-backlog-status-badge>
+                          </div>
+                          <p class="card-title">{{ f.title }}</p>
+                          <div class="card-meta">
+                            <span class="meta-pill">{{ domainLabel(f.domain) }}</span>
+                            <span class="meta-pill">Priorité : {{ priorityLabel(f.priority) }}</span>
+                          </div>
+                        </article>
+                      }
+                      @if ((groupedFeatures().get(col.key) || []).length === 0 && !featuresLoading()) {
+                        <p class="kanban-empty">— vide —</p>
+                      }
+                    </div>
+                  </section>
                 }
-              </td>
-            </tr>
-          </table>
-
-          <mat-paginator
-            [length]="featuresTotal()"
-            [pageSize]="featuresSize()"
-            [pageIndex]="featuresPage()"
-            [pageSizeOptions]="[50, 100, 200]"
-            (page)="onFeaturePage($event)">
-          </mat-paginator>
-        </div>
+              }
+            </div>
+          </div>
+        }
       </div>
     </mat-tab>
 

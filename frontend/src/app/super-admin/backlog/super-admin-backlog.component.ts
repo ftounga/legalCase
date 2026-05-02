@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, Subscription } from 'rxjs';
@@ -84,6 +85,7 @@ const STATUS_MARKETING_LABELS: Record<BacklogMarketingStatus, string> = {
     MatTabsModule, MatTableModule, MatPaginatorModule,
     MatFormFieldModule, MatSelectModule, MatInputModule,
     MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatDialogModule,
+    MatButtonToggleModule,
     BacklogStatusBadgeComponent,
   ],
   templateUrl: './super-admin-backlog.component.html',
@@ -131,6 +133,31 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
   resyncing = signal(false);
   selectedTabIndex = signal(0);
 
+  // SF-178-05 — Vue kanban (Produit only)
+  viewMode = signal<'list' | 'kanban'>('list');
+  readonly kanbanColumns: ReadonlyArray<{ key: BacklogStatus | 'OTHER'; label: string }> = [
+    { key: 'READY',       label: 'Ready to dev' },
+    { key: 'IN_PROGRESS', label: 'En cours' },
+    { key: 'BLOCKED',     label: 'Bloqué' },
+    { key: 'DONE',        label: 'Terminée' },
+    { key: 'PLANNED',     label: 'À planifier' },
+    { key: 'OTHER',       label: 'Autres' },
+  ];
+  readonly kanbanPageSize = 200;
+
+  groupedFeatures = computed(() => {
+    const groups = new Map<BacklogStatus | 'OTHER', BacklogFeatureSummary[]>();
+    for (const col of this.kanbanColumns) groups.set(col.key, []);
+    for (const f of this.features()) {
+      const isMain = (['READY', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'PLANNED'] as BacklogStatus[]).includes(f.status);
+      const key: BacklogStatus | 'OTHER' = isMain ? f.status : 'OTHER';
+      groups.get(key)!.push(f);
+    }
+    return groups;
+  });
+
+  showOtherColumn = computed(() => (this.groupedFeatures().get('OTHER') ?? []).length > 0);
+
   private readonly searchProduct$ = new Subject<string>();
   private readonly searchMarketing$ = new Subject<string>();
   private readonly subs = new Subscription();
@@ -152,6 +179,17 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
       autoFocus: false,
       data: { code },
     });
+  }
+
+  onViewModeChange(mode: 'list' | 'kanban'): void {
+    if (this.viewMode() === mode) return;
+    this.viewMode.set(mode);
+    this.featuresPage.set(0);
+    this.loadFeatures();
+  }
+
+  effectivePageSize(): number {
+    return this.viewMode() === 'kanban' ? this.kanbanPageSize : this.featuresSize();
   }
 
   ngOnInit(): void {
@@ -211,7 +249,7 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
         search: this.searchProduct(),
       },
       this.featuresPage(),
-      this.featuresSize(),
+      this.effectivePageSize(),
     ).subscribe({
       next: page => {
         this.features.set(page.content);
