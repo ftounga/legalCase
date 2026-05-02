@@ -1507,6 +1507,82 @@ Règles :
 
 ---
 
+## backlog_features
+
+F-178 SF-178-01 — cache de lecture du visualiseur de backlog super-admin.
+**Source de vérité = `docs/PRODUCT_SPEC.md`** (Option A F-178). Cette table est alimentée par `BacklogSyncService` qui parse le Markdown ; elle ne doit **jamais** être éditée manuellement (cf. règle Étape 7 CLAUDE.md).
+
+Colonnes :
+- id (UUID, PK)
+- code (VARCHAR(32), unique, ex: `F-DT-08`, `F-178`)
+- title (VARCHAR(500), non nullable)
+- target_version (VARCHAR(32), nullable, ex: `V1`, `V8+`)
+- status (VARCHAR(32), enum `BacklogStatus` : PLANNED, READY, IN_PROGRESS, BLOCKED, DONE, PARTIAL, ABSORBED, UNKNOWN)
+- description (TEXT, brut markdown des notes)
+- domain (VARCHAR(32), enum `BacklogDomain` : WORK, IMMIGRATION, FAMILY, CROSS, nullable)
+- priority (VARCHAR(16), enum `BacklogPriority` : HIGH, MEDIUM, LOW, nullable)
+- source_file (VARCHAR(255), non nullable, ex: `docs/PRODUCT_SPEC.md`)
+- source_line (INT, ligne dans le MD au moment du parse)
+- parsed_at (TIMESTAMP WITH TIME ZONE)
+- is_orphaned (BOOLEAN, défaut false — true si code disparaît du MD entre 2 syncs)
+- created_at, updated_at (TIMESTAMP WITH TIME ZONE)
+
+Index : idx_backlog_features_status, idx_backlog_features_domain.
+
+## backlog_subfeatures
+
+F-178 SF-178-01 — découpage SF parsé depuis les notes de PRODUCT_SPEC.md.
+
+Colonnes :
+- id (UUID, PK)
+- code (VARCHAR(64), unique, ex: `SF-DT-08-01`, `SF-178-01`)
+- parent_feature_id (UUID, FK `backlog_features(id)` ON DELETE CASCADE)
+- title (VARCHAR(500), nullable — souvent extrait de contexte court)
+- status (VARCHAR(32), enum `BacklogStatus`)
+- description (TEXT)
+- source_file, source_line, parsed_at, is_orphaned, created_at, updated_at (idem features)
+
+Index : idx_backlog_subfeatures_parent (parent_feature_id), idx_backlog_subfeatures_status.
+
+## backlog_marketing_tasks
+
+F-178 SF-178-01 — cache de lecture de `docs/MARKETING_BACKLOG.md`.
+
+Colonnes :
+- id (UUID, PK)
+- code (VARCHAR(32), unique, ex: `M-71`)
+- title (VARCHAR(500), non nullable)
+- status (VARCHAR(32), enum `BacklogMarketingStatus` : TODO, DRAFTED, IN_PROGRESS, DONE, BLOCKED, UNKNOWN)
+- description (TEXT)
+- category (VARCHAR(64), nullable — détectée depuis section Markdown ex: `Site web`, `Vidéo`)
+- source_file, source_line, parsed_at, is_orphaned, created_at, updated_at
+
+Index : idx_backlog_marketing_status.
+
+## backlog_sync_runs
+
+F-178 SF-178-01 — audit des runs de sync MD → DB.
+
+Colonnes :
+- id (UUID, PK)
+- started_at, finished_at (TIMESTAMP WITH TIME ZONE)
+- duration_ms (BIGINT, nullable)
+- success (BOOLEAN, défaut true)
+- features_count, subfeatures_count, marketing_count, orphans_marked (INT, défauts 0)
+- triggered_by (VARCHAR(32), enum `SyncTrigger` : MANUAL, SCHEDULED, STARTUP)
+- error_message (TEXT, rempli si success=false)
+- created_at (TIMESTAMP WITH TIME ZONE)
+
+Index : idx_backlog_sync_runs_started (started_at DESC), idx_backlog_sync_runs_success.
+
+Règles :
+- Aucune FK vers workspaces — feature super-admin transversale.
+- Tous les endpoints `/api/v1/super-admin/backlog/*` gated par `SuperAdminService.assertSuperAdmin`.
+- La sync est idempotente : `BacklogSyncService.sync()` appelé 2× consécutifs ne crée pas de doublons (upsert par code).
+- Suppressions : aucune. Si un code disparaît du MD, on positionne `is_orphaned=true` (conservation historique).
+
+---
+
 # 26 — Principe directeur
 
 AI LegalCase doit rester :
