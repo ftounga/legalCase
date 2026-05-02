@@ -74,7 +74,8 @@ jobs:
           APP_VERSION=${GITHUB_SHA:0:7}
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION \
                        -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-                       ./backend
+                       -f backend/Dockerfile \
+                       .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION" >> $GITHUB_OUTPUT

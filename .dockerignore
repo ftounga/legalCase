@@ -1,0 +1,13 @@
+# F-178 SF-178-02 : le service de sync backlog lit docs/PRODUCT_SPEC.md
+# et docs/MARKETING_BACKLOG.md depuis le filesystem du container. Le contexte
+# de build du backend est donc la racine du repo (pour accéder à docs/),
+# d'où ce .dockerignore racine en whitelist.
+
+# Whitelist — seuls backend/ et docs/ sont nécessaires au build backend
+*
+!backend
+!docs
+
+# Re-exclure les artefacts de build à l'intérieur de backend/
+backend/target
+backend/.mvn/wrapper/maven-wrapper.jar
