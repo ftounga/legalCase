@@ -866,6 +866,55 @@
   font-weight: 500;
 }
 
+/* F-184 SF-184-01 — Carte premium tableau de bord décisionnel (Option B).
+   Wrapper local à la page dossier ; s'insère dans col-right sous le bandeau
+   questions complémentaires. Pas de réutilisation prévue ailleurs (extraction
+   en composant dédié possible plus tard si besoin émerge). */
+.decisional-summary-panel {
+  margin-top: 16px;
+  background: #FFFFFF;
+  border: 2px solid #C9973A;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(201, 151, 58, 0.15);
+  overflow: hidden;
+
+  &__header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #1A3A5C;
+    border-bottom: 2px solid #C9973A;
+  }
+
+  &__title {
+    font-family: Merriweather, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #FFFFFF;
+    letter-spacing: 0.2px;
+  }
+
+  &__count {
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #C9973A;
+    background: rgba(201, 151, 58, 0.16);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  &__body {
+    padding: 16px;
+  }
+}
+
 .questions-banner {
   display: flex;
   align-items: center;

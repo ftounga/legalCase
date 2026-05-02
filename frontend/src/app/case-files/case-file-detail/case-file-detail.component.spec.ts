@@ -741,6 +741,22 @@ describe('CaseFileDetailComponent', () => {
     expect(panel).not.toBeNull();
   });
 
+  it('SF-184-01 T-04: tableau de bord décisionnel rendu dans col-right (carte premium), pas dans bottom-sections', () => {
+    fixture.detectChanges();
+    const dashboard = fixture.nativeElement.querySelector('app-case-dashboard');
+    expect(dashboard).not.toBeNull();
+    // Doit être enveloppé dans le wrapper premium SF-184-01.
+    const wrapper = dashboard.closest('.decisional-summary-panel');
+    expect(wrapper).not.toBeNull();
+    // Ce wrapper doit être à l'intérieur de col-right, pas de bottom-sections.
+    expect(wrapper.closest('.col-right')).not.toBeNull();
+    expect(wrapper.closest('.bottom-sections')).toBeNull();
+    // L'ancien emplacement bottom-sections ne doit plus contenir <app-case-dashboard>.
+    const bottomSections = fixture.nativeElement.querySelector('.bottom-sections');
+    expect(bottomSections).not.toBeNull();
+    expect(bottomSections.querySelector('app-case-dashboard')).toBeNull();
+  });
+
   // ----- SF-125-01 : bouton d'analyse contextuel -----
 
   describe('SF-125-01 bouton contextuel', () => {

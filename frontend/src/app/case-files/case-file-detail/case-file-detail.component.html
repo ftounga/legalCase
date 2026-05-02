@@ -484,6 +484,29 @@
           <span>Analyse complète en cours…</span>
         </div>
       }
+
+      <!-- F-184 SF-184-01 : tableau de bord décisionnel repositionné dans col-right
+           juste sous le bandeau questions, en carte premium (Option B). -->
+      <section class="decisional-summary-panel">
+        <header class="decisional-summary-panel__header">
+          <span class="decisional-summary-panel__title">Tableau de bord décisionnel</span>
+          @if (dash.verdictsCount() > 0) {
+            <span class="decisional-summary-panel__count" data-testid="verdicts-count-badge">
+              {{ dash.verdictsCount() }} verdict(s) disponible(s)
+            </span>
+          }
+        </header>
+        <div class="decisional-summary-panel__body">
+          <app-case-dashboard
+            #dash
+            [caseFileId]="caseFile()!.id"
+            [synthesis]="synthesis()"
+            [workspaceCountry]="workspaceCountry()"
+            [procedureChecks]="procedureChecks()"
+            [aiQuestions]="questions()">
+          </app-case-dashboard>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -497,14 +520,6 @@
       [caseFileId]="caseFile()!.id"
       [currentUserEmail]="authService.currentUser()?.email ?? null">
     </app-case-notes-section>
-
-    <app-case-dashboard
-      [caseFileId]="caseFile()!.id"
-      [synthesis]="synthesis()"
-      [workspaceCountry]="workspaceCountry()"
-      [procedureChecks]="procedureChecks()"
-      [aiQuestions]="questions()">
-    </app-case-dashboard>
 
     <app-decisional-tools-panel
       [caseFileId]="caseFile()!.id"
