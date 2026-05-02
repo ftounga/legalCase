@@ -6,8 +6,16 @@ import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
 import { DashboardResponse } from '../../core/models/case-dashboard.model';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { DecisionToolModalService } from '../decisional-tools-panel/decision-tool-modal/decision-tool-modal.service';
-import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
 
+/**
+ * F-167 SF-167-05 — Tests Jest du tableau de bord décisionnel après fusion
+ * des records typés legacy. Le composant ne consomme plus que `tiles[]` +
+ * `riskScore`/`riskLevel`. Couverture :
+ *   - refresh integration (SF-IA-02-03 conservé)
+ *   - groupement par thème + tri par alertLevel (SF-167-05 T-01..T-04)
+ *   - état vide (SF-167-05 T-05)
+ *   - openGenericTool resolution + warn unknown id (SF-167-01 conservé)
+ */
 describe('CaseDashboardComponent — refresh integration (SF-IA-02-03)', () => {
   let fixture: ComponentFixture<CaseDashboardComponent>;
   let component: CaseDashboardComponent;
@@ -16,11 +24,11 @@ describe('CaseDashboardComponent — refresh integration (SF-IA-02-03)', () => {
 
   const emptyDashboard: DashboardResponse = {
     caseFileId: 'case-1',
-    riskScore: null, riskLevel: null,
-    licenciement: null, indemnites: null, anciennete: null,
-    titleDecision: null, workRight: null, recours: null,
-    partage: null, garde: null, divorce: null,
-  } as unknown as DashboardResponse;
+    legalDomain: 'TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [],
+  };
 
   beforeEach(async () => {
     dashboardService = { get: jest.fn().mockReturnValue(of(emptyDashboard)) } as any;
@@ -71,159 +79,24 @@ describe('CaseDashboardComponent — refresh integration (SF-IA-02-03)', () => {
   }));
 });
 
-describe('CaseDashboardComponent — SF-177-09 cards + modal', () => {
+describe('CaseDashboardComponent — SF-167-05 grouping + sort + empty state', () => {
   let fixture: ComponentFixture<CaseDashboardComponent>;
   let component: CaseDashboardComponent;
   let dashboardService: jest.Mocked<CaseDashboardService>;
   let modalService: jest.Mocked<DecisionToolModalService>;
 
-  const fullDashboard: DashboardResponse = {
-    caseFileId: 'case-1',
-    riskScore: 45,
-    riskLevel: 'MOYEN',
-    licenciement: { scoreRisque: 70, verdict: 'INVALIDE', criteresNonConformes: 3, criteresTotal: 8 },
-    indemnites: { country: 'FRANCE', fourchetteBasse: 2000, fourhetteHaute: 5000, baremeSource: 'Macron' },
-    anciennete: { annees: 4, mois: 6, congesTotalJours: 25, ecartsDetectes: 1 },
-    titleDecision: { nbRecommandations: 2, premierTitreLabel: 'VPF' },
-    workRight: { droitTravail: 'OUI', titreLabel: 'CDS Vie privée et familiale' },
-    recours: { recoursLabel: 'OQTF', dateLimite: '2026-06-15', dateLimiteDepassee: false },
-    partage: { soulte: 12000, coutTotal: 15000 },
-    garde: { gardeLabel: 'Alternée', joursParentA: 180, joursParentB: 185 },
-    divorce: { etapesCompletees: 3, etapesTotal: 8, piecesPresentes: 7, piecesTotal: 12, progressionPct: 38 },
-  } as unknown as DashboardResponse;
-
-  beforeEach(async () => {
-    dashboardService = { get: jest.fn().mockReturnValue(of(fullDashboard)) } as any;
-    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
-
-    await TestBed.configureTestingModule({
-      imports: [CaseDashboardComponent],
-      providers: [
-        provideNoopAnimations(),
-        { provide: CaseDashboardService, useValue: dashboardService },
-        { provide: DecisionToolModalService, useValue: modalService },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(CaseDashboardComponent);
-    component = fixture.componentInstance;
-    component.caseFileId = 'case-1';
-    component.workspaceCountry = 'FRANCE';
-  });
-
-  it('SF-177-09 T-01 : tilesFromDashboard produit riskScore + 9 tiles quand tous champs peuplés', () => {
-    fixture.detectChanges();
-    const tiles = component.tilesFromDashboard(fullDashboard);
-    expect(tiles).toHaveLength(10);
-    expect(tiles[0].toolId).toBe('risk-score');
-    expect(tiles[0].disabled).toBe(true);
-    const toolIds = tiles.slice(1).map((t) => t.toolId);
-    expect(toolIds).toEqual([
-      'F-DT-08-licenciement-validity',
-      'F-DT-09-comparateur-indemnites',
-      'F-DT-07-anciennete-conges-prime',
-      'F-IM-05-arbre-decisionnel-titre',
-      'F-IM-07-droit-au-travail',
-      'F-IM-06-recours',
-      'F-FA-05-partage-immobilier',
-      'F-FA-06-calendrier-garde',
-      'F-FA-07-checklist-divorce',
-    ]);
-  });
-
-  it('SF-177-09 T-02 : tilesFromDashboard filtre les champs null', () => {
-    const partialDashboard = {
-      ...fullDashboard,
-      workRight: null,
-      recours: null,
-      partage: null,
-      garde: null,
-      divorce: null,
-    } as DashboardResponse;
-    fixture.detectChanges();
-    const tiles = component.tilesFromDashboard(partialDashboard);
-    const toolIds = tiles.map((t) => t.toolId);
-    expect(toolIds).not.toContain('F-IM-07-droit-au-travail');
-    expect(toolIds).not.toContain('F-IM-06-recours');
-    expect(toolIds).not.toContain('F-FA-05-partage-immobilier');
-    expect(toolIds).not.toContain('F-FA-06-calendrier-garde');
-    expect(toolIds).not.toContain('F-FA-07-checklist-divorce');
-    // riskScore + licenciement + indemnites + anciennete + titleDecision = 5
-    expect(tiles).toHaveLength(5);
-  });
-
-  it('SF-177-09 T-03 : licenciement INVALIDE → metierAlertLevel ALERT', () => {
-    fixture.detectChanges();
-    const tiles = component.tilesFromDashboard(fullDashboard);
-    const lic = tiles.find((t) => t.toolId === 'F-DT-08-licenciement-validity');
-    expect(lic?.metierAlertLevel).toBe('ALERT');
-
-    const validDashboard = {
-      ...fullDashboard,
-      licenciement: { ...fullDashboard.licenciement!, verdict: 'VALIDE' },
-    } as DashboardResponse;
-    const tilesValid = component.tilesFromDashboard(validDashboard);
-    const licValid = tilesValid.find((t) => t.toolId === 'F-DT-08-licenciement-validity');
-    expect(licValid?.metierAlertLevel).toBe('OK');
-  });
-
-  it('SF-177-09 T-04 : openTile délègue au modalService avec forceExpanded:true et bon component', () => {
-    fixture.detectChanges();
-    const tiles = component.tilesFromDashboard(fullDashboard);
-    const lic = tiles.find((t) => t.toolId === 'F-DT-08-licenciement-validity')!;
-    component.openTile(lic);
-
-    expect(modalService.open).toHaveBeenCalledTimes(1);
-    const args = modalService.open.mock.calls[0][0];
-    expect(args.toolId).toBe('F-DT-08-licenciement-validity');
-    expect(args.component).toBe(LicenciementSectionComponent);
-    expect(args.inputs['forceExpanded']).toBe(true);
-    expect(args.inputs['caseFileId']).toBe('case-1');
-    expect(args.inputs['workspaceCountry']).toBe('FRANCE');
-    expect(args.onSave).toBeUndefined();
-  });
-
-  it('SF-177-09 T-05 : openTile sur tile riskScore (disabled) ne déclenche pas le modal', () => {
-    fixture.detectChanges();
-    const tiles = component.tilesFromDashboard(fullDashboard);
-    const risk = tiles.find((t) => t.toolId === 'risk-score')!;
-    expect(risk.disabled).toBe(true);
-    expect(risk.component).toBeNull();
-    component.openTile(risk);
-    expect(modalService.open).not.toHaveBeenCalled();
-  });
-});
-
-describe('CaseDashboardComponent — SF-167-01 generic dashboard tiles', () => {
-  let fixture: ComponentFixture<CaseDashboardComponent>;
-  let component: CaseDashboardComponent;
-  let dashboardService: jest.Mocked<CaseDashboardService>;
-  let modalService: jest.Mocked<DecisionToolModalService>;
-
-  // Dashboard exposant 1 tile typée (licenciement) + 2 tiles génériques (F-IM-11 + F-DT-07).
-  // Vérifie que le grid typé et le grid générique coexistent.
+  /**
+   * Dashboard avec tiles couvrant 4 thèmes + un mix de alertLevels pour
+   * vérifier groupement et tri.
+   */
   const dashboardWithTiles: DashboardResponse = {
     caseFileId: 'case-1',
-    riskScore: null,
-    riskLevel: null,
-    licenciement: { scoreRisque: 70, verdict: 'INVALIDE', criteresNonConformes: 3, criteresTotal: 8 },
-    indemnites: null,
-    anciennete: null,
-    titleDecision: null,
-    workRight: null,
-    recours: null,
-    partage: null,
-    garde: null,
-    divorce: null,
+    legalDomain: 'TRAVAIL',
+    riskScore: 45,
+    riskLevel: 'MOYEN',
     tiles: [
-      {
-        toolId: 'F-IM-11-changement-statut',
-        theme: 'VALIDITE',
-        label: 'Changement de statut',
-        primaryValue: 'ETUDIANT → VPF (ELEVEE)',
-        secondaryValue: '8 mois restants',
-        alertLevel: 'OK',
-      },
+      // INDEMNITES — 2 tiles, dans cet ordre : OK puis ALERT (le tri doit
+      // remonter ALERT en premier).
       {
         toolId: 'F-DT-07-anciennete-conges-prime',
         theme: 'INDEMNITES',
@@ -232,8 +105,43 @@ describe('CaseDashboardComponent — SF-167-01 generic dashboard tiles', () => {
         secondaryValue: '25 jours congés',
         alertLevel: 'OK',
       },
+      {
+        toolId: 'F-DT-09-comparateur-indemnites',
+        theme: 'INDEMNITES',
+        label: 'Indemnités',
+        primaryValue: '2 000 – 5 000 €',
+        secondaryValue: 'Macron',
+        alertLevel: 'ALERT',
+      },
+      // VALIDITE — 1 tile WARNING.
+      {
+        toolId: 'F-DT-08-licenciement-validity',
+        theme: 'VALIDITE',
+        label: 'Validité licenciement',
+        primaryValue: 'INVALIDE',
+        secondaryValue: '3/8 critères non conformes',
+        alertLevel: 'WARNING',
+      },
+      // DELAIS — 1 tile sans alertLevel.
+      {
+        toolId: 'F-IM-06-recours',
+        theme: 'DELAIS',
+        label: 'Recours',
+        primaryValue: 'OQTF',
+        secondaryValue: 'Limite : 2026-06-15',
+        alertLevel: null,
+      },
+      // DIAGNOSTIC — 1 tile OK.
+      {
+        toolId: 'F-IM-11-changement-statut',
+        theme: 'DIAGNOSTIC',
+        label: 'Changement de statut',
+        primaryValue: 'ETUDIANT → VPF',
+        secondaryValue: '8 mois restants',
+        alertLevel: 'OK',
+      },
     ],
-  } as unknown as DashboardResponse;
+  };
 
   beforeEach(async () => {
     dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithTiles)) } as any;
@@ -254,23 +162,117 @@ describe('CaseDashboardComponent — SF-167-01 generic dashboard tiles', () => {
     component.workspaceCountry = 'FRANCE';
   });
 
-  it('SF-167-01 T-01 : displays generic tiles when dashboard.tiles is non-empty', () => {
+  it('SF-167-05 T-01 : groups tiles by theme in canonical order, skipping empty themes', () => {
     fixture.detectChanges();
-    expect(component.genericTiles()).toHaveLength(2);
-    expect(component.genericTiles().map((t) => t.toolId))
-      .toEqual(['F-IM-11-changement-statut', 'F-DT-07-anciennete-conges-prime']);
-    const html: string = fixture.nativeElement.innerHTML;
-    expect(html).toContain('app-dashboard-tile');
+    const sections = component.themeSections();
+    // Aucun outil DOCUMENTS dans le mock → la section est exclue. Reste 4
+    // sections dans l'ordre canonique.
+    expect(sections.map((s) => s.key)).toEqual([
+      'INDEMNITES',
+      'VALIDITE',
+      'DELAIS',
+      'DIAGNOSTIC',
+    ]);
+    expect(sections.find((s) => s.key === 'INDEMNITES')?.label)
+      .toBe('Indemnités & calculs');
   });
 
-  it('SF-167-01 T-02 : coexists with the typed tiles grid', () => {
+  it('SF-167-05 T-02 : sorts tiles inside a theme by alertLevel (ALERT > WARNING > OK > null)', () => {
     fixture.detectChanges();
-    // Tiles typées : licenciement présent → 1 tile typée (pas de riskScore).
-    const typedTiles = component.tilesFromDashboard(dashboardWithTiles);
-    expect(typedTiles).toHaveLength(1);
-    expect(typedTiles[0].toolId).toBe('F-DT-08-licenciement-validity');
-    // Tiles génériques également présentes en parallèle.
-    expect(component.genericTiles()).toHaveLength(2);
+    const sections = component.themeSections();
+    const indemnites = sections.find((s) => s.key === 'INDEMNITES')!;
+    // ALERT remonte avant OK, même si la tile OK est listée en premier dans
+    // le payload backend.
+    expect(indemnites.tiles.map((t) => t.toolId)).toEqual([
+      'F-DT-09-comparateur-indemnites',
+      'F-DT-07-anciennete-conges-prime',
+    ]);
+  });
+
+  it('SF-167-05 T-03 : exposes riskScore tile separately (not inside theme sections)', () => {
+    fixture.detectChanges();
+    const risk = component.riskScoreTile();
+    expect(risk).not.toBeNull();
+    expect(risk!.toolId).toBe('risk-score');
+    expect(risk!.summary.primaryValue).toBe('45 %');
+    expect(risk!.metierAlertLevel).toBe('WARNING');
+    // Le riskScore n'apparaît dans aucune section thématique.
+    const allSectionTiles = component.themeSections().flatMap((s) => s.tiles);
+    expect(allSectionTiles.map((t) => t.toolId)).not.toContain('risk-score');
+  });
+
+  it('SF-167-05 T-04 : isEmpty=false when tiles or riskScore present', () => {
+    fixture.detectChanges();
+    expect(component.isEmpty()).toBe(false);
+  });
+
+  it('SF-167-05 T-05 : isEmpty=true + empty-state rendered when no riskScore and no tiles', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: null,
+      riskLevel: null,
+      tiles: [],
+    }));
+    fixture.detectChanges();
+    expect(component.isEmpty()).toBe(true);
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Aucun outil exécuté pour ce dossier');
+  });
+
+  it('SF-167-05 T-06 : tiles undefined treated as empty list', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: null,
+      riskLevel: null,
+    } as DashboardResponse));
+    fixture.detectChanges();
+    expect(component.themeSections()).toEqual([]);
+    expect(component.isEmpty()).toBe(true);
+  });
+});
+
+describe('CaseDashboardComponent — openGenericTool (SF-167-01 / SF-167-05)', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+
+  const dashboardOneTile: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'IMMIGRATION',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-IM-11-changement-statut',
+        theme: 'VALIDITE',
+        label: 'Changement de statut',
+        primaryValue: 'ETUDIANT → VPF',
+        secondaryValue: '8 mois restants',
+        alertLevel: 'OK',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardOneTile)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
   });
 
   it('SF-167-01 T-03 : openGenericTool ouvre le modal du composant résolu', () => {
@@ -291,12 +293,5 @@ describe('CaseDashboardComponent — SF-167-01 generic dashboard tiles', () => {
     expect(modalService.open).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
-  });
-
-  it('SF-167-01 T-05 : genericTiles est vide quand dashboard.tiles est absent', () => {
-    const noTilesDashboard = { ...dashboardWithTiles, tiles: undefined } as DashboardResponse;
-    dashboardService.get.mockReturnValue(of(noTilesDashboard));
-    fixture.detectChanges();
-    expect(component.genericTiles()).toEqual([]);
   });
 });

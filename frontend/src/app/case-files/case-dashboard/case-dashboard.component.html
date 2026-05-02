@@ -2,36 +2,49 @@
   <div class="dash-loading"><mat-spinner diameter="24"></mat-spinner><span>Chargement du tableau de bord…</span></div>
 }
 
-@if (!loading() && hasAnyData()) {
+@if (!loading()) {
   <div class="dashboard">
     <h3 class="dash-title"><mat-icon class="dash-title-icon">dashboard</mat-icon> Tableau de bord décisionnel</h3>
 
-    <div class="dash-grid">
-      @for (tile of tiles(); track tile.toolId) {
-        <app-decision-tool-card
-          [toolId]="tile.toolId"
-          [theme]="tile.theme"
-          [icon]="tile.icon"
-          [title]="tile.title"
-          [summary]="tile.summary"
-          [metierAlertLevel]="tile.metierAlertLevel ?? null"
-          [disabled]="tile.disabled"
-          (open)="openTile(tile)">
-        </app-decision-tool-card>
-      }
-    </div>
-
-    <!-- F-167 SF-167-01 : grid générique alimenté par dashboard.tiles ; coexiste
-         avec le grid typé ci-dessus pendant la transition (fusion en SF-167-05). -->
-    @if (genericTiles().length > 0) {
-      <div class="generic-tiles-grid">
-        @for (tile of genericTiles(); track tile.toolId) {
-          <app-dashboard-tile
-            [tile]="tile"
-            (open)="openGenericTool($event)">
-          </app-dashboard-tile>
-        }
+    <!-- F-167 SF-167-05 — État vide. -->
+    @if (isEmpty()) {
+      <div class="empty-state">
+        <mat-icon class="empty-state-icon">insights</mat-icon>
+        <p class="empty-state-text">Aucun outil exécuté pour ce dossier</p>
       </div>
+    }
+
+    @if (!isEmpty()) {
+      <!-- Tile riskScore (non cliquable, hors thèmes). -->
+      @if (riskScoreTile(); as risk) {
+        <div class="risk-score-row">
+          <app-decision-tool-card
+            [toolId]="risk.toolId"
+            theme="DIAGNOSTIC"
+            [icon]="risk.icon"
+            [title]="risk.title"
+            [summary]="risk.summary"
+            [metierAlertLevel]="risk.metierAlertLevel"
+            [disabled]="true">
+          </app-decision-tool-card>
+        </div>
+      }
+
+      <!-- F-167 SF-167-05 — Sections thématiques. Ordre fixe ; tiles triées
+           par alertLevel décroissant à l'intérieur de chaque section. -->
+      @for (section of themeSections(); track section.key) {
+        <section class="theme-section">
+          <h4 class="theme-title">{{ section.label }}</h4>
+          <div class="theme-grid">
+            @for (tile of section.tiles; track tile.toolId) {
+              <app-dashboard-tile
+                [tile]="tile"
+                (open)="openGenericTool($event)">
+              </app-dashboard-tile>
+            }
+          </div>
+        </section>
+      }
     }
   </div>
 }
