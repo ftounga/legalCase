@@ -13,7 +13,8 @@ configMapGenerator:
   - name: backend-config
     behavior: merge
     literals:
-      - APP_FRONTEND_URL=https://staging.legalcase.ng-itconsulting.com
+      - APP_FRONTEND_URL=https://staging.legalcase.fr
+      - APP_ALLOWED_FRONTEND_URLS=https://staging.legalcase.fr,https://staging.legalcase.ng-itconsulting.com
       - SENTRY_ENV=staging
       - AWS_TEXTRACT_ENABLED=true
       - AWS_TEXTRACT_REGION=eu-west-3
