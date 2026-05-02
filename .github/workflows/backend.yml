@@ -7,6 +7,8 @@ on:
       - 'backend/**'
       - '.github/workflows/backend.yml'
       - 'k8s/**'
+      - 'docs/PRODUCT_SPEC.md'
+      - 'docs/MARKETING_BACKLOG.md'
   workflow_dispatch:
 
 concurrency:
