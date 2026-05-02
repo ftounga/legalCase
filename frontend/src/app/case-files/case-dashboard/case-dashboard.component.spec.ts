@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { CaseDashboardComponent } from './case-dashboard.component';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
 import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
-import { DashboardResponse } from '../../core/models/case-dashboard.model';
+import { DashboardResponse, DashboardTile as BackendDashboardTile } from '../../core/models/case-dashboard.model';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { DecisionToolModalService } from '../decisional-tools-panel/decision-tool-modal/decision-tool-modal.service';
 
@@ -230,6 +230,83 @@ describe('CaseDashboardComponent — SF-167-05 grouping + sort + empty state', (
     fixture.detectChanges();
     expect(component.themeSections()).toEqual([]);
     expect(component.isEmpty()).toBe(true);
+  });
+});
+
+describe('CaseDashboardComponent — SF-184-01 verdictsCount', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+
+  const buildTile = (toolId: string): BackendDashboardTile => ({
+    toolId,
+    theme: 'INDEMNITES',
+    label: toolId,
+    primaryValue: 'x',
+    secondaryValue: null,
+    alertLevel: 'OK',
+  });
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn() } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('SF-184-01 T-01 : verdictsCount = 1 quand riskScore seul (pas de tiles)', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: 75,
+      riskLevel: 'ALERT',
+      tiles: [],
+    }));
+    fixture.detectChanges();
+    expect(component.verdictsCount()).toBe(1);
+  });
+
+  it('SF-184-01 T-02 : verdictsCount = riskScore (1) + tiles (5) = 6', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: 50,
+      riskLevel: 'MOYEN',
+      tiles: [
+        buildTile('t1'),
+        buildTile('t2'),
+        buildTile('t3'),
+        buildTile('t4'),
+        buildTile('t5'),
+      ],
+    }));
+    fixture.detectChanges();
+    expect(component.verdictsCount()).toBe(6);
+  });
+
+  it('SF-184-01 T-03 : verdictsCount = 0 quand pas de riskScore et 0 tiles', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: null,
+      riskLevel: null,
+      tiles: [],
+    }));
+    fixture.detectChanges();
+    expect(component.verdictsCount()).toBe(0);
   });
 });
 

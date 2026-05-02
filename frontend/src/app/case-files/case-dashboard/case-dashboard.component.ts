@@ -132,6 +132,18 @@ export class CaseDashboardComponent implements OnInit {
     return d.riskScore == null && (!d.tiles || d.tiles.length === 0);
   });
 
+  /**
+   * F-184 SF-184-01 — Compte total de verdicts disponibles, exposé au parent
+   * (`case-file-detail`) via template ref pour alimenter le count badge du
+   * wrapper `.decisional-summary-panel`. riskScore + tiles génériques.
+   */
+  readonly verdictsCount = computed<number>(() => {
+    const d = this.dashboard();
+    if (!d) return 0;
+    const tilesCount = d.tiles?.length ?? 0;
+    return (d.riskScore != null ? 1 : 0) + tilesCount;
+  });
+
   private readonly destroyRef = inject(DestroyRef);
   private readonly modalService = inject(DecisionToolModalService);
 
