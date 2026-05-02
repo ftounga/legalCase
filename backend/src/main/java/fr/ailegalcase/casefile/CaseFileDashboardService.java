@@ -104,6 +104,24 @@ public class CaseFileDashboardService {
     private final MajeursProtegesRepository majeursProtegesRepo;
     private final ChangementEtatCivilRepository changementEtatCivilRepo;
     private final PmaGpaBioethiqueRepository pmaGpaBioethiqueRepo;
+    // SF-167-04 : repos Immigration FR + BE additionnels (extension à 17 outils Immigration restants).
+    private final OqtfAvecDelaiRepository oqtfAvecDelaiRepo;
+    private final OqtfSansDelaiRepository oqtfSansDelaiRepo;
+    private final ReferesAdminRepository referesAdminRepo;
+    private final AesEtudiantRepository aesEtudiantRepo;
+    private final AesFamilleRepository aesFamilleRepo;
+    private final AesHumanitaireRepository aesHumanitaireRepo;
+    private final AesMetiersTensionRepository aesMetiersTensionRepo;
+    private final AsileAvanceRepository asileAvanceRepo;
+    private final NaturalisationRepository naturalisationRepo;
+    private final RegimeAlgerienRepository regimeAlgerienRepo;
+    private final MineursImmigrationRepository mineursImmigrationRepo;
+    private final MesuresEloignementRepository mesuresEloignementRepo;
+    private final Annexe13BeRepository annexe13BeRepo;
+    private final Belgian9bisRepository belgian9bisRepo;
+    private final Belgian9terRepository belgian9terRepo;
+    private final Belgian40bisRepository belgian40bisRepo;
+    private final Belgian40terRepository belgian40terRepo;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -177,7 +195,24 @@ public class CaseFileDashboardService {
                                      TestamentValiditeRepository testamentValiditeRepo,
                                      MajeursProtegesRepository majeursProtegesRepo,
                                      ChangementEtatCivilRepository changementEtatCivilRepo,
-                                     PmaGpaBioethiqueRepository pmaGpaBioethiqueRepo) {
+                                     PmaGpaBioethiqueRepository pmaGpaBioethiqueRepo,
+                                     OqtfAvecDelaiRepository oqtfAvecDelaiRepo,
+                                     OqtfSansDelaiRepository oqtfSansDelaiRepo,
+                                     ReferesAdminRepository referesAdminRepo,
+                                     AesEtudiantRepository aesEtudiantRepo,
+                                     AesFamilleRepository aesFamilleRepo,
+                                     AesHumanitaireRepository aesHumanitaireRepo,
+                                     AesMetiersTensionRepository aesMetiersTensionRepo,
+                                     AsileAvanceRepository asileAvanceRepo,
+                                     NaturalisationRepository naturalisationRepo,
+                                     RegimeAlgerienRepository regimeAlgerienRepo,
+                                     MineursImmigrationRepository mineursImmigrationRepo,
+                                     MesuresEloignementRepository mesuresEloignementRepo,
+                                     Annexe13BeRepository annexe13BeRepo,
+                                     Belgian9bisRepository belgian9bisRepo,
+                                     Belgian9terRepository belgian9terRepo,
+                                     Belgian40bisRepository belgian40bisRepo,
+                                     Belgian40terRepository belgian40terRepo) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -252,6 +287,23 @@ public class CaseFileDashboardService {
         this.majeursProtegesRepo = majeursProtegesRepo;
         this.changementEtatCivilRepo = changementEtatCivilRepo;
         this.pmaGpaBioethiqueRepo = pmaGpaBioethiqueRepo;
+        this.oqtfAvecDelaiRepo = oqtfAvecDelaiRepo;
+        this.oqtfSansDelaiRepo = oqtfSansDelaiRepo;
+        this.referesAdminRepo = referesAdminRepo;
+        this.aesEtudiantRepo = aesEtudiantRepo;
+        this.aesFamilleRepo = aesFamilleRepo;
+        this.aesHumanitaireRepo = aesHumanitaireRepo;
+        this.aesMetiersTensionRepo = aesMetiersTensionRepo;
+        this.asileAvanceRepo = asileAvanceRepo;
+        this.naturalisationRepo = naturalisationRepo;
+        this.regimeAlgerienRepo = regimeAlgerienRepo;
+        this.mineursImmigrationRepo = mineursImmigrationRepo;
+        this.mesuresEloignementRepo = mesuresEloignementRepo;
+        this.annexe13BeRepo = annexe13BeRepo;
+        this.belgian9bisRepo = belgian9bisRepo;
+        this.belgian9terRepo = belgian9terRepo;
+        this.belgian40bisRepo = belgian40bisRepo;
+        this.belgian40terRepo = belgian40terRepo;
     }
 
     @Transactional(readOnly = true)
@@ -370,6 +422,24 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromMajeursProtegesAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromChangementEtatCivilAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromPmaGpaBioethiqueAnalysis(caseFileId));
+        // ── SF-167-04 — extension Immigration FR + BE ────────────────────────
+        addSafely(tiles, () -> tileFromOqtfAvecDelaiAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromOqtfSansDelaiAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromReferesAdminAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAesEtudiantAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAesFamilleAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAesHumanitaireAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAesMetiersTensionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAsileAvanceAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromNaturalisationAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromRegimeAlgerienAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromMineursImmigrationAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromMesuresEloignementAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAnnexe13BeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromBelgian9bisAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromBelgian9terAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromBelgian40bisAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromBelgian40terAnalysis(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
     }
@@ -1903,6 +1973,390 @@ public class CaseFileDashboardService {
             } catch (Exception ex) {
                 return null;
             }
+        }).orElse(null);
+    }
+
+    // ---- SF-167-04 — Mappers Immigration FR + BE ---------------------------
+
+    /** F-IM-08 OQTF avec délai de départ volontaire (FR). */
+    private DashboardTile tileFromOqtfAvecDelaiAnalysis(UUID caseFileId) {
+        return oqtfAvecDelaiRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), OqtfAvecDelaiResult.class);
+                String alert = switch (r.statutDelaiRecours() == null ? "" : r.statutDelaiRecours()) {
+                    case "DANS_DELAI" -> "OK";
+                    case "URGENT" -> "WARNING";
+                    case "EXPIRE", "FORCLOS" -> "ALERT";
+                    default -> null;
+                };
+                String primary = r.statutDelaiRecours() != null ? r.statutDelaiRecours() : "—";
+                String secondary = r.joursRestantsAvantExpirationDelai() + " j restants";
+                return new DashboardTile(
+                        "F-IM-08-oqtf-avec-delai",
+                        "DELAIS",
+                        "OQTF avec délai",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-08 OQTF sans délai (FR — extrême urgence 48h). */
+    private DashboardTile tileFromOqtfSansDelaiAnalysis(UUID caseFileId) {
+        return oqtfSansDelaiRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), OqtfSansDelaiResult.class);
+                String alert = switch (r.statutDelaiRecours() == null ? "" : r.statutDelaiRecours()) {
+                    case "DANS_DELAI" -> "OK";
+                    case "URGENT" -> "WARNING";
+                    case "EXPIRE", "FORCLOS" -> "ALERT";
+                    default -> "ALERT";
+                };
+                String primary = r.statutDelaiRecours() != null ? r.statutDelaiRecours() : "—";
+                String secondary = r.heuresRestantes() + " h restantes (recours 48h)";
+                return new DashboardTile(
+                        "F-IM-08-oqtf-sans-delai",
+                        "DELAIS",
+                        "OQTF sans délai",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-08 Référés administratifs combinés (FR — L.521-1 + L.521-2 CJA). */
+    private DashboardTile tileFromReferesAdminAnalysis(UUID caseFileId) {
+        return referesAdminRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ReferesAdminResult.class);
+                String alert = mapVerdictRisque(r.verdictRecommandation());
+                String primary = r.verdictRecommandation() != null ? r.verdictRecommandation() : "—";
+                String secondary = "Suspension : " + r.scoreSuccessProbabiliteSuspension()
+                        + "/100 — Liberté : " + r.scoreSuccessProbabiliteLiberte() + "/100";
+                return new DashboardTile(
+                        "F-IM-08-referes-admin",
+                        "DELAIS",
+                        "Référés admin",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-09 AES voie étudiante (FR — circulaire Valls/Darmanin). */
+    private DashboardTile tileFromAesEtudiantAnalysis(UUID caseFileId) {
+        return aesEtudiantRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AesEtudiantResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String primary = r.verdictProbabiliteAcceptation() != null
+                        ? r.verdictProbabiliteAcceptation()
+                        : "—";
+                String secondary = "Score : " + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-IM-09-aes-etudiant",
+                        "DIAGNOSTIC",
+                        "AES — voie étudiante",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-09 AES voie familiale (FR — art. L.435-1 CESEDA). */
+    private DashboardTile tileFromAesFamilleAnalysis(UUID caseFileId) {
+        return aesFamilleRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AesFamilleResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String primary = r.verdictProbabiliteAcceptation() != null
+                        ? r.verdictProbabiliteAcceptation()
+                        : "—";
+                String secondary = "Score : " + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-IM-09-aes-famille",
+                        "DIAGNOSTIC",
+                        "AES — voie familiale",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-09 AES voie humanitaire (FR — art. L.435-2 CESEDA). */
+    private DashboardTile tileFromAesHumanitaireAnalysis(UUID caseFileId) {
+        return aesHumanitaireRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AesHumanitaireResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String primary = r.verdictProbabiliteAcceptation() != null
+                        ? r.verdictProbabiliteAcceptation()
+                        : "—";
+                String motif = r.motifHumanitaireDominant() != null
+                        ? r.motifHumanitaireDominant().name()
+                        : "Score : " + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-IM-09-aes-humanitaire",
+                        "DIAGNOSTIC",
+                        "AES — voie humanitaire",
+                        primary,
+                        motif,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-09 AES métier en tension (FR — art. L.435-4 CESEDA). */
+    private DashboardTile tileFromAesMetiersTensionAnalysis(UUID caseFileId) {
+        return aesMetiersTensionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AesMetiersTensionResult.class);
+                String primary = r.conditionsReunies() ? "ELIGIBLE" : "NON_ELIGIBLE";
+                String alert = r.conditionsReunies() ? "OK" : "ALERT";
+                String secondary = r.metierEstEnTension()
+                        ? "Métier en tension : " + (r.codeMetier() != null ? r.codeMetier() : "—")
+                        : "Métier hors liste tension";
+                return new DashboardTile(
+                        "F-IM-09-aes-metiers-tension",
+                        "DIAGNOSTIC",
+                        "AES — métiers en tension",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-12 Asile avancé (FR — CESEDA Livre V). */
+    private DashboardTile tileFromAsileAvanceAnalysis(UUID caseFileId) {
+        return asileAvanceRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AsileAvanceResult.class);
+                String verdict = r.verdictRecevabilite();
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "FRANCE_COMPETENTE", "RECEVABLE_REEXAMEN", "RECEVABLE_TRANSFERT",
+                         "RECEVABLE_APATRIDIE", "RECEVABLE_PROTECTION_SUBSIDIAIRE" -> "OK";
+                    case "ACCELEREE_APPLICABLE" -> "WARNING";
+                    case "IRRECEVABLE", "ACCELEREE_NON_APPLICABLE" -> "ALERT";
+                    default -> null;
+                };
+                String primary = verdict != null ? verdict : "—";
+                String secondary = r.dispositifLibelle() != null
+                        ? r.dispositifLibelle() + " — " + r.delaiInstructionMois() + " mois"
+                        : r.delaiInstructionMois() + " mois";
+                return new DashboardTile(
+                        "F-IM-12-asile-avance",
+                        "DIAGNOSTIC",
+                        "Asile avancé",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-13 Naturalisation française (Code civil 21+). */
+    private DashboardTile tileFromNaturalisationAnalysis(UUID caseFileId) {
+        return naturalisationRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), NaturalisationResult.class);
+                String alert = mapVerdictRisque(r.verdictRecevabilite());
+                String primary = r.verdictRecevabilite() != null ? r.verdictRecevabilite() : "—";
+                String secondary = (r.voieRecommandee() != null ? r.voieRecommandee() : r.voieNaturalisation())
+                        + " — " + r.delaiInstructionMois() + " mois";
+                return new DashboardTile(
+                        "F-IM-13-naturalisation",
+                        "DIAGNOSTIC",
+                        "Naturalisation",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-17 Régime franco-algérien (accord 27/12/1968). */
+    private DashboardTile tileFromRegimeAlgerienAnalysis(UUID caseFileId) {
+        return regimeAlgerienRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RegimeAlgerienResult.class);
+                String alert = mapVerdictRisque(r.verdictRecevabilite());
+                String primary = r.verdictRecevabilite() != null ? r.verdictRecevabilite() : "—";
+                String secondary = (r.voieRecommandee() != null ? r.voieRecommandee() : r.voieDemande())
+                        + (r.dureeTitreAnnees() > 0 ? " — CRA " + r.dureeTitreAnnees() + " an(s)" : "");
+                return new DashboardTile(
+                        "F-IM-17-regime-algerien",
+                        "DIAGNOSTIC",
+                        "Régime algérien",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-19 Mineurs étrangers (FR). */
+    private DashboardTile tileFromMineursImmigrationAnalysis(UUID caseFileId) {
+        return mineursImmigrationRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), MineursImmigrationResult.class);
+                String alert = mapVerdictRisque(r.verdictEligibilite());
+                String primary = r.verdictEligibilite() != null ? r.verdictEligibilite() : "—";
+                String dispositif = r.dispositifRecommande() != null
+                        ? r.dispositifRecommande()
+                        : r.dispositifVise();
+                String secondary = (dispositif != null ? dispositif + " — " : "")
+                        + r.ageAnnees() + " ans";
+                return new DashboardTile(
+                        "F-IM-19-mineurs-immigration",
+                        "DIAGNOSTIC",
+                        "Mineurs étrangers",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-20 Mesures d'éloignement (FR — Expulsion / IRTF / IAT). */
+    private DashboardTile tileFromMesuresEloignementAnalysis(UUID caseFileId) {
+        return mesuresEloignementRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), MesuresEloignementResult.class);
+                String verdict = r.verdictLegalite();
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "VALIDE" -> "OK";
+                    case "CONTESTABLE" -> "WARNING";
+                    case "NUL", "INVALIDE" -> "ALERT";
+                    default -> null;
+                };
+                String primary = verdict != null ? verdict : "—";
+                String secondary = (r.dispositifRecommande() != null ? r.dispositifRecommande() + " — " : "")
+                        + "Recours " + r.delaiRecoursJours() + " j (" + r.juridictionRecours() + ")";
+                return new DashboardTile(
+                        "F-IM-20-mesures-eloignement",
+                        "DELAIS",
+                        "Mesures d'éloignement",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-08 Annexe 13 — ordre de quitter le territoire belge (BE). */
+    private DashboardTile tileFromAnnexe13BeAnalysis(UUID caseFileId) {
+        return annexe13BeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), Annexe13BeResult.class);
+                String alert = switch (r.statutRecoursAnnulation() == null ? "" : r.statutRecoursAnnulation()) {
+                    case "DANS_DELAI" -> "OK";
+                    case "URGENT" -> "WARNING";
+                    case "EXPIRE", "FORCLOS" -> "ALERT";
+                    default -> null;
+                };
+                String primary = r.statutRecoursAnnulation() != null ? r.statutRecoursAnnulation() : "—";
+                String secondary = r.joursRestantsAvantExpirationAnnulation() + " j restants — délai départ "
+                        + r.delaiDepartImposeJours() + " j";
+                return new DashboardTile(
+                        "F-IM-08-annexe13-be",
+                        "DOCUMENTS",
+                        "Annexe 13 BE",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-14 9bis humanitaire BE (art. 9bis Loi 15/12/1980). */
+    private DashboardTile tileFromBelgian9bisAnalysis(UUID caseFileId) {
+        return belgian9bisRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), Belgian9bisResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabilite());
+                String primary = r.verdictProbabilite() != null ? r.verdictProbabilite() : "—";
+                String secondary = "Score : " + r.scoreGlobal() + "/100 — présence "
+                        + r.dureePresenceMois() + " mois";
+                return new DashboardTile(
+                        "F-IM-14-9bis-humanitaire-be",
+                        "DIAGNOSTIC",
+                        "9bis humanitaire BE",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-14 9ter médical BE (art. 9ter Loi 15/12/1980). */
+    private DashboardTile tileFromBelgian9terAnalysis(UUID caseFileId) {
+        return belgian9terRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), Belgian9terResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String primary = r.verdictProbabiliteAcceptation() != null
+                        ? r.verdictProbabiliteAcceptation()
+                        : "—";
+                String secondary = "Score : " + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-IM-14-9ter-medical-be",
+                        "DIAGNOSTIC",
+                        "9ter médical BE",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-14 40bis cohabitant UE BE (art. 40bis Loi 15/12/1980). */
+    private DashboardTile tileFromBelgian40bisAnalysis(UUID caseFileId) {
+        return belgian40bisRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), Belgian40bisResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabilite());
+                String primary = r.verdictProbabilite() != null ? r.verdictProbabilite() : "—";
+                String secondary = (r.lienFamilial() != null ? r.lienFamilial() + " — " : "")
+                        + "Score : " + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-IM-14-40bis-cohabitant-ue-be",
+                        "DIAGNOSTIC",
+                        "40bis cohabitant UE BE",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
+        }).orElse(null);
+    }
+
+    /** F-IM-14 40ter familial Belge BE (art. 40ter Loi 15/12/1980). */
+    private DashboardTile tileFromBelgian40terAnalysis(UUID caseFileId) {
+        return belgian40terRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), Belgian40terResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String primary = r.verdictProbabiliteAcceptation() != null
+                        ? r.verdictProbabiliteAcceptation()
+                        : "—";
+                String revenus = r.revenusMensuelsNetsEur() != null
+                        ? formatEuros(r.revenusMensuelsNetsEur()) + " €/mois"
+                        : "—";
+                String secondary = (r.lienFamilial() != null ? r.lienFamilial() + " — " : "")
+                        + "Revenus : " + revenus;
+                return new DashboardTile(
+                        "F-IM-14-40ter-familial-belge-be",
+                        "DIAGNOSTIC",
+                        "40ter familial Belge BE",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) { return null; }
         }).orElse(null);
     }
 
