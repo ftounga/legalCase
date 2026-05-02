@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit, OnDestroy, PLATFORM_ID, signal, computed } from '@angular/core';
+import { Component, AfterViewInit, ViewEncapsulation, inject, OnInit, OnDestroy, PLATFORM_ID, signal, computed, ElementRef, ViewChild } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
@@ -64,6 +64,10 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
     )
   );
 
+  @ViewChild('videoScroller') videoScrollerRef?: ElementRef<HTMLDivElement>;
+  readonly atStart = signal(true);
+  readonly atEnd = signal(false);
+
   selectVideo(videoId: string): void {
     this.selectedVideoId.set(videoId);
   }
@@ -72,6 +76,24 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
     // hqdefault.jpg (480x360) existe pour 100% des vidéos YouTube.
     // maxresdefault peut renvoyer 404 selon la résolution d'upload → évité.
     return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  }
+
+  scrollPrev(): void { this.scrollByThumb(-1); }
+  scrollNext(): void { this.scrollByThumb(1); }
+
+  onScrollerScroll(): void {
+    const el = this.videoScrollerRef?.nativeElement;
+    if (!el) return;
+    this.atStart.set(el.scrollLeft <= 1);
+    this.atEnd.set(el.scrollLeft + el.clientWidth >= el.scrollWidth - 1);
+  }
+
+  private scrollByThumb(direction: 1 | -1): void {
+    const el = this.videoScrollerRef?.nativeElement;
+    if (!el) return;
+    const thumb = el.querySelector('.video-thumb') as HTMLElement | null;
+    const step = thumb ? thumb.offsetWidth + 16 : el.clientWidth * 0.8;
+    el.scrollBy({ left: direction * step, behavior: 'smooth' });
   }
 
   ngOnInit(): void {
@@ -125,6 +147,9 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
+
+    // Initial carousel edge state (atEnd peut être true si toutes les vidéos rentrent)
+    queueMicrotask(() => this.onScrollerScroll());
 
     // Scroll animations
     const observer = new IntersectionObserver(entries => {

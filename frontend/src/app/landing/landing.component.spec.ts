@@ -82,4 +82,22 @@ describe('LandingComponent', () => {
     expect(firstThumb?.classList.contains('video-thumb--active')).toBe(true);
     expect(firstThumb?.getAttribute('aria-pressed')).toBe('true');
   });
+
+  it('expose les boutons de navigation prev/next du carrousel', () => {
+    const prev = fixture.nativeElement.querySelector('.video-carousel-arrow--prev');
+    const next = fixture.nativeElement.querySelector('.video-carousel-arrow--next');
+    expect(prev).toBeTruthy();
+    expect(next).toBeTruthy();
+    expect(prev?.getAttribute('aria-label')).toBe('Vidéos précédentes');
+    expect(next?.getAttribute('aria-label')).toBe('Vidéos suivantes');
+  });
+
+  it('atStart est vrai au démarrage (carrousel en début)', () => {
+    expect(component.atStart()).toBe(true);
+  });
+
+  it('le bouton prev est disabled au démarrage', () => {
+    const prev = fixture.nativeElement.querySelector('.video-carousel-arrow--prev');
+    expect(prev?.hasAttribute('disabled')).toBe(true);
+  });
 });

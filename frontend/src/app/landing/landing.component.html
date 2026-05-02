@@ -68,7 +68,7 @@
       Démo
     </div>
     <h2 class="section-title">Voyez AI LegalCase en action</h2>
-    <p class="section-sub">Trois cas d'usage concrets, du licenciement à l'indemnisation.</p>
+    <p class="section-sub">Cinq cas d'usage concrets, du droit du travail au droit de l'immigration.</p>
   </div>
   <div class="video-container fade-in">
     <iframe
@@ -79,31 +79,53 @@
       allowfullscreen>
     </iframe>
   </div>
-  <div class="video-thumbnails fade-in">
-    @for (video of videos; track video.videoId) {
-      <button
-        class="video-thumb"
-        [class.video-thumb--active]="selectedVideoId() === video.videoId"
-        [attr.aria-pressed]="selectedVideoId() === video.videoId"
-        [attr.aria-label]="'Lire : ' + video.title"
-        (click)="selectVideo(video.videoId)">
-        <div class="video-thumb-image">
-          <img
-            [src]="videoThumbnailUrl(video.videoId)"
-            [alt]="video.title"
-            loading="lazy">
-          <div class="video-thumb-play">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <polygon points="7,5 16,10 7,15" fill="currentColor"/>
-            </svg>
+  <div class="video-carousel fade-in">
+    <button
+      type="button"
+      class="video-carousel-arrow video-carousel-arrow--prev"
+      [disabled]="atStart()"
+      (click)="scrollPrev()"
+      aria-label="Vidéos précédentes">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M12 4l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div #videoScroller class="video-thumbnails" (scroll)="onScrollerScroll()">
+      @for (video of videos; track video.videoId) {
+        <button
+          class="video-thumb"
+          [class.video-thumb--active]="selectedVideoId() === video.videoId"
+          [attr.aria-pressed]="selectedVideoId() === video.videoId"
+          [attr.aria-label]="'Lire : ' + video.title"
+          (click)="selectVideo(video.videoId)">
+          <div class="video-thumb-image">
+            <img
+              [src]="videoThumbnailUrl(video.videoId)"
+              [alt]="video.title"
+              loading="lazy">
+            <div class="video-thumb-play">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <polygon points="7,5 16,10 7,15" fill="currentColor"/>
+              </svg>
+            </div>
           </div>
-        </div>
-        <div class="video-thumb-text">
-          <div class="video-thumb-title">{{ video.title }}</div>
-          <div class="video-thumb-subtitle">{{ video.subtitle }}</div>
-        </div>
-      </button>
-    }
+          <div class="video-thumb-text">
+            <div class="video-thumb-title">{{ video.title }}</div>
+            <div class="video-thumb-subtitle">{{ video.subtitle }}</div>
+          </div>
+        </button>
+      }
+    </div>
+    <button
+      type="button"
+      class="video-carousel-arrow video-carousel-arrow--next"
+      [disabled]="atEnd()"
+      (click)="scrollNext()"
+      aria-label="Vidéos suivantes">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M8 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
   </div>
 </section>
 
