@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="200-extend-backlog-marketing-category" author="ailegalcase">
+        <comment>
+            F-178 SF-178-01 fix : étendre backlog_marketing_tasks.category de VARCHAR(64)
+            à VARCHAR(255). Constaté en staging 2026-05-02 : le heading
+            "🎯 Stratégie acquisition 13 000 € — Plan B-dynamique (cadré par M-71)"
+            de MARKETING_BACKLOG.md fait 77 chars et provoque un
+            DataIntegrityViolationException qui rollback toute la transaction de sync,
+            laissant la DB backlog vide même quand les MD sont accessibles.
+        </comment>
+        <modifyDataType tableName="backlog_marketing_tasks"
+                        columnName="category"
+                        newDataType="VARCHAR(255)"/>
+    </changeSet>
+
+</databaseChangeLog>
