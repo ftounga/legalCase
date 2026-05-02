@@ -1,7 +1,8 @@
-// F-177 SF-177-09 : SCSS allégé — les styles `.dash-card` (background, border,
-// shadow, alert variants, value/label/sub typo, progress-mini bar) sont désormais
-// portés par <app-decision-tool-card> (SF-177-01). Ne reste ici que le cadre
-// dashboard (titre + grid wrapper).
+// F-177 SF-177-09 / F-167 SF-167-05 : SCSS allégé. Les styles `.dash-card`
+// (background, border, shadow, alert variants, value/label/sub typo,
+// progress-mini bar) sont portés par <app-decision-tool-card> (SF-177-01).
+// Ne reste ici que le cadre dashboard (titre + sections thématiques + état
+// vide) — SF-167-05.
 
 .dash-loading {
   display: flex;
@@ -32,19 +33,42 @@
   color: #C9973A;
 }
 
-.dash-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+// F-167 SF-167-05 — riskScore en pleine largeur, espacement avant les
+// sections thématiques.
+.risk-score-row {
+  margin-bottom: 24px;
+
+  app-decision-tool-card {
+    display: block;
+    max-width: 360px;
+  }
 }
 
-// F-167 SF-167-01 : grid pour les tiles génériques (`<app-dashboard-tile>`).
-// Responsive : 1 col < 768px, 2 cols < 1280px, 3 cols sinon.
-.generic-tiles-grid {
+// F-167 SF-167-05 — Sections thématiques (un thème = une section avec titre).
+.theme-section {
+  margin-top: 24px;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+}
+
+.theme-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #1A3A5C;
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #E5E9EE;
+}
+
+.theme-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
-  margin-top: 16px;
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
@@ -53,4 +77,33 @@
   @media (min-width: 1280px) {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+// F-167 SF-167-05 — État vide ("Aucun outil exécuté pour ce dossier").
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  color: #6B7A8D;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  background: #F8F9FB;
+  border: 1px dashed #D4D9E0;
+  border-radius: 8px;
+}
+
+.empty-state-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: #B0B7BF;
+  margin-bottom: 8px;
+}
+
+.empty-state-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
 }

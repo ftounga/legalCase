@@ -327,15 +327,6 @@ public class CaseFileDashboardService {
 
         return new CaseFileDashboardResponse(
                 caseFileId, cf.getLegalDomain(), riskScore, riskLevel,
-                buildLicenciement(caseFileId),
-                buildIndemnite(caseFileId),
-                buildAnciennete(caseFileId),
-                buildTitleDecision(caseFileId),
-                buildWorkRight(caseFileId),
-                buildRecours(caseFileId),
-                buildPartage(caseFileId),
-                buildGarde(caseFileId),
-                buildDivorce(caseFileId),
                 assembleTiles(caseFileId)
         );
     }
@@ -477,22 +468,53 @@ public class CaseFileDashboardService {
     }
 
     private DashboardTile tileFromIndemniteComparatifAnalysis(UUID caseFileId) {
-        // Réutilise la logique éprouvée de buildIndemnite() pour préserver la
-        // priorité RuptureConv > Macron observée par SF-132-02. SF-167-05 fera
-        // converger vers une lecture directe.
-        var summary = buildIndemnite(caseFileId);
-        if (summary == null) {
-            return null;
+        // F-167 SF-167-05 — lecture directe (logique précédemment hébergée dans
+        // buildIndemnite() supprimé). Préserve la priorité RuptureConv > Macron
+        // observée par SF-132-02 : si une analyse "Indemnité rupture
+        // conventionnelle" existe, elle prime sur la fourchette Macron
+        // (laquelle retournerait 0—0 € sur ce type de dossier).
+        BigDecimal basse;
+        BigDecimal haute;
+        String baremeSource;
+
+        var ruptureConvOpt = ruptureConvIndemniteRepo.findByCaseFileId(caseFileId);
+        if (ruptureConvOpt.isPresent()) {
+            try {
+                var r = objectMapper.readValue(ruptureConvOpt.get().getResultData(), RuptureConvIndemniteResult.class);
+                basse = r.indemniteLegaleMinimum();
+                haute = r.indemniteLegaleMinimum();
+                baremeSource = "Indemnité légale de licenciement (art. R1234-2)";
+            } catch (Exception ex) {
+                return null;
+            }
+        } else {
+            var indemniteOpt = indemniteRepo.findByCaseFileId(caseFileId);
+            if (indemniteOpt.isEmpty()) {
+                return null;
+            }
+            try {
+                var r = objectMapper.readValue(indemniteOpt.get().getResultData(), IndemniteComparatifResult.class);
+                // SF-132-03 : legacy NEGOCIATION_LIBRE (rupture amiable BE) —
+                // la card avait affiché "0 — 0 €" à tort avant la refonte.
+                // L'outil dédié vit désormais côté frontend.
+                if ("NEGOCIATION_LIBRE".equals(r.displayMode())) {
+                    return null;
+                }
+                basse = r.fourchetteBasseMontant();
+                haute = r.fourhetteHauteMontant();
+                baremeSource = r.baremeSource();
+            } catch (Exception ex) {
+                return null;
+            }
         }
-        BigDecimal basse = summary.fourchetteBasse();
-        BigDecimal haute = summary.fourhetteHaute();
+
         String primary = formatEuros(basse) + " – " + formatEuros(haute) + " €";
         return new DashboardTile(
                 "F-DT-09-comparateur-indemnites",
                 "INDEMNITES",
                 "Indemnités",
                 primary,
-                summary.baremeSource(),
+                baremeSource,
                 null);
     }
 
@@ -1181,7 +1203,8 @@ public class CaseFileDashboardService {
     /**
      * F-132 Indemnité légale de rupture conventionnelle (FR).
      * Réutilise le repo {@code ruptureConvIndemniteRepo} déjà injecté pour la
-     * priorité de {@link #buildIndemnite(UUID)}.
+     * priorité RuptureConv > Macron de
+     * {@link #tileFromIndemniteComparatifAnalysis(UUID)}.
      */
     private DashboardTile tileFromRuptureConvIndemniteAnalysis(UUID caseFileId) {
         return ruptureConvIndemniteRepo.findByCaseFileId(caseFileId).map(e -> {
@@ -2382,113 +2405,4 @@ public class CaseFileDashboardService {
                 .format(amount.setScale(0, java.math.RoundingMode.HALF_UP));
     }
 
-    private CaseFileDashboardResponse.LicenciementSummary buildLicenciement(UUID caseFileId) {
-        return licenciementRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var r = objectMapper.readValue(e.getResultData(), LicenciementAnalysisResult.class);
-                int nonConformes = (int) r.criteres().stream().filter(c -> "NON".equals(c.reponse())).count();
-                return new CaseFileDashboardResponse.LicenciementSummary(r.scoreRisque(), r.verdict(), nonConformes, r.criteres().size());
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.IndemniteSummary buildIndemnite(UUID caseFileId) {
-        // SF-132-02 : si une analyse "Indemnité rupture conventionnelle" existe,
-        // elle prime sur la fourchette Macron (laquelle retournerait 0—0 € sur
-        // ce type de dossier). Évite la card dashboard trompeuse "0 — 0 €"
-        // observée sur le dossier E28.
-        var ruptureConv = ruptureConvIndemniteRepo.findByCaseFileId(caseFileId)
-                .map(e -> {
-                    try {
-                        var r = objectMapper.readValue(e.getResultData(), RuptureConvIndemniteResult.class);
-                        return new CaseFileDashboardResponse.IndemniteSummary(
-                                "FRANCE",
-                                r.indemniteLegaleMinimum(),
-                                r.indemniteLegaleMinimum(),
-                                "Indemnité légale de licenciement (art. R1234-2)");
-                    } catch (Exception ex) { return null; }
-                }).orElse(null);
-        if (ruptureConv != null) return ruptureConv;
-
-        return indemniteRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var r = objectMapper.readValue(e.getResultData(), IndemniteComparatifResult.class);
-                // SF-132-03 : legacy NEGOCIATION_LIBRE (rupture amiable BE) — la
-                // card avait affiché "0 — 0 €" à tort avant la refonte. L'outil
-                // dédié vit désormais côté frontend (rupture-amiable-info-section).
-                if ("NEGOCIATION_LIBRE".equals(r.displayMode())) return null;
-                return new CaseFileDashboardResponse.IndemniteSummary(r.country(), r.fourchetteBasseMontant(), r.fourhetteHauteMontant(), r.baremeSource());
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.AncienneteSummary buildAnciennete(UUID caseFileId) {
-        return ancienneteRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var r = objectMapper.readValue(e.getResultData(), AncienneteResult.class);
-                int ecarts = (int) r.ecarts().stream().filter(ec -> "ECART".equals(ec.verdict())).count();
-                return new CaseFileDashboardResponse.AncienneteSummary(r.ancienneteAnnees(), r.ancienneteMois(), r.congesTotalJours(), ecarts);
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.TitleDecisionSummary buildTitleDecision(UUID caseFileId) {
-        return titleDecisionRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var recs = objectMapper.readValue(e.getRecommendedTitles(),
-                        objectMapper.getTypeFactory().constructCollectionType(java.util.List.class, TitleRecommendation.class));
-                var list = (java.util.List<TitleRecommendation>) recs;
-                return new CaseFileDashboardResponse.TitleDecisionSummary(list.size(), list.isEmpty() ? null : list.get(0).label());
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.WorkRightSummary buildWorkRight(UUID caseFileId) {
-        return workRightRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var r = objectMapper.readValue(e.getResultData(), WorkRightResult.class);
-                return new CaseFileDashboardResponse.WorkRightSummary(r.droitTravail(), r.titreLabel());
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.RecoursSummary buildRecours(UUID caseFileId) {
-        return recoursRepo.findByCaseFileId(caseFileId).map(e -> {
-            var type = ImmigrationRecoursReferentiel.getByCode(e.getRecoursType());
-            return new CaseFileDashboardResponse.RecoursSummary(
-                    type != null ? type.label() : e.getRecoursType(),
-                    e.getDateLimite() != null ? e.getDateLimite().toString() : null,
-                    e.getDateLimite() != null && java.time.LocalDate.now().isAfter(e.getDateLimite()));
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.PartageSummary buildPartage(UUID caseFileId) {
-        return partageRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var r = objectMapper.readValue(e.getResultData(), PartageImmobilierResult.class);
-                return new CaseFileDashboardResponse.PartageSummary(r.soulte(), r.coutTotal());
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.GardeSummary buildGarde(UUID caseFileId) {
-        return gardeRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var r = objectMapper.readValue(e.getResultData(), CalendrierGardeResult.class);
-                return new CaseFileDashboardResponse.GardeSummary(r.gardeLabel(), r.joursParAnParentA(), r.joursParAnParentB());
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
-
-    private CaseFileDashboardResponse.DivorceSummary buildDivorce(UUID caseFileId) {
-        return divorceRepo.findByCaseFileId(caseFileId).map(e -> {
-            try {
-                var r = objectMapper.readValue(e.getResultData(), DivorceChecklistResult.class);
-                int total = r.etapesTotal() + r.piecesTotal();
-                int done = r.etapesCompletees() + r.piecesPresentes();
-                int pct = total > 0 ? (done * 100) / total : 0;
-                return new CaseFileDashboardResponse.DivorceSummary(r.etapesCompletees(), r.etapesTotal(), r.piecesPresentes(), r.piecesTotal(), pct);
-            } catch (Exception ex) { return null; }
-        }).orElse(null);
-    }
 }
