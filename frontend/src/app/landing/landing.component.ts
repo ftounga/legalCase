@@ -33,6 +33,11 @@ export const DEMO_VIDEOS: DemoVideo[] = [
     title: 'Démo droit du travail',
     subtitle: 'Un dossier analysé de bout en bout : synthèse, procédure, indemnités',
   },
+  {
+    videoId: 'Qh3hAO75xMk',
+    title: 'Démo droit de l\'immigration',
+    subtitle: 'Un dossier analysé de bout en bout : titre de séjour, recours, pièces',
+  },
 ];
 
 @Component({
