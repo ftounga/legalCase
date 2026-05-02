@@ -123,6 +123,7 @@ public class SuperAdminService {
     }
 
     /** Resolves the caller and throws 403 if not super-admin. Reusable by controller-level guards. */
+    @Transactional(readOnly = true)
     public User assertSuperAdmin(OidcUser oidcUser, String provider) {
         User user = authAccountRepository
                 .findByProviderAndProviderUserId(provider, oidcUser.getSubject())
