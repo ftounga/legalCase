@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,8 +106,15 @@ public class BacklogSyncService {
     }
 
     private int upsertFeatures(List<ParsedFeature> parsed, Instant parsedAt) {
+        // Dédupliquer en gardant la dernière occurrence — cohérent avec le
+        // warning "last occurrence wins" émis par le parser sur les doublons
+        // de codes dans le MD source. Sans ça, deux entrées avec le même code
+        // dans la même transaction provoquent une violation de uk_..._code.
+        Map<String, ParsedFeature> deduplicated = new LinkedHashMap<>();
+        for (ParsedFeature p : parsed) deduplicated.put(p.code(), p);
+
         Set<String> seenCodes = new HashSet<>();
-        for (ParsedFeature p : parsed) {
+        for (ParsedFeature p : deduplicated.values()) {
             seenCodes.add(p.code());
             BacklogFeatureEntity entity = featureRepository.findByCode(p.code())
                     .orElseGet(BacklogFeatureEntity::new);
@@ -128,11 +136,14 @@ public class BacklogSyncService {
     }
 
     private int upsertSubfeatures(List<ParsedSubfeature> parsed, Instant parsedAt) {
+        Map<String, ParsedSubfeature> deduplicated = new LinkedHashMap<>();
+        for (ParsedSubfeature p : parsed) deduplicated.put(p.code(), p);
+
         Set<String> seenCodes = new HashSet<>();
         Map<String, UUID> featureIdByCode = featureRepository.findAll().stream()
                 .collect(Collectors.toMap(BacklogFeatureEntity::getCode, BacklogFeatureEntity::getId, (a, b) -> a));
 
-        for (ParsedSubfeature p : parsed) {
+        for (ParsedSubfeature p : deduplicated.values()) {
             UUID parentId = featureIdByCode.get(p.parentFeatureCode());
             if (parentId == null) {
                 log.debug("Subfeature {} references unknown parent {} — skip", p.code(), p.parentFeatureCode());
@@ -157,8 +168,11 @@ public class BacklogSyncService {
     }
 
     private int upsertMarketingTasks(List<ParsedMarketingTask> parsed, Instant parsedAt) {
+        Map<String, ParsedMarketingTask> deduplicated = new LinkedHashMap<>();
+        for (ParsedMarketingTask p : parsed) deduplicated.put(p.code(), p);
+
         Set<String> seenCodes = new HashSet<>();
-        for (ParsedMarketingTask p : parsed) {
+        for (ParsedMarketingTask p : deduplicated.values()) {
             seenCodes.add(p.code());
             BacklogMarketingTaskEntity entity = marketingRepository.findByCode(p.code())
                     .orElseGet(BacklogMarketingTaskEntity::new);

@@ -88,6 +88,26 @@ class BacklogSyncServiceTest {
     }
 
     @Test
+    void duplicateFeatureCodeKeepsLastOccurrenceWithoutFailing() throws IOException {
+        String specWithDuplicate = """
+                # PRODUCT SPEC
+                ### Features métier — Droit du travail
+                | ID | Feature | Cible | Notes |
+                |----|---------|-------|-------|
+                | F-DT-08 | First occurrence | V1 — **Terminée** | first |
+                | F-DT-08 | Second occurrence | V2 — **En cours** | second |
+                """;
+        testPaths.writeProductSpec(specWithDuplicate);
+
+        BacklogDtos.BacklogSyncResult result = syncService.sync(SyncTrigger.MANUAL);
+
+        assertThat(result.success()).isTrue();
+        assertThat(featureRepository.count()).isEqualTo(1);
+        BacklogFeatureEntity persisted = featureRepository.findByCode("F-DT-08").orElseThrow();
+        assertThat(persisted.getTitle()).isEqualTo("Second occurrence");
+    }
+
+    @Test
     void missingFileFailsRunWithExceptionAndPersistsAuditRow() throws IOException {
         Files.deleteIfExists(testPaths.productSpecPath());
 
