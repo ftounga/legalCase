@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe, LowerCasePipe } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
@@ -27,7 +27,7 @@ interface WorkspaceRow extends SuperAdminWorkspace {
   selector: 'app-super-admin',
   standalone: true,
   imports: [
-    DatePipe, DecimalPipe, LowerCasePipe,
+    DatePipe, DecimalPipe, LowerCasePipe, RouterLink,
     MatCardModule, MatTableModule, MatButtonModule,
     MatIconModule, MatProgressSpinnerModule, MatPaginatorModule, MatDialogModule
   ],

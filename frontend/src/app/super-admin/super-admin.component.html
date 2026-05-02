@@ -1,5 +1,11 @@
 <div class="super-admin-page">
-  <h1 class="page-title">Super-administration</h1>
+  <div class="page-header">
+    <h1 class="page-title">Super-administration</h1>
+    <a mat-stroked-button routerLink="/super-admin/backlog" class="backlog-link">
+      <mat-icon>list_alt</mat-icon>
+      <span>Backlog</span>
+    </a>
+  </div>
 
   @if (loading()) {
     <div class="loading-center">
