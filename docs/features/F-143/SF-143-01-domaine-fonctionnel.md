@@ -10,7 +10,7 @@
 
 ## Statut
 
-`draft`
+`Terminée` (mergée PR #743 + déployée prod 2026-05-02, validation bout-en-bout opérateur OK)
 
 ## Date de création
 
