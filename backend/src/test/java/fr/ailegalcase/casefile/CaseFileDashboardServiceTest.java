@@ -107,6 +107,24 @@ class CaseFileDashboardServiceTest {
     private MajeursProtegesRepository majeursProtegesRepo;
     private ChangementEtatCivilRepository changementEtatCivilRepo;
     private PmaGpaBioethiqueRepository pmaGpaBioethiqueRepo;
+    // SF-167-04 — Immigration FR + BE
+    private OqtfAvecDelaiRepository oqtfAvecDelaiRepo;
+    private OqtfSansDelaiRepository oqtfSansDelaiRepo;
+    private ReferesAdminRepository referesAdminRepo;
+    private AesEtudiantRepository aesEtudiantRepo;
+    private AesFamilleRepository aesFamilleRepo;
+    private AesHumanitaireRepository aesHumanitaireRepo;
+    private AesMetiersTensionRepository aesMetiersTensionRepo;
+    private AsileAvanceRepository asileAvanceRepo;
+    private NaturalisationRepository naturalisationRepo;
+    private RegimeAlgerienRepository regimeAlgerienRepo;
+    private MineursImmigrationRepository mineursImmigrationRepo;
+    private MesuresEloignementRepository mesuresEloignementRepo;
+    private Annexe13BeRepository annexe13BeRepo;
+    private Belgian9bisRepository belgian9bisRepo;
+    private Belgian9terRepository belgian9terRepo;
+    private Belgian40bisRepository belgian40bisRepo;
+    private Belgian40terRepository belgian40terRepo;
 
     private CaseFileDashboardService service;
 
@@ -181,6 +199,23 @@ class CaseFileDashboardServiceTest {
         majeursProtegesRepo = mock(MajeursProtegesRepository.class);
         changementEtatCivilRepo = mock(ChangementEtatCivilRepository.class);
         pmaGpaBioethiqueRepo = mock(PmaGpaBioethiqueRepository.class);
+        oqtfAvecDelaiRepo = mock(OqtfAvecDelaiRepository.class);
+        oqtfSansDelaiRepo = mock(OqtfSansDelaiRepository.class);
+        referesAdminRepo = mock(ReferesAdminRepository.class);
+        aesEtudiantRepo = mock(AesEtudiantRepository.class);
+        aesFamilleRepo = mock(AesFamilleRepository.class);
+        aesHumanitaireRepo = mock(AesHumanitaireRepository.class);
+        aesMetiersTensionRepo = mock(AesMetiersTensionRepository.class);
+        asileAvanceRepo = mock(AsileAvanceRepository.class);
+        naturalisationRepo = mock(NaturalisationRepository.class);
+        regimeAlgerienRepo = mock(RegimeAlgerienRepository.class);
+        mineursImmigrationRepo = mock(MineursImmigrationRepository.class);
+        mesuresEloignementRepo = mock(MesuresEloignementRepository.class);
+        annexe13BeRepo = mock(Annexe13BeRepository.class);
+        belgian9bisRepo = mock(Belgian9bisRepository.class);
+        belgian9terRepo = mock(Belgian9terRepository.class);
+        belgian40bisRepo = mock(Belgian40bisRepository.class);
+        belgian40terRepo = mock(Belgian40terRepository.class);
 
         // Default empties — chaque test surcharge ce qu'il a besoin.
         when(licenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -252,6 +287,23 @@ class CaseFileDashboardServiceTest {
         when(majeursProtegesRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(changementEtatCivilRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
         when(pmaGpaBioethiqueRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(oqtfAvecDelaiRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(oqtfSansDelaiRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(referesAdminRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(aesEtudiantRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(aesFamilleRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(aesHumanitaireRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(aesMetiersTensionRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(asileAvanceRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(naturalisationRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(regimeAlgerienRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(mineursImmigrationRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(mesuresEloignementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(annexe13BeRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(belgian9bisRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(belgian9terRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(belgian40bisRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
+        when(belgian40terRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
 
         service = new CaseFileDashboardService(
                 objectMapper,
@@ -284,7 +336,13 @@ class CaseFileDashboardServiceTest {
                 donationRepo, indivisionSuccessoraleRepo, partageSuccessoralRepo,
                 rapportSuccessionRepo, reserveHereditaireRepo,
                 testamentValiditeRepo, majeursProtegesRepo,
-                changementEtatCivilRepo, pmaGpaBioethiqueRepo);
+                changementEtatCivilRepo, pmaGpaBioethiqueRepo,
+                oqtfAvecDelaiRepo, oqtfSansDelaiRepo, referesAdminRepo,
+                aesEtudiantRepo, aesFamilleRepo, aesHumanitaireRepo,
+                aesMetiersTensionRepo, asileAvanceRepo, naturalisationRepo,
+                regimeAlgerienRepo, mineursImmigrationRepo, mesuresEloignementRepo,
+                annexe13BeRepo, belgian9bisRepo, belgian9terRepo,
+                belgian40bisRepo, belgian40terRepo);
     }
 
     @Test
@@ -1028,6 +1086,111 @@ class CaseFileDashboardServiceTest {
                     "Valeur au jour partage", List.of());
             e.setResultData(objectMapper.writeValueAsString(r));
             when(rapportSuccessionRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    // ────────────────────────────────────────────────────────────────────
+    // SF-167-04 — Tests représentatifs Immigration FR + BE
+    // (mini-spec : 3 outils — F-IM-08 OQTF avec délai, F-IM-13 Naturalisation,
+    //  F-IM-14 9ter médical BE)
+    // ────────────────────────────────────────────────────────────────────
+
+    @Test
+    void assembleTiles_oqtfAvecDelai_returnsCompleteTile() throws Exception {
+        seedOqtfAvecDelai();
+        UUID caseFileId = UUID.randomUUID();
+
+        DashboardTile tile = service.assembleTiles(caseFileId).stream()
+                .filter(t -> "F-IM-08-oqtf-avec-delai".equals(t.toolId()))
+                .findFirst().orElseThrow();
+        assertThat(tile.theme()).isEqualTo("DELAIS");
+        assertThat(tile.label()).isEqualTo("OQTF avec délai");
+        assertThat(tile.primaryValue()).isEqualTo("DANS_DELAI");
+        assertThat(tile.secondaryValue()).contains("j restants");
+        assertThat(tile.alertLevel()).isEqualTo("OK");
+    }
+
+    @Test
+    void assembleTiles_naturalisation_returnsCompleteTile() throws Exception {
+        seedNaturalisation();
+        UUID caseFileId = UUID.randomUUID();
+
+        DashboardTile tile = service.assembleTiles(caseFileId).stream()
+                .filter(t -> "F-IM-13-naturalisation".equals(t.toolId()))
+                .findFirst().orElseThrow();
+        assertThat(tile.theme()).isEqualTo("DIAGNOSTIC");
+        assertThat(tile.label()).isEqualTo("Naturalisation");
+        assertThat(tile.primaryValue()).isEqualTo("ELEVEE");
+        assertThat(tile.secondaryValue()).contains("mois");
+        assertThat(tile.alertLevel()).isEqualTo("OK");
+    }
+
+    @Test
+    void assembleTiles_belgian9ter_returnsCompleteTile() throws Exception {
+        seedBelgian9ter();
+        UUID caseFileId = UUID.randomUUID();
+
+        DashboardTile tile = service.assembleTiles(caseFileId).stream()
+                .filter(t -> "F-IM-14-9ter-medical-be".equals(t.toolId()))
+                .findFirst().orElseThrow();
+        assertThat(tile.theme()).isEqualTo("DIAGNOSTIC");
+        assertThat(tile.label()).isEqualTo("9ter médical BE");
+        assertThat(tile.primaryValue()).isEqualTo("ELEVEE");
+        assertThat(tile.secondaryValue()).contains("/100");
+        assertThat(tile.alertLevel()).isEqualTo("OK");
+    }
+
+    // ---- Helpers de seed SF-167-04 ----------------------------------------
+
+    private void seedOqtfAvecDelai() {
+        try {
+            OqtfAvecDelaiAnalysis e = new OqtfAvecDelaiAnalysis();
+            OqtfAvecDelaiResult r = new OqtfAvecDelaiResult(
+                    LocalDate.of(2026, 4, 1), "MENACE_OP", false, null,
+                    LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 1),
+                    20, "DANS_DELAI",
+                    LocalDate.of(2026, 6, 1), LocalDate.of(2026, 7, 15),
+                    List.of("L.521-1", "L.521-2"),
+                    "Recours TA art. L.614-5 CESEDA",
+                    "art. L.614-5 CESEDA", List.of("Conseil"));
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(oqtfAvecDelaiRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    private void seedNaturalisation() {
+        try {
+            NaturalisationAnalysis e = new NaturalisationAnalysis();
+            NaturalisationResult r = new NaturalisationResult(
+                    "DECRET_DROIT_COMMUN",
+                    "Décret art. 21-15 Cciv",
+                    "ELEVEE",
+                    List.of(),
+                    List.of("Casier judiciaire", "Justificatifs revenus"),
+                    18,
+                    "art. 21-15 Cciv",
+                    "Naturalisation par décret",
+                    List.of("Discrétion gouvernementale"));
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(naturalisationRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
+        } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    private void seedBelgian9ter() {
+        try {
+            Belgian9terAnalysis e = new Belgian9terAnalysis();
+            Belgian9terResult r = new Belgian9terResult(
+                    LocalDate.of(2025, 1, 1), true, true, true, false,
+                    LocalDate.of(2026, 4, 1),
+                    true, true, true, true,
+                    85, "ELEVEE",
+                    List.of(),
+                    LocalDate.of(2026, 10, 1),
+                    "Régularisation 9ter — éligible",
+                    "art. 9ter Loi 15/12/1980",
+                    List.of("Certificat médical type"));
+            e.setResultData(objectMapper.writeValueAsString(r));
+            when(belgian9terRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
         } catch (Exception ex) { throw new RuntimeException(ex); }
     }
 }
