@@ -130,7 +130,10 @@
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="featureColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: featureColumns;"></tr>
+            <tr mat-row
+                *matRowDef="let row; columns: featureColumns;"
+                class="row-clickable"
+                (click)="openFeatureDetail(row.code)"></tr>
 
             <tr class="empty-row" *matNoDataRow>
               <td [attr.colspan]="featureColumns.length" class="empty-cell">

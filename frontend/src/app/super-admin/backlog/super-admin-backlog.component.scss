@@ -122,6 +122,14 @@
     white-space: nowrap;
   }
 
+  .row-clickable {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .row-clickable:hover {
+    background: #f9fafc;
+  }
+
   .empty-row .empty-cell {
     text-align: center;
     padding: 24px;

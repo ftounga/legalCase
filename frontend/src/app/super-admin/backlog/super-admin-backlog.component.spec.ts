@@ -4,7 +4,9 @@ import { provideRouter, Router } from '@angular/router';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { SuperAdminBacklogComponent } from './super-admin-backlog.component';
+import { BacklogFeatureDetailDialogComponent } from './feature-detail/backlog-feature-detail-dialog.component';
 import { BacklogAdminService } from '../../core/services/backlog-admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
@@ -56,6 +58,7 @@ describe('SuperAdminBacklogComponent', () => {
   let fixture: ComponentFixture<SuperAdminBacklogComponent>;
   let backlogService: any;
   let snackBar: any;
+  let dialog: any;
   let router: Router;
 
   function setup(isSuperAdmin: boolean) {
@@ -64,6 +67,7 @@ describe('SuperAdminBacklogComponent', () => {
       'triggerSync', 'getFeatureDetail',
     ]);
     snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     backlogService.getFreshness.mockReturnValue(of(mockFreshness));
     backlogService.searchFeatures.mockReturnValue(of(pageOf([mockFeature])));
@@ -79,6 +83,7 @@ describe('SuperAdminBacklogComponent', () => {
         { provide: BacklogAdminService, useValue: backlogService },
         { provide: AuthService, useValue: authService },
         { provide: MatSnackBar, useValue: snackBar },
+        { provide: MatDialog, useValue: dialog },
         provideRouter([{ path: 'case-files', component: SuperAdminBacklogComponent }]),
       ],
     });
@@ -209,5 +214,24 @@ describe('SuperAdminBacklogComponent', () => {
     fixture.detectChanges();
     expect(component.freshnessError()).toBe(true);
     expect(component.features()).toEqual([mockFeature]);
+  });
+
+  it('opens BacklogFeatureDetailDialogComponent when openFeatureDetail is called with a code', () => {
+    setup(true);
+    fixture.detectChanges();
+    (component as any).dialog = dialog;
+    component.openFeatureDetail('F-178');
+    expect(dialog.open).toHaveBeenCalledWith(
+      BacklogFeatureDetailDialogComponent,
+      expect.objectContaining({ data: { code: 'F-178' } }),
+    );
+  });
+
+  it('does nothing when openFeatureDetail receives an empty code', () => {
+    setup(true);
+    fixture.detectChanges();
+    (component as any).dialog = dialog;
+    component.openFeatureDetail('');
+    expect(dialog.open).not.toHaveBeenCalled();
   });
 });

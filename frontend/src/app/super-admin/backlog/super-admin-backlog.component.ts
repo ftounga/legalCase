@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
@@ -27,6 +28,7 @@ import {
 } from '../../core/models/backlog.model';
 import { fadeInUp } from '../../shared/animations';
 import { BacklogStatusBadgeComponent } from './shared/backlog-status-badge.component';
+import { BacklogFeatureDetailDialogComponent } from './feature-detail/backlog-feature-detail-dialog.component';
 
 const FEATURE_STATUSES: BacklogStatus[] = [
   'PLANNED', 'READY', 'IN_PROGRESS', 'BLOCKED',
@@ -81,7 +83,7 @@ const STATUS_MARKETING_LABELS: Record<BacklogMarketingStatus, string> = {
     CommonModule, FormsModule, DatePipe,
     MatTabsModule, MatTableModule, MatPaginatorModule,
     MatFormFieldModule, MatSelectModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule,
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatDialogModule,
     BacklogStatusBadgeComponent,
   ],
   templateUrl: './super-admin-backlog.component.html',
@@ -138,7 +140,19 @@ export class SuperAdminBacklogComponent implements OnInit, OnDestroy {
     private auth: AuthService,
     private router: Router,
     private snackBar: MatSnackBar,
+    private dialog: MatDialog,
   ) {}
+
+  openFeatureDetail(code: string): void {
+    if (!code) return;
+    this.dialog.open(BacklogFeatureDetailDialogComponent, {
+      width: '880px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      data: { code },
+    });
+  }
 
   ngOnInit(): void {
     if (!this.auth.currentUser()?.isSuperAdmin) {
