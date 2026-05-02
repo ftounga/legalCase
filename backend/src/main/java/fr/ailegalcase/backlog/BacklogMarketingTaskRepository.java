@@ -19,13 +19,13 @@ public interface BacklogMarketingTaskRepository extends JpaRepository<BacklogMar
     @Query("""
             SELECT t FROM BacklogMarketingTaskEntity t
             WHERE (:status IS NULL OR t.status = :status)
-              AND (:search IS NULL OR LOWER(t.code) LIKE LOWER(CONCAT('%', :search, '%'))
-                                    OR LOWER(t.title) LIKE LOWER(CONCAT('%', :search, '%'))
-                                    OR LOWER(COALESCE(t.description, '')) LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:searchPattern IS NULL OR LOWER(t.code) LIKE :searchPattern
+                                          OR LOWER(t.title) LIKE :searchPattern
+                                          OR (t.description IS NOT NULL AND LOWER(t.description) LIKE :searchPattern))
               AND t.orphaned = false
             """)
     Page<BacklogMarketingTaskEntity> search(@Param("status") BacklogMarketingStatus status,
-                                            @Param("search") String search,
+                                            @Param("searchPattern") String searchPattern,
                                             Pageable pageable);
 
     List<BacklogMarketingTaskEntity> findByOrphanedFalse();
