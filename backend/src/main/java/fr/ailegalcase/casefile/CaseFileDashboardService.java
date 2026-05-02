@@ -71,6 +71,39 @@ public class CaseFileDashboardService {
     private final MotifGraveBeRepository motifGraveBeRepo;
     private final AvantagesConventionnelsBeRepository avantagesConventionnelsBeRepo;
     private final CreditTempsBeRepository creditTempsBeRepo;
+    // SF-167-03 : repos Famille FR + BE additionnels (extension à ~31 outils Famille restants).
+    private final DivorceAlterationRepository divorceAlterationRepo;
+    private final DivorceFauteRepository divorceFauteRepo;
+    private final DivorceAccepteRepository divorceAccepteRepo;
+    private final DivorceDesunionIrremediableBeRepository divorceDesunionIrremediableBeRepo;
+    private final MesuresProvisoiresRepository mesuresProvisoiresRepo;
+    private final RevisionsPostDivorceRepository revisionsPostDivorceRepo;
+    private final OrdonnanceProtectionRepository ordonnanceProtectionRepo;
+    private final RecompensesRepository recompensesRepo;
+    private final CommunauteUniverselleRepository communauteUniverselleRepo;
+    private final PartageJudiciaireRepository partageJudiciaireRepo;
+    private final AdoptionRepository adoptionRepo;
+    private final ContestationPaterniteRepository contestationPaterniteRepo;
+    private final RecherchePaterniteRepository recherchePaterniteRepo;
+    private final ReconnaissancePaterneleRepository reconnaissancePaterneleRepo;
+    private final PossessionEtatRepository possessionEtatRepo;
+    private final AutoriteParentaleRepository autoriteParentaleRepo;
+    private final ChangementResidenceRepository changementResidenceRepo;
+    private final DesaccordsParentauxRepository desaccordsParentauxRepo;
+    private final PacsDissolutionRepository pacsDissolutionRepo;
+    private final SeparationCorpsRepository separationCorpsRepo;
+    private final IndivisionRepository indivisionRepo;
+    private final OrdonnanceRequeteRepository ordonnanceRequeteRepo;
+    private final DevolutionLegaleRepository devolutionLegaleRepo;
+    private final DonationRepository donationRepo;
+    private final IndivisionSuccessoraleRepository indivisionSuccessoraleRepo;
+    private final PartageSuccessoralRepository partageSuccessoralRepo;
+    private final RapportSuccessionRepository rapportSuccessionRepo;
+    private final ReserveHereditaireRepository reserveHereditaireRepo;
+    private final TestamentValiditeRepository testamentValiditeRepo;
+    private final MajeursProtegesRepository majeursProtegesRepo;
+    private final ChangementEtatCivilRepository changementEtatCivilRepo;
+    private final PmaGpaBioethiqueRepository pmaGpaBioethiqueRepo;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -112,7 +145,39 @@ public class CaseFileDashboardService {
                                      ContestationAreRepository contestationAreRepo,
                                      MotifGraveBeRepository motifGraveBeRepo,
                                      AvantagesConventionnelsBeRepository avantagesConventionnelsBeRepo,
-                                     CreditTempsBeRepository creditTempsBeRepo) {
+                                     CreditTempsBeRepository creditTempsBeRepo,
+                                     DivorceAlterationRepository divorceAlterationRepo,
+                                     DivorceFauteRepository divorceFauteRepo,
+                                     DivorceAccepteRepository divorceAccepteRepo,
+                                     DivorceDesunionIrremediableBeRepository divorceDesunionIrremediableBeRepo,
+                                     MesuresProvisoiresRepository mesuresProvisoiresRepo,
+                                     RevisionsPostDivorceRepository revisionsPostDivorceRepo,
+                                     OrdonnanceProtectionRepository ordonnanceProtectionRepo,
+                                     RecompensesRepository recompensesRepo,
+                                     CommunauteUniverselleRepository communauteUniverselleRepo,
+                                     PartageJudiciaireRepository partageJudiciaireRepo,
+                                     AdoptionRepository adoptionRepo,
+                                     ContestationPaterniteRepository contestationPaterniteRepo,
+                                     RecherchePaterniteRepository recherchePaterniteRepo,
+                                     ReconnaissancePaterneleRepository reconnaissancePaterneleRepo,
+                                     PossessionEtatRepository possessionEtatRepo,
+                                     AutoriteParentaleRepository autoriteParentaleRepo,
+                                     ChangementResidenceRepository changementResidenceRepo,
+                                     DesaccordsParentauxRepository desaccordsParentauxRepo,
+                                     PacsDissolutionRepository pacsDissolutionRepo,
+                                     SeparationCorpsRepository separationCorpsRepo,
+                                     IndivisionRepository indivisionRepo,
+                                     OrdonnanceRequeteRepository ordonnanceRequeteRepo,
+                                     DevolutionLegaleRepository devolutionLegaleRepo,
+                                     DonationRepository donationRepo,
+                                     IndivisionSuccessoraleRepository indivisionSuccessoraleRepo,
+                                     PartageSuccessoralRepository partageSuccessoralRepo,
+                                     RapportSuccessionRepository rapportSuccessionRepo,
+                                     ReserveHereditaireRepository reserveHereditaireRepo,
+                                     TestamentValiditeRepository testamentValiditeRepo,
+                                     MajeursProtegesRepository majeursProtegesRepo,
+                                     ChangementEtatCivilRepository changementEtatCivilRepo,
+                                     PmaGpaBioethiqueRepository pmaGpaBioethiqueRepo) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -155,6 +220,38 @@ public class CaseFileDashboardService {
         this.motifGraveBeRepo = motifGraveBeRepo;
         this.avantagesConventionnelsBeRepo = avantagesConventionnelsBeRepo;
         this.creditTempsBeRepo = creditTempsBeRepo;
+        this.divorceAlterationRepo = divorceAlterationRepo;
+        this.divorceFauteRepo = divorceFauteRepo;
+        this.divorceAccepteRepo = divorceAccepteRepo;
+        this.divorceDesunionIrremediableBeRepo = divorceDesunionIrremediableBeRepo;
+        this.mesuresProvisoiresRepo = mesuresProvisoiresRepo;
+        this.revisionsPostDivorceRepo = revisionsPostDivorceRepo;
+        this.ordonnanceProtectionRepo = ordonnanceProtectionRepo;
+        this.recompensesRepo = recompensesRepo;
+        this.communauteUniverselleRepo = communauteUniverselleRepo;
+        this.partageJudiciaireRepo = partageJudiciaireRepo;
+        this.adoptionRepo = adoptionRepo;
+        this.contestationPaterniteRepo = contestationPaterniteRepo;
+        this.recherchePaterniteRepo = recherchePaterniteRepo;
+        this.reconnaissancePaterneleRepo = reconnaissancePaterneleRepo;
+        this.possessionEtatRepo = possessionEtatRepo;
+        this.autoriteParentaleRepo = autoriteParentaleRepo;
+        this.changementResidenceRepo = changementResidenceRepo;
+        this.desaccordsParentauxRepo = desaccordsParentauxRepo;
+        this.pacsDissolutionRepo = pacsDissolutionRepo;
+        this.separationCorpsRepo = separationCorpsRepo;
+        this.indivisionRepo = indivisionRepo;
+        this.ordonnanceRequeteRepo = ordonnanceRequeteRepo;
+        this.devolutionLegaleRepo = devolutionLegaleRepo;
+        this.donationRepo = donationRepo;
+        this.indivisionSuccessoraleRepo = indivisionSuccessoraleRepo;
+        this.partageSuccessoralRepo = partageSuccessoralRepo;
+        this.rapportSuccessionRepo = rapportSuccessionRepo;
+        this.reserveHereditaireRepo = reserveHereditaireRepo;
+        this.testamentValiditeRepo = testamentValiditeRepo;
+        this.majeursProtegesRepo = majeursProtegesRepo;
+        this.changementEtatCivilRepo = changementEtatCivilRepo;
+        this.pmaGpaBioethiqueRepo = pmaGpaBioethiqueRepo;
     }
 
     @Transactional(readOnly = true)
@@ -240,6 +337,39 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromMotifGraveBeAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromAvantagesConventionnelsBeAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromCreditTempsBeAnalysis(caseFileId));
+        // ── SF-167-03 — extension Famille FR + BE ────────────────────────────
+        addSafely(tiles, () -> tileFromDivorceAlterationAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDivorceFauteAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDivorceAccepteAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDivorceDesunionIrremediableBeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromMesuresProvisoiresAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromRevisionsPostDivorceAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromOrdonnanceProtectionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromRecompensesAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromCommunauteUniverselleAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromPartageJudiciaireAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAdoptionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromContestationPaterniteAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromRecherchePaterniteAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromReconnaissancePaterneleAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromPossessionEtatAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromAutoriteParentaleAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromChangementResidenceAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDesaccordsParentauxAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromPacsDissolutionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromSeparationCorpsAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromIndivisionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromOrdonnanceRequeteAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDevolutionLegaleAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromDonationAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromIndivisionSuccessoraleAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromPartageSuccessoralAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromRapportSuccessionAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromReserveHereditaireAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromTestamentValiditeAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromMajeursProtegesAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromChangementEtatCivilAnalysis(caseFileId));
+        addSafely(tiles, () -> tileFromPmaGpaBioethiqueAnalysis(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
     }
@@ -1061,6 +1191,713 @@ public class CaseFileDashboardService {
                         "DELAIS",
                         "Crédit-temps BE",
                         r.verdictEligibilite() != null ? r.verdictEligibilite() : (r.eligible() ? "ELIGIBLE" : "NON_ELIGIBLE"),
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    // ---- SF-167-03 — Mappers Famille FR + BE -------------------------------
+
+    /** F-FA-08 Divorce pour altération définitive du lien conjugal (FR). */
+    private DashboardTile tileFromDivorceAlterationAnalysis(UUID caseFileId) {
+        return divorceAlterationRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DivorceAlterationResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabilite());
+                String secondary = "Score : " + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-FA-08-divorce-alteration",
+                        "VALIDITE",
+                        "Divorce pour altération",
+                        r.verdictProbabilite() != null ? r.verdictProbabilite() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-09 Divorce pour faute (FR). */
+    private DashboardTile tileFromDivorceFauteAnalysis(UUID caseFileId) {
+        return divorceFauteRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DivorceFauteResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteDivorceFaute());
+                String secondary = r.nombreFautesInvoquees() + " faute(s) invoquée(s) — score "
+                        + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-FA-09-divorce-faute",
+                        "VALIDITE",
+                        "Divorce pour faute",
+                        r.verdictProbabiliteDivorceFaute() != null ? r.verdictProbabiliteDivorceFaute() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-10 Divorce accepté (FR). */
+    private DashboardTile tileFromDivorceAccepteAnalysis(UUID caseFileId) {
+        return divorceAccepteRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DivorceAccepteResult.class);
+                String alert = mapVerdictRisque(r.verdictEligibilite());
+                String secondary = r.delaiProcedureMoisPrevisionnel() + " mois — score "
+                        + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-FA-10-divorce-accepte",
+                        "VALIDITE",
+                        "Divorce accepté",
+                        r.verdictEligibilite() != null ? r.verdictEligibilite() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-11 Divorce désunion irrémédiable (BE). */
+    private DashboardTile tileFromDivorceDesunionIrremediableBeAnalysis(UUID caseFileId) {
+        return divorceDesunionIrremediableBeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DivorceDesunionIrremediableBeResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabilite());
+                String secondary = r.dureeSeparationMois() + "/" + r.seuilSeparationMois() + " mois";
+                return new DashboardTile(
+                        "F-FA-11-desunion-irremediable-be",
+                        "VALIDITE",
+                        "Désunion irrémédiable BE",
+                        r.verdictProbabilite() != null ? r.verdictProbabilite() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-12 Mesures provisoires (FR). */
+    private DashboardTile tileFromMesuresProvisoiresAnalysis(UUID caseFileId) {
+        return mesuresProvisoiresRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), MesuresProvisoiresResult.class);
+                String alert = mapVerdictRisque(r.verdictAcceptabilite());
+                String primary = r.dateAudienceAOMP() != null
+                        ? "Audience : " + r.dateAudienceAOMP().toString()
+                        : "—";
+                String secondary = r.pensionAlimentairePropose() != null
+                        ? "Pension : " + formatEuros(r.pensionAlimentairePropose()) + " €/mois"
+                        : "Score : " + r.scoreCohesionMesures() + "/100";
+                return new DashboardTile(
+                        "F-FA-12-mesures-provisoires",
+                        "DELAIS",
+                        "Mesures provisoires",
+                        primary,
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-13 Révisions post-divorce (FR). */
+    private DashboardTile tileFromRevisionsPostDivorceAnalysis(UUID caseFileId) {
+        return revisionsPostDivorceRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RevisionsPostDivorceResult.class);
+                String alert = mapVerdictRisque(r.verdictRevisionPossible());
+                String secondary = "Score : " + r.scoreGlobal() + "/100";
+                return new DashboardTile(
+                        "F-FA-13-revisions-post-divorce",
+                        "DELAIS",
+                        "Révisions post-divorce",
+                        r.verdictRevisionPossible() != null ? r.verdictRevisionPossible() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-14 Ordonnance de protection (FR). */
+    private DashboardTile tileFromOrdonnanceProtectionAnalysis(UUID caseFileId) {
+        return ordonnanceProtectionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), OrdonnanceProtectionResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteOctroi());
+                String secondary = "Délai : ~" + r.delaiTraitementJoursPrevisionnel() + " j — score "
+                        + r.scoreVraisemblance() + "/100";
+                return new DashboardTile(
+                        "F-FA-14-ordonnance-protection",
+                        "DELAIS",
+                        "Ordonnance protection",
+                        r.verdictProbabiliteOctroi() != null ? r.verdictProbabiliteOctroi() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-15 Récompenses entre époux (FR). */
+    private DashboardTile tileFromRecompensesAnalysis(UUID caseFileId) {
+        return recompensesRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RecompensesResult.class);
+                String primary = "Solde net : " + formatEuros(r.soldeNetPourEpouxEur()) + " €";
+                String secondary = r.recompenses() != null
+                        ? r.recompenses().size() + " opération(s)"
+                        : null;
+                return new DashboardTile(
+                        "F-FA-15-recompenses",
+                        "INDEMNITES",
+                        "Récompenses",
+                        primary,
+                        secondary,
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-16 Communauté universelle (FR). */
+    private DashboardTile tileFromCommunauteUniverselleAnalysis(UUID caseFileId) {
+        return communauteUniverselleRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), CommunauteUniverselleResult.class);
+                String verdict = r.verdictValidite() != null ? r.verdictValidite().name() : null;
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "VALIDE" -> "OK";
+                    case "CONTESTABLE" -> "WARNING";
+                    case "NUL" -> "ALERT";
+                    default -> null;
+                };
+                String secondary = "Score : " + r.scoreValidite() + "/100";
+                return new DashboardTile(
+                        "F-FA-16-communaute-universelle",
+                        "DIAGNOSTIC",
+                        "Communauté universelle",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-17 Partage judiciaire (FR). */
+    private DashboardTile tileFromPartageJudiciaireAnalysis(UUID caseFileId) {
+        return partageJudiciaireRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), PartageJudiciaireResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = r.dureeProcedureMois() + " mois — score "
+                        + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-17-partage-judiciaire",
+                        "DIAGNOSTIC",
+                        "Partage judiciaire",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-18-adoption Recevabilité d'une adoption (FR). */
+    private DashboardTile tileFromAdoptionAnalysis(UUID caseFileId) {
+        return adoptionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AdoptionResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = r.formeRecommandee() != null
+                        ? "Forme : " + r.formeRecommandee().name()
+                        : null;
+                return new DashboardTile(
+                        "F-FA-18-adoption",
+                        "DIAGNOSTIC",
+                        "Adoption",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-18-contestation-paternite Contestation de paternité (FR). */
+    private DashboardTile tileFromContestationPaterniteAnalysis(UUID caseFileId) {
+        return contestationPaterniteRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ContestationPaterniteResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = r.delaiPrescriptionRestantMois() + " mois restants";
+                return new DashboardTile(
+                        "F-FA-18-contestation-paternite",
+                        "VALIDITE",
+                        "Contestation paternité",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-18-recherche-paternite Recherche de paternité (FR). */
+    private DashboardTile tileFromRecherchePaterniteAnalysis(UUID caseFileId) {
+        return recherchePaterniteRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RecherchePaterniteResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = r.delaiPrescriptionRestantMois() + " mois restants";
+                return new DashboardTile(
+                        "F-FA-18-recherche-paternite",
+                        "VALIDITE",
+                        "Recherche paternité",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-18-reconnaissance-paternelle Reconnaissance paternelle (FR). */
+    private DashboardTile tileFromReconnaissancePaterneleAnalysis(UUID caseFileId) {
+        return reconnaissancePaterneleRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ReconnaissancePaterneleResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = "Score : " + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-18-reconnaissance-paternelle",
+                        "VALIDITE",
+                        "Reconnaissance paternelle",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-18-possession-etat Possession d'état (FR). */
+    private DashboardTile tileFromPossessionEtatAnalysis(UUID caseFileId) {
+        return possessionEtatRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), PossessionEtatResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = r.dureePossessionAnnees() + " an(s) de possession";
+                return new DashboardTile(
+                        "F-FA-18-possession-etat",
+                        "VALIDITE",
+                        "Possession d'état",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-19-autorite-parentale Autorité parentale (FR). */
+    private DashboardTile tileFromAutoriteParentaleAnalysis(UUID caseFileId) {
+        return autoriteParentaleRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), AutoriteParentaleResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String secondary = "Score : " + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-19-autorite-parentale",
+                        "DIAGNOSTIC",
+                        "Autorité parentale",
+                        r.verdictProbabiliteAcceptation() != null ? r.verdictProbabiliteAcceptation() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-19-changement-residence Changement de résidence (FR). */
+    private DashboardTile tileFromChangementResidenceAnalysis(UUID caseFileId) {
+        return changementResidenceRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ChangementResidenceResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String secondary = r.distanceKm() + " km — score " + r.scoreAcceptabilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-19-changement-residence",
+                        "DIAGNOSTIC",
+                        "Changement résidence",
+                        r.verdictProbabiliteAcceptation() != null ? r.verdictProbabiliteAcceptation() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-19-desaccords-parentaux Désaccords parentaux (FR). */
+    private DashboardTile tileFromDesaccordsParentauxAnalysis(UUID caseFileId) {
+        return desaccordsParentauxRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DesaccordsParentauxResult.class);
+                String alert = mapVerdictRisque(r.verdictProbabiliteAcceptation());
+                String secondary = "Score JAF : " + r.scoreEligibiliteJaf() + "/100";
+                return new DashboardTile(
+                        "F-FA-19-desaccords-parentaux",
+                        "DIAGNOSTIC",
+                        "Désaccords parentaux",
+                        r.verdictProbabiliteAcceptation() != null ? r.verdictProbabiliteAcceptation() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-20 Dissolution PACS (FR). */
+    private DashboardTile tileFromPacsDissolutionAnalysis(UUID caseFileId) {
+        return pacsDissolutionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), PacsDissolutionResult.class);
+                String alert = mapVerdictRisque(r.verdictRecommandation());
+                String secondary = r.dureeUnionAnnees() + " an(s) — score créances "
+                        + r.scoreCreancesProbables() + "/100";
+                return new DashboardTile(
+                        "F-FA-20-pacs-dissolution",
+                        "DIAGNOSTIC",
+                        "Dissolution PACS",
+                        r.verdictRecommandation() != null ? r.verdictRecommandation() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-21 Séparation de corps + conversion divorce (FR). */
+    private DashboardTile tileFromSeparationCorpsAnalysis(UUID caseFileId) {
+        return separationCorpsRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), SeparationCorpsResult.class);
+                String alert = mapVerdictRisque(r.verdictConversion());
+                String secondary = r.dureeSeparationAnnees() + " an(s) — score "
+                        + r.scoreEligibiliteConversion() + "/100";
+                return new DashboardTile(
+                        "F-FA-21-separation-corps",
+                        "DIAGNOSTIC",
+                        "Séparation de corps",
+                        r.verdictConversion() != null ? r.verdictConversion() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-22 Indivision (FR). */
+    private DashboardTile tileFromIndivisionAnalysis(UUID caseFileId) {
+        return indivisionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), IndivisionResult.class);
+                String alert = mapVerdictRisque(r.verdictRecommandation());
+                String secondary = r.nbIndivisaires() + " indivisaire(s) — score "
+                        + r.scoreEligibilitePartageJudiciaire() + "/100";
+                return new DashboardTile(
+                        "F-FA-22-indivision",
+                        "DIAGNOSTIC",
+                        "Indivision",
+                        r.verdictRecommandation() != null ? r.verdictRecommandation() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-23 Ordonnance sur requête (FR). */
+    private DashboardTile tileFromOrdonnanceRequeteAnalysis(UUID caseFileId) {
+        return ordonnanceRequeteRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), OrdonnanceRequeteResult.class);
+                String verdict = r.verdictAccordeProbabilite() != null
+                        ? r.verdictAccordeProbabilite().name()
+                        : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = "Délai : " + r.delaiTypiqueJoursMin() + "–"
+                        + r.delaiTypiqueJoursMax() + " j";
+                return new DashboardTile(
+                        "F-FA-23-ordonnance-requete",
+                        "DELAIS",
+                        "Ordonnance sur requête",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-24-devolution-legale Dévolution légale successorale (FR). */
+    private DashboardTile tileFromDevolutionLegaleAnalysis(UUID caseFileId) {
+        return devolutionLegaleRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DevolutionLegaleResult.class);
+                String primary = r.ordreActif() != null ? r.ordreActif().name() : "—";
+                String secondary = (r.heritiersDesignes() != null
+                        ? r.heritiersDesignes().size()
+                        : 0) + " héritier(s) — score " + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-24-devolution-legale",
+                        "DIAGNOSTIC",
+                        "Dévolution légale",
+                        primary,
+                        secondary,
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-24-donation Donation entre vifs (FR). */
+    private DashboardTile tileFromDonationAnalysis(UUID caseFileId) {
+        return donationRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), DonationResult.class);
+                String verdict = r.verdictValidite() != null ? r.verdictValidite().name() : null;
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "VALIDE" -> "OK";
+                    case "CONTESTABLE" -> "WARNING";
+                    case "NUL" -> "ALERT";
+                    default -> null;
+                };
+                String secondary = "Score : " + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-24-donation",
+                        "DIAGNOSTIC",
+                        "Donation",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-24-indivision-successorale Indivision successorale (FR). */
+    private DashboardTile tileFromIndivisionSuccessoraleAnalysis(UUID caseFileId) {
+        return indivisionSuccessoraleRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), IndivisionSuccessoraleResult.class);
+                String secondary = r.nbHeritiers() + " héritier(s) — conflit "
+                        + r.scoreConflictualite() + "/100";
+                return new DashboardTile(
+                        "F-FA-24-indivision-successorale",
+                        "DIAGNOSTIC",
+                        "Indivision successorale",
+                        r.verdictGestion() != null ? r.verdictGestion() : "—",
+                        secondary,
+                        null);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-24-partage-successoral Partage successoral (FR). */
+    private DashboardTile tileFromPartageSuccessoralAnalysis(UUID caseFileId) {
+        return partageSuccessoralRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), PartageSuccessoralResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = mapVerdictRisque(verdict);
+                String secondary = r.delaiInstructionMois() + " mois — score "
+                        + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-24-partage-successoral",
+                        "DIAGNOSTIC",
+                        "Partage successoral",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-24-rapport-succession Rapport à succession (FR). */
+    private DashboardTile tileFromRapportSuccessionAnalysis(UUID caseFileId) {
+        return rapportSuccessionRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), RapportSuccessionResult.class);
+                String verdict = r.verdictObligation() != null ? r.verdictObligation().name() : null;
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "RAPPORTABLE" -> "WARNING";
+                    case "EXEMPT", "DISPENSÉ", "NON_OBLIGÉ" -> "OK";
+                    default -> null;
+                };
+                String secondary = r.montantRapportable() != null
+                        ? "Rapportable : " + formatEuros(r.montantRapportable()) + " €"
+                        : "Score : " + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-24-rapport-succession",
+                        "DIAGNOSTIC",
+                        "Rapport à succession",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-24-reserve-heriditaire Réserve héréditaire (FR). */
+    private DashboardTile tileFromReserveHereditaireAnalysis(UUID caseFileId) {
+        return reserveHereditaireRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ReserveHereditaireResult.class);
+                String verdict = r.verdictRecevabilite() != null ? r.verdictRecevabilite().name() : null;
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "RECEVABLE" -> "WARNING";
+                    case "NON_RECEVABLE_PAS_EXCEDENT", "NON_RECEVABLE_PRESCRIPTION",
+                         "NON_RECEVABLE_QUALITE", "NON_RECEVABLE" -> "OK";
+                    default -> null;
+                };
+                String secondary = r.excedentReductibleEur() != null
+                        ? "Excédent : " + formatEuros(r.excedentReductibleEur()) + " €"
+                        : "Score : " + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-24-reserve-heriditaire",
+                        "DIAGNOSTIC",
+                        "Réserve héréditaire",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-24-testament-validite Validité testament (FR). */
+    private DashboardTile tileFromTestamentValiditeAnalysis(UUID caseFileId) {
+        return testamentValiditeRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), TestamentValiditeResult.class);
+                String verdict = r.verdictValidite() != null ? r.verdictValidite().name() : null;
+                String alert = switch (verdict == null ? "" : verdict) {
+                    case "VALIDE" -> "OK";
+                    case "CONTESTABLE" -> "WARNING";
+                    case "NUL" -> "ALERT";
+                    default -> null;
+                };
+                String secondary = "Score : " + r.scoreEligibilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-24-testament-validite",
+                        "VALIDITE",
+                        "Validité testament",
+                        verdict != null ? verdict : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-25 Majeurs protégés (FR). */
+    private DashboardTile tileFromMajeursProtegesAnalysis(UUID caseFileId) {
+        return majeursProtegesRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), MajeursProtegesResult.class);
+                String alert = mapVerdictRisque(r.verdictAcceptabiliteJaf());
+                String secondary = "Régime conseillé : "
+                        + (r.regimeOptimalRecommande() != null ? r.regimeOptimalRecommande() : "—");
+                return new DashboardTile(
+                        "F-FA-25-majeurs-proteges",
+                        "DIAGNOSTIC",
+                        "Majeurs protégés",
+                        r.verdictAcceptabiliteJaf() != null ? r.verdictAcceptabiliteJaf() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-26 Changement d'état civil (FR). */
+    private DashboardTile tileFromChangementEtatCivilAnalysis(UUID caseFileId) {
+        return changementEtatCivilRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), ChangementEtatCivilResult.class);
+                String alert = mapVerdictRisque(r.verdictAcceptabilite());
+                String secondary = r.delaiInstructionMoisPrevisionnel() + " mois — score "
+                        + r.scoreAcceptabilite() + "/100";
+                return new DashboardTile(
+                        "F-FA-26-changement-etat-civil",
+                        "DIAGNOSTIC",
+                        "Changement état civil",
+                        r.verdictAcceptabilite() != null ? r.verdictAcceptabilite() : "—",
+                        secondary,
+                        alert);
+            } catch (Exception ex) {
+                return null;
+            }
+        }).orElse(null);
+    }
+
+    /** F-FA-27 PMA / GPA / bioéthique (FR). */
+    private DashboardTile tileFromPmaGpaBioethiqueAnalysis(UUID caseFileId) {
+        return pmaGpaBioethiqueRepo.findByCaseFileId(caseFileId).map(e -> {
+            try {
+                var r = objectMapper.readValue(e.getResultData(), PmaGpaBioethiqueResult.class);
+                String alert = mapVerdictRisque(r.verdictRecevabilite());
+                String secondary = r.dispositif() + " — " + r.delaiInstructionMois() + " mois";
+                return new DashboardTile(
+                        "F-FA-27-pma-gpa",
+                        "DIAGNOSTIC",
+                        "PMA / GPA / bioéthique",
+                        r.verdictRecevabilite() != null ? r.verdictRecevabilite() : "—",
                         secondary,
                         alert);
             } catch (Exception ex) {
