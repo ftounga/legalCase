@@ -1,0 +1,82 @@
+<div class="dialog-wrap">
+
+  @if (loading()) {
+    <div class="dialog-loading">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  @if (!loading() && notFound()) {
+    <div class="dialog-empty">
+      <mat-icon>search_off</mat-icon>
+      <p>Feature introuvable. Le code existe peut-être uniquement en MD non encore parsé.</p>
+      <button mat-stroked-button (click)="close()">Fermer</button>
+    </div>
+  }
+
+  @if (!loading() && !notFound() && detail(); as d) {
+    <header class="dialog-header">
+      <span class="code">{{ d.code }}</span>
+      <h2 class="title">{{ d.title }}</h2>
+      <button mat-icon-button (click)="close()" aria-label="Fermer" class="close-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="badges">
+      <app-backlog-status-badge [status]="d.status" kind="feature"></app-backlog-status-badge>
+      <span class="meta">{{ domainLabel(d.domain) }}</span>
+      <span class="meta">Priorité : {{ priorityLabel(d.priority) }}</span>
+      @if (d.targetVersion) {
+        <span class="meta">Cible : {{ d.targetVersion }}</span>
+      }
+    </div>
+
+    @if (d.description) {
+      <section class="description-block">
+        <h3>Description</h3>
+        <pre class="description">{{ d.description }}</pre>
+      </section>
+    }
+
+    <section class="source-block">
+      @if (d.sourceFile) {
+        <span class="source-line">
+          Source :
+          <span class="path">{{ d.sourceFile }}</span>
+          @if (d.sourceLine) {
+            <span class="path">(ligne {{ d.sourceLine }})</span>
+          }
+          — Mis à jour le {{ d.updatedAt | date:'dd/MM/yyyy HH:mm' }}
+        </span>
+      } @else {
+        <span class="source-line">Mis à jour le {{ d.updatedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+      }
+    </section>
+
+    @if (d.subfeatures.length > 0) {
+      <section class="subfeatures-block">
+        <h3>Subfeatures ({{ d.subfeatures.length }})</h3>
+        @for (sf of d.subfeatures; track sf.id) {
+          <article class="subfeature">
+            <div class="subfeature-head">
+              <span class="code">{{ sf.code }}</span>
+              <span class="sf-title">{{ sf.title }}</span>
+              <app-backlog-status-badge [status]="sf.status" kind="feature"></app-backlog-status-badge>
+            </div>
+            @if (sf.description) {
+              <p class="subfeature-desc">{{ truncate(sf.description) }}</p>
+            }
+            @if (expectedPath(d.code, sf.code); as path) {
+              <p class="subfeature-md-path">{{ path }}</p>
+            }
+          </article>
+        }
+      </section>
+    }
+
+    <footer class="dialog-footer">
+      <button mat-stroked-button (click)="close()">Fermer</button>
+    </footer>
+  }
+</div>
