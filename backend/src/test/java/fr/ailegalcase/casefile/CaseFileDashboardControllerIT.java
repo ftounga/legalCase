@@ -57,6 +57,7 @@ class CaseFileDashboardControllerIT {
     @Autowired WorkspaceRepository workspaceRepository;
     @Autowired WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired CaseFileRepository caseFileRepository;
+    @Autowired MotifGraveBeRepository motifGraveBeRepository;
     @Autowired ObjectMapper objectMapper;
     @MockBean AnthropicService anthropicService;
 
@@ -114,6 +115,46 @@ class CaseFileDashboardControllerIT {
                         .value("Changement de statut"))
                 .andExpect(jsonPath(
                         "$.tiles[?(@.toolId == 'F-IM-11-changement-statut')].alertLevel")
+                        .value("OK"));
+    }
+
+    /**
+     * SF-167-02 — Cas BE : F-DT-27 Motif grave BE. Persiste l'analyse via le
+     * repository (le POST endpoint a un contrat de validation strict, on test
+     * directement la projection dashboard, pas le pipeline d'écriture).
+     */
+    @Test
+    void getDashboard_includesMotifGraveBeTile_whenAnalysisExists() throws Exception {
+        MotifGraveBeAnalysis e = new MotifGraveBeAnalysis();
+        e.setCaseFile(caseFile);
+        e.setDateConnaissanceFait(java.time.LocalDate.of(2026, 2, 1));
+        e.setDateNotificationRupture(java.time.LocalDate.of(2026, 2, 3));
+        e.setDateNotificationMotifs(java.time.LocalDate.of(2026, 2, 5));
+        e.setAnciennetteAnnees(8);
+        e.setSalaireMensuelReference(new BigDecimal("3000.00"));
+        MotifGraveBeResult r = new MotifGraveBeResult(
+                java.time.LocalDate.of(2026, 2, 1),
+                java.time.LocalDate.of(2026, 2, 3),
+                java.time.LocalDate.of(2026, 2, 5),
+                8, new BigDecimal("3000.00"),
+                2, 2, true,
+                new BigDecimal("9000"), new BigDecimal("4500"), new BigDecimal("18000"),
+                "—", "art. 35 Loi 03/07/1978", List.of());
+        e.setResultData(objectMapper.writeValueAsString(r));
+        motifGraveBeRepository.save(e);
+
+        mockMvc.perform(get("/api/v1/case-files/" + caseFile.getId() + "/dashboard")
+                        .with(authentication(auth)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tiles").isArray())
+                .andExpect(jsonPath(
+                        "$.tiles[?(@.toolId == 'F-DT-27-motif-grave-be')].theme")
+                        .value("VALIDITE"))
+                .andExpect(jsonPath(
+                        "$.tiles[?(@.toolId == 'F-DT-27-motif-grave-be')].label")
+                        .value("Motif grave BE"))
+                .andExpect(jsonPath(
+                        "$.tiles[?(@.toolId == 'F-DT-27-motif-grave-be')].alertLevel")
                         .value("OK"));
     }
 
