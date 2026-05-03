@@ -74,5 +74,38 @@ export class BlogArticlePageComponent implements OnInit {
       this.metaService.updateTag({ property: 'og:image', content: article.heroImageUrl });
     }
     this.metaService.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.injectJsonLd(article);
+  }
+
+  private injectJsonLd(article: BlogArticleDetail): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    const old = document.getElementById('blog-article-jsonld');
+    if (old) {
+      old.remove();
+    }
+    const data: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      'headline': article.title,
+      'description': article.metaDescription,
+      'author': { '@type': 'Organization', 'name': article.authorName || 'LegalCase' },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'LegalCase',
+        'url': 'https://legalcase.ng-itconsulting.com',
+      },
+      'datePublished': article.publishedAt,
+      'inLanguage': 'fr',
+    };
+    if (article.heroImageUrl) {
+      data['image'] = article.heroImageUrl;
+    }
+    const script = document.createElement('script');
+    script.id = 'blog-article-jsonld';
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(data);
+    document.head.appendChild(script);
   }
 }

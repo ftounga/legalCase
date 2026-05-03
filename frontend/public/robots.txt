@@ -8,5 +8,6 @@ Disallow: /onboarding
 Disallow: /search
 Disallow: /invite
 Disallow: /share/
+Disallow: /api/
 
-Sitemap: https://legalcase.ng-itconsulting.com/sitemap.xml
+Sitemap: https://legalcase.ng-itconsulting.com/api/sitemap.xml
