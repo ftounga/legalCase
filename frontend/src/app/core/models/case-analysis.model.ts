@@ -137,6 +137,43 @@ export interface CaseAnalysisResult {
   divorceConsentementScoring?: DivorceConsentementScoring | null;
 }
 
+/**
+ * F-185 SF-185-01 — état partiel d'une synthèse en cours de streaming Sonnet.
+ * `sections` est l'objet JSON top-level reconstruit à partir des sections déjà closes
+ * (clés = `timeline`, `faits`, `pointsJuridiques`, etc. — sous-ensemble de
+ * {@link CaseAnalysisResult}). Null si l'analyse vient juste de démarrer.
+ *
+ * Note : les clés sont en `snake_case` côté backend (telles que produites par Sonnet :
+ * `points_juridiques`, `questions_ouvertes`, `pieces_manquantes`). Le frontend doit
+ * mapper vers son camelCase au moment d'afficher.
+ */
+export interface CaseAnalysisPartialResponse {
+  analysisId: string;
+  version: number;
+  status: 'PROCESSING' | 'PARTIAL';
+  sections: Partial<CaseAnalysisPartialSections> | null;
+  updatedAt: string;
+}
+
+/**
+ * F-185 SF-185-01 — clés JSON exactement telles que produites par Sonnet (snake_case).
+ * Toutes optionnelles : seules celles déjà arrivées dans le stream sont présentes.
+ */
+export interface CaseAnalysisPartialSections {
+  timeline: TimelineEntry[];
+  faits: AnalysisItem[];
+  points_juridiques: AnalysisItem[];
+  risques: AnalysisItem[];
+  questions_ouvertes: string[];
+  pieces_manquantes: string[];
+  pieces_manquantes_details: PieceManquanteEntry[];
+  risk_level: string;
+  risk_score: number;
+  travail_extracted_data: unknown;
+  immigration_extracted_data: unknown;
+  famille_extracted_data: unknown;
+}
+
 /** F-152 SF-152-01 : détection validité divorce consentement mutuel. */
 export interface DivorceConsentementValidityDetection {
   detections: { [critereCode: string]: DetectedAnswer };

@@ -87,6 +87,14 @@
     </div>
   }
 
+  <!-- F-185 SF-185-01 — bandeau streaming : la synthèse se compose section par section. -->
+  @if (isStreaming()) {
+    <div class="streaming-callout" role="status" aria-live="polite">
+      <mat-spinner diameter="18"></mat-spinner>
+      <span class="streaming-text">Synthèse en cours de génération… Les sections apparaissent au fur et à mesure.</span>
+    </div>
+  }
+
   @if (synthesis()) {
     <mat-accordion class="synthesis-accordion" multi [@listStagger]="synthesis()!.faits.length + synthesis()!.risques.length + synthesis()!.timeline.length">
       @if (synthesis()!.timeline.length > 0) {

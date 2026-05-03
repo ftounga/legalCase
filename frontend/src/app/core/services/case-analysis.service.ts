@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AnalysisDiff, CaseAnalysisResult, CaseAnalysisVersionSummary } from '../models/case-analysis.model';
+import { AnalysisDiff, CaseAnalysisPartialResponse, CaseAnalysisResult, CaseAnalysisVersionSummary } from '../models/case-analysis.model';
 
 @Injectable({ providedIn: 'root' })
 export class CaseAnalysisService {
@@ -23,5 +23,14 @@ export class CaseAnalysisService {
     return this.http.get<AnalysisDiff>(`/api/v1/case-files/${caseFileId}/case-analysis/diff`, {
       params: { fromId, toId }
     });
+  }
+
+  /**
+   * F-185 SF-185-01 — récupère l'état partiel courant pendant le streaming Sonnet.
+   * 404 si aucune analyse n'est en cours sur ce dossier (à intercepter côté appelant
+   * pour basculer sur l'écran "lance une analyse").
+   */
+  getPartial(caseFileId: string): Observable<CaseAnalysisPartialResponse> {
+    return this.http.get<CaseAnalysisPartialResponse>(`/api/v1/case-files/${caseFileId}/case-analysis/partial`);
   }
 }

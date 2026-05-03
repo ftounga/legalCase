@@ -169,6 +169,45 @@ class CaseAnalysisServiceTest {
                 new AiQuestionGenerationMessage(caseFileId));
     }
 
+    // F-185 SF-185-01 : streaming → partial_state alimenté par section, puis purgé au DONE
+    @Test
+    void consumeCaseAnalysis_streaming_setsPartialStateThenPurgesAtDone() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        DocumentAnalysis da = documentAnalysis("{\"faits\":[]}", Instant.now());
+
+        when(documentAnalysisRepository.findByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(List.of(da));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.CASE_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Streaming stub : invoque le callback avec 2 sections puis retourne le résultat final
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(), any(), anyInt(), any())).thenAnswer(inv -> {
+            @SuppressWarnings("unchecked")
+            java.util.function.Consumer<String> onDelta = inv.getArgument(3);
+            onDelta.accept("{\"faits\": [{\"texte\": \"f1\"}], ");
+            onDelta.accept("\"risques\": []}");
+            return new AnthropicResult("{\"faits\":[{\"texte\":\"f1\"}],\"risques\":[]}",
+                    "claude-sonnet-4-6", 100, 50);
+        });
+
+        service.consumeCaseAnalysis(new CaseAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(2)).save(captor.capture());
+        // Au moins une sauvegarde a positionné partial_state pendant le stream
+        boolean hasPartial = captor.getAllValues().stream()
+                .anyMatch(a -> a.getPartialState() != null && !a.getPartialState().isBlank());
+        assertThat(hasPartial).isTrue();
+        // La dernière sauvegarde (finalize DONE) a purgé partial_state
+        CaseAnalysis last = captor.getValue();
+        assertThat(last.getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(last.getPartialState()).isNull();
+    }
+
     // U-04 : aucune document_analysis DONE → aucune CaseAnalysis créée
     @Test
     void consumeCaseAnalysis_noDocumentAnalyses_noCaseAnalysisCreated() {

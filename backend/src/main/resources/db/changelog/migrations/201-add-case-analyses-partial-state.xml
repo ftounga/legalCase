@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!--
+      F-185 SF-185-01 — persistance partielle de la synthèse pendant le streaming Sonnet.
+
+      `partial_state` (TEXT nullable, contenu JSON sérialisé) accumule progressivement
+      les sections JSON top-level (`faits`, `points_juridiques`, `risques`, etc.) au fur
+      et à mesure qu'elles sont détectées comme complètes dans le buffer de streaming
+      Anthropic. Permet le "refresh-safe" : un avocat qui F5 la page synthèse pendant
+      le streaming retrouve les sections déjà arrivées via
+      GET /case-files/{id}/case-analysis/partial.
+
+      TEXT (et non JSONB) pour cohérence avec les autres colonnes JSON du projet
+      (cf. legal_referentials.value_json, *_analysis.result_data) — H2 (dev profile)
+      ne supporte pas JSONB, et on n'a pas besoin de query JSONB côté SQL.
+
+      Purgé (set NULL) au moment où `analysisResult` complet est persisté (DONE/FAILED).
+    -->
+    <changeSet id="201-add-case-analyses-partial-state" author="legalcase">
+        <addColumn tableName="case_analyses">
+            <column name="partial_state" type="TEXT"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="case_analyses" columnName="partial_state"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

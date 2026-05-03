@@ -1,5 +1,7 @@
 package fr.ailegalcase.analysis;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
@@ -22,6 +24,7 @@ import java.util.UUID;
 public class CaseAnalysisQueryService {
 
     private static final Logger log = LoggerFactory.getLogger(CaseAnalysisQueryService.class);
+    private static final ObjectMapper PARTIAL_MAPPER = new ObjectMapper();
 
     private final CaseAnalysisRepository caseAnalysisRepository;
     private final CaseFileRepository caseFileRepository;
@@ -112,6 +115,58 @@ public class CaseAnalysisQueryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Version not found"));
 
         return CaseAnalysisResponse.from(analysis, loadDocuments(analysis.getId()), workspace.getCountry());
+    }
+
+    /**
+     * F-185 SF-185-01 — état partiel de l'analyse en cours pour {@code caseFileId}.
+     *
+     * <p>Retourne le dernier {@link CaseAnalysis} avec status {@link AnalysisStatus#PROCESSING}
+     * ou {@link AnalysisStatus#PARTIAL} et son {@code partial_state} parsé en {@link JsonNode}.
+     * Si aucune analyse en cours n'existe, lève 404 (le frontend tombera alors sur
+     * l'endpoint synthèse standard ou affichera l'écran "lance une analyse").
+     *
+     * <p>Si une analyse en cours existe mais aucune section n'est encore arrivée
+     * (status PROCESSING, partial_state NULL), retourne {@code sections=null}.
+     */
+    @Transactional(readOnly = true)
+    public CaseAnalysisPartialResponse getPartialAnalysis(UUID caseFileId, OidcUser oidcUser, String provider, Principal principal) {
+        User user = currentUserResolver.resolve(oidcUser, provider, principal);
+
+        Workspace workspace = workspaceMemberRepository
+                .findByUserAndPrimaryTrue(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workspace not found"))
+                .getWorkspace();
+
+        CaseFile caseFile = caseFileRepository.findByIdAndDeletedAtIsNull(caseFileId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found"));
+
+        if (!caseFile.getWorkspace().getId().equals(workspace.getId())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Case file not found");
+        }
+
+        CaseAnalysis analysis = caseAnalysisRepository
+                .findFirstByCaseFileIdAndAnalysisStatusInOrderByVersionDesc(
+                        caseFileId, List.of(AnalysisStatus.PROCESSING, AnalysisStatus.PARTIAL))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No in-flight analysis"));
+
+        JsonNode sections = null;
+        String partialState = analysis.getPartialState();
+        if (partialState != null && !partialState.isBlank()) {
+            try {
+                sections = PARTIAL_MAPPER.readTree(partialState);
+            } catch (Exception e) {
+                log.warn("Partial state JSON parse failed for analysis {}: {} — returning sections=null",
+                        analysis.getId(), e.getMessage());
+            }
+        }
+
+        return new CaseAnalysisPartialResponse(
+                analysis.getId(),
+                analysis.getVersion(),
+                analysis.getAnalysisStatus(),
+                sections,
+                analysis.getUpdatedAt()
+        );
     }
 
     private List<AnalysisDocument> loadDocuments(UUID analysisId) {

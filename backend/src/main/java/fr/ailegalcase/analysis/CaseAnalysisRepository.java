@@ -18,6 +18,13 @@ public interface CaseAnalysisRepository extends JpaRepository<CaseAnalysis, UUID
     Optional<CaseAnalysis> findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
             UUID caseFileId, AnalysisStatus analysisStatus);
 
+    /**
+     * F-185 SF-185-01 — récupère l'analyse en cours (PROCESSING ou PARTIAL) la plus
+     * récente d'un dossier, pour servir l'endpoint partial pendant le streaming.
+     */
+    Optional<CaseAnalysis> findFirstByCaseFileIdAndAnalysisStatusInOrderByVersionDesc(
+            UUID caseFileId, Collection<AnalysisStatus> statuses);
+
     Optional<CaseAnalysis> findFirstByCaseFileIdAndAnalysisTypeAndAnalysisStatusOrderByUpdatedAtDesc(
             UUID caseFileId, AnalysisType analysisType, AnalysisStatus analysisStatus);
 
