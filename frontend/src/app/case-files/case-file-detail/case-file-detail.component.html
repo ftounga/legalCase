@@ -346,6 +346,27 @@
         </div>
         }
       </section>
+
+      <!-- F-184 SF-184-02 : remontée des 3 blocs ex-bottom-sections dans col-left
+           pour combler le trou visuel apparu après SF-184-01. -->
+      <div id="section-deadlines">
+        <app-case-deadlines-section [caseFileId]="caseFile()!.id">
+        </app-case-deadlines-section>
+      </div>
+
+      <app-case-notes-section
+        [caseFileId]="caseFile()!.id"
+        [currentUserEmail]="authService.currentUser()?.email ?? null">
+      </app-case-notes-section>
+
+      <app-decisional-tools-panel
+        [caseFileId]="caseFile()!.id"
+        [synthesis]="synthesis()"
+        [workspaceCountry]="workspaceCountry()"
+        [caseFileTitle]="caseFile()!.title"
+        [procedureChecks]="procedureChecks()"
+        [aiQuestions]="questions()">
+      </app-decisional-tools-panel>
     </div>
 
     <!-- Colonne droite : analyse -->
@@ -510,26 +531,6 @@
     </div>
   </div>
 
-  <div class="bottom-sections">
-    <div id="section-deadlines">
-      <app-case-deadlines-section [caseFileId]="caseFile()!.id">
-      </app-case-deadlines-section>
-    </div>
-
-    <app-case-notes-section
-      [caseFileId]="caseFile()!.id"
-      [currentUserEmail]="authService.currentUser()?.email ?? null">
-    </app-case-notes-section>
-
-    <app-decisional-tools-panel
-      [caseFileId]="caseFile()!.id"
-      [synthesis]="synthesis()"
-      [workspaceCountry]="workspaceCountry()"
-      [caseFileTitle]="caseFile()!.title"
-      [procedureChecks]="procedureChecks()"
-      [aiQuestions]="questions()">
-    </app-decisional-tools-panel>
-  </div>
 } @else {
   <p class="no-data">Dossier introuvable.</p>
 }

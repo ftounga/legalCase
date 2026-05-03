@@ -741,20 +741,50 @@ describe('CaseFileDetailComponent', () => {
     expect(panel).not.toBeNull();
   });
 
-  it('SF-184-01 T-04: tableau de bord décisionnel rendu dans col-right (carte premium), pas dans bottom-sections', () => {
+  it('SF-184-01 T-04 (adapté SF-184-02): tableau de bord décisionnel rendu dans col-right (carte premium)', () => {
     fixture.detectChanges();
     const dashboard = fixture.nativeElement.querySelector('app-case-dashboard');
     expect(dashboard).not.toBeNull();
     // Doit être enveloppé dans le wrapper premium SF-184-01.
     const wrapper = dashboard.closest('.decisional-summary-panel');
     expect(wrapper).not.toBeNull();
-    // Ce wrapper doit être à l'intérieur de col-right, pas de bottom-sections.
+    // Ce wrapper doit être à l'intérieur de col-right.
     expect(wrapper.closest('.col-right')).not.toBeNull();
+    // SF-184-02 : le conteneur .bottom-sections n'existe plus, le wrapper ne peut donc
+    // pas y être imbriqué.
     expect(wrapper.closest('.bottom-sections')).toBeNull();
-    // L'ancien emplacement bottom-sections ne doit plus contenir <app-case-dashboard>.
+  });
+
+  it('SF-184-02 T-01: Délais + Notes + Outils décisionnels remontés dans col-left, .bottom-sections supprimé', () => {
+    fixture.detectChanges();
+
+    // Le conteneur .bottom-sections n'existe plus dans le DOM.
     const bottomSections = fixture.nativeElement.querySelector('.bottom-sections');
-    expect(bottomSections).not.toBeNull();
-    expect(bottomSections.querySelector('app-case-dashboard')).toBeNull();
+    expect(bottomSections).toBeNull();
+
+    // Les 3 composants ex-bottom-sections sont maintenant dans .col-left.
+    const colLeft = fixture.nativeElement.querySelector('.col-left');
+    expect(colLeft).not.toBeNull();
+
+    const deadlines = colLeft.querySelector('app-case-deadlines-section');
+    const notes = colLeft.querySelector('app-case-notes-section');
+    const tools = colLeft.querySelector('app-decisional-tools-panel');
+    expect(deadlines).not.toBeNull();
+    expect(notes).not.toBeNull();
+    expect(tools).not.toBeNull();
+
+    // Ordre vertical : DOCUMENTS (section) → Délais → Notes → Outils décisionnels.
+    const docsSection = colLeft.querySelector('.td-section--documents');
+    expect(docsSection).not.toBeNull();
+    const colLeftChildren = Array.from(colLeft.children) as HTMLElement[];
+    const idxDocs = colLeftChildren.findIndex(c => c.contains(docsSection));
+    const idxDeadlines = colLeftChildren.findIndex(c => c.contains(deadlines));
+    const idxNotes = colLeftChildren.findIndex(c => c.contains(notes));
+    const idxTools = colLeftChildren.findIndex(c => c.contains(tools));
+    expect(idxDocs).toBeGreaterThanOrEqual(0);
+    expect(idxDeadlines).toBeGreaterThan(idxDocs);
+    expect(idxNotes).toBeGreaterThan(idxDeadlines);
+    expect(idxTools).toBeGreaterThan(idxNotes);
   });
 
   // ----- SF-125-01 : bouton d'analyse contextuel -----
