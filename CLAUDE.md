@@ -313,6 +313,7 @@ Les smoke tests couvrent les chemins critiques d'intégration :
 - `ai-skills/test-case-generator.md` — générer un plan de test
 - `ai-skills/review-checklist-runner.md` — évaluer une PR
 - `ai-skills/definition-of-done-checker.md` — valider la complétude
+- `ai-skills/feature-autonome.md` — livrer une feature complète **toutes SF d'affilée** sans pause entre SF (à invoquer quand l'utilisateur demande "implémente F-XXX en autonome" / "vas-y jusqu'au bout" / équivalent)
 
 ---
 
