@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <changeSet id="203-create-blog-usage-events" author="legalcase">
+        <comment>
+            F-120 SF-120-03 — table dédiée au suivi des coûts IA blog (Anthropic + OpenAI).
+            Découplée de usage_events (qui est dossier-orienté avec case_file_id NOT NULL).
+            Sert de source de vérité pour IaCostTracker (cap mensuel par provider).
+        </comment>
+        <createTable tableName="blog_usage_events">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="provider" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model" type="varchar(60)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_type" type="varchar(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="blog_article_id" type="uuid">
+                <constraints nullable="true"/>
+            </column>
+            <column name="tokens_input" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tokens_output" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cost_eur" type="decimal(12,6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp with time zone">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="blog_usage_events" indexName="idx_blog_usage_events_provider_created_at">
+            <column name="provider"/>
+            <column name="created_at"/>
+        </createIndex>
+
+        <createIndex tableName="blog_usage_events" indexName="idx_blog_usage_events_blog_article_id">
+            <column name="blog_article_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
