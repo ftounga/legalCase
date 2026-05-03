@@ -3,9 +3,14 @@ import { AnalysisSseService, AnalysisStatusEvent } from './analysis-sse.service'
 
 class MockEventSource {
   static instances: MockEventSource[] = [];
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSED = 2;
   url: string;
   withCredentials: boolean;
   closed = false;
+  // SF-186-01 — readyState simulé pour tester l'auto-reconnect
+  readyState: number = MockEventSource.OPEN;
   onerror: ((this: EventSource, ev: Event) => unknown) | null = null;
   private listeners = new Map<string, ((e: MessageEvent) => void)[]>();
 
@@ -23,6 +28,7 @@ class MockEventSource {
 
   close(): void {
     this.closed = true;
+    this.readyState = MockEventSource.CLOSED;
   }
 
   emit(name: string, data: AnalysisStatusEvent): void {
@@ -30,7 +36,8 @@ class MockEventSource {
     cbs.forEach(cb => cb({ data: JSON.stringify(data) } as MessageEvent));
   }
 
-  triggerError(): void {
+  triggerError(readyState: number = MockEventSource.CONNECTING): void {
+    this.readyState = readyState;
     this.onerror?.call(this as unknown as EventSource, new Event('error'));
   }
 }
@@ -88,14 +95,43 @@ describe('AnalysisSseService', () => {
     expect(received).toEqual([{ caseFileId: 'case-2', status: 'FAILED', jobType: 'CASE_ANALYSIS' }]);
   });
 
-  it('ferme et complete sur erreur réseau', () => {
+  // SF-186-01 — le test précédent ("ferme et complete sur erreur réseau") attendait
+  // close+complete sur la moindre erreur. C'est exactement le bug : ça tuait le SSE
+  // pour de bon. Nouveau comportement : ne PAS close/complete tant que
+  // readyState !== CLOSED (le navigateur retente automatiquement).
+  it('SF-186-01 — ne complete PAS sur erreur transitoire (readyState=CONNECTING)', () => {
+    const received: AnalysisStatusEvent[] = [];
     let completed = false;
-    service.stream('case-3').subscribe({ complete: () => { completed = true; } });
+
+    service.stream('case-3').subscribe({
+      next: e => received.push(e),
+      complete: () => { completed = true; },
+    });
 
     const es = MockEventSource.instances[0];
-    es.triggerError();
+    // Simule un blip réseau — EventSource passe en CONNECTING (auto-reconnect)
+    es.triggerError(MockEventSource.CONNECTING);
 
-    expect(es.closed).toBe(true);
+    expect(completed).toBe(false);
+    expect(es.closed).toBe(false);
+
+    // Après reconnect (simulé : readyState repasse à OPEN), les events doivent
+    // continuer à arriver normalement.
+    es.readyState = MockEventSource.OPEN;
+    es.emit('CASE_ANALYSIS_DONE', { caseFileId: 'case-3', status: 'DONE', jobType: 'CASE_ANALYSIS' });
+
+    expect(received).toEqual([{ caseFileId: 'case-3', status: 'DONE', jobType: 'CASE_ANALYSIS' }]);
+    expect(completed).toBe(false);
+  });
+
+  it('SF-186-01 — complete sur erreur fatale (readyState=CLOSED)', () => {
+    let completed = false;
+    service.stream('case-3b').subscribe({ complete: () => { completed = true; } });
+
+    const es = MockEventSource.instances[0];
+    // Simule une erreur fatale — le navigateur a abandonné, readyState=CLOSED.
+    es.triggerError(MockEventSource.CLOSED);
+
     expect(completed).toBe(true);
   });
 
