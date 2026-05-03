@@ -44,4 +44,6 @@ public interface BlogArticleRepository extends JpaRepository<BlogArticle, UUID> 
     List<CategoryCountryCount> countPublishedByCategoryAndCountrySince(
             @Param("status") BlogArticleStatus status,
             @Param("since") Instant since);
+
+    long countByStatusAndPublishedAtAfter(BlogArticleStatus status, Instant after);
 }
