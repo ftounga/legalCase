@@ -7,7 +7,6 @@ import fr.ailegalcase.document.DocumentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
@@ -56,8 +55,6 @@ public class DocumentAnalysisService {
     private final CaseFileRepository caseFileRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final AnalysisLimitsProperties analysisLimitsProperties;
-    private final CaseAnalysisRepository caseAnalysisRepository;
-    private final RabbitTemplate rabbitTemplate;
 
     @Lazy @Autowired
     private DocumentAnalysisService self;
@@ -71,9 +68,7 @@ public class DocumentAnalysisService {
                                    UsageEventService usageEventService,
                                    CaseFileRepository caseFileRepository,
                                    ApplicationEventPublisher eventPublisher,
-                                   AnalysisLimitsProperties analysisLimitsProperties,
-                                   CaseAnalysisRepository caseAnalysisRepository,
-                                   RabbitTemplate rabbitTemplate) {
+                                   AnalysisLimitsProperties analysisLimitsProperties) {
         this.chunkAnalysisRepository = chunkAnalysisRepository;
         this.documentAnalysisRepository = documentAnalysisRepository;
         this.extractionRepository = extractionRepository;
@@ -84,8 +79,6 @@ public class DocumentAnalysisService {
         this.caseFileRepository = caseFileRepository;
         this.eventPublisher = eventPublisher;
         this.analysisLimitsProperties = analysisLimitsProperties;
-        this.caseAnalysisRepository = caseAnalysisRepository;
-        this.rabbitTemplate = rabbitTemplate;
     }
 
     @RabbitListener(queues = RabbitMQConfig.DOCUMENT_ANALYSIS_QUEUE, concurrency = "5")
@@ -206,55 +199,8 @@ public class DocumentAnalysisService {
                 caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
                     usageEventService.record(caseFileId, userId, JobType.DOCUMENT_ANALYSIS,
                             promptTokens, completionTokens));
-
-                // F-185 SF-185-03 — synthèse incrémentale par doc.
-                // À chaque DocumentAnalysis DONE, déclencher une CaseAnalysis provisoire
-                // pour donner à l'avocat une 1re vision dès le 1er document analysé,
-                // enrichie au fil des docs suivants. Garde-fous (skipIfAlreadyRunning)
-                // dans triggerProvisionalCaseAnalysisAfterCommit pour éviter le spam.
-                triggerProvisionalCaseAnalysisAfterCommit(caseFileId);
             }
         }
-    }
-
-    /**
-     * F-185 SF-185-03 — déclenche une CaseAnalysis provisoire (auto, vs manuelle)
-     * après commit, sous garde-fous :
-     *   - skip si une CaseAnalysis est déjà PENDING/PROCESSING/PARTIAL (race avec
-     *     un autre doc qui vient d'arriver, ou avec un déclenchement manuel)
-     *   - skip si la dernière analyse DONE est non-provisoire (l'avocat a tranché
-     *     manuellement sur le périmètre courant — on ne lui repasse pas dessus)
-     *
-     * Le RabbitMQ guarantee at-least-once : si plusieurs docs DONE arrivent dans
-     * la même fenêtre, plusieurs messages peuvent être publiés ; le check
-     * existsByCaseFileIdAndAnalysisStatusIn dans prepareCaseAnalysis fait office
-     * de seconde barrière (la 2e Prepare verra l'analyse précédente PROCESSING
-     * et créera une nouvelle version, ce qui est OK).
-     */
-    private void triggerProvisionalCaseAnalysisAfterCommit(UUID caseFileId) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    boolean alreadyRunning = caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(
-                            caseFileId, List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING, AnalysisStatus.PARTIAL));
-                    if (alreadyRunning) {
-                        log.debug("Skipping provisional case analysis for {} — analysis already in-flight", caseFileId);
-                        return;
-                    }
-                    rabbitTemplate.convertAndSend(
-                            RabbitMQConfig.CASE_ANALYSIS_EXCHANGE,
-                            RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY,
-                            new CaseAnalysisMessage(caseFileId, true));
-                    log.info("Provisional case analysis triggered for {} after document analysis DONE", caseFileId);
-                } catch (Exception ex) {
-                    // Fail-open : pas critique si on n'arrive pas à déclencher la provisoire,
-                    // l'avocat peut toujours déclencher manuellement.
-                    log.warn("Failed to trigger provisional case analysis for {}: {}",
-                            caseFileId, ex.getMessage());
-                }
-            }
-        });
     }
 
     private void createOrResetDocumentAnalysisJob(UUID caseFileId) {

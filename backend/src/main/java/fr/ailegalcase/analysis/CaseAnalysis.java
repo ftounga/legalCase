@@ -46,16 +46,6 @@ public class CaseAnalysis {
     @Column(name = "partial_state", columnDefinition = "TEXT")
     private String partialState;
 
-    /**
-     * F-185 SF-185-03 — analyse synthétique générée automatiquement au fil des
-     * DocumentAnalysis DONE (vs déclenchement manuel par l'avocat).
-     * Les analyses provisoires masquent leur verdict (riskLevel grisé + bandeau
-     * "Synthèse provisoire — N/M documents") jusqu'à ce qu'une analyse
-     * définitive (manuelle ou auto-finale) la remplace.
-     */
-    @Column(name = "is_provisional", nullable = false)
-    private boolean isProvisional = false;
-
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 

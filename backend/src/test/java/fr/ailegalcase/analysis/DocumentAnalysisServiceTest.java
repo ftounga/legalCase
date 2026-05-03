@@ -36,15 +36,11 @@ class DocumentAnalysisServiceTest {
     private final CaseFileRepository caseFileRepository = mock(CaseFileRepository.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AnalysisLimitsProperties analysisLimitsProperties = mock(AnalysisLimitsProperties.class);
-    private final CaseAnalysisRepository caseAnalysisRepository = mock(CaseAnalysisRepository.class);
-    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate =
-            mock(org.springframework.amqp.rabbit.core.RabbitTemplate.class);
 
     private final DocumentAnalysisService service = new DocumentAnalysisService(
             chunkAnalysisRepository, documentAnalysisRepository, extractionRepository,
             documentRepository, anthropicService, analysisJobRepository, usageEventService,
-            caseFileRepository, eventPublisher, analysisLimitsProperties,
-            caseAnalysisRepository, rabbitTemplate);
+            caseFileRepository, eventPublisher, analysisLimitsProperties);
 
     @BeforeEach
     void setUp() {
@@ -60,74 +56,6 @@ class DocumentAnalysisServiceTest {
     @AfterEach
     void clearTransactionSync() {
         TransactionSynchronizationManager.clearSynchronization();
-    }
-
-    // F-185 SF-185-03 : DocumentAnalysis DONE → publie un CaseAnalysisMessage provisoire
-    @Test
-    void finalizeAnalysis_done_triggersProvisionalCaseAnalysis() {
-        java.util.UUID caseFileId = java.util.UUID.randomUUID();
-        java.util.UUID analysisId = java.util.UUID.randomUUID();
-        DocumentAnalysis da = new DocumentAnalysis();
-        da.setAnalysisStatus(AnalysisStatus.PROCESSING);
-        when(documentAnalysisRepository.findById(analysisId)).thenReturn(java.util.Optional.of(da));
-        when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        AnalysisJob job = new AnalysisJob();
-        job.setStatus(AnalysisStatus.DONE);
-        job.setTotalItems(1);
-        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
-                .thenReturn(java.util.Optional.of(job));
-        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
-                .thenReturn(1L);
-        when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))
-                .thenReturn(false);
-
-        AnalysisLimitsProperties.LevelLimits limits = new AnalysisLimitsProperties.LevelLimits();
-        limits.setFaits(5); limits.setPointsJuridiques(3); limits.setRisques(3); limits.setQuestionsOuvertes(3);
-
-        service.finalizeAnalysis(analysisId, caseFileId,
-                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50), null, limits);
-        TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
-
-        ArgumentCaptor<CaseAnalysisMessage> msgCaptor = ArgumentCaptor.forClass(CaseAnalysisMessage.class);
-        verify(rabbitTemplate).convertAndSend(
-                eq(RabbitMQConfig.CASE_ANALYSIS_EXCHANGE),
-                eq(RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY),
-                msgCaptor.capture());
-        assertThat(msgCaptor.getValue().caseFileId()).isEqualTo(caseFileId);
-        assertThat(msgCaptor.getValue().provisional()).isTrue();
-    }
-
-    // F-185 SF-185-03 : si une analyse est déjà en vol, ne pas spammer
-    @Test
-    void finalizeAnalysis_done_skipsTriggerIfAnalysisAlreadyInFlight() {
-        java.util.UUID caseFileId = java.util.UUID.randomUUID();
-        java.util.UUID analysisId = java.util.UUID.randomUUID();
-        DocumentAnalysis da = new DocumentAnalysis();
-        da.setAnalysisStatus(AnalysisStatus.PROCESSING);
-        when(documentAnalysisRepository.findById(analysisId)).thenReturn(java.util.Optional.of(da));
-        when(documentAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        AnalysisJob job = new AnalysisJob();
-        job.setStatus(AnalysisStatus.DONE);
-        job.setTotalItems(1);
-        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.DOCUMENT_ANALYSIS))
-                .thenReturn(java.util.Optional.of(job));
-        when(documentAnalysisRepository.countByDocumentCaseFileIdAndAnalysisStatus(caseFileId, AnalysisStatus.DONE))
-                .thenReturn(1L);
-        // Analyse déjà en cours → garde-fou
-        when(caseAnalysisRepository.existsByCaseFileIdAndAnalysisStatusIn(eq(caseFileId), any()))
-                .thenReturn(true);
-
-        AnalysisLimitsProperties.LevelLimits limits = new AnalysisLimitsProperties.LevelLimits();
-        limits.setFaits(5); limits.setPointsJuridiques(3); limits.setRisques(3); limits.setQuestionsOuvertes(3);
-
-        service.finalizeAnalysis(analysisId, caseFileId,
-                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50), null, limits);
-        TransactionSynchronizationManager.getSynchronizations().forEach(s -> s.afterCommit());
-
-        verify(rabbitTemplate, never()).convertAndSend(
-                eq(RabbitMQConfig.CASE_ANALYSIS_EXCHANGE),
-                eq(RabbitMQConfig.CASE_ANALYSIS_ROUTING_KEY),
-                any(CaseAnalysisMessage.class));
     }
 
     // U-01 : analyses de chunks valides → DocumentAnalysis DONE + job mis à jour + usage enregistré

@@ -85,7 +85,7 @@ public class CaseAnalysisService {
     }
 
     record PreparedCaseAnalysis(UUID analysisId, String prompt, String systemPrompt, UUID caseFileId,
-                                 AnalysisLimitsProperties.LevelLimits limits, boolean provisional) {}
+                                 AnalysisLimitsProperties.LevelLimits limits) {}
 
     /** SF — budget pour les extraits bruts injectés par doc (pour éviter les
      *  mauvaises classifications quand les doc-analyses ne captent pas le
@@ -295,9 +295,6 @@ public class CaseAnalysisService {
         analysis.setVersion(nextVersion);
         analysis.setAnalysisType(AnalysisType.STANDARD);
         analysis.setAnalysisStatus(AnalysisStatus.PENDING);
-        // F-185 SF-185-03 : marquer l'analyse comme provisoire si déclenchée par
-        // l'auto-trigger DocumentAnalysis (vs déclenchement manuel par l'avocat).
-        analysis.setProvisional(message.provisional());
         analysis = caseAnalysisRepository.save(analysis);
         analysis.setAnalysisStatus(AnalysisStatus.PROCESSING);
         analysis = caseAnalysisRepository.save(analysis);
@@ -315,7 +312,7 @@ public class CaseAnalysisService {
         String userPrompt = (piecesContext == null || piecesContext.isEmpty())
                 ? buildAggregatedPrompt(documentAnalyses)
                 : piecesContext + "\n" + buildAggregatedPrompt(documentAnalyses);
-        return new PreparedCaseAnalysis(analysis.getId(), userPrompt, systemPrompt, caseFileId, limits, message.provisional());
+        return new PreparedCaseAnalysis(analysis.getId(), userPrompt, systemPrompt, caseFileId, limits);
     }
 
     @Transactional
