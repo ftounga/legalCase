@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml, Title, Meta } from '@angular/platform-browser';
 
@@ -23,16 +23,20 @@ export class BlogArticlePageComponent implements OnInit {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly legalDomainLabels = LEGAL_DOMAIN_LABELS;
   protected readonly countryLabels = COUNTRY_LABELS;
 
-  protected loading = true;
+  protected loading = this.isBrowser;
   protected error: string | null = null;
   protected article: BlogArticleDetail | null = null;
   protected renderedHtml: SafeHtml = '';
 
   ngOnInit(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.route.paramMap.subscribe(params => {
       const slug = params.get('slug');
       if (!slug) {

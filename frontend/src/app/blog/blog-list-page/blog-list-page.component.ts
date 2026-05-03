@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { BlogService } from '../blog.service';
@@ -26,17 +26,21 @@ export class BlogListPageComponent implements OnInit {
   private readonly blogService = inject(BlogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly legalDomainLabels = LEGAL_DOMAIN_LABELS;
   protected readonly countryLabels = COUNTRY_LABELS;
 
-  protected loading = true;
+  protected loading = this.isBrowser;
   protected error: string | null = null;
   protected articles: BlogArticleSummary[] = [];
   protected page: BlogPage<BlogArticleSummary> | null = null;
   protected filters: BlogFilters = { page: 0, size: 20 };
 
   ngOnInit(): void {
+    if (!this.isBrowser) {
+      return;
+    }
     this.route.queryParamMap.subscribe(params => {
       this.filters = {
         country: (params.get('country') as BlogCountry) ?? null,
