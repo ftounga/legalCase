@@ -16,7 +16,8 @@ import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { of, throwError, Subject } from 'rxjs';
+import { of, throwError, Subject, NEVER } from 'rxjs';
+import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
 import { AnalysisItem, CaseAnalysisVersionSummary } from '../../core/models/case-analysis.model';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
 import { StrategicOption } from '../../core/models/strategic-option.model';
@@ -87,7 +88,10 @@ describe('SynthesisComponent', () => {
   let dialogResultSubject: Subject<string | null | undefined>;
 
   beforeEach(async () => {
-    caseAnalysisService = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getByVersion', 'getAnalysis']);
+    caseAnalysisService = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getByVersion', 'getAnalysis', 'getPartial']);
+    // F-185 SF-185-01 — par défaut pas d'analyse en cours (404). Les tests qui veulent
+    // exercer le streaming partial peuvent override via .mockReturnValueOnce(of(...)).
+    (caseAnalysisService.getPartial as jest.Mock).mockReturnValue(throwError(() => ({ status: 404 })));
     aiQuestionService = jasmine.createSpyObj('AiQuestionService', ['getQuestions', 'getQuestionsByAnalysisId']);
     procedureCheckService = jasmine.createSpyObj('ProcedureCheckService', ['list', 'updateStatus']);
     strategicOptionService = jasmine.createSpyObj('StrategicOptionService', ['list', 'updateStatus']);
@@ -133,6 +137,8 @@ describe('SynthesisComponent', () => {
         { provide: MatDialog, useValue: matDialogMock },
         { provide: TimeService, useValue: timeServiceMock },
         { provide: DocumentService, useValue: { list: jest.fn().mockReturnValue(of([])) } },
+        // F-185 SF-185-01 — stub pour éviter l'EventSource réel et neutraliser le canal events$.
+        { provide: GlobalAnalysisNotificationService, useValue: { track: jest.fn(), events$: NEVER } },
       ]
     }).compileComponents();
 
