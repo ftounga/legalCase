@@ -64,6 +64,15 @@ export class DecisionToolCardComponent {
     return `${this.prefillCount} champ(s) pré-rempli(s) par l'IA`;
   }
 
+  protected get prefilledClass(): string {
+    return this.showPrefillBadge ? 'tool-card--prefilled' : '';
+  }
+
+  protected get prefillAriaLabel(): string {
+    const count = this.prefillCount ?? 0;
+    return `Pré-rempli par l'IA, ${count} champ${count > 1 ? 's' : ''}`;
+  }
+
   protected get coherenceTooltip(): string {
     return `${this.coherenceAlertCount} alerte(s) de cohérence IA`;
   }

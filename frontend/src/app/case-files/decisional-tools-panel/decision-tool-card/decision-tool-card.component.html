@@ -1,5 +1,5 @@
 <div
-  [ngClass]="['tool-card', alertLevelClass, disabled ? 'tool-card--disabled' : '']"
+  [ngClass]="['tool-card', alertLevelClass, disabled ? 'tool-card--disabled' : '', prefilledClass]"
   role="button"
   [attr.tabindex]="disabled ? -1 : 0"
   [attr.aria-label]="title"
@@ -18,8 +18,9 @@
         <span
           class="tool-card__badge tool-card__badge--prefill"
           [matTooltip]="prefillTooltip"
-          aria-label="Pré-rempli par l'IA">
+          [attr.aria-label]="prefillAriaLabel">
           <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+          <span class="tool-card__badge-count">{{ prefillCount }}</span>
         </span>
       }
       @if (showCoherenceBadge) {

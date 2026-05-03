@@ -46,6 +46,20 @@
       transform: none;
     }
   }
+
+  /* SF-177-13 — pré-rempli par l'IA : signal premium au coup d'œil.
+     `outline` (au lieu de `border`) préserve le `border-left` 4 px d'alerte. */
+  &--prefilled {
+    outline: 2px solid #C9973A;
+    outline-offset: -2px;
+    box-shadow: 0 2px 8px rgba(201, 151, 58, 0.18);
+
+    &:hover:not(.tool-card--disabled) {
+      box-shadow:
+        0 2px 8px rgba(201, 151, 58, 0.22),
+        0 2px 12px rgba(11, 33, 71, 0.08);
+    }
+  }
 }
 
 .tool-card__header {
@@ -96,9 +110,29 @@
     font-size: 16px;
   }
 
+  /* SF-177-13 — pill agrandi avec compteur visible (vs cercle 22 px discret SF-177-12). */
   &--prefill {
-    background: rgba(201, 165, 75, 0.15);
-    color: #C9A54B;
+    width: auto;
+    min-width: 48px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 13px;
+    gap: 4px;
+    background: #C9973A;
+    color: #FFFFFF;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+
+    mat-icon {
+      width: 14px;
+      height: 14px;
+      font-size: 14px;
+    }
+  }
+
+  .tool-card__badge-count {
+    line-height: 1;
   }
 
   &--coherence {
