@@ -75,6 +75,20 @@ public class AnthropicService {
     }
 
     /**
+     * F-120 SF-120-03 — variante avec choix explicite du modèle (utile pour le blog SEO
+     * qui appelle Sonnet pour la rédaction et Haiku pour la vérification jurisprudence).
+     *
+     * @param modelId       identifiant du modèle Anthropic (ex: {@code claude-haiku-4-5})
+     * @param systemPrompt  prompt système
+     * @param userMessage   message utilisateur
+     * @param maxTokens     budget de tokens de sortie
+     */
+    public AnthropicResult analyzeWithModel(String modelId, String systemPrompt,
+                                            String userMessage, int maxTokens) {
+        return doAnalyze(modelId, systemPrompt, userMessage, maxTokens, false);
+    }
+
+    /**
      * F-142-04 : variante avec prompt caching Anthropic (cache_control ephemeral).
      * Le system prompt est mis en cache pour 5 min — latence prefill réduite de
      * ~85 % sur les appels suivants avec le même prompt système. Gain important
