@@ -91,6 +91,7 @@ jobs:
         env:
           NAMESPACE: staging
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
@@ -119,6 +120,7 @@ jobs:
           kubectl create secret generic backend-secrets \
             --namespace=$NAMESPACE \
             --from-literal=ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" \
+            --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
             --from-literal=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
             --from-literal=GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" \
             --from-literal=STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" \
