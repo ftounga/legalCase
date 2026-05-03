@@ -23,6 +23,8 @@ import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.s
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { DecisionToolCardComponent } from './decision-tool-card/decision-tool-card.component';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
+import { DecisionalToolsProgressBannerComponent } from './decisional-tools-progress-banner.component';
+import { DecisionalToolsProgressService } from './decisional-tools-progress.service';
 import { getToolMetadata, getToolPrefillCount, PrefillCountInput } from './decision-tool.contract';
 import { AncienneteSectionComponent } from '../anciennete-section/anciennete-section.component';
 import { LicenciementSectionComponent } from '../licenciement-section/licenciement-section.component';
@@ -157,6 +159,7 @@ export interface ThemeDescriptor {
     MatTooltipModule,
     MatProgressSpinnerModule,
     DecisionToolCardComponent,
+    DecisionalToolsProgressBannerComponent,
   ],
   templateUrl: './decisional-tools-panel.component.html',
   styleUrls: ['./decisional-tools-panel.component.scss'],
@@ -167,6 +170,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
   private readonly modalService = inject(DecisionToolModalService);
+  protected readonly progressService = inject(DecisionalToolsProgressService, { optional: true });
 
   @Input({ required: true }) caseFileId!: string;
   @Input() synthesis: any | null = null;

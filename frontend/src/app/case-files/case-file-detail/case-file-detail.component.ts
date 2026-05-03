@@ -29,6 +29,7 @@ import { CaseAnalysisService } from '../../core/services/case-analysis.service';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
+import { DecisionalToolsProgressService } from '../decisional-tools-panel/decisional-tools-progress.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { ProcedureCheck } from '../../core/models/procedure-check.model';
@@ -76,7 +77,7 @@ import { QuotaErrorBannerComponent } from '../../shared/quota-error-banner/quota
   styleUrl: './case-file-detail.component.scss',
   animations: [fadeInUp, listStagger],
   host: { '[@fadeInUp]': '' },
-  providers: [CaseDashboardRefreshService],
+  providers: [CaseDashboardRefreshService, DecisionalToolsProgressService],
 })
 export class CaseFileDetailComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
@@ -304,6 +305,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
   private eventsSub: Subscription | null = null;
+  private progressSynced = false;
   // SF-171-02 : nettoyage du state quota au switch de workspace.
   private workspaceSwitchSub: Subscription | null = null;
 
@@ -318,6 +320,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private caseAnalysisCommandService: CaseAnalysisCommandService,
     private reAnalysisService: ReAnalysisService,
     private globalNotificationService: GlobalAnalysisNotificationService,
+    private progressService: DecisionalToolsProgressService,
     private caseFileStatsService: CaseFileStatsService,
     private aiQuestionService: AiQuestionService,
     protected authService: AuthService,
@@ -550,6 +553,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         // Don't overwrite placeholders while waiting for backend to pick up upload or analysis trigger
         if (jobs.length > 0 && !this.docAnalysisPending() && !this.caseAnalysisPending()) {
           this.analysisJobs.set(jobs);
+        }
+        if (!this.progressSynced) {
+          this.progressService.syncFromJobs(jobs);
+          this.progressSynced = true;
         }
         // SF-121-04 : après application des jobs backend, ré-applique l'override FAILED.
         this.applyExtractionFailedOverride();
@@ -794,6 +801,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.analyticsService.trackEvent('analysis_launched', { type: 'STANDARD' });
         this.analyzing.set(false);
+        this.progressService.start('CASE_ANALYSIS');
         this.loadAnalysisJobs(id, true);
         this.globalNotificationService.track(id);
       },
@@ -872,6 +880,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       next: () => {
         this.analyticsService.trackEvent('analysis_launched', { type: 'ENRICHED' });
         this.reAnalyzing.set(false);
+        this.progressService.start('ENRICHED_ANALYSIS');
         this.loadAnalysisJobs(id, true);
         this.globalNotificationService.track(id);
       },
@@ -1089,6 +1098,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           ...jobs.filter(j => j.jobType !== 'CHUNK_ANALYSIS' && j.jobType !== 'DOCUMENT_ANALYSIS'),
           pending('DOCUMENT_ANALYSIS')
         ]);
+        this.progressService.start('DOCUMENT_ANALYSIS');
         this.loadAnalysisJobs(caseFileId, true);
         this.globalNotificationService.track(caseFileId);
       }

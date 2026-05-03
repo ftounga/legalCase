@@ -25,8 +25,6 @@ export class AnalysisSseService {
       for (const name of eventNames) {
         source.addEventListener(name, (e: MessageEvent) => {
           observer.next(JSON.parse(e.data) as AnalysisStatusEvent);
-          observer.complete();
-          source.close();
         });
       }
 
