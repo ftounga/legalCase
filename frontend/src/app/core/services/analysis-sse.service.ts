@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-export type AnalysisJobType = 'CASE_ANALYSIS' | 'ENRICHED_ANALYSIS' | 'DOCUMENT_ANALYSIS';
+export type AnalysisJobType = 'CASE_ANALYSIS' | 'ENRICHED_ANALYSIS' | 'DOCUMENT_ANALYSIS' | 'QUESTION_GENERATION';
 
 /**
  * F-185 SF-185-01 — `PARTIAL` est émis pendant le streaming Sonnet à chaque section
@@ -25,7 +25,9 @@ export class AnalysisSseService {
       const eventNames = [
         'CASE_ANALYSIS_PARTIAL', 'CASE_ANALYSIS_DONE', 'CASE_ANALYSIS_FAILED',
         'ENRICHED_ANALYSIS_DONE', 'ENRICHED_ANALYSIS_FAILED',
-        'DOCUMENT_ANALYSIS_DONE', 'DOCUMENT_ANALYSIS_FAILED'
+        'DOCUMENT_ANALYSIS_DONE', 'DOCUMENT_ANALYSIS_FAILED',
+        // F-185 SF-185-02 — fin de la génération Q&A async post-synthèse.
+        'QUESTION_GENERATION_DONE', 'QUESTION_GENERATION_FAILED'
       ];
       for (const name of eventNames) {
         source.addEventListener(name, (e: MessageEvent) => {

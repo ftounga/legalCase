@@ -2,10 +2,14 @@ package fr.ailegalcase.analysis;
 
 import fr.ailegalcase.casefile.CaseFile;
 import fr.ailegalcase.casefile.CaseFileRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,15 +28,22 @@ class AiQuestionServiceTest {
     private final AnalysisJobRepository analysisJobRepository = mock(AnalysisJobRepository.class);
     private final AnthropicService anthropicService = mock(AnthropicService.class);
     private final UsageEventService usageEventService = mock(UsageEventService.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
     private final AiQuestionService service = new AiQuestionService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
-            analysisJobRepository, anthropicService, usageEventService);
+            analysisJobRepository, anthropicService, usageEventService, eventPublisher);
 
     @BeforeEach
     void setUp() {
+        TransactionSynchronizationManager.initSynchronization();
         ReflectionTestUtils.setField(service, "self", service);
         when(caseAnalysisRepository.findById(any())).thenAnswer(inv -> Optional.of(new CaseAnalysis()));
+    }
+
+    @AfterEach
+    void clearTransactionSync() {
+        TransactionSynchronizationManager.clearSynchronization();
     }
 
     // U-01 : génération nominale → questions persistées, job DONE
@@ -74,6 +85,59 @@ class AiQuestionServiceTest {
 
         // Usage enregistré
         verify(usageEventService).record(caseFileId, userId, JobType.QUESTION_GENERATION, 100, 50);
+    }
+
+    // F-185 SF-185-02 : DONE → événement SSE QUESTION_GENERATION publié après commit
+    @Test
+    void finalizeQuestionGeneration_done_publishesQuestionGenerationDoneEvent() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setAnalysisResult("{}");
+        analysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"questions\":[\"Q1 ?\"]}", "claude-sonnet-4-6", 100, 50));
+        when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.consumeQuestionGeneration(new AiQuestionGenerationMessage(caseFileId));
+        // Simulate transaction commit to trigger afterCommit callbacks
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+
+        verify(eventPublisher).publishEvent(new AnalysisStatusEvent(
+                caseFileId, AnalysisStatus.DONE, JobType.QUESTION_GENERATION));
+    }
+
+    // F-185 SF-185-02 : FAILED → événement SSE QUESTION_GENERATION_FAILED publié
+    @Test
+    void finalizeQuestionGeneration_failed_publishesQuestionGenerationFailedEvent() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setAnalysisResult("{}");
+        analysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, AnalysisStatus.DONE)).thenReturn(Optional.of(analysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.QUESTION_GENERATION))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenThrow(new RuntimeException("API error"));
+
+        service.consumeQuestionGeneration(new AiQuestionGenerationMessage(caseFileId));
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+
+        verify(eventPublisher).publishEvent(new AnalysisStatusEvent(
+                caseFileId, AnalysisStatus.FAILED, JobType.QUESTION_GENERATION));
     }
 
     // U-02 : erreur LLM → job FAILED, aucune question persistée

@@ -8,10 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +59,7 @@ public class AiQuestionService {
     private final AnalysisJobRepository analysisJobRepository;
     private final AnthropicService anthropicService;
     private final UsageEventService usageEventService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Lazy @Autowired
     private AiQuestionService self;
@@ -65,13 +69,15 @@ public class AiQuestionService {
                              AiQuestionRepository aiQuestionRepository,
                              AnalysisJobRepository analysisJobRepository,
                              AnthropicService anthropicService,
-                             UsageEventService usageEventService) {
+                             UsageEventService usageEventService,
+                             ApplicationEventPublisher eventPublisher) {
         this.caseAnalysisRepository = caseAnalysisRepository;
         this.caseFileRepository = caseFileRepository;
         this.aiQuestionRepository = aiQuestionRepository;
         this.analysisJobRepository = analysisJobRepository;
         this.anthropicService = anthropicService;
         this.usageEventService = usageEventService;
+        this.eventPublisher = eventPublisher;
     }
 
     @RabbitListener(queues = RabbitMQConfig.AI_QUESTION_GENERATION_QUEUE, concurrency = "3")
@@ -165,6 +171,8 @@ public class AiQuestionService {
             job.setStatus(AnalysisStatus.FAILED);
             job.setErrorMessage("Question generation failed");
             analysisJobRepository.save(job);
+            // F-185 SF-185-02 — émet aussi l'event SSE FAILED pour que le front masque le spinner.
+            publishStatusEventAfterCommit(caseFileId, AnalysisStatus.FAILED);
             return;
         }
 
@@ -201,6 +209,31 @@ public class AiQuestionService {
             caseFileRepository.findCreatedByUserIdById(caseFileId).ifPresent(userId ->
                 usageEventService.record(caseFileId, userId, JobType.QUESTION_GENERATION,
                         finalResult.promptTokens(), finalResult.completionTokens()));
+        }
+
+        // F-185 SF-185-02 — émission SSE QUESTION_GENERATION_DONE / _FAILED après commit
+        // pour que le frontend bascule du spinner "Génération des questions complémentaires…"
+        // vers la bannière "N question(s) en attente" sans attendre le polling jobs (5-15 s économisés).
+        publishStatusEventAfterCommit(caseFileId, job.getStatus());
+    }
+
+    /**
+     * F-185 SF-185-02 — helper pour publier l'événement SSE QUESTION_GENERATION
+     * après commit Spring. Pas de noop si une transaction n'est pas active : le code
+     * s'exécute hors transaction (test unitaire qui ne wrap pas explicitement) → on
+     * publie directement.
+     */
+    private void publishStatusEventAfterCommit(UUID caseFileId, AnalysisStatus status) {
+        AnalysisStatusEvent event = new AnalysisStatusEvent(caseFileId, status, JobType.QUESTION_GENERATION);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    eventPublisher.publishEvent(event);
+                }
+            });
+        } else {
+            eventPublisher.publishEvent(event);
         }
     }
 
