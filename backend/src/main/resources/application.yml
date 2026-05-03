@@ -195,6 +195,20 @@ blog:
       image-retry-max: ${BLOG_IA_OPENAI_IMAGE_RETRY_MAX:2}
       image-backoff-ms-1: ${BLOG_IA_OPENAI_IMAGE_BACKOFF_1:500}
       image-backoff-ms-2: ${BLOG_IA_OPENAI_IMAGE_BACKOFF_2:2000}
+  scheduler:
+    enabled: ${BLOG_SCHEDULER_ENABLED:false}
+    cron: ${BLOG_SCHEDULER_CRON:0 0 8 * * *}
+    daily-cap: ${BLOG_SCHEDULER_DAILY_CAP:3}
+    weekly-cap: ${BLOG_SCHEDULER_WEEKLY_CAP:15}
+  cleanup:
+    fixed-delay-ms: ${BLOG_CLEANUP_FIXED_DELAY_MS:3600000}
+    initial-delay-ms: ${BLOG_CLEANUP_INITIAL_DELAY_MS:300000}
+    reservation-stale-after-ms: ${BLOG_RESERVATION_STALE_AFTER_MS:3600000}
+  cost-alert:
+    cron: ${BLOG_COST_ALERT_CRON:0 0 9 * * *}
+    anthropic-eur: ${BLOG_COST_ALERT_ANTHROPIC_EUR:15}
+    openai-eur: ${BLOG_COST_ALERT_OPENAI_EUR:10}
+    super-admin-email: ${BLOG_SUPER_ADMIN_EMAIL:ntounga@gmail.com}
 
 storage:
   s3:
