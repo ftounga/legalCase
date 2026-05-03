@@ -1460,6 +1460,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       next: (result) => {
         this.visibility.set(result);
         this.loading.set(false);
+        this.recordPrefillSnapshot();
       },
       error: () => {
         this.loading.set(false);
@@ -1525,6 +1526,23 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     const v = this.visibility();
     if (!v) return false;
     return v.alwaysOn.length === 0 && v.contextual.length === 0;
+  }
+
+  /**
+   * SF-159-02 — capture l'état `prefillCount` + métadonnées pour chaque outil résolu
+   * et le passe au service progress. La 1re invocation initialise sans déclencher
+   * flash ni toast ; les suivantes calculent le diff et signalent les enrichissements.
+   */
+  private recordPrefillSnapshot(): void {
+    if (!this.progressService) return;
+    const snapshot = new Map<string, number>();
+    const metadata = new Map<string, { label: string; icon: string }>();
+    const all = [...this.resolvedAlwaysOn(), ...this.resolvedContextual()];
+    for (const item of all) {
+      snapshot.set(item.toolId, this.prefillCountFor(item.toolId) ?? 0);
+      metadata.set(item.toolId, this.cardMetadataFor(item.entry, item.toolId));
+    }
+    this.progressService.recordSnapshot(snapshot, metadata);
   }
 
   componentInputsFor(entry: DecisionToolRegistryEntry): Record<string, unknown> {

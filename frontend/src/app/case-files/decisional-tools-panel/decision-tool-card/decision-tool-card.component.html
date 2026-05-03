@@ -1,5 +1,5 @@
 <div
-  [ngClass]="['tool-card', alertLevelClass, disabled ? 'tool-card--disabled' : '', prefilledClass]"
+  [ngClass]="['tool-card', alertLevelClass, disabled ? 'tool-card--disabled' : '', prefilledClass, flashing ? 'tool-card--flashing' : '']"
   role="button"
   [attr.tabindex]="disabled ? -1 : 0"
   [attr.aria-label]="title"
