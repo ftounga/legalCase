@@ -901,6 +901,24 @@
   box-shadow: 0 1px 4px rgba(201, 151, 58, 0.12);
 }
 
+// F-185 SF-185-01 — bandeau "synthèse en cours" pendant le streaming Sonnet.
+.streaming-callout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: rgba(15, 41, 72, 0.06);
+  border-left: 3px solid #0F2948;
+  border-radius: 0 10px 10px 0;
+  margin: 0 0 16px 0;
+}
+
+.streaming-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #0F2948;
+}
+
 .insight-icon {
   color: #C9973A;
   font-size: 20px;

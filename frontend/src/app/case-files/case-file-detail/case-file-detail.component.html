@@ -441,9 +441,16 @@
         <div class="section-header">
           <h2 class="section-title">Synthèse</h2>
           @if (caseAnalysisRunning()) {
-            <div class="analyze-running">
-              <mat-spinner diameter="20"></mat-spinner>
-              <span>Synthèse en cours…</span>
+            <!-- F-185 SF-185-01 — pendant le streaming, on propose le lien vers la synthèse partielle. -->
+            <div class="synthesis-actions">
+              <a mat-raised-button color="primary" data-tour-target="synthesis-link" [routerLink]="['/case-files', caseFile()!.id, 'synthesis']">
+                <mat-icon>summarize</mat-icon>
+                Voir la synthèse (en cours…)
+              </a>
+              <div class="analyze-running">
+                <mat-spinner diameter="18"></mat-spinner>
+                <span>Génération en cours</span>
+              </div>
             </div>
           } @else {
             <div class="synthesis-actions">

@@ -161,23 +161,51 @@ public class CaseAnalysisService {
         AnthropicResult result = null;
         Exception failure = null;
         try {
-            log.info("Case analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
+            log.info("Case analysis START for caseFile {} ({} chars, streaming)",
+                    caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            // F-146/F-148 : l'injection de PiecesPromptContext + descriptions Vision
-            // fait gonfler la sortie attendue (11 pièces × sourceRef + éventuelles
-            // visual_description → facilement 8 000+ tokens de JSON). On aligne sur
-            // EnrichedAnalysisService pour éviter la troncature silencieuse
-            // constatée en staging 2026-04-23 (dossier E-35).
-            // F-161 SF-161-02 : bump 16384→64000 pour absorber les nouveaux caps
-            // SF-161-01 (faits 80, points 80, risques 40, timeline 60-80, etc.).
-            // Worst case ~34-36 K tokens output sur dossiers extraordinaires,
-            // sinon stop_reason=max_tokens → JSON tronqué silencieusement.
-            // Sonnet 4.x supporte 64 K output natif, sans header beta.
+
+            // F-185 SF-185-01 — streaming : Sonnet streame les tokens, on alimente
+            // un extracteur incrémental qui détecte les sections JSON top-level
+            // complètes ; chaque section close → persistance + event SSE PARTIAL
+            // pour que la page synthèse rende les sections au fil de l'eau.
+            //
+            // Fallback gracieux : si le streaming échoue (HTTP, parsing), on tombe
+            // sur l'appel synchrone existant — aucune régression possible.
+            //
             // F-142-04 : prompt caching ephemeral — le system prompt (plusieurs milliers
             // de tokens : domaine, limites, instruction, PiecesPromptContext) est
             // réutilisé entre appels successifs (re-analyse, question chat). Gain ~85 %
             // de latence prefill sur les appels dans la fenêtre de 5 min.
-            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 64000);
+            // F-161 SF-161-02 : 64000 tokens output (dossiers riches).
+            try {
+                PartialJsonSectionExtractor extractor = new PartialJsonSectionExtractor();
+                result = anthropicService.analyzeWithSystemCacheStreaming(
+                        prepared.systemPrompt(), prepared.prompt(), 64000,
+                        delta -> {
+                            try {
+                                List<Map.Entry<String, String>> newSections = extractor.append(delta);
+                                if (!newSections.isEmpty()) {
+                                    self.persistPartialAndNotify(prepared.analysisId(), caseFileId,
+                                            extractor.snapshot());
+                                }
+                            } catch (Exception ex) {
+                                log.warn("Partial state update failed for caseFile {} (analysis continues): {}",
+                                        caseFileId, ex.getMessage());
+                            }
+                        });
+            } catch (Exception streamingFailure) {
+                log.warn("Streaming Anthropic failed for caseFile {} ({}), falling back to synchronous mode",
+                        caseFileId, streamingFailure.getMessage());
+            }
+            // F-185 SF-185-01 — fallback gracieux : streaming peut retourner null si la
+            // bibliothèque renvoie un payload vide ou si le mock test n'a pas stubé la
+            // méthode streaming ; dans tous les cas on retombe sur l'appel synchrone éprouvé.
+            if (result == null) {
+                result = anthropicService.analyzeWithSystemCache(
+                        prepared.systemPrompt(), prepared.prompt(), 64000);
+            }
+
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Case analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
@@ -189,6 +217,45 @@ public class CaseAnalysisService {
         }
 
         self.finalizeCaseAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure, prepared.limits());
+    }
+
+    /**
+     * F-185 SF-185-01 — persiste l'état partiel courant ({@link PartialJsonSectionExtractor#snapshot()})
+     * et publie un événement SSE {@code CASE_ANALYSIS_PARTIAL} après commit.
+     *
+     * <p>Transaction REQUIRES_NEW pour commit visible immédiatement (vu par
+     * l'endpoint partial), sans attendre la fin du streaming.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void persistPartialAndNotify(UUID analysisId, UUID caseFileId, Map<String, String> sections) {
+        // Reconstruit un JSON {"section1": <valueJson>, "section2": <valueJson>, ...}
+        // en réinjectant les valeurs JSON brutes (qui sont déjà du JSON valide).
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : sections.entrySet()) {
+            if (!first) json.append(",");
+            json.append('"').append(entry.getKey()).append("\":").append(entry.getValue());
+            first = false;
+        }
+        json.append("}");
+
+        CaseAnalysis analysis = caseAnalysisRepository.findById(analysisId).orElse(null);
+        if (analysis == null) return;
+        analysis.setPartialState(json.toString());
+        // Bascule status PROCESSING → PARTIAL au 1er delta complet ; permet
+        // au endpoint partial de filtrer simplement sur status IN (PROCESSING, PARTIAL).
+        if (analysis.getAnalysisStatus() == AnalysisStatus.PROCESSING) {
+            analysis.setAnalysisStatus(AnalysisStatus.PARTIAL);
+        }
+        caseAnalysisRepository.save(analysis);
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                eventPublisher.publishEvent(new AnalysisStatusEvent(
+                        caseFileId, AnalysisStatus.PARTIAL, JobType.CASE_ANALYSIS));
+            }
+        });
     }
 
     @Transactional
@@ -265,6 +332,9 @@ public class CaseAnalysisService {
             CaseAnalysisResponse.populateCounts(analysis, truncated);
             CaseAnalysisResponse.populateRiskScore(analysis, truncated);
         }
+        // F-185 SF-185-01 — purger l'état partiel : il est désormais remplacé par
+        // analysisResult complet (DONE) ou rendu obsolète par l'échec (FAILED).
+        analysis.setPartialState(null);
         caseAnalysisRepository.save(analysis);
 
         if (failure == null) {

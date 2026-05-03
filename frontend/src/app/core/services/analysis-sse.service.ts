@@ -3,9 +3,14 @@ import { Observable } from 'rxjs';
 
 export type AnalysisJobType = 'CASE_ANALYSIS' | 'ENRICHED_ANALYSIS' | 'DOCUMENT_ANALYSIS';
 
+/**
+ * F-185 SF-185-01 — `PARTIAL` est émis pendant le streaming Sonnet à chaque section
+ * JSON top-level complétée. Le frontend l'utilise pour rafraîchir la synthèse au fil de
+ * l'eau via `GET /case-analysis/partial`. `DONE` / `FAILED` restent les statuts terminaux.
+ */
 export interface AnalysisStatusEvent {
   caseFileId: string;
-  status: 'DONE' | 'FAILED';
+  status: 'PARTIAL' | 'DONE' | 'FAILED';
   jobType: AnalysisJobType;
 }
 
@@ -18,7 +23,7 @@ export class AnalysisSseService {
       const source = new EventSource(url, { withCredentials: true });
 
       const eventNames = [
-        'CASE_ANALYSIS_DONE', 'CASE_ANALYSIS_FAILED',
+        'CASE_ANALYSIS_PARTIAL', 'CASE_ANALYSIS_DONE', 'CASE_ANALYSIS_FAILED',
         'ENRICHED_ANALYSIS_DONE', 'ENRICHED_ANALYSIS_FAILED',
         'DOCUMENT_ANALYSIS_DONE', 'DOCUMENT_ANALYSIS_FAILED'
       ];

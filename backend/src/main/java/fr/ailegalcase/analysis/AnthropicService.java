@@ -1,6 +1,8 @@
 package fr.ailegalcase.analysis;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +85,159 @@ public class AnthropicService {
      */
     public AnthropicResult analyzeWithSystemCache(String systemPrompt, String userMessage, int maxTokens) {
         return doAnalyze(model, systemPrompt, userMessage, maxTokens, true);
+    }
+
+    /**
+     * F-185 SF-185-01 — variante streaming de {@link #analyzeWithSystemCache} qui
+     * consomme la SSE Anthropic ({@code stream: true}) et invoque
+     * {@code onTextDelta} à chaque chunk de texte reçu (utile pour alimenter
+     * un parser JSON incrémental côté caller — cf. {@link PartialJsonSectionExtractor}).
+     *
+     * <p>La réponse finale agrégée est retournée comme {@link AnthropicResult},
+     * identique au mode non-streaming : le caller peut traiter le résultat
+     * complet de la même façon.
+     *
+     * <p>En cas d'erreur réseau ou HTTP en cours de stream, l'exception est
+     * propagée — le caller doit décider du fallback (ex. retry ou
+     * {@link #analyzeWithSystemCache} synchrone).
+     *
+     * @param systemPrompt prompt système (cachable)
+     * @param userMessage  message utilisateur
+     * @param maxTokens    budget de tokens de sortie
+     * @param onTextDelta  callback invoqué pour chaque text delta reçu (peut être null)
+     */
+    public AnthropicResult analyzeWithSystemCacheStreaming(String systemPrompt,
+                                                           String userMessage,
+                                                           int maxTokens,
+                                                           java.util.function.Consumer<String> onTextDelta) {
+        if (userMessage == null || userMessage.isBlank()) {
+            throw new IllegalArgumentException("userMessage must not be empty");
+        }
+
+        Object systemPayload = List.of(Map.of(
+                "type", "text",
+                "text", systemPrompt,
+                "cache_control", Map.of("type", "ephemeral")));
+
+        Map<String, Object> body = Map.of(
+                "model", model,
+                "max_tokens", maxTokens,
+                "temperature", 0,
+                "stream", true,
+                "system", systemPayload,
+                "messages", List.of(Map.of("role", "user", "content", userMessage))
+        );
+
+        log.debug("Sending streaming request to Anthropic model {} ({} chars user message)",
+                model, userMessage.length());
+
+        StreamAggregator aggregator = new StreamAggregator(onTextDelta);
+
+        restClient.post()
+                .uri("/v1/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .body(body)
+                .exchange((request, response) -> {
+                    if (response.getStatusCode().isError()) {
+                        throw new HttpServerErrorException(response.getStatusCode(),
+                                "Anthropic streaming HTTP error: " + response.getStatusText());
+                    }
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(response.getBody(), StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            aggregator.consumeLine(line);
+                        }
+                    }
+                    return null;
+                });
+
+        log.debug("Anthropic streaming response complete ({} chars text, {} prompt tokens, " +
+                        "{} completion tokens, stop_reason={})",
+                aggregator.text.length(), aggregator.inputTokens, aggregator.outputTokens, aggregator.stopReason);
+
+        if ("max_tokens".equals(aggregator.stopReason)) {
+            log.warn("Anthropic streaming response TRUNCATED — stop_reason=max_tokens, model={}, " +
+                            "max_tokens={}, output tokens={}.",
+                    model, maxTokens, aggregator.outputTokens);
+        }
+
+        return new AnthropicResult(aggregator.text.toString(),
+                aggregator.modelUsed != null ? aggregator.modelUsed : model,
+                aggregator.inputTokens, aggregator.outputTokens, aggregator.stopReason);
+    }
+
+    /**
+     * Agrégateur d'état pour la consommation d'un stream SSE Anthropic.
+     * Lit ligne par ligne, parse les events {@code data: {...}}, accumule le
+     * texte des {@code content_block_delta.delta.text} et capture les usages
+     * via {@code message_start.message.usage} et {@code message_delta.usage}.
+     */
+    private static final class StreamAggregator {
+        private static final ObjectMapper MAPPER = new ObjectMapper();
+
+        final StringBuilder text = new StringBuilder();
+        final java.util.function.Consumer<String> onTextDelta;
+        int inputTokens = 0;
+        int outputTokens = 0;
+        String stopReason = null;
+        String modelUsed = null;
+
+        StreamAggregator(java.util.function.Consumer<String> onTextDelta) {
+            this.onTextDelta = onTextDelta;
+        }
+
+        void consumeLine(String line) {
+            if (line == null || line.isEmpty()) return;
+            // SSE format : "data: {...json...}" — on ignore les lignes "event: xxx"
+            // (le type est aussi dans le JSON via le champ "type")
+            if (!line.startsWith("data: ")) return;
+            String payload = line.substring(6).trim();
+            if (payload.isEmpty() || "[DONE]".equals(payload)) return;
+
+            try {
+                JsonNode evt = MAPPER.readTree(payload);
+                String type = evt.path("type").asText("");
+                switch (type) {
+                    case "message_start" -> {
+                        JsonNode msg = evt.path("message");
+                        modelUsed = msg.path("model").asText(null);
+                        JsonNode usage = msg.path("usage");
+                        if (!usage.isMissingNode()) {
+                            inputTokens = usage.path("input_tokens").asInt(0);
+                            outputTokens = usage.path("output_tokens").asInt(0);
+                        }
+                    }
+                    case "content_block_delta" -> {
+                        JsonNode delta = evt.path("delta");
+                        if ("text_delta".equals(delta.path("type").asText(""))) {
+                            String chunk = delta.path("text").asText("");
+                            if (!chunk.isEmpty()) {
+                                text.append(chunk);
+                                if (onTextDelta != null) {
+                                    onTextDelta.accept(chunk);
+                                }
+                            }
+                        }
+                    }
+                    case "message_delta" -> {
+                        JsonNode delta = evt.path("delta");
+                        if (delta.has("stop_reason") && !delta.path("stop_reason").isNull()) {
+                            stopReason = delta.path("stop_reason").asText(null);
+                        }
+                        JsonNode usage = evt.path("usage");
+                        if (usage.has("output_tokens")) {
+                            outputTokens = usage.path("output_tokens").asInt(outputTokens);
+                        }
+                    }
+                    default -> { /* message_stop, ping, content_block_start/stop : ignorés */ }
+                }
+            } catch (IOException e) {
+                // Event mal formé — on continue (fail-open). Le stream peut contenir des
+                // events parasites (heartbeats, etc.) qu'on n'a pas à parser.
+            }
+        }
     }
 
     /**

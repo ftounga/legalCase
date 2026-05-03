@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, LowerCasePipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -33,7 +34,7 @@ import { ImmigrationEventsSectionComponent } from '../immigration-events-section
 import { ImmigrationStrategyComparatorSectionComponent } from '../immigration-strategy-comparator-section/immigration-strategy-comparator-section.component';
 import { DivorceConsentementScoringSectionComponent } from '../divorce-consentement-scoring-section/divorce-consentement-scoring-section.component';
 import { DivorceConsentementScoring, DivorceConsentementValidityDetection, ImmigrationStrategyScenario, ImmigrationTriggerEvent } from '../../core/models/case-analysis.model';
-import { CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
+import { CaseAnalysisPartialResponse, CaseAnalysisPartialSections, CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
 import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedure-check.model';
@@ -59,10 +60,17 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
   animations: [fadeInUp, listStagger],
   host: { '[@fadeInUp]': '' },
 })
-export class SynthesisComponent implements OnInit {
+export class SynthesisComponent implements OnInit, OnDestroy {
   caseFile = signal<CaseFile | null>(null);
   synthesis = signal<CaseAnalysisResult | null>(null);
+  /**
+   * F-185 SF-185-01 — la synthèse affichée est un état partiel (streaming en cours).
+   * Toutes les sections ne sont pas encore arrivées ; un bandeau le signale et la
+   * synthèse se complète au fil des événements SSE `CASE_ANALYSIS_PARTIAL`.
+   */
+  isStreaming = signal(false);
   timeEntries = signal<TimeEntryResponse[]>([]);
+  private sseSubscription?: Subscription;
 
   readonly totalBilledSeconds = computed(() =>
     this.timeEntries()
@@ -186,6 +194,10 @@ export class SynthesisComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.sseSubscription?.unsubscribe();
+  }
+
   /** SF-IA-03-19 : scroll vers l'ancre + highlight pulse 2s. Retry 3× car les données chargent async. */
   private scrollAndHighlight(anchorId: string, attempt = 0): void {
     const el = document.getElementById(anchorId);
@@ -208,14 +220,85 @@ export class SynthesisComponent implements OnInit {
           this.loadQuestionsForVersion(caseFileId, versions[0].id);
           this.loadChecksForVersion(caseFileId, versions[0].id);
           this.loadStrategicOptionsForVersion(caseFileId, versions[0].id);
+          // F-185 SF-185-01 — si une nouvelle analyse a démarré (re-analyse), on tombera
+          // également sur l'endpoint partial via l'événement SSE PARTIAL ; pas de pré-chargement
+          // ici car la version DONE existante reste affichée tant que la nouvelle n'a pas terminé.
+          this.subscribeToPartialEvents(caseFileId);
         } else {
-          this.loading.set(false);
+          // F-185 SF-185-01 — pas encore de version DONE : essayer de charger l'état partiel
+          // d'une analyse en cours pour afficher progressivement les sections au fil de l'eau.
+          this.tryLoadPartial(caseFileId);
+          this.subscribeToPartialEvents(caseFileId);
         }
       },
       error: () => {
         this.loading.set(false);
       }
     });
+  }
+
+  /**
+   * F-185 SF-185-01 — récupère l'état partiel courant et l'affiche en synthèse.
+   * 404 = pas d'analyse en cours, on bascule sur l'écran "lance une analyse" standard.
+   */
+  private tryLoadPartial(caseFileId: string): void {
+    this.caseAnalysisService.getPartial(caseFileId).subscribe({
+      next: partial => {
+        this.applyPartial(partial);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+      }
+    });
+  }
+
+  private subscribeToPartialEvents(caseFileId: string): void {
+    this.sseSubscription?.unsubscribe();
+    this.globalNotificationService.track(caseFileId);
+    this.sseSubscription = this.globalNotificationService.events$.subscribe(event => {
+      if (event.caseFileId !== caseFileId || event.jobType !== 'CASE_ANALYSIS') return;
+      if (event.status === 'PARTIAL') {
+        this.caseAnalysisService.getPartial(caseFileId).subscribe({
+          next: partial => this.applyPartial(partial),
+          error: () => {}
+        });
+      } else if (event.status === 'DONE') {
+        this.isStreaming.set(false);
+        this.loadVersions(caseFileId);
+      } else if (event.status === 'FAILED') {
+        this.isStreaming.set(false);
+      }
+    });
+  }
+
+  /**
+   * F-185 SF-185-01 — projette les sections JSON snake_case (telles que produites
+   * par Sonnet) sur la forme camelCase de {@link CaseAnalysisResult} pour réutiliser
+   * tel quel le template existant. Sections absentes = arrays vides ou null.
+   */
+  private applyPartial(partial: CaseAnalysisPartialResponse): void {
+    this.isStreaming.set(true);
+    const s: Partial<CaseAnalysisPartialSections> = partial.sections ?? {};
+    const result: CaseAnalysisResult = {
+      id: partial.analysisId,
+      version: partial.version,
+      analysisType: 'STANDARD',
+      status: partial.status,
+      timeline: (s.timeline as any) ?? [],
+      faits: (s.faits as any) ?? [],
+      pointsJuridiques: (s.points_juridiques as any) ?? [],
+      risques: (s.risques as any) ?? [],
+      questionsOuvertes: (s.questions_ouvertes as any) ?? [],
+      piecesManquantes: (s.pieces_manquantes as any) ?? [],
+      riskLevel: (s.risk_level as any) ?? null,
+      riskScore: (s.risk_score as any) ?? null,
+      modelUsed: null,
+      updatedAt: partial.updatedAt,
+      analysisDocuments: [],
+      piecesManquantesDetails: (s.pieces_manquantes_details as any) ?? null,
+    };
+    this.synthesis.set(result);
   }
 
   loadSynthesisForVersion(caseFileId: string, version: number): void {

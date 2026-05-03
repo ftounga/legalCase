@@ -35,6 +35,21 @@ public class CaseAnalysisReadController {
                 OAuthProviderResolver.resolve(principal), principal);
     }
 
+    /**
+     * F-185 SF-185-01 — état partiel courant pendant le streaming Sonnet.
+     * Retourne 404 si aucune analyse n'est en cours sur ce dossier.
+     * Sinon retourne {@link CaseAnalysisPartialResponse} avec les sections JSON
+     * déjà arrivées (ou {@code sections=null} si aucune n'est encore complète).
+     */
+    @GetMapping("/partial")
+    public CaseAnalysisPartialResponse getPartial(
+            @PathVariable UUID caseFileId,
+            @AuthenticationPrincipal OidcUser oidcUser,
+            Principal principal) {
+        return caseAnalysisQueryService.getPartialAnalysis(caseFileId, oidcUser,
+                OAuthProviderResolver.resolve(principal), principal);
+    }
+
     @GetMapping("/versions")
     public List<CaseAnalysisResponse.VersionSummary> listVersions(
             @PathVariable UUID caseFileId,

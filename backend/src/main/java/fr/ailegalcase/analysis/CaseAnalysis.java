@@ -36,6 +36,16 @@ public class CaseAnalysis {
     @Column(name = "analysis_result", length = Integer.MAX_VALUE)
     private String analysisResult;
 
+    /**
+     * F-185 SF-185-01 — état partiel persisté pendant le streaming Sonnet.
+     * Accumulé section JSON par section JSON ; purgé (NULL) au DONE/FAILED quand
+     * {@code analysisResult} complet le remplace. Permet le refresh-safe sur la
+     * page synthèse pendant le streaming.
+     * Stocké en JSONB côté DB (cf. migration 201).
+     */
+    @Column(name = "partial_state", columnDefinition = "TEXT")
+    private String partialState;
+
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 
