@@ -400,6 +400,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.loadAnalysisJobs(id);
         this.loadStats(id);
         this.loadDeadlines(id);
+        this.setupVisibilityRefetch(id);
       },
       error: () => {
         this.loading.set(false);
@@ -415,6 +416,25 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     this.stopPolling();
     this.eventsSub?.unsubscribe();
     this.workspaceSwitchSub?.unsubscribe();
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+  }
+
+  // SF-186-01 — refetch défensif au retour de visibilité (focus tab, retour sur
+  // la page après mise en veille, etc.) pour pallier un éventuel SSE perdu.
+  // Le fix principal est dans `analysis-sse.service.ts` (auto-reconnect), mais
+  // ce hook secondaire garantit qu'on ne reste jamais avec un état stale.
+  private visibilityHandler: (() => void) | null = null;
+  private setupVisibilityRefetch(caseFileId: string): void {
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible') {
+        this.loadAnalysisJobs(caseFileId);
+        this.loadDocuments(caseFileId);
+      }
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
   }
 
   // ── SF-170-02 : accordéon section Documents (toggle in-session, pas de persistance) ──

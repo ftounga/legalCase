@@ -1433,4 +1433,47 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // SF-186-01 — refetch défensif au retour de visibilité (pallier un éventuel
+  // SSE perdu après navigation detail ↔ synthesis ↔ detail).
+  describe('SF-186-01 — visibilitychange refetch', () => {
+    function setVisibilityState(state: 'visible' | 'hidden'): void {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => state,
+      });
+    }
+
+    it('document visible → loadAnalysisJobs + loadDocuments appelés', () => {
+      analysisJobServiceSpy.getJobs.mockClear();
+      documentServiceSpy.list.mockClear();
+
+      setVisibilityState('visible');
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      expect(analysisJobServiceSpy.getJobs).toHaveBeenCalledWith('cf1');
+      expect(documentServiceSpy.list).toHaveBeenCalledWith('cf1');
+    });
+
+    it('document hidden → pas de refetch', () => {
+      analysisJobServiceSpy.getJobs.mockClear();
+      documentServiceSpy.list.mockClear();
+
+      setVisibilityState('hidden');
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      expect(analysisJobServiceSpy.getJobs).not.toHaveBeenCalled();
+      expect(documentServiceSpy.list).not.toHaveBeenCalled();
+    });
+
+    it('ngOnDestroy → listener visibilitychange retiré', () => {
+      component.ngOnDestroy();
+
+      analysisJobServiceSpy.getJobs.mockClear();
+      setVisibilityState('visible');
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      expect(analysisJobServiceSpy.getJobs).not.toHaveBeenCalled();
+    });
+  });
+
 });

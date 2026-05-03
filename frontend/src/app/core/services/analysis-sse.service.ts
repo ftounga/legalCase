@@ -35,9 +35,18 @@ export class AnalysisSseService {
         });
       }
 
+      // SF-186-01 — EventSource auto-reconnecte (browser-native, ~3s) sur les
+      // erreurs réseau transitoires. Ne PAS appeler `source.close()` ni
+      // `observer.complete()` tant que `readyState !== CLOSED` — sinon on tue
+      // le stream définitivement et l'UI rate les events suivants (DONE,
+      // FAILED). Bug observé staging 2026-05-03 sur Chen 8 : navigation
+      // detail ↔ synthesis ↔ detail → blip réseau → SSE mort → barres
+      // restent stuck → hard refresh obligatoire pour récupérer.
       source.onerror = () => {
-        source.close();
-        observer.complete();
+        if (source.readyState === EventSource.CLOSED) {
+          observer.complete();
+        }
+        // Sinon (CONNECTING=0, OPEN=1) : on laisse le navigateur retenter.
       };
 
       return () => source.close();
