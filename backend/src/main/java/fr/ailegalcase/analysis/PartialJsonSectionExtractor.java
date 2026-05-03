@@ -65,10 +65,14 @@ public final class PartialJsonSectionExtractor {
     private List<Map.Entry<String, String>> scanNewSections() {
         List<Map.Entry<String, String>> newlyClosed = new ArrayList<>();
 
-        // Phase 1 : trouver le `{` de l'objet racine si pas encore fait
+        // Phase 1 : trouver le `{` de l'objet racine si pas encore fait.
+        // SF-185-07 — Sonnet 4.6 enveloppe parfois sa sortie JSON dans un bloc
+        // Markdown (```json\n{...}\n```). On scanne jusqu'au 1er `{` au lieu
+        // d'exiger qu'il soit le 1er char non-whitespace, sinon l'extracteur
+        // abandonne sur le 1er backtick et reste stuck pour toujours.
         if (cursor == 0) {
-            int rootStart = indexOfNonWhitespace(buffer, 0);
-            if (rootStart < 0 || buffer.charAt(rootStart) != '{') return newlyClosed;
+            int rootStart = buffer.indexOf("{");
+            if (rootStart < 0) return newlyClosed; // pas encore de `{` dans le buffer, on attend
             cursor = rootStart + 1; // on est maintenant à l'intérieur du `{`
         }
 
