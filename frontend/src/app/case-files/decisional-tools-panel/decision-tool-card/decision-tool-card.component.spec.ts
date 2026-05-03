@@ -148,6 +148,56 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('SF-177-13 — visibilité pré-remplissage IA', () => {
+    it('T-01: pill contient icône auto_awesome + compteur visible quand prefillCount > 0', () => {
+      component.prefillCount = 5;
+      fixture.detectChanges();
+      const pill = badge('.tool-card__badge--prefill');
+      expect(pill).not.toBeNull();
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon).not.toBeNull();
+      expect(icon!.textContent?.trim()).toBe('auto_awesome');
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count).not.toBeNull();
+      expect(count!.textContent?.trim()).toBe('5');
+    });
+
+    it('T-02: card a la classe tool-card--prefilled quand prefillCount > 0', () => {
+      component.prefillCount = 3;
+      fixture.detectChanges();
+      const card = fixture.nativeElement.querySelector('.tool-card');
+      expect(card.classList.contains('tool-card--prefilled')).toBe(true);
+    });
+
+    it('T-03: card sans classe tool-card--prefilled quand prefillCount === 0', () => {
+      component.prefillCount = 0;
+      fixture.detectChanges();
+      const card = fixture.nativeElement.querySelector('.tool-card');
+      expect(card.classList.contains('tool-card--prefilled')).toBe(false);
+    });
+
+    it('T-04: card sans classe tool-card--prefilled quand prefillCount === null', () => {
+      component.prefillCount = null;
+      fixture.detectChanges();
+      const card = fixture.nativeElement.querySelector('.tool-card');
+      expect(card.classList.contains('tool-card--prefilled')).toBe(false);
+    });
+
+    it('T-05: aria-label inclut le compteur (pluriel correct)', () => {
+      component.prefillCount = 4;
+      fixture.detectChanges();
+      const pill = badge('.tool-card__badge--prefill');
+      expect(pill!.getAttribute('aria-label')).toBe("Pré-rempli par l'IA, 4 champs");
+    });
+
+    it('T-06: aria-label singulier quand 1 seul champ', () => {
+      component.prefillCount = 1;
+      fixture.detectChanges();
+      const pill = badge('.tool-card__badge--prefill');
+      expect(pill!.getAttribute('aria-label')).toBe("Pré-rempli par l'IA, 1 champ");
+    });
+  });
+
   describe('interactions', () => {
     it('émet open au click', () => {
       let count = 0;
