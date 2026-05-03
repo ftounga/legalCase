@@ -15,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -23,20 +24,26 @@ public class AnalysisStatusStreamController {
 
     private static final long SSE_TIMEOUT_MS = 180_000L;
 
+    private static final List<AnalysisStatus> ACTIVE_STATUSES =
+            List.of(AnalysisStatus.PENDING, AnalysisStatus.PROCESSING);
+
     private final SseEmitterRegistry registry;
     private final CaseFileRepository caseFileRepository;
     private final CaseAnalysisRepository caseAnalysisRepository;
+    private final AnalysisJobRepository analysisJobRepository;
     private final CurrentUserResolver currentUserResolver;
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public AnalysisStatusStreamController(SseEmitterRegistry registry,
                                           CaseFileRepository caseFileRepository,
                                           CaseAnalysisRepository caseAnalysisRepository,
+                                          AnalysisJobRepository analysisJobRepository,
                                           CurrentUserResolver currentUserResolver,
                                           WorkspaceMemberRepository workspaceMemberRepository) {
         this.registry = registry;
         this.caseFileRepository = caseFileRepository;
         this.caseAnalysisRepository = caseAnalysisRepository;
+        this.analysisJobRepository = analysisJobRepository;
         this.currentUserResolver = currentUserResolver;
         this.workspaceMemberRepository = workspaceMemberRepository;
     }
@@ -62,11 +69,16 @@ public class AnalysisStatusStreamController {
         }
         var caseFile = caseFileOpt.get();
 
-        // If analysis already DONE — emit immediately and close
+        // SF-159-03 — court-circuit uniquement si AUCUN job actif (PENDING/PROCESSING).
+        // Avant : la présence d'une CaseAnalysis DONE court-circuitait l'enregistrement
+        // de l'emitter, même si un nouveau cycle (DOCUMENT_ANALYSIS / ENRICHED_ANALYSIS)
+        // venait d'être déclenché. La bannière "Analyse en cours" ne se clearait jamais
+        // côté frontend faute de réception du DONE event correspondant.
+        boolean hasActiveJob = analysisJobRepository.existsByCaseFileIdAndStatusIn(id, ACTIVE_STATUSES);
         var done = caseAnalysisRepository
                 .findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(id, AnalysisStatus.DONE)
                 .orElse(null);
-        if (done != null) {
+        if (done != null && !hasActiveJob) {
             try {
                 emitter.send(SseEmitter.event()
                         .name("ANALYSIS_DONE")

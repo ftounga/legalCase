@@ -555,7 +555,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           this.analysisJobs.set(jobs);
         }
         if (!this.progressSynced) {
-          this.progressService.syncFromJobs(jobs);
+          // SF-159-03 — initialisation autoritaire au montage (réapparition correcte
+          // de la bannière sur reload pendant analyse en cours).
+          this.progressService.initFromJobs(jobs);
           this.progressSynced = true;
         }
         // SF-121-04 : après application des jobs backend, ré-applique l'override FAILED.
@@ -608,6 +610,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
             this.analysisJobs.set(updated);
             // SF-121-04 : après avoir écrasé avec les jobs backend, ré-applique l'override FAILED.
             this.applyExtractionFailedOverride();
+            // SF-159-03 — défense en profondeur : sync "remove only" du progress service
+            // pour clear la bannière même si l'event SSE de fin n'a pas été reçu.
+            this.progressService.syncFromJobs(updated);
             const stillRunning = updated.some(
               j => j.status === 'PENDING' || j.status === 'PROCESSING'
             );

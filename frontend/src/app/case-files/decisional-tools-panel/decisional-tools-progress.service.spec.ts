@@ -63,8 +63,8 @@ describe('DecisionalToolsProgressService', () => {
     expect(service.isActive()).toBe(false);
   });
 
-  it('syncFromJobs initialise depuis une liste de jobs PROCESSING / PENDING', () => {
-    service.syncFromJobs([
+  it('initFromJobs (SF-159-03) initialise autoritairement depuis PROCESSING / PENDING', () => {
+    service.initFromJobs([
       { jobType: 'CASE_ANALYSIS', status: 'PROCESSING' },
       { jobType: 'DOCUMENT_ANALYSIS', status: 'DONE' },
       { jobType: 'ENRICHED_ANALYSIS', status: 'PENDING' },
@@ -73,10 +73,40 @@ describe('DecisionalToolsProgressService', () => {
     expect(service.activeJobTypes()).toHaveLength(2);
   });
 
-  it('syncFromJobs avec liste sans PROCESSING vide l\'état', () => {
+  it('SF-159-03 — syncFromJobs avec start préalable + jobs DONE → retire le jobType', () => {
     service.start('CASE_ANALYSIS');
     service.syncFromJobs([{ jobType: 'CASE_ANALYSIS', status: 'DONE' }]);
     expect(service.isActive()).toBe(false);
+  });
+
+  it('SF-159-03 — syncFromJobs ne retire pas un jobType encore PROCESSING', () => {
+    service.start('CASE_ANALYSIS');
+    service.syncFromJobs([{ jobType: 'CASE_ANALYSIS', status: 'PROCESSING' }]);
+    expect(service.activeJobTypes()).toEqual(['CASE_ANALYSIS']);
+  });
+
+  it('SF-159-03 — syncFromJobs n\'AJOUTE pas un jobType absent de l\'active set', () => {
+    // sans start() préalable → sync seul ne doit rien ajouter (sinon écraserait l'état
+    // pendant la fenêtre [click avocat] → [création job backend])
+    service.syncFromJobs([{ jobType: 'DOCUMENT_ANALYSIS', status: 'PROCESSING' }]);
+    expect(service.isActive()).toBe(false);
+  });
+
+  it('SF-159-03 — syncFromJobs préserve les jobTypes actifs absents du snapshot (rien à retirer)', () => {
+    service.start('CASE_ANALYSIS');
+    // Snapshot vide → pas de PROCESSING/PENDING détecté → CASE_ANALYSIS doit être retiré
+    service.syncFromJobs([]);
+    expect(service.isActive()).toBe(false);
+  });
+
+  it('SF-159-03 — syncFromJobs avec plusieurs actifs : retire ceux DONE, garde ceux PROCESSING', () => {
+    service.start('CASE_ANALYSIS');
+    service.start('DOCUMENT_ANALYSIS');
+    service.syncFromJobs([
+      { jobType: 'CASE_ANALYSIS', status: 'DONE' },
+      { jobType: 'DOCUMENT_ANALYSIS', status: 'PROCESSING' },
+    ]);
+    expect(service.activeJobTypes()).toEqual(['DOCUMENT_ANALYSIS']);
   });
 
   it('events$ pour un jobType non actif est ignoré', () => {
