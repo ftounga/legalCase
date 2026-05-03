@@ -12,7 +12,15 @@
       Retour aux dossiers
     </a>
   </div>
-} @else if (versions().length === 0) {
+} @else if (versions().length === 0 && !synthesis()) {
+  <!--
+    F-185 SF-185-05 — la condition exige *aussi* l'absence de synthesis(), sinon
+    on masque l'état partiel chargé via tryLoadPartial() pendant qu'une analyse
+    est en cours (status PROCESSING/PARTIAL, donc absente de listVersions qui
+    filtre sur DONE). Cas avant fix : l'avocat cliquait "Voir la synthèse en
+    cours" pendant le streaming → versions vide → cet écran s'affichait au lieu
+    de la synthèse partielle pourtant chargée par tryLoadPartial().
+  -->
   <div class="empty-state">
     <mat-icon class="empty-icon">summarize</mat-icon>
     <p>Synthèse non disponible.</p>
@@ -58,7 +66,7 @@
     <div class="version-row">
       @if (versions().length === 1) {
         <span class="version-label">{{ versionLabel(versions()[0]) }}</span>
-      } @else {
+      } @else if (versions().length > 1) {
         <div class="version-selector-wrap">
           <mat-icon class="version-icon">history</mat-icon>
           <select class="version-select"
@@ -70,6 +78,10 @@
           </select>
         </div>
       }
+      <!-- F-185 SF-185-05 — pas d'@else pour le cas versions().length === 0 :
+           on est alors en mode "synthèse partielle pendant streaming" (loadPartial
+           a chargé synthesis() sans qu'aucune analyse DONE n'existe). Le bandeau
+           streaming-callout au-dessus signale déjà l'état au lecteur. -->
 
       @if (synthesis()?.updatedAt) {
         <span class="meta-date">
