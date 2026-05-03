@@ -29,6 +29,7 @@ import { CoherenceAlert } from '../../shared/coherence-popover/coherence-alert.m
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 
 /**
  * SF-173-01 : champs d'alerte de cohérence F-IA-03 exposés par F-DT-04
@@ -127,6 +128,7 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
     private pdfExportService: PdfExportService,
     private snackBar: MatSnackBar,
     @Optional() private sourceExplanationService: SourceExplanationService | null,
+    @Optional() private dashboardRefresh: CaseDashboardRefreshService | null = null,
   ) {
     this.form = this.fb.group({
       demandeur: this.fb.group({
@@ -327,6 +329,8 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
         this.snackBar.open('Fiche enregistrée', 'Fermer', {
           duration: 3000, panelClass: ['snack-success']
         });
+        // SF-177-14 — notifie dashboard + panel pour reload (pattern F-IA-02-03).
+        this.dashboardRefresh?.triggerRefresh();
       },
       error: () => {
         this.saving.set(false);

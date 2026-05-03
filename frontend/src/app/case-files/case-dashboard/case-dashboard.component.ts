@@ -1,4 +1,4 @@
-import { Component, DestroyRef, Input, OnInit, Optional, inject, signal, computed } from '@angular/core';
+import { Component, DestroyRef, Input, OnInit, Optional, ViewContainerRef, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -146,6 +146,9 @@ export class CaseDashboardComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly modalService = inject(DecisionToolModalService);
+  // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
+  // tree de case-file-detail (CaseDashboardRefreshService notamment).
+  private readonly vcr = inject(ViewContainerRef);
 
   constructor(
     private dashboardService: CaseDashboardService,
@@ -189,6 +192,7 @@ export class CaseDashboardComponent implements OnInit {
       icon: meta?.icon ?? 'extension',
       component: entry.component,
       inputs: { ...inputs, forceExpanded: true },
+      viewContainerRef: this.vcr,
     });
   }
 

@@ -10,6 +10,7 @@ import { PrudhomeFicheSectionComponent } from './prudhome-fiche-section.componen
 import { PrudhomeFicheService } from '../../core/services/prudhome-fiche.service';
 import { PrudhomeFiche } from '../../core/models/prudhome-fiche.model';
 import { TravailExtractedData } from '../../core/models/case-analysis.model';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 
 function makeFiche(overrides: Partial<PrudhomeFiche> = {}): PrudhomeFiche {
   return {
@@ -230,5 +231,45 @@ describe('PrudhomeFicheSectionComponent', () => {
     fixture.detectChanges();
 
     expect(component.coherenceAlerts().PROFESSION).toBeUndefined();
+  });
+
+  describe('SF-177-14 — triggerRefresh post-save', () => {
+    let refreshSpy: { triggerRefresh: jest.Mock };
+
+    beforeEach(async () => {
+      refreshSpy = { triggerRefresh: jest.fn() };
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [PrudhomeFicheSectionComponent, NoopAnimationsModule],
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: PrudhomeFicheService, useValue: ficheServiceSpy },
+          { provide: MatSnackBar, useValue: snackBarSpy },
+          { provide: Overlay, useValue: { create: jest.fn(), position: jest.fn(), scrollStrategies: { reposition: jest.fn() } } },
+          { provide: CaseDashboardRefreshService, useValue: refreshSpy },
+        ]
+      }).compileComponents();
+      fixture = TestBed.createComponent(PrudhomeFicheSectionComponent);
+      component = fixture.componentInstance;
+      component.caseFileId = 'cf-1';
+      fixture.detectChanges();
+      const httpMock = TestBed.inject(HttpTestingController);
+      httpMock.match(/\/source-explanations$/).forEach(r => r.flush({}));
+    });
+
+    it('T-05: save success appelle triggerRefresh exactement 1 fois', () => {
+      ficheServiceSpy.save.mockReturnValue(of(makeFiche()));
+      refreshSpy.triggerRefresh.mockClear();
+      component.save();
+      expect(refreshSpy.triggerRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('save error N\'appelle PAS triggerRefresh', () => {
+      ficheServiceSpy.save.mockReturnValue(throwError(() => new Error('500')));
+      refreshSpy.triggerRefresh.mockClear();
+      component.save();
+      expect(refreshSpy.triggerRefresh).not.toHaveBeenCalled();
+    });
   });
 });

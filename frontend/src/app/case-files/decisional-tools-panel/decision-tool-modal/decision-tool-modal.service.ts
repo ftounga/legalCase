@@ -1,4 +1,4 @@
-import { Injectable, Type, inject } from '@angular/core';
+import { Injectable, Type, ViewContainerRef, inject } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 
 import { DecisionToolModalComponent } from './decision-tool-modal.component';
@@ -13,6 +13,12 @@ export interface DecisionToolModalArgs {
    *  Retourne `true` si l'outil a accepté (ferme le dialog), `false` sinon (laisse ouvert).
    *  Si non défini, le bouton "Enregistrer" n'est pas affiché (cas outil display-only). */
   onSave?: () => boolean | Promise<boolean>;
+  /** SF-177-14 — `ViewContainerRef` du caller (panel ou dashboard) à propager au
+   *  `MatDialog` pour que le composant outil hérite de l'injector tree de
+   *  `CaseFileDetailComponent`. Sans ça, l'outil ouvert dans le dialog est dans
+   *  le root injector et ne peut pas résoudre `CaseDashboardRefreshService`
+   *  (scope `case-file-detail`) → `triggerRefresh()` post-save no-op silencieux. */
+  viewContainerRef?: ViewContainerRef;
 }
 
 export type DecisionToolModalCloseValue = 'saved' | undefined;
@@ -44,6 +50,7 @@ export class DecisionToolModalService {
         panelClass: 'decision-tool-modal-panel',
         autoFocus: 'first-tabbable',
         restoreFocus: true,
+        viewContainerRef: args.viewContainerRef,
       },
     );
   }

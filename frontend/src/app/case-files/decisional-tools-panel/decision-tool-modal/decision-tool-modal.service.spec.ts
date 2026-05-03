@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewContainerRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -59,5 +59,39 @@ describe('DecisionToolModalService', () => {
     };
     const ref = service.open(args);
     expect(ref).toBeDefined();
+  });
+
+  describe('SF-177-14 — propagation viewContainerRef', () => {
+    it('T-01: open propage viewContainerRef à MatDialog.open quand fourni', () => {
+      const mockVcr = { element: { nativeElement: {} } } as unknown as ViewContainerRef;
+      const args: DecisionToolModalArgs = {
+        toolId: 'F-IM-05',
+        title: 'TITRE',
+        icon: 'badge',
+        component: StubComponent,
+        inputs: {},
+        viewContainerRef: mockVcr,
+      };
+
+      service.open(args);
+
+      const [, configArg] = dialogSpy.mock.calls[0];
+      expect(configArg.viewContainerRef).toBe(mockVcr);
+    });
+
+    it('open sans viewContainerRef passe undefined (rétrocompatible)', () => {
+      const args: DecisionToolModalArgs = {
+        toolId: 'X',
+        title: 'X',
+        icon: 'x',
+        component: StubComponent,
+        inputs: {},
+      };
+
+      service.open(args);
+
+      const [, configArg] = dialogSpy.mock.calls[0];
+      expect(configArg.viewContainerRef).toBeUndefined();
+    });
   });
 });
