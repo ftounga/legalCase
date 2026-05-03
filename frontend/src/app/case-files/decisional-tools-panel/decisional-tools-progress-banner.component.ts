@@ -7,6 +7,8 @@ const LABELS: Record<AnalysisJobType, string> = {
   CASE_ANALYSIS: 'Analyse du dossier en cours…',
   ENRICHED_ANALYSIS: 'Re-synthèse enrichie en cours…',
   DOCUMENT_ANALYSIS: 'Analyse des documents en cours…',
+  // F-185 SF-185-02 : Q&A async — affiché si plusieurs jobs en parallèle.
+  QUESTION_GENERATION: 'Génération des questions complémentaires…',
 };
 
 @Component({
