@@ -257,17 +257,25 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     this.sseSubscription?.unsubscribe();
     this.globalNotificationService.track(caseFileId);
     this.sseSubscription = this.globalNotificationService.events$.subscribe(event => {
-      if (event.caseFileId !== caseFileId || event.jobType !== 'CASE_ANALYSIS') return;
-      if (event.status === 'PARTIAL') {
-        this.caseAnalysisService.getPartial(caseFileId).subscribe({
-          next: partial => this.applyPartial(partial),
-          error: () => {}
-        });
-      } else if (event.status === 'DONE') {
-        this.isStreaming.set(false);
-        this.loadVersions(caseFileId);
-      } else if (event.status === 'FAILED') {
-        this.isStreaming.set(false);
+      if (event.caseFileId !== caseFileId) return;
+      if (event.jobType === 'CASE_ANALYSIS') {
+        if (event.status === 'PARTIAL') {
+          this.caseAnalysisService.getPartial(caseFileId).subscribe({
+            next: partial => this.applyPartial(partial),
+            error: () => {}
+          });
+        } else if (event.status === 'DONE') {
+          this.isStreaming.set(false);
+          this.loadVersions(caseFileId);
+        } else if (event.status === 'FAILED') {
+          this.isStreaming.set(false);
+        }
+      } else if (event.jobType === 'QUESTION_GENERATION' && event.status === 'DONE') {
+        // F-185 SF-185-02 — questions Q&A async prêtes : recharger le panneau questions.
+        const currentVersion = this.versions()[0];
+        if (currentVersion) {
+          this.loadQuestionsForVersion(caseFileId, currentVersion.id);
+        }
       }
     });
   }
