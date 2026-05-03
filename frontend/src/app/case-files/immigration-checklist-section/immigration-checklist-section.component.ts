@@ -1,4 +1,4 @@
-import { Component, computed, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core';
+import { Component, Optional, computed, Input, OnChanges, OnInit, signal, SimpleChanges } from '@angular/core';
 import { LowerCasePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { ImmigrationChecklistService } from '../../core/services/immigration-checklist.service';
 import { ImmigrationChecklist, ImmigrationPieceItem, ImmigrationStatut } from '../../core/models/immigration-checklist.model';
 import { PdfExportService } from '../../core/services/pdf-export.service';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 
 const STATUT_CYCLE: Record<ImmigrationStatut, ImmigrationStatut> = {
   INCONNU: 'PRESENT',
@@ -126,6 +127,7 @@ export class ImmigrationChecklistSectionComponent implements OnInit, OnChanges {
     private checklistService: ImmigrationChecklistService,
     private snackBar: MatSnackBar,
     private pdfExportService: PdfExportService,
+    @Optional() private dashboardRefresh: CaseDashboardRefreshService | null = null,
   ) {}
 
   ngOnInit(): void {
@@ -180,6 +182,9 @@ export class ImmigrationChecklistSectionComponent implements OnInit, OnChanges {
         this.checklist.set(updated);
         this.saving.set(false);
         this.snackBar.open('Checklist enregistrée', undefined, { duration: 3000 });
+        // SF-177-14 — notifie le dashboard et le panel pour qu'ils rechargent
+        // les cards (pattern F-IA-02-03).
+        this.dashboardRefresh?.triggerRefresh();
       },
       error: () => {
         this.saving.set(false);

@@ -7,6 +7,7 @@ import {
   Optional,
   SimpleChanges,
   Type,
+  ViewContainerRef,
   inject,
   signal,
 } from '@angular/core';
@@ -170,6 +171,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
   private readonly modalService = inject(DecisionToolModalService);
+  // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
+  // tree de case-file-detail (CaseDashboardRefreshService notamment).
+  private readonly vcr = inject(ViewContainerRef);
   protected readonly progressService = inject(DecisionalToolsProgressService, { optional: true });
 
   @Input({ required: true }) caseFileId!: string;
@@ -1619,6 +1623,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       icon: meta.icon,
       component: entry.component,
       inputs,
+      viewContainerRef: this.vcr,
     });
   }
 }

@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
 import { ImmigrationChecklistSectionComponent } from './immigration-checklist-section.component';
 import { ImmigrationChecklistService } from '../../core/services/immigration-checklist.service';
+import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { ImmigrationChecklist } from '../../core/models/immigration-checklist.model';
 import { PdfExportService } from '../../core/services/pdf-export.service';
 
@@ -129,6 +130,42 @@ describe('ImmigrationChecklistSectionComponent', () => {
       expect.objectContaining({ caseFileId: 'cf-1' }),
       'Mon Dossier'
     );
+  });
+
+  describe('SF-177-14 — triggerRefresh post-save', () => {
+    let refreshSpy: { triggerRefresh: jest.Mock };
+
+    beforeEach(async () => {
+      refreshSpy = { triggerRefresh: jest.fn() };
+      // Reconfigure TestBed avec le service refresh fourni.
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [ImmigrationChecklistSectionComponent, NoopAnimationsModule],
+        providers: [
+          { provide: ImmigrationChecklistService, useValue: serviceSpy },
+          { provide: MatSnackBar, useValue: snackBarSpy },
+          { provide: PdfExportService, useValue: pdfExportSpy },
+          { provide: CaseDashboardRefreshService, useValue: refreshSpy },
+        ],
+      }).compileComponents();
+      fixture = TestBed.createComponent(ImmigrationChecklistSectionComponent);
+      component = fixture.componentInstance;
+      component.caseFileId = 'cf-1';
+      fixture.detectChanges();
+    });
+
+    it('T-04: save success appelle triggerRefresh exactement 1 fois', () => {
+      refreshSpy.triggerRefresh.mockClear();
+      component.save();
+      expect(refreshSpy.triggerRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    it('save error N\'appelle PAS triggerRefresh', () => {
+      serviceSpy.upsert.mockReturnValue(throwError(() => new Error('network')));
+      refreshSpy.triggerRefresh.mockClear();
+      component.save();
+      expect(refreshSpy.triggerRefresh).not.toHaveBeenCalled();
+    });
   });
 });
 
