@@ -74,7 +74,7 @@ public class BlogPublicationScheduler {
         }
     }
 
-    void executeRun() {
+    public void executeRun() {
         CircuitBreakerVerdict verdict = circuitBreaker.canGenerateNow();
         if (!(verdict instanceof CircuitBreakerVerdict.Ok)) {
             log.info("Blog publication skipped: circuit breaker = {}", verdict);

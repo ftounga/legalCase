@@ -1,0 +1,82 @@
+<div class="sa-blog">
+  <header class="sa-blog__header">
+    <a routerLink="/super-admin" class="back-link">← Super-admin</a>
+    <h1>Blog SEO automatisé (F-120)</h1>
+  </header>
+
+  <section class="sa-blog__section">
+    <div class="section-header">
+      <h2>Coûts IA du mois</h2>
+      <button type="button" class="btn-secondary" (click)="loadCost()" [disabled]="loadingCost">
+        Rafraîchir
+      </button>
+    </div>
+    @if (loadingCost) {
+      <p class="muted">Chargement…</p>
+    } @else if (cost) {
+      <div class="cost-grid">
+        <div class="cost-card">
+          <h3>Anthropic (Claude)</h3>
+          <p class="cost-card__value">{{ cost.anthropicMonthlyEur }} €<span class="muted"> consommés ce mois</span></p>
+          <p class="cost-card__projection">Projection fin de mois : <strong>{{ cost.anthropicProjectedEur }} €</strong> / cap 30 €</p>
+        </div>
+        <div class="cost-card">
+          <h3>OpenAI (gpt-image-1)</h3>
+          <p class="cost-card__value">{{ cost.openaiMonthlyEur }} €<span class="muted"> consommés ce mois</span></p>
+          <p class="cost-card__projection">Projection fin de mois : <strong>{{ cost.openaiProjectedEur }} €</strong> / cap 20 €</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="sa-blog__section">
+    <div class="section-header">
+      <h2>Lancer un run manuel</h2>
+    </div>
+    <p class="muted">Limite : 5 runs / jour. Le scheduler automatique reste actif via le cron quotidien.</p>
+    <button type="button" class="btn-primary"
+            (click)="runNow()"
+            [disabled]="runNowInFlight">
+      {{ runNowInFlight ? 'Run en cours…' : 'Lancer un run maintenant' }}
+    </button>
+  </section>
+
+  <section class="sa-blog__section">
+    <div class="section-header">
+      <h2>Articles à relire ({{ needsReview.length }})</h2>
+      <button type="button" class="btn-secondary" (click)="loadNeedsReview()" [disabled]="loadingNeedsReview">
+        Rafraîchir
+      </button>
+    </div>
+    @if (loadingNeedsReview) {
+      <p class="muted">Chargement…</p>
+    } @else if (needsReview.length === 0) {
+      <p class="muted">Aucun article en attente de relecture.</p>
+    } @else {
+      <ul class="review-list" role="list">
+        @for (article of needsReview; track article.id) {
+          <li class="review-item">
+            <div class="review-item__meta">
+              <span class="badge badge--domain">{{ legalDomainLabels[article.legalDomain] }}</span>
+              <span class="badge badge--country">{{ countryLabels[article.country] }}</span>
+              <span class="reading-time">{{ article.readingTimeMinutes }} min</span>
+            </div>
+            <h3 class="review-item__title">{{ article.title }}</h3>
+            <p class="review-item__excerpt">{{ article.metaDescription }}</p>
+            <div class="review-item__actions">
+              <a [routerLink]="['/blog', article.slug]" class="btn-link" target="_blank" rel="noopener">
+                Aperçu
+              </a>
+              <button type="button" class="btn-success" (click)="approve(article)">
+                Approuver (passera DRAFT)
+              </button>
+              <button type="button" class="btn-danger" (click)="reject(article)">
+                Rejeter
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>
