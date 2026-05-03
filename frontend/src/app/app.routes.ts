@@ -120,6 +120,16 @@ export const routes: Routes = [
     loadComponent: () => import('./contact/contact.component').then(m => m.ContactComponent)
   },
   {
+    path: 'blog',
+    loadComponent: () => import('./blog/blog-list-page/blog-list-page.component')
+      .then(m => m.BlogListPageComponent)
+  },
+  {
+    path: 'blog/:slug',
+    loadComponent: () => import('./blog/blog-article-page/blog-article-page.component')
+      .then(m => m.BlogArticlePageComponent)
+  },
+  {
     path: 'mentions-legales',
     loadComponent: () => import('./legal/legal-page.component').then(m => m.LegalPageComponent),
     data: { title: 'Mentions légales', sections: MENTIONS_LEGALES }

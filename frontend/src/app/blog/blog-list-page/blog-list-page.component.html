@@ -1,0 +1,88 @@
+<div class="blog-list">
+  <header class="blog-list__header">
+    <h1>Le blog LegalCase</h1>
+    <p class="blog-list__subtitle">
+      Analyses, repères pratiques et actualité juridique pour les avocats francophones.
+    </p>
+  </header>
+
+  <nav class="blog-list__filters" aria-label="Filtrer les articles">
+    <div class="filter-group" role="group" aria-label="Pays">
+      <button type="button"
+              [class.active]="!filters.country"
+              (click)="setCountry(null)">Tous pays</button>
+      <button type="button"
+              [class.active]="filters.country === 'FR'"
+              (click)="setCountry('FR')">{{ countryLabels['FR'] }}</button>
+      <button type="button"
+              [class.active]="filters.country === 'BE'"
+              (click)="setCountry('BE')">{{ countryLabels['BE'] }}</button>
+    </div>
+    <div class="filter-group" role="group" aria-label="Domaine">
+      <button type="button"
+              [class.active]="!filters.legalDomain"
+              (click)="setDomain(null)">Tous domaines</button>
+      <button type="button"
+              [class.active]="filters.legalDomain === 'DROIT_DU_TRAVAIL'"
+              (click)="setDomain('DROIT_DU_TRAVAIL')">{{ legalDomainLabels['DROIT_DU_TRAVAIL'] }}</button>
+      <button type="button"
+              [class.active]="filters.legalDomain === 'DROIT_IMMIGRATION'"
+              (click)="setDomain('DROIT_IMMIGRATION')">{{ legalDomainLabels['DROIT_IMMIGRATION'] }}</button>
+      <button type="button"
+              [class.active]="filters.legalDomain === 'DROIT_FAMILLE'"
+              (click)="setDomain('DROIT_FAMILLE')">{{ legalDomainLabels['DROIT_FAMILLE'] }}</button>
+    </div>
+  </nav>
+
+  @if (loading) {
+    <div class="blog-list__loading" role="status">Chargement…</div>
+  }
+  @if (error) {
+    <div class="blog-list__error" role="alert">{{ error }}</div>
+  }
+  @if (!loading && !error && articles.length === 0) {
+    <div class="blog-list__empty">Aucun article disponible pour ces filtres.</div>
+  }
+
+  @if (!loading && !error && articles.length > 0) {
+    <ul class="blog-list__grid" role="list">
+      @for (article of articles; track article.id) {
+        <li class="blog-card">
+          <a class="blog-card__link" [routerLink]="['/blog', article.slug]">
+            @if (article.heroImageUrl) {
+              <img class="blog-card__hero"
+                   [src]="article.heroImageUrl"
+                   [alt]="article.heroImageAlt || article.title"
+                   loading="lazy" />
+            } @else {
+              <div class="blog-card__hero blog-card__hero--placeholder" aria-hidden="true">
+                <span>{{ legalDomainLabels[article.legalDomain] }}</span>
+              </div>
+            }
+            <div class="blog-card__body">
+              <div class="blog-card__meta">
+                <span class="badge badge--domain">{{ legalDomainLabels[article.legalDomain] }}</span>
+                <span class="badge badge--country">{{ countryLabels[article.country] }}</span>
+                <span class="reading-time">{{ article.readingTimeMinutes }} min</span>
+              </div>
+              <h2 class="blog-card__title">{{ article.title }}</h2>
+              <p class="blog-card__excerpt">{{ article.metaDescription }}</p>
+            </div>
+          </a>
+        </li>
+      }
+    </ul>
+
+    @if (page && page.totalPages > 1) {
+      <nav class="blog-list__pagination" aria-label="Pagination">
+        <button type="button"
+                [disabled]="page.number === 0"
+                (click)="goToPage(page.number - 1)">Précédent</button>
+        <span>Page {{ page.number + 1 }} / {{ page.totalPages }}</span>
+        <button type="button"
+                [disabled]="page.number + 1 >= page.totalPages"
+                (click)="goToPage(page.number + 1)">Suivant</button>
+      </nav>
+    }
+  }
+</div>

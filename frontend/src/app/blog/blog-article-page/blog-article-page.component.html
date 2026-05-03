@@ -1,0 +1,46 @@
+<div class="blog-article">
+  @if (loading) {
+    <div class="blog-article__loading" role="status">Chargement…</div>
+  }
+  @if (error) {
+    <div class="blog-article__error" role="alert">
+      <h1>{{ error }}</h1>
+      <a routerLink="/blog" class="back-link">← Retour au blog</a>
+    </div>
+  }
+  @if (article && !loading && !error) {
+    <a routerLink="/blog" class="back-link">← Retour au blog</a>
+
+    @if (article.heroImageUrl) {
+      <img class="blog-article__hero"
+           [src]="article.heroImageUrl"
+           [alt]="article.heroImageAlt || article.title"
+           loading="eager" />
+    } @else {
+      <div class="blog-article__hero blog-article__hero--placeholder" aria-hidden="true">
+        <span>{{ legalDomainLabels[article.legalDomain] }}</span>
+      </div>
+    }
+
+    <header class="blog-article__header">
+      <div class="blog-article__meta">
+        <span class="badge badge--domain">{{ legalDomainLabels[article.legalDomain] }}</span>
+        <span class="badge badge--country">{{ countryLabels[article.country] }}</span>
+        <span class="reading-time">{{ article.readingTimeMinutes }} min de lecture</span>
+      </div>
+      <h1>{{ article.title }}</h1>
+      @if (article.subtitle) {
+        <p class="blog-article__subtitle">{{ article.subtitle }}</p>
+      }
+      <div class="blog-article__byline">
+        <span>Par {{ article.authorName }}</span>
+        @if (article.publishedAt) {
+          <span class="dot">·</span>
+          <time>{{ article.publishedAt | date: 'longDate' }}</time>
+        }
+      </div>
+    </header>
+
+    <article class="blog-article__body" [innerHTML]="renderedHtml"></article>
+  }
+</div>
