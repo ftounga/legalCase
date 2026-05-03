@@ -44,10 +44,7 @@ public record CaseAnalysisResponse(
         List<fr.ailegalcase.immigration.ImmigrationStrategyScenario> immigrationStrategyScenarios,
         // F-152 : validité divorce consentement mutuel (famille, null hors domaine famille).
         DivorceConsentementValidityDetection divorceConsentementValidityDetection,
-        DivorceConsentementScoring divorceConsentementScoring,
-        // F-185 SF-185-03 : analyse provisoire (auto-déclenchée par DocumentAnalysis DONE)
-        // → frontend masque le verdict définitif jusqu'à analyse manuelle de l'avocat.
-        boolean isProvisional
+        DivorceConsentementScoring divorceConsentementScoring
 ) {
 
     /** Constructeur rétrocompat sans trigger events (pré-F-150). */
@@ -74,7 +71,7 @@ public record CaseAnalysisResponse(
                 pensionAlimentaireEstimate, prestationCompensatoireEstimate, liquidationCommunaute,
                 travailExtractedData, immigrationExtractedData, licenciementValidityDetection,
                 ruptureConvValidityDetection, piecesManquantesDetails, List.of(), List.of(),
-                null, null, false);
+                null, null);
     }
 
     public record PieceManquanteEntry(String texte, String critereCode) {}
@@ -543,8 +540,7 @@ public record CaseAnalysisResponse(
                 immigrationTriggerEvents,
                 immigrationStrategyScenarios,
                 divorceConsentementValidityDetection,
-                divorceConsentementScoring,
-                analysis.isProvisional()
+                divorceConsentementScoring
         );
     }
 
@@ -559,10 +555,7 @@ public record CaseAnalysisResponse(
             // salaire détectés par l'IA et déclencher les alertes F-IA-03 aussi
             // côté BE. Le panneau d'affichage Macron FR est masqué côté frontend
             // via un guard sur belgianCompensationEstimate.
-            // Délègue au constructeur rétrocompat 25-arg, qui met isProvisional=false par défaut.
-            // C'est correct ici : on préserve juste base.isProvisional via une copie ciblée
-            // si besoin (cas bord rare où l'analyse provisoire est BE — on conserve le flag).
-            CaseAnalysisResponse rebuilt = new CaseAnalysisResponse(
+            return new CaseAnalysisResponse(
                     base.id(), base.version(), base.analysisType(), base.status(),
                     base.timeline(), base.faits(), base.pointsJuridiques(), base.risques(),
                     base.questionsOuvertes(), base.piecesManquantes(), base.pointsProcedure(),
@@ -574,23 +567,9 @@ public record CaseAnalysisResponse(
                     base.travailExtractedData(), base.immigrationExtractedData(),
                     base.licenciementValidityDetection(),
                     base.ruptureConvValidityDetection(),
-                    base.piecesManquantesDetails());
-            return new CaseAnalysisResponse(
-                    rebuilt.id(), rebuilt.version(), rebuilt.analysisType(), rebuilt.status(),
-                    rebuilt.timeline(), rebuilt.faits(), rebuilt.pointsJuridiques(), rebuilt.risques(),
-                    rebuilt.questionsOuvertes(), rebuilt.piecesManquantes(), rebuilt.pointsProcedure(),
-                    rebuilt.riskLevel(), rebuilt.riskScore(), rebuilt.modelUsed(), rebuilt.updatedAt(),
-                    rebuilt.analysisDocuments(),
-                    rebuilt.compensationEstimate(), rebuilt.belgianCompensationEstimate(),
-                    rebuilt.pensionAlimentaireEstimate(), rebuilt.prestationCompensatoireEstimate(),
-                    rebuilt.liquidationCommunaute(),
-                    rebuilt.travailExtractedData(), rebuilt.immigrationExtractedData(),
-                    rebuilt.licenciementValidityDetection(),
-                    rebuilt.ruptureConvValidityDetection(),
-                    rebuilt.piecesManquantesDetails(),
-                    rebuilt.immigrationTriggerEvents(), rebuilt.immigrationStrategyScenarios(),
-                    rebuilt.divorceConsentementValidityDetection(), rebuilt.divorceConsentementScoring(),
-                    base.isProvisional());
+                    base.piecesManquantesDetails(),
+                    base.immigrationTriggerEvents(), base.immigrationStrategyScenarios(),
+                    base.divorceConsentementValidityDetection(), base.divorceConsentementScoring());
         }
         return base;
     }

@@ -135,13 +135,6 @@ export interface CaseAnalysisResult {
   divorceConsentementValidityDetection?: DivorceConsentementValidityDetection | null;
   /** F-152 : scoring calculé (null si détection absente). */
   divorceConsentementScoring?: DivorceConsentementScoring | null;
-  /**
-   * F-185 SF-185-03 : analyse provisoire (auto-déclenchée par le pipeline post-DocumentAnalysis).
-   * Quand `true`, le frontend affiche le bandeau "Synthèse provisoire" et grise visuellement
-   * le verdict (riskLevel) pour éviter le faux signal d'autorité avant le déclenchement
-   * manuel par l'avocat.
-   */
-  isProvisional?: boolean;
 }
 
 /**

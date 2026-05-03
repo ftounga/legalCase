@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!--
+      F-185 SF-185-04 — rollback de SF-185-03.
+
+      L'auto-trigger CaseAnalysis post-DocumentAnalysis a été supprimé
+      (analyse de dossier mono-document conceptuellement faible, coût Anthropic
+      injustifié). La colonne `is_provisional` devient code mort : on la drop.
+
+      Idempotence : si la migration 202 n'a jamais été exécutée (cas prod, qui
+      n'a jamais reçu SF-185-03), `is_provisional` n'existe pas. On utilise
+      preConditions onFail="MARK_RAN" pour skip silencieusement.
+    -->
+    <changeSet id="203-drop-case-analyses-is-provisional" author="legalcase">
+        <preConditions onFail="MARK_RAN" onFailMessage="case_analyses.is_provisional absent — skip drop (SF-185-03 jamais déployée).">
+            <columnExists tableName="case_analyses" columnName="is_provisional"/>
+        </preConditions>
+
+        <dropColumn tableName="case_analyses" columnName="is_provisional"/>
+
+        <rollback>
+            <addColumn tableName="case_analyses">
+                <column name="is_provisional" type="BOOLEAN" defaultValueBoolean="false">
+                    <constraints nullable="false"/>
+                </column>
+            </addColumn>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

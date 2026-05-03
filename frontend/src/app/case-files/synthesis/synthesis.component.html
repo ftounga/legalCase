@@ -95,17 +95,6 @@
     </div>
   }
 
-  <!-- F-185 SF-185-03 — bandeau synthèse provisoire (auto-déclenchée post-DocumentAnalysis). -->
-  @if (synthesis()?.isProvisional && !isStreaming()) {
-    <div class="provisional-callout" role="status" aria-live="polite">
-      <mat-icon class="provisional-icon">info</mat-icon>
-      <span class="provisional-text">
-        <strong>Synthèse provisoire</strong> — générée automatiquement après l'analyse des premiers documents.
-        Le verdict final sera disponible après votre déclenchement manuel d'une analyse complète.
-      </span>
-    </div>
-  }
-
   @if (synthesis()) {
     <mat-accordion class="synthesis-accordion" multi [@listStagger]="synthesis()!.faits.length + synthesis()!.risques.length + synthesis()!.timeline.length">
       @if (synthesis()!.timeline.length > 0) {
