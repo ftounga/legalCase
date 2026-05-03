@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!--
+      F-185 SF-185-03 — synthèse incrémentale par document.
+
+      `is_provisional` (BOOLEAN, default FALSE) marque les analyses générées
+      automatiquement par le pipeline au fil des `DocumentAnalysis` DONE
+      (vs. analyses déclenchées manuellement par l'avocat via
+      `triggerCaseAnalysis`).
+
+      L'UX masque le verdict définitif (riskLevel grisé + bandeau "Synthèse
+      provisoire — N/M documents analysés") tant que `is_provisional = true`,
+      pour éviter le faux signal d'autorité quand tous les documents ne sont
+      pas encore traités. Les analyses manuelles restent par défaut FALSE
+      (verdict pleinement présenté).
+    -->
+    <changeSet id="202-add-case-analyses-is-provisional" author="legalcase">
+        <addColumn tableName="case_analyses">
+            <column name="is_provisional" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="case_analyses" columnName="is_provisional"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
