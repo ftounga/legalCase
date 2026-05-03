@@ -60,6 +60,35 @@
         0 2px 12px rgba(11, 33, 71, 0.08);
     }
   }
+
+  &--flashing {
+    animation: decisionToolFlash 1500ms ease-out 1;
+  }
+}
+
+@keyframes decisionToolFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(11, 33, 71, 0);
+    border-left-color: transparent;
+  }
+  20% {
+    box-shadow: 0 0 0 6px rgba(201, 165, 75, 0.45);
+    border-left-color: #C9A54B;
+  }
+  60% {
+    box-shadow: 0 0 0 4px rgba(11, 33, 71, 0.25);
+    border-left-color: #0B2147;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(11, 33, 71, 0);
+    border-left-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-card--flashing {
+    animation: none;
+  }
 }
 
 .tool-card__header {

@@ -34,6 +34,7 @@ export class DecisionToolCardComponent {
   @Input() coherenceAlertCount: number | null = null;
   @Input() metierAlertLevel: MetierAlertLevel | null = null;
   @Input() disabled = false;
+  @Input() flashing = false;
 
   @Output() open = new EventEmitter<void>();
 

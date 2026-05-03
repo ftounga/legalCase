@@ -198,6 +198,22 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('SF-159-02 — flashing input', () => {
+    it('ajoute la classe tool-card--flashing quand flashing=true', () => {
+      component.flashing = true;
+      fixture.detectChanges();
+      const card = fixture.nativeElement.querySelector('.tool-card');
+      expect(card.classList.contains('tool-card--flashing')).toBe(true);
+    });
+
+    it('pas de classe tool-card--flashing quand flashing=false (default)', () => {
+      component.flashing = false;
+      fixture.detectChanges();
+      const card = fixture.nativeElement.querySelector('.tool-card');
+      expect(card.classList.contains('tool-card--flashing')).toBe(false);
+    });
+  });
+
   describe('interactions', () => {
     it('émet open au click', () => {
       let count = 0;
