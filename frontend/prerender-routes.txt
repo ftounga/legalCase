@@ -4,3 +4,4 @@
 /mentions-legales
 /privacy
 /cgu
+/blog
