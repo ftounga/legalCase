@@ -4,15 +4,20 @@ import fr.ailegalcase.blog.dto.BlogArticleDetailResponse;
 import fr.ailegalcase.blog.dto.BlogArticleSummaryResponse;
 import fr.ailegalcase.blog.dto.BlogSitemapEntry;
 import fr.ailegalcase.blog.service.BlogArticleQueryService;
+import fr.ailegalcase.storage.StorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/blog")
@@ -20,11 +25,15 @@ public class BlogArticleController {
 
     static final int MAX_PAGE_SIZE = 50;
     static final int DEFAULT_PAGE_SIZE = 20;
+    private static final String HERO_KEY_PATTERN = "blog/articles/%s/hero.png";
 
     private final BlogArticleQueryService queryService;
+    private final StorageService storageService;
 
-    public BlogArticleController(BlogArticleQueryService queryService) {
+    public BlogArticleController(BlogArticleQueryService queryService,
+                                 StorageService storageService) {
         this.queryService = queryService;
+        this.storageService = storageService;
     }
 
     @GetMapping("/articles")
@@ -63,5 +72,18 @@ public class BlogArticleController {
     @GetMapping("/articles/sitemap-fragment")
     public List<BlogSitemapEntry> sitemapFragment() {
         return queryService.sitemapEntries();
+    }
+
+    @GetMapping("/articles/{articleId}/hero-image")
+    public ResponseEntity<byte[]> getHeroImage(@PathVariable UUID articleId) {
+        try {
+            byte[] image = storageService.download(HERO_KEY_PATTERN.formatted(articleId));
+            return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_PNG)
+                    .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic())
+                    .body(image);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Hero image not found");
+        }
     }
 }
