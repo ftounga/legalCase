@@ -178,16 +178,28 @@ public class CaseAnalysisService {
             // réutilisé entre appels successifs (re-analyse, question chat). Gain ~85 %
             // de latence prefill sur les appels dans la fenêtre de 5 min.
             // F-161 SF-161-02 : 64000 tokens output (dossiers riches).
+            // F-185 SF-185-05 — compteurs diagnostic streaming pour observer en prod
+            // si le bug "partial_state toujours NULL" vient de :
+            //   - chunks=0           → RestClient ne stream pas (buffer)
+            //   - chunks=N sections=0 → extracteur ne détecte aucune section close
+            //   - chunks=N sections=M persists=K (K<M)  → persistPartialAndNotify échoue
+            //   - chunks=N sections=M persists=M  → tout marche, bug ailleurs (transaction, frontend)
+            java.util.concurrent.atomic.AtomicInteger chunkCount = new java.util.concurrent.atomic.AtomicInteger();
+            java.util.concurrent.atomic.AtomicInteger sectionCount = new java.util.concurrent.atomic.AtomicInteger();
+            java.util.concurrent.atomic.AtomicInteger persistCount = new java.util.concurrent.atomic.AtomicInteger();
             try {
                 PartialJsonSectionExtractor extractor = new PartialJsonSectionExtractor();
                 result = anthropicService.analyzeWithSystemCacheStreaming(
                         prepared.systemPrompt(), prepared.prompt(), 64000,
                         delta -> {
+                            chunkCount.incrementAndGet();
                             try {
                                 List<Map.Entry<String, String>> newSections = extractor.append(delta);
                                 if (!newSections.isEmpty()) {
+                                    sectionCount.addAndGet(newSections.size());
                                     self.persistPartialAndNotify(prepared.analysisId(), caseFileId,
                                             extractor.snapshot());
+                                    persistCount.incrementAndGet();
                                 }
                             } catch (Exception ex) {
                                 log.warn("Partial state update failed for caseFile {} (analysis continues): {}",
@@ -198,6 +210,8 @@ public class CaseAnalysisService {
                 log.warn("Streaming Anthropic failed for caseFile {} ({}), falling back to synchronous mode",
                         caseFileId, streamingFailure.getMessage());
             }
+            log.info("Case analysis STREAMING SUMMARY caseFile={} chunks={} sections={} persists={}",
+                    caseFileId, chunkCount.get(), sectionCount.get(), persistCount.get());
             // F-185 SF-185-01 — fallback gracieux : streaming peut retourner null si la
             // bibliothèque renvoie un payload vide ou si le mock test n'a pas stubé la
             // méthode streaming ; dans tous les cas on retombe sur l'appel synchrone éprouvé.

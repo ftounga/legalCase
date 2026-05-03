@@ -207,6 +207,47 @@ describe('SynthesisComponent', () => {
     expect(component.loading()).toBe(false);
   });
 
+  // F-185 SF-185-05 — bug 2 : "Synthèse non disponible" doit s'afficher
+  // UNIQUEMENT si versions vide ET synthesis null. Sinon (synthesis partielle
+  // chargée pendant un streaming), on doit afficher la synthèse partielle.
+
+  // T-SF-185-05-01 : versions vide + synthesis null → message "non disponible" rendu
+  it('renders "Synthèse non disponible" only when both versions empty AND synthesis null', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([]));
+    // getPartial mockée par défaut sur 404 → synthesis reste null
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Synthèse non disponible');
+  });
+
+  // T-SF-185-05-02 : versions vide + synthesis chargée via partial → "non disponible" PAS rendu
+  it('does not render "Synthèse non disponible" when partial synthesis is loaded', () => {
+    caseAnalysisService.getVersions.mockReturnValue(of([]));
+    // simule getPartial qui retourne un état partiel
+    (caseAnalysisService.getPartial as jest.Mock).mockReturnValue(of({
+      analysisId: 'partial-1',
+      version: 1,
+      status: 'PARTIAL',
+      sections: { faits: [{ texte: 'fait partiel' }] },
+      updatedAt: '2026-05-03T17:00:00Z',
+    }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Synthèse non disponible');
+    // synthesis a bien été projetée depuis le partial
+    expect(component.synthesis()).not.toBeNull();
+  });
+
+  // T-SF-185-05-03 (régression) : versions DONE → "non disponible" PAS rendu
+  it('does not render "Synthèse non disponible" when at least one DONE version exists', () => {
+    const versions = [makeVersion(1, 'STANDARD')];
+    caseAnalysisService.getVersions.mockReturnValue(of(versions));
+    caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Synthèse non disponible');
+  });
+
   // T-07 : changement de version ne recharge pas le chat
   it('does not reload chat on version change', () => {
     const chatService = TestBed.inject(ChatService) as jest.Mocked<ChatService>;
