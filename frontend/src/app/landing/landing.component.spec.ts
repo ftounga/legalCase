@@ -27,7 +27,7 @@ describe('LandingComponent', () => {
   });
 
   it('définit le title SEO au chargement', () => {
-    expect(titleService.getTitle()).toBe('AI LegalCase — Analyse IA pour avocats en droit du travail');
+    expect(titleService.getTitle()).toContain('92 outils décisionnels');
   });
 
   it('définit la meta description SEO au chargement', () => {
@@ -40,9 +40,19 @@ describe('LandingComponent', () => {
     expect(tag?.content).toContain('AI LegalCase');
   });
 
-  it('affiche le titre principal', () => {
+  it('affiche le titre principal — repositionnement plateforme outils décisionnels', () => {
     const h1 = fixture.nativeElement.querySelector('h1');
-    expect(h1?.textContent).toContain('collaborateur');
+    expect(h1?.textContent).toContain('92 outils décisionnels');
+  });
+
+  it('repricing V7 — Solo 99 €, Team 219 €, Pro 429 €', () => {
+    const html = fixture.nativeElement.innerHTML as string;
+    expect(html).toContain('99 €');
+    expect(html).toContain('219 €');
+    expect(html).toContain('429 €');
+    expect(html).not.toContain('59 €</span>');
+    expect(html).not.toContain('119 €');
+    expect(html).not.toContain('249 €');
   });
 
   it('affiche les 4 cartes de pricing', () => {
