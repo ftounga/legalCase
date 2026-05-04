@@ -97,10 +97,10 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.title.setTitle('AI LegalCase — Analyse IA pour avocats en droit du travail');
-    this.meta.updateTag({ name: 'description', content: 'Outil IA pour avocats : analysez vos dossiers contentieux en droit du travail en quelques minutes. Synthèse structurée, risques, chronologie, points de droit. Conçu pour les cabinets de 1 à 10 avocats. Essai gratuit 14 jours.' });
-    this.meta.updateTag({ property: 'og:title', content: 'AI LegalCase — Analyse IA pour avocats en droit du travail' });
-    this.meta.updateTag({ property: 'og:description', content: 'Outil IA pour avocats : analysez vos dossiers contentieux en droit du travail en quelques minutes. Synthèse structurée, risques, chronologie, points de droit. Essai gratuit 14 jours.' });
+    this.title.setTitle('AI LegalCase — 92 outils décisionnels pour avocats : Travail, Immigration, Famille (FR/BE)');
+    this.meta.updateTag({ name: 'description', content: 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA. Calculateurs, scorings, comparateurs, générateurs sur droit du travail, immigration et famille — France et Belgique. OCR + Vision pour extraire scans dégradés et photos de SMS. Essai gratuit 14 jours.' });
+    this.meta.updateTag({ property: 'og:title', content: 'AI LegalCase — 92 outils décisionnels pour avocats : Travail, Immigration, Famille (FR/BE)' });
+    this.meta.updateTag({ property: 'og:description', content: 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA depuis vos pièces. Travail, Immigration, Famille — France et Belgique. Essai gratuit 14 jours.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://legalcase.ng-itconsulting.com/' });
     this.injectJsonLd();
   }
@@ -117,7 +117,7 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       'name': 'AI LegalCase',
-      'description': 'Outil d\'analyse IA pour avocats. Analysez vos dossiers contentieux en droit du travail : synthèse structurée, chronologie, risques juridiques, points de droit.',
+      'description': 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA depuis vos pièces. Calculateurs, scorings, comparateurs et générateurs sur droit du travail, immigration et famille — France et Belgique. OCR et Vision pour extraire scans dégradés et photos de SMS.',
       'applicationCategory': 'BusinessApplication',
       'operatingSystem': 'Web',
       'url': 'https://legalcase.ng-itconsulting.com',
