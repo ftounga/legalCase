@@ -28,7 +28,8 @@ export class BlogArticlePageComponent implements OnInit {
   protected readonly legalDomainLabels = LEGAL_DOMAIN_LABELS;
   protected readonly countryLabels = COUNTRY_LABELS;
 
-  protected loading = this.isBrowser;
+  // État initial identique SSG/browser pour éviter mismatch d'hydratation
+  protected loading = false;
   protected error: string | null = null;
   protected article: BlogArticleDetail | null = null;
   protected renderedHtml: SafeHtml = '';
