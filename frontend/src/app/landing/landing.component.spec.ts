@@ -40,6 +40,19 @@ describe('LandingComponent', () => {
     expect(tag?.content).toContain('AI LegalCase');
   });
 
+  it('définit la Twitter Card avec image large', () => {
+    const card = metaService.getTag('name="twitter:card"');
+    expect(card?.content).toBe('summary_large_image');
+    const tw = metaService.getTag('name="twitter:title"');
+    expect(tw?.content).toContain('92 outils');
+  });
+
+  it('insère un link rel="canonical"', () => {
+    const link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    expect(link).not.toBeNull();
+    expect(link?.href).toContain('legalcase.ng-itconsulting.com');
+  });
+
   it('affiche le titre principal — repositionnement plateforme outils décisionnels', () => {
     const h1 = fixture.nativeElement.querySelector('h1');
     expect(h1?.textContent).toContain('92 outils décisionnels');
