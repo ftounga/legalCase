@@ -151,8 +151,8 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
       'description': 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA depuis vos pièces. Calculateurs, scorings, comparateurs et générateurs sur droit du travail, immigration et famille — France et Belgique. OCR et Vision pour extraire scans dégradés et photos de SMS.',
       'featureList': [
         '92 outils décisionnels juridiques (calculateurs, scorings, comparateurs, générateurs, détecteurs)',
-        'OCR Textract pour scans dégradés et fax',
-        'Claude Vision pour photos de SMS, captures d\'écran, manuscrits',
+        'Legal OCR pour scans dégradés et fax',
+        'Legal Vision pour photos de SMS, captures d\'écran, manuscrits',
         'Synthèse structurée : timeline, faits, risques, points de droit cités',
         'Cohérence multi-source : divergences IA détectées',
         'Couverture droit du travail, immigration, famille',
