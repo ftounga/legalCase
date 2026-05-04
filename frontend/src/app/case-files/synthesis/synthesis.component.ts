@@ -100,6 +100,13 @@ export class SynthesisComponent implements OnInit, OnDestroy {
   procedureChecks = signal<ProcedureCheck[]>([]);
   updatingCheckId = signal<string | null>(null);
 
+  // F-160 SF-160-02 — paginators indépendants par bloc (checklist + questions)
+  // Numéro de version actuellement affiché par bloc (peut diverger de la version
+  // synthèse globale pour comparer la checklist d'une itération avec les questions
+  // d'une autre).
+  currentChecksVersion = signal<number | null>(null);
+  currentQuestionsVersion = signal<number | null>(null);
+
   strategicOptions = signal<StrategicOption[]>([]);
   updatingOptionId = signal<string | null>(null);
 
@@ -216,6 +223,8 @@ export class SynthesisComponent implements OnInit, OnDestroy {
       next: versions => {
         this.versions.set(versions);
         if (versions.length > 0) {
+          this.currentChecksVersion.set(versions[0].version);
+          this.currentQuestionsVersion.set(versions[0].version);
           this.loadSynthesisForVersion(caseFileId, versions[0].version);
           this.loadQuestionsForVersion(caseFileId, versions[0].id);
           this.loadChecksForVersion(caseFileId, versions[0].id);
@@ -336,6 +345,58 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     });
   }
 
+  // F-160 SF-160-02 — paginators par bloc.
+  readonly versionsAsc = computed(() =>
+    [...this.versions()].sort((a, b) => a.version - b.version)
+  );
+
+  readonly checksIterationIndex = computed(() => {
+    const v = this.currentChecksVersion();
+    if (v == null) return 0;
+    const i = this.versionsAsc().findIndex(x => x.version === v);
+    return i < 0 ? 0 : i;
+  });
+
+  readonly questionsIterationIndex = computed(() => {
+    const v = this.currentQuestionsVersion();
+    if (v == null) return 0;
+    const i = this.versionsAsc().findIndex(x => x.version === v);
+    return i < 0 ? 0 : i;
+  });
+
+  readonly canChecksPrev = computed(() => this.checksIterationIndex() > 0);
+  readonly canChecksNext = computed(() =>
+    this.checksIterationIndex() < this.versionsAsc().length - 1
+  );
+  readonly canQuestionsPrev = computed(() => this.questionsIterationIndex() > 0);
+  readonly canQuestionsNext = computed(() =>
+    this.questionsIterationIndex() < this.versionsAsc().length - 1
+  );
+
+  navigateChecks(direction: -1 | 1): void {
+    const list = this.versionsAsc();
+    if (list.length < 2) return;
+    const next = this.checksIterationIndex() + direction;
+    if (next < 0 || next >= list.length) return;
+    const target = list[next];
+    const caseFileId = this.caseFile()?.id;
+    if (!caseFileId) return;
+    this.currentChecksVersion.set(target.version);
+    this.loadChecksForVersion(caseFileId, target.id);
+  }
+
+  navigateQuestions(direction: -1 | 1): void {
+    const list = this.versionsAsc();
+    if (list.length < 2) return;
+    const next = this.questionsIterationIndex() + direction;
+    if (next < 0 || next >= list.length) return;
+    const target = list[next];
+    const caseFileId = this.caseFile()?.id;
+    if (!caseFileId) return;
+    this.currentQuestionsVersion.set(target.version);
+    this.loadQuestionsForVersion(caseFileId, target.id);
+  }
+
   loadStrategicOptionsForVersion(caseFileId: string, analysisId: string): void {
     this.strategicOptionService.list(caseFileId, analysisId).subscribe({
       next: options => this.strategicOptions.set(options),
@@ -443,6 +504,9 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     this.procedureChecks.set([]);
     this.strategicOptions.set([]);
     this.editingQuestionId.set(null);
+    // F-160 SF-160-02 — resync paginators sur la version globale.
+    this.currentChecksVersion.set(selected.version);
+    this.currentQuestionsVersion.set(selected.version);
     this.loadSynthesisForVersion(caseFileId, selected.version);
     this.loadQuestionsForVersion(caseFileId, selected.id);
     this.loadChecksForVersion(caseFileId, selected.id);

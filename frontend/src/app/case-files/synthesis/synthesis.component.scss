@@ -944,3 +944,44 @@
   0%   { background-color: rgba(201, 166, 70, 0.25); box-shadow: 0 0 0 4px rgba(201, 166, 70, 0.25); }
   100% { background-color: transparent; box-shadow: 0 0 0 0 transparent; }
 }
+
+// F-160 SF-160-02 — paginator par itération sur les blocs Checklist + Questions.
+// Visible uniquement si >= 2 versions DONE existent. Permet à l'avocat de comparer
+// l'état d'un bloc entre itérations sans changer la version globale de la synthèse.
+.iteration-paginator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0 12px;
+  padding: 4px 8px;
+  background: rgba(26, 58, 92, 0.04);
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  border-radius: 999px;
+  width: fit-content;
+
+  .iteration-nav {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    color: var(--color-text-primary, #1A3A5C);
+
+    .mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &:disabled {
+      color: var(--color-text-disabled, #B0BAC5);
+    }
+  }
+
+  .iteration-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary, #4A5C6E);
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+}

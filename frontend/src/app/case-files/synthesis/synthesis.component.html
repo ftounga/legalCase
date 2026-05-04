@@ -593,6 +593,28 @@
             </mat-panel-title>
             <mat-panel-description>{{ procedureChecks().length }} point(s) à vérifier</mat-panel-description>
           </mat-expansion-panel-header>
+          <!-- F-160 SF-160-02 — paginator par bloc (visible si >= 2 itérations) -->
+          @if (versionsAsc().length >= 2) {
+            <div class="iteration-paginator" aria-label="Navigation entre itérations de la checklist">
+              <button mat-icon-button class="iteration-nav"
+                      [disabled]="!canChecksPrev()"
+                      (click)="navigateChecks(-1)"
+                      matTooltip="Itération précédente"
+                      aria-label="Itération précédente">
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+              <span class="iteration-badge">
+                Itération {{ checksIterationIndex() + 1 }} / {{ versionsAsc().length }}
+              </span>
+              <button mat-icon-button class="iteration-nav"
+                      [disabled]="!canChecksNext()"
+                      (click)="navigateChecks(1)"
+                      matTooltip="Itération suivante"
+                      aria-label="Itération suivante">
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          }
           <div class="checklist-export-bar">
             <button mat-stroked-button class="export-btn export-btn--checklist" (click)="exportChecklistPdf()">
               <mat-icon>picture_as_pdf</mat-icon>
@@ -650,6 +672,28 @@
           </mat-panel-title>
           <mat-panel-description>{{ questions().length }} question(s)</mat-panel-description>
         </mat-expansion-panel-header>
+        <!-- F-160 SF-160-02 — paginator par bloc (visible si >= 2 itérations) -->
+        @if (versionsAsc().length >= 2) {
+          <div class="iteration-paginator" aria-label="Navigation entre itérations des questions">
+            <button mat-icon-button class="iteration-nav"
+                    [disabled]="!canQuestionsPrev()"
+                    (click)="navigateQuestions(-1)"
+                    matTooltip="Itération précédente"
+                    aria-label="Itération précédente">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            <span class="iteration-badge">
+              Itération {{ questionsIterationIndex() + 1 }} / {{ versionsAsc().length }}
+            </span>
+            <button mat-icon-button class="iteration-nav"
+                    [disabled]="!canQuestionsNext()"
+                    (click)="navigateQuestions(1)"
+                    matTooltip="Itération suivante"
+                    aria-label="Itération suivante">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        }
         <div class="questions-list">
           @for (q of questions(); track q.id) {
             <div class="question-item" [attr.id]="'qa-' + q.id">
