@@ -1,0 +1,218 @@
+@use 'sass:color';
+
+// Palette DESIGN_SYSTEM.md
+$primary: #1A3A5C;
+$accent: #C9973A;
+$bg: #F5F6FA;
+$surface: #FFFFFF;
+$text: #1C2B3A;
+$text-secondary: #6B7A8D;
+$divider: #E0E4EA;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.tools-showcase {
+  padding: 64px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+
+  &__header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  &__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: $accent;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+
+  &__title {
+    font-family: 'Merriweather', serif;
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 1.2;
+    color: $text;
+    margin: 0 0 12px;
+  }
+
+  &__sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: $text-secondary;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  &__filters {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  &__count {
+    text-align: center;
+    color: $text-secondary;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  &__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-secondary;
+  margin-right: 8px;
+  min-width: 64px;
+  text-align: right;
+}
+
+.chip {
+  background: $surface;
+  border: 1px solid $divider;
+  color: $text;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: color.adjust($accent, $lightness: 45%);
+    border-color: $accent;
+  }
+
+  &--active {
+    background: $primary;
+    border-color: $primary;
+    color: $surface;
+  }
+
+  &--active:hover {
+    background: color.adjust($primary, $lightness: 5%);
+  }
+}
+
+.tool-card {
+  background: $surface;
+  border: 1px solid $divider;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(26, 58, 92, 0.08);
+    border-color: $accent;
+  }
+
+  &__type {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: $accent;
+  }
+
+  &__label {
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: $text;
+    flex: 1;
+  }
+
+  &__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  &__chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  &__chip--domain {
+    background: rgba(26, 58, 92, 0.08);
+    color: $primary;
+  }
+
+  &__chip--country {
+    background: rgba(201, 151, 58, 0.12);
+    color: color.adjust($accent, $lightness: -10%);
+  }
+
+  &--empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: $text-secondary;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .tools-showcase {
+    padding: 48px 16px;
+
+    &__title {
+      font-size: 24px;
+    }
+
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .filter-label {
+    width: 100%;
+    text-align: center;
+    min-width: 0;
+    margin-right: 0;
+  }
+}
