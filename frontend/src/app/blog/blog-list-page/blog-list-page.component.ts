@@ -31,7 +31,11 @@ export class BlogListPageComponent implements OnInit {
   protected readonly legalDomainLabels = LEGAL_DOMAIN_LABELS;
   protected readonly countryLabels = COUNTRY_LABELS;
 
-  protected loading = this.isBrowser;
+  // État initial identique SSG/browser pour éviter mismatch d'hydratation
+  // (cas observé staging 2026-05-04 : loading=true côté browser ne réconciliait
+  // pas avec le DOM SSG `loading=false` et restait figé). load() set loading=true
+  // après ngOnInit, ce qui se passe APRÈS l'hydratation.
+  protected loading = false;
   protected error: string | null = null;
   protected articles: BlogArticleSummary[] = [];
   protected page: BlogPage<BlogArticleSummary> | null = null;
