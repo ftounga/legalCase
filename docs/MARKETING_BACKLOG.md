@@ -87,7 +87,7 @@ Mis à jour au fil des conversations. Priorisé par impact estimé.
 | M-33 | Post témoignage / démo utilisateur | Moyenne | `À faire` | Dès les premiers clients |
 | M-34 | Stratégie de contenu LinkedIn — planning 3 mois | Moyenne | `Terminé` | 28 posts planifiés avril-juin 2026 — intégré dans le workflow n8n M-38 |
 | M-35 | Compte Twitter/X — création et premiers posts | Basse | `À faire` | Audience tech/legal |
-| M-38 | Workflow n8n — auto-génération et publication LinkedIn | Haute | `Terminé` | Importé, activé et testé dans n8n — premier post publié avec succès sur la page LinkedIn AI LegalCase. |
+| M-38 | Workflow n8n — auto-génération et publication LinkedIn | Haute | `Bloqué` | **2026-05-04 — version d'essai n8n expirée + bug détecté** : Schedule Trigger configuré sur mardi/jeudi alors que les 28 dates planning M-34 tombent toutes sur mercredi/vendredi → 0 publication automatique depuis 2026-04-01 (seul le post du 2026-04-01 a été publié via Execute Workflow manuel). Décision : ne pas renouveler n8n, basculer en feature backend interne **F-188 LinkedIn auto-publication** ajoutée au PRODUCT_SPEC.md (À planifier, V8+). M-38 reste `Bloqué` jusqu'à livraison F-188 — sera remplacée par `Couvert par F-188 / n8n abandonné`. **Court terme** : publication manuelle des posts du planning (M-61 prêt, M-34 dates conservées) en attendant F-188. |
 
 ---
 
