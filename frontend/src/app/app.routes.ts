@@ -92,6 +92,11 @@ export const routes: Routes = [
         path: 'super-admin/blog',
         loadComponent: () => import('./super-admin/blog/super-admin-blog.component')
           .then(m => m.SuperAdminBlogComponent)
+      },
+      {
+        path: 'super-admin/traction-onepager',
+        loadComponent: () => import('./super-admin/traction-onepager/traction-onepager.component')
+          .then(m => m.TractionOnePagerComponent)
       }
     ]
   },

@@ -1,0 +1,178 @@
+<div class="traction-page">
+  <div class="page-header">
+    <h1 class="page-title">Export traction commerciale</h1>
+    <a mat-stroked-button routerLink="/super-admin" class="back-link">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Super-administration</span>
+    </a>
+  </div>
+
+  <p class="page-subtitle">
+    Génère un one-pager PDF (charte navy / or) à partir des KPIs courants F-76
+    et des inputs commerciaux ci-dessous. Le PDF est téléchargé immédiatement
+    après génération.
+  </p>
+
+  <!-- Bloc KPIs F-76 (lecture seule + checkbox d'inclusion) -->
+  <section class="kpi-section">
+    <h2 class="section-title">KPIs courants (F-76)</h2>
+
+    @if (loadingMetrics()) {
+      <div class="loading-center">
+        <mat-spinner diameter="32" />
+      </div>
+    } @else if (metricsError()) {
+      <p class="kpi-error">
+        KPIs indisponibles. Le PDF sera quand même généré : les valeurs seront
+        recalculées côté serveur au moment du POST.
+      </p>
+    } @else {
+      <div class="kpi-grid" [formGroup]="includeKpis">
+        @for (item of kpiItems(); track item.key) {
+          <div class="kpi-card">
+            <div class="kpi-card__header">
+              <mat-checkbox [formControlName]="item.key" color="primary">
+                <span class="kpi-card__label">{{ item.label }}</span>
+              </mat-checkbox>
+            </div>
+            <div class="kpi-card__value">{{ item.value }}</div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Formulaire principal -->
+  <form [formGroup]="form" (ngSubmit)="generate()" class="traction-form" novalidate>
+    <!-- Headline -->
+    <section class="form-section">
+      <h2 class="section-title">Accroche commerciale</h2>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Phrase d'accroche</mat-label>
+        <input matInput formControlName="headline" maxlength="200"
+               placeholder="Ex : LegalCase rend les avocats droit du travail 2× plus rapides">
+        <mat-hint align="end">{{ form.get('headline')?.value?.length ?? 0 }}/200</mat-hint>
+        @if (form.get('headline')?.touched && form.get('headline')?.hasError('required')) {
+          <mat-error>L'accroche est obligatoire.</mat-error>
+        }
+      </mat-form-field>
+    </section>
+
+    <!-- Verbatims -->
+    <section class="form-section">
+      <div class="section-header">
+        <h2 class="section-title">Témoignages clients (0-{{ maxVerbatims }})</h2>
+        @if (canAddVerbatim()) {
+          <button mat-stroked-button type="button" (click)="addVerbatim()" class="add-btn">
+            <mat-icon>add</mat-icon>
+            <span>Ajouter un verbatim</span>
+          </button>
+        }
+      </div>
+
+      @if (verbatims.length === 0) {
+        <p class="empty-row">Aucun verbatim — section masquée du PDF.</p>
+      }
+
+      <div formArrayName="verbatims" class="verbatim-list">
+        @for (vctrl of verbatims.controls; track $index; let i = $index) {
+          <div class="verbatim-row" [formGroupName]="i">
+            <mat-form-field appearance="outline" class="verbatim-quote">
+              <mat-label>Citation</mat-label>
+              <textarea matInput formControlName="quote" rows="2" maxlength="500"
+                        placeholder="On a gagné 2 h par dossier en 1 mois"></textarea>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="verbatim-author">
+              <mat-label>Auteur</mat-label>
+              <input matInput formControlName="author" maxlength="200"
+                     placeholder="Maître X, Cabinet Paris 8e">
+            </mat-form-field>
+            <button mat-icon-button type="button" (click)="removeVerbatim(i)"
+                    aria-label="Supprimer ce verbatim" class="remove-btn">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Partners -->
+    <section class="form-section">
+      <div class="section-header">
+        <h2 class="section-title">Partenaires (0-{{ maxPartners }})</h2>
+        @if (canAddPartner()) {
+          <button mat-stroked-button type="button" (click)="addPartner()" class="add-btn">
+            <mat-icon>add</mat-icon>
+            <span>Ajouter un partenaire</span>
+          </button>
+        }
+      </div>
+
+      @if (partners.length === 0) {
+        <p class="empty-row">Aucun partenaire — section masquée du PDF.</p>
+      }
+
+      <div formArrayName="partners" class="partner-list">
+        @for (pctrl of partners.controls; track $index; let i = $index) {
+          <div class="partner-row">
+            <mat-form-field appearance="outline" class="partner-input">
+              <mat-label>Partenaire {{ i + 1 }}</mat-label>
+              <input matInput [formControlName]="i" maxlength="100"
+                     placeholder="Ex : Village de la Justice">
+            </mat-form-field>
+            <button mat-icon-button type="button" (click)="removePartner(i)"
+                    aria-label="Supprimer ce partenaire" class="remove-btn">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="form-section" formGroupName="contact">
+      <h2 class="section-title">Contact (footer du PDF)</h2>
+      <p class="contact-hint">Pré-rempli depuis votre profil. Modifiable.</p>
+      <div class="contact-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Nom</mat-label>
+          <input matInput formControlName="name" maxlength="100">
+          @if (form.get('contact.name')?.touched && form.get('contact.name')?.hasError('required')) {
+            <mat-error>Le nom est obligatoire.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" type="email" maxlength="200">
+          @if (form.get('contact.email')?.touched && form.get('contact.email')?.hasError('required')) {
+            <mat-error>L'email est obligatoire.</mat-error>
+          }
+          @if (form.get('contact.email')?.touched && form.get('contact.email')?.hasError('email')) {
+            <mat-error>Format d'email invalide.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>URL</mat-label>
+          <input matInput formControlName="url" maxlength="300">
+          @if (form.get('contact.url')?.touched && form.get('contact.url')?.hasError('required')) {
+            <mat-error>L'URL est obligatoire.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </section>
+
+    <!-- Bouton génération -->
+    <div class="actions">
+      <button mat-flat-button color="primary" type="submit"
+              [disabled]="form.invalid || generating()" class="generate-btn">
+        @if (generating()) {
+          <mat-spinner diameter="20" class="btn-spinner" />
+          <span>Génération…</span>
+        } @else {
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>Générer le PDF</span>
+        }
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,251 @@
+// F-187 SF-187-02 — Charte navy #1A3A5C / or #C9973A, Inter pour le texte,
+// JetBrains Mono pour les chiffres en lecture seule.
+
+$navy: #1A3A5C;
+$navy-darker: #1C2B3A;
+$gold: #C9973A;
+$muted: #6B7A8D;
+$border: #E0E4EA;
+$bg-card: #FFFFFF;
+
+.traction-page {
+  padding: 24px;
+  max-width: 1100px;
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    font-family: Merriweather, serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: $navy-darker;
+    margin: 0;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .page-subtitle {
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    color: $muted;
+    margin: 0 0 24px;
+    max-width: 720px;
+    line-height: 1.5;
+  }
+
+  .loading-center {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0;
+  }
+
+  // ---------------------------------------------------------------------
+  // Section title commune
+  // ---------------------------------------------------------------------
+  .section-title {
+    font-family: Merriweather, serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: $navy-darker;
+    margin: 0 0 16px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .section-title {
+      margin-bottom: 0;
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // KPI section
+  // ---------------------------------------------------------------------
+  .kpi-section {
+    background: $bg-card;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 24px;
+    border-left: 4px solid $navy;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+
+    @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 540px) { grid-template-columns: 1fr; }
+  }
+
+  .kpi-card {
+    background: #F7F8FA;
+    border-radius: 8px;
+    padding: 12px 14px;
+    border: 1px solid $border;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    &__header {
+      display: flex;
+      align-items: center;
+    }
+
+    &__label {
+      font-family: Inter, sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: $muted;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    &__value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: $navy;
+      letter-spacing: -0.5px;
+    }
+  }
+
+  .kpi-error {
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: #B45309;
+    background: #FEF3C7;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 0;
+  }
+
+  // ---------------------------------------------------------------------
+  // Form
+  // ---------------------------------------------------------------------
+  .traction-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .form-section {
+    background: $bg-card;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-left: 4px solid $gold;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .empty-row {
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: $muted;
+    font-style: italic;
+    margin: 0;
+  }
+
+  // Verbatim
+  .verbatim-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .verbatim-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 12px;
+    align-items: start;
+
+    @media (max-width: 720px) {
+      grid-template-columns: 1fr auto;
+
+      .verbatim-quote { grid-column: 1 / -1; }
+    }
+  }
+
+  // Partners
+  .partner-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .partner-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .partner-input {
+    width: 100%;
+  }
+
+  .add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .remove-btn {
+    color: $muted;
+
+    &:hover { color: #B91C1C; }
+  }
+
+  // Contact
+  .contact-hint {
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: $muted;
+    margin: 0 0 12px;
+  }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+
+    @media (max-width: 900px) { grid-template-columns: 1fr; }
+  }
+
+  // Actions
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+  }
+
+  .generate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 200px;
+  }
+
+  .btn-spinner {
+    margin-right: 8px;
+  }
+}
