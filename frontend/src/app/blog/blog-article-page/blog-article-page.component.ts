@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml, Title, Meta } from '@angular/platform-browser';
@@ -23,6 +23,7 @@ export class BlogArticlePageComponent implements OnInit {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly legalDomainLabels = LEGAL_DOMAIN_LABELS;
@@ -61,10 +62,12 @@ export class BlogArticlePageComponent implements OnInit {
           this.markdownRenderer.render(bodyWithCta));
         this.applySeoTags(article);
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error = 'Article introuvable';
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }

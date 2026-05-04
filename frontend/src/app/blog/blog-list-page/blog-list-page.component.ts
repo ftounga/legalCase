@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
@@ -26,6 +26,7 @@ export class BlogListPageComponent implements OnInit {
   private readonly blogService = inject(BlogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly legalDomainLabels = LEGAL_DOMAIN_LABELS;
@@ -64,10 +65,12 @@ export class BlogListPageComponent implements OnInit {
         this.page = page;
         this.articles = page.content;
         this.loading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error = 'Impossible de charger les articles.';
         this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
