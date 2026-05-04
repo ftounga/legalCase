@@ -99,12 +99,41 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.title.setTitle('AI LegalCase — 92 outils décisionnels pour avocats : Travail, Immigration, Famille (FR/BE)');
-    this.meta.updateTag({ name: 'description', content: 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA. Calculateurs, scorings, comparateurs, générateurs sur droit du travail, immigration et famille — France et Belgique. OCR + Vision pour extraire scans dégradés et photos de SMS. Essai gratuit 14 jours.' });
-    this.meta.updateTag({ property: 'og:title', content: 'AI LegalCase — 92 outils décisionnels pour avocats : Travail, Immigration, Famille (FR/BE)' });
-    this.meta.updateTag({ property: 'og:description', content: 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA depuis vos pièces. Travail, Immigration, Famille — France et Belgique. Essai gratuit 14 jours.' });
-    this.meta.updateTag({ property: 'og:url', content: 'https://legalcase.ng-itconsulting.com/' });
+    const title = 'AI LegalCase — 92 outils décisionnels pour avocats : Travail, Immigration, Famille (FR/BE)';
+    const description = 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA. Calculateurs, scorings, comparateurs, générateurs sur droit du travail, immigration et famille — France et Belgique. OCR + Vision pour extraire scans dégradés et photos de SMS. Essai gratuit 14 jours.';
+    const shortDescription = 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA depuis vos pièces. Travail, Immigration, Famille — France et Belgique. Essai gratuit 14 jours.';
+    const url = 'https://legalcase.ng-itconsulting.com/';
+
+    this.title.setTitle(title);
+    this.meta.updateTag({ name: 'description', content: description });
+
+    // Open Graph
+    this.meta.updateTag({ property: 'og:title', content: title });
+    this.meta.updateTag({ property: 'og:description', content: shortDescription });
+    this.meta.updateTag({ property: 'og:url', content: url });
+    this.meta.updateTag({ property: 'og:type', content: 'website' });
+    this.meta.updateTag({ property: 'og:site_name', content: 'AI LegalCase' });
+    this.meta.updateTag({ property: 'og:locale', content: 'fr_FR' });
+
+    // Twitter Card
+    this.meta.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.meta.updateTag({ name: 'twitter:title', content: title });
+    this.meta.updateTag({ name: 'twitter:description', content: shortDescription });
+
+    // Canonical link
+    this.upsertCanonical(url);
+
     this.injectJsonLd();
+  }
+
+  private upsertCanonical(href: string): void {
+    let link = this.document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!link) {
+      link = this.document.createElement('link');
+      link.rel = 'canonical';
+      this.document.head.appendChild(link);
+    }
+    link.href = href;
   }
 
   ngOnDestroy(): void {
@@ -120,6 +149,17 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
       '@type': 'SoftwareApplication',
       'name': 'AI LegalCase',
       'description': 'Plateforme de 92 outils décisionnels juridiques pré-remplis par IA depuis vos pièces. Calculateurs, scorings, comparateurs et générateurs sur droit du travail, immigration et famille — France et Belgique. OCR et Vision pour extraire scans dégradés et photos de SMS.',
+      'featureList': [
+        '92 outils décisionnels juridiques (calculateurs, scorings, comparateurs, générateurs, détecteurs)',
+        'OCR Textract pour scans dégradés et fax',
+        'Claude Vision pour photos de SMS, captures d\'écran, manuscrits',
+        'Synthèse structurée : timeline, faits, risques, points de droit cités',
+        'Cohérence multi-source : divergences IA détectées',
+        'Couverture droit du travail, immigration, famille',
+        'Couverture France et Belgique',
+        'Multi-utilisateurs avec isolation par cabinet',
+        'Hébergement Union Européenne, conforme RGPD',
+      ],
       'applicationCategory': 'BusinessApplication',
       'operatingSystem': 'Web',
       'url': 'https://legalcase.ng-itconsulting.com',
