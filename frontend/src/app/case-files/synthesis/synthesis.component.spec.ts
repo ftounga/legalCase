@@ -999,4 +999,103 @@ describe('SynthesisComponent', () => {
 
     expect(component.strategicOptions()).toEqual([]);
   });
+
+  // F-160 SF-160-02 — paginators indépendants par bloc.
+  describe('F-160 SF-160-02 paginator (checklist + questions)', () => {
+    // U-1 : navigateChecks(-1) déclenche procedureCheckService.list avec l'analysisId de l'itération précédente
+    it('U1: navigateChecks(-1) loads checks for previous iteration analysisId', () => {
+      const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+      caseAnalysisService.getVersions.mockReturnValue(of(versions));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(2, 'STANDARD')));
+      fixture.detectChanges();
+
+      procedureCheckService.list.mockClear();
+      component.navigateChecks(-1);
+
+      expect(component.currentChecksVersion()).toBe(1);
+      expect(procedureCheckService.list).toHaveBeenCalledWith(CASE_FILE_ID, 'analysis-1');
+    });
+
+    // U-2 : navigateQuestions(-1) déclenche aiQuestionService.getQuestionsByAnalysisId avec l'analysisId précédent
+    it('U2: navigateQuestions(-1) loads questions for previous iteration analysisId', () => {
+      const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+      caseAnalysisService.getVersions.mockReturnValue(of(versions));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(2, 'STANDARD')));
+      fixture.detectChanges();
+
+      aiQuestionService.getQuestionsByAnalysisId.mockClear();
+      component.navigateQuestions(-1);
+
+      expect(component.currentQuestionsVersion()).toBe(1);
+      expect(aiQuestionService.getQuestionsByAnalysisId).toHaveBeenCalledWith(CASE_FILE_ID, 'analysis-1');
+    });
+
+    // U-3 : onVersionChange resync les deux paginators sur la version globale
+    it('U3: onVersionChange resyncs both paginators to selected version', () => {
+      const versions = [makeVersion(3, 'STANDARD'), makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+      caseAnalysisService.getVersions.mockReturnValue(of(versions));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(3, 'STANDARD')));
+      fixture.detectChanges();
+
+      // L'avocat dévie un paginator
+      component.navigateChecks(-1);
+      expect(component.currentChecksVersion()).toBe(2);
+
+      // Puis change la version globale → paginators resync
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      component.onVersionChange(1);
+
+      expect(component.currentChecksVersion()).toBe(1);
+      expect(component.currentQuestionsVersion()).toBe(1);
+    });
+
+    // U-4 : canChecksPrev / canChecksNext cohérents avec position
+    it('U4: canChecksPrev/Next reflect position in versionsAsc', () => {
+      const versions = [makeVersion(3, 'STANDARD'), makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+      caseAnalysisService.getVersions.mockReturnValue(of(versions));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(3, 'STANDARD')));
+      fixture.detectChanges();
+
+      // Au chargement → version 3 (la plus récente, index 2 en ASC) → prev OK, next bloqué
+      expect(component.canChecksPrev()).toBe(true);
+      expect(component.canChecksNext()).toBe(false);
+
+      component.navigateChecks(-1); // → v2
+      expect(component.canChecksPrev()).toBe(true);
+      expect(component.canChecksNext()).toBe(true);
+
+      component.navigateChecks(-1); // → v1, le plus ancien
+      expect(component.canChecksPrev()).toBe(false);
+      expect(component.canChecksNext()).toBe(true);
+    });
+
+    // U-5 : avec 1 seule version → paginator bloqué (pas de navigation possible)
+    it('U5: with single version, navigation is a no-op', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      procedureCheckService.list.mockClear();
+      component.navigateChecks(-1);
+      component.navigateChecks(1);
+
+      expect(procedureCheckService.list).not.toHaveBeenCalled();
+      expect(component.canChecksPrev()).toBe(false);
+      expect(component.canChecksNext()).toBe(false);
+    });
+
+    // U-6 : navigateChecks ne touche pas le paginator Questions (indépendance)
+    it('U6: navigateChecks leaves currentQuestionsVersion unchanged', () => {
+      const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
+      caseAnalysisService.getVersions.mockReturnValue(of(versions));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(2, 'STANDARD')));
+      fixture.detectChanges();
+
+      const questionsVersionBefore = component.currentQuestionsVersion();
+      component.navigateChecks(-1);
+
+      expect(component.currentQuestionsVersion()).toBe(questionsVersionBefore);
+      expect(component.currentChecksVersion()).toBe(1);
+    });
+  });
 });
