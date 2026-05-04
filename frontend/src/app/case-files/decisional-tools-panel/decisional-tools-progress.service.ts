@@ -66,11 +66,47 @@ export class DecisionalToolsProgressService {
     this.active.set(next);
   }
 
-  syncFromJobs(jobs: AnalysisJobLike[]): void {
+  /**
+   * Initialisation depuis un snapshot backend autoritaire. À appeler **une seule fois**
+   * au montage de la page (page reload pendant une analyse en cours → la bannière doit
+   * réapparaître). Écrase l'état actif avec les jobs PENDING/PROCESSING du snapshot.
+   */
+  initFromJobs(jobs: AnalysisJobLike[]): void {
     const processing = jobs
       .filter(j => (j.status === 'PROCESSING' || j.status === 'PENDING') && isTrackedType(j.jobType))
       .map(j => j.jobType as AnalysisJobType);
     this.active.set(new Set(processing));
+  }
+
+  /**
+   * SF-159-03 — sync défensif : retire les job types absents de la liste des jobs actifs
+   * (PENDING/PROCESSING). N'ajoute jamais : `start()` reste la seule source d'ajout
+   * (appelée synchroniquement quand l'avocat déclenche une action). Sécurise le cas
+   * où le SSE rate la fin d'analyse — le polling 3 s clear alors la bannière.
+   *
+   * Pourquoi pas écrasement complet : entre `start('CASE_ANALYSIS')` (ajout immédiat)
+   * et la création effective de la ligne `analysis_jobs` côté backend, un sync écraseur
+   * retirerait CASE_ANALYSIS et la bannière disparaîtrait prématurément.
+   */
+  syncFromJobs(jobs: AnalysisJobLike[]): void {
+    const activeJobTypes = new Set(
+      jobs
+        .filter(j => (j.status === 'PROCESSING' || j.status === 'PENDING') && isTrackedType(j.jobType))
+        .map(j => j.jobType as AnalysisJobType),
+    );
+    const current = this.active();
+    let changed = false;
+    const next = new Set<AnalysisJobType>();
+    current.forEach(jobType => {
+      if (activeJobTypes.has(jobType)) {
+        next.add(jobType);
+      } else {
+        changed = true;
+      }
+    });
+    if (changed) {
+      this.active.set(next);
+    }
   }
 
   recordSnapshot(snapshot: Map<string, number>, metadata: Map<string, ToolMetadata>): void {

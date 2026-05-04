@@ -44,12 +44,14 @@ class AnalysisStatusStreamControllerIT {
     @Autowired private WorkspaceMemberRepository workspaceMemberRepository;
     @Autowired private CaseFileRepository caseFileRepository;
     @Autowired private CaseAnalysisRepository caseAnalysisRepository;
+    @Autowired private AnalysisJobRepository analysisJobRepository;
 
     private OAuth2AuthenticationToken auth;
     private CaseFile caseFile;
 
     @BeforeEach
     void setUp() {
+        analysisJobRepository.deleteAll();
         caseAnalysisRepository.deleteAll();
         caseFileRepository.deleteAll();
         workspaceMemberRepository.deleteAll();
@@ -173,6 +175,90 @@ class AnalysisStatusStreamControllerIT {
         analysis.setModelUsed("claude-sonnet-4-6");
         analysis.setAnalysisType(AnalysisType.STANDARD);
         caseAnalysisRepository.save(analysis);
+
+        MvcResult mvcResult = mockMvc.perform(
+                        get("/api/v1/case-files/{id}/analysis-status/stream", caseFile.getId())
+                                .with(authentication(auth)))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("ANALYSIS_DONE")));
+    }
+
+    // I-06 SF-159-03 : GET dossier avec analyse DONE antérieure ET nouveau job actif (PROCESSING)
+    // → ne PAS court-circuiter ; le stream reste ouvert pour recevoir les events du nouveau cycle.
+    // Bug observé en staging 2026-05-03 : la bannière "Analyse en cours" restait collée car
+    // le contrôleur fermait l'emitter dès qu'une CaseAnalysis DONE existait, même si un nouveau
+    // DOCUMENT_ANALYSIS venait d'être déclenché.
+    @Test
+    void stream_doneAnalysisWithActiveJob_doesNotShortCircuit() throws Exception {
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+        analysis.setAnalysisStatus(AnalysisStatus.DONE);
+        analysis.setAnalysisResult("{\"faits\":[]}");
+        analysis.setModelUsed("claude-sonnet-4-6");
+        analysis.setAnalysisType(AnalysisType.STANDARD);
+        caseAnalysisRepository.save(analysis);
+
+        AnalysisJob activeJob = new AnalysisJob();
+        activeJob.setCaseFileId(caseFile.getId());
+        activeJob.setJobType(JobType.DOCUMENT_ANALYSIS);
+        activeJob.setStatus(AnalysisStatus.PROCESSING);
+        activeJob.setTotalItems(3);
+        activeJob.setProcessedItems(1);
+        analysisJobRepository.save(activeJob);
+
+        // Le stream doit rester ouvert (asyncStarted), pas de short-circuit
+        mockMvc.perform(get("/api/v1/case-files/{id}/analysis-status/stream", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(request().asyncStarted());
+    }
+
+    // I-07 SF-159-03 : analyse DONE + job PENDING → ne PAS court-circuiter non plus.
+    @Test
+    void stream_doneAnalysisWithPendingJob_doesNotShortCircuit() throws Exception {
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+        analysis.setAnalysisStatus(AnalysisStatus.DONE);
+        analysis.setAnalysisResult("{\"faits\":[]}");
+        analysis.setModelUsed("claude-sonnet-4-6");
+        analysis.setAnalysisType(AnalysisType.STANDARD);
+        caseAnalysisRepository.save(analysis);
+
+        AnalysisJob pendingJob = new AnalysisJob();
+        pendingJob.setCaseFileId(caseFile.getId());
+        pendingJob.setJobType(JobType.ENRICHED_ANALYSIS);
+        pendingJob.setStatus(AnalysisStatus.PENDING);
+        pendingJob.setTotalItems(0);
+        pendingJob.setProcessedItems(0);
+        analysisJobRepository.save(pendingJob);
+
+        mockMvc.perform(get("/api/v1/case-files/{id}/analysis-status/stream", caseFile.getId())
+                        .with(authentication(auth)))
+                .andExpect(request().asyncStarted());
+    }
+
+    // I-08 SF-159-03 : analyse DONE + tous jobs DONE → court-circuit conservé.
+    @Test
+    void stream_doneAnalysisAllJobsTerminal_emitsAnalysisDoneEventImmediately() throws Exception {
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setCaseFile(caseFile);
+        analysis.setAnalysisStatus(AnalysisStatus.DONE);
+        analysis.setAnalysisResult("{\"faits\":[]}");
+        analysis.setModelUsed("claude-sonnet-4-6");
+        analysis.setAnalysisType(AnalysisType.STANDARD);
+        caseAnalysisRepository.save(analysis);
+
+        AnalysisJob doneJob = new AnalysisJob();
+        doneJob.setCaseFileId(caseFile.getId());
+        doneJob.setJobType(JobType.DOCUMENT_ANALYSIS);
+        doneJob.setStatus(AnalysisStatus.DONE);
+        doneJob.setTotalItems(3);
+        doneJob.setProcessedItems(3);
+        analysisJobRepository.save(doneJob);
 
         MvcResult mvcResult = mockMvc.perform(
                         get("/api/v1/case-files/{id}/analysis-status/stream", caseFile.getId())
