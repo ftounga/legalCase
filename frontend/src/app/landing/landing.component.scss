@@ -1321,3 +1321,151 @@ app-landing footer {
   font-size: 12px;
   color: var(--text-muted, #6B7A8D);
 }
+
+/* ── OCR + VISION (SF-158-02) ── */
+.ocr-vision {
+  padding: 80px 24px;
+  background: var(--bg, #F5F6FA);
+}
+
+.ocr-vision-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.ocr-vision-card {
+  background: var(--surface, #FFFFFF);
+  border: 1px solid var(--divider, #E0E4EA);
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ocr-vision-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(26,58,92,0.08);
+}
+.ocr-vision-card__badge {
+  align-self: flex-start;
+  background: var(--navy, #1A3A5C);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.ocr-vision-card h3 {
+  font-family: 'Merriweather', serif;
+  font-size: 18px;
+  margin: 0;
+  color: var(--text, #1C2B3A);
+}
+.ocr-vision-card p {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-muted, #6B7A8D);
+  margin: 0;
+}
+.ocr-vision-card__visual {
+  background: linear-gradient(135deg, #f3f5f9 0%, #e7ecf4 100%);
+  border-radius: 6px;
+  height: 140px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* OCR animation : scan line traversant un document */
+.ocr-vision-card__visual--ocr .scan-doc {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  background: #fff;
+  border: 1px solid #d3dae6;
+  border-radius: 4px;
+  padding: 12px;
+  overflow: hidden;
+}
+.scan-text {
+  height: 5px;
+  background: #c5ced9;
+  border-radius: 2px;
+  margin-bottom: 7px;
+}
+.scan-text--1 { width: 80%; }
+.scan-text--2 { width: 65%; }
+.scan-text--3 { width: 90%; }
+.scan-text--4 { width: 50%; }
+.scan-text--5 { width: 75%; }
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold, #C9973A), transparent);
+  box-shadow: 0 0 12px rgba(201,151,58,0.5);
+  animation: ocrScan 2.4s ease-in-out infinite;
+}
+@keyframes ocrScan {
+  0%   { top: 0;     opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%;  opacity: 0; }
+}
+
+/* Vision animation : SMS bubbles stagger fade-in */
+.ocr-vision-card__visual--vision .phone-frame {
+  position: absolute;
+  inset: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.phone-bubble {
+  height: 14px;
+  border-radius: 8px;
+  opacity: 0;
+  animation: bubbleIn 3s ease-in-out infinite;
+}
+.phone-bubble--in {
+  width: 56%;
+  background: #d3dae6;
+  align-self: flex-start;
+  animation-delay: 0s;
+}
+.phone-bubble--out {
+  width: 70%;
+  background: var(--gold, #C9973A);
+  opacity: 0.8;
+  align-self: flex-end;
+  animation-delay: 0.6s;
+}
+.phone-bubble:nth-of-type(3) { animation-delay: 1.2s; }
+@keyframes bubbleIn {
+  0%   { opacity: 0; transform: translateY(8px); }
+  20%  { opacity: 1; transform: translateY(0); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-line { animation: none; opacity: 0.3; }
+  .phone-bubble { animation: none; opacity: 0.5; transform: none; }
+}
+
+/* ── CATALOGUE COMPLET (SF-158-02) ── */
+.tools-catalog {
+  background: var(--surface, #FFFFFF);
+}

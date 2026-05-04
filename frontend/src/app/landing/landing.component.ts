@@ -3,6 +3,8 @@ import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 
+import { LandingToolsShowcaseComponent } from './landing-tools-showcase/landing-tools-showcase.component';
+
 /** SF-126-01 : vidéos de la galerie démo.
  *  Éditer ici pour changer l'ordre, les titres ou remplacer les vidéos.
  *  Les thumbnails proviennent de YouTube : img.youtube.com/vi/{ID}/maxresdefault.jpg */
@@ -43,7 +45,7 @@ export const DEMO_VIDEOS: DemoVideo[] = [
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, LandingToolsShowcaseComponent],
   templateUrl: './landing.component.html',
   styleUrl: './landing.component.scss',
   encapsulation: ViewEncapsulation.None

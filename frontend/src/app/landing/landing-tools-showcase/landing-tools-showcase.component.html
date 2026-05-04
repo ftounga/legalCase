@@ -1,0 +1,51 @@
+<div class="tools-showcase">
+  <div class="tools-showcase__header">
+    <div class="tools-showcase__eyebrow">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="8" y="1" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="1" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="8" y="8" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/>
+      </svg>
+      Catalogue
+    </div>
+    <h2 class="tools-showcase__title">{{ totalCount }} outils décisionnels juridiques</h2>
+    <p class="tools-showcase__sub">Calculateurs, scorings, comparateurs, générateurs et détecteurs — pré-remplis automatiquement par l'IA depuis vos pièces uploadées.</p>
+  </div>
+
+  <div class="tools-showcase__filters" role="group" aria-label="Filtres">
+    <div class="filter-row" role="group" aria-label="Domaine">
+      <span class="filter-label">Domaine</span>
+      <button type="button" class="chip" [class.chip--active]="selectedDomain() === null" (click)="setDomain(null)">Tous</button>
+      <button type="button" class="chip" [class.chip--active]="selectedDomain() === 'TRAVAIL'" (click)="setDomain('TRAVAIL')">Droit du travail</button>
+      <button type="button" class="chip" [class.chip--active]="selectedDomain() === 'IMMIGRATION'" (click)="setDomain('IMMIGRATION')">Droit de l'immigration</button>
+      <button type="button" class="chip" [class.chip--active]="selectedDomain() === 'FAMILLE'" (click)="setDomain('FAMILLE')">Droit de la famille</button>
+    </div>
+    <div class="filter-row" role="group" aria-label="Pays">
+      <span class="filter-label">Pays</span>
+      <button type="button" class="chip" [class.chip--active]="selectedCountry() === null" (click)="setCountry(null)">Tous</button>
+      <button type="button" class="chip" [class.chip--active]="selectedCountry() === 'FR'" (click)="setCountry('FR')">France</button>
+      <button type="button" class="chip" [class.chip--active]="selectedCountry() === 'BE'" (click)="setCountry('BE')">Belgique</button>
+    </div>
+  </div>
+
+  <div class="tools-showcase__count" aria-live="polite">
+    {{ filteredTools().length }} outil<span [hidden]="filteredTools().length <= 1">s</span> affiché<span [hidden]="filteredTools().length <= 1">s</span>
+  </div>
+
+  <ul class="tools-showcase__grid">
+    @for (tool of filteredTools(); track tool.id) {
+      <li class="tool-card" [attr.data-domain]="tool.domain" [attr.data-country]="tool.country">
+        <div class="tool-card__type">{{ tool.type }}</div>
+        <div class="tool-card__label">{{ tool.label }}</div>
+        <div class="tool-card__footer">
+          <span class="tool-card__chip tool-card__chip--domain">{{ domainLabels[tool.domain] }}</span>
+          <span class="tool-card__chip tool-card__chip--country">{{ countryLabels[tool.country] }}</span>
+        </div>
+      </li>
+    }
+    @if (filteredTools().length === 0) {
+      <li class="tool-card tool-card--empty">Aucun outil pour ces filtres.</li>
+    }
+  </ul>
+</div>
