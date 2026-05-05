@@ -1,0 +1,64 @@
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Chargement des faits…</p>
+  </div>
+} @else if (!caseFile()) {
+  <div class="empty-state">
+    <mat-icon class="empty-icon">folder_off</mat-icon>
+    <p>Dossier introuvable.</p>
+    <a mat-button routerLink="/case-files">
+      <mat-icon>arrow_back</mat-icon>
+      Retour aux dossiers
+    </a>
+  </div>
+} @else {
+  <div class="detail-page">
+    <div class="detail-header">
+      <a mat-button [routerLink]="['/case-files', caseFile()!.id, 'synthesis']" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+        Retour à la synthèse
+      </a>
+      <div class="title-row">
+        <mat-icon class="title-icon panel-icon panel-icon--faits">gavel</mat-icon>
+        <h1 class="page-title">Faits</h1>
+        @if (synthesis()) {
+          <span class="meta-version">v{{ synthesis()!.version }}</span>
+        }
+      </div>
+      <p class="case-subtitle">{{ caseFile()!.title }}</p>
+    </div>
+
+    @if (groupedFaits().length === 0) {
+      <div class="empty-block">
+        <mat-icon class="empty-block__icon">inventory_2</mat-icon>
+        <p>Aucun fait détecté pour cette analyse.</p>
+      </div>
+    } @else {
+      <div class="faits-groups">
+        @for (group of groupedFaits(); track group.theme) {
+          <section class="faits-group">
+            <header class="faits-group__header">
+              <h2 class="faits-group__title">{{ group.theme }}</h2>
+              <span class="faits-group__count">{{ group.items.length }}</span>
+            </header>
+            <ol class="faits-group__list">
+              @for (item of group.items; track $index) {
+                <li class="faits-row">
+                  <span class="faits-row__text">{{ item.texte }}</span>
+                  @if (item.sourceRef || item.source) {
+                    <app-source-ref
+                      [sourceRef]="item.sourceRef"
+                      [legacySource]="resolveSource(item.source)"
+                      [extrait]="item.extrait"
+                      [caseFileId]="caseFile()!.id" />
+                  }
+                </li>
+              }
+            </ol>
+          </section>
+        }
+      </div>
+    }
+  </div>
+}
