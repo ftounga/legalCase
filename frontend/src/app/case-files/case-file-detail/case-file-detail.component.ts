@@ -117,6 +117,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   // SF-125-01 : transition between enrich/full click and backend confirmation
   reAnalyzing = signal(false);
 
+  // SF-159-04 : instrumentation diagnostique — mémorise le dernier statut connu
+  // par jobType pour détecter les transitions `* → FAILED` et logger leur contexte.
+  // Réinitialisé au montage du composant (pas de persistance cross-instance).
+  private previousJobStatuses = new Map<string, string>();
+
   // SF-121-02 : exposé au template pour le tooltip du badge "Non analysable"
   readonly extractionFailureLabel = extractionFailureLabel;
   readonly documentPieceTypeIcon = documentPieceTypeIcon;
@@ -347,6 +352,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
+    // SF-159-04 : reset diagnostique à chaque montage.
+    this.previousJobStatuses.clear();
 
     // SF-IA-03-19 : scroll vers la section cible quand on arrive via un popover d'incohérence.
     // SF-171-02 : ?upgraded=success → vide le state quota (retour Stripe checkout success).
@@ -570,6 +577,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   loadAnalysisJobs(caseFileId: string, forceStart = false): void {
     this.analysisJobService.getJobs(caseFileId).subscribe({
       next: jobs => {
+        // SF-159-04 : log diagnostique de toute transition vers FAILED.
+        this.detectAndLogFailedTransition(caseFileId, jobs, 'loadAnalysisJobs');
         // Don't overwrite placeholders while waiting for backend to pick up upload or analysis trigger
         if (jobs.length > 0 && !this.docAnalysisPending() && !this.caseAnalysisPending()) {
           this.analysisJobs.set(jobs);
@@ -606,6 +615,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.refreshDocumentsAndApplyOverride(caseFileId);
         this.analysisJobService.getJobs(caseFileId).subscribe({
           next: updated => {
+            // SF-159-04 : log diagnostique de toute transition vers FAILED.
+            this.detectAndLogFailedTransition(caseFileId, updated, 'pollingTick');
             if (updated.length === 0) return; // pipeline not started yet — keep placeholders
 
             // Wait for backend to confirm DOCUMENT_ANALYSIS picked up the new upload
@@ -665,6 +676,33 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
    * Faire remonter l'échec en step 2 alerte l'avocat avant qu'il ne consomme une
    * synthèse incomplète. Idempotent — ne repose le virtuel que si données diffèrent.
    */
+  /**
+   * SF-159-04 — Instrumentation diagnostique : détecte les transitions
+   * `* → FAILED` côté frontend et écrit un `console.warn` enrichi pour permettre
+   * l'analyse post-mortem du bug intermittent observé sur Chen 13 (2026-05-05),
+   * où la pipeline tile affichait CASE_ANALYSIS en rouge alors que le backend
+   * était encore PROCESSING. Idempotent : un même statut FAILED reçu plusieurs
+   * fois consécutivement n'est loggé qu'une seule fois. Aucun envoi Sentry V1.
+   */
+  private detectAndLogFailedTransition(caseFileId: string, jobs: AnalysisJob[], source: string): void {
+    for (const job of jobs) {
+      const previousStatus = this.previousJobStatuses.get(job.jobType);
+      if (job.status === 'FAILED' && previousStatus !== 'FAILED') {
+        // eslint-disable-next-line no-console
+        console.warn('[SF-159-04] AnalysisJob transition to FAILED', {
+          caseFileId,
+          jobType: job.jobType,
+          previousStatus: previousStatus ?? '(none)',
+          newJob: job,
+          allJobs: jobs,
+          source,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      this.previousJobStatuses.set(job.jobType, job.status);
+    }
+  }
+
   private applyExtractionFailedOverride(): void {
     const docs = this.documents();
     if (docs.length === 0) return;
