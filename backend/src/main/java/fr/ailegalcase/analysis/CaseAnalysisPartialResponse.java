@@ -21,10 +21,15 @@ import java.util.UUID;
  * <p>Si {@code sections} est {@code null}, l'analyse n'a pas encore produit de
  * section complète (réponse 200 avec sections=null pour distinguer "en cours
  * mais rien encore" de "404 introuvable").
+ *
+ * <p>F-190 SF-190-02 — {@code analysisType} permet au frontend de savoir si
+ * l'état partiel correspond à une analyse standard ou à une re-analyse enrichie
+ * (les deux empruntent désormais le streaming SSE via le même endpoint).
  */
 public record CaseAnalysisPartialResponse(
         UUID analysisId,
         int version,
+        AnalysisType analysisType,
         AnalysisStatus status,
         JsonNode sections,
         Instant updatedAt

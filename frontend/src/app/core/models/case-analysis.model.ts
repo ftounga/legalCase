@@ -150,6 +150,8 @@ export interface CaseAnalysisResult {
 export interface CaseAnalysisPartialResponse {
   analysisId: string;
   version: number;
+  /** F-190 SF-190-02 — type de l'analyse en cours de streaming. STANDARD = première synthèse, ENRICHED = re-analyse. */
+  analysisType?: 'STANDARD' | 'ENRICHED';
   status: 'PROCESSING' | 'PARTIAL';
   sections: Partial<CaseAnalysisPartialSections> | null;
   updatedAt: string;

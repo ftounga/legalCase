@@ -430,7 +430,9 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     this.globalNotificationService.track(caseFileId);
     this.sseSubscription = this.globalNotificationService.events$.subscribe(event => {
       if (event.caseFileId !== caseFileId) return;
-      if (event.jobType === 'CASE_ANALYSIS') {
+      // F-190 SF-190-02 — CASE_ANALYSIS (1ère synthèse) et ENRICHED_ANALYSIS (re-analyse)
+      // empruntent désormais le streaming SSE via le même endpoint partial.
+      if (event.jobType === 'CASE_ANALYSIS' || event.jobType === 'ENRICHED_ANALYSIS') {
         if (event.status === 'PARTIAL') {
           this.caseAnalysisService.getPartial(caseFileId).subscribe({
             next: partial => this.applyPartial(partial),
@@ -463,7 +465,9 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     const result: CaseAnalysisResult = {
       id: partial.analysisId,
       version: partial.version,
-      analysisType: 'STANDARD',
+      // F-190 SF-190-02 — l'analyse en cours peut être STANDARD ou ENRICHED ;
+      // le backend nous indique son type, défaut STANDARD pour rétrocompat.
+      analysisType: partial.analysisType ?? 'STANDARD',
       status: partial.status,
       timeline: (s.timeline as any) ?? [],
       faits: (s.faits as any) ?? [],

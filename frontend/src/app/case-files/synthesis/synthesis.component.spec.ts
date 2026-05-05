@@ -1315,4 +1315,86 @@ describe('SynthesisComponent', () => {
       expect(args[1].data.items).toEqual(['q1', 'q2']);
     });
   });
+
+  // F-190 SF-190-02 — streaming SSE pour analyses ENRICHED + analysisType propagé via partial.
+  describe('F-190 SF-190-02 streaming enriched + analysisType', () => {
+    // U-1 : applyPartial avec analysisType=ENRICHED → synthesis.analysisType === 'ENRICHED'
+    it('U1: applyPartial with analysisType=ENRICHED sets synthesis.analysisType to ENRICHED', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      (caseAnalysisService.getPartial as jest.Mock).mockReturnValue(of({
+        analysisId: 'partial-enriched-1',
+        version: 2,
+        analysisType: 'ENRICHED',
+        status: 'PARTIAL',
+        sections: { faits: [{ texte: 'fait enrichi' }] },
+        updatedAt: '2026-05-05T10:00:00Z',
+      }));
+      fixture.detectChanges();
+
+      expect(component.synthesis()?.analysisType).toBe('ENRICHED');
+    });
+
+    // U-2 : applyPartial sans analysisType → defaut STANDARD (rétrocompat)
+    it('U2: applyPartial with undefined analysisType defaults to STANDARD', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      (caseAnalysisService.getPartial as jest.Mock).mockReturnValue(of({
+        analysisId: 'partial-1',
+        version: 1,
+        // analysisType absent
+        status: 'PARTIAL',
+        sections: { faits: [{ texte: 'fait' }] },
+        updatedAt: '2026-05-05T10:00:00Z',
+      }));
+      fixture.detectChanges();
+
+      expect(component.synthesis()?.analysisType).toBe('STANDARD');
+    });
+
+    // U-3 : event ENRICHED_ANALYSIS PARTIAL déclenche getPartial() puis applyPartial()
+    it('U3: ENRICHED_ANALYSIS PARTIAL event triggers getPartial and updates synthesis', () => {
+      // Remplace events$ sur le service injecté avant que le composant n'y souscrive (avant detectChanges).
+      const eventsSubject = new Subject<{ caseFileId: string; jobType: string; status: string }>();
+      const notif = TestBed.inject(GlobalAnalysisNotificationService) as any;
+      notif.events$ = eventsSubject.asObservable();
+
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      (caseAnalysisService.getPartial as jest.Mock).mockReturnValue(of({
+        analysisId: 'partial-2',
+        version: 2,
+        analysisType: 'ENRICHED',
+        status: 'PARTIAL',
+        sections: { faits: [{ texte: 'streaming enrichi' }] },
+        updatedAt: '2026-05-05T11:00:00Z',
+      }));
+
+      eventsSubject.next({ caseFileId: CASE_FILE_ID, jobType: 'ENRICHED_ANALYSIS', status: 'PARTIAL' });
+
+      expect(caseAnalysisService.getPartial).toHaveBeenCalledWith(CASE_FILE_ID);
+      expect(component.synthesis()?.analysisType).toBe('ENRICHED');
+    });
+
+    // U-4 : event ENRICHED_ANALYSIS DONE déclenche loadVersions()
+    it('U4: ENRICHED_ANALYSIS DONE event triggers loadVersions', () => {
+      const eventsSubject = new Subject<{ caseFileId: string; jobType: string; status: string }>();
+      const notif = TestBed.inject(GlobalAnalysisNotificationService) as any;
+      notif.events$ = eventsSubject.asObservable();
+
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      caseAnalysisService.getVersions.mockClear();
+      caseAnalysisService.getVersions.mockReturnValue(of([
+        makeVersion(2, 'ENRICHED'),
+        makeVersion(1, 'STANDARD'),
+      ]));
+
+      eventsSubject.next({ caseFileId: CASE_FILE_ID, jobType: 'ENRICHED_ANALYSIS', status: 'DONE' });
+
+      expect(caseAnalysisService.getVersions).toHaveBeenCalledWith(CASE_FILE_ID);
+    });
+  });
 });
