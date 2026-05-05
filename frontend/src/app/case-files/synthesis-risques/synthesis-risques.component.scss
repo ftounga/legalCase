@@ -1,0 +1,206 @@
+// F-162 SF-162-05 — page Risques dédiée. Patron .detail-page partagé,
+// gravité héritée du `riskLevel` global (faible / moyen / elevé).
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+
+  .empty-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--color-text-secondary, #6B7A8D);
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: var(--color-text-secondary, #6B7A8D);
+    margin: 0 0 16px 0;
+  }
+}
+
+.detail-page {
+  padding: 24px;
+  max-width: 1080px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+}
+
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-divider, #E0E4EA);
+}
+
+.back-btn {
+  align-self: flex-start;
+  color: var(--color-primary, #1A3A5C);
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.page-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary, #1A3A5C);
+  margin: 0;
+}
+
+.meta-version {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6B7A8D);
+  background: rgba(26, 58, 92, 0.06);
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.case-subtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary, #6B7A8D);
+  margin: 0;
+}
+
+.empty-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px dashed var(--color-divider, #E0E4EA);
+  border-radius: 12px;
+
+  .empty-block__icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    color: var(--color-success, #27AE60);
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: var(--color-text-secondary, #6B7A8D);
+    margin: 0;
+  }
+}
+
+.risk-banner {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+
+  &.risque-card--faible {
+    background: rgba(39, 174, 96, 0.12);
+    color: var(--color-success, #27AE60);
+    border: 1px solid rgba(39, 174, 96, 0.35);
+  }
+
+  &.risque-card--moyen {
+    background: rgba(201, 151, 58, 0.12);
+    color: var(--color-accent, #C9973A);
+    border: 1px solid rgba(201, 151, 58, 0.35);
+  }
+
+  &.risque-card--eleve {
+    background: rgba(192, 57, 43, 0.12);
+    color: var(--color-error, #C0392B);
+    border: 1px solid rgba(192, 57, 43, 0.35);
+  }
+}
+
+.risk-banner__score {
+  font-family: 'JetBrains Mono', monospace;
+  margin-left: 4px;
+}
+
+.risques-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.risque-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-divider, #E0E4EA);
+  border-left-width: 4px;
+  border-radius: 12px;
+
+  &--faible { border-left-color: var(--color-success, #27AE60); }
+  &--moyen  { border-left-color: var(--color-accent, #C9973A); }
+  &--eleve  { border-left-color: var(--color-error, #C0392B); }
+}
+
+.risque-card__index {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary, #6B7A8D);
+
+  .mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.risque-card--eleve .risque-card__index .mat-icon { color: var(--color-error, #C0392B); }
+.risque-card--moyen  .risque-card__index .mat-icon { color: var(--color-accent, #C9973A); }
+.risque-card--faible .risque-card__index .mat-icon { color: var(--color-success, #27AE60); }
+
+.risque-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.risque-card__text {
+  font-size: 14px;
+  color: var(--color-text-primary, #1C2B3A);
+  line-height: 1.55;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .detail-page {
+    padding: 16px;
+  }
+
+  .risque-card {
+    grid-template-columns: 36px 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+}

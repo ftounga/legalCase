@@ -54,6 +54,11 @@ export const routes: Routes = [
           .then(m => m.SynthesisPointsJuridiquesComponent)
       },
       {
+        path: 'case-files/:id/synthesis/risques',
+        loadComponent: () => import('./case-files/synthesis-risques/synthesis-risques.component')
+          .then(m => m.SynthesisRisquesComponent)
+      },
+      {
         path: 'case-files/:id/diff',
         loadComponent: () => import('./case-files/analysis-diff/analysis-diff.component')
           .then(m => m.AnalysisDiffComponent)
