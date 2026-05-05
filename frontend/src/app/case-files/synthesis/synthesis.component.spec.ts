@@ -1248,5 +1248,71 @@ describe('SynthesisComponent', () => {
       const risquesBadge = component.synthesisBadges().find(b => b.id === 'risques');
       expect(risquesBadge?.route).toEqual(['/case-files', CASE_FILE_ID, 'synthesis', 'risques']);
     });
+
+    // F-162 SF-162-06 — U-11 : badge Pièces manquantes expose `popup`, pas `route`.
+    it('U11: pieces badge exposes popup="pieces" and no route', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD', ['piece A']),
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const piecesBadge = component.synthesisBadges().find(b => b.id === 'pieces');
+      expect(piecesBadge?.popup).toBe('pieces');
+      expect(piecesBadge?.route).toBeUndefined();
+    });
+
+    // F-162 SF-162-06 — U-12 : badge Questions ouvertes expose `popup`.
+    it('U12: questions-ouvertes badge exposes popup="questions-ouvertes"', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD'),
+        questionsOuvertes: ['q1'],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const qoBadge = component.synthesisBadges().find(b => b.id === 'questions-ouvertes');
+      expect(qoBadge?.popup).toBe('questions-ouvertes');
+      expect(qoBadge?.route).toBeUndefined();
+    });
+
+    // F-162 SF-162-06 — U-13 : openPopup invoque MatDialog.open avec la liste des pièces.
+    it('U13: openPopup("pieces") opens dialog with piecesManquantes data', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD', ['Contrat', 'Bulletin']),
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      matDialogMock.open.mockClear();
+      component.openPopup('pieces');
+
+      expect(matDialogMock.open).toHaveBeenCalledTimes(1);
+      const args = matDialogMock.open.mock.calls[0];
+      expect(args[1].data.title).toBe('Pièces manquantes');
+      expect(args[1].data.items).toEqual(['Contrat', 'Bulletin']);
+    });
+
+    // F-162 SF-162-06 — U-14 : openPopup("questions-ouvertes") passe la liste correcte.
+    it('U14: openPopup("questions-ouvertes") opens dialog with questionsOuvertes data', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD'),
+        questionsOuvertes: ['q1', 'q2'],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      matDialogMock.open.mockClear();
+      component.openPopup('questions-ouvertes');
+
+      expect(matDialogMock.open).toHaveBeenCalledTimes(1);
+      const args = matDialogMock.open.mock.calls[0];
+      expect(args[1].data.title).toBe('Questions ouvertes');
+      expect(args[1].data.items).toEqual(['q1', 'q2']);
+    });
   });
 });

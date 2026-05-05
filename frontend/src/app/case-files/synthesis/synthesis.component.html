@@ -108,11 +108,26 @@
   }
 
   <!-- F-162 SF-162-01 — grille de badges synthétiques navigables vers les blocs.
-       SF-162-02..05 — quand un bloc a sa page dédiée, le badge devient un routerLink. -->
+       SF-162-02..05 — pages dédiées (routerLink) pour les blocs riches.
+       SF-162-06 — popups (MatDialog) pour les blocs courts.
+       Précédence : popup > route > anchor (scroll local). -->
   @if (synthesisBadges().length > 0) {
     <div class="synthesis-grid" role="navigation" aria-label="Navigation vers les blocs de synthèse">
       @for (badge of synthesisBadges(); track badge.id) {
-        @if (badge.route) {
+        @if (badge.popup) {
+          <button type="button"
+                  class="synthesis-badge"
+                  [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
+                  (click)="openPopup(badge.popup)"
+                  [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
+            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+            <span class="synthesis-badge__count">{{ badge.count }}</span>
+            <span class="synthesis-badge__label">{{ badge.label }}</span>
+            @if (badge.sublabel) {
+              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+            }
+          </button>
+        } @else if (badge.route) {
           <a class="synthesis-badge"
              [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
              [routerLink]="badge.route"

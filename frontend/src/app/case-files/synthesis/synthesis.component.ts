@@ -26,6 +26,7 @@ import { ProcedureCheckService } from '../../core/services/procedure-check.servi
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
 import { DiscardReasonDialogComponent, DiscardReasonDialogData } from './discard-reason-dialog.component';
+import { SynthesisShortBlockDialogComponent, SynthesisShortBlockDialogData } from '../synthesis-short-block-dialog/synthesis-short-block-dialog.component';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
@@ -43,9 +44,9 @@ import { TimeEntryResponse } from '../../core/models/time-tracking.models';
 
 /**
  * F-162 SF-162-01 — descripteur d'un badge de la grille de synthèse.
- * SF-162-02..05 ajoutent un `route` optionnel pour les blocs qui ont leur propre
- * page dédiée. Quand `route` est présent, le badge devient un lien plutôt qu'un
- * scroll local.
+ * SF-162-02..05 ajoutent un `route` pour les pages dédiées (blocs riches).
+ * SF-162-06 ajoute un `popup` pour les blocs courts (pièces manquantes,
+ * questions ouvertes). Précédence : `popup` > `route` > `anchor`.
  */
 interface SynthesisBadge {
   id: string;
@@ -56,6 +57,7 @@ interface SynthesisBadge {
   sublabel?: string | null;
   anchor: string;
   route?: string[];
+  popup?: 'pieces' | 'questions-ouvertes';
 }
 
 @Component({
@@ -250,6 +252,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         iconClass: 'panel-icon--manquantes',
         count: syn.piecesManquantes?.length ?? 0,
         anchor: 'section-pieces',
+        popup: 'pieces',
       },
       {
         id: 'questions-ouvertes',
@@ -258,6 +261,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         iconClass: 'panel-icon--questions',
         count: syn.questionsOuvertes?.length ?? 0,
         anchor: 'section-questions-ouvertes',
+        popup: 'questions-ouvertes',
       },
     ];
     return all.filter(b => b.count > 0);
@@ -278,6 +282,29 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     } else if (attempt < 5) {
       setTimeout(() => this.scrollToBlock(anchorId, attempt + 1), 200);
     }
+  }
+
+  /** F-162 SF-162-06 — ouvre un dialog modal pour un bloc court. */
+  openPopup(kind: 'pieces' | 'questions-ouvertes'): void {
+    const syn = this.synthesis();
+    if (!syn) return;
+    const config: Record<string, SynthesisShortBlockDialogData> = {
+      'pieces': {
+        title: 'Pièces manquantes',
+        icon: 'report_problem',
+        items: syn.piecesManquantes ?? [],
+      },
+      'questions-ouvertes': {
+        title: 'Questions ouvertes',
+        icon: 'help_outline',
+        items: syn.questionsOuvertes ?? [],
+      },
+    };
+    this.dialog.open(SynthesisShortBlockDialogComponent, {
+      data: config[kind],
+      width: '520px',
+      maxWidth: '92vw',
+    });
   }
 
   constructor(
