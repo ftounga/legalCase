@@ -1234,5 +1234,19 @@ describe('SynthesisComponent', () => {
       const pjBadge = component.synthesisBadges().find(b => b.id === 'points-juridiques');
       expect(pjBadge?.route).toEqual(['/case-files', CASE_FILE_ID, 'synthesis', 'points-juridiques']);
     });
+
+    // F-162 SF-162-05 — U-10 : badge Risques reçoit un route vers la page dédiée.
+    it('U10: risques badge exposes a route to the dedicated page', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD'),
+        risques: [makeItem('r1')],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const risquesBadge = component.synthesisBadges().find(b => b.id === 'risques');
+      expect(risquesBadge?.route).toEqual(['/case-files', CASE_FILE_ID, 'synthesis', 'risques']);
+    });
   });
 });

@@ -1,0 +1,68 @@
+@if (loading()) {
+  <div class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Chargement des risques…</p>
+  </div>
+} @else if (!caseFile()) {
+  <div class="empty-state">
+    <mat-icon class="empty-icon">folder_off</mat-icon>
+    <p>Dossier introuvable.</p>
+    <a mat-button routerLink="/case-files">
+      <mat-icon>arrow_back</mat-icon>
+      Retour aux dossiers
+    </a>
+  </div>
+} @else {
+  <div class="detail-page">
+    <div class="detail-header">
+      <a mat-button [routerLink]="['/case-files', caseFile()!.id, 'synthesis']" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+        Retour à la synthèse
+      </a>
+      <div class="title-row">
+        <mat-icon class="title-icon panel-icon panel-icon--risques">warning_amber</mat-icon>
+        <h1 class="page-title">Risques</h1>
+        @if (synthesis()) {
+          <span class="meta-version">v{{ synthesis()!.version }}</span>
+        }
+        @if (synthesis()?.riskLevel) {
+          <span class="risk-banner" [class]="'risk-banner ' + gravityClass(synthesis()!.riskLevel)">
+            Risque global : {{ riskLabel(synthesis()!.riskLevel) }}
+            @if (synthesis()!.riskScore != null) {
+              <span class="risk-banner__score">({{ synthesis()!.riskScore }})</span>
+            }
+          </span>
+        }
+      </div>
+      <p class="case-subtitle">{{ caseFile()!.title }}</p>
+    </div>
+
+    @if (!synthesis() || synthesis()!.risques.length === 0) {
+      <div class="empty-block">
+        <mat-icon class="empty-block__icon">verified</mat-icon>
+        <p>Aucun risque détecté pour cette analyse.</p>
+      </div>
+    } @else {
+      <div class="risques-list">
+        @for (item of synthesis()!.risques; track $index; let i = $index) {
+          <article class="risque-card" [class]="'risque-card ' + gravityClass(synthesis()!.riskLevel)">
+            <div class="risque-card__index">
+              <mat-icon>warning_amber</mat-icon>
+              <span>{{ i + 1 }}</span>
+            </div>
+            <div class="risque-card__body">
+              <p class="risque-card__text">{{ item.texte }}</p>
+              @if (item.sourceRef || item.source) {
+                <app-source-ref
+                  [sourceRef]="item.sourceRef"
+                  [legacySource]="resolveSource(item.source)"
+                  [extrait]="item.extrait"
+                  [caseFileId]="caseFile()!.id" />
+              }
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+}

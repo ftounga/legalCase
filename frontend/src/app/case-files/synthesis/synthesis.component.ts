@@ -216,6 +216,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         count: risquesCount,
         sublabel: riskLevel === 'ELEVE' && risquesCount > 0 ? 'gravité élevée' : null,
         anchor: 'section-risques',
+        route: cfId ? ['/case-files', cfId, 'synthesis', 'risques'] : undefined,
       },
       {
         id: 'pistes',
