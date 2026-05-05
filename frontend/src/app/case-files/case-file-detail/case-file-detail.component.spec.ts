@@ -1476,4 +1476,52 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  describe('SF-159-04 — instrumentation transition vers FAILED', () => {
+    let warnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    it('U1: log une fois la transition PROCESSING → FAILED', () => {
+      analysisJobServiceSpy.getJobs.mockReturnValueOnce(of([
+        { jobType: 'CASE_ANALYSIS', status: 'PROCESSING', totalItems: 1, processedItems: 0, progressPercentage: 50 } as any
+      ]));
+      component.loadAnalysisJobs('cf1');
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      analysisJobServiceSpy.getJobs.mockReturnValueOnce(of([
+        { jobType: 'CASE_ANALYSIS', status: 'FAILED', totalItems: 1, processedItems: 0, progressPercentage: 100 } as any
+      ]));
+      component.loadAnalysisJobs('cf1');
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const args = warnSpy.mock.calls[0];
+      expect(args[0]).toContain('SF-159-04');
+      expect(args[1]).toMatchObject({
+        caseFileId: 'cf1',
+        jobType: 'CASE_ANALYSIS',
+        previousStatus: 'PROCESSING',
+        source: 'loadAnalysisJobs',
+      });
+    });
+
+    it('U2: réception successive de FAILED ne re-log pas', () => {
+      const failedJobs = [
+        { jobType: 'CASE_ANALYSIS', status: 'FAILED', totalItems: 1, processedItems: 0, progressPercentage: 100 } as any
+      ];
+      analysisJobServiceSpy.getJobs.mockReturnValueOnce(of(failedJobs));
+      component.loadAnalysisJobs('cf1');
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+
+      analysisJobServiceSpy.getJobs.mockReturnValueOnce(of(failedJobs));
+      component.loadAnalysisJobs('cf1');
+      expect(warnSpy).toHaveBeenCalledTimes(1); // pas de second log
+    });
+  });
+
 });
