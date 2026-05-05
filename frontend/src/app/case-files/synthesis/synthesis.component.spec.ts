@@ -1210,5 +1210,15 @@ describe('SynthesisComponent', () => {
       const timelineBadge = component.synthesisBadges().find(b => b.id === 'timeline');
       expect(timelineBadge?.route).toEqual(['/case-files', CASE_FILE_ID, 'synthesis', 'timeline']);
     });
+
+    // F-162 SF-162-03 — U-8 : badge Faits reçoit un route vers la page dédiée.
+    it('U8: faits badge exposes a route to the dedicated page', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      const faitsBadge = component.synthesisBadges().find(b => b.id === 'faits');
+      expect(faitsBadge?.route).toEqual(['/case-files', CASE_FILE_ID, 'synthesis', 'faits']);
+    });
   });
 });

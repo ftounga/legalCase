@@ -197,6 +197,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         iconClass: 'panel-icon--faits',
         count: syn.faits?.length ?? 0,
         anchor: 'section-faits',
+        route: cfId ? ['/case-files', cfId, 'synthesis', 'faits'] : undefined,
       },
       {
         id: 'points-juridiques',
