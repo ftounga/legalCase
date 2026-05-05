@@ -902,10 +902,11 @@
 }
 
 // F-185 SF-185-01 — bandeau "synthèse en cours" pendant le streaming Sonnet.
+// F-190 SF-190-01 — passage en colonne pour intégrer barre de progression + chips.
 .streaming-callout {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 18px;
   background: rgba(15, 41, 72, 0.06);
   border-left: 3px solid #0F2948;
@@ -913,10 +914,100 @@
   margin: 0 0 16px 0;
 }
 
+.streaming-callout__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .streaming-text {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   color: #0F2948;
+
+  strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    margin-left: 4px;
+  }
+}
+
+// F-190 SF-190-01 — barre de progression déterminée navy/or alignée DESIGN_SYSTEM.md.
+.streaming-progress {
+  --mdc-linear-progress-track-color: rgba(15, 41, 72, 0.12);
+  --mdc-linear-progress-active-indicator-color: #C9973A;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.streaming-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.streaming-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(39, 174, 96, 0.10);
+  border: 1px solid rgba(39, 174, 96, 0.32);
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1C2B3A;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: rgba(39, 174, 96, 0.18);
+    border-color: rgba(39, 174, 96, 0.55);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent, #C9973A);
+    outline-offset: 2px;
+  }
+
+  &--meta {
+    cursor: default;
+    background: rgba(15, 41, 72, 0.06);
+    border-color: rgba(15, 41, 72, 0.18);
+
+    &:hover {
+      background: rgba(15, 41, 72, 0.06);
+      border-color: rgba(15, 41, 72, 0.18);
+    }
+  }
+}
+
+.streaming-chip__icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  color: var(--color-success, #27AE60);
+}
+
+.streaming-empty {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--color-text-secondary, #6B7A8D);
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .streaming-chips {
+    gap: 4px;
+  }
+
+  .streaming-chip {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
 }
 
 .insight-icon {
