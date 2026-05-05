@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="199-shift-tools-to-contextual-niveau3-travail-fr" author="legalcase">
+        <comment>
+            F-166 SF-166-02 : conversion ALWAYS_ON → CONTEXTUAL pour les 8 derniers
+            outils décisionnels Travail FR (niveau 3). Suite directe de F-165 SF-165-01
+            (migration 193) qui avait laissé ces 8 outils en ALWAYS_ON faute de flags
+            IA dédiés.
+
+            SF-166-01 (PR #718) a livré les 8 booleans dans travail_extracted_data :
+            rappel_salaire_detecte, travail_dissimule_detecte,
+            clause_non_concurrence_detectee, statut_protege_detecte,
+            transaction_envisagee, at_mp_detecte, urgence_procedurale,
+            contestation_are_envisagee.
+
+            Cette migration consomme ces flags via 8 nouveaux trigger_field :
+            ALWAYS_ON → CONTEXTUAL avec trigger_value 'true' lu côté service par
+            extractDetectedSituations (SF-166-02).
+
+            Effet final : ALWAYS_ON Travail FR = 3 outils essentiels (F-DT-03, F-DT-04,
+            F-DT-07) — tous les autres en CONTEXTUAL conformément à la philosophie F-IA-04.
+
+            UUID namespace : f1a04001-0000-0000-0000-eeee20000XXX (distinct du namespace
+            F-165 'eeee0000...').
+
+            Travail BELGIQUE : non touché. 8 outils jumeaux BE à ouvrir au backlog
+            post-merge (rappel salaire BE, travail au noir BE, clause non-concurrence BE,
+            délégué syndical BE, transaction BE, Fedris, référé président tribunal travail BE,
+            contestation ONEM).
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- DELETE : 8 ALWAYS_ON Travail FR à supprimer
+-- =========================================================================
+
+DELETE FROM decision_tool_visibility_rules
+WHERE country = 'FRANCE' AND layer = 'ALWAYS_ON' AND tool_id IN (
+    'F-DT-20-rappel-salaire',
+    'F-DT-21-travail-dissimule',
+    'F-DT-24-non-concurrence',
+    'F-DT-30-protection-rp',
+    'F-DT-31-transaction',
+    'F-DT-33-at-mp',
+    'F-DT-34-refere-prudhomal',
+    'F-DT-35-contestation-are-fr'
+);
+
+-- =========================================================================
+-- INSERT : 8 nouvelles entrées CONTEXTUAL avec triggers boolean (string 'true')
+-- =========================================================================
+
+-- F-DT-20 rappel-salaire (priority origine 57)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000201', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-20-rappel-salaire', 'CONTEXTUAL', 'rappel_salaire_detecte', 'true', 57);
+
+-- F-DT-21 travail-dissimule (priority origine 51)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000211', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-21-travail-dissimule', 'CONTEXTUAL', 'travail_dissimule_detecte', 'true', 51);
+
+-- F-DT-24 non-concurrence (priority origine 60)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000241', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-24-non-concurrence', 'CONTEXTUAL', 'clause_non_concurrence_detectee', 'true', 60);
+
+-- F-DT-30 protection-rp (priority origine 58)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000301', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-30-protection-rp', 'CONTEXTUAL', 'statut_protege_detecte', 'true', 58);
+
+-- F-DT-31 transaction (priority origine 61)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000311', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-31-transaction', 'CONTEXTUAL', 'transaction_envisagee', 'true', 61);
+
+-- F-DT-33 at-mp (priority origine 59)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000331', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-33-at-mp', 'CONTEXTUAL', 'at_mp_detecte', 'true', 59);
+
+-- F-DT-34 refere-prudhomal (priority origine 63)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000341', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-34-refere-prudhomal', 'CONTEXTUAL', 'urgence_procedurale', 'true', 63);
+
+-- F-DT-35 contestation-are-fr (priority origine 64)
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-eeee20000351', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-35-contestation-are-fr', 'CONTEXTUAL', 'contestation_are_envisagee', 'true', 64);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+-- Restaurer les 8 ALWAYS_ON Travail FR (états initiaux des migrations 110/143/149/150/157/158/166/175 + renames F-164)
+DELETE FROM decision_tool_visibility_rules WHERE id LIKE 'f1a04001-0000-0000-0000-eeee20000%';
+
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000201', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-20-rappel-salaire', 'ALWAYS_ON', NULL, NULL, 57);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000021', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-21-travail-dissimule', 'ALWAYS_ON', NULL, NULL, 51);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000241', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-24-non-concurrence', 'ALWAYS_ON', NULL, NULL, 60);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000166', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-30-protection-rp', 'ALWAYS_ON', NULL, NULL, 58);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000311', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-31-transaction', 'ALWAYS_ON', NULL, NULL, 61);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000175', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-33-at-mp', 'ALWAYS_ON', NULL, NULL, 59);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000341', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-34-refere-prudhomal', 'ALWAYS_ON', NULL, NULL, 63);
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000000351', 'DROIT_DU_TRAVAIL', 'FRANCE', 'F-DT-35-contestation-are-fr', 'ALWAYS_ON', NULL, NULL, 64);
+            </sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
