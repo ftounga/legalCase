@@ -41,6 +41,17 @@ import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedur
 import { TimeService } from '../../core/services/time.service';
 import { TimeEntryResponse } from '../../core/models/time-tracking.models';
 
+/** F-162 SF-162-01 — descripteur d'un badge de la grille de synthèse. */
+interface SynthesisBadge {
+  id: string;
+  label: string;
+  icon: string;
+  iconClass: string;
+  count: number;
+  sublabel?: string | null;
+  anchor: string;
+}
+
 @Component({
   selector: 'app-synthesis',
   standalone: true,
@@ -142,6 +153,120 @@ export class SynthesisComponent implements OnInit, OnDestroy {
       return this.sourceMap().get(source) ?? source;
     }
     return source;
+  }
+
+  /**
+   * F-162 SF-162-01 — grille de badges synthétiques en tête de page.
+   * Retourne les blocs non vides dans l'ordre canonique avec compteur, libellé, icône
+   * et ancre cible. Les badges vides (compteur = 0) sont filtrés.
+   * Ordre canonique : Timeline → Faits → Points juridiques → Risques → Pistes
+   * stratégiques → Checklist → Questions complémentaires → Pièces manquantes →
+   * Questions ouvertes.
+   */
+  readonly synthesisBadges = computed<SynthesisBadge[]>(() => {
+    const syn = this.synthesis();
+    if (!syn) return [];
+    const checksCount = this.procedureChecks().length;
+    const questionsCount = this.questions().length;
+    const optionsCount = this.strategicOptions().length;
+    const optionsRetainedCount = this.optionsRetained().length;
+    const risquesCount = syn.risques?.length ?? 0;
+    const riskLevel = syn.riskLevel ?? null;
+
+    const all: SynthesisBadge[] = [
+      {
+        id: 'timeline',
+        label: 'Timeline',
+        icon: 'timeline',
+        iconClass: 'panel-icon--timeline',
+        count: syn.timeline?.length ?? 0,
+        anchor: 'section-timeline',
+      },
+      {
+        id: 'faits',
+        label: 'Faits',
+        icon: 'gavel',
+        iconClass: 'panel-icon--faits',
+        count: syn.faits?.length ?? 0,
+        anchor: 'section-faits',
+      },
+      {
+        id: 'points-juridiques',
+        label: 'Points juridiques',
+        icon: 'balance',
+        iconClass: 'panel-icon--juridique',
+        count: syn.pointsJuridiques?.length ?? 0,
+        anchor: 'section-points-juridiques',
+      },
+      {
+        id: 'risques',
+        label: 'Risques',
+        icon: 'warning_amber',
+        iconClass: 'panel-icon--risques',
+        count: risquesCount,
+        sublabel: riskLevel === 'ELEVE' && risquesCount > 0 ? 'gravité élevée' : null,
+        anchor: 'section-risques',
+      },
+      {
+        id: 'pistes',
+        label: 'Pistes stratégiques',
+        icon: 'lightbulb',
+        iconClass: 'panel-icon--pistes',
+        count: optionsCount,
+        sublabel: optionsRetainedCount > 0 ? `${optionsRetainedCount} retenue(s)` : null,
+        anchor: 'section-pistes',
+      },
+      {
+        id: 'checklist',
+        label: 'Checklist',
+        icon: 'checklist',
+        iconClass: 'panel-icon--checklist',
+        count: checksCount,
+        anchor: 'section-checklist',
+      },
+      {
+        id: 'questions',
+        label: 'Questions complémentaires',
+        icon: 'quiz',
+        iconClass: 'panel-icon--questions',
+        count: questionsCount,
+        anchor: 'section-questions',
+      },
+      {
+        id: 'pieces',
+        label: 'Pièces manquantes',
+        icon: 'report_problem',
+        iconClass: 'panel-icon--manquantes',
+        count: syn.piecesManquantes?.length ?? 0,
+        anchor: 'section-pieces',
+      },
+      {
+        id: 'questions-ouvertes',
+        label: 'Questions ouvertes',
+        icon: 'help_outline',
+        iconClass: 'panel-icon--questions',
+        count: syn.questionsOuvertes?.length ?? 0,
+        anchor: 'section-questions-ouvertes',
+      },
+    ];
+    return all.filter(b => b.count > 0);
+  });
+
+  /**
+   * F-162 SF-162-01 — scroll fluide vers un bloc + ouverture si nécessaire.
+   * Les panels Material sont rendus `expanded` par défaut dans le template, donc
+   * un simple `scrollIntoView` suffit. Le retry est conservé par symétrie avec
+   * SF-IA-03-19 (données async pour `procedureChecks` / `questions`).
+   */
+  scrollToBlock(anchorId: string, attempt = 0): void {
+    const el = document.getElementById(anchorId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.add('source-highlight');
+      setTimeout(() => el.classList.remove('source-highlight'), 2100);
+    } else if (attempt < 5) {
+      setTimeout(() => this.scrollToBlock(anchorId, attempt + 1), 200);
+    }
   }
 
   constructor(
