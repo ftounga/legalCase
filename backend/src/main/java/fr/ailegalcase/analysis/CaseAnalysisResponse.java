@@ -95,7 +95,18 @@ public record CaseAnalysisResponse(
             String origineInaptitudePressentie,
             String avisMedecinTravailDate,
             DetectedAnswer reclassementRespecteDetected,
-            HeuresSupMentionnees heuresSupMentionneesDansDossier) {
+            HeuresSupMentionnees heuresSupMentionneesDansDossier,
+            // SF-166-01 : 8 flags décisionnels niveau 3 — Travail FR uniquement, default false.
+            // Permettent à F-IA-04 de basculer F-DT-20/21/24/30/31/33/34/35 en CONTEXTUAL (SF-166-02).
+            // Dossiers BE : tous false (régimes BE équivalents distincts → backlog jumeau).
+            boolean rappelSalaireDetecte,
+            boolean travailDissimuleDetecte,
+            boolean clauseNonConcurrenceDetectee,
+            boolean statutProtegeDetecte,
+            boolean transactionEnvisagee,
+            boolean atMpDetecte,
+            boolean urgenceProcedurale,
+            boolean contestationAreEnvisagee) {
 
         /** Constructeur rétrocompat 9 champs (avant SF-DT-04-04). */
         public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
@@ -105,7 +116,8 @@ public record CaseAnalysisResponse(
                     typeContrat, poste, motifLicenciement, dateLicenciement,
                     congesContractuels, primeAncienneteContractuelle,
                     null, null, null, null, null, null, null, null, null,
-                    null, null, null, null, null);
+                    null, null, null, null, null,
+                    false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 17 champs (avant SF-130-01). */
@@ -123,7 +135,8 @@ public record CaseAnalysisResponse(
                     nomEmployeur, adresseEmployeur,
                     siretEmployeur, bceEmployeur,
                     representantEmployeur, null,
-                    null, null, null, null, null);
+                    null, null, null, null, null,
+                    false, false, false, false, false, false, false, false);
         }
 
         /** Constructeur rétrocompat 18 champs (avant SF-155-04-00-BE-travail). */
@@ -141,7 +154,34 @@ public record CaseAnalysisResponse(
                     nomEmployeur, adresseEmployeur,
                     siretEmployeur, bceEmployeur,
                     representantEmployeur, salaireEstDeduit,
-                    null, null, null, null, null);
+                    null, null, null, null, null,
+                    false, false, false, false, false, false, false, false);
+        }
+
+        /** Constructeur rétrocompat 23 champs (avant SF-166-01). */
+        public TravailExtractedData(String conventionCollective, String dateEntree, Double salaireBrutMensuel,
+                                     String typeContrat, String poste, String motifLicenciement, String dateLicenciement,
+                                     Integer congesContractuels, Double primeAncienneteContractuelle,
+                                     String nomSalarie, String prenomSalarie, String adresseSalarie,
+                                     String nomEmployeur, String adresseEmployeur,
+                                     String siretEmployeur, String bceEmployeur,
+                                     String representantEmployeur, Boolean salaireEstDeduit,
+                                     String motifNullitePressenti, String origineInaptitudePressentie,
+                                     String avisMedecinTravailDate,
+                                     DetectedAnswer reclassementRespecteDetected,
+                                     HeuresSupMentionnees heuresSupMentionneesDansDossier) {
+            this(conventionCollective, dateEntree, salaireBrutMensuel,
+                    typeContrat, poste, motifLicenciement, dateLicenciement,
+                    congesContractuels, primeAncienneteContractuelle,
+                    nomSalarie, prenomSalarie, adresseSalarie,
+                    nomEmployeur, adresseEmployeur,
+                    siretEmployeur, bceEmployeur,
+                    representantEmployeur, salaireEstDeduit,
+                    motifNullitePressenti, origineInaptitudePressentie,
+                    avisMedecinTravailDate,
+                    reclassementRespecteDetected,
+                    heuresSupMentionneesDansDossier,
+                    false, false, false, false, false, false, false, false);
         }
     }
 
@@ -1032,7 +1072,16 @@ public record CaseAnalysisResponse(
                     normalizeEnumCode(textOrNull(node, "origine_inaptitude_pressentie"), ORIGINE_INAPTITUDE_CODES),
                     textOrNull(node, "avis_medecin_travail_date"),
                     extractDetectedAnswer(node.get("reclassement_respecte_detected")),
-                    extractHeuresSupMentionnees(node.get("heures_sup_mentionnees"))
+                    extractHeuresSupMentionnees(node.get("heures_sup_mentionnees")),
+                    // SF-166-01 : 8 flags décisionnels niveau 3 — fail-safe à false
+                    booleanOrFalse(node, "rappel_salaire_detecte"),
+                    booleanOrFalse(node, "travail_dissimule_detecte"),
+                    booleanOrFalse(node, "clause_non_concurrence_detectee"),
+                    booleanOrFalse(node, "statut_protege_detecte"),
+                    booleanOrFalse(node, "transaction_envisagee"),
+                    booleanOrFalse(node, "at_mp_detecte"),
+                    booleanOrFalse(node, "urgence_procedurale"),
+                    booleanOrFalse(node, "contestation_are_envisagee")
             );
         } catch (Exception ignored) { return null; }
     }
@@ -1283,5 +1332,15 @@ public record CaseAnalysisResponse(
             if ("false".equals(s)) return false;
         }
         return null;
+    }
+
+    /**
+     * SF-166-01 : variante fail-safe de {@link #booleanOrNull} pour les 8 flags décisionnels niveau 3.
+     * Retourne {@code true} uniquement si le JSON contient explicitement {@code true} ou la chaîne
+     * {@code "true"}. Tout autre cas (champ absent, null, valeur non-boolean) → {@code false}.
+     */
+    private static boolean booleanOrFalse(JsonNode node, String field) {
+        Boolean v = booleanOrNull(node, field);
+        return v != null && v;
     }
 }

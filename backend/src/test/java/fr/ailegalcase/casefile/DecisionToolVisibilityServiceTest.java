@@ -337,6 +337,215 @@ class DecisionToolVisibilityServiceTest {
                 .doesNotContain("F-DT-17-indemnite-precarite-cdd");
     }
 
+    // ─────────────────────── F-166 SF-166-02 : 8 flags niveau 3 ───────────────────────
+
+    @Test
+    void travailFr_rappel_salaire_detecte_active_F_DT_20() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"rappel_salaire_detecte\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual())
+                .contains("F-DT-20-rappel-salaire")
+                .doesNotContain("F-DT-21-travail-dissimule")
+                .doesNotContain("F-DT-33-at-mp");
+    }
+
+    @Test
+    void travailFr_travail_dissimule_detecte_active_F_DT_21() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"travail_dissimule_detecte\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-21-travail-dissimule");
+    }
+
+    @Test
+    void travailFr_clause_non_concurrence_detectee_active_F_DT_24() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"clause_non_concurrence_detectee\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-24-non-concurrence");
+    }
+
+    @Test
+    void travailFr_statut_protege_detecte_active_F_DT_30() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"statut_protege_detecte\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-30-protection-rp");
+    }
+
+    @Test
+    void travailFr_transaction_envisagee_active_F_DT_31() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"transaction_envisagee\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-31-transaction");
+    }
+
+    @Test
+    void travailFr_at_mp_detecte_active_F_DT_33() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"at_mp_detecte\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-33-at-mp");
+    }
+
+    @Test
+    void travailFr_urgence_procedurale_active_F_DT_34() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"urgence_procedurale\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-34-refere-prudhomal");
+    }
+
+    @Test
+    void travailFr_contestation_are_envisagee_active_F_DT_35() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"travail_extracted_data\":{\"contestation_are_envisagee\":true}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-35-contestation-are-fr");
+    }
+
+    @Test
+    void travailFr_niveau3_tous_flags_false_aucun_outil_contextuel() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("""
+                {"travail_extracted_data":{
+                    "rappel_salaire_detecte":false,
+                    "travail_dissimule_detecte":false,
+                    "clause_non_concurrence_detectee":false,
+                    "statut_protege_detecte":false,
+                    "transaction_envisagee":false,
+                    "at_mp_detecte":false,
+                    "urgence_procedurale":false,
+                    "contestation_are_envisagee":false
+                }}""");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual())
+                .doesNotContain("F-DT-20-rappel-salaire")
+                .doesNotContain("F-DT-21-travail-dissimule")
+                .doesNotContain("F-DT-24-non-concurrence")
+                .doesNotContain("F-DT-30-protection-rp")
+                .doesNotContain("F-DT-31-transaction")
+                .doesNotContain("F-DT-33-at-mp")
+                .doesNotContain("F-DT-34-refere-prudhomal")
+                .doesNotContain("F-DT-35-contestation-are-fr");
+    }
+
+    @Test
+    void travailFr_niveau3_travail_extracted_data_absent_aucun_outil_contextuel() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        // Rétrocompat : analyse antérieure SF-166-01 sans travail_extracted_data
+        mockLatestAnalysisJson("{\"compensation_data\":{\"type_rupture\":\"LICENCIEMENT\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual())
+                .doesNotContain("F-DT-20-rappel-salaire")
+                .doesNotContain("F-DT-33-at-mp")
+                .doesNotContain("F-DT-34-refere-prudhomal");
+    }
+
+    @Test
+    void travailFr_niveau3_multiples_flags_simultanes() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("""
+                {"travail_extracted_data":{
+                    "rappel_salaire_detecte":true,
+                    "urgence_procedurale":true,
+                    "transaction_envisagee":true,
+                    "at_mp_detecte":false
+                }}""");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual())
+                .contains("F-DT-20-rappel-salaire")
+                .contains("F-DT-31-transaction")
+                .contains("F-DT-34-refere-prudhomal")
+                .doesNotContain("F-DT-33-at-mp")
+                .doesNotContain("F-DT-21-travail-dissimule");
+    }
+
+    @Test
+    void travailFr_niveau3_dossier_vide_huit_outils_dans_catalog() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                eq(CF_ID), eq(AnalysisStatus.DONE))).thenReturn(Optional.empty());
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        // Aucun des 8 outils SF-166-02 n'est dans alwaysOn (post-migration 199)
+        assertThat(r.alwaysOn())
+                .doesNotContain("F-DT-20-rappel-salaire")
+                .doesNotContain("F-DT-21-travail-dissimule")
+                .doesNotContain("F-DT-24-non-concurrence")
+                .doesNotContain("F-DT-30-protection-rp")
+                .doesNotContain("F-DT-31-transaction")
+                .doesNotContain("F-DT-33-at-mp")
+                .doesNotContain("F-DT-34-refere-prudhomal")
+                .doesNotContain("F-DT-35-contestation-are-fr");
+        // Et tous présents dans catalog (CONTEXTUAL non triggered)
+        assertThat(r.catalog())
+                .contains("F-DT-20-rappel-salaire")
+                .contains("F-DT-21-travail-dissimule")
+                .contains("F-DT-24-non-concurrence")
+                .contains("F-DT-30-protection-rp")
+                .contains("F-DT-31-transaction")
+                .contains("F-DT-33-at-mp")
+                .contains("F-DT-34-refere-prudhomal")
+                .contains("F-DT-35-contestation-are-fr");
+    }
+
+    /** Reproduit le seeding réel post F-166 SF-166-02 (migration 199 = F-165 + 8 nouveaux CONTEXTUAL). */
+    private void givenTravailFrRulesF166() {
+        List<DecisionToolVisibilityRule> rules = new ArrayList<>();
+        // Essentiels ALWAYS_ON (3 essentiels post-F166 — les 8 ALWAYS_ON niveau 3 supprimés)
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-03-prescription-litige", ALWAYS_ON, null, null, 10));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-04-fiche-prudhomale", ALWAYS_ON, null, null, 20));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-07-anciennete-conges-prime", ALWAYS_ON, null, null, 30));
+        // F-166 SF-166-02 : 8 nouvelles entrées CONTEXTUAL niveau 3 (booleans)
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-20-rappel-salaire", CONTEXTUAL, "rappel_salaire_detecte", "true", 57));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-21-travail-dissimule", CONTEXTUAL, "travail_dissimule_detecte", "true", 51));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-24-non-concurrence", CONTEXTUAL, "clause_non_concurrence_detectee", "true", 60));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-30-protection-rp", CONTEXTUAL, "statut_protege_detecte", "true", 58));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-31-transaction", CONTEXTUAL, "transaction_envisagee", "true", 61));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-33-at-mp", CONTEXTUAL, "at_mp_detecte", "true", 59));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-34-refere-prudhomal", CONTEXTUAL, "urgence_procedurale", "true", 63));
+        rules.add(rule("DROIT_DU_TRAVAIL", "FRANCE", "F-DT-35-contestation-are-fr", CONTEXTUAL, "contestation_are_envisagee", "true", 64));
+        when(ruleRepository.findForDomainAndCountry("DROIT_DU_TRAVAIL", "FRANCE")).thenReturn(rules);
+    }
+
     /** Reproduit le seeding réel post F-165 SF-165-01 (migration 193). */
     private void givenTravailFrRulesF165() {
         List<DecisionToolVisibilityRule> rules = new ArrayList<>();
