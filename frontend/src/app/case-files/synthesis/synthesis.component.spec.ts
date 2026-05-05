@@ -1196,5 +1196,19 @@ describe('SynthesisComponent', () => {
 
       expect(component.synthesisBadges()).toEqual([]);
     });
+
+    // F-162 SF-162-02 — U-7 : badge Timeline reçoit un route vers la page dédiée.
+    it('U7: timeline badge exposes a route to the dedicated page', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD'),
+        timeline: [{ date: '2026-01-01', evenement: 'evt' }],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const timelineBadge = component.synthesisBadges().find(b => b.id === 'timeline');
+      expect(timelineBadge?.route).toEqual(['/case-files', CASE_FILE_ID, 'synthesis', 'timeline']);
+    });
   });
 });

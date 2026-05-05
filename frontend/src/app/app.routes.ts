@@ -39,6 +39,11 @@ export const routes: Routes = [
           .then(m => m.SynthesisComponent)
       },
       {
+        path: 'case-files/:id/synthesis/timeline',
+        loadComponent: () => import('./case-files/synthesis-timeline/synthesis-timeline.component')
+          .then(m => m.SynthesisTimelineComponent)
+      },
+      {
         path: 'case-files/:id/diff',
         loadComponent: () => import('./case-files/analysis-diff/analysis-diff.component')
           .then(m => m.AnalysisDiffComponent)

@@ -41,7 +41,12 @@ import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedur
 import { TimeService } from '../../core/services/time.service';
 import { TimeEntryResponse } from '../../core/models/time-tracking.models';
 
-/** F-162 SF-162-01 — descripteur d'un badge de la grille de synthèse. */
+/**
+ * F-162 SF-162-01 — descripteur d'un badge de la grille de synthèse.
+ * SF-162-02..05 ajoutent un `route` optionnel pour les blocs qui ont leur propre
+ * page dédiée. Quand `route` est présent, le badge devient un lien plutôt qu'un
+ * scroll local.
+ */
 interface SynthesisBadge {
   id: string;
   label: string;
@@ -50,6 +55,7 @@ interface SynthesisBadge {
   count: number;
   sublabel?: string | null;
   anchor: string;
+  route?: string[];
 }
 
 @Component({
@@ -166,6 +172,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
   readonly synthesisBadges = computed<SynthesisBadge[]>(() => {
     const syn = this.synthesis();
     if (!syn) return [];
+    const cfId = this.caseFile()?.id ?? null;
     const checksCount = this.procedureChecks().length;
     const questionsCount = this.questions().length;
     const optionsCount = this.strategicOptions().length;
@@ -181,6 +188,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         iconClass: 'panel-icon--timeline',
         count: syn.timeline?.length ?? 0,
         anchor: 'section-timeline',
+        route: cfId ? ['/case-files', cfId, 'synthesis', 'timeline'] : undefined,
       },
       {
         id: 'faits',

@@ -107,22 +107,37 @@
     </div>
   }
 
-  <!-- F-162 SF-162-01 — grille de badges synthétiques navigables vers les blocs. -->
+  <!-- F-162 SF-162-01 — grille de badges synthétiques navigables vers les blocs.
+       SF-162-02..05 — quand un bloc a sa page dédiée, le badge devient un routerLink. -->
   @if (synthesisBadges().length > 0) {
     <div class="synthesis-grid" role="navigation" aria-label="Navigation vers les blocs de synthèse">
       @for (badge of synthesisBadges(); track badge.id) {
-        <button type="button"
-                class="synthesis-badge"
-                [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
-                (click)="scrollToBlock(badge.anchor)"
-                [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
-          <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
-          <span class="synthesis-badge__count">{{ badge.count }}</span>
-          <span class="synthesis-badge__label">{{ badge.label }}</span>
-          @if (badge.sublabel) {
-            <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
-          }
-        </button>
+        @if (badge.route) {
+          <a class="synthesis-badge"
+             [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
+             [routerLink]="badge.route"
+             [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
+            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+            <span class="synthesis-badge__count">{{ badge.count }}</span>
+            <span class="synthesis-badge__label">{{ badge.label }}</span>
+            @if (badge.sublabel) {
+              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+            }
+          </a>
+        } @else {
+          <button type="button"
+                  class="synthesis-badge"
+                  [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
+                  (click)="scrollToBlock(badge.anchor)"
+                  [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
+            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+            <span class="synthesis-badge__count">{{ badge.count }}</span>
+            <span class="synthesis-badge__label">{{ badge.label }}</span>
+            @if (badge.sublabel) {
+              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+            }
+          </button>
+        }
       }
     </div>
   }
