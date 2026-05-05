@@ -7,6 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -60,13 +61,39 @@ interface SynthesisBadge {
   popup?: 'pieces' | 'questions-ouvertes';
 }
 
+/**
+ * F-190 SF-190-01 — descripteur d'une section attendue dans le streaming.
+ * `id` correspond à la clé snake_case côté backend ; `anchor` cible le panel
+ * de la pile inférieure pour le scroll-to-block.
+ */
+interface StreamingSection {
+  id: keyof CaseAnalysisPartialSections;
+  label: string;
+  anchor: string | null;
+}
+
+/**
+ * F-190 SF-190-01 — liste fixe des 7 sections visibles dans la synthèse.
+ * Les champs `*_extracted_data` ne sont pas comptés (consommés par F-IA-04,
+ * pas affichés dans la synthèse).
+ */
+const STREAMING_EXPECTED_SECTIONS: readonly StreamingSection[] = [
+  { id: 'timeline',           label: 'Chronologie',       anchor: 'section-timeline' },
+  { id: 'faits',              label: 'Faits',             anchor: 'section-faits' },
+  { id: 'points_juridiques',  label: 'Points juridiques', anchor: 'section-points-juridiques' },
+  { id: 'risques',            label: 'Risques',           anchor: 'section-risques' },
+  { id: 'questions_ouvertes', label: 'Questions ouvertes', anchor: 'section-questions-ouvertes' },
+  { id: 'pieces_manquantes',  label: 'Pièces manquantes', anchor: 'section-pieces' },
+  { id: 'risk_level',         label: 'Niveau de risque',  anchor: null },
+] as const;
+
 @Component({
   selector: 'app-synthesis',
   standalone: true,
   imports: [
     RouterLink, DatePipe, LowerCasePipe, NgTemplateOutlet, FormsModule,
     MatCardModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule, MatExpansionModule,
+    MatProgressSpinnerModule, MatProgressBarModule, MatExpansionModule,
     MatCheckboxModule, MatTooltipModule,
     SourceRefComponent,
     QuotaErrorBannerComponent,
@@ -88,6 +115,12 @@ export class SynthesisComponent implements OnInit, OnDestroy {
    * synthèse se complète au fil des événements SSE `CASE_ANALYSIS_PARTIAL`.
    */
   isStreaming = signal(false);
+  /**
+   * F-190 SF-190-01 — dernier état partiel reçu (raw, pas le projeté `synthesis()`).
+   * Permet de distinguer "section pas encore arrivée" d'une "section arrivée mais
+   * vide" (le projeté met `[]` dans les deux cas via `?? []`).
+   */
+  lastPartial = signal<CaseAnalysisPartialResponse | null>(null);
   timeEntries = signal<TimeEntryResponse[]>([]);
   private sseSubscription?: Subscription;
 
@@ -461,6 +494,10 @@ export class SynthesisComponent implements OnInit, OnDestroy {
    */
   private applyPartial(partial: CaseAnalysisPartialResponse): void {
     this.isStreaming.set(true);
+    // F-190 SF-190-01 — conserve le partial brut pour calculer la progression
+    // granulaire (le projeté `synthesis()` met `[]` partout via `?? []`, ce qui
+    // empêche de distinguer "section pas encore arrivée" d'une "section vide").
+    this.lastPartial.set(partial);
     const s: Partial<CaseAnalysisPartialSections> = partial.sections ?? {};
     const result: CaseAnalysisResult = {
       id: partial.analysisId,
@@ -484,6 +521,32 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     };
     this.synthesis.set(result);
   }
+
+  /**
+   * F-190 SF-190-01 — sections déjà reçues du stream, dans l'ordre canonique
+   * (pas l'ordre d'arrivée — l'avocat veut un repère stable). Une section est
+   * considérée reçue si la clé est présente dans `partial.sections` ET que la
+   * valeur est non-null/non-undefined (les arrays vides comptent : Sonnet a
+   * fini de générer la section et confirmé qu'il n'y a rien).
+   */
+  readonly streamingSectionsReceived = computed<readonly StreamingSection[]>(() => {
+    const partial = this.lastPartial();
+    if (!partial?.sections) return [];
+    const sections = partial.sections;
+    return STREAMING_EXPECTED_SECTIONS.filter(desc => sections[desc.id] != null);
+  });
+
+  /**
+   * F-190 SF-190-01 — progression numérique (pour la `<mat-progress-bar>`).
+   * `expected` est constant (7 sections), `received` est dérivé du dernier
+   * partial reçu, `percent` est arrondi à l'entier.
+   */
+  readonly streamingProgress = computed(() => {
+    const received = this.streamingSectionsReceived().length;
+    const expected = STREAMING_EXPECTED_SECTIONS.length;
+    const percent = expected === 0 ? 0 : Math.round((received / expected) * 100);
+    return { received, expected, percent };
+  });
 
   loadSynthesisForVersion(caseFileId: string, version: number): void {
     this.caseAnalysisService.getByVersion(caseFileId, version).subscribe({

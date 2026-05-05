@@ -1397,4 +1397,120 @@ describe('SynthesisComponent', () => {
       expect(caseAnalysisService.getVersions).toHaveBeenCalledWith(CASE_FILE_ID);
     });
   });
+
+  // F-190 SF-190-01 — barre de progression granulaire + chips cliquables des sections reçues.
+  describe('F-190 SF-190-01 streaming progress', () => {
+    // U-1 : lastPartial null → progression à 0/7.
+    it('U1: returns 0/7 progress when lastPartial is null', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      fixture.detectChanges();
+
+      expect(component.streamingProgress()).toEqual({ received: 0, expected: 7, percent: 0 });
+      expect(component.streamingSectionsReceived()).toEqual([]);
+    });
+
+    // U-2 : 2 sections présentes (faits, risques) → received 2/7, percent 29.
+    it('U2: counts received sections and computes percent', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      fixture.detectChanges();
+
+      // Simule un partial reçu avec 2 sections arrivées.
+      component.lastPartial.set({
+        analysisId: 'a-1',
+        version: 1,
+        status: 'PARTIAL',
+        sections: { faits: [{ texte: 'f1' } as any], risques: [{ texte: 'r1' } as any] },
+        updatedAt: '2026-05-05T10:00:00Z',
+      });
+
+      const progress = component.streamingProgress();
+      expect(progress.received).toBe(2);
+      expect(progress.expected).toBe(7);
+      expect(progress.percent).toBe(Math.round((2 / 7) * 100));
+    });
+
+    // U-3 : risk_level présent → compté comme une section reçue.
+    it('U3: counts risk_level as a received section', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      fixture.detectChanges();
+
+      component.lastPartial.set({
+        analysisId: 'a-1',
+        version: 1,
+        status: 'PARTIAL',
+        sections: { risk_level: 'MOYEN' as any },
+        updatedAt: '2026-05-05T10:00:00Z',
+      });
+
+      const ids = component.streamingSectionsReceived().map(s => s.id);
+      expect(ids).toEqual(['risk_level']);
+    });
+
+    // U-4 : travail_extracted_data présent dans sections → NON compté.
+    it('U4: ignores *_extracted_data sections', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      fixture.detectChanges();
+
+      component.lastPartial.set({
+        analysisId: 'a-1',
+        version: 1,
+        status: 'PARTIAL',
+        sections: {
+          travail_extracted_data: { whatever: 'x' } as any,
+          immigration_extracted_data: { whatever: 'y' } as any,
+          famille_extracted_data: { whatever: 'z' } as any,
+          faits: [{ texte: 'f' } as any],
+        },
+        updatedAt: '2026-05-05T10:00:00Z',
+      });
+
+      // Seul `faits` doit être compté (les *_extracted_data sont des structures
+      // internes consommées par F-IA-04, pas des sections affichées).
+      const ids = component.streamingSectionsReceived().map(s => s.id);
+      expect(ids).toEqual(['faits']);
+    });
+
+    // U-5 : ordre canonique respecté quel que soit l'ordre d'arrivée des sections.
+    it('U5: returns sections in canonical order, not arrival order', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      fixture.detectChanges();
+
+      component.lastPartial.set({
+        analysisId: 'a-1',
+        version: 1,
+        status: 'PARTIAL',
+        sections: {
+          // Ordre d'arrivée volontairement inversé.
+          risques: [{ texte: 'r1' } as any],
+          faits: [{ texte: 'f1' } as any],
+          timeline: [{ date: '2026-01-01', evenement: 'e' } as any],
+        },
+        updatedAt: '2026-05-05T10:00:00Z',
+      });
+
+      const ids = component.streamingSectionsReceived().map(s => s.id);
+      // Ordre canonique : timeline → faits → ... → risques.
+      expect(ids).toEqual(['timeline', 'faits', 'risques']);
+    });
+
+    // U-6 : applyPartial met à jour lastPartial ET synthesis (les 2 signals).
+    it('U6: applyPartial updates both lastPartial and synthesis signals', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      // Simule un partial reçu via tryLoadPartial au mount.
+      (caseAnalysisService.getPartial as jest.Mock).mockReturnValue(of({
+        analysisId: 'partial-1',
+        version: 1,
+        status: 'PARTIAL',
+        sections: { faits: [{ texte: 'fait partiel' } as any] },
+        updatedAt: '2026-05-05T10:00:00Z',
+      }));
+
+      fixture.detectChanges();
+
+      expect(component.lastPartial()).not.toBeNull();
+      expect(component.lastPartial()?.sections?.faits?.length).toBe(1);
+      expect(component.synthesis()).not.toBeNull();
+      expect(component.synthesis()?.faits.length).toBe(1);
+    });
+  });
 });

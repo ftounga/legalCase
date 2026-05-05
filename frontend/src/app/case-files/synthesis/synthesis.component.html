@@ -99,11 +99,47 @@
     </div>
   }
 
-  <!-- F-185 SF-185-01 — bandeau streaming : la synthèse se compose section par section. -->
+  <!-- F-185 SF-185-01 — bandeau streaming : la synthèse se compose section par section.
+       F-190 SF-190-01 — barre de progression % + chips cliquables des sections reçues. -->
   @if (isStreaming()) {
     <div class="streaming-callout" role="status" aria-live="polite">
-      <mat-spinner diameter="18"></mat-spinner>
-      <span class="streaming-text">Synthèse en cours de génération… Les sections apparaissent au fur et à mesure.</span>
+      <div class="streaming-callout__row">
+        <mat-spinner diameter="18"></mat-spinner>
+        <span class="streaming-text">
+          Synthèse en cours de génération…
+          <strong>{{ streamingProgress().received }}/{{ streamingProgress().expected }} sections reçues</strong>
+        </span>
+      </div>
+      <mat-progress-bar
+        class="streaming-progress"
+        mode="determinate"
+        [value]="streamingProgress().percent"
+        [attr.aria-valuenow]="streamingProgress().percent"
+        aria-valuemin="0"
+        aria-valuemax="100">
+      </mat-progress-bar>
+      @if (streamingSectionsReceived().length > 0) {
+        <div class="streaming-chips" role="list" aria-label="Sections déjà reçues">
+          @for (section of streamingSectionsReceived(); track section.id) {
+            @if (section.anchor) {
+              <button type="button"
+                      class="streaming-chip"
+                      role="listitem"
+                      (click)="scrollToBlock(section.anchor)">
+                <mat-icon class="streaming-chip__icon">check_circle</mat-icon>
+                {{ section.label }}
+              </button>
+            } @else {
+              <span class="streaming-chip streaming-chip--meta" role="listitem">
+                <mat-icon class="streaming-chip__icon">check_circle</mat-icon>
+                {{ section.label }}
+              </span>
+            }
+          }
+        </div>
+      } @else {
+        <p class="streaming-empty">En cours…</p>
+      }
     </div>
   }
 
