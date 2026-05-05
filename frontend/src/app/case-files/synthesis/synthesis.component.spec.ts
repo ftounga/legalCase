@@ -1098,4 +1098,103 @@ describe('SynthesisComponent', () => {
       expect(component.currentChecksVersion()).toBe(1);
     });
   });
+
+  // F-162 SF-162-01 — grille de badges synthétiques en tête de page.
+  describe('F-162 SF-162-01 synthesisBadges grid', () => {
+    // U-1 : badges vides filtrés (compteur = 0)
+    it('U1: filters out blocks with zero count', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      // makeSynthesis ne crée que faits=[1], le reste est vide
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      const badges = component.synthesisBadges();
+      expect(badges.length).toBe(1);
+      expect(badges[0].id).toBe('faits');
+      expect(badges[0].count).toBe(1);
+    });
+
+    // U-2 : ordre canonique respecté (Timeline → Faits → Points juridiques → Risques → Pistes → Checklist → Questions → Pièces → Questions ouvertes)
+    it('U2: returns badges in canonical order', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD', ['piece A']),
+        timeline: [{ date: '2026-01-01', evenement: 'evt' }],
+        faits: [makeItem('f1')],
+        pointsJuridiques: [makeItem('p1')],
+        risques: [makeItem('r1')],
+        questionsOuvertes: ['q ouverte'],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const ids = component.synthesisBadges().map(b => b.id);
+      expect(ids).toEqual([
+        'timeline',
+        'faits',
+        'points-juridiques',
+        'risques',
+        'pieces',
+        'questions-ouvertes',
+      ]);
+    });
+
+    // U-3 : compteurs reflètent la taille des listes
+    it('U3: counts reflect list lengths', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD'),
+        timeline: [
+          { date: '2026-01-01', evenement: 'a' },
+          { date: '2026-01-02', evenement: 'b' },
+          { date: '2026-01-03', evenement: 'c' },
+        ],
+        risques: [makeItem('r1'), makeItem('r2')],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const timelineBadge = component.synthesisBadges().find(b => b.id === 'timeline');
+      const risquesBadge = component.synthesisBadges().find(b => b.id === 'risques');
+      expect(timelineBadge?.count).toBe(3);
+      expect(risquesBadge?.count).toBe(2);
+    });
+
+    // U-4 : sublabel "gravité élevée" sur le badge Risques quand riskLevel = ELEVE
+    it('U4: risques badge gets sublabel when riskLevel is ELEVE', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD', [], 'ELEVE', 80),
+        risques: [makeItem('r1')],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const risquesBadge = component.synthesisBadges().find(b => b.id === 'risques');
+      expect(risquesBadge?.sublabel).toBe('gravité élevée');
+    });
+
+    // U-5 : scrollToBlock invoque scrollIntoView sur l'élément cible
+    it('U5: scrollToBlock invokes scrollIntoView on target element', () => {
+      const el = document.createElement('div');
+      el.id = 'section-faits';
+      const scrollSpy = jest.fn();
+      (el as any).scrollIntoView = scrollSpy;
+      document.body.appendChild(el);
+
+      component.scrollToBlock('section-faits');
+
+      expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+      expect(el.classList.contains('source-highlight')).toBe(true);
+      document.body.removeChild(el);
+    });
+
+    // U-6 : synthesisBadges() retourne [] quand synthesis() est null
+    it('U6: returns empty array when synthesis is null', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([]));
+      fixture.detectChanges();
+
+      expect(component.synthesisBadges()).toEqual([]);
+    });
+  });
 });

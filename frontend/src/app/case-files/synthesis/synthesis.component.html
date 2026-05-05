@@ -107,10 +107,30 @@
     </div>
   }
 
+  <!-- F-162 SF-162-01 — grille de badges synthétiques navigables vers les blocs. -->
+  @if (synthesisBadges().length > 0) {
+    <div class="synthesis-grid" role="navigation" aria-label="Navigation vers les blocs de synthèse">
+      @for (badge of synthesisBadges(); track badge.id) {
+        <button type="button"
+                class="synthesis-badge"
+                [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
+                (click)="scrollToBlock(badge.anchor)"
+                [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
+          <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+          <span class="synthesis-badge__count">{{ badge.count }}</span>
+          <span class="synthesis-badge__label">{{ badge.label }}</span>
+          @if (badge.sublabel) {
+            <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+          }
+        </button>
+      }
+    </div>
+  }
+
   @if (synthesis()) {
     <mat-accordion class="synthesis-accordion" multi [@listStagger]="synthesis()!.faits.length + synthesis()!.risques.length + synthesis()!.timeline.length">
       @if (synthesis()!.timeline.length > 0) {
-        <mat-expansion-panel expanded>
+        <mat-expansion-panel expanded id="section-timeline">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="panel-icon panel-icon--timeline">timeline</mat-icon>
@@ -130,7 +150,7 @@
       }
 
       @if (synthesis()!.faits.length > 0) {
-        <mat-expansion-panel expanded>
+        <mat-expansion-panel expanded id="section-faits">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="panel-icon panel-icon--faits">gavel</mat-icon>
@@ -156,7 +176,7 @@
       }
 
       @if (synthesis()!.pointsJuridiques.length > 0) {
-        <mat-expansion-panel expanded>
+        <mat-expansion-panel expanded id="section-points-juridiques">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="panel-icon panel-icon--juridique">balance</mat-icon>
@@ -182,7 +202,7 @@
       }
 
       @if (synthesis()!.risques.length > 0) {
-        <mat-expansion-panel expanded>
+        <mat-expansion-panel expanded id="section-risques">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="panel-icon panel-icon--risques">warning_amber</mat-icon>
@@ -222,7 +242,7 @@
       }
 
       @if (synthesis()!.questionsOuvertes.length > 0) {
-        <mat-expansion-panel expanded>
+        <mat-expansion-panel expanded id="section-questions-ouvertes">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <mat-icon class="panel-icon panel-icon--questions">help_outline</mat-icon>
