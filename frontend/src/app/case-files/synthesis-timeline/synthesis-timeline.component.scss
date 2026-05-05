@@ -1,0 +1,192 @@
+// F-162 SF-162-02 — page Timeline dédiée. Patron canonique pour SF-162-03/04/05.
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+
+  .empty-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--color-text-secondary, #6B7A8D);
+    margin-bottom: 12px;
+  }
+
+  p {
+    color: var(--color-text-secondary, #6B7A8D);
+    margin: 0 0 16px 0;
+  }
+}
+
+.detail-page {
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+}
+
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-divider, #E0E4EA);
+}
+
+.back-btn {
+  align-self: flex-start;
+  color: var(--color-primary, #1A3A5C);
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.page-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-primary, #1A3A5C);
+  margin: 0;
+}
+
+.meta-version {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6B7A8D);
+  background: rgba(26, 58, 92, 0.06);
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.case-subtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary, #6B7A8D);
+  margin: 0;
+}
+
+.empty-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px dashed var(--color-divider, #E0E4EA);
+  border-radius: 12px;
+
+  .empty-block__icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+    color: var(--color-text-secondary, #6B7A8D);
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: var(--color-text-secondary, #6B7A8D);
+    margin: 0;
+  }
+}
+
+// Rail horizontal scrollable.
+.timeline-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 16px 4px 24px;
+  scroll-behavior: smooth;
+
+  // Ligne horizontale derrière les cartes (pseudo-rail).
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      transparent 0,
+      var(--color-divider, #E0E4EA) 24px,
+      var(--color-divider, #E0E4EA) calc(100% - 24px),
+      transparent 100%
+    );
+    z-index: 0;
+    pointer-events: none;
+  }
+}
+
+.timeline-card {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-divider, #E0E4EA);
+  border-radius: 12px;
+  padding: 14px 12px 18px;
+  box-shadow: 0 1px 4px rgba(26, 58, 92, 0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: var(--color-primary, #1A3A5C);
+    box-shadow: 0 2px 8px rgba(26, 58, 92, 0.12);
+  }
+}
+
+.timeline-card__date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary, #1A3A5C);
+  margin-bottom: 8px;
+}
+
+.timeline-card__connector {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent, #C9973A);
+  border: 2px solid var(--color-surface, #FFFFFF);
+  box-shadow: 0 0 0 2px var(--color-accent, #C9973A);
+  margin: 4px 0 8px;
+}
+
+.timeline-card__event {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-primary, #1C2B3A);
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .detail-page {
+    padding: 16px;
+  }
+
+  .timeline-card {
+    flex: 0 0 220px;
+  }
+}
