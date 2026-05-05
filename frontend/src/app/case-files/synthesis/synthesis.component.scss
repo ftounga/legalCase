@@ -972,6 +972,8 @@
   text-align: left;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
   font-family: 'Inter', sans-serif;
+  text-decoration: none;
+  color: inherit;
 
   &:hover {
     border-color: var(--color-primary, #1A3A5C);
