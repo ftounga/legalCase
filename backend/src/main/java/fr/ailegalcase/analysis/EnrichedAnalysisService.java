@@ -22,6 +22,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -208,17 +209,48 @@ public class EnrichedAnalysisService {
         try {
             log.info("Enriched analysis START for caseFile {} ({} chars)", caseFileId, prepared.prompt().length());
             long anthropicStart = System.currentTimeMillis();
-            // SF : bump initial à 16384 car l'enriched sur dossiers riches
-            // (source_explanations volumineux + full aggregation) dépassait 8192 tokens
-            // → troncature silencieuse observée sur E27 (JSON coupé en pleine phrase →
-            // compensationEstimate=null → UI fallback permissif = "Validité licenciement"
-            // s'affichait à tort).
-            // F-161 SF-161-02 : second bump 16384→64000 pour absorber les nouveaux caps
-            // SF-161-01 (faits 80, points 80, risques 40, timeline 60-80, etc.).
-            // Worst case ~34-36 K tokens output sur dossiers extraordinaires.
-            // Sonnet 4.x supporte 64 K output natif.
-            // F-142-04 : prompt caching ephemeral (cf. CaseAnalysisService).
-            result = anthropicService.analyzeWithSystemCache(prepared.systemPrompt(), prepared.prompt(), 64000);
+            // F-190 SF-190-02 — streaming SSE miroir de F-185 SF-185-01.
+            // À chaque section JSON top-level close détectée par PartialJsonSectionExtractor,
+            // persistance immédiate dans partial_state (REQUIRES_NEW) + event SSE
+            // ENRICHED_ANALYSIS PARTIAL pour que la page synthèse affiche les sections
+            // au fil de l'eau pendant la re-analyse enrichie.
+            //
+            // Fallback gracieux : si le streaming échoue (HTTP, parsing), on retombe
+            // sur l'appel synchrone — aucune régression possible.
+            //
+            // Bump tokens : SF d'origine 16384 → 64000 (cf. F-161 SF-161-02).
+            java.util.concurrent.atomic.AtomicInteger chunkCount = new java.util.concurrent.atomic.AtomicInteger();
+            java.util.concurrent.atomic.AtomicInteger sectionCount = new java.util.concurrent.atomic.AtomicInteger();
+            java.util.concurrent.atomic.AtomicInteger persistCount = new java.util.concurrent.atomic.AtomicInteger();
+            try {
+                PartialJsonSectionExtractor extractor = new PartialJsonSectionExtractor();
+                result = anthropicService.analyzeWithSystemCacheStreaming(
+                        prepared.systemPrompt(), prepared.prompt(), 64000,
+                        delta -> {
+                            chunkCount.incrementAndGet();
+                            try {
+                                List<Map.Entry<String, String>> newSections = extractor.append(delta);
+                                if (!newSections.isEmpty()) {
+                                    sectionCount.addAndGet(newSections.size());
+                                    self.persistPartialAndNotify(prepared.analysisId(), caseFileId,
+                                            extractor.snapshot());
+                                    persistCount.incrementAndGet();
+                                }
+                            } catch (Exception ex) {
+                                log.warn("Partial state update failed for caseFile {} (enriched analysis continues): {}",
+                                        caseFileId, ex.getMessage());
+                            }
+                        });
+            } catch (Exception streamingFailure) {
+                log.warn("Streaming Anthropic failed for enriched caseFile {} ({}), falling back to synchronous mode",
+                        caseFileId, streamingFailure.getMessage());
+            }
+            log.info("Enriched analysis STREAMING SUMMARY caseFile={} chunks={} sections={} persists={}",
+                    caseFileId, chunkCount.get(), sectionCount.get(), persistCount.get());
+            if (result == null) {
+                result = anthropicService.analyzeWithSystemCache(
+                        prepared.systemPrompt(), prepared.prompt(), 64000);
+            }
             long anthropicMs = System.currentTimeMillis() - anthropicStart;
             log.info("Enriched analysis DONE for caseFile {} — Anthropic {}ms, total {}ms, tokens {}/{}",
                     caseFileId, anthropicMs, System.currentTimeMillis() - startMs,
@@ -231,6 +263,40 @@ public class EnrichedAnalysisService {
 
         self.finalizeEnrichedAnalysis(prepared.analysisId(), prepared.caseFileId(), result, failure, prepared.limits(),
                 prepared.previousAnalysisId());
+    }
+
+    /**
+     * F-190 SF-190-02 — miroir de {@link CaseAnalysisService#persistPartialAndNotify}.
+     * Persiste {@code partial_state} dans une transaction REQUIRES_NEW pour visibilité
+     * immédiate côté endpoint partial, puis publie un événement SSE
+     * {@code ENRICHED_ANALYSIS PARTIAL} après commit.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void persistPartialAndNotify(UUID analysisId, UUID caseFileId, Map<String, String> sections) {
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : sections.entrySet()) {
+            if (!first) json.append(",");
+            json.append('"').append(entry.getKey()).append("\":").append(entry.getValue());
+            first = false;
+        }
+        json.append("}");
+
+        CaseAnalysis analysis = caseAnalysisRepository.findById(analysisId).orElse(null);
+        if (analysis == null) return;
+        analysis.setPartialState(json.toString());
+        if (analysis.getAnalysisStatus() == AnalysisStatus.PROCESSING) {
+            analysis.setAnalysisStatus(AnalysisStatus.PARTIAL);
+        }
+        caseAnalysisRepository.save(analysis);
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                eventPublisher.publishEvent(new AnalysisStatusEvent(
+                        caseFileId, AnalysisStatus.PARTIAL, JobType.ENRICHED_ANALYSIS));
+            }
+        });
     }
 
     @Transactional
@@ -353,6 +419,9 @@ public class EnrichedAnalysisService {
             CaseAnalysisResponse.populateCounts(enrichedAnalysis, truncated);
             CaseAnalysisResponse.populateRiskScore(enrichedAnalysis, truncated);
         }
+        // F-190 SF-190-02 — purger l'état partiel : remplacé par analysisResult complet
+        // (DONE) ou rendu obsolète par l'échec (FAILED). Miroir CaseAnalysisService.
+        enrichedAnalysis.setPartialState(null);
         caseAnalysisRepository.save(enrichedAnalysis);
 
         if (failure == null) {

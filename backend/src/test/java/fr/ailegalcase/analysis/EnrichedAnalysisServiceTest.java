@@ -614,6 +614,79 @@ class EnrichedAnalysisServiceTest {
         assertThat(prompt).contains("[Points procéduraux vérifiés — à reconsidérer si nécessaire]");
     }
 
+    // F-190 SF-190-02 : streaming → partial_state alimenté par section, puis purgé au DONE
+    @Test
+    void consumeReAnalysis_streaming_setsPartialStateThenPurgesAtDone() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{\"faits\":[]}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        // Streaming stub : invoque le callback avec 2 sections puis retourne le résultat final
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(), any(), anyInt(), any())).thenAnswer(inv -> {
+            @SuppressWarnings("unchecked")
+            java.util.function.Consumer<String> onDelta = inv.getArgument(3);
+            onDelta.accept("{\"faits\": [{\"texte\": \"f1\"}], ");
+            onDelta.accept("\"risques\": []}");
+            return new AnthropicResult("{\"faits\":[{\"texte\":\"f1\"}],\"risques\":[]}",
+                    "claude-sonnet-4-6", 100, 50);
+        });
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(2)).save(captor.capture());
+        boolean hasPartial = captor.getAllValues().stream()
+                .anyMatch(a -> a.getPartialState() != null && !a.getPartialState().isBlank());
+        assertThat(hasPartial).isTrue();
+        CaseAnalysis last = captor.getValue();
+        assertThat(last.getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(last.getPartialState()).isNull();
+    }
+
+    // F-190 SF-190-02 : streaming retourne null → fallback synchrone analyzeWithSystemCache
+    @Test
+    void consumeReAnalysis_streamingReturnsNull_fallsBackToSynchronous() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        // Streaming retourne null (mock par défaut) → le service doit retomber sur analyzeWithSystemCache
+        when(anthropicService.analyzeWithSystemCacheStreaming(any(), any(), anyInt(), any())).thenReturn(null);
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[\"fallback\"]}", "claude-sonnet-4-6", 200, 100));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        verify(anthropicService).analyzeWithSystemCache(any(), any(), anyInt());
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeastOnce()).save(captor.capture());
+        CaseAnalysis last = captor.getValue();
+        assertThat(last.getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(last.getAnalysisResult()).contains("fallback");
+    }
+
     private AiQuestion answeredQuestion(UUID caseFileId, String text) {
         fr.ailegalcase.casefile.CaseFile cf = new fr.ailegalcase.casefile.CaseFile();
         AiQuestion q = new AiQuestion();

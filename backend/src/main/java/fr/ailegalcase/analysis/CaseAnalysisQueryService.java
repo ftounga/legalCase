@@ -163,6 +163,7 @@ public class CaseAnalysisQueryService {
         return new CaseAnalysisPartialResponse(
                 analysis.getId(),
                 analysis.getVersion(),
+                analysis.getAnalysisType(),
                 analysis.getAnalysisStatus(),
                 sections,
                 analysis.getUpdatedAt()
