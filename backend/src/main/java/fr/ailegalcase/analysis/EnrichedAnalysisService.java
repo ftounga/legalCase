@@ -137,6 +137,8 @@ public class EnrichedAnalysisService {
     private final StrategicOptionService strategicOptionService;
     private final RetainedPisteAlignmentService retainedPisteAlignmentService;
     private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
+    private final PieceManquanteAlignmentService pieceManquanteAlignmentService;
+    private final PieceManquanteStatusService pieceManquanteStatusService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
@@ -170,6 +172,8 @@ public class EnrichedAnalysisService {
                                    StrategicOptionService strategicOptionService,
                                    RetainedPisteAlignmentService retainedPisteAlignmentService,
                                    ProcedureCheckAlignmentService procedureCheckAlignmentService,
+                                   PieceManquanteAlignmentService pieceManquanteAlignmentService,
+                                   PieceManquanteStatusService pieceManquanteStatusService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
@@ -193,6 +197,8 @@ public class EnrichedAnalysisService {
         this.strategicOptionService = strategicOptionService;
         this.retainedPisteAlignmentService = retainedPisteAlignmentService;
         this.procedureCheckAlignmentService = procedureCheckAlignmentService;
+        this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
+        this.pieceManquanteStatusService = pieceManquanteStatusService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
@@ -395,9 +401,23 @@ public class EnrichedAnalysisService {
                     previousAnalysis.getId(), e);
             strategicSnapshot = StrategicOptionService.EnrichmentSnapshot.empty();
         }
+        // F-194 SF-194-01 — snapshot statuts pièces avocat pour 3 sections prompt enrichi
+        // ([Pièces déjà obtenues] / [Pièces non applicables] / [Pièces à demander]).
+        PieceManquanteStatusService.EnrichmentSnapshot piecesSnapshot;
+        try {
+            piecesSnapshot = pieceManquanteStatusService.collectForEnrichment(caseFileId);
+            if (piecesSnapshot == null) {
+                piecesSnapshot = PieceManquanteStatusService.EnrichmentSnapshot.empty();
+            }
+        } catch (Exception e) {
+            log.warn("F-194: pieces collectForEnrichment failed for caseFile {} — enriched analysis will proceed without it",
+                    caseFileId, e);
+            piecesSnapshot = PieceManquanteStatusService.EnrichmentSnapshot.empty();
+        }
         String basePrompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
                 nonCompliantChecks, toCheckChecks, verifiedChecks,
-                strategicSnapshot.retainedTexts(), strategicSnapshot.discardedTexts());
+                strategicSnapshot.retainedTexts(), strategicSnapshot.discardedTexts(),
+                piecesSnapshot.obtenues(), piecesSnapshot.nonApplicables(), piecesSnapshot.aDemander());
         // F-146 SF-146-01 : préfixe le prompt avec la liste des pièces pour que
         // la re-synthèse enrichie produise aussi des sourceRef précis.
         String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
@@ -456,6 +476,16 @@ public class EnrichedAnalysisService {
                 procedureCheckAlignmentService.materializeForAnalysis(enrichedAnalysis);
             } catch (Exception e) {
                 log.warn("Fail-open: procedure checks materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-194 SF-194-01 : matérialise l'alignement pièces (statut avocat overlay sur
+            // pieces_manquantes IA), propage les délais auto PIECE_A_DEMANDER. Doit être
+            // APRÈS F-192 + F-193 (qui peuvent injecter des entrées pieces_manquantes que
+            // F-194 doit voir pour calculer son alignement).
+            try {
+                pieceManquanteAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: pieces manquantes materialization failed for enriched analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,
@@ -553,13 +583,27 @@ public class EnrichedAnalysisService {
                                 List<String> nonCompliantChecks, List<String> toCheckChecks,
                                 List<String> verifiedChecks) {
         return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
-                nonCompliantChecks, toCheckChecks, verifiedChecks, List.of(), List.of());
+                nonCompliantChecks, toCheckChecks, verifiedChecks, List.of(), List.of(),
+                List.of(), List.of(), List.of());
+    }
+
+    /** Overload F-176 (sans pieces statuts F-194) — utilisé par les tests existants. */
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks,
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions) {
+        return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks,
+                retainedStrategicOptions, discardedStrategicOptions,
+                List.of(), List.of(), List.of());
     }
 
     String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
                                 List<String> nonCompliantChecks, List<String> toCheckChecks,
                                 List<String> verifiedChecks,
-                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions) {
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions,
+                                List<String> piecesObtenues, List<String> piecesNonApplicables,
+                                List<String> piecesADemander) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -620,6 +664,22 @@ public class EnrichedAnalysisService {
         if (discardedStrategicOptions != null && !discardedStrategicOptions.isEmpty()) {
             prompt.append("\n\n[Pistes stratégiques écartées — NE PAS re-proposer]\n");
             discardedStrategicOptions.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        // F-194 SF-194-01 — 3 sections statuts pièces avocat
+        if (piecesObtenues != null && !piecesObtenues.isEmpty()) {
+            prompt.append("\n\n[Pièces déjà obtenues — ne pas réclamer]\n");
+            piecesObtenues.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        if (piecesNonApplicables != null && !piecesNonApplicables.isEmpty()) {
+            prompt.append("\n\n[Pièces non applicables au dossier — ne pas mentionner]\n");
+            piecesNonApplicables.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        if (piecesADemander != null && !piecesADemander.isEmpty()) {
+            prompt.append("\n\n[Pièces à demander au client — pousser explicitement dans la nouvelle synthèse]\n");
+            piecesADemander.forEach(p -> prompt.append("- ").append(p).append("\n"));
         }
 
         return prompt.toString();

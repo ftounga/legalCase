@@ -132,7 +132,16 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 mock(Belgian40bisRepository.class),
                 mock(Belgian40terRepository.class),
                 retainedPisteAlignmentService,
-                procedureCheckAlignmentService);
+                procedureCheckAlignmentService,
+                pieceManquanteAlignmentServiceForTest());
+    }
+
+    /** F-194 SF-194-01 — mock du service avec deserializeAlignment vide pour ne pas perturber les tests F-193. */
+    private fr.ailegalcase.analysis.PieceManquanteAlignmentService pieceManquanteAlignmentServiceForTest() {
+        fr.ailegalcase.analysis.PieceManquanteAlignmentService m =
+                mock(fr.ailegalcase.analysis.PieceManquanteAlignmentService.class);
+        when(m.deserializeAlignment(any())).thenReturn(List.of());
+        return m;
     }
 
     @Test
