@@ -134,6 +134,39 @@ public class CaseAnalysis {
     @Column(name = "score_risque_avocat_json", columnDefinition = "TEXT")
     private String scoreRisqueAvocatJson;
 
+    /**
+     * F-197 SF-197-01 — Override avocat du {@code type_litige_detecte} IA pour les
+     * dossiers Travail FR (7 enums LICENCIEMENT_SANS_CAUSE_REELLE / LICENCIEMENT_ECONOMIQUE
+     * / PRISE_ACTE_RUPTURE / HARCELEMENT_MORAL / DISCRIMINATION / HEURES_SUPPLEMENTAIRES /
+     * RAPPEL_SALAIRE).
+     *
+     * <p>Persistance pure (cohérence F-176). Effets matérialisés au prochain run de
+     * Synthèse enrichie : (a) injecté dans le prompt enrichi section
+     * {@code [Type litige fixé par l'avocat]}, (b) cloné automatiquement sur la
+     * nouvelle analyse créée, (c) consommé par {@code DecisionToolVisibilityService}
+     * en priorité sur la valeur IA brute pour la résolution F-IA-04.</p>
+     */
+    @Column(name = "type_litige_avocat_override", length = 50)
+    private String typeLitigeAvocatOverride;
+
+    /**
+     * F-197 SF-197-01 — Override avocat du {@code type_procedure_detectee} IA pour les
+     * dossiers Immigration (codes RENOUVELLEMENT_TITRE_SEJOUR / DEMANDE_ASILE_OFPRA /
+     * RECOURS_CNDA / REGROUPEMENT_FAMILIAL / NATURALISATION_DECRET / CHANGEMENT_STATUT /
+     * AES_SALARIE / REGULARISATION_EXCEPTIONNELLE / OQTF_AVEC_DELAI / OQTF_SANS_DELAI).
+     *
+     * <p>Mêmes règles que {@link #typeLitigeAvocatOverride} (PUT pur + matérialisation
+     * au run suivant + clone automatique).</p>
+     */
+    @Column(name = "type_procedure_avocat_override", length = 50)
+    private String typeProcedureAvocatOverride;
+
+    /**
+     * F-197 SF-197-01 — Raison libre justifiant l'override (optionnelle).
+     */
+    @Column(name = "type_override_raison", columnDefinition = "TEXT")
+    private String typeOverrideRaison;
+
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 
