@@ -22,6 +22,9 @@ import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-pop
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
+import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
 const VALID_RECOURS_CODES = new Set([
   'RECOURS_GRACIEUX_PREFET', 'RECOURS_CONTENTIEUX_TA', 'RECOURS_CNDA',
@@ -43,6 +46,7 @@ export type IM06CoherenceAlert = CoherenceAlert<IM06AlertField>;
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
+    ProcedureChecksOutputComponent,
   ],
   templateUrl: './immigration-recours-section.component.html',
   styleUrl: './immigration-recours-section.component.scss'
@@ -71,12 +75,21 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     return { kind: 'none', count: 0 };
   }
 
+  /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
+  static getProcedureChecksBadge(input: {
+    proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  }): ProcedureChecksBadge {
+    return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
   @Input() aiData?: ImmigrationExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /** F-193 SF-193-02 — alignement F-96 pré-filtré sur cet outil. */
+  @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   /**
    * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec
    * l'outil F-IM-06. Pré-filtré côté panel (TOOL_REGISTRY) sur

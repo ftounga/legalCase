@@ -219,6 +219,9 @@
             }
           }
 
+          <!-- F-193 SF-193-02 — Sortie outil enrichie : checks F-96 alignés. -->
+          <app-procedure-checks-output [alignment]="proceduresChecksAlignment ?? []" />
+
           <div class="results-actions">
             <button mat-stroked-button (click)="editCriteria()">
               <mat-icon>edit</mat-icon> Refaire l'analyse

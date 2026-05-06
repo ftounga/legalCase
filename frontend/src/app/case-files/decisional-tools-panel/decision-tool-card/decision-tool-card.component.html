@@ -33,6 +33,16 @@
           <span class="tool-card__badge-count">{{ retainedPistesBadge!.count }}</span>
         </span>
       }
+      @if (showProceduresChecksBadge) {
+        <span
+          [ngClass]="['tool-card__badge', 'tool-card__badge--procedures', proceduresChecksBadgeClass]"
+          [matTooltip]="proceduresChecksBadgeTooltip"
+          [attr.aria-label]="proceduresChecksBadgeAriaLabel"
+          data-testid="procedures-checks-badge">
+          <mat-icon aria-hidden="true">verified</mat-icon>
+          <span class="tool-card__badge-count">{{ proceduresChecksBadgeLabel }}</span>
+        </span>
+      }
       @if (showCoherenceBadge) {
         <span
           class="tool-card__badge tool-card__badge--coherence"

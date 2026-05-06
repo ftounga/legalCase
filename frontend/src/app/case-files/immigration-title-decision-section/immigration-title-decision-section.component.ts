@@ -20,6 +20,9 @@ import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
+import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
 /**
  * F-192 SF-192-02 — Verdict utilisé par la card du panel F-IA-04 pour afficher
@@ -92,6 +95,7 @@ const TRIGGER_TO_CRITERIA: Record<string, { motif: string; situationFamiliale?: 
     MatProgressSpinnerModule, MatSlideToggleModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
+    ProcedureChecksOutputComponent,
   ],
   templateUrl: './immigration-title-decision-section.component.html',
   styleUrl: './immigration-title-decision-section.component.scss'
@@ -205,6 +209,17 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     return { kind: 'none', count: 0 };
   }
 
+  /**
+   * F-193 SF-193-02 — Pattern miroir `getRetainedPistesBadge` ci-dessus.
+   * La liste reçue est déjà pré-filtrée par le panel via `inputs(ctx)` sur
+   * `toolIdCible === 'F-IM-05-arbre-decisionnel-titre'`.
+   */
+  static getProcedureChecksBadge(input: {
+    proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  }): ProcedureChecksBadge {
+    return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
   /** SF-IM-05-04 : événements déclencheurs F-150 — priorité sur aiData pour déduire motif+situation. */
@@ -220,6 +235,11 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
    * sans modifier le formulaire ni la décision IA.
    */
   @Input() pistesRetenues?: RetainedPisteAlignment[] | null;
+  /**
+   * F-193 SF-193-02 — Alignement des checks F-96 sur cet outil (déjà
+   * pré-filtré par le panel via TOOL_REGISTRY.inputs(ctx)).
+   */
+  @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 

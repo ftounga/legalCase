@@ -21,6 +21,9 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
+import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
 interface CritereForm {
   code: string;
@@ -61,6 +64,7 @@ const CRITERE_CODES = new Set([
     MatProgressSpinnerModule, MatRadioModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
+    ProcedureChecksOutputComponent,
   ],
   templateUrl: './licenciement-section.component.html',
   styleUrl: './licenciement-section.component.scss'
@@ -70,12 +74,29 @@ export class LicenciementSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'VALIDITÉ DU LICENCIEMENT';
   static readonly TOOL_ICON = 'gavel';
 
+  /**
+   * F-193 SF-193-02 — Pattern miroir de `getRetainedPistesBadge` (F-192) :
+   * permet au panel F-IA-04 d'afficher le pill `🔍 Procédure (V/N/T)` AVANT
+   * instanciation du composant. La liste reçue est déjà filtrée par le
+   * panel via `inputs(ctx)` sur `toolIdCible === <toolId courant>`.
+   */
+  static getProcedureChecksBadge(input: {
+    proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  }): ProcedureChecksBadge {
+    return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   @Input() aiData?: LicenciementValidityDetection | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /**
+   * F-193 SF-193-02 — Alignement des checks F-96 sur cet outil (déjà
+   * pré-filtré par le panel via TOOL_REGISTRY.inputs(ctx)).
+   */
+  @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   // F-177 SF-177-03 : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
