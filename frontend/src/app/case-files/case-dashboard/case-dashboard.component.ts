@@ -220,6 +220,17 @@ export class CaseDashboardComponent implements OnInit {
       );
       return;
     }
+    // F-196 SF-196-02 — tile résumé Questions complémentaires (F-94) : pas un
+    // outil décisionnel instanciable, on redirige vers la synthèse avec scroll
+    // vers le bloc Questions (anchor `section-questions`, déjà rendu par
+    // SynthesisComponent / F-94).
+    if (toolId === 'F-196-questions-summary') {
+      this.router.navigate(
+        ['/case-files', this.caseFileId, 'synthesis'],
+        { fragment: 'section-questions' },
+      );
+      return;
+    }
     const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
     if (!entry) {
       // eslint-disable-next-line no-console

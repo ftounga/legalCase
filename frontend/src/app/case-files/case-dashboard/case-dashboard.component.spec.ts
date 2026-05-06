@@ -585,6 +585,78 @@ describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () =
   });
 });
 
+// F-196 SF-196-02 — tile F-196-questions-summary rendue + clic navigation
+// vers /synthesis#section-questions (pas d'ouverture modal d'outil).
+describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+
+  const dashboardWithQuestions: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'DROIT_DU_TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-196-questions-summary',
+        theme: 'DOCUMENTS',
+        label: 'Questions complémentaires',
+        primaryValue: '5 questions',
+        secondaryValue: '3 répondues · 2 en attente',
+        alertLevel: 'WARNING',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithQuestions)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    router = { navigate: jest.fn() } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-01 tile F-196-questions-summary rendue dans le thème DOCUMENTS', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const docs = sections.find(s => s.key === 'DOCUMENTS');
+    expect(docs).toBeDefined();
+    expect(docs!.tiles[0].toolId).toBe('F-196-questions-summary');
+    expect(docs!.tiles[0].label).toBe('Questions complémentaires');
+    expect(docs!.tiles[0].primaryValue).toBe('5 questions');
+    expect(docs!.tiles[0].secondaryValue).toBe('3 répondues · 2 en attente');
+    expect(docs!.tiles[0].alertLevel).toBe('WARNING');
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Questions complémentaires');
+  });
+
+  it('CA-02 clic tile F-196-questions-summary → router.navigate vers /synthesis#section-questions', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-196-questions-summary');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-questions' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});
+
 // F-195 SF-195-02 — tile riskScore étendue avec scoreRisqueAvocat
 describe('CaseDashboardComponent — F-195 SF-195-02 dual riskScore', () => {
   let fixture: ComponentFixture<CaseDashboardComponent>;
