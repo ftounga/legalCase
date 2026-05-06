@@ -5,6 +5,7 @@ import { CaseFile } from '../models/case-file.model';
 import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
 import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
 import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
+import { RisqueAlignment } from '../models/risque-alignment.model';
 
 const mockCaseFile: Partial<CaseFile> = { id: '1', title: 'Affaire Dupont c/ SA Renault' };
 
@@ -983,5 +984,294 @@ describe('PdfExportService', () => {
     const piecesIdx = flat.indexOf('📎 Pièces à demander');
     const tail = flat.substring(piecesIdx);
     expect(tail).toContain('"pageBreak":"after"');
+  });
+
+  // ----------------------------------------------------------------------
+  // F-195 SF-195-03 : section « ⚠️ Risques retenus par votre avocat »
+  // ----------------------------------------------------------------------
+
+  const risqueValideStandard: RisqueAlignment = {
+    risqueLibelle: 'Requalification du contrat possible',
+    statut: 'VALIDE',
+    toolIdsCibles: ['F-DT-08-validite-licenciement'],
+    raisonEcarte: null,
+  };
+
+  const risqueValideSansOutil: RisqueAlignment = {
+    risqueLibelle: 'Risque retenu sans mapping outil',
+    statut: 'VALIDE',
+    toolIdsCibles: [],
+    raisonEcarte: null,
+  };
+
+  const risqueValideHarcelement: RisqueAlignment = {
+    risqueLibelle: 'Harcèlement moral subi par le salarié',
+    statut: 'VALIDE',
+    toolIdsCibles: ['F-DT-12-harcelement-licenciement-nul'],
+    raisonEcarte: null,
+  };
+
+  const risqueValideExpulsion: RisqueAlignment = {
+    risqueLibelle: 'OQTF imminente — risque d\'expulsion',
+    statut: 'VALIDE',
+    toolIdsCibles: ['F-IM-08'],
+    raisonEcarte: null,
+  };
+
+  const risqueACreuser: RisqueAlignment = {
+    risqueLibelle: 'Risque à creuser',
+    statut: 'A_CREUSER',
+    toolIdsCibles: [],
+    raisonEcarte: null,
+  };
+
+  const risqueEcarte: RisqueAlignment = {
+    risqueLibelle: 'Clause non-concurrence abusive',
+    statut: 'ECARTE',
+    toolIdsCibles: ['F-DT-24'],
+    raisonEcarte: 'Clause non présente au contrat',
+  };
+
+  const risquesLabelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-DT-08-validite-licenciement': 'VALIDITÉ LICENCIEMENT',
+      'F-DT-12-harcelement-licenciement-nul': 'HARCELEMENT LICENCIEMENT NUL',
+      'F-IM-08': 'OQTF DECISIONS',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-195-03 CA-07 fail-open: buildDocument(_, _, _, _, _, _, []) → aucune section Risques retenus', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], []
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 CA-07 fail-open: buildDocument sans risquesAlignment → aucune section', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 CA-07 fail-open: risquesAlignment = null → aucune section', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], null as any
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 : aucun risque VALIDÉ (que des A_CREUSER + ECARTE) → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [],
+      [risqueACreuser, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 : ≥ 1 risque VALIDÉ → section incluse avec titre + libellé risque', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⚠️ Risques retenus par votre avocat');
+    expect(s).toContain('Requalification du contrat possible');
+  });
+
+  it('SF-195-03 : titre fontSize 16 bold navy + liseré or par défaut', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toMatch(/"text":"⚠️ Risques retenus par votre avocat","fontSize":16,"bold":true/);
+  });
+
+  it('SF-195-03 suffixe outil: lookup → label outil cible affiché en JetBrainsMono italique 9', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ VALIDITÉ LICENCIEMENT');
+    expect(flat).toMatch(/"text":"→ VALIDITÉ LICENCIEMENT","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-195-03 : lookup label échoue → toolId brut affiché en suffixe', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], noResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ F-DT-08-validite-licenciement');
+  });
+
+  it('SF-195-03 : risque VALIDÉ sans toolIdsCibles → aucun suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideSansOutil],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('Risque retenu sans mapping outil');
+    expect(flat).not.toMatch(/→ [A-Z]/);
+  });
+
+  it('SF-195-03 keyword critique « harcèlement » → pictogramme 🔴 + liseré rouge ERROR', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideHarcelement],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // pictogramme 🔴 (au lieu du ⚠️ par défaut)
+    expect(flat).toContain('🔴');
+    // liseré gauche en couleur ERROR (#C0392B) — palette critique
+    expect(flat).toContain('"fillColor":"#C0392B"');
+  });
+
+  it('SF-195-03 keyword critique « expulsion » → pictogramme 🔴', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideExpulsion],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('🔴');
+  });
+
+  it('SF-195-03 risque VALIDÉ standard (non critique) → pictogramme ⚠️ + liseré or ACCENT', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('⚠️');
+    // liseré gauche en or (#C9973A) — palette charte navy/or par défaut
+    expect(flat).toContain('"fillColor":"#C9973A"');
+    // pas de 🔴 sur ce risque non critique
+    expect(flat).not.toContain('🔴');
+  });
+
+  it('SF-195-03 sous-bloc compteur ÉCARTÉS: rendu si ≥ 1 ECARTE', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('❌ Risques écartés : 1');
+    // libellé du risque écarté NON listé (compteur seul, cohérent F-194)
+    expect(s).not.toContain('Clause non-concurrence abusive');
+  });
+
+  it('SF-195-03 : aucun ECARTE → compteur écartés absent', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques écartés');
+  });
+
+  it('SF-195-03 score: riskScore IA brut + riskScoreAvocat → sous-titre « Score validé avocat : Y / 100 (vs IA brut : X / 100) »', () => {
+    const synWithScores: CaseAnalysisResult = {
+      ...mockSynthesis,
+      riskScore: 78,
+      // Champ optionnel ajouté par SF-195-01 (lecture défensive côté frontend)
+      // — typé via cast pour compatibilité avec le type V1.
+      ...({ riskScoreAvocat: 52 } as any),
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synWithScores, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Score validé avocat : 52 / 100 (vs IA brut : 78 / 100)');
+  });
+
+  it('SF-195-03 score: riskScoreAvocat seul → sous-titre « Score validé avocat : Y / 100 »', () => {
+    const synAvocatOnly: CaseAnalysisResult = {
+      ...mockSynthesis,
+      riskScore: null,
+      ...({ riskScoreAvocat: 65 } as any),
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synAvocatOnly, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Score validé avocat : 65 / 100');
+    expect(s).not.toContain('vs IA brut');
+  });
+
+  it('SF-195-03 score: aucun score disponible → sous-titre score absent', () => {
+    const synNoScores: CaseAnalysisResult = {
+      ...mockSynthesis,
+      riskScore: null,
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synNoScores, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Score validé avocat');
+    expect(s).not.toContain('Score IA brut');
+  });
+
+  it('SF-195-03 ordre sections: F-192 → F-193 → F-194 → F-195 → Timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      synWithTimeline,
+      [pisteAligned],
+      labelResolver,
+      [checkAligned],
+      [pieceADemander],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const checksIdx = flat.indexOf('🔍 Conformité procédurale');
+    const piecesIdx = flat.indexOf('📎 Pièces à demander');
+    const risquesIdx = flat.indexOf('⚠️ Risques retenus par votre avocat');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(checksIdx).toBeGreaterThan(-1);
+    expect(piecesIdx).toBeGreaterThan(-1);
+    expect(risquesIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(stratIdx).toBeLessThan(checksIdx);
+    expect(checksIdx).toBeLessThan(piecesIdx);
+    expect(piecesIdx).toBeLessThan(risquesIdx);
+    expect(risquesIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-195-03 fail-open indépendant: F-192/F-193/F-194 vides + F-195 succès → section risques uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [risqueValideStandard]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('🔍 Conformité procédurale');
+    expect(s).not.toContain('📎 Pièces à demander');
+    expect(s).toContain('⚠️ Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 plusieurs risques VALIDÉS (mix critique / standard) + écartés → liste + compteur', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideHarcelement, risqueValideStandard, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Harcèlement moral subi par le salarié');
+    expect(s).toContain('Requalification du contrat possible');
+    expect(s).toContain('🔴'); // pictogramme critique pour harcèlement
+    expect(s).toContain('⚠️'); // pictogramme standard pour l'autre
+    expect(s).toContain('❌ Risques écartés : 1');
   });
 });
