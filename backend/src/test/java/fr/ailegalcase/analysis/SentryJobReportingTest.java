@@ -81,6 +81,8 @@ class SentryJobReportingTest {
             mock(RisqueAlignmentService.class);
     private final RisqueStatusService risqueStatusService =
             mock(RisqueStatusService.class);
+    private final TypeLitigeOverrideService typeLitigeOverrideService =
+            mock(TypeLitigeOverrideService.class);
 
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
@@ -90,6 +92,7 @@ class SentryJobReportingTest {
             procedureCheckAlignmentService,
             pieceManquanteAlignmentService, pieceManquanteStatusService,
             risqueAlignmentService, risqueStatusService,
+            typeLitigeOverrideService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);

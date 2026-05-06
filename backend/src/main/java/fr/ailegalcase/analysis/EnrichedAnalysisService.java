@@ -141,6 +141,7 @@ public class EnrichedAnalysisService {
     private final PieceManquanteStatusService pieceManquanteStatusService;
     private final RisqueAlignmentService risqueAlignmentService;
     private final RisqueStatusService risqueStatusService;
+    private final TypeLitigeOverrideService typeLitigeOverrideService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
@@ -178,6 +179,7 @@ public class EnrichedAnalysisService {
                                    PieceManquanteStatusService pieceManquanteStatusService,
                                    RisqueAlignmentService risqueAlignmentService,
                                    RisqueStatusService risqueStatusService,
+                                   TypeLitigeOverrideService typeLitigeOverrideService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
@@ -205,6 +207,7 @@ public class EnrichedAnalysisService {
         this.pieceManquanteStatusService = pieceManquanteStatusService;
         this.risqueAlignmentService = risqueAlignmentService;
         this.risqueStatusService = risqueStatusService;
+        this.typeLitigeOverrideService = typeLitigeOverrideService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
@@ -433,11 +436,29 @@ public class EnrichedAnalysisService {
                     caseFileId, e);
             risquesSnapshot = RisqueStatusService.EnrichmentSnapshot.empty();
         }
+        // F-197 SF-197-01 — snapshot override avocat (type_litige Travail FR ou
+        // type_procedure Immigration) lu sur l'analyse précédente. Injecté comme
+        // section [Type litige fixé par l'avocat] dans le prompt pour cadrer l'IA
+        // sur le type imposé (pas de tentative de re-détection).
+        TypeLitigeOverrideService.OverrideSnapshot overrideSnapshot = null;
+        try {
+            String pT = previousAnalysis.getTypeLitigeAvocatOverride();
+            String pP = previousAnalysis.getTypeProcedureAvocatOverride();
+            String pR = previousAnalysis.getTypeOverrideRaison();
+            if (pT != null || pP != null) {
+                overrideSnapshot = new TypeLitigeOverrideService.OverrideSnapshot(pT, pP, pR);
+            }
+        } catch (Exception e) {
+            log.warn("F-197: override snapshot read failed for previousAnalysis {} — enriched analysis will proceed without it",
+                    previousAnalysis.getId(), e);
+        }
+
         String basePrompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
                 nonCompliantChecks, toCheckChecks, verifiedChecks,
                 strategicSnapshot.retainedTexts(), strategicSnapshot.discardedTexts(),
                 piecesSnapshot.obtenues(), piecesSnapshot.nonApplicables(), piecesSnapshot.aDemander(),
-                risquesSnapshot.valides(), risquesSnapshot.ecartes(), risquesSnapshot.aCreuser());
+                risquesSnapshot.valides(), risquesSnapshot.ecartes(), risquesSnapshot.aCreuser(),
+                overrideSnapshot);
         // F-146 SF-146-01 : préfixe le prompt avec la liste des pièces pour que
         // la re-synthèse enrichie produise aussi des sourceRef précis.
         String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
@@ -517,6 +538,16 @@ public class EnrichedAnalysisService {
                 risqueAlignmentService.materializeForAnalysis(enrichedAnalysis);
             } catch (Exception e) {
                 log.warn("Fail-open: risques materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-197 SF-197-01 : clone l'override avocat (type_litige_avocat_override /
+            // type_procedure_avocat_override / type_override_raison) depuis l'analyse
+            // précédente vers la nouvelle. Évite à l'avocat de re-saisir à chaque run.
+            // Fail-open : si la lecture/écriture échoue, le run continue sans override.
+            try {
+                typeLitigeOverrideService.cloneOverrideFromPrevious(previousAnalysisId, enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: type litige override clone failed for enriched analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,
@@ -643,6 +674,7 @@ public class EnrichedAnalysisService {
                 List.of(), List.of(), List.of());
     }
 
+    /** Overload F-195 (sans override avocat F-197) — utilisé par les tests existants. */
     String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
                                 List<String> nonCompliantChecks, List<String> toCheckChecks,
                                 List<String> verifiedChecks,
@@ -652,6 +684,24 @@ public class EnrichedAnalysisService {
                                 List<String> risquesValides,
                                 List<RisqueStatusService.EcarteEntry> risquesEcartes,
                                 List<String> risquesACreuser) {
+        return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks,
+                retainedStrategicOptions, discardedStrategicOptions,
+                piecesObtenues, piecesNonApplicables, piecesADemander,
+                risquesValides, risquesEcartes, risquesACreuser,
+                null);
+    }
+
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks,
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions,
+                                List<String> piecesObtenues, List<String> piecesNonApplicables,
+                                List<String> piecesADemander,
+                                List<String> risquesValides,
+                                List<RisqueStatusService.EcarteEntry> risquesEcartes,
+                                List<String> risquesACreuser,
+                                TypeLitigeOverrideService.OverrideSnapshot overrideSnapshot) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -750,6 +800,24 @@ public class EnrichedAnalysisService {
         if (risquesACreuser != null && !risquesACreuser.isEmpty()) {
             prompt.append("\n\n[Risques en cours d'instruction par votre avocat]\n");
             risquesACreuser.forEach(r -> prompt.append("- ").append(r).append("\n"));
+        }
+
+        // F-197 SF-197-01 — section override avocat sur le type_litige (Travail) ou
+        // type_procedure (Immigration). Instruit l'IA de cadrer son analyse sur le
+        // type imposé par l'avocat (pas de tentative de re-détection sur ce champ).
+        if (overrideSnapshot != null
+                && (overrideSnapshot.typeLitige() != null || overrideSnapshot.typeProcedure() != null)) {
+            prompt.append("\n\n[Type litige fixé par l'avocat]\n");
+            if (overrideSnapshot.typeLitige() != null) {
+                prompt.append("- type_litige_detecte = ").append(overrideSnapshot.typeLitige()).append("\n");
+            }
+            if (overrideSnapshot.typeProcedure() != null) {
+                prompt.append("- type_procedure_detectee = ").append(overrideSnapshot.typeProcedure()).append("\n");
+            }
+            if (overrideSnapshot.raison() != null && !overrideSnapshot.raison().isBlank()) {
+                prompt.append("Raison de l'avocat : ").append(overrideSnapshot.raison()).append("\n");
+            }
+            prompt.append("CONSIGNE : cadre ton analyse sur ce type imposé. Ne tente pas de le re-détecter ; reflète-le tel quel dans la sortie JSON.\n");
         }
 
         return prompt.toString();

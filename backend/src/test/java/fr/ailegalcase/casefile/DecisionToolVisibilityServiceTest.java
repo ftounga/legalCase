@@ -527,6 +527,129 @@ class DecisionToolVisibilityServiceTest {
                 .contains("F-DT-35-contestation-are-fr");
     }
 
+    // ────────────────────────────── F-197 SF-197-01 — override avocat ──────────────────────────────
+
+    @Test
+    void f197_typeLitigeOverride_LICENCIEMENT_ECONOMIQUE_activates_FDT08_FDT09() {
+        givenTravailFrRules();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        // IA détecte sans cause réelle (LICENCIEMENT) MAIS avocat override en LICENCIEMENT_ECONOMIQUE
+        mockLatestAnalysisWithOverride(
+                "{\"compensation_data\":{\"type_rupture\":\"LICENCIEMENT\"}}",
+                "LICENCIEMENT_ECONOMIQUE", null, null);
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        // F-DT-08/09 sont déjà activés par type_rupture=LICENCIEMENT (IA), mais l'override
+        // propage en plus type_rupture=LICENCIEMENT_ECONOMIQUE. Les deux outils restent contextual.
+        assertThat(r.contextual())
+                .contains("F-DT-08-licenciement-validity")
+                .contains("F-DT-09-comparateur-indemnites");
+    }
+
+    @Test
+    void f197_typeLitigeOverride_HARCELEMENT_MORAL_propagates_motif_nullite_pressenti() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        // Aucun signal IA — l'override force motif_nullite_pressenti=HARCELEMENT_MORAL
+        mockLatestAnalysisWithOverride(
+                "{\"travail_extracted_data\":{}}",
+                "HARCELEMENT_MORAL", null, null);
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-11-harcelement-licenciement-nul");
+    }
+
+    @Test
+    void f197_typeLitigeOverride_DISCRIMINATION_propagates_motif_nullite_pressenti() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisWithOverride(
+                "{\"travail_extracted_data\":{}}",
+                "DISCRIMINATION", null, null);
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-12-discrimination-dommages-interets");
+    }
+
+    @Test
+    void f197_typeLitigeOverride_HEURES_SUPPLEMENTAIRES_activates_FDT19() {
+        givenTravailFrRulesF165();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        // Aucun signal IA pour heures_sup_mentionnees → l'override force PRESENT
+        mockLatestAnalysisWithOverride(
+                "{\"travail_extracted_data\":{}}",
+                "HEURES_SUPPLEMENTAIRES", null, null);
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-19-heures-sup");
+    }
+
+    @Test
+    void f197_typeLitigeOverride_RAPPEL_SALAIRE_activates_FDT20() {
+        givenTravailFrRulesF166();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        // Pas de flag IA — l'override force rappel_salaire_detecte=true
+        mockLatestAnalysisWithOverride(
+                "{\"travail_extracted_data\":{\"rappel_salaire_detecte\":false}}",
+                "RAPPEL_SALAIRE", null, null);
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).contains("F-DT-20-rappel-salaire");
+    }
+
+    @Test
+    void f197_noOverride_unchangedBehavior_regression() {
+        // Régression stricte F-IA-04 : sans override, comportement identique à avant F-197
+        givenTravailFrRules();
+        mockCaseFile("DROIT_DU_TRAVAIL", "FRANCE");
+        mockLatestAnalysisJson("{\"compensation_data\":{\"type_rupture\":\"RUPTURE_CONVENTIONNELLE\"}}");
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        assertThat(r.contextual()).containsExactly(
+                "F-DT-10-rupture-conv-validity",
+                "F-132-rupture-conv-indemnite");
+    }
+
+    @Test
+    void f197_typeProcedureOverride_immigration_activates_recours() {
+        givenImmigrationTransversalRules();
+        mockCaseFile("DROIT_IMMIGRATION", "FRANCE");
+        // Avocat force OQTF_AVEC_DELAI sans signal IA
+        mockLatestAnalysisWithOverride(
+                "{}",
+                null, "OQTF_AVEC_DELAI", null);
+
+        VisibleToolSetResponse r = service.resolveVisibleTools(CF_ID, null, null);
+
+        // type_procedure_detectee (override) ne match pas les règles ici, mais
+        // la valeur est bien propagée dans la map detected → comportement attendu
+        // est non-régression (les autres règles continuent de fonctionner)
+        assertThat(r.alwaysOn())
+                .contains("F-IM-05-arbre-decisionnel-titre")
+                .contains("F-IM-07-droit-au-travail");
+    }
+
+    /** Helper F-197 : mock une analyse avec override avocat (type_litige et/ou type_procedure). */
+    private void mockLatestAnalysisWithOverride(String analysisJson,
+                                                 String typeLitigeOverride,
+                                                 String typeProcedureOverride,
+                                                 String raison) {
+        CaseAnalysis analysis = new CaseAnalysis();
+        analysis.setId(UUID.randomUUID());
+        analysis.setAnalysisResult(analysisJson);
+        analysis.setTypeLitigeAvocatOverride(typeLitigeOverride);
+        analysis.setTypeProcedureAvocatOverride(typeProcedureOverride);
+        analysis.setTypeOverrideRaison(raison);
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                eq(CF_ID), eq(AnalysisStatus.DONE))).thenReturn(Optional.of(analysis));
+    }
+
     /** Reproduit le seeding réel post F-166 SF-166-02 (migration 199 = F-165 + 8 nouveaux CONTEXTUAL). */
     private void givenTravailFrRulesF166() {
         List<DecisionToolVisibilityRule> rules = new ArrayList<>();

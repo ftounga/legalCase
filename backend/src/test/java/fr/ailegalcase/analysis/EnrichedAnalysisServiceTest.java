@@ -61,6 +61,8 @@ class EnrichedAnalysisServiceTest {
             mock(RisqueAlignmentService.class);
     private final RisqueStatusService risqueStatusService =
             mock(RisqueStatusService.class);
+    private final TypeLitigeOverrideService typeLitigeOverrideService =
+            mock(TypeLitigeOverrideService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
@@ -70,6 +72,7 @@ class EnrichedAnalysisServiceTest {
             procedureCheckAlignmentService,
             pieceManquanteAlignmentService, pieceManquanteStatusService,
             risqueAlignmentService, risqueStatusService,
+            typeLitigeOverrideService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
@@ -1009,6 +1012,134 @@ class EnrichedAnalysisServiceTest {
         ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
         verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // ──────────────────────────── F-197 SF-197-01 — override avocat ─────────────────────────────
+
+    // U-F197-01 : buildEnrichedPrompt sans override → pas de section [Type litige fixé par l'avocat]
+    @Test
+    void buildEnrichedPrompt_noOverride_omitsTypeLitigeSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                null);
+
+        assertThat(prompt).doesNotContain("[Type litige fixé par l'avocat]");
+    }
+
+    // U-F197-02 : buildEnrichedPrompt avec override travail → section présente
+    @Test
+    void buildEnrichedPrompt_withTypeLitigeOverride_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        TypeLitigeOverrideService.OverrideSnapshot snapshot =
+                new TypeLitigeOverrideService.OverrideSnapshot(
+                        "LICENCIEMENT_ECONOMIQUE", null, "Avocat conviction");
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                snapshot);
+
+        assertThat(prompt).contains("[Type litige fixé par l'avocat]");
+        assertThat(prompt).contains("type_litige_detecte = LICENCIEMENT_ECONOMIQUE");
+        assertThat(prompt).contains("Avocat conviction");
+        assertThat(prompt).contains("CONSIGNE");
+    }
+
+    // U-F197-03 : buildEnrichedPrompt avec override immigration → section avec type_procedure
+    @Test
+    void buildEnrichedPrompt_withTypeProcedureOverride_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        TypeLitigeOverrideService.OverrideSnapshot snapshot =
+                new TypeLitigeOverrideService.OverrideSnapshot(
+                        null, "OQTF_AVEC_DELAI", null);
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                snapshot);
+
+        assertThat(prompt).contains("[Type litige fixé par l'avocat]");
+        assertThat(prompt).contains("type_procedure_detectee = OQTF_AVEC_DELAI");
+    }
+
+    // U-F197-04 : finalize → cloneOverrideFromPrevious appelé même si pas d'override IA
+    @Test
+    void consumeReAnalysis_callsCloneOverrideOnFinalization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{\"faits\":[\"f1\"]}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+        previousAnalysis.setTypeLitigeAvocatOverride("LICENCIEMENT_ECONOMIQUE");
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Vérifie que cloneOverrideFromPrevious a bien été appelé sur la nouvelle analyse
+        verify(typeLitigeOverrideService, times(1))
+                .cloneOverrideFromPrevious(any(), any(CaseAnalysis.class));
+    }
+
+    // U-F197-05 : prompt enrichi inclut la section override quand previousAnalysis l'a
+    @Test
+    void prepareEnrichedAnalysis_previousHasOverride_promptIncludesSection() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        fr.ailegalcase.workspace.Workspace ws = new fr.ailegalcase.workspace.Workspace();
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws.setCountry("FRANCE");
+        caseFile.setWorkspace(ws);
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setId(UUID.randomUUID());
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+        previousAnalysis.setTypeLitigeAvocatOverride("HARCELEMENT_MORAL");
+        previousAnalysis.setTypeOverrideRaison("avocat conviction");
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        EnrichedAnalysisService.PreparedEnrichedAnalysis prepared =
+                service.prepareEnrichedAnalysis(new ReAnalysisMessage(caseFileId));
+
+        assertThat(prepared).isNotNull();
+        assertThat(prepared.prompt()).contains("[Type litige fixé par l'avocat]");
+        assertThat(prepared.prompt()).contains("HARCELEMENT_MORAL");
+        assertThat(prepared.prompt()).contains("avocat conviction");
     }
 
     private AiQuestion answeredQuestion(UUID caseFileId, String text) {
