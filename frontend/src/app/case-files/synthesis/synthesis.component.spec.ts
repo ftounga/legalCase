@@ -25,6 +25,8 @@ import { PieceManquanteAlignmentService } from '../../core/services/piece-manqua
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
 import { RisqueStatusService } from '../../core/services/risque-status.service';
 import { RisqueStatus } from '../../core/models/risque-status.model';
+import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
+import { RisqueAlignment } from '../../core/models/risque-alignment.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -149,6 +151,8 @@ describe('SynthesisComponent', () => {
         { provide: PieceManquanteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as PieceManquanteAlignment[])) } },
         // F-195 SF-195-02 — stub PUT statut risque. Les tests dédiés override via .mockReturnValue
         { provide: RisqueStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as RisqueStatus)), updateStatus: jest.fn().mockReturnValue(of({} as RisqueStatus)) } },
+        // F-195 SF-195-03 — stub GET alignement risques. Les tests dédiés override via .mockReturnValue
+        { provide: RisqueAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RisqueAlignment[])) } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: StrategicOptionService, useValue: strategicOptionService },
@@ -580,6 +584,84 @@ describe('SynthesisComponent', () => {
     expect(args[2]).toEqual([]);
     expect(args[4]).toEqual([]);
     expect(args[5]).toEqual(pieces);
+  });
+
+  // F-195 SF-195-03 : exportPdf appelle RisqueAlignmentService EN PARALLÈLE
+  // des 3 autres services et passe le résultat en 7ᵉ argument à export().
+  it('SF-195-03 exportPdf → RisqueAlignmentService.getForCaseFile appelé en parallèle, risques passés en 7ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risquesService = TestBed.inject(RisqueAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risques: RisqueAlignment[] = [
+      {
+        risqueLibelle: 'Harcèlement moral subi',
+        statut: 'VALIDE',
+        toolIdsCibles: ['F-DT-12-harcelement-licenciement-nul'],
+        raisonEcarte: null,
+      },
+    ];
+    risquesService.getForCaseFile.mockReturnValue(of(risques));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pistesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(checksService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(piecesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(risquesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[6]).toEqual(risques);
+  });
+
+  // F-195 SF-195-03 : endpoint risques erreur → export quand même appelé
+  // avec [] en 7ᵉ argument (fail-open INDÉPENDANT par stream).
+  it('SF-195-03 exportPdf → RisqueAlignmentService erreur, export appelé avec risquesAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const risquesService = TestBed.inject(RisqueAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    risquesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[6]).toEqual([]);
+  });
+
+  // F-195 SF-195-03 : fail-open INDÉPENDANT — risques succès, 3 autres
+  // erreurs → export avec [] + [] + [] + risques (CA-07 mini-spec).
+  it('SF-195-03 exportPdf fail-open indépendant: 3 autres erreurs, risques succès → export avec [] + [] + [] + risques', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risquesService = TestBed.inject(RisqueAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risques: RisqueAlignment[] = [
+      { risqueLibelle: 'Risque retenu X', statut: 'VALIDE', toolIdsCibles: [], raisonEcarte: null },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    piecesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    risquesService.getForCaseFile.mockReturnValue(of(risques));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual([]);
+    expect(args[4]).toEqual([]);
+    expect(args[5]).toEqual([]);
+    expect(args[6]).toEqual(risques);
   });
 
   // T-16 : onVersionChange réinitialise editingQuestionId

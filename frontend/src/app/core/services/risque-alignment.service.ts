@@ -22,13 +22,17 @@ import { RisqueAlignment } from '../models/risque-alignment.model';
  * <p>Refresh :
  * <ol>
  *   <li>Au mount du dossier (call initial dans
- *   `<app-decisional-tools-panel>` / `<app-case-dashboard>`).</li>
+ *   `<app-decisional-tools-panel>` / `<app-case-dashboard>` / synthèse pour
+ *   l'export PDF SF-195-03).</li>
  *   <li>À l'event SSE `ENRICHED_ANALYSIS DONE` propagé via
  *   `CaseDashboardRefreshService.refresh$`. <strong>Le PUT statut risque
  *   ne déclenche PAS de refresh côté frontend</strong> — cohérence stricte
  *   avec F-176 / F-192 / F-193 / F-194 (le statut est un acte sans
  *   matérialisation immédiate dans les outils).</li>
  * </ol></p>
+ *
+ * <p><strong>Contrat figé en avance</strong> : ce service précède le merge de
+ * SF-195-02 et SF-195-01. Pattern utilisé pour SF-193-03 et SF-194-03.</p>
  */
 @Injectable({ providedIn: 'root' })
 export class RisqueAlignmentService {
@@ -39,9 +43,7 @@ export class RisqueAlignmentService {
 
   getForCaseFile(caseFileId: string): Observable<RisqueAlignment[]> {
     return this.http
-      .get<RisqueAlignment[]>(
-        `${this.baseUrl}/${caseFileId}/risques-alignment`,
-      )
+      .get<RisqueAlignment[]>(`${this.baseUrl}/${caseFileId}/risques-alignment`)
       .pipe(
         timeout(RisqueAlignmentService.DEFAULT_TIMEOUT_MS),
         catchError((err) => {
