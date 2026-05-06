@@ -21,6 +21,8 @@ import { ProcedureCheckAlignmentService } from '../../core/services/procedure-ch
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
 import { PieceManquanteStatus } from '../../core/models/piece-manquante-status.model';
+import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -141,6 +143,8 @@ describe('SynthesisComponent', () => {
         { provide: ProcedureCheckAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as ProcedureCheckAlignment[])) } },
         // F-194 SF-194-02 — stub PUT statut pièce. Les tests dédiés override via .mockReturnValue
         { provide: PieceManquanteStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)), updateStatus: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)) } },
+        // F-194 SF-194-03 — stub GET alignement pièces. Les tests dédiés override via .mockReturnValue
+        { provide: PieceManquanteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as PieceManquanteAlignment[])) } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: StrategicOptionService, useValue: strategicOptionService },
@@ -473,6 +477,105 @@ describe('SynthesisComponent', () => {
     const args = pdfExportService.export.mock.calls[0];
     expect(args[2]).toEqual(pistes);
     expect(args[4]).toEqual([]);
+  });
+
+  // F-194 SF-194-03 : exportPdf appelle PieceManquanteAlignmentService EN PARALLÈLE des 2 autres services
+  it('SF-194-03 exportPdf → PieceManquanteAlignmentService.getForCaseFile appelé en parallèle, pieces passées en 6ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pieces: PieceManquanteAlignment[] = [
+      {
+        pieceLibelle: 'Bulletins de salaire',
+        statut: 'A_DEMANDER',
+        toolIdsCibles: ['F-DT-09-comparateur-indemnites'],
+        destinataire: null,
+        raisonNonApp: null,
+      },
+    ];
+    piecesService.getForCaseFile.mockReturnValue(of(pieces));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pistesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(checksService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(piecesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[5]).toEqual(pieces);
+  });
+
+  // F-194 SF-194-03 : endpoint pieces timeout / erreur → export quand même appelé avec [] en 6ᵉ argument
+  it('SF-194-03 exportPdf → PieceManquanteAlignmentService erreur, export appelé avec piecesAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    piecesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[5]).toEqual([]);
+  });
+
+  // F-194 SF-194-03 : fail-open INDÉPENDANT — pistes & checks succès, pieces erreur → export avec pistes + checks + []
+  it('SF-194-03 exportPdf fail-open indépendant: pistes + checks succès, pieces erreur → export avec pistes + checks + []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pistes: RetainedPisteAlignment[] = [
+      { pisteId: 'p1', texte: 'Stratégie X', conditions: [], matchStatus: 'ALIGNED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre' },
+    ];
+    const checks: ProcedureCheckAlignment[] = [
+      { checkId: 'c1', libelle: 'Motif confirmé', statut: 'VERIFIED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre', matchStatus: 'ALIGNED' },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(of(pistes));
+    checksService.getForCaseFile.mockReturnValue(of(checks));
+    piecesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual(pistes);
+    expect(args[4]).toEqual(checks);
+    expect(args[5]).toEqual([]);
+  });
+
+  // F-194 SF-194-03 : fail-open symétrique — pieces succès, pistes & checks erreur → export avec [] + [] + pieces
+  it('SF-194-03 exportPdf fail-open indépendant: pistes + checks erreur, pieces succès → export avec [] + [] + pieces', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pieces: PieceManquanteAlignment[] = [
+      { pieceLibelle: 'Pièce X', statut: 'A_DEMANDER', toolIdsCibles: [], destinataire: 'Client', raisonNonApp: null },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    piecesService.getForCaseFile.mockReturnValue(of(pieces));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual([]);
+    expect(args[4]).toEqual([]);
+    expect(args[5]).toEqual(pieces);
   });
 
   // T-16 : onVersionChange réinitialise editingQuestionId

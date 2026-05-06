@@ -35,6 +35,8 @@ import { ProcedureCheckAlignmentService } from '../../core/services/procedure-ch
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
 import { PIECE_DESTINATAIRES, PieceManquanteStatutValue } from '../../core/models/piece-manquante-status.model';
+import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
@@ -396,7 +398,8 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private retainedPisteAlignmentService: RetainedPisteAlignmentService,
     private procedureCheckAlignmentService: ProcedureCheckAlignmentService,
-    private pieceManquanteStatusService: PieceManquanteStatusService
+    private pieceManquanteStatusService: PieceManquanteStatusService,
+    private pieceManquanteAlignmentService: PieceManquanteAlignmentService
   ) {}
 
   ngOnInit(): void {
@@ -1104,9 +1107,11 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     if (!cf || !syn) return;
     // F-192 SF-192-03 — pistes 🟢 Retenue + alignement outil cible.
     // F-193 SF-193-03 — checks F-96 + alignement outil cible.
-    // Les 2 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
-    // INDÉPENDANT : si l'un échoue, l'autre est utilisé quand même (catchError
-    // local par stream). L'export PDF n'est jamais bloqué (CA-09 + CA-10).
+    // F-194 SF-194-03 — pièces manquantes markables + alignement outil cible.
+    // Les 3 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
+    // INDÉPENDANT : si l'un échoue, les autres sont utilisés quand même
+    // (catchError local par stream). L'export PDF n'est jamais bloqué
+    // (CA-09 + CA-10 SF-194-03 — symétrique de F-192/F-193).
     forkJoin({
       retainedPistes: this.retainedPisteAlignmentService.getForCaseFile(cf.id).pipe(
         catchError(() => of([] as RetainedPisteAlignment[])),
@@ -1114,10 +1119,13 @@ export class SynthesisComponent implements OnInit, OnDestroy {
       procedureChecksAlignment: this.procedureCheckAlignmentService.getForCaseFile(cf.id).pipe(
         catchError(() => of([] as ProcedureCheckAlignment[])),
       ),
+      piecesAlignment: this.pieceManquanteAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as PieceManquanteAlignment[])),
+      ),
     }).subscribe({
-      next: ({ retainedPistes, procedureChecksAlignment }) =>
-        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment),
-      error: () => this.runPdfExport(cf, syn, [], []),
+      next: ({ retainedPistes, procedureChecksAlignment, piecesAlignment }) =>
+        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment, piecesAlignment),
+      error: () => this.runPdfExport(cf, syn, [], [], []),
     });
   }
 
@@ -1126,6 +1134,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     syn: CaseAnalysisResult,
     retainedPistes: RetainedPisteAlignment[],
     procedureChecksAlignment: ProcedureCheckAlignment[],
+    piecesAlignment: PieceManquanteAlignment[],
   ): void {
     try {
       this.pdfExportService.export(
@@ -1134,6 +1143,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         retainedPistes,
         (toolId) => this.resolveToolLabel(toolId),
         procedureChecksAlignment,
+        piecesAlignment,
       );
       this.analyticsService.trackEvent('pdf_exported');
     } catch {
