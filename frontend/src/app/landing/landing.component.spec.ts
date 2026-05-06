@@ -79,10 +79,10 @@ describe('LandingComponent', () => {
   });
 
   // SF-126-01 : galerie vidéo
-  it('expose 5 vidéos dans la galerie démo', () => {
-    expect(component.videos.length).toBe(5);
+  it('expose 6 vidéos dans la galerie démo', () => {
+    expect(component.videos.length).toBe(6);
     expect(component.videos.map(v => v.videoId)).toEqual([
-      'NGTRMWQKPEA', 'I5EemkFR8NE', 'HVGXeUnrbks', 'rKJXppVe2SA', 'Qh3hAO75xMk'
+      'NGTRMWQKPEA', 'I5EemkFR8NE', 'HVGXeUnrbks', 'rKJXppVe2SA', 'Qh3hAO75xMk', '78hEuoD_L_4'
     ]);
   });
 
@@ -95,9 +95,9 @@ describe('LandingComponent', () => {
     expect(component.selectedVideoId()).toBe('I5EemkFR8NE');
   });
 
-  it('affiche 5 miniatures cliquables sous le player', () => {
+  it('affiche 6 miniatures cliquables sous le player', () => {
     const thumbs = fixture.nativeElement.querySelectorAll('.video-thumb');
-    expect(thumbs.length).toBe(5);
+    expect(thumbs.length).toBe(6);
   });
 
   it('la première miniature est marquée active au chargement', () => {
