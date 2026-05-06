@@ -11,6 +11,7 @@ import { RecoursResponse } from '../models/immigration-recours.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
 import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
+import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -21,6 +22,9 @@ const TEXT_SECONDARY = '#6B7A8D';
 const DIVIDER = '#E0E4EA';
 const SURFACE = '#FFFFFF';
 const BG = '#F5F6FA';
+// F-194 SF-194-03 — fond or léger (teinte claire d'ACCENT) pour le bandeau
+// titre proéminent de la section « 📎 Pièces à demander au client ».
+const PIECES_BG = '#FBF4E2';
 
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
@@ -31,6 +35,7 @@ export class PdfExportService {
     retainedPistes?: RetainedPisteAlignment[],
     toolLabelResolver?: (toolId: string) => string | null,
     procedureChecksAlignment?: ProcedureCheckAlignment[],
+    piecesAlignment?: PieceManquanteAlignment[],
   ): void {
     import('pdfmake/build/pdfmake').then(pdfMakeModule => {
       import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
@@ -44,6 +49,7 @@ export class PdfExportService {
           retainedPistes,
           toolLabelResolver,
           procedureChecksAlignment,
+          piecesAlignment,
         ) as TDocumentDefinitions;
         const fileName = this.buildFileName(caseFile.title, synthesis);
         pdfMake.createPdf(docDefinition).download(fileName);
@@ -57,6 +63,7 @@ export class PdfExportService {
     retainedPistes?: RetainedPisteAlignment[],
     toolLabelResolver?: (toolId: string) => string | null,
     procedureChecksAlignment?: ProcedureCheckAlignment[],
+    piecesAlignment?: PieceManquanteAlignment[],
   ): object {
     const isEnriched = synthesis.analysisType === 'ENRICHED';
     const exportDate = new Date().toLocaleDateString('fr-FR', {
@@ -71,6 +78,7 @@ export class PdfExportService {
       { text: '', pageBreak: 'after' },
       ...this.buildStrategiesRetenuesSection(retainedPistes, toolLabelResolver),
       ...this.buildProcedureChecksSection(procedureChecksAlignment, toolLabelResolver),
+      ...this.buildPiecesADemanderSection(piecesAlignment, toolLabelResolver),
       ...this.buildSections(synthesis),
     ];
 
@@ -487,6 +495,216 @@ export class PdfExportService {
     }
 
     return { stack, margin: [0, 0, 0, 6] };
+  }
+
+  /**
+   * F-194 SF-194-03 — Section « 📎 Pièces à demander au client » insérée
+   * APRÈS la section « Conformité procédurale » F-193 et AVANT la
+   * chronologie / faits / etc. Cette section est le **livrable principal
+   * côté client** : l'avocat envoie le PDF au client comme todo-list de
+   * pièces à fournir.
+   *
+   * Comportement :
+   *   - `piecesAlignment` vide ou non fourni → tableau vide (section
+   *     omise, fail-open).
+   *   - Aucune pièce statut À_DEMANDER → section omise (cas nominal).
+   *   - ≥ 1 pièce À_DEMANDER → titre proéminent (encadré or, fond or
+   *     léger) + sous-titre client + liste à cocher (Pièce / Destinataire
+   *     / Date butoir = today + 14j). Compteurs OBTENUE / NON_APPLICABLE
+   *     en sous-blocs si ≥ 1.
+   *
+   * Le suffixe `→ <label outil>` est ajouté à la pièce si
+   * `toolIdsCibles[0]` est non null. Lookup via `toolLabelResolver`
+   * (TOOL_REGISTRY). Fail-open : si le lookup échoue, on affiche le
+   * `toolId` brut.
+   *
+   * Fail-open indépendant : l'échec des sections F-192 / F-193 n'empêche
+   * pas la section F-194 — chacune est conditionnée à son propre tableau.
+   */
+  private buildPiecesADemanderSection(
+    piecesAlignment?: PieceManquanteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!piecesAlignment || piecesAlignment.length === 0) {
+      return [];
+    }
+
+    const aDemander = piecesAlignment.filter(p => p.statut === 'A_DEMANDER');
+    const obtenue = piecesAlignment.filter(p => p.statut === 'OBTENUE');
+    const nonApplicable = piecesAlignment.filter(p => p.statut === 'NON_APPLICABLE');
+
+    if (aDemander.length === 0) {
+      // Cas nominal : rien à demander → section omise (compteurs sans
+      // À_DEMANDER ne sont pas affichés seuls — l'info principale est
+      // ce qui reste à fournir au client).
+      return [];
+    }
+
+    // Date butoir = today + 14 jours, formatée JJ/MM/AAAA
+    const dateButoir = this.formatDateButoir(this.computeDateButoirIn(14));
+
+    const sections: object[] = [
+      // Titre proéminent : encadré or avec fond or léger (CA-04)
+      {
+        table: {
+          widths: ['*'],
+          body: [[{
+            text: '📎 Pièces à demander au client',
+            fontSize: 18,
+            bold: true,
+            color: PRIMARY,
+            margin: [12, 10, 12, 10],
+            fillColor: PIECES_BG,
+          }]],
+        },
+        layout: {
+          hLineWidth: () => 1.2,
+          vLineWidth: () => 1.2,
+          hLineColor: () => ACCENT,
+          vLineColor: () => ACCENT,
+        },
+        margin: [0, 0, 0, 10],
+      },
+      // Sous-titre client (Inter regular 11)
+      {
+        text: 'Pour avancer sur votre dossier, merci de transmettre les pièces suivantes :',
+        fontSize: 11,
+        color: TEXT,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    // Tableau : ☐ + Pièce + Destinataire + Date butoir
+    sections.push(this.buildPiecesADemanderTable(aDemander, dateButoir, toolLabelResolver));
+
+    // Sous-bloc compteur OBTENUE (CA-07)
+    if (obtenue.length > 0) {
+      sections.push({
+        text: `✅ Pièces déjà reçues : ${obtenue.length}`,
+        fontSize: 9,
+        color: TEXT_SECONDARY,
+        margin: [0, 8, 0, 0],
+      });
+    }
+
+    // Sous-bloc compteur NON_APPLICABLE (CA-07)
+    if (nonApplicable.length > 0) {
+      sections.push({
+        text: `🚫 Pièces non applicables au dossier : ${nonApplicable.length}`,
+        fontSize: 9,
+        color: TEXT_SECONDARY,
+        margin: [0, 4, 0, 0],
+      });
+    }
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    // Page break — la todo-list peut être imprimée seule (CA-12)
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  /**
+   * F-194 SF-194-03 — tableau case à cocher pour les pièces À_DEMANDER.
+   *
+   * Colonnes : ☐ (case) | Pièce (libellé + suffixe outil) | Destinataire
+   * (italique 9 — défaut "Client") | Date butoir (JetBrainsMono 9).
+   */
+  private buildPiecesADemanderTable(
+    pieces: PieceManquanteAlignment[],
+    dateButoir: string,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const headerRow = [
+      { text: 'À fournir', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [8, 5, 4, 5] },
+      { text: 'Pièce', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [4, 5, 4, 5] },
+      { text: 'Destinataire', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [4, 5, 4, 5] },
+      { text: 'Date butoir', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [4, 5, 8, 5] },
+    ];
+
+    const rows = pieces.map((piece, i) => {
+      const bg = i % 2 === 0 ? BG : SURFACE;
+      const pieceCell = this.buildPieceLibelleCell(piece, bg, toolLabelResolver);
+      const destinataire = (piece.destinataire && piece.destinataire.trim().length > 0)
+        ? piece.destinataire
+        : 'Client';
+      return [
+        { text: '☐', fontSize: 14, color: PRIMARY, fillColor: bg, alignment: 'center', margin: [4, 4, 4, 4] },
+        pieceCell,
+        { text: destinataire, fontSize: 9, italics: true, color: TEXT_SECONDARY, fillColor: bg, margin: [4, 6, 4, 6] },
+        { text: dateButoir, font: 'JetBrainsMono', fontSize: 9, color: TEXT, fillColor: bg, margin: [4, 6, 8, 6] },
+      ];
+    });
+
+    return {
+      table: {
+        widths: [40, '*', 90, 70],
+        headerRows: 1,
+        body: [headerRow, ...rows],
+      },
+      layout: {
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0,
+        hLineColor: () => DIVIDER,
+      },
+      margin: [0, 0, 0, 0],
+    };
+  }
+
+  /**
+   * F-194 SF-194-03 — cellule libellé d'une pièce, avec suffixe
+   * `→ <label outil>` JetBrainsMono italique 9 si `toolIdsCibles[0]`
+   * est renseigné. Pattern miroir du suffixe SF-192-03 / SF-193-03.
+   */
+  private buildPieceLibelleCell(
+    piece: PieceManquanteAlignment,
+    bg: string,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const stack: object[] = [
+      { text: piece.pieceLibelle, fontSize: 10, color: TEXT },
+    ];
+
+    const firstToolId = piece.toolIdsCibles && piece.toolIdsCibles.length > 0
+      ? piece.toolIdsCibles[0]
+      : null;
+    if (firstToolId) {
+      const resolvedLabel = toolLabelResolver ? toolLabelResolver(firstToolId) : null;
+      const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+        ? resolvedLabel
+        : firstToolId;
+      stack.push({
+        text: `→ ${label}`,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 2, 0, 0],
+      });
+    }
+
+    return { stack, fillColor: bg, margin: [4, 6, 4, 6] };
+  }
+
+  /**
+   * F-194 SF-194-03 — calcule today + N jours (heure locale, sans modifier
+   * `Date.now()`). Exposé en méthode privée pour permettre le mock dans
+   * les tests Jest.
+   */
+  private computeDateButoirIn(days: number): Date {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+
+  /**
+   * F-194 SF-194-03 — formate une date au format JJ/MM/AAAA (locale fr).
+   */
+  private formatDateButoir(d: Date): string {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   }
 
   private buildSections(synthesis: CaseAnalysisResult): object[] {

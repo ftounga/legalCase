@@ -4,6 +4,7 @@ import { CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
 import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
+import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
 
 const mockCaseFile: Partial<CaseFile> = { id: '1', title: 'Affaire Dupont c/ SA Renault' };
 
@@ -732,5 +733,255 @@ describe('PdfExportService', () => {
     ) as any;
     const flat = JSON.stringify(doc.content);
     expect(flat).toContain('→ F-IM-05-arbre-decisionnel-titre');
+  });
+
+  // --- F-194 SF-194-03 : section « 📎 Pièces à demander au client » ---
+
+  const pieceADemander: PieceManquanteAlignment = {
+    pieceLibelle: 'Bulletins de salaire des 12 derniers mois',
+    statut: 'A_DEMANDER',
+    toolIdsCibles: ['F-DT-09-comparateur-indemnites'],
+    destinataire: null,
+    raisonNonApp: null,
+  };
+
+  const pieceADemanderPrefecture: PieceManquanteAlignment = {
+    pieceLibelle: 'Récépissé de demande de titre de séjour',
+    statut: 'A_DEMANDER',
+    toolIdsCibles: [],
+    destinataire: 'Préfecture',
+    raisonNonApp: null,
+  };
+
+  const pieceObtenue: PieceManquanteAlignment = {
+    pieceLibelle: 'Contrat de travail',
+    statut: 'OBTENUE',
+    toolIdsCibles: [],
+    destinataire: null,
+    raisonNonApp: null,
+  };
+
+  const pieceNonApplicable: PieceManquanteAlignment = {
+    pieceLibelle: 'Avenant temps partiel',
+    statut: 'NON_APPLICABLE',
+    toolIdsCibles: [],
+    destinataire: null,
+    raisonNonApp: 'Salarié à temps plein',
+  };
+
+  const piecesLabelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-DT-09-comparateur-indemnites': 'COMPARATEUR INDEMNITÉS',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-194-03 CA-02: buildDocument(_, _, _, _, _, []) → aucune section Pièces à demander', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], []
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03 CA-02: buildDocument sans piecesAlignment → aucune section', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03 CA-02: piecesAlignment = null → aucune section (fail-open)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], null as any
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03: aucune pièce À_DEMANDER (que des OBTENUE) → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [pieceObtenue]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03 CA-01: ≥ 1 pièce À_DEMANDER → section incluse avec titre + libellé pièce', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('📎 Pièces à demander au client');
+    expect(s).toContain('Bulletins de salaire des 12 derniers mois');
+    expect(s).toContain('Pour avancer sur votre dossier');
+  });
+
+  it('SF-194-03 CA-03: layout tableau case à cocher (☐) + colonnes Pièce + Destinataire + Date butoir', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('☐');
+    expect(s).toContain('À fournir');
+    expect(s).toContain('Pièce');
+    expect(s).toContain('Destinataire');
+    expect(s).toContain('Date butoir');
+  });
+
+  it('SF-194-03 CA-04: titre proéminent — fond or léger PIECES_BG + bordure or ACCENT', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // Titre fontSize 18 bold + fillColor or léger
+    expect(flat).toMatch(/"text":"📎 Pièces à demander au client","fontSize":18,"bold":true/);
+    expect(flat).toContain('"fillColor":"#FBF4E2"');
+  });
+
+  it('SF-194-03 CA-05 destinataire renseigné: "Préfecture" affiché tel quel', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemanderPrefecture]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Préfecture');
+  });
+
+  it('SF-194-03 CA-05 destinataire absent: défaut "Client"', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    // pieceADemander a destinataire null → fallback "Client"
+    expect(s).toContain('Client');
+  });
+
+  it('SF-194-03 CA-06 date butoir: today + 14j formatée JJ/MM/AAAA en JetBrainsMono', () => {
+    // Calcule la date butoir attendue (today + 14j) en local
+    const expected = new Date();
+    expected.setDate(expected.getDate() + 14);
+    const dd = String(expected.getDate()).padStart(2, '0');
+    const mm = String(expected.getMonth() + 1).padStart(2, '0');
+    const yyyy = expected.getFullYear();
+    const expectedStr = `${dd}/${mm}/${yyyy}`;
+
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain(expectedStr);
+    // Le rendu de la date est en JetBrainsMono fontSize 9
+    expect(flat).toMatch(new RegExp(`"text":"${expectedStr.replace(/\//g, '\\/')}","font":"JetBrainsMono","fontSize":9`));
+  });
+
+  it('SF-194-03 CA-07 sous-blocs compteurs: OBTENUE et NON_APPLICABLE affichés en sous-bloc petit', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      piecesLabelResolver,
+      [],
+      [pieceADemander, pieceObtenue, pieceNonApplicable],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('✅ Pièces déjà reçues : 1');
+    expect(s).toContain('🚫 Pièces non applicables au dossier : 1');
+    // Le libellé des OBTENUE / NON_APPLICABLE n'est PAS listé (compteur seulement)
+    expect(s).not.toContain('Contrat de travail');
+    expect(s).not.toContain('Avenant temps partiel');
+  });
+
+  it('SF-194-03 CA-07: aucune OBTENUE / NON_APPLICABLE → compteurs absents', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces déjà reçues');
+    expect(s).not.toContain('Pièces non applicables');
+  });
+
+  it('SF-194-03 CA-08 ordre: F-192 → F-193 → F-194 → Timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      synWithTimeline,
+      [pisteAligned],
+      labelResolver,
+      [checkAligned],
+      [pieceADemander],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const checksIdx = flat.indexOf('🔍 Conformité procédurale');
+    const piecesIdx = flat.indexOf('📎 Pièces à demander');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(checksIdx).toBeGreaterThan(-1);
+    expect(piecesIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(stratIdx).toBeLessThan(checksIdx);
+    expect(checksIdx).toBeLessThan(piecesIdx);
+    expect(piecesIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-194-03 CA-10 fail-open indépendant: F-192/F-193 vides + F-194 succès → section pièces uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('🔍 Conformité procédurale');
+    expect(s).toContain('📎 Pièces à demander');
+  });
+
+  it('SF-194-03 CA-10 fail-open indépendant: F-192 succès + F-194 vide → section pistes seulement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver, [], []
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('📎 Pièces à demander');
+  });
+
+  it('SF-194-03 suffixe outil: lookup → label outil cible affiché en JetBrainsMono italique 9', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ COMPARATEUR INDEMNITÉS');
+    expect(flat).toMatch(/"text":"→ COMPARATEUR INDEMNITÉS","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-194-03: lookup label échoue → toolId brut affiché en suffixe', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], noResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ F-DT-09-comparateur-indemnites');
+  });
+
+  it('SF-194-03: pièce sans toolIdsCibles → aucun suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemanderPrefecture]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // Pas de suffixe → on ne doit pas trouver de "→ " devant un identifiant en majuscules
+    // (le check isolé sur ce libellé : pas de "→ " du tout puisque c'est l'unique pièce)
+    expect(flat).toContain('Récépissé de demande de titre de séjour');
+    expect(flat).not.toMatch(/→ [A-Z]/);
+  });
+
+  it('SF-194-03 CA-12: page break après la section', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // Au moins un pageBreak: 'after' présent dans le flux après le titre pièces
+    const piecesIdx = flat.indexOf('📎 Pièces à demander');
+    const tail = flat.substring(piecesIdx);
+    expect(tail).toContain('"pageBreak":"after"');
   });
 });
