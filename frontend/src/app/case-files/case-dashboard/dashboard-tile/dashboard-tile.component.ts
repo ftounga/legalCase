@@ -44,6 +44,12 @@ export class DashboardTileComponent {
     if (this.tile?.toolId === 'RETAINED_PISTES_SUMMARY') {
       return 'push_pin';
     }
+    // F-194 SF-194-02 — la tile résumé pièces manquantes utilise `description`
+    // (cohérent thème DOCUMENTS) pour signaler le périmètre documentaire et
+    // distinguer de la tile pistes (push_pin).
+    if (this.tile?.toolId === 'F-194-pieces-summary') {
+      return 'description';
+    }
     switch (theme) {
       case 'INDEMNITES':
         return 'euro';

@@ -43,6 +43,16 @@
           <span class="tool-card__badge-count">{{ proceduresChecksBadgeLabel }}</span>
         </span>
       }
+      @if (showPiecesBadge) {
+        <span
+          [ngClass]="['tool-card__badge', 'tool-card__badge--pieces', piecesBadgeClass]"
+          [matTooltip]="piecesBadgeTooltip"
+          [attr.aria-label]="piecesBadgeAriaLabel"
+          data-testid="pieces-badge">
+          <mat-icon aria-hidden="true">attach_file</mat-icon>
+          <span class="tool-card__badge-count">{{ piecesBadgeLabel }}</span>
+        </span>
+      }
       @if (showCoherenceBadge) {
         <span
           class="tool-card__badge tool-card__badge--coherence"

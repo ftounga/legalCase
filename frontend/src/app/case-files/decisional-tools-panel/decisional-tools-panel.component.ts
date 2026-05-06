@@ -24,8 +24,14 @@ import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.s
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
 import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
 import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
-import { DecisionToolCardComponent } from './decision-tool-card/decision-tool-card.component';
+import { DecisionToolCardComponent, PiecesBadgeInput } from './decision-tool-card/decision-tool-card.component';
+import {
+  computePiecesBadge,
+  piecesObtenuesFor,
+} from './piece-manquante-badge.helper';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
 import { DecisionalToolsProgressBannerComponent } from './decisional-tools-progress-banner.component';
 import { DecisionalToolsProgressService } from './decisional-tools-progress.service';
@@ -140,6 +146,15 @@ export interface DecisionToolContext {
    * via `CaseDashboardRefreshService` (cohérence F-176 stricte).
    */
   pistesRetenues?: import('../../core/models/retained-piste-alignment.model').RetainedPisteAlignment[];
+  /**
+   * F-194 SF-194-02 — Alignement matérialisé pièces manquantes ↔ outils.
+   * Pré-filtré côté entry par toolId pour ne passer aux composants outils
+   * que la sous-liste des pièces qui les concernent. Pattern miroir
+   * {@link RetainedPisteAlignment} (F-192) + {@link ProcedureCheckAlignment}
+   * (F-193). Refresh exclusif au run de Synthèse enrichie (PUT statut pièce
+   * ne déclenche AUCUN refresh côté frontend — cohérence F-176 stricte).
+   */
+  piecesAlignment?: import('../../core/models/piece-manquante-alignment.model').PieceManquanteAlignment[];
 }
 
 export interface DecisionToolRegistryEntry {
@@ -181,6 +196,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
   private readonly retainedPistesService = inject(RetainedPisteAlignmentService, { optional: true });
+  private readonly piecesAlignmentService = inject(PieceManquanteAlignmentService, { optional: true });
   private readonly modalService = inject(DecisionToolModalService);
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
@@ -207,6 +223,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   readonly retainedPistes = signal<RetainedPisteAlignment[]>([]);
 
   /**
+   * F-194 SF-194-02 — Alignement pièces manquantes ↔ outils. Cache local.
+   * Refresh : (1) au mount du dossier, (2) à chaque émission
+   * `CaseDashboardRefreshService.refresh$` (déclenchée à la fin du run de
+   * Synthèse enrichie). Le PUT statut pièce ne déclenche PAS de refresh.
+   */
+  readonly piecesAlignment = signal<PieceManquanteAlignment[]>([]);
+
+  /**
    * Registre des outils décisionnels. Chaque entrée déclare son composant
    * Angular et une closure qui mappe le contexte du dossier vers les inputs
    * exacts que ce composant attend. Les tool_id non présents ici sont
@@ -224,6 +248,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-DT-04-fiche-prudhomale'),
         }),
       }],
       ['F-DT-06-requete-tribunal-travail', {
@@ -236,6 +262,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-DT-06-requete-tribunal-travail'),
         }),
       }],
       ['F-DT-07-anciennete-conges-prime', {
@@ -563,6 +591,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-FA-07-checklist-divorce'),
         }),
       }],
       ['F-IM-01-checklist-pieces', {
@@ -586,6 +616,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           pistesRetenues: (ctx.pistesRetenues ?? []).filter(
             p => p.toolIdCible === 'F-IM-05-arbre-decisionnel-titre',
           ),
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-IM-05-arbre-decisionnel-titre'),
         }),
       }],
       ['F-IM-06-recours', {
@@ -601,6 +633,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           pistesRetenues: (ctx.pistesRetenues ?? []).filter(
             p => p.toolIdCible === 'F-IM-06-recours',
           ),
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-IM-06-recours'),
         }),
       }],
       ['F-IM-07-droit-au-travail', {
@@ -1469,6 +1503,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     if (this.caseFileId) {
       this.loadVisibility(true);
       this.loadRetainedPistes();
+      this.loadPiecesAlignment();
     }
     if (this.refreshService) {
       this.refreshService.refresh$
@@ -1481,6 +1516,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
             // déclenche PAS triggerRefresh (cf. CA-12), donc le re-fetch ici
             // ne s'enclenche que post-analyse — comportement voulu.
             this.loadRetainedPistes();
+            // F-194 SF-194-02 — idem pour les pièces. PUT statut pièce ne
+            // déclenche PAS de refresh, seul le run de Synthèse enrichie le fait.
+            this.loadPiecesAlignment();
           }
         });
     }
@@ -1490,6 +1528,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     if (changes['caseFileId'] && !changes['caseFileId'].firstChange && this.caseFileId) {
       this.loadVisibility(true);
       this.loadRetainedPistes();
+      this.loadPiecesAlignment();
     }
   }
 
@@ -1508,6 +1547,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       .subscribe({
         next: list => this.retainedPistes.set(list),
         error: () => this.retainedPistes.set([]),
+      });
+  }
+
+  /**
+   * F-194 SF-194-02 — Charge l'alignement pièces ↔ outils. Fail-open : `[]`
+   * si endpoint indisponible (le service log un warn). OnPush-safe :
+   * mutation via `signal.set()` qui déclenche la CD nativement.
+   */
+  private loadPiecesAlignment(): void {
+    if (!this.piecesAlignmentService) {
+      this.piecesAlignment.set([]);
+      return;
+    }
+    this.piecesAlignmentService.getForCaseFile(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => this.piecesAlignment.set(list),
+        error: () => this.piecesAlignment.set([]),
       });
   }
 
@@ -1612,7 +1669,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       aiQuestions: this.aiQuestions,
       // F-192 SF-192-02 : alignement chargé via RetainedPisteAlignmentService.
       pistesRetenues: this.retainedPistes(),
+      // F-194 SF-194-02 : alignement chargé via PieceManquanteAlignmentService.
+      piecesAlignment: this.piecesAlignment(),
     });
+  }
+
+  /**
+   * F-194 SF-194-02 — Calcule le badge pièces (D/O/N) à afficher sur la card
+   * du panel pour un toolId. Fait à partir du signal `piecesAlignment` filtré
+   * sur `toolIdsCibles`. Pattern miroir `retainedPistesBadgeFor` (F-192).
+   * Retourne `null` si aucune pièce n'est mappée à cet outil — la pill est
+   * silencieusement masquée par le card via `showPiecesBadge`.
+   */
+  piecesBadgeFor(toolId: string): PiecesBadgeInput | null {
+    const all = this.piecesAlignment();
+    const filtered = all.filter(p => Array.isArray(p.toolIdsCibles) && p.toolIdsCibles.includes(toolId));
+    const badge = computePiecesBadge(filtered);
+    if (badge.kind === 'none') return null;
+    return badge;
   }
 
   /**

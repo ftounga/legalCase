@@ -19,6 +19,8 @@ import { RetainedPisteAlignmentService } from '../../core/services/retained-pist
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { ProcedureCheckAlignmentService } from '../../core/services/procedure-check-alignment.service';
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
+import { PieceManquanteStatus } from '../../core/models/piece-manquante-status.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -137,6 +139,8 @@ describe('SynthesisComponent', () => {
         { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export', 'exportChecklist']) },
         { provide: RetainedPisteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RetainedPisteAlignment[])) } },
         { provide: ProcedureCheckAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as ProcedureCheckAlignment[])) } },
+        // F-194 SF-194-02 — stub PUT statut pièce. Les tests dédiés override via .mockReturnValue
+        { provide: PieceManquanteStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)), updateStatus: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)) } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: StrategicOptionService, useValue: strategicOptionService },
@@ -504,6 +508,147 @@ describe('SynthesisComponent', () => {
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).not.toContain('Pièces manquantes');
+  });
+
+  // F-194 SF-194-02 — UI markable pièces : 3 boutons rendus + clic → PUT
+  describe('F-194 SF-194-02 markable pieces', () => {
+    beforeEach(() => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(
+        of(makeSynthesis(1, 'STANDARD', ['Contrat de travail', 'Bulletins de salaire'])),
+      );
+    });
+
+    // CA-02 : 3 boutons statut rendus pour chaque pièce
+    it('CA-02 renders 3 status buttons for each piece', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      const html = el.innerHTML;
+      expect(html).toContain('piece-status-btn--demander');
+      expect(html).toContain('piece-status-btn--obtenue');
+      expect(html).toContain('piece-status-btn--non-applicable');
+    });
+
+    // CA-01 : clic OBTENUE → PUT updateStatus avec libellé original + statut OBTENUE
+    it('CA-01 click OBTENUE → updateStatus called with libelle + OBTENUE', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Contrat de travail',
+        statut: 'OBTENUE',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      component.updatePieceStatus('Contrat de travail', 'OBTENUE');
+
+      expect(statusService.updateStatus).toHaveBeenCalledWith(
+        CASE_FILE_ID,
+        'Contrat de travail',
+        'OBTENUE',
+        { raisonNonApp: null, destinataire: null },
+      );
+      expect(component.pieceStatusFor('Contrat de travail')).toBe('OBTENUE');
+    });
+
+    // CA-03 : NON_APPLICABLE → champ raison + PUT inclut la raison au blur
+    it('CA-03 NON_APPLICABLE click → status updated, blur with raison → PUT inclut raison', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Acte de mariage',
+        statut: 'NON_APPLICABLE',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      component.updatePieceStatus('Acte de mariage', 'NON_APPLICABLE');
+      component.onPieceRaisonInput('Acte de mariage', 'Concubinage simple');
+      component.onPieceRaisonBlur('Acte de mariage');
+
+      expect(statusService.updateStatus).toHaveBeenLastCalledWith(
+        CASE_FILE_ID,
+        'Acte de mariage',
+        'NON_APPLICABLE',
+        { raisonNonApp: 'Concubinage simple', destinataire: null },
+      );
+    });
+
+    // CA-04 : A_DEMANDER + selection destinataire → PUT inclut le destinataire
+    it('CA-04 A_DEMANDER → destinataire selection → PUT inclut destinataire', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Contrat de travail',
+        statut: 'A_DEMANDER',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      // Statut implicite A_DEMANDER, mais on tag puis on choisit un destinataire.
+      component.updatePieceStatus('Contrat de travail', 'A_DEMANDER');
+      component.onPieceDestinataireChange('Contrat de travail', 'Ex-employeur');
+
+      expect(statusService.updateStatus).toHaveBeenLastCalledWith(
+        CASE_FILE_ID,
+        'Contrat de travail',
+        'A_DEMANDER',
+        { raisonNonApp: null, destinataire: 'Ex-employeur' },
+      );
+    });
+
+    // CA-05 : régression critique — PUT NE déclenche AUCUN refresh côté UI
+    it('CA-05 PUT statut → AUCUN re-fetch alignement (cohérence F-176 stricte)', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      const pisteService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      const checksAlignmentService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Pièce X',
+        statut: 'OBTENUE',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      // SynthesisComponent ne charge pas piste/checks alignment au mount (seul exportPdf
+      // les déclenche). On vérifie qu'après un PUT statut pièce, ces services restent
+      // au même niveau d'invocation — aucun side-effect post-PUT.
+      const callsBefore = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksAlignmentService.getForCaseFile as jest.Mock).mock.calls.length;
+
+      component.updatePieceStatus('Pièce X', 'OBTENUE');
+
+      const callsAfter = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksAlignmentService.getForCaseFile as jest.Mock).mock.calls.length;
+      expect(callsAfter).toBe(callsBefore);
+      // versions non rechargées
+      expect(caseAnalysisService.getVersions).toHaveBeenCalledTimes(1);
+    });
+
+    // CA-14 : erreur PUT → snackbar + rollback statut au précédent
+    it('CA-14 PUT error → snackbar + rollback statut', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      const snack = TestBed.inject(MatSnackBar) as unknown as { open: jest.Mock };
+      snack.open = jest.fn();
+      statusService.updateStatus.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+      fixture.detectChanges();
+
+      // Initial : pas d'entrée → A_DEMANDER implicite
+      component.updatePieceStatus('Pièce Y', 'OBTENUE');
+
+      // Rollback : entrée supprimée du cache
+      expect(component.pieceStatusFor('Pièce Y')).toBe('A_DEMANDER');
+      expect(snack.open).toHaveBeenCalled();
+    });
+
+    // CA-13 : palette navy/or DESIGN_SYSTEM.md (NON_APPLICABLE = gris discret)
+    it('CA-13 button classes follow DESIGN_SYSTEM (navy/or/gris — pas de rouge)', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      // Les classes utilisent les modificateurs (couleurs définies en SCSS)
+      expect(el.querySelector('.piece-status-btn--demander')).toBeTruthy();
+      expect(el.querySelector('.piece-status-btn--obtenue')).toBeTruthy();
+      expect(el.querySelector('.piece-status-btn--non-applicable')).toBeTruthy();
+    });
+
+    // Helper : pieceStatusFor par défaut = A_DEMANDER (statut implicite, pas d'appel PUT)
+    it('pieceStatusFor defaults to A_DEMANDER for un-tagged piece', () => {
+      fixture.detectChanges();
+      expect(component.pieceStatusFor('Contrat de travail')).toBe('A_DEMANDER');
+      expect(component.isPieceStatusActive('Contrat de travail', 'A_DEMANDER')).toBe(true);
+    });
   });
 
   // TC-01 : loadChecksForVersion appelé au chargement initial

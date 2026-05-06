@@ -333,9 +333,67 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.piecesManquantes.length }} pièce(s) à fournir</mat-panel-description>
           </mat-expansion-panel-header>
-          <ul class="synthesis-list" [@listStagger]="synthesis()!.piecesManquantes.length">
+          <!-- F-194 SF-194-02 — UI markable : 3 boutons statut + champ raison + select destinataire -->
+          <ul class="pieces-list" [@listStagger]="synthesis()!.piecesManquantes.length">
             @for (item of synthesis()!.piecesManquantes; track $index) {
-              <li @fadeInUp [attr.id]="'piece-' + $index">{{ item }}</li>
+              <li class="piece-item" @fadeInUp [attr.id]="'piece-' + $index">
+                <div class="piece-content">
+                  <p class="piece-texte">{{ item }}</p>
+                  @if (pieceStatusFor(item) === 'A_DEMANDER') {
+                    <mat-form-field appearance="outline" class="piece-destinataire-field">
+                      <mat-label>Destinataire (optionnel)</mat-label>
+                      <mat-select
+                        [value]="pieceDestinataireFor(item)"
+                        (selectionChange)="onPieceDestinataireChange(item, $event.value)">
+                        <mat-option value="">— non précisé —</mat-option>
+                        @for (option of pieceDestinataireOptions; track option) {
+                          <mat-option [value]="option">{{ option }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  }
+                  @if (pieceStatusFor(item) === 'NON_APPLICABLE') {
+                    <mat-form-field appearance="outline" class="piece-raison-field">
+                      <mat-label>Raison (optionnel)</mat-label>
+                      <input matInput
+                             [value]="pieceRaisonFor(item)"
+                             (input)="onPieceRaisonInput(item, $any($event.target).value)"
+                             (blur)="onPieceRaisonBlur(item)"
+                             placeholder="Ex. Concubinage simple, pas de mariage" />
+                    </mat-form-field>
+                  }
+                </div>
+                <div class="piece-actions">
+                  @if (updatingPieceLibelle() === item) {
+                    <mat-spinner diameter="20" class="piece-spinner"></mat-spinner>
+                  } @else {
+                    <button class="piece-status-btn piece-status-btn--demander"
+                            [class.piece-status-btn--active]="isPieceStatusActive(item, 'A_DEMANDER')"
+                            (click)="updatePieceStatus(item, 'A_DEMANDER')"
+                            matTooltip="À demander"
+                            aria-label="Marquer comme à demander">
+                      <mat-icon>mark_email_read</mat-icon>
+                      À demander
+                    </button>
+                    <button class="piece-status-btn piece-status-btn--obtenue"
+                            [class.piece-status-btn--active]="isPieceStatusActive(item, 'OBTENUE')"
+                            (click)="updatePieceStatus(item, 'OBTENUE')"
+                            matTooltip="Obtenue"
+                            aria-label="Marquer comme obtenue">
+                      <mat-icon>check_circle</mat-icon>
+                      Obtenue
+                    </button>
+                    <button class="piece-status-btn piece-status-btn--non-applicable"
+                            [class.piece-status-btn--active]="isPieceStatusActive(item, 'NON_APPLICABLE')"
+                            (click)="updatePieceStatus(item, 'NON_APPLICABLE')"
+                            matTooltip="Non applicable"
+                            aria-label="Marquer comme non applicable">
+                      <mat-icon>block</mat-icon>
+                      Non applicable
+                    </button>
+                  }
+                </div>
+              </li>
             }
           </ul>
         </mat-expansion-panel>

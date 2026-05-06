@@ -246,6 +246,51 @@
     color: #1A3A5C;
     border: 1px solid #B8BFC9;
   }
+
+  /* F-194 SF-194-02 — pill « 📎 Pièces (D/O/N) » : pattern visuel miroir
+     des pills procedures/retained. Palette navy/or DESIGN_SYSTEM.md.
+     Priorité visuelle : missing > obtained > partial > not_applicable. */
+  &--pieces {
+    width: auto;
+    min-width: 56px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 13px;
+    gap: 4px;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+    font-size: 12px;
+    font-weight: 700;
+
+    mat-icon {
+      width: 14px;
+      height: 14px;
+      font-size: 14px;
+    }
+  }
+
+  &--pieces-missing {
+    /* Navy clair — priorité visuelle : il manque encore des pièces. */
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+    border: 1px solid #1A3A5C;
+  }
+
+  &--pieces-obtained {
+    background: #C9973A;
+    color: #FFFFFF;
+  }
+
+  &--pieces-partial {
+    background: rgba(201, 151, 58, 0.18);
+    color: #7A5D1F;
+    border: 1px solid #C9973A;
+  }
+
+  &--pieces-not-applicable {
+    background: #F2F4F8;
+    color: #6B7A8D;
+    border: 1px solid #B8BFC9;
+  }
 }
 
 .tool-card__body {
