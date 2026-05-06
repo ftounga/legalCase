@@ -95,6 +95,14 @@ describe('LandingComponent', () => {
     expect(component.selectedVideoId()).toBe('I5EemkFR8NE');
   });
 
+  // SF-77-03 : RGPD — embed YouTube en mode no-cookie (pas de cookie tracking avant Play)
+  it('videoEmbedUrl utilise youtube-nocookie.com (RGPD)', () => {
+    const url = (component.videoEmbedUrl() as unknown as { changingThisBreaksApplicationSecurity: string });
+    const raw = url.changingThisBreaksApplicationSecurity ?? String(component.videoEmbedUrl());
+    expect(raw).toContain('youtube-nocookie.com/embed/');
+    expect(raw).not.toContain('://www.youtube.com/embed/');
+  });
+
   it('affiche 6 miniatures cliquables sous le player', () => {
     const thumbs = fixture.nativeElement.querySelectorAll('.video-thumb');
     expect(thumbs.length).toBe(6);
