@@ -41,6 +41,8 @@ import { RisqueStatusService } from '../../core/services/risque-status.service';
 import { RisqueStatutValue } from '../../core/models/risque-status.model';
 import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { AiQuestionAlignmentService } from '../../core/services/ai-question-alignment.service';
+import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
 import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
 import {
   TypeLitigeOverrideResponse,
@@ -567,6 +569,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private pieceManquanteAlignmentService: PieceManquanteAlignmentService,
     private risqueStatusService: RisqueStatusService,
     private risqueAlignmentService: RisqueAlignmentService,
+    private aiQuestionAlignmentService: AiQuestionAlignmentService,
     private typeLitigeOverrideService: TypeLitigeOverrideService,
   ) {}
 
@@ -1368,10 +1371,10 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     // F-193 SF-193-03 — checks F-96 + alignement outil cible.
     // F-194 SF-194-03 — pièces manquantes markables + alignement outil cible.
     // F-195 SF-195-03 — risques markables + alignement outil cible.
-    // Les 4 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
+    // F-196 SF-196-03 — questions complémentaires + déduction pièces.
+    // Les 5 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
     // INDÉPENDANT : si l'un échoue, les autres sont utilisés quand même
-    // (catchError local par stream). L'export PDF n'est jamais bloqué
-    // (CA-07 SF-195-03 — symétrique de F-192/F-193/F-194).
+    // (catchError local par stream). L'export PDF n'est jamais bloqué.
     forkJoin({
       retainedPistes: this.retainedPisteAlignmentService.getForCaseFile(cf.id).pipe(
         catchError(() => of([] as RetainedPisteAlignment[])),
@@ -1385,10 +1388,13 @@ export class SynthesisComponent implements OnInit, OnDestroy {
       risquesAlignment: this.risqueAlignmentService.getForCaseFile(cf.id).pipe(
         catchError(() => of([] as RisqueAlignment[])),
       ),
+      aiQuestionsAlignment: this.aiQuestionAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as AiQuestionAlignment[])),
+      ),
     }).subscribe({
-      next: ({ retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment }) =>
-        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment),
-      error: () => this.runPdfExport(cf, syn, [], [], [], []),
+      next: ({ retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment }) =>
+        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment),
+      error: () => this.runPdfExport(cf, syn, [], [], [], [], []),
     });
   }
 
@@ -1399,6 +1405,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     procedureChecksAlignment: ProcedureCheckAlignment[],
     piecesAlignment: PieceManquanteAlignment[],
     risquesAlignment: RisqueAlignment[],
+    aiQuestionsAlignment: AiQuestionAlignment[],
   ): void {
     try {
       this.pdfExportService.export(
@@ -1409,6 +1416,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         procedureChecksAlignment,
         piecesAlignment,
         risquesAlignment,
+        aiQuestionsAlignment,
       );
       this.analyticsService.trackEvent('pdf_exported');
     } catch {
