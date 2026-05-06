@@ -130,7 +130,8 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(Belgian40terRepository.class),
                 retainedPisteAlignmentService,
                 mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class),
-                mock(fr.ailegalcase.analysis.PieceManquanteAlignmentService.class));
+                mock(fr.ailegalcase.analysis.PieceManquanteAlignmentService.class),
+                mock(fr.ailegalcase.analysis.RisqueAlignmentService.class));
     }
 
     @Test

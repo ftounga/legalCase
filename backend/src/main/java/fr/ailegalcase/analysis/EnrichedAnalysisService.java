@@ -139,6 +139,8 @@ public class EnrichedAnalysisService {
     private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
     private final PieceManquanteAlignmentService pieceManquanteAlignmentService;
     private final PieceManquanteStatusService pieceManquanteStatusService;
+    private final RisqueAlignmentService risqueAlignmentService;
+    private final RisqueStatusService risqueStatusService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
@@ -174,6 +176,8 @@ public class EnrichedAnalysisService {
                                    ProcedureCheckAlignmentService procedureCheckAlignmentService,
                                    PieceManquanteAlignmentService pieceManquanteAlignmentService,
                                    PieceManquanteStatusService pieceManquanteStatusService,
+                                   RisqueAlignmentService risqueAlignmentService,
+                                   RisqueStatusService risqueStatusService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
@@ -199,6 +203,8 @@ public class EnrichedAnalysisService {
         this.procedureCheckAlignmentService = procedureCheckAlignmentService;
         this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
         this.pieceManquanteStatusService = pieceManquanteStatusService;
+        this.risqueAlignmentService = risqueAlignmentService;
+        this.risqueStatusService = risqueStatusService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
@@ -414,10 +420,24 @@ public class EnrichedAnalysisService {
                     caseFileId, e);
             piecesSnapshot = PieceManquanteStatusService.EnrichmentSnapshot.empty();
         }
+        // F-195 SF-195-01 — snapshot statuts risques avocat pour 2 sections prompt enrichi
+        // ([Risques validés par votre avocat — à approfondir] / [Risques écartés — NE PAS re-proposer]).
+        RisqueStatusService.EnrichmentSnapshot risquesSnapshot;
+        try {
+            risquesSnapshot = risqueStatusService.collectForEnrichment(caseFileId);
+            if (risquesSnapshot == null) {
+                risquesSnapshot = RisqueStatusService.EnrichmentSnapshot.empty();
+            }
+        } catch (Exception e) {
+            log.warn("F-195: risques collectForEnrichment failed for caseFile {} — enriched analysis will proceed without it",
+                    caseFileId, e);
+            risquesSnapshot = RisqueStatusService.EnrichmentSnapshot.empty();
+        }
         String basePrompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
                 nonCompliantChecks, toCheckChecks, verifiedChecks,
                 strategicSnapshot.retainedTexts(), strategicSnapshot.discardedTexts(),
-                piecesSnapshot.obtenues(), piecesSnapshot.nonApplicables(), piecesSnapshot.aDemander());
+                piecesSnapshot.obtenues(), piecesSnapshot.nonApplicables(), piecesSnapshot.aDemander(),
+                risquesSnapshot.valides(), risquesSnapshot.ecartes(), risquesSnapshot.aCreuser());
         // F-146 SF-146-01 : préfixe le prompt avec la liste des pièces pour que
         // la re-synthèse enrichie produise aussi des sourceRef précis.
         String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
@@ -486,6 +506,17 @@ public class EnrichedAnalysisService {
                 pieceManquanteAlignmentService.materializeForAnalysis(enrichedAnalysis);
             } catch (Exception e) {
                 log.warn("Fail-open: pieces manquantes materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-195 SF-195-01 : matérialise l'alignement risques (statut avocat overlay sur
+            // le tableau risques IA) + recompute score_risque_avocat parallèle excluant les
+            // ÉCARTÉ. Doit être APRÈS F-192/F-193/F-194 — l'ordre est cohérent (chacun
+            // fail-open, pas de dépendance technique). Cohérence F-IA-02 STRICTE : le
+            // score_risque IA brut N'est PAS modifié.
+            try {
+                risqueAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: risques materialization failed for enriched analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,
@@ -598,12 +629,29 @@ public class EnrichedAnalysisService {
                 List.of(), List.of(), List.of());
     }
 
+    /** Overload F-194 (sans risques statuts F-195) — utilisé par les tests existants. */
     String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
                                 List<String> nonCompliantChecks, List<String> toCheckChecks,
                                 List<String> verifiedChecks,
                                 List<String> retainedStrategicOptions, List<String> discardedStrategicOptions,
                                 List<String> piecesObtenues, List<String> piecesNonApplicables,
                                 List<String> piecesADemander) {
+        return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks,
+                retainedStrategicOptions, discardedStrategicOptions,
+                piecesObtenues, piecesNonApplicables, piecesADemander,
+                List.of(), List.of(), List.of());
+    }
+
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks,
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions,
+                                List<String> piecesObtenues, List<String> piecesNonApplicables,
+                                List<String> piecesADemander,
+                                List<String> risquesValides,
+                                List<RisqueStatusService.EcarteEntry> risquesEcartes,
+                                List<String> risquesACreuser) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -680,6 +728,28 @@ public class EnrichedAnalysisService {
         if (piecesADemander != null && !piecesADemander.isEmpty()) {
             prompt.append("\n\n[Pièces à demander au client — pousser explicitement dans la nouvelle synthèse]\n");
             piecesADemander.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        // F-195 SF-195-01 — sections risques curés par l'avocat
+        if (risquesValides != null && !risquesValides.isEmpty()) {
+            prompt.append("\n\n[Risques validés par votre avocat — à approfondir]\n");
+            risquesValides.forEach(r -> prompt.append("- ").append(r).append("\n"));
+        }
+
+        if (risquesEcartes != null && !risquesEcartes.isEmpty()) {
+            prompt.append("\n\n[Risques écartés — NE PAS re-proposer]\n");
+            for (RisqueStatusService.EcarteEntry e : risquesEcartes) {
+                prompt.append("- ").append(e.libelle());
+                if (e.raison() != null && !e.raison().isBlank()) {
+                    prompt.append(" (raison : ").append(e.raison()).append(")");
+                }
+                prompt.append("\n");
+            }
+        }
+
+        if (risquesACreuser != null && !risquesACreuser.isEmpty()) {
+            prompt.append("\n\n[Risques en cours d'instruction par votre avocat]\n");
+            risquesACreuser.forEach(r -> prompt.append("- ").append(r).append("\n"));
         }
 
         return prompt.toString();

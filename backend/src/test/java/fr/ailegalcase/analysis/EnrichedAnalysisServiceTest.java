@@ -57,6 +57,10 @@ class EnrichedAnalysisServiceTest {
             mock(PieceManquanteAlignmentService.class);
     private final PieceManquanteStatusService pieceManquanteStatusService =
             mock(PieceManquanteStatusService.class);
+    private final RisqueAlignmentService risqueAlignmentService =
+            mock(RisqueAlignmentService.class);
+    private final RisqueStatusService risqueStatusService =
+            mock(RisqueStatusService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
@@ -65,6 +69,7 @@ class EnrichedAnalysisServiceTest {
             chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
             procedureCheckAlignmentService,
             pieceManquanteAlignmentService, pieceManquanteStatusService,
+            risqueAlignmentService, risqueStatusService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
@@ -87,6 +92,9 @@ class EnrichedAnalysisServiceTest {
         // F-194 SF-194-01 — stub par défaut pour collectForEnrichment (sinon NPE dans prepareEnrichedAnalysis)
         when(pieceManquanteStatusService.collectForEnrichment(any()))
                 .thenReturn(PieceManquanteStatusService.EnrichmentSnapshot.empty());
+        // F-195 SF-195-01 — stub par défaut risques (sinon NPE dans prepareEnrichedAnalysis)
+        when(risqueStatusService.collectForEnrichment(any()))
+                .thenReturn(RisqueStatusService.EnrichmentSnapshot.empty());
     }
 
     @AfterEach
@@ -870,6 +878,134 @@ class EnrichedAnalysisServiceTest {
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
 
         // Le run termine en DONE quand même
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // ====================================================================
+    //  F-195 SF-195-01 — sections prompt enrichi risques statuts avocat
+    // ====================================================================
+
+    @Test
+    void buildEnrichedPrompt_withRisquesValides_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of("Harcèlement moral subi"), List.of(), List.of());
+
+        assertThat(prompt).contains("[Risques validés par votre avocat — à approfondir]");
+        assertThat(prompt).contains("- Harcèlement moral subi");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withRisquesEcartesAvecRaison_injectsSectionWithReason() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(),
+                List.of(new RisqueStatusService.EcarteEntry(
+                        "Clause non-concurrence abusive", "Délai expiré")),
+                List.of());
+
+        assertThat(prompt).contains("[Risques écartés — NE PAS re-proposer]");
+        assertThat(prompt).contains("- Clause non-concurrence abusive");
+        assertThat(prompt).contains("(raison : Délai expiré)");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withRisquesACreuser_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of("Discrimination"));
+
+        assertThat(prompt).contains("[Risques en cours d'instruction par votre avocat]");
+        assertThat(prompt).contains("- Discrimination");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withoutRisquesStatuses_omitsAllRisquesSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of());
+
+        assertThat(prompt).doesNotContain("[Risques validés");
+        assertThat(prompt).doesNotContain("[Risques écartés");
+        assertThat(prompt).doesNotContain("[Risques en cours d'instruction");
+    }
+
+    @Test
+    void consumeReAnalysis_callsRisquesMaterialization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // F-195 — le service de matérialisation risques est appelé à la fin du run
+        verify(risqueAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    @Test
+    void consumeReAnalysis_risquesMaterializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(risqueAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
         ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
         verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);

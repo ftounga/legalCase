@@ -77,6 +77,10 @@ class SentryJobReportingTest {
             mock(PieceManquanteAlignmentService.class);
     private final PieceManquanteStatusService pieceManquanteStatusService =
             mock(PieceManquanteStatusService.class);
+    private final RisqueAlignmentService risqueAlignmentService =
+            mock(RisqueAlignmentService.class);
+    private final RisqueStatusService risqueStatusService =
+            mock(RisqueStatusService.class);
 
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
@@ -85,6 +89,7 @@ class SentryJobReportingTest {
             chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
             procedureCheckAlignmentService,
             pieceManquanteAlignmentService, pieceManquanteStatusService,
+            risqueAlignmentService, risqueStatusService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
@@ -108,6 +113,9 @@ class SentryJobReportingTest {
         // F-194 SF-194-01 — stub par défaut pour collectForEnrichment (sinon NPE dans prepareEnrichedAnalysis)
         when(pieceManquanteStatusService.collectForEnrichment(any()))
                 .thenReturn(PieceManquanteStatusService.EnrichmentSnapshot.empty());
+        // F-195 SF-195-01 — stub par défaut risques
+        when(risqueStatusService.collectForEnrichment(any()))
+                .thenReturn(RisqueStatusService.EnrichmentSnapshot.empty());
     }
 
     @AfterEach

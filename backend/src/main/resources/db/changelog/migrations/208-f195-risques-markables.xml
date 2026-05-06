@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      F-195 SF-195-01 — Risques markables + recompute score_risque_avocat +
+      matérialisation au run enrichi.
+
+      Pattern miroir F-194 SF-194-01 (migration 207). Différences F-195 :
+
+        (a) statut trichotomique A_CREUSER (défaut implicite) / VALIDE / ECARTE
+            — sémantique différente de F-194 (A_DEMANDER / OBTENUE / NON_APPLICABLE)
+            mais structure 1:1 identique.
+
+        (b) score_risque_avocat parallèle (n'écrase PAS le score_risque IA brut
+            qui reste dans les colonnes risk_score / risk_level — cohérence
+            F-IA-02 stricte). L'avocat voit les 2 valeurs (transparence).
+
+        (c) mapping risques → outils décisionnels (keyword-based) effectué côté
+            service (RisqueToolMatcher), persisté dans le tableau
+            risques_alignment_json (champ toolIdsCibles).
+
+      Cette migration ajoute :
+
+        (a) la table `risque_status` :
+            - id UUID PRIMARY KEY
+            - case_file_id UUID NOT NULL (FK case_files.id)
+            - workspace_id UUID NOT NULL (FK workspaces.id) — isolation stricte
+            - risque_libelle_normalise VARCHAR(500) NOT NULL — trim().toLowerCase()
+            - risque_libelle_original VARCHAR(500) NOT NULL — pour ré-affichage
+            - statut VARCHAR(20) NOT NULL — A_CREUSER / VALIDE / ECARTE
+            - raison_ecarte TEXT NULL — autorisé uniquement si statut = ECARTE
+            - created_at / updated_at TIMESTAMP NOT NULL
+            - UNIQUE (case_file_id, risque_libelle_normalise) — idempotence PUT
+
+        (b) la colonne `case_analyses.risques_alignment_json TEXT NULL` qui stocke
+            un tableau JSON [{risqueLibelle, statut, raisonEcarte, toolIdsCibles}]
+            calculé et persisté par RisqueAlignmentService.materializeForAnalysis()
+            à la fin de EnrichedAnalysisService.run (APRÈS hooks F-192 + F-193 + F-194).
+
+        (c) la colonne `case_analyses.score_risque_avocat_json TEXT NULL` qui stocke
+            le score recomputé excluant les risques ÉCARTÉ, en parallèle du
+            score_risque IA brut (colonnes risk_score / risk_level inchangées).
+
+      Cohérence F-IA-02 STRICTE : aucune modification du schéma `risques` JSON
+      ni du calcul score_risque IA brut. Le PUT statut F-195 N'altère PAS
+      l'analysis_result — l'overlay `risque_status` est joint au runtime par
+      RisqueAlignmentService pour produire `risques_alignment_json` et
+      `score_risque_avocat_json`.
+    -->
+
+    <changeSet id="208-f195-create-risque-status" author="ailegalcase">
+        <createTable tableName="risque_status">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_risque_status_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_risque_status_workspace"
+                             references="workspaces(id)"/>
+            </column>
+            <column name="risque_libelle_normalise" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="risque_libelle_original" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="raison_ecarte" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="risque_status"
+                columnNames="case_file_id, risque_libelle_normalise"
+                constraintName="uq_risque_status_case_file_norm"/>
+
+        <createIndex tableName="risque_status"
+                     indexName="idx_risque_status_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <createIndex tableName="risque_status"
+                     indexName="idx_risque_status_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="208-f195-add-risques-alignment-json" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="risques_alignment_json" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="208-f195-add-score-risque-avocat-json" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="score_risque_avocat_json" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
