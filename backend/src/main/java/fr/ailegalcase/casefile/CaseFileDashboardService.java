@@ -1,6 +1,8 @@
 package fr.ailegalcase.casefile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiQuestionAlignment;
+import fr.ailegalcase.analysis.AiQuestionAlignmentService;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.CaseAnalysisResponse;
@@ -141,6 +143,8 @@ public class CaseFileDashboardService {
     private final PieceManquanteAlignmentService pieceManquanteAlignmentService;
     // F-195 SF-195-01 — risques markables matérialisés sur la dernière analyse DONE.
     private final RisqueAlignmentService risqueAlignmentService;
+    // F-196 SF-196-01 — questions complémentaires F-94 matérialisées sur la dernière analyse DONE.
+    private final AiQuestionAlignmentService aiQuestionAlignmentService;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -235,7 +239,8 @@ public class CaseFileDashboardService {
                                      RetainedPisteAlignmentService retainedPisteAlignmentService,
                                      ProcedureCheckAlignmentService procedureCheckAlignmentService,
                                      PieceManquanteAlignmentService pieceManquanteAlignmentService,
-                                     RisqueAlignmentService risqueAlignmentService) {
+                                     RisqueAlignmentService risqueAlignmentService,
+                                     AiQuestionAlignmentService aiQuestionAlignmentService) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -331,6 +336,7 @@ public class CaseFileDashboardService {
         this.procedureCheckAlignmentService = procedureCheckAlignmentService;
         this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
         this.risqueAlignmentService = risqueAlignmentService;
+        this.aiQuestionAlignmentService = aiQuestionAlignmentService;
     }
 
     @Transactional(readOnly = true)
@@ -470,6 +476,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromPiecesManquantesAlignment(caseFileId));
         // ── F-195 SF-195-01 — risques markables matérialisés ───────────────
         addSafely(tiles, () -> tileFromRisquesAlignment(caseFileId));
+        // ── F-196 SF-196-01 — questions complémentaires F-94 matérialisées ─
+        addSafely(tiles, () -> tileFromAiQuestionsAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
     }
@@ -700,6 +708,52 @@ public class CaseFileDashboardService {
                 "F-195-risques-summary",
                 "DIAGNOSTIC",
                 "Risques — analyse avocat",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-196 SF-196-01 — Tile dashboard agrégeant les questions complémentaires
+     * F-94 matérialisées sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code primaryValue} : N total questions matérialisées</li>
+     *   <li>{@code secondaryValue} : "X répondues · Y en attente"</li>
+     *   <li>{@code alertLevel = WARNING} si ≥ 1 question en attente, {@code OK} sinon</li>
+     * </ul>
+     *
+     * <p>Thème {@code DOCUMENTS} (cohérent F-194 — les réponses aux questions
+     * "Avez-vous X ?" se matérialisent in fine en pièces).</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-196 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromAiQuestionsAlignment(UUID caseFileId) {
+        if (aiQuestionAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<AiQuestionAlignment> alignments = aiQuestionAlignmentService
+                .deserializeAlignment(latest.get().getAiQuestionsAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long repondues = alignments.stream()
+                .filter(a -> a.answerText() != null && !a.answerText().isBlank())
+                .count();
+        int total = alignments.size();
+        long enAttente = total - repondues;
+
+        String alertLevel = enAttente > 0 ? "WARNING" : "OK";
+        String primary = total + " question" + (total > 1 ? "s" : "");
+        String secondary = repondues + " répondue" + (repondues > 1 ? "s" : "")
+                + " · " + enAttente + " en attente";
+
+        return new DashboardTile(
+                "F-196-questions-summary",
+                "DOCUMENTS",
+                "Questions complémentaires — réponses avocat",
                 primary,
                 secondary,
                 alertLevel);

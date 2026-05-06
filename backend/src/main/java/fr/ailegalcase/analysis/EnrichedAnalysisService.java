@@ -141,6 +141,7 @@ public class EnrichedAnalysisService {
     private final PieceManquanteStatusService pieceManquanteStatusService;
     private final RisqueAlignmentService risqueAlignmentService;
     private final RisqueStatusService risqueStatusService;
+    private final AiQuestionAlignmentService aiQuestionAlignmentService;
     private final TypeLitigeOverrideService typeLitigeOverrideService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
@@ -179,6 +180,7 @@ public class EnrichedAnalysisService {
                                    PieceManquanteStatusService pieceManquanteStatusService,
                                    RisqueAlignmentService risqueAlignmentService,
                                    RisqueStatusService risqueStatusService,
+                                   AiQuestionAlignmentService aiQuestionAlignmentService,
                                    TypeLitigeOverrideService typeLitigeOverrideService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
@@ -207,6 +209,7 @@ public class EnrichedAnalysisService {
         this.pieceManquanteStatusService = pieceManquanteStatusService;
         this.risqueAlignmentService = risqueAlignmentService;
         this.risqueStatusService = risqueStatusService;
+        this.aiQuestionAlignmentService = aiQuestionAlignmentService;
         this.typeLitigeOverrideService = typeLitigeOverrideService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
@@ -538,6 +541,17 @@ public class EnrichedAnalysisService {
                 risqueAlignmentService.materializeForAnalysis(enrichedAnalysis);
             } catch (Exception e) {
                 log.warn("Fail-open: risques materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-196 SF-196-01 : matérialise l'alignement questions complémentaires F-94
+            // (réponses avocat → pieces auto via mapping keyword statique). Doit être
+            // APRÈS F-192/F-193/F-194/F-195 — l'ordre est cohérent (chacun fail-open,
+            // pas de dépendance technique). Cohérence F-94 STRICTE : les tables
+            // ai_questions / ai_question_answers ne sont PAS modifiées.
+            try {
+                aiQuestionAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: ai questions materialization failed for enriched analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
             // F-197 SF-197-01 : clone l'override avocat (type_litige_avocat_override /
