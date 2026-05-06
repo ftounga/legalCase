@@ -186,6 +186,16 @@ export class CaseDashboardComponent implements OnInit {
       );
       return;
     }
+    // F-194 SF-194-02 — tile résumé Pièces manquantes markables : pas un
+    // outil décisionnel instanciable, on redirige vers la synthèse avec
+    // scroll vers le bloc Pièces (anchor `section-pieces`).
+    if (toolId === 'F-194-pieces-summary') {
+      this.router.navigate(
+        ['/case-files', this.caseFileId, 'synthesis'],
+        { fragment: 'section-pieces' },
+      );
+      return;
+    }
     const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
     if (!entry) {
       // eslint-disable-next-line no-console

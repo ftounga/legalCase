@@ -47,6 +47,11 @@ describe('DecisionToolsPanelComponent', () => {
         // pas verify()).
         try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
       });
+    // F-194 SF-194-02 — idem pour pieces-manquantes-alignment.
+    httpMock.match(r => r.url.endsWith('/pieces-manquantes-alignment'))
+      .forEach(r => {
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
     httpMock.verify();
   });
 
@@ -146,6 +151,65 @@ describe('DecisionToolsPanelComponent', () => {
     expect(inputs['aiData']).toEqual({ inferredChecklistType: 'X' });
     expect(inputs['triggerEvents']).toEqual([{ e: 1 }]);
     expect(inputs['piecesManquantes']).toEqual({ p: 1 });
+  });
+
+  // F-194 SF-194-02 — F-DT-04 reçoit `piecesObtenues` extrait de l'alignement
+  it('F-194 SF-194-02 — F-DT-04 receives piecesObtenues from piecesAlignment signal', () => {
+    component.piecesAlignment.set([
+      {
+        pieceLibelle: 'Contrat de travail',
+        statut: 'OBTENUE',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+        destinataire: null,
+        raisonNonApp: null,
+      },
+      {
+        pieceLibelle: 'Lettre de licenciement',
+        statut: 'A_DEMANDER',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+        destinataire: 'Client',
+        raisonNonApp: null,
+      },
+      {
+        pieceLibelle: 'Acte de mariage',
+        statut: 'OBTENUE',
+        toolIdsCibles: ['F-FA-07-checklist-divorce'],
+        destinataire: null,
+        raisonNonApp: null,
+      },
+    ]);
+
+    const entry = component.resolveEntry('F-DT-04-fiche-prudhomale')!;
+    const inputs = component.componentInputsFor(entry);
+
+    // Seules les pièces statut OBTENUE pour F-DT-04 doivent remonter.
+    expect(inputs['piecesObtenues']).toEqual(['Contrat de travail']);
+  });
+
+  // F-194 SF-194-02 — piecesBadgeFor calcule le verdict pour la card panel
+  it('F-194 SF-194-02 — piecesBadgeFor computes badge from filtered alignment', () => {
+    component.piecesAlignment.set([
+      {
+        pieceLibelle: 'Pièce 1',
+        statut: 'A_DEMANDER',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+      },
+      {
+        pieceLibelle: 'Pièce 2',
+        statut: 'OBTENUE',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+      },
+    ]);
+    const badge = component.piecesBadgeFor('F-DT-04-fiche-prudhomale');
+    expect(badge).not.toBeNull();
+    expect(badge!.kind).toBe('missing');
+    expect(badge!.counts.aDemander).toBe(1);
+    expect(badge!.counts.obtenues).toBe(1);
+  });
+
+  it('F-194 SF-194-02 — piecesBadgeFor returns null when none mapped', () => {
+    component.piecesAlignment.set([]);
+    expect(component.piecesBadgeFor('F-DT-04-fiche-prudhomale')).toBeNull();
   });
 
   // F-177 SF-177-12 — la card du panel doit afficher le badge `auto_awesome`
@@ -447,6 +511,11 @@ describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRe
         // takeUntilDestroyed peut canceller la requête avant le flush ; on
         // l'ignore (pas de leak réel, les requêtes cancellées ne polluent
         // pas verify()).
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
+    // F-194 SF-194-02 — idem pour pieces-manquantes-alignment.
+    httpMock.match(r => r.url.endsWith('/pieces-manquantes-alignment'))
+      .forEach(r => {
         try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
       });
     httpMock.verify();

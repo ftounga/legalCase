@@ -71,6 +71,11 @@ export class DivorceChecklistSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /**
+   * F-194 SF-194-02 — Libellés des pièces taggées « OBTENUE » alignées
+   * sur cet outil. V1 = passif (signal d'aide visuel forward-compat).
+   */
+  @Input() piecesObtenues?: string[] | null;
 
   private aiDataSignal = signal<FamilleExtractedData | null | undefined>(undefined);
   private procedureChecksSignal = signal<ProcedureCheck[]>([]);

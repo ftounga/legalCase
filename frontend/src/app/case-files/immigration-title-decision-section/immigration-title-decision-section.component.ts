@@ -240,6 +240,12 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
    * pré-filtré par le panel via TOOL_REGISTRY.inputs(ctx)).
    */
   @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  /**
+   * F-194 SF-194-02 — Libellés des pièces taggées « OBTENUE » par l'avocat
+   * et alignées sur cet outil (pré-filtrées par le panel). V1 = passif
+   * (signal d'aide visuel forward-compat).
+   */
+  @Input() piecesObtenues?: string[] | null;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 

@@ -36,6 +36,30 @@ export interface ProcedureChecksBadgeInput {
 }
 
 /**
+ * F-194 SF-194-02 — Verdict du pill `📎 Pièces (D/O/N)` affiché sur la card
+ * du panel F-IA-04 quand au moins une pièce est mappée sur cet outil. Calculé
+ * via le helper partagé `piece-manquante-badge.helper.ts` exposé via static
+ * `getPiecesBadge` par chaque composant outil instrumenté.
+ *
+ * Couleurs (palette navy/or DESIGN_SYSTEM.md) :
+ *   - missing        : navy clair (rappelle qu'il manque encore des pièces)
+ *   - obtained       : or plein (toutes obtenues)
+ *   - partial        : or contour (mix obtenues + non applicable)
+ *   - not_applicable : gris (toutes écartées)
+ */
+export type PiecesBadgeKind =
+  | 'missing'
+  | 'partial'
+  | 'obtained'
+  | 'not_applicable'
+  | 'none';
+
+export interface PiecesBadgeInput {
+  kind: PiecesBadgeKind;
+  counts: { aDemander: number; obtenues: number; nonApplicable: number };
+}
+
+/**
  * F-177 SF-177-01 — Card réutilisable pour outil décisionnel.
  *
  * Rend un titre + verdict synthétique + jusqu'à 3 badges en coin (pré-fill IA, alerte F-IA-03,
@@ -77,6 +101,14 @@ export class DecisionToolCardComponent {
    * `null` (composant non instrumenté) → pill silencieusement masqué.
    */
   @Input() proceduresChecksBadge: ProcedureChecksBadgeInput | null = null;
+  /**
+   * F-194 SF-194-02 — Affiche un pill `📎 Pièces (D/O/N)` (À demander /
+   * Obtenues / Non applicable) à côté des autres pills quand `kind ≠ 'none'`.
+   * Couleur selon kind : missing=navy clair (priorité visuelle — il manque
+   * encore des pièces), obtained=or plein, partial=or contour, not_applicable
+   * =gris. `null` (composant non instrumenté) → pill silencieusement masqué.
+   */
+  @Input() piecesBadge: PiecesBadgeInput | null = null;
   @Input() disabled = false;
   @Input() flashing = false;
 
@@ -196,6 +228,54 @@ export class DecisionToolCardComponent {
     if (c.nonCompliant > 0) return 'tool-card__badge--procedures-non-compliant';
     if (c.toVerify > 0) return 'tool-card__badge--procedures-to-verify';
     if (c.verified > 0) return 'tool-card__badge--procedures-verified';
+    return '';
+  }
+
+  /* F-194 SF-194-02 — pill « 📎 Pièces (D/O/N) ». */
+  protected get showPiecesBadge(): boolean {
+    if (!this.piecesBadge) return false;
+    if (this.piecesBadge.kind === 'none') return false;
+    const c = this.piecesBadge.counts;
+    return c.aDemander + c.obtenues + c.nonApplicable > 0;
+  }
+
+  /** Formate les compteurs en `D/O/N` (À demander / Obtenues / Non applicable). */
+  protected get piecesBadgeLabel(): string {
+    const c = this.piecesBadge?.counts;
+    if (!c) return '';
+    return `${c.aDemander}/${c.obtenues}/${c.nonApplicable}`;
+  }
+
+  protected get piecesBadgeAriaLabel(): string {
+    const c = this.piecesBadge?.counts;
+    if (!c) return '';
+    return `Pièces : ${c.aDemander} à demander, ${c.obtenues} obtenue(s), ${c.nonApplicable} non applicable(s)`;
+  }
+
+  protected get piecesBadgeTooltip(): string {
+    const c = this.piecesBadge?.counts;
+    if (!c) return '';
+    const parts: string[] = [];
+    if (c.aDemander > 0) parts.push(`${c.aDemander} à demander`);
+    if (c.obtenues > 0) parts.push(`${c.obtenues} obtenue(s)`);
+    if (c.nonApplicable > 0) parts.push(`${c.nonApplicable} non applicable(s)`);
+    return parts.length > 0 ? `Pièces — ${parts.join(', ')}` : '';
+  }
+
+  /**
+   * Couleur visuelle. Palette navy/or DESIGN_SYSTEM.md :
+   *   - missing        : navy clair (priorité — pièces encore à demander)
+   *   - obtained       : or plein (toutes obtenues)
+   *   - partial        : or contour (mix obtenues + non applicable)
+   *   - not_applicable : gris (toutes écartées)
+   */
+  protected get piecesBadgeClass(): string {
+    if (!this.piecesBadge) return '';
+    const c = this.piecesBadge.counts;
+    if (c.aDemander > 0) return 'tool-card__badge--pieces-missing';
+    if (c.obtenues > 0 && c.nonApplicable > 0) return 'tool-card__badge--pieces-partial';
+    if (c.obtenues > 0) return 'tool-card__badge--pieces-obtained';
+    if (c.nonApplicable > 0) return 'tool-card__badge--pieces-not-applicable';
     return '';
   }
 

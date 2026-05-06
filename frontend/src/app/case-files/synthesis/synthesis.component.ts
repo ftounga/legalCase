@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -12,6 +12,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { CaseFileService } from '../../core/services/case-file.service';
@@ -30,6 +33,8 @@ import { RetainedPisteAlignmentService } from '../../core/services/retained-pist
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { ProcedureCheckAlignmentService } from '../../core/services/procedure-check-alignment.service';
 import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
+import { PIECE_DESTINATAIRES, PieceManquanteStatutValue } from '../../core/models/piece-manquante-status.model';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
@@ -102,6 +107,7 @@ const STREAMING_EXPECTED_SECTIONS: readonly StreamingSection[] = [
     MatCardModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatProgressBarModule, MatExpansionModule,
     MatCheckboxModule, MatTooltipModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule,
     SourceRefComponent,
     QuotaErrorBannerComponent,
     ImmigrationEventsSectionComponent,
@@ -158,6 +164,29 @@ export class SynthesisComponent implements OnInit, OnDestroy {
 
   procedureChecks = signal<ProcedureCheck[]>([]);
   updatingCheckId = signal<string | null>(null);
+
+  /**
+   * F-194 SF-194-02 — Cache des statuts pièces taggés localement par l'avocat.
+   * Clé = libellé original de la pièce (issu de l'IA), valeur = statut.
+   * Utilisé pour la mise en évidence du bouton actif. Optimistic update :
+   * `set` au clic, rollback (delete) si le PUT remonte une erreur.
+   *
+   * <p>Ce signal NE déclenche PAS de re-fetch alignement post-PUT — cohérence
+   * F-176 stricte : la matérialisation pièce → outil ne se fait qu'au prochain
+   * run de Synthèse enrichie via SSE `ENRICHED_ANALYSIS DONE`.</p>
+   */
+  pieceStatuses = signal<Record<string, PieceManquanteStatutValue>>({});
+  /** Saisie locale `raisonNonApp` par pièce (clé = libellé). Pas persistée tant que blur. */
+  pieceRaisons = signal<Record<string, string>>({});
+  /** Saisie locale `destinataire` par pièce. */
+  pieceDestinataires = signal<Record<string, string>>({});
+  /** Pièce en cours de PUT (libellé) — affiche un spinner sur la ligne. */
+  updatingPieceLibelle = signal<string | null>(null);
+
+  /** Liste des destinataires usuels exposés au template (cf. model). */
+  readonly pieceDestinataireOptions = PIECE_DESTINATAIRES;
+  /** F-194 SF-194-02 — utilitaire OnPush : forcer la CD après mutation signal. */
+  private readonly cdr = inject(ChangeDetectorRef);
 
   // F-160 SF-160-02 — paginators indépendants par bloc (checklist + questions)
   // Numéro de version actuellement affiché par bloc (peut diverger de la version
@@ -366,7 +395,8 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private timeService: TimeService,
     private dialog: MatDialog,
     private retainedPisteAlignmentService: RetainedPisteAlignmentService,
-    private procedureCheckAlignmentService: ProcedureCheckAlignmentService
+    private procedureCheckAlignmentService: ProcedureCheckAlignmentService,
+    private pieceManquanteStatusService: PieceManquanteStatusService
   ) {}
 
   ngOnInit(): void {
@@ -715,6 +745,116 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  /**
+   * F-194 SF-194-02 — Récupère le statut courant d'une pièce manquante.
+   * Tant que l'avocat n'a pas encore tagué : statut implicite `A_DEMANDER`.
+   * Cohérent avec la sémantique backend (l'absence d'entrée DB = pièce à
+   * demander).
+   */
+  pieceStatusFor(libelle: string): PieceManquanteStatutValue {
+    return this.pieceStatuses()[libelle] ?? 'A_DEMANDER';
+  }
+
+  /** F-194 SF-194-02 — bouton actif si statut courant correspond. */
+  isPieceStatusActive(libelle: string, statut: PieceManquanteStatutValue): boolean {
+    return this.pieceStatusFor(libelle) === statut;
+  }
+
+  pieceRaisonFor(libelle: string): string {
+    return this.pieceRaisons()[libelle] ?? '';
+  }
+
+  pieceDestinataireFor(libelle: string): string {
+    return this.pieceDestinataires()[libelle] ?? '';
+  }
+
+  /**
+   * F-194 SF-194-02 — Tag d'une pièce avec un nouveau statut. PUT optimiste :
+   * UI mise à jour immédiatement, rollback si erreur. AUCUN refresh
+   * (pas de `triggerRefresh`, pas de `loadAlignment`) — cohérence F-176 stricte.
+   * La matérialisation pièce → outil arrive seule au prochain run Synthèse
+   * enrichie (via SSE `ENRICHED_ANALYSIS DONE`).
+   */
+  updatePieceStatus(libelle: string, statut: PieceManquanteStatutValue): void {
+    if (this.updatingPieceLibelle() === libelle) return;
+    const cf = this.caseFile();
+    if (!cf) return;
+    const previous = this.pieceStatuses()[libelle];
+    // Optimistic update.
+    this.pieceStatuses.update(map => ({ ...map, [libelle]: statut }));
+    this.updatingPieceLibelle.set(libelle);
+    this.cdr.markForCheck();
+
+    const raisonNonApp = statut === 'NON_APPLICABLE'
+      ? (this.pieceRaisons()[libelle] ?? null) || null
+      : null;
+    const destinataire = statut === 'A_DEMANDER'
+      ? (this.pieceDestinataires()[libelle] ?? null) || null
+      : null;
+
+    this.pieceManquanteStatusService
+      .updateStatus(cf.id, libelle, statut, { raisonNonApp, destinataire })
+      .subscribe({
+        next: response => {
+          this.updatingPieceLibelle.set(null);
+          // Aligne le cache local sur la réponse autoritative backend (raison /
+          // destinataire éventuellement normalisés).
+          if (response?.raisonNonApp != null) {
+            this.pieceRaisons.update(m => ({ ...m, [libelle]: response.raisonNonApp ?? '' }));
+          }
+          if (response?.destinataire != null) {
+            this.pieceDestinataires.update(m => ({ ...m, [libelle]: response.destinataire ?? '' }));
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.updatingPieceLibelle.set(null);
+          // Rollback statut.
+          this.pieceStatuses.update(map => {
+            const next = { ...map };
+            if (previous !== undefined) {
+              next[libelle] = previous;
+            } else {
+              delete next[libelle];
+            }
+            return next;
+          });
+          this.cdr.markForCheck();
+          this.snackBar.open(
+            'Erreur lors de la mise à jour de la pièce',
+            'Fermer',
+            { duration: 4000, panelClass: ['snack-error'] },
+          );
+        },
+      });
+  }
+
+  /**
+   * F-194 SF-194-02 — Capture la saisie raison NON_APPLICABLE (input local).
+   * Le PUT est déclenché à blur via `onPieceRaisonBlur` — évite un PUT à
+   * chaque caractère.
+   */
+  onPieceRaisonInput(libelle: string, value: string): void {
+    this.pieceRaisons.update(m => ({ ...m, [libelle]: value }));
+  }
+
+  onPieceRaisonBlur(libelle: string): void {
+    if (this.pieceStatusFor(libelle) !== 'NON_APPLICABLE') return;
+    // Re-déclenche un PUT avec la raison saisie (no-op côté UI : statut déjà
+    // affiché, on ne change que le payload côté backend).
+    this.updatePieceStatus(libelle, 'NON_APPLICABLE');
+  }
+
+  /**
+   * F-194 SF-194-02 — Saisie destinataire (MatSelect). Déclenche un PUT
+   * immédiat car la sélection est ponctuelle (pas de blur à attendre).
+   */
+  onPieceDestinataireChange(libelle: string, value: string): void {
+    this.pieceDestinataires.update(m => ({ ...m, [libelle]: value }));
+    if (this.pieceStatusFor(libelle) !== 'A_DEMANDER') return;
+    this.updatePieceStatus(libelle, 'A_DEMANDER');
   }
 
   checkStatusLabel(statut: ProcedureCheckStatus): string {

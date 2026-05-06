@@ -446,3 +446,72 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
     expect(modalService.open).not.toHaveBeenCalled();
   });
 });
+
+// F-194 SF-194-02 — tile F-194-pieces-summary rendue + clic navigation
+// vers /synthesis#section-pieces (pas d'ouverture modal d'outil).
+describe('CaseDashboardComponent — F-194 SF-194-02 pieces-summary tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+
+  const dashboardWithPieces: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'DROIT_DU_TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-194-pieces-summary',
+        theme: 'DOCUMENTS',
+        label: 'Pièces',
+        primaryValue: '3 à demander',
+        secondaryValue: '2 obtenues',
+        alertLevel: 'WARNING',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithPieces)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    router = { navigate: jest.fn() } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-08 tile F-194-pieces-summary rendue dans le thème DOCUMENTS', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const docs = sections.find(s => s.key === 'DOCUMENTS');
+    expect(docs).toBeDefined();
+    expect(docs!.tiles[0].toolId).toBe('F-194-pieces-summary');
+    expect(docs!.tiles[0].label).toBe('Pièces');
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Pièces');
+  });
+
+  it('CA-09 clic tile F-194-pieces-summary → router.navigate vers /synthesis#section-pieces', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-194-pieces-summary');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-pieces' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});

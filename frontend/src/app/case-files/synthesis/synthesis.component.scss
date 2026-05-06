@@ -1169,3 +1169,129 @@
     white-space: nowrap;
   }
 }
+
+/* F-194 SF-194-02 — UI markable des pièces manquantes.
+   Palette navy/or DESIGN_SYSTEM.md (cohérent F-176 SF-176-02 — pas de rouge
+   dominant pour NON_APPLICABLE qui est gris discret). */
+.pieces-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.piece-item {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #E0E4EA;
+  border-left: 4px solid #C9973A;
+  border-radius: 8px;
+  background: #FFFFFF;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.piece-content {
+  flex: 1 1 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.piece-texte {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  color: #1A3A5C;
+  line-height: 1.45;
+}
+
+.piece-destinataire-field,
+.piece-raison-field {
+  margin-top: 4px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.piece-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.piece-spinner {
+  margin: 0 8px;
+}
+
+.piece-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  border: 1.5px solid;
+  background: transparent;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &--demander {
+    /* navy — pièce à demander (statut implicite par défaut) */
+    border-color: #1A3A5C;
+    color: #1A3A5C;
+
+    &.piece-status-btn--active {
+      background: #1A3A5C;
+      color: #FFFFFF;
+    }
+
+    &:hover:not(.piece-status-btn--active) {
+      background: #EEF2F7;
+    }
+  }
+
+  &--obtenue {
+    /* or — pièce reçue */
+    border-color: #C9973A;
+    color: #8B6F3D;
+
+    &.piece-status-btn--active {
+      background: #C9973A;
+      color: #FFFFFF;
+    }
+
+    &:hover:not(.piece-status-btn--active) {
+      background: #FAF5EA;
+    }
+  }
+
+  &--non-applicable {
+    /* gris — pièce écartée (cohérent F-176 statut DISCARDED) */
+    border-color: #6B7A8D;
+    color: #6B7A8D;
+
+    &.piece-status-btn--active {
+      background: #6B7A8D;
+      color: #FFFFFF;
+    }
+
+    &:hover:not(.piece-status-btn--active) {
+      background: #F2F4F8;
+    }
+  }
+}

@@ -302,6 +302,84 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('F-194 SF-194-02 — pill « 📎 Pièces (D/O/N) »', () => {
+    it('missing : pill navy clair visible (priorité visuelle — il manque encore des pièces)', () => {
+      component.piecesBadge = {
+        kind: 'missing',
+        counts: { aDemander: 2, obtenues: 1, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-missing')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('2/1/0');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('attach_file');
+    });
+
+    it('obtained : pill or plein visible quand toutes pièces sont obtenues', () => {
+      component.piecesBadge = {
+        kind: 'obtained',
+        counts: { aDemander: 0, obtenues: 3, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-obtained')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('0/3/0');
+    });
+
+    it('partial : pill or contour quand obtenues + non applicable cohabitent', () => {
+      component.piecesBadge = {
+        kind: 'partial',
+        counts: { aDemander: 0, obtenues: 2, nonApplicable: 1 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-partial')).toBe(true);
+    });
+
+    it('not_applicable : pill gris quand toutes pièces sont écartées', () => {
+      component.piecesBadge = {
+        kind: 'not_applicable',
+        counts: { aDemander: 0, obtenues: 0, nonApplicable: 2 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-not-applicable')).toBe(true);
+    });
+
+    it('none → pill absent', () => {
+      component.piecesBadge = {
+        kind: 'none',
+        counts: { aDemander: 0, obtenues: 0, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      expect(badge('[data-testid="pieces-badge"]')).toBeNull();
+    });
+
+    it('null → pill absent (composant non instrumenté SF-194-02)', () => {
+      component.piecesBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="pieces-badge"]')).toBeNull();
+    });
+
+    it('aria-label reflète les compteurs', () => {
+      component.piecesBadge = {
+        kind: 'missing',
+        counts: { aDemander: 3, obtenues: 1, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe(
+        'Pièces : 3 à demander, 1 obtenue(s), 0 non applicable(s)',
+      );
+    });
+  });
+
   describe('SF-159-02 — flashing input', () => {
     it('ajoute la classe tool-card--flashing quand flashing=true', () => {
       component.flashing = true;
