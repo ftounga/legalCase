@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { PdfExportService } from './pdf-export.service';
 import { CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
+import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
 
 const mockCaseFile: Partial<CaseFile> = { id: '1', title: 'Affaire Dupont c/ SA Renault' };
 
@@ -354,5 +355,149 @@ describe('PdfExportService', () => {
     const doc = service.buildDocument(mockCaseFile as CaseFile, synWithoutLiquidation) as any;
     const s = JSON.stringify(doc.content);
     expect(s).not.toContain('Liquidation de communauté');
+  });
+
+  // --- F-192 SF-192-03 : section « Stratégies retenues » dans l'export PDF synthèse ---
+
+  const pisteAligned: RetainedPisteAlignment = {
+    pisteId: 'p-1',
+    texte: 'Demander un titre Passeport Talent — Chercheur',
+    baseJuridique: 'L.421-14 CESEDA',
+    horizonTemporel: '3 mois',
+    conditions: ['Diplôme master', 'Convention d\'accueil'],
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'ALIGNED',
+  };
+
+  const pisteDivergent: RetainedPisteAlignment = {
+    pisteId: 'p-2',
+    texte: 'Engager un recours hiérarchique',
+    baseJuridique: 'L.214-1 CESEDA',
+    horizonTemporel: '2 mois',
+    conditions: [],
+    toolIdCible: 'F-IM-06-recours',
+    matchStatus: 'DIVERGENT',
+  };
+
+  const pisteNotAnalyzed: RetainedPisteAlignment = {
+    pisteId: 'p-3',
+    texte: 'Stratégie X',
+    baseJuridique: null,
+    horizonTemporel: null,
+    conditions: [],
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'NOT_ANALYZED',
+  };
+
+  const pisteNoTargetTool: RetainedPisteAlignment = {
+    pisteId: 'p-4',
+    texte: 'Demander un divorce par consentement mutuel',
+    baseJuridique: 'art. 230 Code civil',
+    horizonTemporel: '6 mois',
+    conditions: ['Accord des deux époux'],
+    toolIdCible: null,
+    matchStatus: 'NO_TARGET_TOOL',
+  };
+
+  const labelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-IM-05-arbre-decisionnel-titre': 'TITRE DE SÉJOUR RECOMMANDÉ',
+      'F-IM-06-recours': 'RECOURS IMMIGRATION',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-192-03 CA-02: buildDocument(_, _, []) → aucune section Stratégies retenues', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, []) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Stratégies retenues');
+  });
+
+  it('SF-192-03 CA-02: buildDocument(_, _, undefined) → aucune section Stratégies retenues', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Stratégies retenues');
+  });
+
+  it('SF-192-03 CA-03: piste ALIGNED → badge ✅ Stratégie alignée avec l\'outil <label>', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).toContain('Passeport Talent');
+    expect(s).toContain('✅ Stratégie alignée avec l\'outil TITRE DE SÉJOUR RECOMMANDÉ');
+  });
+
+  it('SF-192-03 CA-04: piste DIVERGENT → badge ⚠️ Stratégie divergente avec l\'outil <label>', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteDivergent], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⚠️ Stratégie divergente avec l\'outil RECOURS IMMIGRATION');
+  });
+
+  it('SF-192-03 CA-05: piste NOT_ANALYZED → badge ⏳ Outil <label> non encore analysé', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteNotAnalyzed], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⏳ Outil TITRE DE SÉJOUR RECOMMANDÉ non encore analysé');
+  });
+
+  it('SF-192-03 CA-06: piste NO_TARGET_TOOL → texte affiché, AUCUN badge alignement', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteNoTargetTool], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).toContain('Demander un divorce par consentement mutuel');
+    expect(s).not.toContain('✅ Stratégie alignée');
+    expect(s).not.toContain('⚠️ Stratégie divergente');
+    expect(s).not.toContain('⏳ Outil');
+  });
+
+  it('SF-192-03 CA-01: section insérée APRÈS la page de garde, AVANT la timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synWithTimeline, [pisteAligned], labelResolver) as any;
+    const content: any[] = doc.content;
+    const flat = JSON.stringify(content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const timelineIdx = flat.indexOf('Chronologie');
+    const coverIdx = flat.indexOf('Synthèse'); // page de garde contient "Synthèse enrichie/initiale"
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(coverIdx).toBeGreaterThan(-1);
+    expect(coverIdx).toBeLessThan(stratIdx);
+    expect(stratIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-192-03 CA-07: conditions affichées en liste à puces (ul pdfmake)', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('"ul"');
+    expect(flat).toContain('Diplôme master');
+    expect(flat).toContain("Convention d'accueil");
+  });
+
+  it('SF-192-03 CA-08: base juridique en JetBrainsMono italique taille 9', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('"font":"JetBrainsMono"');
+    // L.421-14 CESEDA est rendu avec font JetBrainsMono + italics + fontSize 9
+    expect(flat).toContain('L.421-14 CESEDA');
+    // Recherche du bloc baseJuridique avec ses props caractéristiques
+    expect(flat).toMatch(/"text":"L\.421-14 CESEDA","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-192-03: lookup label échoue → toolId brut affiché', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], noResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('F-IM-05-arbre-decisionnel-titre');
+  });
+
+  it('SF-192-03: plusieurs pistes → séparateur navy entre chaque', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned, pisteDivergent], labelResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('Passeport Talent');
+    expect(flat).toContain('Engager un recours hiérarchique');
+    // Le séparateur est un canvas line — on vérifie qu'il y a bien au moins une ligne navy entre les pistes
+    expect(flat).toContain('"type":"line"');
   });
 });

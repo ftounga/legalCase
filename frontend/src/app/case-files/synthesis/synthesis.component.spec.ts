@@ -15,6 +15,8 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
+import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -131,6 +133,7 @@ describe('SynthesisComponent', () => {
         { provide: ChatService, useValue: chatService },
         { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
         { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export', 'exportChecklist']) },
+        { provide: RetainedPisteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RetainedPisteAlignment[])) } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: StrategicOptionService, useValue: strategicOptionService },
@@ -360,6 +363,43 @@ describe('SynthesisComponent', () => {
 
     expect(pdfExportService.export).toHaveBeenCalled();
     expect(analyticsService.trackEvent).toHaveBeenCalledWith('pdf_exported');
+  });
+
+  // F-192 SF-192-03 : exportPdf appelle RetainedPisteAlignmentService AVANT pdfExportService.export
+  it('SF-192-03 exportPdf → RetainedPisteAlignmentService.getForCaseFile appelé puis pistes passées en 3ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const alignmentService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pistes: RetainedPisteAlignment[] = [
+      { pisteId: 'p1', texte: 'Demander un titre Talent', conditions: [], matchStatus: 'ALIGNED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre' },
+    ];
+    alignmentService.getForCaseFile.mockReturnValue(of(pistes));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(alignmentService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual(pistes);
+    expect(typeof args[3]).toBe('function');
+  });
+
+  // F-192 SF-192-03 : endpoint timeout / erreur → export quand même, 3ᵉ arg = []
+  it('SF-192-03 exportPdf → endpoint erreur, export appelé avec retainedPistes []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const alignmentService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    alignmentService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual([]);
   });
 
   // T-16 : onVersionChange réinitialise editingQuestionId
