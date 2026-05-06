@@ -67,7 +67,7 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly selectedVideoId = signal<string>(DEMO_VIDEOS[0].videoId);
   readonly videoEmbedUrl = computed<SafeResourceUrl>(() =>
     this.sanitizer.bypassSecurityTrustResourceUrl(
-      `https://www.youtube.com/embed/${this.selectedVideoId()}?rel=0`
+      `https://www.youtube-nocookie.com/embed/${this.selectedVideoId()}?rel=0`
     )
   );
 
