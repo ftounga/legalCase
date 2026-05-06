@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      F-193 SF-193-01 — Matérialisation des points procéduraux F-96 (statuts
+      avocat) au run de Synthèse enrichie.
+
+      Pattern miroir F-192 SF-192-01 (migration 205). Cette migration ajoute :
+        (a) la colonne `case_analyses.procedure_checks_alignment_json` (TEXT NULL)
+            qui stocke un tableau JSON [{checkId, libelle, critereCode, statut,
+            expectedValue, raison, toolIdCible, matchStatus}] calculé et
+            persisté par ProcedureCheckAlignmentService.materializeForAnalysis()
+            à la fin de EnrichedAnalysisService.run (APRÈS le hook F-192).
+
+        (b) un élargissement de `case_deadlines.source` de VARCHAR(20) à
+            VARCHAR(40) pour accueillir les 2 nouvelles valeurs
+            `PROCEDURE_CHECK_NON_COMPLIANT` (28 caractères) et
+            `PROCEDURE_CHECK_TO_CHECK` (24 caractères) sans collision avec les
+            valeurs existantes (`MANUAL`, `STATUTORY`, `IA`, `AVOCAT`,
+            `PISTE_RETENUE` introduit par F-192). Migration 205 avait déjà
+            élargi de VARCHAR(10) à VARCHAR(20) — on continue l'élargissement.
+
+      Comme dans F-192, aucune migration n'est nécessaire pour
+      `pieces_manquantes.source` : les pieces manquantes vivent dans le JSON
+      `case_analyses.analysis_result` (pas de table dédiée, pas de colonne
+      `source` SQL à élargir). Les nouvelles valeurs `PROCEDURE_CHECK_*` sont
+      portées dans le JSON par ProcedureCheckAlignmentService au moment de la
+      matérialisation.
+    -->
+
+    <changeSet id="206-f193-add-procedure-checks-alignment-json" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="procedure_checks_alignment_json" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="206-f193-widen-case-deadlines-source" author="ailegalcase">
+        <modifyDataType tableName="case_deadlines"
+                        columnName="source"
+                        newDataType="VARCHAR(40)"/>
+    </changeSet>
+
+</databaseChangeLog>

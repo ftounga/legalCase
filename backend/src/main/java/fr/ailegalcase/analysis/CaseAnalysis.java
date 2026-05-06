@@ -61,6 +61,22 @@ public class CaseAnalysis {
     @Column(name = "retained_pistes_alignment_json", columnDefinition = "TEXT")
     private String retainedPistesAlignmentJson;
 
+    /**
+     * F-193 SF-193-01 — alignement matérialisé des points procéduraux F-96 de cette analyse
+     * vers les outils décisionnels du dossier (statique JSON, calculé une fois en fin de run
+     * de Synthèse enrichie par {@code ProcedureCheckAlignmentService.materializeForAnalysis},
+     * APRÈS le hook F-192).
+     *
+     * <p>Schéma : tableau d'objets
+     * {@code [{"checkId":..., "libelle":..., "critereCode":..., "statut":..., "expectedValue":...,
+     * "raison":..., "toolIdCible":..., "matchStatus":"ALIGNED|DIVERGENT|NON_COMPLIANT_FLAG|TO_VERIFY_FLAG|NOT_ANALYZED|NO_TARGET_TOOL"}]}.
+     *
+     * <p>{@code null} pour les analyses pré-F-193 ou les runs où la matérialisation a échoué
+     * (fail-open) — l'endpoint {@code /procedure-checks-alignment} retourne {@code []} dans ce cas.</p>
+     */
+    @Column(name = "procedure_checks_alignment_json", columnDefinition = "TEXT")
+    private String procedureChecksAlignmentJson;
+
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 

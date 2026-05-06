@@ -71,12 +71,15 @@ class SentryJobReportingTest {
 
     private final RetainedPisteAlignmentService retainedPisteAlignmentService =
             mock(RetainedPisteAlignmentService.class);
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService =
+            mock(ProcedureCheckAlignmentService.class);
 
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
             chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
+            procedureCheckAlignmentService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);

@@ -4,9 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.analysis.AnalysisStatus;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
-import fr.ailegalcase.analysis.RetainedPisteAlignment;
+import fr.ailegalcase.analysis.ProcedureCheckAlignment;
+import fr.ailegalcase.analysis.ProcedureCheckAlignmentService;
+import fr.ailegalcase.analysis.ProcedureCheckToolMatcher;
 import fr.ailegalcase.analysis.RetainedPisteAlignmentService;
-import fr.ailegalcase.analysis.RetainedPisteToolMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,26 +21,28 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * F-192 SF-192-01 — Tests dédiés à la tile {@code F-192-retained-pistes-summary}
+ * F-193 SF-193-01 — Tests dédiés à la tile {@code F-193-procedure-checks-summary}
  * de {@link CaseFileDashboardService}.
  *
- * <p>Test isolé du big {@link CaseFileDashboardServiceTest} parce que la nouvelle
- * tile dépend du {@code CaseAnalysisRepository} qui était {@code null} dans le
- * setUp historique.</p>
+ * <p>Pattern miroir {@link CaseFileDashboardServiceRetainedPistesTest} (F-192).</p>
  */
-class CaseFileDashboardServiceRetainedPistesTest {
+class CaseFileDashboardServiceProcedureChecksTest {
 
     private CaseAnalysisRepository analysisRepository;
-    private RetainedPisteAlignmentService retainedPisteAlignmentService;
+    private ProcedureCheckAlignmentService procedureCheckAlignmentService;
     private CaseFileDashboardService service;
 
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         analysisRepository = mock(CaseAnalysisRepository.class);
-        retainedPisteAlignmentService = mock(RetainedPisteAlignmentService.class);
+        procedureCheckAlignmentService = mock(ProcedureCheckAlignmentService.class);
 
-        // Tous les autres repos = mocks vides (pas de tile autre)
+        // Mock F-192 service : aucun alignement (pas de tile concurrente)
+        RetainedPisteAlignmentService retainedPisteAlignmentService =
+                mock(RetainedPisteAlignmentService.class);
+        when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
+
         service = new CaseFileDashboardService(
                 objectMapper, null, null, null, analysisRepository,
                 mock(LicenciementAnalysisRepository.class),
@@ -129,7 +132,7 @@ class CaseFileDashboardServiceRetainedPistesTest {
                 mock(Belgian40bisRepository.class),
                 mock(Belgian40terRepository.class),
                 retainedPisteAlignmentService,
-                mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class));
+                procedureCheckAlignmentService);
     }
 
     @Test
@@ -147,10 +150,10 @@ class CaseFileDashboardServiceRetainedPistesTest {
     void analysisWithoutAlignmentJson_returnsNoTile() {
         UUID caseFileId = UUID.randomUUID();
         CaseAnalysis a = new CaseAnalysis();
-        a.setRetainedPistesAlignmentJson(null);
+        a.setProcedureChecksAlignmentJson(null);
         when(analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(a));
-        when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
+        when(procedureCheckAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
 
         List<DashboardTile> tiles = service.assembleTiles(caseFileId);
 
@@ -158,78 +161,78 @@ class CaseFileDashboardServiceRetainedPistesTest {
     }
 
     @Test
-    void alignmentWith3RetainedAnd1Divergent_tileAlertLevelALERT() {
+    void alignmentWith3ChecksAnd1NonCompliant_tileAlertLevelALERT() {
         UUID caseFileId = UUID.randomUUID();
         CaseAnalysis a = new CaseAnalysis();
-        a.setRetainedPistesAlignmentJson("[{}]"); // contenu peu importe (mock)
+        a.setProcedureChecksAlignmentJson("[{}]");
         when(analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(a));
 
-        List<RetainedPisteAlignment> alignments = List.of(
-                new RetainedPisteAlignment(UUID.randomUUID(), "P1", "L.421-14", null,
-                        List.of(), RetainedPisteToolMatcher.TOOL_TITRE,
-                        RetainedPisteAlignment.STATUS_ALIGNED),
-                new RetainedPisteAlignment(UUID.randomUUID(), "P2", "L.421-14", null,
-                        List.of(), RetainedPisteToolMatcher.TOOL_TITRE,
-                        RetainedPisteAlignment.STATUS_DIVERGENT),
-                new RetainedPisteAlignment(UUID.randomUUID(), "P3", "L.421-14", null,
-                        List.of(), RetainedPisteToolMatcher.TOOL_TITRE,
-                        RetainedPisteAlignment.STATUS_ALIGNED));
-        when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(alignments);
+        List<ProcedureCheckAlignment> alignments = List.of(
+                new ProcedureCheckAlignment(UUID.randomUUID(), "C1", "FR_CONVOCATION", "VERIFIED",
+                        null, null, ProcedureCheckToolMatcher.TOOL_DT_08_LICENCIEMENT,
+                        ProcedureCheckAlignment.STATUS_ALIGNED),
+                new ProcedureCheckAlignment(UUID.randomUUID(), "C2", "FR_DELAI_NOTIFICATION", "NON_COMPLIANT",
+                        null, "Notification absente", ProcedureCheckToolMatcher.TOOL_DT_08_LICENCIEMENT,
+                        ProcedureCheckAlignment.STATUS_NON_COMPLIANT_FLAG),
+                new ProcedureCheckAlignment(UUID.randomUUID(), "C3", "IM05_MOTIF", "VERIFIED",
+                        "TRAVAIL", null, ProcedureCheckToolMatcher.TOOL_IM_05_TITRE,
+                        ProcedureCheckAlignment.STATUS_ALIGNED));
+        when(procedureCheckAlignmentService.deserializeAlignment(any())).thenReturn(alignments);
 
         DashboardTile tile = service.assembleTiles(caseFileId).stream()
-                .filter(t -> "F-192-retained-pistes-summary".equals(t.toolId()))
+                .filter(t -> "F-193-procedure-checks-summary".equals(t.toolId()))
                 .findFirst()
                 .orElseThrow();
 
-        assertThat(tile.theme()).isEqualTo("DIAGNOSTIC");
-        assertThat(tile.label()).isEqualTo("Pistes stratégiques retenues");
-        assertThat(tile.primaryValue()).isEqualTo("3 retenues");
-        assertThat(tile.secondaryValue()).isEqualTo("1 en divergence");
+        assertThat(tile.theme()).isEqualTo("DELAIS");
+        assertThat(tile.label()).isEqualTo("Conformité procédurale");
+        assertThat(tile.primaryValue()).isEqualTo("3 points");
+        assertThat(tile.secondaryValue()).isEqualTo("1 non conforme · 0 à vérifier");
         assertThat(tile.alertLevel()).isEqualTo("ALERT");
     }
 
     @Test
-    void alignmentWithNotAnalyzedOnly_tileAlertLevelWARNING() {
+    void alignmentWithToCheckOnly_tileAlertLevelWARNING() {
         UUID caseFileId = UUID.randomUUID();
         CaseAnalysis a = new CaseAnalysis();
-        a.setRetainedPistesAlignmentJson("[{}]");
+        a.setProcedureChecksAlignmentJson("[{}]");
         when(analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(a));
 
-        List<RetainedPisteAlignment> alignments = List.of(
-                new RetainedPisteAlignment(UUID.randomUUID(), "P1", "L.421-14", null,
-                        List.of(), RetainedPisteToolMatcher.TOOL_TITRE,
-                        RetainedPisteAlignment.STATUS_NOT_ANALYZED));
-        when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(alignments);
+        List<ProcedureCheckAlignment> alignments = List.of(
+                new ProcedureCheckAlignment(UUID.randomUUID(), "C1", "FR_CONVOCATION", "TO_CHECK",
+                        null, null, ProcedureCheckToolMatcher.TOOL_DT_08_LICENCIEMENT,
+                        ProcedureCheckAlignment.STATUS_TO_VERIFY_FLAG));
+        when(procedureCheckAlignmentService.deserializeAlignment(any())).thenReturn(alignments);
 
         DashboardTile tile = service.assembleTiles(caseFileId).stream()
-                .filter(t -> "F-192-retained-pistes-summary".equals(t.toolId()))
+                .filter(t -> "F-193-procedure-checks-summary".equals(t.toolId()))
                 .findFirst().orElseThrow();
 
         assertThat(tile.alertLevel()).isEqualTo("WARNING");
-        assertThat(tile.secondaryValue()).isEqualTo("0 en divergence");
+        assertThat(tile.secondaryValue()).isEqualTo("0 non conforme · 1 à vérifier");
     }
 
     @Test
     void alignmentAllAligned_tileAlertLevelOK() {
         UUID caseFileId = UUID.randomUUID();
         CaseAnalysis a = new CaseAnalysis();
-        a.setRetainedPistesAlignmentJson("[{}]");
+        a.setProcedureChecksAlignmentJson("[{}]");
         when(analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
                 .thenReturn(Optional.of(a));
 
-        List<RetainedPisteAlignment> alignments = List.of(
-                new RetainedPisteAlignment(UUID.randomUUID(), "P1", "L.421-14", null,
-                        List.of(), RetainedPisteToolMatcher.TOOL_TITRE,
-                        RetainedPisteAlignment.STATUS_ALIGNED));
-        when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(alignments);
+        List<ProcedureCheckAlignment> alignments = List.of(
+                new ProcedureCheckAlignment(UUID.randomUUID(), "C1", "FR_CONVOCATION", "VERIFIED",
+                        null, null, ProcedureCheckToolMatcher.TOOL_DT_08_LICENCIEMENT,
+                        ProcedureCheckAlignment.STATUS_ALIGNED));
+        when(procedureCheckAlignmentService.deserializeAlignment(any())).thenReturn(alignments);
 
         DashboardTile tile = service.assembleTiles(caseFileId).stream()
-                .filter(t -> "F-192-retained-pistes-summary".equals(t.toolId()))
+                .filter(t -> "F-193-procedure-checks-summary".equals(t.toolId()))
                 .findFirst().orElseThrow();
 
         assertThat(tile.alertLevel()).isEqualTo("OK");
-        assertThat(tile.primaryValue()).isEqualTo("1 retenue");
+        assertThat(tile.primaryValue()).isEqualTo("1 point");
     }
 }

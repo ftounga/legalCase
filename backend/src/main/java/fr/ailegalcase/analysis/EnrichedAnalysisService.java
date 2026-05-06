@@ -136,6 +136,7 @@ public class EnrichedAnalysisService {
     private final ProcedureCheckService procedureCheckService;
     private final StrategicOptionService strategicOptionService;
     private final RetainedPisteAlignmentService retainedPisteAlignmentService;
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
@@ -168,6 +169,7 @@ public class EnrichedAnalysisService {
                                    ProcedureCheckService procedureCheckService,
                                    StrategicOptionService strategicOptionService,
                                    RetainedPisteAlignmentService retainedPisteAlignmentService,
+                                   ProcedureCheckAlignmentService procedureCheckAlignmentService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
@@ -190,6 +192,7 @@ public class EnrichedAnalysisService {
         this.procedureCheckService = procedureCheckService;
         this.strategicOptionService = strategicOptionService;
         this.retainedPisteAlignmentService = retainedPisteAlignmentService;
+        this.procedureCheckAlignmentService = procedureCheckAlignmentService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
@@ -444,6 +447,15 @@ public class EnrichedAnalysisService {
                 retainedPisteAlignmentService.materializeForAnalysis(enrichedAnalysis);
             } catch (Exception e) {
                 log.warn("Fail-open: retained pistes materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-193 SF-193-01 : matérialise l'alignement procedure_checks F-96 → outils,
+            // propage pieces NON_COMPLIANT + délais TO_CHECK. Doit être APRÈS F-192 pour
+            // garder un ordre cohérent (chacun fail-open, pas de dépendance technique).
+            try {
+                procedureCheckAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: procedure checks materialization failed for enriched analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.CaseAnalysisResponse;
+import fr.ailegalcase.analysis.ProcedureCheckAlignment;
+import fr.ailegalcase.analysis.ProcedureCheckAlignmentService;
 import fr.ailegalcase.analysis.RetainedPisteAlignment;
 import fr.ailegalcase.analysis.RetainedPisteAlignmentService;
 import fr.ailegalcase.auth.User;
@@ -126,6 +128,8 @@ public class CaseFileDashboardService {
     private final Belgian40terRepository belgian40terRepo;
     // F-192 SF-192-01 — pistes RETAINED matérialisées sur la dernière analyse DONE.
     private final RetainedPisteAlignmentService retainedPisteAlignmentService;
+    // F-193 SF-193-01 — checks F-96 matérialisés sur la dernière analyse DONE.
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -217,7 +221,8 @@ public class CaseFileDashboardService {
                                      Belgian9terRepository belgian9terRepo,
                                      Belgian40bisRepository belgian40bisRepo,
                                      Belgian40terRepository belgian40terRepo,
-                                     RetainedPisteAlignmentService retainedPisteAlignmentService) {
+                                     RetainedPisteAlignmentService retainedPisteAlignmentService,
+                                     ProcedureCheckAlignmentService procedureCheckAlignmentService) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -310,6 +315,7 @@ public class CaseFileDashboardService {
         this.belgian40bisRepo = belgian40bisRepo;
         this.belgian40terRepo = belgian40terRepo;
         this.retainedPisteAlignmentService = retainedPisteAlignmentService;
+        this.procedureCheckAlignmentService = procedureCheckAlignmentService;
     }
 
     @Transactional(readOnly = true)
@@ -439,6 +445,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromBelgian40terAnalysis(caseFileId));
         // ── F-192 SF-192-01 — pistes RETAINED matérialisées ───────────────────
         addSafely(tiles, () -> tileFromRetainedPistesAlignment(caseFileId));
+        // ── F-193 SF-193-01 — checks F-96 matérialisés ─────────────────────
+        addSafely(tiles, () -> tileFromProcedureChecksAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
     }
@@ -486,6 +494,60 @@ public class CaseFileDashboardService {
                 "F-192-retained-pistes-summary",
                 "DIAGNOSTIC",
                 "Pistes stratégiques retenues",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-193 SF-193-01 — Tile dashboard agrégeant les points procéduraux F-96
+     * matérialisés sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code alertLevel = ALERT} si ≥ 1 check {@code NON_COMPLIANT_FLAG}</li>
+     *   <li>{@code alertLevel = WARNING} si 0 NON_COMPLIANT_FLAG mais ≥ 1
+     *       {@code TO_VERIFY_FLAG}</li>
+     *   <li>{@code alertLevel = OK} sinon</li>
+     * </ul>
+     *
+     * <p>Thème {@code DELAIS} (vs {@code DIAGNOSTIC} pour F-192) — les
+     * vérifications procédurales relèvent plus des délais que du diagnostic
+     * (cf. mini-spec § Notes et décisions).</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-193 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromProcedureChecksAlignment(UUID caseFileId) {
+        if (procedureCheckAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<ProcedureCheckAlignment> alignments = procedureCheckAlignmentService
+                .deserializeAlignment(latest.get().getProcedureChecksAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long nonCompliant = alignments.stream()
+                .filter(a -> ProcedureCheckAlignment.STATUS_NON_COMPLIANT_FLAG.equals(a.matchStatus()))
+                .count();
+        long toVerify = alignments.stream()
+                .filter(a -> ProcedureCheckAlignment.STATUS_TO_VERIFY_FLAG.equals(a.matchStatus()))
+                .count();
+
+        String alertLevel;
+        if (nonCompliant > 0) alertLevel = "ALERT";
+        else if (toVerify > 0) alertLevel = "WARNING";
+        else alertLevel = "OK";
+
+        int total = alignments.size();
+        String primary = total + " point" + (total > 1 ? "s" : "");
+        String secondary = nonCompliant + " non conforme" + (nonCompliant > 1 ? "s" : "")
+                + " · " + toVerify + " à vérifier";
+
+        return new DashboardTile(
+                "F-193-procedure-checks-summary",
+                "DELAIS",
+                "Conformité procédurale",
                 primary,
                 secondary,
                 alertLevel);
