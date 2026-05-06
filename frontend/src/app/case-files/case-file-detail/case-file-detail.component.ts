@@ -41,7 +41,8 @@ import { AiQuestion } from '../../core/models/ai-question.model';
 import { CaseFile } from '../../core/models/case-file.model';
 import { Document, extractionFailureLabel, documentPieceTypeIcon, documentPieceTypeLabel } from '../../core/models/document.model';
 import { AnalysisJob } from '../../core/models/analysis-job.model';
-import { CaseAnalysisResult } from '../../core/models/case-analysis.model';
+import { CaseAnalysisPartialResponse, CaseAnalysisResult } from '../../core/models/case-analysis.model';
+import { STREAMING_EXPECTED_SECTIONS } from '../synthesis/streaming-sections';
 import { CaseFileStats } from '../../core/models/case-file-stats.model';
 import { CaseFileStatsService } from '../../core/services/case-file-stats.service';
 import { CaseNotesSectionComponent } from '../case-notes-section/case-notes-section.component';
@@ -126,6 +127,28 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   readonly extractionFailureLabel = extractionFailureLabel;
   readonly documentPieceTypeIcon = documentPieceTypeIcon;
   readonly documentPieceTypeLabel = documentPieceTypeLabel;
+
+  // SF-190-03 : dernier état partiel reçu pendant le streaming d'une analyse standard
+  // ou enrichie. Permet d'afficher "X/7 sections reçues" dans le bandeau de progression
+  // (parité avec le bandeau de la page synthèse, F-190 SF-190-01).
+  lastPartial = signal<CaseAnalysisPartialResponse | null>(null);
+
+  /**
+   * SF-190-03 — progression numérique du streaming des sections de synthèse.
+   * `received` = nombre de sections présentes dans le dernier partial reçu
+   * (0 si aucun partial encore arrivé) ; `expected` = nombre fixe de sections
+   * attendues. Le banner masque la sous-ligne quand aucun job CASE_ANALYSIS /
+   * ENRICHED_ANALYSIS n'est actif, donc la valeur "0/7" ne fuite pas hors
+   * streaming.
+   */
+  readonly streamingProgress = computed<{ received: number; expected: number }>(() => {
+    const partial = this.lastPartial();
+    const sections = partial?.sections;
+    const received = sections
+      ? STREAMING_EXPECTED_SECTIONS.filter(desc => sections[desc.id] != null).length
+      : 0;
+    return { received, expected: STREAMING_EXPECTED_SECTIONS.length };
+  });
 
   // SF-125-01 : bouton contextuel — ENRICHED si analyse DONE + au moins 1 input avocat
   // (réponse Q&A OU check procédural validé). Le chat n'est pas chargé côté case-file-detail,
@@ -390,6 +413,23 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
           this.loadStats(id);
           if (event.jobType === 'CASE_ANALYSIS' || event.jobType === 'ENRICHED_ANALYSIS') {
             this.loadSynthesis(id);
+            // SF-190-03 — fin du streaming → reset du compteur sections.
+            this.lastPartial.set(null);
+          }
+        } else if (event.status === 'PARTIAL'
+                   && (event.jobType === 'CASE_ANALYSIS' || event.jobType === 'ENRICHED_ANALYSIS')) {
+          // SF-190-03 — récupère l'état partiel courant pour mettre à jour le compteur
+          // "X/7 sections reçues" dans le bandeau de progression. Pas de loadAnalysisJobs
+          // ici : les jobs ne changent pas pendant le streaming, seul le partial évolue.
+          this.caseAnalysisService.getPartial(id).subscribe({
+            next: partial => this.lastPartial.set(partial),
+            error: () => { /* silencieux : pas de partial → compteur masqué */ }
+          });
+        } else if (event.status === 'FAILED') {
+          this.loadAnalysisJobs(id);
+          // SF-190-03 — analyse échouée → reset du compteur.
+          if (event.jobType === 'CASE_ANALYSIS' || event.jobType === 'ENRICHED_ANALYSIS') {
+            this.lastPartial.set(null);
           }
         } else {
           this.loadAnalysisJobs(id);

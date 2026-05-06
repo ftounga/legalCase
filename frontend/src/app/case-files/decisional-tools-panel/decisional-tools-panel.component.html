@@ -1,5 +1,8 @@
 <div class="decisional-tools-panel">
-  <app-decisional-tools-progress-banner [activeJobTypes]="progressService?.activeJobTypes() ?? []" />
+  <app-decisional-tools-progress-banner
+    [activeJobTypes]="progressService?.activeJobTypes() ?? []"
+    [sectionsReceived]="streamingSectionsReceived"
+    [sectionsExpected]="streamingSectionsExpected" />
   @if (loading()) {
     <div class="loading">
       <mat-spinner diameter="32"></mat-spinner>

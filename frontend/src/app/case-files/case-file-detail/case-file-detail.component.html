@@ -365,7 +365,9 @@
         [workspaceCountry]="workspaceCountry()"
         [caseFileTitle]="caseFile()!.title"
         [procedureChecks]="procedureChecks()"
-        [aiQuestions]="questions()">
+        [aiQuestions]="questions()"
+        [streamingSectionsReceived]="streamingProgress().received"
+        [streamingSectionsExpected]="streamingProgress().expected">
       </app-decisional-tools-panel>
     </div>
 

@@ -182,6 +182,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   @Input() caseFileTitle = '';
   @Input() procedureChecks: any[] = [];
   @Input() aiQuestions: any[] = [];
+  // F-190 SF-190-03 — compteur "X/7 sections reçues" propagé au banner.
+  @Input() streamingSectionsReceived: number | null = null;
+  @Input() streamingSectionsExpected = 0;
 
   readonly loading = signal(false);
   readonly visibility = signal<VisibleToolSet | null>(null);

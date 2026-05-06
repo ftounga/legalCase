@@ -57,4 +57,49 @@ describe('DecisionalToolsProgressBannerComponent', () => {
     expect(banner.getAttribute('role')).toBe('status');
     expect(banner.getAttribute('aria-live')).toBe('polite');
   });
+
+  // F-190 SF-190-03 — sous-ligne "X/Y sections reçues" pendant le streaming d'une analyse standard / enrichie.
+  describe('sous-ligne "X/Y sections reçues" (SF-190-03)', () => {
+    it('affiche "3/7 sections reçues" pendant CASE_ANALYSIS', () => {
+      component.activeJobTypes = ['CASE_ANALYSIS'];
+      component.sectionsReceived = 3;
+      component.sectionsExpected = 7;
+      fixture.detectChanges();
+      const sub = fixture.nativeElement.querySelector('.banner__sections');
+      expect(sub?.textContent?.trim()).toBe('3/7 sections reçues');
+    });
+
+    it('affiche la sous-ligne aussi pendant ENRICHED_ANALYSIS', () => {
+      component.activeJobTypes = ['ENRICHED_ANALYSIS'];
+      component.sectionsReceived = 5;
+      component.sectionsExpected = 7;
+      fixture.detectChanges();
+      const sub = fixture.nativeElement.querySelector('.banner__sections');
+      expect(sub?.textContent?.trim()).toBe('5/7 sections reçues');
+    });
+
+    it('masque la sous-ligne quand sectionsReceived est null', () => {
+      component.activeJobTypes = ['CASE_ANALYSIS'];
+      component.sectionsReceived = null;
+      component.sectionsExpected = 7;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.banner__sections')).toBeNull();
+    });
+
+    it('masque la sous-ligne quand sectionsExpected vaut 0', () => {
+      component.activeJobTypes = ['CASE_ANALYSIS'];
+      component.sectionsReceived = 2;
+      component.sectionsExpected = 0;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.banner__sections')).toBeNull();
+    });
+
+    it('masque la sous-ligne pour DOCUMENT_ANALYSIS seul (pas de sections)', () => {
+      component.activeJobTypes = ['DOCUMENT_ANALYSIS'];
+      component.sectionsReceived = 4;
+      component.sectionsExpected = 7;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.banner__sections')).toBeNull();
+    });
+  });
 });
