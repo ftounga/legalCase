@@ -3,6 +3,7 @@ import { PdfExportService } from './pdf-export.service';
 import { CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
 import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
+import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
 
 const mockCaseFile: Partial<CaseFile> = { id: '1', title: 'Affaire Dupont c/ SA Renault' };
 
@@ -499,5 +500,237 @@ describe('PdfExportService', () => {
     expect(flat).toContain('Engager un recours hiérarchique');
     // Le séparateur est un canvas line — on vérifie qu'il y a bien au moins une ligne navy entre les pistes
     expect(flat).toContain('"type":"line"');
+  });
+
+  // --- F-193 SF-193-03 : section « Conformité procédurale validée par votre avocat » ---
+
+  const checkAligned: ProcedureCheckAlignment = {
+    checkId: 'c-1',
+    libelle: 'Motif principal du séjour confirmé : TRAVAIL',
+    critereCode: 'IM05_MOTIF',
+    statut: 'VERIFIED',
+    expectedValue: 'TRAVAIL',
+    raison: null,
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'ALIGNED',
+  };
+
+  const checkNonCompliant: ProcedureCheckAlignment = {
+    checkId: 'c-2',
+    libelle: 'Lettre de licenciement notifiée hors délai',
+    critereCode: 'LICENCIEMENT_NOTIFICATION',
+    statut: 'NON_COMPLIANT',
+    expectedValue: null,
+    raison: 'Notification reçue 8 jours après l\'entretien préalable',
+    toolIdCible: 'F-DT-08-validite-licenciement',
+    matchStatus: 'NON_COMPLIANT_FLAG',
+  };
+
+  const checkToVerify: ProcedureCheckAlignment = {
+    checkId: 'c-3',
+    libelle: 'Convention collective applicable à confirmer',
+    critereCode: null,
+    statut: 'TO_CHECK',
+    expectedValue: null,
+    raison: null,
+    toolIdCible: 'F-DT-09-comparateur-indemnites',
+    matchStatus: 'TO_VERIFY_FLAG',
+  };
+
+  const checkNoTargetTool: ProcedureCheckAlignment = {
+    checkId: 'c-4',
+    libelle: 'Vérifier la compétence territoriale du conseil',
+    critereCode: null,
+    statut: 'VERIFIED',
+    expectedValue: null,
+    raison: null,
+    toolIdCible: null,
+    matchStatus: 'NO_TARGET_TOOL',
+  };
+
+  const checksLabelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-IM-05-arbre-decisionnel-titre': 'TITRE DE SÉJOUR RECOMMANDÉ',
+      'F-DT-08-validite-licenciement': 'VALIDITÉ LICENCIEMENT',
+      'F-DT-09-comparateur-indemnites': 'COMPARATEUR INDEMNITÉS',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-193-03 CA-02: buildDocument(_, _, [], _, []) → aucune section Conformité procédurale', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [], undefined, []) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-02: buildDocument(_, _, _, _, undefined) → aucune section Conformité procédurale', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-04 (cas d\'erreur): tous les checks en NO_TARGET_TOOL → section incluse, libellés sans suffixe outil', () => {
+    // Mini-spec § Cas d'erreur : « Tous les checks en NO_TARGET_TOOL →
+    // Section incluse, listant les checks sans suffixe → <label outil> ».
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkNoTargetTool],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Conformité procédurale');
+    expect(s).toContain('Vérifier la compétence territoriale du conseil');
+    // Aucun suffixe outil (le check n'a pas de toolIdCible)
+    expect(s).not.toMatch(/→ [A-Z]/);
+  });
+
+  it('SF-193-03 CA-03: check ALIGNED → sous-bloc ✅ Vérifications confirmées + suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🔍 Conformité procédurale validée par votre avocat');
+    expect(s).toContain('✅ Vérifications confirmées');
+    expect(s).toContain('Motif principal du séjour confirmé');
+    expect(s).toContain('→ TITRE DE SÉJOUR RECOMMANDÉ');
+  });
+
+  it('SF-193-03 CA-04: check NON_COMPLIANT_FLAG → sous-bloc ❌ Points non conformes + raison', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkNonCompliant],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('❌ Points non conformes');
+    expect(s).toContain('Lettre de licenciement notifiée hors délai');
+    expect(s).toContain('Notification reçue 8 jours après');
+    expect(s).toContain('→ VALIDITÉ LICENCIEMENT');
+  });
+
+  it('SF-193-03 CA-05: check TO_VERIFY_FLAG → sous-bloc ⏳ Points à vérifier', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkToVerify],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⏳ Points à vérifier');
+    expect(s).toContain('Convention collective applicable à confirmer');
+    expect(s).toContain('→ COMPARATEUR INDEMNITÉS');
+  });
+
+  it('SF-193-03 CA-06: check NO_TARGET_TOOL parmi des ALIGNED → libellé sans suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned, checkNoTargetTool],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🔍 Conformité procédurale');
+    expect(s).toContain('Vérifier la compétence territoriale du conseil');
+    // Le check NO_TARGET_TOOL ne doit avoir aucun suffixe → ne pas trouver de "→ " devant son libellé
+    // (le check ALIGNED en a un mais c'est l'autre item)
+    expect(s).toContain('→ TITRE DE SÉJOUR RECOMMANDÉ');
+  });
+
+  it('SF-193-03 CA-07 mix: 3 sous-blocs simultanés (ALIGNED + NON_COMPLIANT + TO_VERIFY)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned, checkNonCompliant, checkToVerify],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('✅ Vérifications confirmées');
+    expect(s).toContain('❌ Points non conformes');
+    expect(s).toContain('⏳ Points à vérifier');
+  });
+
+  it('SF-193-03 CA-08: section Conformité procédurale insérée APRÈS Stratégies retenues et AVANT Timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      synWithTimeline,
+      [pisteAligned],
+      labelResolver,
+      [checkAligned],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const checksIdx = flat.indexOf('🔍 Conformité procédurale');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(checksIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(stratIdx).toBeLessThan(checksIdx);
+    expect(checksIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-193-03 CA-10 fail-open indépendant: pistes succès + checks vide → section pistes uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [pisteAligned],
+      labelResolver,
+      [],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('🔍 Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-10 fail-open indépendant: pistes vide + checks succès → section checks uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🎯 Stratégies retenues');
+    expect(s).toContain('🔍 Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-11: suffixe outil rendu en JetBrainsMono italique 9', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toMatch(/"text":"→ TITRE DE SÉJOUR RECOMMANDÉ","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-193-03: lookup label échoue → toolIdCible brut affiché en suffixe', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      noResolver,
+      [checkAligned],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ F-IM-05-arbre-decisionnel-titre');
   });
 });

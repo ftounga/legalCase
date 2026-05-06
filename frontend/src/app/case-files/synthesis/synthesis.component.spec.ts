@@ -17,6 +17,8 @@ import { ProcedureCheckService } from '../../core/services/procedure-check.servi
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
 import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { ProcedureCheckAlignmentService } from '../../core/services/procedure-check-alignment.service';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -134,6 +136,7 @@ describe('SynthesisComponent', () => {
         { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
         { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export', 'exportChecklist']) },
         { provide: RetainedPisteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RetainedPisteAlignment[])) } },
+        { provide: ProcedureCheckAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as ProcedureCheckAlignment[])) } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: StrategicOptionService, useValue: strategicOptionService },
@@ -400,6 +403,72 @@ describe('SynthesisComponent', () => {
     expect(pdfExportService.export).toHaveBeenCalled();
     const args = pdfExportService.export.mock.calls[0];
     expect(args[2]).toEqual([]);
+  });
+
+  // F-193 SF-193-03 : exportPdf appelle ProcedureCheckAlignmentService EN PARALLÈLE de RetainedPisteAlignmentService
+  it('SF-193-03 exportPdf → ProcedureCheckAlignmentService.getForCaseFile appelé en parallèle, checks passés en 5ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checks: ProcedureCheckAlignment[] = [
+      {
+        checkId: 'c1',
+        libelle: 'Motif principal du séjour confirmé',
+        statut: 'VERIFIED',
+        toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+        matchStatus: 'ALIGNED',
+      },
+    ];
+    checksService.getForCaseFile.mockReturnValue(of(checks));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pistesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(checksService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[4]).toEqual(checks);
+  });
+
+  // F-193 SF-193-03 : endpoint checks timeout / erreur → export quand même appelé avec [] en 5ᵉ argument
+  it('SF-193-03 exportPdf → ProcedureCheckAlignmentService erreur, export appelé avec procedureChecksAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[4]).toEqual([]);
+  });
+
+  // F-193 SF-193-03 : fail-open INDÉPENDANT — pistes succès + checks erreur → export avec pistes + []
+  it('SF-193-03 exportPdf fail-open indépendant: pistes succès, checks erreur → export avec pistes + []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pistes: RetainedPisteAlignment[] = [
+      { pisteId: 'p1', texte: 'Stratégie X', conditions: [], matchStatus: 'ALIGNED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre' },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(of(pistes));
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual(pistes);
+    expect(args[4]).toEqual([]);
   });
 
   // T-16 : onVersionChange réinitialise editingQuestionId

@@ -10,6 +10,7 @@ import { ImmigrationChecklist } from '../models/immigration-checklist.model';
 import { RecoursResponse } from '../models/immigration-recours.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
+import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -29,6 +30,7 @@ export class PdfExportService {
     synthesis: CaseAnalysisResult,
     retainedPistes?: RetainedPisteAlignment[],
     toolLabelResolver?: (toolId: string) => string | null,
+    procedureChecksAlignment?: ProcedureCheckAlignment[],
   ): void {
     import('pdfmake/build/pdfmake').then(pdfMakeModule => {
       import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
@@ -36,7 +38,13 @@ export class PdfExportService {
         const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
         pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
 
-        const docDefinition = this.buildDocument(caseFile, synthesis, retainedPistes, toolLabelResolver) as TDocumentDefinitions;
+        const docDefinition = this.buildDocument(
+          caseFile,
+          synthesis,
+          retainedPistes,
+          toolLabelResolver,
+          procedureChecksAlignment,
+        ) as TDocumentDefinitions;
         const fileName = this.buildFileName(caseFile.title, synthesis);
         pdfMake.createPdf(docDefinition).download(fileName);
       });
@@ -48,6 +56,7 @@ export class PdfExportService {
     synthesis: CaseAnalysisResult,
     retainedPistes?: RetainedPisteAlignment[],
     toolLabelResolver?: (toolId: string) => string | null,
+    procedureChecksAlignment?: ProcedureCheckAlignment[],
   ): object {
     const isEnriched = synthesis.analysisType === 'ENRICHED';
     const exportDate = new Date().toLocaleDateString('fr-FR', {
@@ -61,6 +70,7 @@ export class PdfExportService {
       ...this.buildCoverPage(caseFile.title, isEnriched, versionLabel, exportDate),
       { text: '', pageBreak: 'after' },
       ...this.buildStrategiesRetenuesSection(retainedPistes, toolLabelResolver),
+      ...this.buildProcedureChecksSection(procedureChecksAlignment, toolLabelResolver),
       ...this.buildSections(synthesis),
     ];
 
@@ -297,6 +307,186 @@ export class PdfExportService {
       default:
         return null;
     }
+  }
+
+  /**
+   * F-193 SF-193-03 — Section « 🔍 Conformité procédurale validée par votre
+   * avocat » insérée APRÈS la section « Stratégies retenues » de F-192 et
+   * AVANT la chronologie / faits / etc.
+   *
+   * Comportement :
+   *   - procedureChecksAlignment vide ou non fourni → tableau vide (section
+   *     omise, fail-open).
+   *   - ≥ 1 check matérialisé → titre de section + 3 sous-blocs distincts
+   *     selon les statuts présents (ALIGNED ✅ / NON_COMPLIANT_FLAG ❌ /
+   *     TO_VERIFY_FLAG ⏳), séparés par une ligne navy fine.
+   *
+   * Pour chaque check, le suffixe `→ <label outil>` est ajouté si
+   * `toolIdCible` est non null. Lookup via `toolLabelResolver` (TOOL_REGISTRY).
+   *
+   * Fail-open indépendant : l'échec de la section pistes (F-192) n'empêche
+   * pas la section checks (F-193) — chacune est conditionnée à son propre
+   * tableau.
+   */
+  private buildProcedureChecksSection(
+    procedureChecksAlignment?: ProcedureCheckAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!procedureChecksAlignment || procedureChecksAlignment.length === 0) {
+      return [];
+    }
+
+    // Tri par `statut` (pas `matchStatus`) — un check NO_TARGET_TOOL doit
+    // apparaître dans le sous-bloc correspondant à son statut F-96 (cf.
+    // CA-04 cas d'erreur SF-193-03 : « Tous les checks en NO_TARGET_TOOL →
+    // Section incluse, listant les checks sans suffixe → <label outil> »).
+    // Le matchStatus (ALIGNED / NON_COMPLIANT_FLAG / TO_VERIFY_FLAG) est
+    // redondant avec `statut` (VERIFIED / NON_COMPLIANT / TO_CHECK) sauf en
+    // cas de DIVERGENT (l'outil cible diverge sur un check VERIFIED), pour
+    // lequel V1 considère que la décision avocat prime → traité comme ALIGNED.
+    const aligned = procedureChecksAlignment.filter(c => c.statut === 'VERIFIED');
+    const nonCompliant = procedureChecksAlignment.filter(c => c.statut === 'NON_COMPLIANT');
+    const toVerify = procedureChecksAlignment.filter(c => c.statut === 'TO_CHECK');
+
+    if (aligned.length === 0 && nonCompliant.length === 0 && toVerify.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [
+      {
+        text: '🔍 Conformité procédurale validée par votre avocat',
+        fontSize: 16,
+        bold: true,
+        color: PRIMARY,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    const subBlocks: object[][] = [];
+
+    if (aligned.length > 0) {
+      subBlocks.push(this.buildProcedureChecksSubBlock(
+        '✅ Vérifications confirmées',
+        ACCENT,
+        '✅',
+        aligned,
+        toolLabelResolver,
+      ));
+    }
+
+    if (nonCompliant.length > 0) {
+      subBlocks.push(this.buildProcedureChecksSubBlock(
+        '❌ Points non conformes',
+        ERROR,
+        '❌',
+        nonCompliant,
+        toolLabelResolver,
+      ));
+    }
+
+    if (toVerify.length > 0) {
+      subBlocks.push(this.buildProcedureChecksSubBlock(
+        '⏳ Points à vérifier',
+        TEXT_SECONDARY,
+        '⏳',
+        toVerify,
+        toolLabelResolver,
+      ));
+    }
+
+    subBlocks.forEach((block, index) => {
+      sections.push(...block);
+      if (index < subBlocks.length - 1) {
+        sections.push({
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: PRIMARY },
+          ],
+          margin: [0, 8, 0, 8],
+        });
+      }
+    });
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  /**
+   * F-193 SF-193-03 — un sous-bloc (titre coloré + liste de checks) pour une
+   * famille de statut (ALIGNED / NON_COMPLIANT_FLAG / TO_VERIFY_FLAG).
+   */
+  private buildProcedureChecksSubBlock(
+    title: string,
+    titleColor: string,
+    badge: string,
+    checks: ProcedureCheckAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    const block: object[] = [
+      {
+        text: title,
+        fontSize: 12,
+        bold: true,
+        color: titleColor,
+        margin: [0, 0, 0, 6],
+      },
+    ];
+
+    checks.forEach(check => {
+      block.push(this.buildProcedureCheckItem(check, badge, toolLabelResolver));
+    });
+
+    return block;
+  }
+
+  /**
+   * F-193 SF-193-03 — un item check : badge + libellé Inter regular 11,
+   * raison Inter italique 9 grise (si présente), suffixe outil JetBrains
+   * Mono italique 9 (si toolIdCible non null).
+   */
+  private buildProcedureCheckItem(
+    check: ProcedureCheckAlignment,
+    badge: string,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const stack: object[] = [
+      {
+        text: `${badge}  ${check.libelle}`,
+        fontSize: 11,
+        color: TEXT,
+        margin: [0, 0, 0, 2],
+      },
+    ];
+
+    if (check.raison) {
+      stack.push({
+        text: check.raison,
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [12, 0, 0, 2],
+      });
+    }
+
+    if (check.toolIdCible) {
+      const resolvedLabel = toolLabelResolver
+        ? toolLabelResolver(check.toolIdCible)
+        : null;
+      const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+        ? resolvedLabel
+        : check.toolIdCible;
+      stack.push({
+        text: `→ ${label}`,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [12, 0, 0, 2],
+      });
+    }
+
+    return { stack, margin: [0, 0, 0, 6] };
   }
 
   private buildSections(synthesis: CaseAnalysisResult): object[] {
