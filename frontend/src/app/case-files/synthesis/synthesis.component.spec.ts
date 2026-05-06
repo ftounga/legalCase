@@ -15,6 +15,22 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
+import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { ProcedureCheckAlignmentService } from '../../core/services/procedure-check-alignment.service';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
+import { PieceManquanteStatus } from '../../core/models/piece-manquante-status.model';
+import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueStatusService } from '../../core/services/risque-status.service';
+import { RisqueStatus } from '../../core/models/risque-status.model';
+import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
+import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { AiQuestionAlignmentService } from '../../core/services/ai-question-alignment.service';
+import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
+import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
+import { TypeLitigeOverrideResponse } from '../../core/models/type-litige-override.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -32,7 +48,7 @@ const CASE_FILE_ID = 'cf-1';
 const makeItem = (texte: string, source: string | null = null, extrait: string | null = null): AnalysisItem =>
   ({ texte, source, extrait });
 
-const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = [], riskLevel: string | null = null, riskScore: number | null = null) => ({
+const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = [], riskLevel: string | null = null, riskScore: number | null = null, risques: AnalysisItem[] = []) => ({
   id: `analysis-${version}`,
   version,
   analysisType,
@@ -40,7 +56,7 @@ const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', p
   timeline: [],
   faits: [makeItem('fait1')],
   pointsJuridiques: [],
-  risques: [],
+  risques,
   questionsOuvertes: [],
   piecesManquantes,
   riskLevel,
@@ -131,6 +147,22 @@ describe('SynthesisComponent', () => {
         { provide: ChatService, useValue: chatService },
         { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['trackEvent']) },
         { provide: PdfExportService, useValue: jasmine.createSpyObj('PdfExportService', ['export', 'exportChecklist']) },
+        { provide: RetainedPisteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RetainedPisteAlignment[])) } },
+        { provide: ProcedureCheckAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as ProcedureCheckAlignment[])) } },
+        // F-194 SF-194-02 — stub PUT statut pièce. Les tests dédiés override via .mockReturnValue
+        { provide: PieceManquanteStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)), updateStatus: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)) } },
+        // F-194 SF-194-03 — stub GET alignement pièces. Les tests dédiés override via .mockReturnValue
+        { provide: PieceManquanteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as PieceManquanteAlignment[])) } },
+        // F-195 SF-195-02 — stub PUT statut risque. Les tests dédiés override via .mockReturnValue
+        { provide: RisqueStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as RisqueStatus)), updateStatus: jest.fn().mockReturnValue(of({} as RisqueStatus)) } },
+        // F-195 SF-195-03 — stub GET alignement risques. Les tests dédiés override via .mockReturnValue
+        { provide: RisqueAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RisqueAlignment[])) } },
+        { provide: AiQuestionAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as AiQuestionAlignment[])) } },
+        // F-197 SF-197-02 — stub GET/PUT override type litige. Les tests dédiés override via .mockReturnValue
+        { provide: TypeLitigeOverrideService, useValue: {
+          getForCaseFile: jest.fn().mockReturnValue(of({ typeLitigeAvocat: null, typeProcedureAvocat: null, raison: null } as TypeLitigeOverrideResponse)),
+          update: jest.fn().mockReturnValue(of({} as TypeLitigeOverrideResponse)),
+        } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: StrategicOptionService, useValue: strategicOptionService },
@@ -362,6 +394,328 @@ describe('SynthesisComponent', () => {
     expect(analyticsService.trackEvent).toHaveBeenCalledWith('pdf_exported');
   });
 
+  // F-192 SF-192-03 : exportPdf appelle RetainedPisteAlignmentService AVANT pdfExportService.export
+  it('SF-192-03 exportPdf → RetainedPisteAlignmentService.getForCaseFile appelé puis pistes passées en 3ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const alignmentService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pistes: RetainedPisteAlignment[] = [
+      { pisteId: 'p1', texte: 'Demander un titre Talent', conditions: [], matchStatus: 'ALIGNED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre' },
+    ];
+    alignmentService.getForCaseFile.mockReturnValue(of(pistes));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(alignmentService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual(pistes);
+    expect(typeof args[3]).toBe('function');
+  });
+
+  // F-192 SF-192-03 : endpoint timeout / erreur → export quand même, 3ᵉ arg = []
+  it('SF-192-03 exportPdf → endpoint erreur, export appelé avec retainedPistes []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const alignmentService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    alignmentService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual([]);
+  });
+
+  // F-193 SF-193-03 : exportPdf appelle ProcedureCheckAlignmentService EN PARALLÈLE de RetainedPisteAlignmentService
+  it('SF-193-03 exportPdf → ProcedureCheckAlignmentService.getForCaseFile appelé en parallèle, checks passés en 5ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checks: ProcedureCheckAlignment[] = [
+      {
+        checkId: 'c1',
+        libelle: 'Motif principal du séjour confirmé',
+        statut: 'VERIFIED',
+        toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+        matchStatus: 'ALIGNED',
+      },
+    ];
+    checksService.getForCaseFile.mockReturnValue(of(checks));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pistesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(checksService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[4]).toEqual(checks);
+  });
+
+  // F-193 SF-193-03 : endpoint checks timeout / erreur → export quand même appelé avec [] en 5ᵉ argument
+  it('SF-193-03 exportPdf → ProcedureCheckAlignmentService erreur, export appelé avec procedureChecksAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[4]).toEqual([]);
+  });
+
+  // F-193 SF-193-03 : fail-open INDÉPENDANT — pistes succès + checks erreur → export avec pistes + []
+  it('SF-193-03 exportPdf fail-open indépendant: pistes succès, checks erreur → export avec pistes + []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pistes: RetainedPisteAlignment[] = [
+      { pisteId: 'p1', texte: 'Stratégie X', conditions: [], matchStatus: 'ALIGNED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre' },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(of(pistes));
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual(pistes);
+    expect(args[4]).toEqual([]);
+  });
+
+  // F-194 SF-194-03 : exportPdf appelle PieceManquanteAlignmentService EN PARALLÈLE des 2 autres services
+  it('SF-194-03 exportPdf → PieceManquanteAlignmentService.getForCaseFile appelé en parallèle, pieces passées en 6ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pieces: PieceManquanteAlignment[] = [
+      {
+        pieceLibelle: 'Bulletins de salaire',
+        statut: 'A_DEMANDER',
+        toolIdsCibles: ['F-DT-09-comparateur-indemnites'],
+        destinataire: null,
+        raisonNonApp: null,
+      },
+    ];
+    piecesService.getForCaseFile.mockReturnValue(of(pieces));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pistesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(checksService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(piecesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[5]).toEqual(pieces);
+  });
+
+  // F-194 SF-194-03 : endpoint pieces timeout / erreur → export quand même appelé avec [] en 6ᵉ argument
+  it('SF-194-03 exportPdf → PieceManquanteAlignmentService erreur, export appelé avec piecesAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    piecesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[5]).toEqual([]);
+  });
+
+  // F-194 SF-194-03 : fail-open INDÉPENDANT — pistes & checks succès, pieces erreur → export avec pistes + checks + []
+  it('SF-194-03 exportPdf fail-open indépendant: pistes + checks succès, pieces erreur → export avec pistes + checks + []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pistes: RetainedPisteAlignment[] = [
+      { pisteId: 'p1', texte: 'Stratégie X', conditions: [], matchStatus: 'ALIGNED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre' },
+    ];
+    const checks: ProcedureCheckAlignment[] = [
+      { checkId: 'c1', libelle: 'Motif confirmé', statut: 'VERIFIED', toolIdCible: 'F-IM-05-arbre-decisionnel-titre', matchStatus: 'ALIGNED' },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(of(pistes));
+    checksService.getForCaseFile.mockReturnValue(of(checks));
+    piecesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'IMMIGRATION', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual(pistes);
+    expect(args[4]).toEqual(checks);
+    expect(args[5]).toEqual([]);
+  });
+
+  // F-194 SF-194-03 : fail-open symétrique — pieces succès, pistes & checks erreur → export avec [] + [] + pieces
+  it('SF-194-03 exportPdf fail-open indépendant: pistes + checks erreur, pieces succès → export avec [] + [] + pieces', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const pieces: PieceManquanteAlignment[] = [
+      { pieceLibelle: 'Pièce X', statut: 'A_DEMANDER', toolIdsCibles: [], destinataire: 'Client', raisonNonApp: null },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    piecesService.getForCaseFile.mockReturnValue(of(pieces));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual([]);
+    expect(args[4]).toEqual([]);
+    expect(args[5]).toEqual(pieces);
+  });
+
+  // F-195 SF-195-03 : exportPdf appelle RisqueAlignmentService EN PARALLÈLE
+  // des 3 autres services et passe le résultat en 7ᵉ argument à export().
+  it('SF-195-03 exportPdf → RisqueAlignmentService.getForCaseFile appelé en parallèle, risques passés en 7ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risquesService = TestBed.inject(RisqueAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risques: RisqueAlignment[] = [
+      {
+        risqueLibelle: 'Harcèlement moral subi',
+        statut: 'VALIDE',
+        toolIdsCibles: ['F-DT-12-harcelement-licenciement-nul'],
+        raisonEcarte: null,
+      },
+    ];
+    risquesService.getForCaseFile.mockReturnValue(of(risques));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pistesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(checksService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(piecesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(risquesService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[6]).toEqual(risques);
+  });
+
+  // F-195 SF-195-03 : endpoint risques erreur → export quand même appelé
+  // avec [] en 7ᵉ argument (fail-open INDÉPENDANT par stream).
+  it('SF-195-03 exportPdf → RisqueAlignmentService erreur, export appelé avec risquesAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const risquesService = TestBed.inject(RisqueAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    risquesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[6]).toEqual([]);
+  });
+
+  // F-195 SF-195-03 : fail-open INDÉPENDANT — risques succès, 3 autres
+  // erreurs → export avec [] + [] + [] + risques (CA-07 mini-spec).
+  it('SF-195-03 exportPdf fail-open indépendant: 3 autres erreurs, risques succès → export avec [] + [] + [] + risques', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const pistesService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risquesService = TestBed.inject(RisqueAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const risques: RisqueAlignment[] = [
+      { risqueLibelle: 'Risque retenu X', statut: 'VALIDE', toolIdsCibles: [], raisonEcarte: null },
+    ];
+    pistesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    checksService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    piecesService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+    risquesService.getForCaseFile.mockReturnValue(of(risques));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[2]).toEqual([]);
+    expect(args[4]).toEqual([]);
+    expect(args[5]).toEqual([]);
+    expect(args[6]).toEqual(risques);
+  });
+
+  // F-196 SF-196-03 : exportPdf appelle AiQuestionAlignmentService EN PARALLÈLE
+  it('SF-196-03 exportPdf → AiQuestionAlignmentService.getForCaseFile appelé en parallèle, questions passées en 8ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const questionsService = TestBed.inject(AiQuestionAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const questions: AiQuestionAlignment[] = [
+      {
+        questionId: 'q1',
+        questionText: 'Avez-vous reçu la lettre de licenciement ?',
+        answerText: 'oui',
+        pieceLibelleDeduit: 'Lettre de licenciement',
+        statutDeduction: 'PIECE_OBTENUE',
+      },
+    ];
+    questionsService.getForCaseFile.mockReturnValue(of(questions));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(questionsService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[7]).toEqual(questions);
+  });
+
+  // F-196 SF-196-03 : endpoint questions erreur → export quand même appelé avec [] en 8ᵉ argument
+  it('SF-196-03 exportPdf → AiQuestionAlignmentService erreur, export appelé avec aiQuestionsAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const questionsService = TestBed.inject(AiQuestionAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    questionsService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[7]).toEqual([]);
+  });
+
   // T-16 : onVersionChange réinitialise editingQuestionId
   it('onVersionChange resets editingQuestionId', () => {
     const versions = [makeVersion(2, 'STANDARD'), makeVersion(1, 'STANDARD')];
@@ -395,6 +749,272 @@ describe('SynthesisComponent', () => {
 
     const el: HTMLElement = fixture.nativeElement;
     expect(el.textContent).not.toContain('Pièces manquantes');
+  });
+
+  // F-194 SF-194-02 — UI markable pièces : 3 boutons rendus + clic → PUT
+  describe('F-194 SF-194-02 markable pieces', () => {
+    beforeEach(() => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(
+        of(makeSynthesis(1, 'STANDARD', ['Contrat de travail', 'Bulletins de salaire'])),
+      );
+    });
+
+    // CA-02 : 3 boutons statut rendus pour chaque pièce
+    it('CA-02 renders 3 status buttons for each piece', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      const html = el.innerHTML;
+      expect(html).toContain('piece-status-btn--demander');
+      expect(html).toContain('piece-status-btn--obtenue');
+      expect(html).toContain('piece-status-btn--non-applicable');
+    });
+
+    // CA-01 : clic OBTENUE → PUT updateStatus avec libellé original + statut OBTENUE
+    it('CA-01 click OBTENUE → updateStatus called with libelle + OBTENUE', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Contrat de travail',
+        statut: 'OBTENUE',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      component.updatePieceStatus('Contrat de travail', 'OBTENUE');
+
+      expect(statusService.updateStatus).toHaveBeenCalledWith(
+        CASE_FILE_ID,
+        'Contrat de travail',
+        'OBTENUE',
+        { raisonNonApp: null, destinataire: null },
+      );
+      expect(component.pieceStatusFor('Contrat de travail')).toBe('OBTENUE');
+    });
+
+    // CA-03 : NON_APPLICABLE → champ raison + PUT inclut la raison au blur
+    it('CA-03 NON_APPLICABLE click → status updated, blur with raison → PUT inclut raison', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Acte de mariage',
+        statut: 'NON_APPLICABLE',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      component.updatePieceStatus('Acte de mariage', 'NON_APPLICABLE');
+      component.onPieceRaisonInput('Acte de mariage', 'Concubinage simple');
+      component.onPieceRaisonBlur('Acte de mariage');
+
+      expect(statusService.updateStatus).toHaveBeenLastCalledWith(
+        CASE_FILE_ID,
+        'Acte de mariage',
+        'NON_APPLICABLE',
+        { raisonNonApp: 'Concubinage simple', destinataire: null },
+      );
+    });
+
+    // CA-04 : A_DEMANDER + selection destinataire → PUT inclut le destinataire
+    it('CA-04 A_DEMANDER → destinataire selection → PUT inclut destinataire', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Contrat de travail',
+        statut: 'A_DEMANDER',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      // Statut implicite A_DEMANDER, mais on tag puis on choisit un destinataire.
+      component.updatePieceStatus('Contrat de travail', 'A_DEMANDER');
+      component.onPieceDestinataireChange('Contrat de travail', 'Ex-employeur');
+
+      expect(statusService.updateStatus).toHaveBeenLastCalledWith(
+        CASE_FILE_ID,
+        'Contrat de travail',
+        'A_DEMANDER',
+        { raisonNonApp: null, destinataire: 'Ex-employeur' },
+      );
+    });
+
+    // CA-05 : régression critique — PUT NE déclenche AUCUN refresh côté UI
+    it('CA-05 PUT statut → AUCUN re-fetch alignement (cohérence F-176 stricte)', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      const pisteService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      const checksAlignmentService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        pieceLibelleOriginal: 'Pièce X',
+        statut: 'OBTENUE',
+      } as PieceManquanteStatus));
+      fixture.detectChanges();
+
+      // SynthesisComponent ne charge pas piste/checks alignment au mount (seul exportPdf
+      // les déclenche). On vérifie qu'après un PUT statut pièce, ces services restent
+      // au même niveau d'invocation — aucun side-effect post-PUT.
+      const callsBefore = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksAlignmentService.getForCaseFile as jest.Mock).mock.calls.length;
+
+      component.updatePieceStatus('Pièce X', 'OBTENUE');
+
+      const callsAfter = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksAlignmentService.getForCaseFile as jest.Mock).mock.calls.length;
+      expect(callsAfter).toBe(callsBefore);
+      // versions non rechargées
+      expect(caseAnalysisService.getVersions).toHaveBeenCalledTimes(1);
+    });
+
+    // CA-14 : erreur PUT → snackbar + rollback statut au précédent
+    it('CA-14 PUT error → snackbar + rollback statut', () => {
+      const statusService = TestBed.inject(PieceManquanteStatusService) as unknown as { updateStatus: jest.Mock };
+      const snack = TestBed.inject(MatSnackBar) as unknown as { open: jest.Mock };
+      snack.open = jest.fn();
+      statusService.updateStatus.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+      fixture.detectChanges();
+
+      // Initial : pas d'entrée → A_DEMANDER implicite
+      component.updatePieceStatus('Pièce Y', 'OBTENUE');
+
+      // Rollback : entrée supprimée du cache
+      expect(component.pieceStatusFor('Pièce Y')).toBe('A_DEMANDER');
+      expect(snack.open).toHaveBeenCalled();
+    });
+
+    // CA-13 : palette navy/or DESIGN_SYSTEM.md (NON_APPLICABLE = gris discret)
+    it('CA-13 button classes follow DESIGN_SYSTEM (navy/or/gris — pas de rouge)', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      // Les classes utilisent les modificateurs (couleurs définies en SCSS)
+      expect(el.querySelector('.piece-status-btn--demander')).toBeTruthy();
+      expect(el.querySelector('.piece-status-btn--obtenue')).toBeTruthy();
+      expect(el.querySelector('.piece-status-btn--non-applicable')).toBeTruthy();
+    });
+
+    // Helper : pieceStatusFor par défaut = A_DEMANDER (statut implicite, pas d'appel PUT)
+    it('pieceStatusFor defaults to A_DEMANDER for un-tagged piece', () => {
+      fixture.detectChanges();
+      expect(component.pieceStatusFor('Contrat de travail')).toBe('A_DEMANDER');
+      expect(component.isPieceStatusActive('Contrat de travail', 'A_DEMANDER')).toBe(true);
+    });
+  });
+
+  // F-195 SF-195-02 — UI markable risques : 3 boutons rendus + clic → PUT
+  describe('F-195 SF-195-02 markable risques', () => {
+    const RISQUE_HARC = 'Harcèlement moral subi';
+    const RISQUE_PRESC = 'Risque de prescription';
+
+    beforeEach(() => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(
+        of(makeSynthesis(1, 'STANDARD', [], null, null, [
+          makeItem(RISQUE_HARC),
+          makeItem(RISQUE_PRESC),
+        ])),
+      );
+    });
+
+    // CA-01 : 3 boutons statut rendus pour chaque risque
+    it('CA-01 renders 3 status buttons for each risque', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      const html = el.innerHTML;
+      expect(html).toContain('risque-status-btn--creuser');
+      expect(html).toContain('risque-status-btn--valide');
+      expect(html).toContain('risque-status-btn--ecarte');
+    });
+
+    // CA-01 : clic VALIDE → PUT updateStatus avec libellé original + statut VALIDE
+    it('CA-01 click VALIDE → updateStatus called with libelle + VALIDE', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        risqueLibelleOriginal: RISQUE_HARC,
+        statut: 'VALIDE',
+      } as RisqueStatus));
+      fixture.detectChanges();
+
+      component.updateRisqueStatus(RISQUE_HARC, 'VALIDE');
+
+      expect(statusService.updateStatus).toHaveBeenCalledWith(
+        CASE_FILE_ID,
+        RISQUE_HARC,
+        'VALIDE',
+        { raisonEcarte: null },
+      );
+      expect(component.risqueStatusFor(RISQUE_HARC)).toBe('VALIDE');
+    });
+
+    // CA-02 : ECARTE → champ raison + PUT inclut la raison au blur
+    it('CA-02 ECARTE click → status updated, blur with raison → PUT inclut raison', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        risqueLibelleOriginal: RISQUE_PRESC,
+        statut: 'ECARTE',
+      } as RisqueStatus));
+      fixture.detectChanges();
+
+      component.updateRisqueStatus(RISQUE_PRESC, 'ECARTE');
+      component.onRisqueRaisonInput(RISQUE_PRESC, 'Acte interruptif retrouvé');
+      component.onRisqueRaisonBlur(RISQUE_PRESC);
+
+      expect(statusService.updateStatus).toHaveBeenLastCalledWith(
+        CASE_FILE_ID,
+        RISQUE_PRESC,
+        'ECARTE',
+        { raisonEcarte: 'Acte interruptif retrouvé' },
+      );
+    });
+
+    // CA-05 : régression critique — PUT NE déclenche AUCUN refresh côté UI
+    it('CA-05 PUT statut → AUCUN re-fetch alignement (cohérence F-176 stricte)', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      const pisteService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        risqueLibelleOriginal: RISQUE_HARC,
+        statut: 'VALIDE',
+      } as RisqueStatus));
+      fixture.detectChanges();
+
+      const callsBefore = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (piecesService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksService.getForCaseFile as jest.Mock).mock.calls.length;
+
+      component.updateRisqueStatus(RISQUE_HARC, 'VALIDE');
+
+      const callsAfter = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (piecesService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksService.getForCaseFile as jest.Mock).mock.calls.length;
+      expect(callsAfter).toBe(callsBefore);
+      // versions non rechargées
+      expect(caseAnalysisService.getVersions).toHaveBeenCalledTimes(1);
+    });
+
+    // CA-erreur : erreur PUT → snackbar + rollback statut au précédent
+    it('CA-erreur PUT error → snackbar + rollback statut', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      const snack = TestBed.inject(MatSnackBar) as unknown as { open: jest.Mock };
+      snack.open = jest.fn();
+      statusService.updateStatus.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+      fixture.detectChanges();
+
+      // Initial : pas d'entrée → A_CREUSER implicite
+      component.updateRisqueStatus(RISQUE_HARC, 'VALIDE');
+
+      // Rollback : entrée supprimée du cache
+      expect(component.risqueStatusFor(RISQUE_HARC)).toBe('A_CREUSER');
+      expect(snack.open).toHaveBeenCalled();
+    });
+
+    // CA-10 : palette navy/or/gris DESIGN_SYSTEM.md (pas de rouge sur les boutons)
+    it('CA-10 button classes follow DESIGN_SYSTEM (navy/or/gris — pas de rouge)', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.risque-status-btn--creuser')).toBeTruthy();
+      expect(el.querySelector('.risque-status-btn--valide')).toBeTruthy();
+      expect(el.querySelector('.risque-status-btn--ecarte')).toBeTruthy();
+    });
+
+    // Helper : risqueStatusFor par défaut = A_CREUSER (statut implicite)
+    it('risqueStatusFor defaults to A_CREUSER for un-tagged risque', () => {
+      fixture.detectChanges();
+      expect(component.risqueStatusFor(RISQUE_HARC)).toBe('A_CREUSER');
+      expect(component.isRisqueStatusActive(RISQUE_HARC, 'A_CREUSER')).toBe(true);
+    });
   });
 
   // TC-01 : loadChecksForVersion appelé au chargement initial
@@ -1313,6 +1933,211 @@ describe('SynthesisComponent', () => {
       const args = matDialogMock.open.mock.calls[0];
       expect(args[1].data.title).toBe('Questions ouvertes');
       expect(args[1].data.items).toEqual(['q1', 'q2']);
+    });
+  });
+
+  // F-197 SF-197-02 — badge "Type de litige" dans la grille F-162 + dialog override.
+  describe('F-197 SF-197-02 type litige override', () => {
+    // Setup helper : dossier Travail FR avec un override null par défaut.
+    const setupTravailFr = () => {
+      const caseFileService = TestBed.inject(CaseFileService) as any;
+      caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier T1', legalDomain: 'DROIT_DU_TRAVAIL' }));
+    };
+
+    const setupImmigration = () => {
+      const caseFileService = TestBed.inject(CaseFileService) as any;
+      caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier I1', legalDomain: 'DROIT_IMMIGRATION' }));
+    };
+
+    it('CA-01 : badge "Type de litige" présent dans la grille F-162 quand IA détecte un type (Travail FR)', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge).toBeTruthy();
+      expect(badge?.valueLabel).toBe('Licenciement sans cause réelle et sérieuse');
+      expect(badge?.overridden).toBe(false);
+      expect(badge?.dialog).toBe('type-litige-override');
+    });
+
+    it('badge "Type de litige" en tête de grille (saillant)', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'HEURES_SUPPLEMENTAIRES',
+        timeline: [{ date: '2026-01-01', evenement: 'evt' }],
+      } as any));
+      fixture.detectChanges();
+
+      const ids = component.synthesisBadges().map(b => b.id);
+      expect(ids[0]).toBe('type-litige');
+    });
+
+    it('CA-05 : override avocat pré-sélectionné → badge en mode "modifié par vous" (palette or)', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(of({
+        typeLitigeAvocat: 'PRISE_ACTE_RUPTURE',
+        typeProcedureAvocat: null,
+        raison: 'Test stratégique',
+      } as TypeLitigeOverrideResponse));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge?.overridden).toBe(true);
+      expect(badge?.valueLabel).toBe('Prise d\'acte de rupture');
+      expect(badge?.sublabel).toBe('modifié par vous');
+      expect(badge?.icon).toBe('edit_note');
+    });
+
+    it('CA-09 : fail-open silencieux si GET override 5xx → override reste null, badge IA brute', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'DISCRIMINATION',
+      } as any));
+      fixture.detectChanges();
+
+      expect(component.typeLitigeOverride()).toBeNull();
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge?.overridden).toBe(false);
+      expect(badge?.valueLabel).toBe('Discrimination');
+    });
+
+    it('CA-02 : openTypeLitigeOverrideDialog → ouvre MatDialog avec domain TRAVAIL_FR', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_ECONOMIQUE',
+      } as any));
+      fixture.detectChanges();
+
+      matDialogMock.open.mockClear();
+      component.openTypeLitigeOverrideDialog();
+
+      expect(matDialogMock.open).toHaveBeenCalledTimes(1);
+      const args = matDialogMock.open.mock.calls[0];
+      expect(args[1].data.caseFileId).toBe(CASE_FILE_ID);
+      expect(args[1].data.domain).toBe('TRAVAIL_FR');
+      expect(args[1].data.iaDetectedCode).toBe('LICENCIEMENT_ECONOMIQUE');
+    });
+
+    it('Immigration : openTypeLitigeOverrideDialog → ouvre MatDialog avec domain IMMIGRATION', () => {
+      setupImmigration();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'OQTF_AVEC_DELAI',
+      } as any));
+      fixture.detectChanges();
+
+      matDialogMock.open.mockClear();
+      component.openTypeLitigeOverrideDialog();
+
+      const args = matDialogMock.open.mock.calls[0];
+      expect(args[1].data.domain).toBe('IMMIGRATION');
+    });
+
+    it('CA-06 : afterClosed avec response → met à jour signal local SANS triggerRefresh (cohérence F-176)', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'RAPPEL_SALAIRE',
+      } as any));
+      fixture.detectChanges();
+
+      // Ouverture du dialog
+      component.openTypeLitigeOverrideDialog();
+
+      // Simule la fermeture du dialog avec une réponse PUT 200
+      const newOverride: TypeLitigeOverrideResponse = {
+        typeLitigeAvocat: 'HARCELEMENT_MORAL',
+        typeProcedureAvocat: null,
+        raison: 'Faits clairs de harcèlement',
+      };
+      dialogResultSubject.next(newOverride);
+
+      expect(component.typeLitigeOverride()).toEqual(newOverride);
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge?.overridden).toBe(true);
+      expect(badge?.valueLabel).toBe('Harcèlement moral');
+    });
+
+    it('afterClosed undefined (Annuler) → signal NON modifié', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(of({
+        typeLitigeAvocat: 'DISCRIMINATION',
+        typeProcedureAvocat: null,
+        raison: null,
+      } as TypeLitigeOverrideResponse));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+      const before = component.typeLitigeOverride();
+
+      component.openTypeLitigeOverrideDialog();
+      dialogResultSubject.next(undefined);
+
+      expect(component.typeLitigeOverride()).toEqual(before);
+    });
+
+    it('domaine famille (DROIT_FAMILLE) → pas de badge Type de litige (V1 hors scope)', () => {
+      const caseFileService = TestBed.inject(CaseFileService) as any;
+      caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'D', legalDomain: 'DROIT_FAMILLE' }));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge).toBeUndefined();
+    });
+
+    it('aucun typeLitigeDetecte ET aucun override → pas de badge Type de litige', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge).toBeUndefined();
+    });
+
+    it('currentTypeLitigeCode : override Travail FR > IA détectée', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(of({
+        typeLitigeAvocat: 'PRISE_ACTE_RUPTURE',
+        typeProcedureAvocat: null,
+        raison: null,
+      } as TypeLitigeOverrideResponse));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      expect(component.currentTypeLitigeCode()).toBe('PRISE_ACTE_RUPTURE');
     });
   });
 

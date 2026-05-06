@@ -39,6 +39,9 @@ import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-pop
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
+import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
 /**
  * SF-155-04-A1 : champs d'alerte de cohérence F-IA-03 exposés par l'outil
@@ -90,6 +93,7 @@ const SALAIRE_DIVERGENCE_RATIO = 0.10;
     MatProgressSpinnerModule,
     LegalCitationsPipe,
     CoherencePopoverTriggerDirective,
+    ProcedureChecksOutputComponent,
   ],
   templateUrl: './harcelement-licenciement-nul-section.component.html',
   styleUrl: './harcelement-licenciement-nul-section.component.scss',
@@ -99,6 +103,13 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   static readonly TOOL_LABEL = 'INDEMNITÉ LICENCIEMENT NUL — HARCÈLEMENT';
   static readonly TOOL_ICON = 'gavel';
 
+  /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
+  static getProcedureChecksBadge(input: {
+    proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  }): ProcedureChecksBadge {
+    return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
   // SF-155-04-A1 : inputs IA (tous optionnels — null-safe partout).
@@ -106,6 +117,8 @@ export class HarcelementLicenciementNulSectionComponent implements OnInit, OnCha
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /** F-193 SF-193-02 — alignement F-96 pré-filtré sur cet outil. */
+  @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 

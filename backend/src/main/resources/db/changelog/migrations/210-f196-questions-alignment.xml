@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      F-196 SF-196-01 — Matérialisation des questions complémentaires F-94 +
+      auto-deduction pieces_manquantes au run de Synthèse enrichie.
+
+      Pattern miroir F-194 SF-194-01 (migration 207) + F-195 SF-195-01
+      (migration 208). Différence F-196 : pas de table de status (les
+      réponses vivent déjà dans `ai_question_answers` — F-94). On ajoute
+      uniquement (a) la colonne `case_analyses.ai_questions_alignment_json`,
+      (b) un commentaire explicatif sur les 2 nouvelles sources qui peuvent
+      apparaître dans `analysis_result.pieces_manquantes` (JSON, pas une
+      table — donc rien à modifier côté schéma SQL).
+
+      AiQuestionAnswerCommandService (F-94) reste STRICTEMENT INCHANGÉ : la
+      PUT réponse n'altère AUCUNEMENT pieces_manquantes ni questions
+      alignment. Tous les effets sont matérialisés au prochain run de
+      Synthèse enrichie via AiQuestionAlignmentService.materializeForAnalysis.
+
+      Cette migration ajoute :
+
+        (a) la colonne `case_analyses.ai_questions_alignment_json TEXT NULL`
+            qui stocke un tableau JSON
+            [{questionId, answerText, pieceLibelleDeduit, statutDeduction}]
+            calculé et persisté par AiQuestionAlignmentService.materializeForAnalysis()
+            à la fin de EnrichedAnalysisService.run (APRÈS hooks F-192 + F-193
+            + F-194 + F-195).
+
+      Notes :
+
+        - Les nouvelles sources `QUESTION_REPONDUE_OUI` et `QUESTION_REPONDUE_NON`
+          apparaissent dans le JSON `analysis_result.pieces_manquantes` (clé
+          `source`). Ce JSON n'a pas de contrainte SQL — toute valeur arbitraire
+          y est acceptée (rétrocompat F-92). Aucune migration SQL nécessaire
+          pour étendre l'enum.
+
+        - Aucun élargissement de `case_deadlines.source` requis : F-196 ne
+          crée pas de délais dédiés (la propagation des délais reste F-194 :
+          chaque pièce A_DEMANDER générée par F-196 dans pieces_manquantes
+          sera ramassée par le prochain run F-194 et obtiendra son délai
+          PIECE_A_DEMANDER de manière idempotente).
+    -->
+
+    <changeSet id="210-f196-add-ai-questions-alignment-json" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="ai_questions_alignment_json" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

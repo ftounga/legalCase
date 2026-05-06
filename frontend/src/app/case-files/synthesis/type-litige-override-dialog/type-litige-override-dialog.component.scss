@@ -1,0 +1,58 @@
+/**
+ * F-197 SF-197-02 — styles dialog override type litige.
+ * Palette DESIGN_SYSTEM.md : navy #1A3A5C primary, or #C9973A accent.
+ */
+.dialog-title {
+  font-family: 'Merriweather', serif;
+  color: #1A3A5C;
+}
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.ia-reminder {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid #C9973A;
+  background: #FAF6E8;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #1C2B3A;
+
+  &__label {
+    font-weight: 500;
+    margin-right: 4px;
+    color: #6B7A8D;
+  }
+
+  &__value {
+    font-weight: 600;
+    color: #1A3A5C;
+  }
+}
+
+.dialog-help {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #6B7A8D;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.dialog-actions {
+  padding: 8px 16px 16px;
+  gap: 8px;
+}
+
+.save-spinner {
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}

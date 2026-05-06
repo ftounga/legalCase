@@ -38,6 +38,30 @@ export class DashboardTileComponent {
   @Output() open = new EventEmitter<string>();
 
   iconForTheme(theme: string): string {
+    // F-192 SF-192-02 — la tile résumé pistes retenues utilise une icône
+    // dédiée (push_pin) pour signal visuel cohérent avec les badges or des
+    // sorties outils + pills cards panel F-IA-04.
+    if (this.tile?.toolId === 'RETAINED_PISTES_SUMMARY') {
+      return 'push_pin';
+    }
+    // F-194 SF-194-02 — la tile résumé pièces manquantes utilise `description`
+    // (cohérent thème DOCUMENTS) pour signaler le périmètre documentaire et
+    // distinguer de la tile pistes (push_pin).
+    if (this.tile?.toolId === 'F-194-pieces-summary') {
+      return 'description';
+    }
+    // F-195 SF-195-02 — la tile résumé risques utilise `warning` (cohérent
+    // thème DIAGNOSTIC + nature du bloc Risques de la synthèse) pour la
+    // distinguer des autres tiles diagnostiques (health_and_safety).
+    if (this.tile?.toolId === 'F-195-risques-summary') {
+      return 'warning';
+    }
+    // F-196 SF-196-02 — la tile résumé questions complémentaires utilise
+    // `quiz` (cohérent thème DOCUMENTS + nature du bloc Questions F-94 de la
+    // synthèse) pour la distinguer de la tile pièces (description).
+    if (this.tile?.toolId === 'F-196-questions-summary') {
+      return 'quiz';
+    }
     switch (theme) {
       case 'INDEMNITES':
         return 'euro';

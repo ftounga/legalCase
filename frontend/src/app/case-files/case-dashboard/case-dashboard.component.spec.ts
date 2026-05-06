@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { Router } from '@angular/router';
 import { CaseDashboardComponent } from './case-dashboard.component';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
 import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
@@ -40,6 +41,7 @@ describe('CaseDashboardComponent — refresh integration (SF-IA-02-03)', () => {
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: CaseDashboardRefreshService, useValue: refreshService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -153,6 +155,7 @@ describe('CaseDashboardComponent — SF-167-05 grouping + sort + empty state', (
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -258,6 +261,7 @@ describe('CaseDashboardComponent — SF-184-01 verdictsCount', () => {
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -343,6 +347,7 @@ describe('CaseDashboardComponent — openGenericTool (SF-167-01 / SF-167-05)', (
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -370,5 +375,354 @@ describe('CaseDashboardComponent — openGenericTool (SF-167-01 / SF-167-05)', (
     expect(modalService.open).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
+  });
+});
+
+// F-192 SF-192-02 — tile RETAINED_PISTES_SUMMARY rendue + clic navigation
+// vers /synthesis#section-pistes (pas d'ouverture modal d'outil).
+describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+
+  const dashboardWithRetained: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'IMMIGRATION',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'RETAINED_PISTES_SUMMARY',
+        theme: 'DIAGNOSTIC',
+        label: 'Stratégies retenues',
+        primaryValue: '3 retenues',
+        secondaryValue: '1 en divergence',
+        alertLevel: 'WARNING',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithRetained)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    router = { navigate: jest.fn() } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-08 tile RETAINED_PISTES_SUMMARY rendue dans le thème DIAGNOSTIC', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const diag = sections.find(s => s.key === 'DIAGNOSTIC');
+    expect(diag).toBeDefined();
+    expect(diag!.tiles[0].toolId).toBe('RETAINED_PISTES_SUMMARY');
+    expect(diag!.tiles[0].label).toBe('Stratégies retenues');
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Stratégies retenues');
+  });
+
+  it('CA-09 clic tile RETAINED_PISTES_SUMMARY → router.navigate vers /synthesis#section-pistes', () => {
+    fixture.detectChanges();
+    component.openGenericTool('RETAINED_PISTES_SUMMARY');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-pistes' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});
+
+// F-194 SF-194-02 — tile F-194-pieces-summary rendue + clic navigation
+// vers /synthesis#section-pieces (pas d'ouverture modal d'outil).
+describe('CaseDashboardComponent — F-194 SF-194-02 pieces-summary tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+
+  const dashboardWithPieces: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'DROIT_DU_TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-194-pieces-summary',
+        theme: 'DOCUMENTS',
+        label: 'Pièces',
+        primaryValue: '3 à demander',
+        secondaryValue: '2 obtenues',
+        alertLevel: 'WARNING',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithPieces)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    router = { navigate: jest.fn() } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-08 tile F-194-pieces-summary rendue dans le thème DOCUMENTS', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const docs = sections.find(s => s.key === 'DOCUMENTS');
+    expect(docs).toBeDefined();
+    expect(docs!.tiles[0].toolId).toBe('F-194-pieces-summary');
+    expect(docs!.tiles[0].label).toBe('Pièces');
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Pièces');
+  });
+
+  it('CA-09 clic tile F-194-pieces-summary → router.navigate vers /synthesis#section-pieces', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-194-pieces-summary');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-pieces' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});
+
+// F-195 SF-195-02 — tile F-195-risques-summary rendue + clic navigation
+// vers /synthesis#section-risques (pas d'ouverture modal d'outil).
+describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+
+  const dashboardWithRisques: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'DROIT_DU_TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-195-risques-summary',
+        theme: 'DIAGNOSTIC',
+        label: 'Risques',
+        primaryValue: '3 risques',
+        secondaryValue: '1 validé · 1 écarté · 1 à creuser',
+        alertLevel: 'ALERT',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithRisques)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    router = { navigate: jest.fn() } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-05 tile F-195-risques-summary rendue dans le thème DIAGNOSTIC', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const diag = sections.find(s => s.key === 'DIAGNOSTIC');
+    expect(diag).toBeDefined();
+    expect(diag!.tiles[0].toolId).toBe('F-195-risques-summary');
+    expect(diag!.tiles[0].label).toBe('Risques');
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Risques');
+  });
+
+  it('clic tile F-195-risques-summary → router.navigate vers /synthesis#section-risques', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-195-risques-summary');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-risques' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});
+
+// F-196 SF-196-02 — tile F-196-questions-summary rendue + clic navigation
+// vers /synthesis#section-questions (pas d'ouverture modal d'outil).
+describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+
+  const dashboardWithQuestions: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'DROIT_DU_TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-196-questions-summary',
+        theme: 'DOCUMENTS',
+        label: 'Questions complémentaires',
+        primaryValue: '5 questions',
+        secondaryValue: '3 répondues · 2 en attente',
+        alertLevel: 'WARNING',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithQuestions)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    router = { navigate: jest.fn() } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-01 tile F-196-questions-summary rendue dans le thème DOCUMENTS', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const docs = sections.find(s => s.key === 'DOCUMENTS');
+    expect(docs).toBeDefined();
+    expect(docs!.tiles[0].toolId).toBe('F-196-questions-summary');
+    expect(docs!.tiles[0].label).toBe('Questions complémentaires');
+    expect(docs!.tiles[0].primaryValue).toBe('5 questions');
+    expect(docs!.tiles[0].secondaryValue).toBe('3 répondues · 2 en attente');
+    expect(docs!.tiles[0].alertLevel).toBe('WARNING');
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Questions complémentaires');
+  });
+
+  it('CA-02 clic tile F-196-questions-summary → router.navigate vers /synthesis#section-questions', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-196-questions-summary');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-questions' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});
+
+// F-195 SF-195-02 — tile riskScore étendue avec scoreRisqueAvocat
+describe('CaseDashboardComponent — F-195 SF-195-02 dual riskScore', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn() } as any;
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: { open: jest.fn() } },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+  });
+
+  it('CA-06 dual score affiché quand scoreRisqueAvocat présent (score IA brut + validé avocat)', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: 75,
+      riskLevel: 'ELEVE',
+      scoreRisqueAvocat: 35,
+      tiles: [],
+    }));
+    fixture.detectChanges();
+    const risk = component.riskScoreTile();
+    expect(risk).not.toBeNull();
+    expect(risk!.summary.primaryValue).toContain('IA brut : 75 %');
+    expect(risk!.summary.primaryValue).toContain('Validé avocat : 35 %');
+    // La couleur suit le score validé avocat (35 < 60 → WARNING).
+    expect(risk!.metierAlertLevel).toBe('WARNING');
+  });
+
+  it('CA-06 fallback comportement original quand scoreRisqueAvocat absent (1 score)', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: 75,
+      riskLevel: 'ELEVE',
+      tiles: [],
+    }));
+    fixture.detectChanges();
+    const risk = component.riskScoreTile();
+    expect(risk).not.toBeNull();
+    expect(risk!.summary.primaryValue).toBe('75 %');
+    expect(risk!.metierAlertLevel).toBe('ALERT');
+  });
+
+  it('CA-06 scoreRisqueAvocat null → fallback comportement original', () => {
+    dashboardService.get.mockReturnValue(of({
+      caseFileId: 'case-1',
+      legalDomain: 'TRAVAIL',
+      riskScore: 50,
+      riskLevel: 'MOYEN',
+      scoreRisqueAvocat: null,
+      tiles: [],
+    }));
+    fixture.detectChanges();
+    const risk = component.riskScoreTile();
+    expect(risk!.summary.primaryValue).toBe('50 %');
   });
 });

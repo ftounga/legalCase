@@ -9,6 +9,11 @@ import { TribunalTravailFiche } from '../models/tribunal-travail-fiche.model';
 import { ImmigrationChecklist } from '../models/immigration-checklist.model';
 import { RecoursResponse } from '../models/immigration-recours.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
+import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
+import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
+import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
+import { RisqueAlignment } from '../models/risque-alignment.model';
+import { AiQuestionAlignment } from '../models/ai-question-alignment.model';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -19,25 +24,66 @@ const TEXT_SECONDARY = '#6B7A8D';
 const DIVIDER = '#E0E4EA';
 const SURFACE = '#FFFFFF';
 const BG = '#F5F6FA';
+// F-194 SF-194-03 — fond or léger (teinte claire d'ACCENT) pour le bandeau
+// titre proéminent de la section « 📎 Pièces à demander au client ».
+const PIECES_BG = '#FBF4E2';
+// F-195 SF-195-03 — keywords critiques qui amplifient visuellement un risque
+// VALIDÉ (pictogramme 🔴 + liseré rouge `ERROR` au lieu du ⚠️ + or par défaut).
+// Liste alignée sur le mapping `RisqueToolMatcher` SF-195-01 (harcèlement →
+// F-DT-12, violence → F-FA-14, expulsion → F-IM-08, dilapidation → F-FA-15).
+const RISQUE_CRITICAL_KEYWORDS = [
+  'harcèlement',
+  'harcelement',
+  'violence',
+  'expulsion',
+  'dilapidation',
+];
 
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
 
-  export(caseFile: CaseFile, synthesis: CaseAnalysisResult): void {
+  export(
+    caseFile: CaseFile,
+    synthesis: CaseAnalysisResult,
+    retainedPistes?: RetainedPisteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+    procedureChecksAlignment?: ProcedureCheckAlignment[],
+    piecesAlignment?: PieceManquanteAlignment[],
+    risquesAlignment?: RisqueAlignment[],
+    aiQuestionsAlignment?: AiQuestionAlignment[],
+  ): void {
     import('pdfmake/build/pdfmake').then(pdfMakeModule => {
       import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
         const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
         const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
         pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
 
-        const docDefinition = this.buildDocument(caseFile, synthesis) as TDocumentDefinitions;
+        const docDefinition = this.buildDocument(
+          caseFile,
+          synthesis,
+          retainedPistes,
+          toolLabelResolver,
+          procedureChecksAlignment,
+          piecesAlignment,
+          risquesAlignment,
+          aiQuestionsAlignment,
+        ) as TDocumentDefinitions;
         const fileName = this.buildFileName(caseFile.title, synthesis);
         pdfMake.createPdf(docDefinition).download(fileName);
       });
     });
   }
 
-  buildDocument(caseFile: CaseFile, synthesis: CaseAnalysisResult): object {
+  buildDocument(
+    caseFile: CaseFile,
+    synthesis: CaseAnalysisResult,
+    retainedPistes?: RetainedPisteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+    procedureChecksAlignment?: ProcedureCheckAlignment[],
+    piecesAlignment?: PieceManquanteAlignment[],
+    risquesAlignment?: RisqueAlignment[],
+    aiQuestionsAlignment?: AiQuestionAlignment[],
+  ): object {
     const isEnriched = synthesis.analysisType === 'ENRICHED';
     const exportDate = new Date().toLocaleDateString('fr-FR', {
       day: '2-digit', month: 'long', year: 'numeric'
@@ -49,6 +95,11 @@ export class PdfExportService {
     const content: object[] = [
       ...this.buildCoverPage(caseFile.title, isEnriched, versionLabel, exportDate),
       { text: '', pageBreak: 'after' },
+      ...this.buildStrategiesRetenuesSection(retainedPistes, toolLabelResolver),
+      ...this.buildProcedureChecksSection(procedureChecksAlignment, toolLabelResolver),
+      ...this.buildPiecesADemanderSection(piecesAlignment, toolLabelResolver),
+      ...this.buildRisquesValidesSection(risquesAlignment, synthesis, toolLabelResolver),
+      ...this.buildAiQuestionsSection(aiQuestionsAlignment),
       ...this.buildSections(synthesis),
     ];
 
@@ -136,6 +187,869 @@ export class PdfExportService {
         alignment: 'center',
       },
     ];
+  }
+
+  /**
+   * F-192 SF-192-03 — Section « 🎯 Stratégies retenues » insérée juste après
+   * la page de garde (avant la chronologie / faits / etc.).
+   *
+   * Comportement :
+   *   - retainedPistes vide ou non fourni → tableau vide (section omise, fail-open)
+   *   - ≥ 1 piste RETAINED → titre de section + un bloc par piste (texte +
+   *     baseJuridique + horizonTemporel + conditions + badge alignement),
+   *     séparés par une ligne navy fine.
+   *
+   * Badge alignement (selon `matchStatus`) :
+   *   - ALIGNED        → ✅ Stratégie alignée avec l'outil <label>      (or)
+   *   - DIVERGENT      → ⚠️ Stratégie divergente avec l'outil <label>   (navy souligné)
+   *   - NOT_ANALYZED   → ⏳ Outil <label> non encore analysé
+   *   - NO_TARGET_TOOL → pas de badge (pistes Famille/Travail V1)
+   *
+   * Le `toolLabelResolver` (fourni par le SynthesisComponent) lit
+   * `TOOL_LABEL` static via `TOOL_REGISTRY` du panel F-IA-04. Defensive :
+   * si le resolver retourne `null` ou si non fourni, le toolId brut est
+   * affiché.
+   */
+  private buildStrategiesRetenuesSection(
+    retainedPistes?: RetainedPisteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!retainedPistes || retainedPistes.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [
+      {
+        text: '🎯 Stratégies retenues',
+        fontSize: 16,
+        bold: true,
+        color: PRIMARY,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    retainedPistes.forEach((piste, index) => {
+      sections.push(this.buildPisteBlock(piste, toolLabelResolver));
+      if (index < retainedPistes.length - 1) {
+        sections.push({
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: PRIMARY },
+          ],
+          margin: [0, 8, 0, 8],
+        });
+      }
+    });
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  /** F-192 SF-192-03 — un bloc par piste retenue. */
+  private buildPisteBlock(
+    piste: RetainedPisteAlignment,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const stack: object[] = [
+      { text: piste.texte, fontSize: 11, color: TEXT, margin: [0, 0, 0, 4] },
+    ];
+
+    if (piste.baseJuridique) {
+      stack.push({
+        text: piste.baseJuridique,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 0, 0, 4],
+      });
+    }
+
+    if (piste.horizonTemporel) {
+      stack.push({
+        text: `Horizon : ${piste.horizonTemporel}`,
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 0, 0, 4],
+      });
+    }
+
+    if (piste.conditions && piste.conditions.length > 0) {
+      stack.push({
+        ul: piste.conditions.map(c => ({ text: c, fontSize: 9, color: TEXT })),
+        margin: [0, 2, 0, 4],
+      });
+    }
+
+    const badge = this.buildAlignmentBadge(piste, toolLabelResolver);
+    if (badge) {
+      stack.push(badge);
+    }
+
+    return { stack, margin: [0, 0, 0, 8] };
+  }
+
+  /**
+   * F-192 SF-192-03 — badge d'alignement avec l'outil cible.
+   * Retourne `null` pour `NO_TARGET_TOOL` (pistes Famille/Travail V1).
+   */
+  private buildAlignmentBadge(
+    piste: RetainedPisteAlignment,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object | null {
+    const status = piste.matchStatus;
+    if (status === 'NO_TARGET_TOOL') {
+      return null;
+    }
+    const toolId = piste.toolIdCible ?? '';
+    const resolvedLabel = toolLabelResolver ? toolLabelResolver(toolId) : null;
+    const label = (resolvedLabel && resolvedLabel.trim().length > 0) ? resolvedLabel : toolId;
+
+    switch (status) {
+      case 'ALIGNED':
+        return {
+          text: `✅ Stratégie alignée avec l'outil ${label}`,
+          fontSize: 10,
+          bold: true,
+          color: ACCENT,
+          margin: [0, 4, 0, 0],
+        };
+      case 'DIVERGENT':
+        return {
+          text: `⚠️ Stratégie divergente avec l'outil ${label}`,
+          fontSize: 10,
+          bold: true,
+          color: PRIMARY,
+          decoration: 'underline',
+          margin: [0, 4, 0, 0],
+        };
+      case 'NOT_ANALYZED':
+        return {
+          text: `⏳ Outil ${label} non encore analysé`,
+          fontSize: 10,
+          italics: true,
+          color: TEXT_SECONDARY,
+          margin: [0, 4, 0, 0],
+        };
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * F-193 SF-193-03 — Section « 🔍 Conformité procédurale validée par votre
+   * avocat » insérée APRÈS la section « Stratégies retenues » de F-192 et
+   * AVANT la chronologie / faits / etc.
+   *
+   * Comportement :
+   *   - procedureChecksAlignment vide ou non fourni → tableau vide (section
+   *     omise, fail-open).
+   *   - ≥ 1 check matérialisé → titre de section + 3 sous-blocs distincts
+   *     selon les statuts présents (ALIGNED ✅ / NON_COMPLIANT_FLAG ❌ /
+   *     TO_VERIFY_FLAG ⏳), séparés par une ligne navy fine.
+   *
+   * Pour chaque check, le suffixe `→ <label outil>` est ajouté si
+   * `toolIdCible` est non null. Lookup via `toolLabelResolver` (TOOL_REGISTRY).
+   *
+   * Fail-open indépendant : l'échec de la section pistes (F-192) n'empêche
+   * pas la section checks (F-193) — chacune est conditionnée à son propre
+   * tableau.
+   */
+  private buildProcedureChecksSection(
+    procedureChecksAlignment?: ProcedureCheckAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!procedureChecksAlignment || procedureChecksAlignment.length === 0) {
+      return [];
+    }
+
+    // Tri par `statut` (pas `matchStatus`) — un check NO_TARGET_TOOL doit
+    // apparaître dans le sous-bloc correspondant à son statut F-96 (cf.
+    // CA-04 cas d'erreur SF-193-03 : « Tous les checks en NO_TARGET_TOOL →
+    // Section incluse, listant les checks sans suffixe → <label outil> »).
+    // Le matchStatus (ALIGNED / NON_COMPLIANT_FLAG / TO_VERIFY_FLAG) est
+    // redondant avec `statut` (VERIFIED / NON_COMPLIANT / TO_CHECK) sauf en
+    // cas de DIVERGENT (l'outil cible diverge sur un check VERIFIED), pour
+    // lequel V1 considère que la décision avocat prime → traité comme ALIGNED.
+    const aligned = procedureChecksAlignment.filter(c => c.statut === 'VERIFIED');
+    const nonCompliant = procedureChecksAlignment.filter(c => c.statut === 'NON_COMPLIANT');
+    const toVerify = procedureChecksAlignment.filter(c => c.statut === 'TO_CHECK');
+
+    if (aligned.length === 0 && nonCompliant.length === 0 && toVerify.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [
+      {
+        text: '🔍 Conformité procédurale validée par votre avocat',
+        fontSize: 16,
+        bold: true,
+        color: PRIMARY,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    const subBlocks: object[][] = [];
+
+    if (aligned.length > 0) {
+      subBlocks.push(this.buildProcedureChecksSubBlock(
+        '✅ Vérifications confirmées',
+        ACCENT,
+        '✅',
+        aligned,
+        toolLabelResolver,
+      ));
+    }
+
+    if (nonCompliant.length > 0) {
+      subBlocks.push(this.buildProcedureChecksSubBlock(
+        '❌ Points non conformes',
+        ERROR,
+        '❌',
+        nonCompliant,
+        toolLabelResolver,
+      ));
+    }
+
+    if (toVerify.length > 0) {
+      subBlocks.push(this.buildProcedureChecksSubBlock(
+        '⏳ Points à vérifier',
+        TEXT_SECONDARY,
+        '⏳',
+        toVerify,
+        toolLabelResolver,
+      ));
+    }
+
+    subBlocks.forEach((block, index) => {
+      sections.push(...block);
+      if (index < subBlocks.length - 1) {
+        sections.push({
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: PRIMARY },
+          ],
+          margin: [0, 8, 0, 8],
+        });
+      }
+    });
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  /**
+   * F-193 SF-193-03 — un sous-bloc (titre coloré + liste de checks) pour une
+   * famille de statut (ALIGNED / NON_COMPLIANT_FLAG / TO_VERIFY_FLAG).
+   */
+  private buildProcedureChecksSubBlock(
+    title: string,
+    titleColor: string,
+    badge: string,
+    checks: ProcedureCheckAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    const block: object[] = [
+      {
+        text: title,
+        fontSize: 12,
+        bold: true,
+        color: titleColor,
+        margin: [0, 0, 0, 6],
+      },
+    ];
+
+    checks.forEach(check => {
+      block.push(this.buildProcedureCheckItem(check, badge, toolLabelResolver));
+    });
+
+    return block;
+  }
+
+  /**
+   * F-193 SF-193-03 — un item check : badge + libellé Inter regular 11,
+   * raison Inter italique 9 grise (si présente), suffixe outil JetBrains
+   * Mono italique 9 (si toolIdCible non null).
+   */
+  private buildProcedureCheckItem(
+    check: ProcedureCheckAlignment,
+    badge: string,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const stack: object[] = [
+      {
+        text: `${badge}  ${check.libelle}`,
+        fontSize: 11,
+        color: TEXT,
+        margin: [0, 0, 0, 2],
+      },
+    ];
+
+    if (check.raison) {
+      stack.push({
+        text: check.raison,
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [12, 0, 0, 2],
+      });
+    }
+
+    if (check.toolIdCible) {
+      const resolvedLabel = toolLabelResolver
+        ? toolLabelResolver(check.toolIdCible)
+        : null;
+      const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+        ? resolvedLabel
+        : check.toolIdCible;
+      stack.push({
+        text: `→ ${label}`,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [12, 0, 0, 2],
+      });
+    }
+
+    return { stack, margin: [0, 0, 0, 6] };
+  }
+
+  /**
+   * F-194 SF-194-03 — Section « 📎 Pièces à demander au client » insérée
+   * APRÈS la section « Conformité procédurale » F-193 et AVANT la
+   * chronologie / faits / etc. Cette section est le **livrable principal
+   * côté client** : l'avocat envoie le PDF au client comme todo-list de
+   * pièces à fournir.
+   *
+   * Comportement :
+   *   - `piecesAlignment` vide ou non fourni → tableau vide (section
+   *     omise, fail-open).
+   *   - Aucune pièce statut À_DEMANDER → section omise (cas nominal).
+   *   - ≥ 1 pièce À_DEMANDER → titre proéminent (encadré or, fond or
+   *     léger) + sous-titre client + liste à cocher (Pièce / Destinataire
+   *     / Date butoir = today + 14j). Compteurs OBTENUE / NON_APPLICABLE
+   *     en sous-blocs si ≥ 1.
+   *
+   * Le suffixe `→ <label outil>` est ajouté à la pièce si
+   * `toolIdsCibles[0]` est non null. Lookup via `toolLabelResolver`
+   * (TOOL_REGISTRY). Fail-open : si le lookup échoue, on affiche le
+   * `toolId` brut.
+   *
+   * Fail-open indépendant : l'échec des sections F-192 / F-193 n'empêche
+   * pas la section F-194 — chacune est conditionnée à son propre tableau.
+   */
+  private buildPiecesADemanderSection(
+    piecesAlignment?: PieceManquanteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!piecesAlignment || piecesAlignment.length === 0) {
+      return [];
+    }
+
+    const aDemander = piecesAlignment.filter(p => p.statut === 'A_DEMANDER');
+    const obtenue = piecesAlignment.filter(p => p.statut === 'OBTENUE');
+    const nonApplicable = piecesAlignment.filter(p => p.statut === 'NON_APPLICABLE');
+
+    if (aDemander.length === 0) {
+      // Cas nominal : rien à demander → section omise (compteurs sans
+      // À_DEMANDER ne sont pas affichés seuls — l'info principale est
+      // ce qui reste à fournir au client).
+      return [];
+    }
+
+    // Date butoir = today + 14 jours, formatée JJ/MM/AAAA
+    const dateButoir = this.formatDateButoir(this.computeDateButoirIn(14));
+
+    const sections: object[] = [
+      // Titre proéminent : encadré or avec fond or léger (CA-04)
+      {
+        table: {
+          widths: ['*'],
+          body: [[{
+            text: '📎 Pièces à demander au client',
+            fontSize: 18,
+            bold: true,
+            color: PRIMARY,
+            margin: [12, 10, 12, 10],
+            fillColor: PIECES_BG,
+          }]],
+        },
+        layout: {
+          hLineWidth: () => 1.2,
+          vLineWidth: () => 1.2,
+          hLineColor: () => ACCENT,
+          vLineColor: () => ACCENT,
+        },
+        margin: [0, 0, 0, 10],
+      },
+      // Sous-titre client (Inter regular 11)
+      {
+        text: 'Pour avancer sur votre dossier, merci de transmettre les pièces suivantes :',
+        fontSize: 11,
+        color: TEXT,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    // Tableau : ☐ + Pièce + Destinataire + Date butoir
+    sections.push(this.buildPiecesADemanderTable(aDemander, dateButoir, toolLabelResolver));
+
+    // Sous-bloc compteur OBTENUE (CA-07)
+    if (obtenue.length > 0) {
+      sections.push({
+        text: `✅ Pièces déjà reçues : ${obtenue.length}`,
+        fontSize: 9,
+        color: TEXT_SECONDARY,
+        margin: [0, 8, 0, 0],
+      });
+    }
+
+    // Sous-bloc compteur NON_APPLICABLE (CA-07)
+    if (nonApplicable.length > 0) {
+      sections.push({
+        text: `🚫 Pièces non applicables au dossier : ${nonApplicable.length}`,
+        fontSize: 9,
+        color: TEXT_SECONDARY,
+        margin: [0, 4, 0, 0],
+      });
+    }
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    // Page break — la todo-list peut être imprimée seule (CA-12)
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  /**
+   * F-194 SF-194-03 — tableau case à cocher pour les pièces À_DEMANDER.
+   *
+   * Colonnes : ☐ (case) | Pièce (libellé + suffixe outil) | Destinataire
+   * (italique 9 — défaut "Client") | Date butoir (JetBrainsMono 9).
+   */
+  private buildPiecesADemanderTable(
+    pieces: PieceManquanteAlignment[],
+    dateButoir: string,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const headerRow = [
+      { text: 'À fournir', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [8, 5, 4, 5] },
+      { text: 'Pièce', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [4, 5, 4, 5] },
+      { text: 'Destinataire', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [4, 5, 4, 5] },
+      { text: 'Date butoir', bold: true, color: SURFACE, fillColor: ACCENT, fontSize: 9, margin: [4, 5, 8, 5] },
+    ];
+
+    const rows = pieces.map((piece, i) => {
+      const bg = i % 2 === 0 ? BG : SURFACE;
+      const pieceCell = this.buildPieceLibelleCell(piece, bg, toolLabelResolver);
+      const destinataire = (piece.destinataire && piece.destinataire.trim().length > 0)
+        ? piece.destinataire
+        : 'Client';
+      return [
+        { text: '☐', fontSize: 14, color: PRIMARY, fillColor: bg, alignment: 'center', margin: [4, 4, 4, 4] },
+        pieceCell,
+        { text: destinataire, fontSize: 9, italics: true, color: TEXT_SECONDARY, fillColor: bg, margin: [4, 6, 4, 6] },
+        { text: dateButoir, font: 'JetBrainsMono', fontSize: 9, color: TEXT, fillColor: bg, margin: [4, 6, 8, 6] },
+      ];
+    });
+
+    return {
+      table: {
+        widths: [40, '*', 90, 70],
+        headerRows: 1,
+        body: [headerRow, ...rows],
+      },
+      layout: {
+        hLineWidth: () => 0.5,
+        vLineWidth: () => 0,
+        hLineColor: () => DIVIDER,
+      },
+      margin: [0, 0, 0, 0],
+    };
+  }
+
+  /**
+   * F-194 SF-194-03 — cellule libellé d'une pièce, avec suffixe
+   * `→ <label outil>` JetBrainsMono italique 9 si `toolIdsCibles[0]`
+   * est renseigné. Pattern miroir du suffixe SF-192-03 / SF-193-03.
+   */
+  private buildPieceLibelleCell(
+    piece: PieceManquanteAlignment,
+    bg: string,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const stack: object[] = [
+      { text: piece.pieceLibelle, fontSize: 10, color: TEXT },
+    ];
+
+    const firstToolId = piece.toolIdsCibles && piece.toolIdsCibles.length > 0
+      ? piece.toolIdsCibles[0]
+      : null;
+    if (firstToolId) {
+      const resolvedLabel = toolLabelResolver ? toolLabelResolver(firstToolId) : null;
+      const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+        ? resolvedLabel
+        : firstToolId;
+      stack.push({
+        text: `→ ${label}`,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 2, 0, 0],
+      });
+    }
+
+    return { stack, fillColor: bg, margin: [4, 6, 4, 6] };
+  }
+
+  /**
+   * F-194 SF-194-03 — calcule today + N jours (heure locale, sans modifier
+   * `Date.now()`). Exposé en méthode privée pour permettre le mock dans
+   * les tests Jest.
+   */
+  private computeDateButoirIn(days: number): Date {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+
+  /**
+   * F-194 SF-194-03 — formate une date au format JJ/MM/AAAA (locale fr).
+   */
+  private formatDateButoir(d: Date): string {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  /**
+   * F-195 SF-195-03 — Section « ⚠️ Risques retenus par votre avocat »
+   * insérée APRÈS la section « 📎 Pièces à demander » F-194 et AVANT la
+   * chronologie / faits / etc.
+   *
+   * Comportement :
+   *   - `risquesAlignment` vide ou non fourni → tableau vide (section
+   *     omise, fail-open).
+   *   - Aucun risque statut VALIDÉ → section omise (cas nominal — les
+   *     risques À_CREUSER restent affichés dans le bloc « Risques »
+   *     classique de la synthèse, les ÉCARTÉ sont consultables là aussi
+   *     mais non mis en évidence ici).
+   *   - ≥ 1 risque VALIDÉ → bloc par risque (libellé Inter 11 + suffixe
+   *     `→ <label outil>` JetBrainsMono italique 9 si toolIdsCibles[0] est
+   *     non null). Liseré or à gauche par défaut, liseré rouge `ERROR` si
+   *     keyword critique (harcèlement / violence / expulsion /
+   *     dilapidation) — pictogramme `🔴` au lieu de `⚠️` dans ce cas.
+   *   - Sous-titre « Score validé avocat : Y / 100 (vs IA brut : X / 100) »
+   *     affiché si `synthesis.riskScore` ou `synthesis.riskScoreAvocat`
+   *     présents (cohérent CA-03 mini-spec — fail-open si l'un absent).
+   *
+   * Fail-open indépendant : l'échec des sections F-192 / F-193 / F-194
+   * n'empêche pas la section F-195 — chacune est conditionnée à son propre
+   * tableau.
+   */
+  private buildRisquesValidesSection(
+    risquesAlignment: RisqueAlignment[] | undefined | null,
+    synthesis: CaseAnalysisResult,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!risquesAlignment || risquesAlignment.length === 0) {
+      return [];
+    }
+
+    const valides = risquesAlignment.filter(r => r.statut === 'VALIDE');
+    const ecartes = risquesAlignment.filter(r => r.statut === 'ECARTE');
+
+    if (valides.length === 0) {
+      // Cas nominal : aucun risque retenu → section omise (les écartés
+      // n'ont pas de mise en évidence dédiée — restent visibles dans la
+      // synthèse normale).
+      return [];
+    }
+
+    const sections: object[] = [];
+
+    // Titre proéminent (taille 16 bold navy, cohérent mini-spec) + liseré
+    // or léger (rouge réservé aux cas keyword critique uniquement, par
+    // ligne de risque — palette charte navy/or par défaut).
+    sections.push({
+      table: {
+        widths: ['*'],
+        body: [[{
+          text: '⚠️ Risques retenus par votre avocat',
+          fontSize: 16,
+          bold: true,
+          color: PRIMARY,
+          margin: [12, 8, 12, 8],
+          fillColor: SURFACE,
+        }]],
+      },
+      layout: {
+        hLineWidth: () => 0.8,
+        vLineWidth: () => 0.8,
+        hLineColor: () => ACCENT,
+        vLineColor: () => ACCENT,
+      },
+      margin: [0, 0, 0, 8],
+    });
+
+    // Sous-titre score validé / IA brut si l'un des deux est dispo (CA-03)
+    const scoreSubtitle = this.formatRisqueScoreSubtitle(synthesis);
+    if (scoreSubtitle) {
+      sections.push({
+        text: scoreSubtitle,
+        font: 'JetBrainsMono',
+        fontSize: 11,
+        color: TEXT_SECONDARY,
+        margin: [0, 0, 0, 12],
+      });
+    }
+
+    // Un bloc par risque VALIDÉ : pictogramme + libellé + suffixe outil.
+    valides.forEach((risque, idx) => {
+      const isCritical = this.isRisqueCritical(risque.risqueLibelle);
+      sections.push(this.buildRisqueValideBloc(risque, isCritical, toolLabelResolver, idx));
+    });
+
+    // Sous-bloc compteur ÉCARTÉS (cohérent F-194 — pas de liste détaillée
+    // pour ne pas allonger inutilement le PDF).
+    if (ecartes.length > 0) {
+      sections.push({
+        text: `❌ Risques écartés : ${ecartes.length}`,
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 8, 0, 0],
+      });
+    }
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+
+    return sections;
+  }
+
+  /**
+   * F-195 SF-195-03 — bloc visuel pour un risque VALIDÉ.
+   *
+   * Liseré or à gauche par défaut (charte navy/or), liseré rouge `ERROR`
+   * + pictogramme `🔴` quand le libellé contient un keyword critique
+   * (harcèlement / violence / expulsion / dilapidation) — palette rouge
+   * réservée aux alertes critiques (DESIGN_SYSTEM.md).
+   */
+  private buildRisqueValideBloc(
+    risque: RisqueAlignment,
+    isCritical: boolean,
+    toolLabelResolver: ((toolId: string) => string | null) | undefined,
+    idx: number,
+  ): object {
+    const borderColor = isCritical ? ERROR : ACCENT;
+    const fillColor = idx % 2 === 0 ? BG : SURFACE;
+    const picto = isCritical ? '🔴' : '⚠️';
+
+    const stack: object[] = [
+      {
+        columns: [
+          {
+            width: 22,
+            text: picto,
+            fontSize: 12,
+            margin: [0, 1, 0, 0],
+          },
+          {
+            width: '*',
+            text: risque.risqueLibelle,
+            fontSize: 11,
+            color: TEXT,
+          },
+        ],
+      },
+    ];
+
+    const firstToolId = (risque.toolIdsCibles && risque.toolIdsCibles.length > 0)
+      ? risque.toolIdsCibles[0]
+      : null;
+    if (firstToolId) {
+      const resolvedLabel = toolLabelResolver ? toolLabelResolver(firstToolId) : null;
+      const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+        ? resolvedLabel
+        : firstToolId;
+      stack.push({
+        text: `→ ${label}`,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [22, 2, 0, 0],
+      });
+    }
+
+    // Liseré or (ou rouge) à gauche du bloc (cellule étroite teintée).
+    return {
+      table: {
+        widths: [3, '*'],
+        body: [[
+          { text: '', fillColor: borderColor, border: [false, false, false, false] },
+          { stack, fillColor, margin: [8, 6, 8, 6], border: [false, false, false, false] },
+        ]],
+      },
+      layout: {
+        hLineWidth: () => 0,
+        vLineWidth: () => 0,
+        paddingLeft: () => 0,
+        paddingRight: () => 0,
+        paddingTop: () => 0,
+        paddingBottom: () => 0,
+      },
+      margin: [0, 0, 0, 4],
+    };
+  }
+
+  /**
+   * F-195 SF-195-03 — détecte si un libellé de risque contient un keyword
+   * critique (insensible à la casse + à la diacritique pour
+   * « harcèlement » / « harcelement »). Cohérent avec
+   * `RisqueToolMatcher` SF-195-01.
+   */
+  private isRisqueCritical(libelle: string): boolean {
+    if (!libelle) return false;
+    const lower = libelle.toLowerCase();
+    return RISQUE_CRITICAL_KEYWORDS.some(k => lower.includes(k));
+  }
+
+  /**
+   * F-195 SF-195-03 — produit le sous-titre score validé avocat / IA brut
+   * si l'un des deux scores est disponible. Le champ optionnel
+   * `riskScoreAvocat` est lu de façon défensive (le backend SF-195-01 peut
+   * ne pas être encore mergé — fail-open : sous-titre omis).
+   *
+   * Format :
+   *   - Les deux présents : « Score validé avocat : Y / 100 (vs IA brut : X / 100) »
+   *   - Avocat seul       : « Score validé avocat : Y / 100 »
+   *   - IA brut seul      : « Score IA brut : X / 100 »
+   *   - Aucun             : null (sous-titre omis)
+   */
+  private formatRisqueScoreSubtitle(synthesis: CaseAnalysisResult): string | null {
+    const ia = synthesis?.riskScore;
+    // Le champ `riskScoreAvocat` peut ne pas exister sur le type V1 ; on
+    // l'accède de façon défensive (fail-open en attendant SF-195-01).
+    const avocat = (synthesis as unknown as { riskScoreAvocat?: number | null })?.riskScoreAvocat;
+    const iaPresent = typeof ia === 'number' && Number.isFinite(ia);
+    const avocatPresent = typeof avocat === 'number' && Number.isFinite(avocat);
+    if (avocatPresent && iaPresent) {
+      return `Score validé avocat : ${avocat} / 100 (vs IA brut : ${ia} / 100)`;
+    }
+    if (avocatPresent) {
+      return `Score validé avocat : ${avocat} / 100`;
+    }
+    if (iaPresent) {
+      return `Score IA brut : ${ia} / 100`;
+    }
+    return null;
+  }
+
+  /**
+   * F-196 SF-196-03 — Section « ❓ Réponses aux questions complémentaires »
+   * insérée APRÈS « Risques validés par votre avocat » (F-195) et AVANT la
+   * chronologie / faits.
+   *
+   * Comportement :
+   *   - aiQuestionsAlignment vide / non fourni → tableau vide (section omise,
+   *     fail-open identique aux 4 sections F-192..F-195).
+   *   - Filtre sur `answerText` non null/non vide → seules les questions
+   *     RÉPONDUES par l'avocat sont incluses au PDF (les non répondues
+   *     restent visibles dans la synthèse écran F-94).
+   *   - ≥ 1 question répondue → titre navy 16/bold + sous-titre + liste Q&R
+   *     avec pictogramme `❓`. Suffixe « → Pièce déduite : <libellé> » si
+   *     `pieceLibelleDeduit` non null (signal positif PIECE_OBTENUE ou
+   *     manquante PIECE_MANQUANTE).
+   */
+  private buildAiQuestionsSection(
+    aiQuestionsAlignment?: AiQuestionAlignment[],
+  ): object[] {
+    if (!aiQuestionsAlignment || aiQuestionsAlignment.length === 0) {
+      return [];
+    }
+
+    const repondues = aiQuestionsAlignment.filter(
+      q => q.answerText !== null && q.answerText !== undefined && q.answerText.trim().length > 0,
+    );
+    if (repondues.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [
+      {
+        text: '❓ Réponses aux questions complémentaires',
+        fontSize: 16,
+        bold: true,
+        color: PRIMARY,
+        margin: [0, 0, 0, 6],
+      },
+      {
+        text: 'Réponses fournies par votre avocat aux questions complémentaires posées par l\'IA pour préciser le diagnostic.',
+        fontSize: 10,
+        color: TEXT_SECONDARY,
+        italics: true,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    for (const q of repondues) {
+      sections.push(this.buildAiQuestionBloc(q));
+    }
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  private buildAiQuestionBloc(q: AiQuestionAlignment): object {
+    const stack: object[] = [];
+
+    const questionText = q.questionText && q.questionText.trim().length > 0
+      ? q.questionText
+      : '(Question non disponible)';
+
+    stack.push({
+      text: [
+        { text: '❓ ', color: ACCENT, fontSize: 11 },
+        { text: questionText, color: PRIMARY, fontSize: 11, bold: true },
+      ],
+      margin: [0, 0, 0, 4],
+    });
+
+    stack.push({
+      text: q.answerText ?? '',
+      font: 'JetBrainsMono',
+      italics: true,
+      fontSize: 9,
+      color: TEXT,
+      margin: [12, 0, 0, 4],
+    });
+
+    if (q.pieceLibelleDeduit && q.pieceLibelleDeduit.trim().length > 0) {
+      const prefix = q.statutDeduction === 'PIECE_OBTENUE'
+        ? '✅ Pièce confirmée'
+        : q.statutDeduction === 'PIECE_MANQUANTE'
+          ? '📩 Pièce à demander'
+          : '→ Pièce déduite';
+      stack.push({
+        text: `${prefix} : ${q.pieceLibelleDeduit}`,
+        fontSize: 9,
+        color: TEXT_SECONDARY,
+        margin: [12, 0, 0, 8],
+      });
+    } else {
+      stack.push({ text: '', margin: [0, 0, 0, 8] });
+    }
+
+    return { stack };
   }
 
   private buildSections(synthesis: CaseAnalysisResult): object[] {

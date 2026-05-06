@@ -1,5 +1,6 @@
-import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { forkJoin, of, Subscription } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, LowerCasePipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +12,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { CaseFileService } from '../../core/services/case-file.service';
@@ -25,6 +29,34 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
+import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { ProcedureCheckAlignmentService } from '../../core/services/procedure-check-alignment.service';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { PieceManquanteStatusService } from '../../core/services/piece-manquante-status.service';
+import { PIECE_DESTINATAIRES, PieceManquanteStatutValue } from '../../core/models/piece-manquante-status.model';
+import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueStatusService } from '../../core/services/risque-status.service';
+import { RisqueStatutValue } from '../../core/models/risque-status.model';
+import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
+import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { AiQuestionAlignmentService } from '../../core/services/ai-question-alignment.service';
+import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
+import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
+import {
+  TypeLitigeOverrideResponse,
+  TypeLitigeOverrideDomain,
+  TYPE_LITIGE_TRAVAIL_FR_LABELS,
+  TYPE_PROCEDURE_IMMIGRATION_LABELS,
+  resolveOverrideDomain,
+} from '../../core/models/type-litige-override.model';
+import {
+  TypeLitigeOverrideDialogComponent,
+  TypeLitigeOverrideDialogData,
+} from './type-litige-override-dialog/type-litige-override-dialog.component';
+import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
+import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
 import { DiscardReasonDialogComponent, DiscardReasonDialogData } from './discard-reason-dialog.component';
 import { SynthesisShortBlockDialogComponent, SynthesisShortBlockDialogData } from '../synthesis-short-block-dialog/synthesis-short-block-dialog.component';
@@ -60,6 +92,19 @@ interface SynthesisBadge {
   anchor: string;
   route?: string[];
   popup?: 'pieces' | 'questions-ouvertes';
+  /**
+   * F-197 SF-197-02 — pour le badge "Type de litige" : valeur affichée
+   * (libellé FR du type retenu). Si {@code overridden} est `true`, le badge
+   * affiche le badge or "modifié par vous" et l'icône `edit_note`.
+   */
+  valueLabel?: string | null;
+  overridden?: boolean;
+  /**
+   * F-197 SF-197-02 — déclencheur d'ouverture du dialog override. Distinct
+   * de {@code popup} (pour les blocs courts) et de {@code route} (pages
+   * dédiées) — précédence : dialog > popup > route > anchor.
+   */
+  dialog?: 'type-litige-override';
 }
 
 @Component({
@@ -70,6 +115,7 @@ interface SynthesisBadge {
     MatCardModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatProgressBarModule, MatExpansionModule,
     MatCheckboxModule, MatTooltipModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule,
     SourceRefComponent,
     QuotaErrorBannerComponent,
     ImmigrationEventsSectionComponent,
@@ -126,6 +172,56 @@ export class SynthesisComponent implements OnInit, OnDestroy {
 
   procedureChecks = signal<ProcedureCheck[]>([]);
   updatingCheckId = signal<string | null>(null);
+
+  /**
+   * F-194 SF-194-02 — Cache des statuts pièces taggés localement par l'avocat.
+   * Clé = libellé original de la pièce (issu de l'IA), valeur = statut.
+   * Utilisé pour la mise en évidence du bouton actif. Optimistic update :
+   * `set` au clic, rollback (delete) si le PUT remonte une erreur.
+   *
+   * <p>Ce signal NE déclenche PAS de re-fetch alignement post-PUT — cohérence
+   * F-176 stricte : la matérialisation pièce → outil ne se fait qu'au prochain
+   * run de Synthèse enrichie via SSE `ENRICHED_ANALYSIS DONE`.</p>
+   */
+  pieceStatuses = signal<Record<string, PieceManquanteStatutValue>>({});
+  /** Saisie locale `raisonNonApp` par pièce (clé = libellé). Pas persistée tant que blur. */
+  pieceRaisons = signal<Record<string, string>>({});
+  /** Saisie locale `destinataire` par pièce. */
+  pieceDestinataires = signal<Record<string, string>>({});
+  /** Pièce en cours de PUT (libellé) — affiche un spinner sur la ligne. */
+  updatingPieceLibelle = signal<string | null>(null);
+
+  /** Liste des destinataires usuels exposés au template (cf. model). */
+  readonly pieceDestinataireOptions = PIECE_DESTINATAIRES;
+  /** F-194 SF-194-02 — utilitaire OnPush : forcer la CD après mutation signal. */
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * F-195 SF-195-02 — Cache des statuts risques taggés localement par
+   * l'avocat. Clé = libellé original du risque (issu de l'IA), valeur =
+   * statut. Utilisé pour la mise en évidence du bouton actif. Optimistic
+   * update : `set` au clic, rollback (delete) si le PUT remonte une erreur.
+   *
+   * <p>Ce signal NE déclenche PAS de re-fetch alignement post-PUT — cohérence
+   * F-176 stricte : la matérialisation risque → outil ne se fait qu'au
+   * prochain run de Synthèse enrichie via SSE `ENRICHED_ANALYSIS DONE`.</p>
+   */
+  risqueStatuses = signal<Record<string, RisqueStatutValue>>({});
+  /** Saisie locale `raisonEcarte` par risque (clé = libellé). PUT à blur. */
+  risqueRaisons = signal<Record<string, string>>({});
+  /** Risque en cours de PUT (libellé) — affiche un spinner sur la ligne. */
+  updatingRisqueLibelle = signal<string | null>(null);
+
+  /**
+   * F-197 SF-197-02 — Override avocat single-value du type de litige (Travail
+   * FR) ou du type de procédure (Immigration). Lu une fois au montage du
+   * dossier via {@link TypeLitigeOverrideService}, mis à jour localement
+   * après PUT depuis le dialog. Cohérence F-176 stricte : aucun re-fetch
+   * synthèse, aucun refresh outils déclenché par le PUT — la propagation
+   * outils se fait au prochain run de Synthèse enrichie via
+   * {@code ENRICHED_ANALYSIS DONE}.
+   */
+  readonly typeLitigeOverride = signal<TypeLitigeOverrideResponse | null>(null);
 
   // F-160 SF-160-02 — paginators indépendants par bloc (checklist + questions)
   // Numéro de version actuellement affiché par bloc (peut diverger de la version
@@ -189,6 +285,25 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     const optionsRetainedCount = this.optionsRetained().length;
     const risquesCount = syn.risques?.length ?? 0;
     const riskLevel = syn.riskLevel ?? null;
+
+    // F-197 SF-197-02 — badge "Type de litige" : visible uniquement si une
+    // valeur est connue (IA détectée OU override avocat) et si le domaine
+    // supporte l'override (TRAVAIL_FR / IMMIGRATION).
+    const typeLitigeLabel = this.currentTypeLitigeLabel();
+    const typeLitigeOverridden = this.typeLitigeIsOverridden();
+    const typeLitigeDomain = this.typeLitigeOverrideDomain();
+    const typeLitigeBadge: SynthesisBadge | null = (typeLitigeLabel && typeLitigeDomain) ? {
+      id: 'type-litige',
+      label: 'Type de litige',
+      icon: typeLitigeOverridden ? 'edit_note' : 'fact_check',
+      iconClass: typeLitigeOverridden ? 'panel-icon--type-litige-override' : 'panel-icon--type-litige',
+      count: 1,
+      sublabel: typeLitigeOverridden ? 'modifié par vous' : null,
+      anchor: 'section-type-litige',
+      valueLabel: typeLitigeLabel,
+      overridden: typeLitigeOverridden,
+      dialog: 'type-litige-override',
+    } : null;
 
     const all: SynthesisBadge[] = [
       {
@@ -272,7 +387,11 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         popup: 'questions-ouvertes',
       },
     ];
-    return all.filter(b => b.count > 0);
+    const filtered = all.filter(b => b.count > 0);
+    // F-197 SF-197-02 — préfixer le badge "Type de litige" en tête de grille
+    // (saillant : c'est l'action la plus impactante de F-197 — change la
+    // visibilité des outils + le pre-fill).
+    return typeLitigeBadge ? [typeLitigeBadge, ...filtered] : filtered;
   });
 
   /**
@@ -290,6 +409,92 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     } else if (attempt < 5) {
       setTimeout(() => this.scrollToBlock(anchorId, attempt + 1), 200);
     }
+  }
+
+  /**
+   * F-197 SF-197-02 — Récupère l'override courant. Fail-open silencieux :
+   * en cas d'erreur (timeout, 5xx), l'override reste à `null` et le badge
+   * "Type de litige" affiche la valeur IA brute (CA-09).
+   */
+  private loadTypeLitigeOverride(caseFileId: string): void {
+    this.typeLitigeOverrideService.getForCaseFile(caseFileId).subscribe({
+      next: response => this.typeLitigeOverride.set(response ?? null),
+      error: () => this.typeLitigeOverride.set(null),
+    });
+  }
+
+  /**
+   * F-197 SF-197-02 — Code du type de litige actuellement retenu (override
+   * avocat si présent, sinon valeur IA détectée). Utilisé pour le badge
+   * grille F-162 et passé en `iaDetectedCode` au dialog override.
+   */
+  readonly currentTypeLitigeCode = computed<string | null>(() => {
+    const override = this.typeLitigeOverride();
+    if (override) {
+      const code = override.typeLitigeAvocat ?? override.typeProcedureAvocat ?? null;
+      if (code) return code;
+    }
+    return this.synthesis()?.typeLitigeDetecte ?? null;
+  });
+
+  /**
+   * F-197 SF-197-02 — `true` si un override avocat est posé (badge or, icône
+   * `edit_note` "modifié par vous").
+   */
+  readonly typeLitigeIsOverridden = computed<boolean>(() => {
+    const o = this.typeLitigeOverride();
+    return !!o && (!!o.typeLitigeAvocat || !!o.typeProcedureAvocat);
+  });
+
+  /**
+   * F-197 SF-197-02 — Libellé FR avocat-friendly du code retenu (lookup dans
+   * les 2 maps Travail FR / Immigration). Si le code n'existe pas dans les
+   * libellés (rétro-compat ou code IA exotique), retourne le code tel quel.
+   */
+  readonly currentTypeLitigeLabel = computed<string | null>(() => {
+    const code = this.currentTypeLitigeCode();
+    if (!code) return null;
+    const t = TYPE_LITIGE_TRAVAIL_FR_LABELS as Record<string, string>;
+    if (t[code]) return t[code];
+    const i = TYPE_PROCEDURE_IMMIGRATION_LABELS as Record<string, string>;
+    if (i[code]) return i[code];
+    return code;
+  });
+
+  /**
+   * F-197 SF-197-02 — Domaine cible pour le dialog override (TRAVAIL_FR ou
+   * IMMIGRATION) résolu depuis {@link CaseFile#legalDomain}. Null si le
+   * domaine ne supporte pas l'override (V1 : famille exclu).
+   */
+  readonly typeLitigeOverrideDomain = computed<TypeLitigeOverrideDomain | null>(() => {
+    return resolveOverrideDomain(this.caseFile()?.legalDomain);
+  });
+
+  /**
+   * F-197 SF-197-02 — Ouvre le dialog override. Au close avec une réponse
+   * non-undefined, met à jour le signal local {@link #typeLitigeOverride}.
+   * Cohérence F-176 stricte : aucun re-fetch synthèse, aucun refresh outils.
+   */
+  openTypeLitigeOverrideDialog(): void {
+    const cfId = this.caseFile()?.id;
+    const domain = this.typeLitigeOverrideDomain();
+    if (!cfId || !domain) return;
+    const data: TypeLitigeOverrideDialogData = {
+      caseFileId: cfId,
+      domain,
+      current: this.typeLitigeOverride(),
+      iaDetectedCode: this.synthesis()?.typeLitigeDetecte ?? null,
+    };
+    const ref = this.dialog.open<
+      TypeLitigeOverrideDialogComponent,
+      TypeLitigeOverrideDialogData,
+      TypeLitigeOverrideResponse
+    >(TypeLitigeOverrideDialogComponent, { data, width: '520px', maxWidth: '92vw' });
+    ref.afterClosed().subscribe(result => {
+      if (result === undefined) return;
+      this.typeLitigeOverride.set(result);
+      this.cdr.markForCheck();
+    });
   }
 
   /** F-162 SF-162-06 — ouvre un dialog modal pour un bloc court. */
@@ -332,7 +537,15 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private procedureCheckService: ProcedureCheckService,
     private strategicOptionService: StrategicOptionService,
     private timeService: TimeService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private retainedPisteAlignmentService: RetainedPisteAlignmentService,
+    private procedureCheckAlignmentService: ProcedureCheckAlignmentService,
+    private pieceManquanteStatusService: PieceManquanteStatusService,
+    private pieceManquanteAlignmentService: PieceManquanteAlignmentService,
+    private risqueStatusService: RisqueStatusService,
+    private risqueAlignmentService: RisqueAlignmentService,
+    private aiQuestionAlignmentService: AiQuestionAlignmentService,
+    private typeLitigeOverrideService: TypeLitigeOverrideService,
   ) {}
 
   ngOnInit(): void {
@@ -342,6 +555,10 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         this.caseFile.set(cf);
         this.loadVersions(id);
         this.loadChatHistory(id);
+        // F-197 SF-197-02 — fail-open silencieux (CA-09) : si le GET échoue,
+        // on garde l'override à null et le badge "Type de litige" affiche
+        // simplement la valeur IA détectée.
+        this.loadTypeLitigeOverride(id);
         this.timeService.loadEntries(id).subscribe({
           next: () => this.timeEntries.set(this.timeService.entries()),
           error: () => {}
@@ -683,6 +900,203 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * F-194 SF-194-02 — Récupère le statut courant d'une pièce manquante.
+   * Tant que l'avocat n'a pas encore tagué : statut implicite `A_DEMANDER`.
+   * Cohérent avec la sémantique backend (l'absence d'entrée DB = pièce à
+   * demander).
+   */
+  pieceStatusFor(libelle: string): PieceManquanteStatutValue {
+    return this.pieceStatuses()[libelle] ?? 'A_DEMANDER';
+  }
+
+  /** F-194 SF-194-02 — bouton actif si statut courant correspond. */
+  isPieceStatusActive(libelle: string, statut: PieceManquanteStatutValue): boolean {
+    return this.pieceStatusFor(libelle) === statut;
+  }
+
+  pieceRaisonFor(libelle: string): string {
+    return this.pieceRaisons()[libelle] ?? '';
+  }
+
+  pieceDestinataireFor(libelle: string): string {
+    return this.pieceDestinataires()[libelle] ?? '';
+  }
+
+  /**
+   * F-194 SF-194-02 — Tag d'une pièce avec un nouveau statut. PUT optimiste :
+   * UI mise à jour immédiatement, rollback si erreur. AUCUN refresh
+   * (pas de `triggerRefresh`, pas de `loadAlignment`) — cohérence F-176 stricte.
+   * La matérialisation pièce → outil arrive seule au prochain run Synthèse
+   * enrichie (via SSE `ENRICHED_ANALYSIS DONE`).
+   */
+  updatePieceStatus(libelle: string, statut: PieceManquanteStatutValue): void {
+    if (this.updatingPieceLibelle() === libelle) return;
+    const cf = this.caseFile();
+    if (!cf) return;
+    const previous = this.pieceStatuses()[libelle];
+    // Optimistic update.
+    this.pieceStatuses.update(map => ({ ...map, [libelle]: statut }));
+    this.updatingPieceLibelle.set(libelle);
+    this.cdr.markForCheck();
+
+    const raisonNonApp = statut === 'NON_APPLICABLE'
+      ? (this.pieceRaisons()[libelle] ?? null) || null
+      : null;
+    const destinataire = statut === 'A_DEMANDER'
+      ? (this.pieceDestinataires()[libelle] ?? null) || null
+      : null;
+
+    this.pieceManquanteStatusService
+      .updateStatus(cf.id, libelle, statut, { raisonNonApp, destinataire })
+      .subscribe({
+        next: response => {
+          this.updatingPieceLibelle.set(null);
+          // Aligne le cache local sur la réponse autoritative backend (raison /
+          // destinataire éventuellement normalisés).
+          if (response?.raisonNonApp != null) {
+            this.pieceRaisons.update(m => ({ ...m, [libelle]: response.raisonNonApp ?? '' }));
+          }
+          if (response?.destinataire != null) {
+            this.pieceDestinataires.update(m => ({ ...m, [libelle]: response.destinataire ?? '' }));
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.updatingPieceLibelle.set(null);
+          // Rollback statut.
+          this.pieceStatuses.update(map => {
+            const next = { ...map };
+            if (previous !== undefined) {
+              next[libelle] = previous;
+            } else {
+              delete next[libelle];
+            }
+            return next;
+          });
+          this.cdr.markForCheck();
+          this.snackBar.open(
+            'Erreur lors de la mise à jour de la pièce',
+            'Fermer',
+            { duration: 4000, panelClass: ['snack-error'] },
+          );
+        },
+      });
+  }
+
+  /**
+   * F-194 SF-194-02 — Capture la saisie raison NON_APPLICABLE (input local).
+   * Le PUT est déclenché à blur via `onPieceRaisonBlur` — évite un PUT à
+   * chaque caractère.
+   */
+  onPieceRaisonInput(libelle: string, value: string): void {
+    this.pieceRaisons.update(m => ({ ...m, [libelle]: value }));
+  }
+
+  onPieceRaisonBlur(libelle: string): void {
+    if (this.pieceStatusFor(libelle) !== 'NON_APPLICABLE') return;
+    // Re-déclenche un PUT avec la raison saisie (no-op côté UI : statut déjà
+    // affiché, on ne change que le payload côté backend).
+    this.updatePieceStatus(libelle, 'NON_APPLICABLE');
+  }
+
+  /**
+   * F-194 SF-194-02 — Saisie destinataire (MatSelect). Déclenche un PUT
+   * immédiat car la sélection est ponctuelle (pas de blur à attendre).
+   */
+  onPieceDestinataireChange(libelle: string, value: string): void {
+    this.pieceDestinataires.update(m => ({ ...m, [libelle]: value }));
+    if (this.pieceStatusFor(libelle) !== 'A_DEMANDER') return;
+    this.updatePieceStatus(libelle, 'A_DEMANDER');
+  }
+
+  /**
+   * F-195 SF-195-02 — Récupère le statut courant d'un risque (clé = libellé
+   * original). Tant que l'avocat n'a pas tagué : statut implicite
+   * `A_CREUSER`. Cohérent avec la sémantique backend (l'absence d'entrée DB
+   * = risque à creuser).
+   */
+  risqueStatusFor(libelle: string): RisqueStatutValue {
+    return this.risqueStatuses()[libelle] ?? 'A_CREUSER';
+  }
+
+  /** F-195 SF-195-02 — bouton actif si statut courant correspond. */
+  isRisqueStatusActive(libelle: string, statut: RisqueStatutValue): boolean {
+    return this.risqueStatusFor(libelle) === statut;
+  }
+
+  risqueRaisonFor(libelle: string): string {
+    return this.risqueRaisons()[libelle] ?? '';
+  }
+
+  /**
+   * F-195 SF-195-02 — Tag d'un risque avec un nouveau statut. PUT optimiste :
+   * UI mise à jour immédiatement, rollback si erreur. AUCUN refresh
+   * (pas de `triggerRefresh`, pas de `loadAlignment`) — cohérence F-176
+   * stricte. La matérialisation risque → outil arrive seule au prochain run
+   * Synthèse enrichie (via SSE `ENRICHED_ANALYSIS DONE`).
+   */
+  updateRisqueStatus(libelle: string, statut: RisqueStatutValue): void {
+    if (this.updatingRisqueLibelle() === libelle) return;
+    const cf = this.caseFile();
+    if (!cf) return;
+    const previous = this.risqueStatuses()[libelle];
+    // Optimistic update.
+    this.risqueStatuses.update(map => ({ ...map, [libelle]: statut }));
+    this.updatingRisqueLibelle.set(libelle);
+    this.cdr.markForCheck();
+
+    const raisonEcarte = statut === 'ECARTE'
+      ? (this.risqueRaisons()[libelle] ?? null) || null
+      : null;
+
+    this.risqueStatusService
+      .updateStatus(cf.id, libelle, statut, { raisonEcarte })
+      .subscribe({
+        next: response => {
+          this.updatingRisqueLibelle.set(null);
+          if (response?.raisonEcarte != null) {
+            this.risqueRaisons.update(m => ({ ...m, [libelle]: response.raisonEcarte ?? '' }));
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.updatingRisqueLibelle.set(null);
+          // Rollback statut.
+          this.risqueStatuses.update(map => {
+            const next = { ...map };
+            if (previous !== undefined) {
+              next[libelle] = previous;
+            } else {
+              delete next[libelle];
+            }
+            return next;
+          });
+          this.cdr.markForCheck();
+          this.snackBar.open(
+            'Erreur lors de la mise à jour du risque',
+            'Fermer',
+            { duration: 4000, panelClass: ['snack-error'] },
+          );
+        },
+      });
+  }
+
+  /**
+   * F-195 SF-195-02 — Capture la saisie raison ECARTE (input local). Le PUT
+   * est déclenché à blur via `onRisqueRaisonBlur` — évite un PUT à chaque
+   * caractère.
+   */
+  onRisqueRaisonInput(libelle: string, value: string): void {
+    this.risqueRaisons.update(m => ({ ...m, [libelle]: value }));
+  }
+
+  onRisqueRaisonBlur(libelle: string): void {
+    if (this.risqueStatusFor(libelle) !== 'ECARTE') return;
+    // Re-déclenche un PUT avec la raison saisie.
+    this.updateRisqueStatus(libelle, 'ECARTE');
+  }
+
   checkStatusLabel(statut: ProcedureCheckStatus): string {
     switch (statut) {
       case 'VERIFIED': return 'Vérifié';
@@ -928,14 +1342,75 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     const cf = this.caseFile();
     const syn = this.synthesis();
     if (!cf || !syn) return;
+    // F-192 SF-192-03 — pistes 🟢 Retenue + alignement outil cible.
+    // F-193 SF-193-03 — checks F-96 + alignement outil cible.
+    // F-194 SF-194-03 — pièces manquantes markables + alignement outil cible.
+    // F-195 SF-195-03 — risques markables + alignement outil cible.
+    // F-196 SF-196-03 — questions complémentaires + déduction pièces.
+    // Les 5 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
+    // INDÉPENDANT : si l'un échoue, les autres sont utilisés quand même
+    // (catchError local par stream). L'export PDF n'est jamais bloqué.
+    forkJoin({
+      retainedPistes: this.retainedPisteAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as RetainedPisteAlignment[])),
+      ),
+      procedureChecksAlignment: this.procedureCheckAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as ProcedureCheckAlignment[])),
+      ),
+      piecesAlignment: this.pieceManquanteAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as PieceManquanteAlignment[])),
+      ),
+      risquesAlignment: this.risqueAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as RisqueAlignment[])),
+      ),
+      aiQuestionsAlignment: this.aiQuestionAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as AiQuestionAlignment[])),
+      ),
+    }).subscribe({
+      next: ({ retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment }) =>
+        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment, piecesAlignment, risquesAlignment, aiQuestionsAlignment),
+      error: () => this.runPdfExport(cf, syn, [], [], [], [], []),
+    });
+  }
+
+  private runPdfExport(
+    cf: CaseFile,
+    syn: CaseAnalysisResult,
+    retainedPistes: RetainedPisteAlignment[],
+    procedureChecksAlignment: ProcedureCheckAlignment[],
+    piecesAlignment: PieceManquanteAlignment[],
+    risquesAlignment: RisqueAlignment[],
+    aiQuestionsAlignment: AiQuestionAlignment[],
+  ): void {
     try {
-      this.pdfExportService.export(cf, syn);
+      this.pdfExportService.export(
+        cf,
+        syn,
+        retainedPistes,
+        (toolId) => this.resolveToolLabel(toolId),
+        procedureChecksAlignment,
+        piecesAlignment,
+        risquesAlignment,
+        aiQuestionsAlignment,
+      );
       this.analyticsService.trackEvent('pdf_exported');
     } catch {
       this.snackBar.open('Erreur lors de la génération du PDF', 'Fermer', {
         duration: 4000, panelClass: ['snack-error']
       });
     }
+  }
+
+  /**
+   * F-192 SF-192-03 — résolution `toolId → TOOL_LABEL` via TOOL_REGISTRY du
+   * panel F-IA-04. Retourne `null` si le toolId n'est pas connu (defensive).
+   */
+  private resolveToolLabel(toolId: string): string | null {
+    if (!toolId) return null;
+    const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
+    if (!entry) return null;
+    const meta = getToolMetadata(entry.component);
+    return meta?.label ?? null;
   }
 
   exportDocx(): void {

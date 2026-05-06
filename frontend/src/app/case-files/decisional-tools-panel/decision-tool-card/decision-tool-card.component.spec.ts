@@ -198,6 +198,278 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('F-192 SF-192-02 — pill or pistes retenues', () => {
+    it('CA-07 aligned : pill or visible avec count quand kind=aligned', () => {
+      component.retainedPistesBadge = { kind: 'aligned', count: 3 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--retained-aligned')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('3');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('push_pin');
+    });
+
+    it('CA-07 divergent : pill or contour visible quand kind=divergent', () => {
+      component.retainedPistesBadge = { kind: 'divergent', count: 2 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--retained-divergent')).toBe(true);
+    });
+
+    it('CA-07 none : pill absent quand kind=none', () => {
+      component.retainedPistesBadge = { kind: 'none', count: 0 };
+      fixture.detectChanges();
+      expect(badge('[data-testid="retained-pistes-badge"]')).toBeNull();
+    });
+
+    it('CA-07 null : pill absent quand input null', () => {
+      component.retainedPistesBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="retained-pistes-badge"]')).toBeNull();
+    });
+
+    it('CA-07 aria-label aligned reflète le count', () => {
+      component.retainedPistesBadge = { kind: 'aligned', count: 4 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe('Aligné stratégie retenue (4)');
+    });
+
+    it('CA-07 aria-label divergent reflète le count', () => {
+      component.retainedPistesBadge = { kind: 'divergent', count: 1 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe('Divergence stratégie retenue (1)');
+    });
+  });
+
+  describe('F-193 SF-193-02 — pill « 🔍 Procédure (V/N/T) »', () => {
+    it('CA-07 verified : pill or visible quand kind=verified avec compteurs V/N/T', () => {
+      component.proceduresChecksBadge = {
+        kind: 'verified',
+        counts: { verified: 3, nonCompliant: 0, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="procedures-checks-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--procedures-verified')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('3/0/0');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('verified');
+    });
+
+    it('CA-08 non_compliant : pill rouge subtil visible (priorité visuelle)', () => {
+      component.proceduresChecksBadge = {
+        kind: 'non_compliant',
+        counts: { verified: 0, nonCompliant: 2, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="procedures-checks-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--procedures-non-compliant')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('0/2/0');
+    });
+
+    it('CA-07 mixed (1 ALIGNED + 1 NON_COMPLIANT) → pill rouge subtil (non_compliant > verified)', () => {
+      component.proceduresChecksBadge = {
+        kind: 'mixed',
+        counts: { verified: 1, nonCompliant: 1, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="procedures-checks-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--procedures-non-compliant')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('1/1/0');
+    });
+
+    it('CA-07 none → pill absent quand kind=none', () => {
+      component.proceduresChecksBadge = {
+        kind: 'none',
+        counts: { verified: 0, nonCompliant: 0, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      expect(badge('[data-testid="procedures-checks-badge"]')).toBeNull();
+    });
+
+    it('CA-07 null → pill absent (composant non instrumenté SF-193-02)', () => {
+      component.proceduresChecksBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="procedures-checks-badge"]')).toBeNull();
+    });
+  });
+
+  describe('F-194 SF-194-02 — pill « 📎 Pièces (D/O/N) »', () => {
+    it('missing : pill navy clair visible (priorité visuelle — il manque encore des pièces)', () => {
+      component.piecesBadge = {
+        kind: 'missing',
+        counts: { aDemander: 2, obtenues: 1, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-missing')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('2/1/0');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('attach_file');
+    });
+
+    it('obtained : pill or plein visible quand toutes pièces sont obtenues', () => {
+      component.piecesBadge = {
+        kind: 'obtained',
+        counts: { aDemander: 0, obtenues: 3, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-obtained')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('0/3/0');
+    });
+
+    it('partial : pill or contour quand obtenues + non applicable cohabitent', () => {
+      component.piecesBadge = {
+        kind: 'partial',
+        counts: { aDemander: 0, obtenues: 2, nonApplicable: 1 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-partial')).toBe(true);
+    });
+
+    it('not_applicable : pill gris quand toutes pièces sont écartées', () => {
+      component.piecesBadge = {
+        kind: 'not_applicable',
+        counts: { aDemander: 0, obtenues: 0, nonApplicable: 2 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--pieces-not-applicable')).toBe(true);
+    });
+
+    it('none → pill absent', () => {
+      component.piecesBadge = {
+        kind: 'none',
+        counts: { aDemander: 0, obtenues: 0, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      expect(badge('[data-testid="pieces-badge"]')).toBeNull();
+    });
+
+    it('null → pill absent (composant non instrumenté SF-194-02)', () => {
+      component.piecesBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="pieces-badge"]')).toBeNull();
+    });
+
+    it('aria-label reflète les compteurs', () => {
+      component.piecesBadge = {
+        kind: 'missing',
+        counts: { aDemander: 3, obtenues: 1, nonApplicable: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="pieces-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe(
+        'Pièces : 3 à demander, 1 obtenue(s), 0 non applicable(s)',
+      );
+    });
+  });
+
+  describe('F-195 SF-195-02 — pill « ⚠️ Risques (V/E) »', () => {
+    it('validated_critical : pill rouge subtil visible (priorité visuelle absolue)', () => {
+      component.risquesBadge = {
+        kind: 'validated_critical',
+        counts: { aCreuser: 0, valides: 1, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-validated-critical')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('1/0');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('warning');
+    });
+
+    it('validated : pill or plein quand risque non critique validé', () => {
+      component.risquesBadge = {
+        kind: 'validated',
+        counts: { aCreuser: 0, valides: 2, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-validated')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('2/0');
+    });
+
+    it('mixed : pill or contour quand VALIDE + ECARTE non critique', () => {
+      component.risquesBadge = {
+        kind: 'mixed',
+        counts: { aCreuser: 0, valides: 1, ecartes: 1 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-mixed')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('1/1');
+    });
+
+    it('discarded : pill gris quand uniquement ECARTE', () => {
+      component.risquesBadge = {
+        kind: 'discarded',
+        counts: { aCreuser: 0, valides: 0, ecartes: 1 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-discarded')).toBe(true);
+    });
+
+    it('to_explore : pill navy contour quand uniquement A_CREUSER', () => {
+      component.risquesBadge = {
+        kind: 'to_explore',
+        counts: { aCreuser: 2, valides: 0, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-to-explore')).toBe(true);
+    });
+
+    it('none → pill absent', () => {
+      component.risquesBadge = {
+        kind: 'none',
+        counts: { aCreuser: 0, valides: 0, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      expect(badge('[data-testid="risques-badge"]')).toBeNull();
+    });
+
+    it('null → pill absent (composant non instrumenté SF-195-02)', () => {
+      component.risquesBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="risques-badge"]')).toBeNull();
+    });
+
+    it('aria-label reflète les compteurs', () => {
+      component.risquesBadge = {
+        kind: 'validated',
+        counts: { aCreuser: 1, valides: 2, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe(
+        'Risques : 2 validé(s), 0 écarté(s), 1 à creuser',
+      );
+    });
+  });
+
   describe('SF-159-02 — flashing input', () => {
     it('ajoute la classe tool-card--flashing quand flashing=true', () => {
       component.flashing = true;

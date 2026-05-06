@@ -22,7 +22,22 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
-import { DecisionToolCardComponent } from './decision-tool-card/decision-tool-card.component';
+import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
+import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
+import { DecisionToolCardComponent, PiecesBadgeInput, RisquesBadgeInput } from './decision-tool-card/decision-tool-card.component';
+import {
+  computePiecesBadge,
+  piecesObtenuesFor,
+} from './piece-manquante-badge.helper';
+import {
+  computeRisquesBadge,
+  risquesValidesFor,
+} from './risque-badge.helper';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
 import { DecisionalToolsProgressBannerComponent } from './decisional-tools-progress-banner.component';
 import { DecisionalToolsProgressService } from './decisional-tools-progress.service';
@@ -130,6 +145,45 @@ export interface DecisionToolContext {
   caseFileTitle: string;
   procedureChecks: any[];
   aiQuestions: any[];
+  /**
+   * F-197 SF-197-02 — Override avocat single-value du type de litige (Travail
+   * FR) ou du type de procédure (Immigration). Lu via
+   * {@link TypeLitigeOverrideService} dans le composant parent (`<app-synthesis>`
+   * ou `<app-case-dashboard>`) puis transmis au panel via le signal SSE
+   * `ENRICHED_ANALYSIS DONE` (cohérence F-176 stricte). Si présent, prend
+   * précédence sur la valeur IA brute pour le pré-remplissage des outils
+   * décisionnels.
+   *
+   * <p>Rappel : le PUT statut depuis le dialog override ne déclenche AUCUN
+   * refresh côté frontend — la propagation outils se fait au prochain run de
+   * Synthèse enrichie.</p>
+   */
+  typeLitigeOverride?: import('../../core/models/type-litige-override.model').TypeLitigeOverrideResponse | null;
+  /**
+   * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec les
+   * outils décisionnels. Lu via `RetainedPisteAlignmentService` au montage du
+   * dossier ; rafraîchi à la réception de l'event SSE `ENRICHED_ANALYSIS DONE`
+   * via `CaseDashboardRefreshService` (cohérence F-176 stricte).
+   */
+  pistesRetenues?: import('../../core/models/retained-piste-alignment.model').RetainedPisteAlignment[];
+  /**
+   * F-194 SF-194-02 — Alignement matérialisé pièces manquantes ↔ outils.
+   * Pré-filtré côté entry par toolId pour ne passer aux composants outils
+   * que la sous-liste des pièces qui les concernent. Pattern miroir
+   * {@link RetainedPisteAlignment} (F-192) + {@link ProcedureCheckAlignment}
+   * (F-193). Refresh exclusif au run de Synthèse enrichie (PUT statut pièce
+   * ne déclenche AUCUN refresh côté frontend — cohérence F-176 stricte).
+   */
+  piecesAlignment?: import('../../core/models/piece-manquante-alignment.model').PieceManquanteAlignment[];
+  /**
+   * F-195 SF-195-02 — Alignement matérialisé risques ↔ outils. Pré-filtré
+   * côté entry par toolId pour ne passer aux composants outils que la sous-
+   * liste des risques qui les concernent. Pattern miroir
+   * {@link PieceManquanteAlignment} (F-194). Refresh exclusif au run de
+   * Synthèse enrichie (PUT statut risque ne déclenche AUCUN refresh côté
+   * frontend — cohérence F-176 stricte).
+   */
+  risquesAlignment?: import('../../core/models/risque-alignment.model').RisqueAlignment[];
 }
 
 export interface DecisionToolRegistryEntry {
@@ -170,6 +224,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
+  private readonly retainedPistesService = inject(RetainedPisteAlignmentService, { optional: true });
+  private readonly piecesAlignmentService = inject(PieceManquanteAlignmentService, { optional: true });
+  private readonly risqueAlignmentService = inject(RisqueAlignmentService, { optional: true });
   private readonly modalService = inject(DecisionToolModalService);
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
@@ -185,9 +242,45 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   // F-190 SF-190-03 — compteur "X/7 sections reçues" propagé au banner.
   @Input() streamingSectionsReceived: number | null = null;
   @Input() streamingSectionsExpected = 0;
+  /**
+   * F-197 SF-197-02 — Override avocat single-value du type de litige
+   * (Travail FR) ou type de procédure (Immigration). Si présent, prend
+   * précédence sur la valeur IA brute pour le pré-remplissage des outils
+   * décisionnels (lecture via le helper {@link #augmentSynthesisWithOverride}).
+   * Lu une fois au montage du dossier dans le composant parent ; aucun
+   * refresh côté frontend après PUT (cohérence F-176 stricte).
+   */
+  @Input() typeLitigeOverride: import('../../core/models/type-litige-override.model').TypeLitigeOverrideResponse | null = null;
 
   readonly loading = signal(false);
   readonly visibility = signal<VisibleToolSet | null>(null);
+
+  /**
+   * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec les
+   * outils décisionnels. Cache local. Refresh : (1) au mount du dossier,
+   * (2) à chaque émission `CaseDashboardRefreshService.refresh$` (qui est lui-
+   * même déclenché à la fin du run de Synthèse enrichie via les events SSE
+   * F-185/F-190 — cohérence F-176 stricte).
+   */
+  readonly retainedPistes = signal<RetainedPisteAlignment[]>([]);
+
+  /**
+   * F-194 SF-194-02 — Alignement pièces manquantes ↔ outils. Cache local.
+   * Refresh : (1) au mount du dossier, (2) à chaque émission
+   * `CaseDashboardRefreshService.refresh$` (déclenchée à la fin du run de
+   * Synthèse enrichie). Le PUT statut pièce ne déclenche PAS de refresh.
+   */
+  readonly piecesAlignment = signal<PieceManquanteAlignment[]>([]);
+
+  /**
+   * F-195 SF-195-02 — Alignement risques ↔ outils. Cache local.
+   * Refresh : (1) au mount du dossier, (2) à chaque émission
+   * `CaseDashboardRefreshService.refresh$` (déclenchée à la fin du run de
+   * Synthèse enrichie). Le PUT statut risque ne déclenche PAS de refresh
+   * (cohérence F-176 stricte — la matérialisation risque → outil ne se fait
+   * qu'au prochain run de Synthèse enrichie).
+   */
+  readonly risquesAlignment = signal<RisqueAlignment[]>([]);
 
   /**
    * Registre des outils décisionnels. Chaque entrée déclare son composant
@@ -207,6 +300,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-DT-04-fiche-prudhomale'),
         }),
       }],
       ['F-DT-06-requete-tribunal-travail', {
@@ -219,6 +314,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-DT-06-requete-tribunal-travail'),
         }),
       }],
       ['F-DT-07-anciennete-conges-prime', {
@@ -279,6 +376,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-195 SF-195-02 : libellés des risques statut VALIDE alignés sur cet outil
+          // (ex. "harcèlement moral subi" → flag visuel "risque validé" sur la card).
+          risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-11-harcelement-licenciement-nul'),
         }),
       }],
       ['F-DT-16-licenciement-nul-detection', {
@@ -306,6 +406,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-195 SF-195-02 : libellés des risques statut VALIDE alignés
+          // (ex. "discrimination" → flag visuel "risque validé").
+          risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-12-discrimination-dommages-interets'),
         }),
       }],
       ['F-DT-13-licenciement-economique', {
@@ -492,6 +595,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-195 SF-195-02 : libellés des risques statut VALIDE alignés
+          // (ex. "clause non-concurrence abusive" → flag visuel ; ECARTE
+          // → masquage potentiel via F-IA-04).
+          risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-24-non-concurrence'),
         }),
       }],
       ['F-132-rupture-amiable-info', {
@@ -546,6 +653,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-FA-07-checklist-divorce'),
         }),
       }],
       ['F-IM-01-checklist-pieces', {
@@ -565,6 +674,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-192 SF-192-02 : pistes 🟢 RETAINED filtrées sur cet outil.
+          pistesRetenues: (ctx.pistesRetenues ?? []).filter(
+            p => p.toolIdCible === 'F-IM-05-arbre-decisionnel-titre',
+          ),
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-IM-05-arbre-decisionnel-titre'),
         }),
       }],
       ['F-IM-06-recours', {
@@ -576,6 +691,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-192 SF-192-02 : pistes 🟢 RETAINED filtrées sur cet outil.
+          pistesRetenues: (ctx.pistesRetenues ?? []).filter(
+            p => p.toolIdCible === 'F-IM-06-recours',
+          ),
+          // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
+          piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-IM-06-recours'),
         }),
       }],
       ['F-IM-07-droit-au-travail', {
@@ -1443,6 +1564,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     if (this.caseFileId) {
       this.loadVisibility(true);
+      this.loadRetainedPistes();
+      this.loadPiecesAlignment();
+      this.loadRisquesAlignment();
     }
     if (this.refreshService) {
       this.refreshService.refresh$
@@ -1450,6 +1574,17 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         .subscribe(() => {
           if (this.caseFileId) {
             this.loadVisibility(false);
+            // F-192 SF-192-02 — re-fetch alignement à chaque run de Synthèse
+            // enrichie (cohérence F-176 stricte). Le PUT statut piste ne
+            // déclenche PAS triggerRefresh (cf. CA-12), donc le re-fetch ici
+            // ne s'enclenche que post-analyse — comportement voulu.
+            this.loadRetainedPistes();
+            // F-194 SF-194-02 — idem pour les pièces. PUT statut pièce ne
+            // déclenche PAS de refresh, seul le run de Synthèse enrichie le fait.
+            this.loadPiecesAlignment();
+            // F-195 SF-195-02 — idem pour les risques. PUT statut risque ne
+            // déclenche PAS de refresh, seul le run de Synthèse enrichie le fait.
+            this.loadRisquesAlignment();
           }
         });
     }
@@ -1458,7 +1593,64 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['caseFileId'] && !changes['caseFileId'].firstChange && this.caseFileId) {
       this.loadVisibility(true);
+      this.loadRetainedPistes();
+      this.loadPiecesAlignment();
+      this.loadRisquesAlignment();
     }
+  }
+
+  /**
+   * F-192 SF-192-02 — Charge l'alignement persisté côté backend. Fail-open :
+   * `[]` si endpoint indisponible (le service log un warn). OnPush-safe :
+   * mutation via `signal.set()` qui déclenche la CD nativement.
+   */
+  private loadRetainedPistes(): void {
+    if (!this.retainedPistesService) {
+      this.retainedPistes.set([]);
+      return;
+    }
+    this.retainedPistesService.getForCaseFile(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => this.retainedPistes.set(list),
+        error: () => this.retainedPistes.set([]),
+      });
+  }
+
+  /**
+   * F-194 SF-194-02 — Charge l'alignement pièces ↔ outils. Fail-open : `[]`
+   * si endpoint indisponible (le service log un warn). OnPush-safe :
+   * mutation via `signal.set()` qui déclenche la CD nativement.
+   */
+  private loadPiecesAlignment(): void {
+    if (!this.piecesAlignmentService) {
+      this.piecesAlignment.set([]);
+      return;
+    }
+    this.piecesAlignmentService.getForCaseFile(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => this.piecesAlignment.set(list),
+        error: () => this.piecesAlignment.set([]),
+      });
+  }
+
+  /**
+   * F-195 SF-195-02 — Charge l'alignement risques ↔ outils. Fail-open : `[]`
+   * si endpoint indisponible (le service log un warn). OnPush-safe :
+   * mutation via `signal.set()` qui déclenche la CD nativement.
+   */
+  private loadRisquesAlignment(): void {
+    if (!this.risqueAlignmentService) {
+      this.risquesAlignment.set([]);
+      return;
+    }
+    this.risqueAlignmentService.getForCaseFile(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => this.risquesAlignment.set(list),
+        error: () => this.risquesAlignment.set([]),
+      });
   }
 
   private loadVisibility(showSpinner: boolean): void {
@@ -1555,12 +1747,128 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   componentInputsFor(entry: DecisionToolRegistryEntry): Record<string, unknown> {
     return entry.inputs({
       caseFileId: this.caseFileId,
-      synthesis: this.synthesis,
+      // F-197 SF-197-02 : la synthèse passée aux outils est augmentée avec
+      // l'override avocat (single-value typeLitige Travail FR / typeProcedure
+      // Immigration). L'override prend précédence sur la valeur IA pour le
+      // pré-remplissage. Cohérence F-176 stricte : l'override n'est consommé
+      // qu'à l'instant de l'instanciation des outils, le PUT n'est jamais
+      // suivi d'un refresh frontend.
+      synthesis: this.augmentSynthesisWithOverride(this.synthesis, this.typeLitigeOverride),
       workspaceCountry: this.workspaceCountry,
       caseFileTitle: this.caseFileTitle,
       procedureChecks: this.procedureChecks,
       aiQuestions: this.aiQuestions,
+      // F-192 SF-192-02 : alignement chargé via RetainedPisteAlignmentService.
+      pistesRetenues: this.retainedPistes(),
+      // F-194 SF-194-02 : alignement chargé via PieceManquanteAlignmentService.
+      piecesAlignment: this.piecesAlignment(),
+      // F-195 SF-195-02 : alignement chargé via RisqueAlignmentService.
+      risquesAlignment: this.risquesAlignment(),
+      // F-197 SF-197-02 : exposé brut au cas où un outil veut raisonner sur
+      // la présence/absence d'un override (badge "modifié par vous" UI).
+      typeLitigeOverride: this.typeLitigeOverride,
     });
+  }
+
+  /**
+   * F-197 SF-197-02 — Helper : retourne une copie de la synthèse dans
+   * laquelle :
+   * <ul>
+   *   <li>{@code travailExtractedData.typeLitigeAvocatOverride} est posé à la
+   *       valeur de l'override Travail FR (si présent).</li>
+   *   <li>{@code immigrationExtractedData.typeProcedureAvocatOverride} est
+   *       posé à la valeur de l'override Immigration (si présent).</li>
+   * </ul>
+   *
+   * <p>Les outils décisionnels qui veulent privilégier l'override appellent
+   * en interne {@code aiData.typeLitigeAvocatOverride ?? aiData.typeLitigeDetecte}.
+   * Aucun outil existant n'est modifié par cette SF — seul le contrat de
+   * passage est étendu (tools peuvent ignorer le champ s'ils ne l'utilisent
+   * pas, no-op gracieux).</p>
+   *
+   * <p>Si {@code synthesis} est null ou si {@code override} est null, retourne
+   * la synthèse telle quelle (no-op).</p>
+   */
+  private augmentSynthesisWithOverride(
+    synthesis: any | null,
+    override: import('../../core/models/type-litige-override.model').TypeLitigeOverrideResponse | null,
+  ): any | null {
+    if (!synthesis || !override) return synthesis;
+    const travailOverride = override.typeLitigeAvocat ?? null;
+    const immigrationOverride = override.typeProcedureAvocat ?? null;
+    if (!travailOverride && !immigrationOverride) return synthesis;
+    const augmented: any = { ...synthesis };
+    if (travailOverride && synthesis.travailExtractedData) {
+      augmented.travailExtractedData = {
+        ...synthesis.travailExtractedData,
+        typeLitigeAvocatOverride: travailOverride,
+      };
+    } else if (travailOverride) {
+      augmented.travailExtractedData = { typeLitigeAvocatOverride: travailOverride };
+    }
+    if (immigrationOverride && synthesis.immigrationExtractedData) {
+      augmented.immigrationExtractedData = {
+        ...synthesis.immigrationExtractedData,
+        typeProcedureAvocatOverride: immigrationOverride,
+      };
+    } else if (immigrationOverride) {
+      augmented.immigrationExtractedData = { typeProcedureAvocatOverride: immigrationOverride };
+    }
+    return augmented;
+  }
+
+  /**
+   * F-194 SF-194-02 — Calcule le badge pièces (D/O/N) à afficher sur la card
+   * du panel pour un toolId. Fait à partir du signal `piecesAlignment` filtré
+   * sur `toolIdsCibles`. Pattern miroir `retainedPistesBadgeFor` (F-192).
+   * Retourne `null` si aucune pièce n'est mappée à cet outil — la pill est
+   * silencieusement masquée par le card via `showPiecesBadge`.
+   */
+  piecesBadgeFor(toolId: string): PiecesBadgeInput | null {
+    const all = this.piecesAlignment();
+    const filtered = all.filter(p => Array.isArray(p.toolIdsCibles) && p.toolIdsCibles.includes(toolId));
+    const badge = computePiecesBadge(filtered);
+    if (badge.kind === 'none') return null;
+    return badge;
+  }
+
+  /**
+   * F-195 SF-195-02 — Calcule le badge risques (V/E) à afficher sur la card
+   * du panel pour un toolId. Fait à partir du signal `risquesAlignment`
+   * filtré sur `toolIdsCibles`. Pattern miroir `piecesBadgeFor` (F-194).
+   * Retourne `null` si aucun risque n'est mappé à cet outil — la pill est
+   * silencieusement masquée par le card via `showRisquesBadge`.
+   */
+  risquesBadgeFor(toolId: string): RisquesBadgeInput | null {
+    const all = this.risquesAlignment();
+    const filtered = all.filter(r => Array.isArray(r.toolIdsCibles) && r.toolIdsCibles.includes(toolId));
+    const badge = computeRisquesBadge(filtered);
+    if (badge.kind === 'none') return null;
+    return badge;
+  }
+
+  /**
+   * F-192 SF-192-02 — Badge piste 🟢 retenue à afficher sur la card du panel
+   * pour un toolId. Lit le static `getRetainedPistesBadge` (s'il existe) du
+   * composant outil. Retourne `null` si :
+   *   - le composant n'est pas instrumenté SF-192-02 (forward-compat),
+   *   - ou aucune piste ne mappe ce toolId,
+   *   - ou le static throw (log 1× via try/catch).
+   */
+  retainedPistesBadgeFor(toolId: string): RetainedPistesBadge | null {
+    const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
+    if (!entry) return null;
+    const candidate = entry.component as unknown as {
+      getRetainedPistesBadge?: (input: { pistesRetenues?: RetainedPisteAlignment[] }) => RetainedPistesBadge;
+    };
+    if (typeof candidate.getRetainedPistesBadge !== 'function') return null;
+    try {
+      const badge = candidate.getRetainedPistesBadge({ pistesRetenues: this.retainedPistes() });
+      if (!badge || badge.kind === 'none' || badge.count <= 0) return null;
+      return badge;
+    } catch {
+      return null;
+    }
   }
 
   /**

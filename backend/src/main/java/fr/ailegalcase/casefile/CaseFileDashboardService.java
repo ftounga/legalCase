@@ -1,9 +1,22 @@
 package fr.ailegalcase.casefile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.ailegalcase.analysis.AiQuestionAlignment;
+import fr.ailegalcase.analysis.AiQuestionAlignmentService;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.CaseAnalysisResponse;
+import fr.ailegalcase.analysis.PieceManquanteAlignment;
+import fr.ailegalcase.analysis.PieceManquanteAlignmentService;
+import fr.ailegalcase.analysis.PieceManquanteStatus;
+import fr.ailegalcase.analysis.ProcedureCheckAlignment;
+import fr.ailegalcase.analysis.ProcedureCheckAlignmentService;
+import fr.ailegalcase.analysis.RetainedPisteAlignment;
+import fr.ailegalcase.analysis.RetainedPisteAlignmentService;
+import fr.ailegalcase.analysis.RisqueAlignment;
+import fr.ailegalcase.analysis.RisqueAlignmentService;
+import fr.ailegalcase.analysis.RisqueStatus;
+import fr.ailegalcase.analysis.RisqueToolMatcher;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
@@ -122,6 +135,16 @@ public class CaseFileDashboardService {
     private final Belgian9terRepository belgian9terRepo;
     private final Belgian40bisRepository belgian40bisRepo;
     private final Belgian40terRepository belgian40terRepo;
+    // F-192 SF-192-01 — pistes RETAINED matérialisées sur la dernière analyse DONE.
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService;
+    // F-193 SF-193-01 — checks F-96 matérialisés sur la dernière analyse DONE.
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
+    // F-194 SF-194-01 — pièces manquantes markables matérialisées sur la dernière analyse DONE.
+    private final PieceManquanteAlignmentService pieceManquanteAlignmentService;
+    // F-195 SF-195-01 — risques markables matérialisés sur la dernière analyse DONE.
+    private final RisqueAlignmentService risqueAlignmentService;
+    // F-196 SF-196-01 — questions complémentaires F-94 matérialisées sur la dernière analyse DONE.
+    private final AiQuestionAlignmentService aiQuestionAlignmentService;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -212,7 +235,12 @@ public class CaseFileDashboardService {
                                      Belgian9bisRepository belgian9bisRepo,
                                      Belgian9terRepository belgian9terRepo,
                                      Belgian40bisRepository belgian40bisRepo,
-                                     Belgian40terRepository belgian40terRepo) {
+                                     Belgian40terRepository belgian40terRepo,
+                                     RetainedPisteAlignmentService retainedPisteAlignmentService,
+                                     ProcedureCheckAlignmentService procedureCheckAlignmentService,
+                                     PieceManquanteAlignmentService pieceManquanteAlignmentService,
+                                     RisqueAlignmentService risqueAlignmentService,
+                                     AiQuestionAlignmentService aiQuestionAlignmentService) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -304,6 +332,11 @@ public class CaseFileDashboardService {
         this.belgian9terRepo = belgian9terRepo;
         this.belgian40bisRepo = belgian40bisRepo;
         this.belgian40terRepo = belgian40terRepo;
+        this.retainedPisteAlignmentService = retainedPisteAlignmentService;
+        this.procedureCheckAlignmentService = procedureCheckAlignmentService;
+        this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
+        this.risqueAlignmentService = risqueAlignmentService;
+        this.aiQuestionAlignmentService = aiQuestionAlignmentService;
     }
 
     @Transactional(readOnly = true)
@@ -318,15 +351,19 @@ public class CaseFileDashboardService {
         // Risk score from latest analysis
         Integer riskScore = null;
         String riskLevel = null;
+        // F-195 SF-195-01 — score recomputé excluant ÉCARTÉ (parallèle, F-IA-02 préservé).
+        String scoreRisqueAvocatJson = null;
         var latestAnalysis = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
         if (latestAnalysis.isPresent()) {
             riskScore = latestAnalysis.get().getRiskScore();
             riskLevel = latestAnalysis.get().getRiskLevel();
+            scoreRisqueAvocatJson = latestAnalysis.get().getScoreRisqueAvocatJson();
         }
 
         return new CaseFileDashboardResponse(
                 caseFileId, cf.getLegalDomain(), riskScore, riskLevel,
+                scoreRisqueAvocatJson,
                 assembleTiles(caseFileId)
         );
     }
@@ -431,8 +468,295 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromBelgian9terAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromBelgian40bisAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromBelgian40terAnalysis(caseFileId));
+        // ── F-192 SF-192-01 — pistes RETAINED matérialisées ───────────────────
+        addSafely(tiles, () -> tileFromRetainedPistesAlignment(caseFileId));
+        // ── F-193 SF-193-01 — checks F-96 matérialisés ─────────────────────
+        addSafely(tiles, () -> tileFromProcedureChecksAlignment(caseFileId));
+        // ── F-194 SF-194-01 — pièces manquantes markables matérialisées ───
+        addSafely(tiles, () -> tileFromPiecesManquantesAlignment(caseFileId));
+        // ── F-195 SF-195-01 — risques markables matérialisés ───────────────
+        addSafely(tiles, () -> tileFromRisquesAlignment(caseFileId));
+        // ── F-196 SF-196-01 — questions complémentaires F-94 matérialisées ─
+        addSafely(tiles, () -> tileFromAiQuestionsAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
+    }
+
+    /**
+     * F-192 SF-192-01 — Tile dashboard agrégeant les pistes stratégiques
+     * RETAINED matérialisées sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code alertLevel = ALERT} si ≥ 1 piste {@code DIVERGENT}</li>
+     *   <li>{@code alertLevel = WARNING} si 0 {@code DIVERGENT} mais ≥ 1
+     *       {@code NOT_ANALYZED}</li>
+     *   <li>{@code alertLevel = OK} sinon</li>
+     * </ul>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-192 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromRetainedPistesAlignment(UUID caseFileId) {
+        if (retainedPisteAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<RetainedPisteAlignment> alignments = retainedPisteAlignmentService
+                .deserializeAlignment(latest.get().getRetainedPistesAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long divergent = alignments.stream()
+                .filter(a -> RetainedPisteAlignment.STATUS_DIVERGENT.equals(a.matchStatus()))
+                .count();
+        long notAnalyzed = alignments.stream()
+                .filter(a -> RetainedPisteAlignment.STATUS_NOT_ANALYZED.equals(a.matchStatus()))
+                .count();
+
+        String alertLevel;
+        if (divergent > 0) alertLevel = "ALERT";
+        else if (notAnalyzed > 0) alertLevel = "WARNING";
+        else alertLevel = "OK";
+
+        String primary = alignments.size() + " retenue" + (alignments.size() > 1 ? "s" : "");
+        String secondary = divergent + " en divergence";
+
+        return new DashboardTile(
+                "F-192-retained-pistes-summary",
+                "DIAGNOSTIC",
+                "Pistes stratégiques retenues",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-193 SF-193-01 — Tile dashboard agrégeant les points procéduraux F-96
+     * matérialisés sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code alertLevel = ALERT} si ≥ 1 check {@code NON_COMPLIANT_FLAG}</li>
+     *   <li>{@code alertLevel = WARNING} si 0 NON_COMPLIANT_FLAG mais ≥ 1
+     *       {@code TO_VERIFY_FLAG}</li>
+     *   <li>{@code alertLevel = OK} sinon</li>
+     * </ul>
+     *
+     * <p>Thème {@code DELAIS} (vs {@code DIAGNOSTIC} pour F-192) — les
+     * vérifications procédurales relèvent plus des délais que du diagnostic
+     * (cf. mini-spec § Notes et décisions).</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-193 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromProcedureChecksAlignment(UUID caseFileId) {
+        if (procedureCheckAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<ProcedureCheckAlignment> alignments = procedureCheckAlignmentService
+                .deserializeAlignment(latest.get().getProcedureChecksAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long nonCompliant = alignments.stream()
+                .filter(a -> ProcedureCheckAlignment.STATUS_NON_COMPLIANT_FLAG.equals(a.matchStatus()))
+                .count();
+        long toVerify = alignments.stream()
+                .filter(a -> ProcedureCheckAlignment.STATUS_TO_VERIFY_FLAG.equals(a.matchStatus()))
+                .count();
+
+        String alertLevel;
+        if (nonCompliant > 0) alertLevel = "ALERT";
+        else if (toVerify > 0) alertLevel = "WARNING";
+        else alertLevel = "OK";
+
+        int total = alignments.size();
+        String primary = total + " point" + (total > 1 ? "s" : "");
+        String secondary = nonCompliant + " non conforme" + (nonCompliant > 1 ? "s" : "")
+                + " · " + toVerify + " à vérifier";
+
+        return new DashboardTile(
+                "F-193-procedure-checks-summary",
+                "DELAIS",
+                "Conformité procédurale",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-194 SF-194-01 — Tile dashboard agrégeant les pièces manquantes
+     * markables matérialisées sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code primaryValue} : N total pièces matérialisées</li>
+     *   <li>{@code secondaryValue} : "X à demander · Y obtenues · Z non applicables"</li>
+     *   <li>{@code alertLevel = WARNING} si ≥ 1 {@code A_DEMANDER} ET dernier run > 7 jours</li>
+     *   <li>{@code alertLevel = OK} sinon</li>
+     * </ul>
+     *
+     * <p>Thème {@code DOCUMENTS} (différent de F-192 DIAGNOSTIC, F-193 DELAIS) —
+     * les pièces relèvent naturellement du thème DOCUMENTS.</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-194 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromPiecesManquantesAlignment(UUID caseFileId) {
+        if (pieceManquanteAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<PieceManquanteAlignment> alignments = pieceManquanteAlignmentService
+                .deserializeAlignment(latest.get().getPiecesAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long aDemander = alignments.stream()
+                .filter(a -> PieceManquanteStatus.STATUT_A_DEMANDER.equals(a.statut()))
+                .count();
+        long obtenues = alignments.stream()
+                .filter(a -> PieceManquanteStatus.STATUT_OBTENUE.equals(a.statut()))
+                .count();
+        long nonApplicables = alignments.stream()
+                .filter(a -> PieceManquanteStatus.STATUT_NON_APPLICABLE.equals(a.statut()))
+                .count();
+
+        // alertLevel WARNING si ≥ 1 A_DEMANDER ET dernier run > 7j (rappel à l'avocat)
+        String alertLevel = "OK";
+        if (aDemander > 0) {
+            java.time.Instant updatedAt = latest.get().getUpdatedAt();
+            if (updatedAt != null && updatedAt.isBefore(java.time.Instant.now().minus(java.time.Duration.ofDays(7)))) {
+                alertLevel = "WARNING";
+            }
+        }
+
+        int total = alignments.size();
+        String primary = total + " pièce" + (total > 1 ? "s" : "");
+        String secondary = aDemander + " à demander · " + obtenues + " obtenue"
+                + (obtenues > 1 ? "s" : "") + " · " + nonApplicables + " non applicable"
+                + (nonApplicables > 1 ? "s" : "");
+
+        return new DashboardTile(
+                "F-194-pieces-summary",
+                "DOCUMENTS",
+                "Pièces — état des demandes client",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-195 SF-195-01 — Tile dashboard agrégeant les risques markables
+     * matérialisés sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code primaryValue} : N total risques matérialisés</li>
+     *   <li>{@code secondaryValue} : "X validés · Y écartés · Z à creuser"</li>
+     *   <li>{@code alertLevel = ALERT} si ≥ 1 VALIDÉ avec keyword critique
+     *       (harcèlement / violence / expulsion / dilapidation)</li>
+     *   <li>{@code alertLevel = OK} si tous les risques sont écartés</li>
+     *   <li>{@code alertLevel = WARNING} sinon (au moins un VALIDÉ ou À_CREUSER)</li>
+     * </ul>
+     *
+     * <p>Thème {@code DIAGNOSTIC} (cohérent F-192 — les risques relèvent du
+     * diagnostic, pas des délais ni des documents).</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-195 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromRisquesAlignment(UUID caseFileId) {
+        if (risqueAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<RisqueAlignment> alignments = risqueAlignmentService
+                .deserializeAlignment(latest.get().getRisquesAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long valides = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_VALIDE.equals(a.statut()))
+                .count();
+        long ecartes = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_ECARTE.equals(a.statut()))
+                .count();
+        long aCreuser = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_A_CREUSER.equals(a.statut()))
+                .count();
+
+        // alertLevel ALERT si ≥ 1 VALIDÉ avec keyword critique
+        boolean validatedCritical = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_VALIDE.equals(a.statut()))
+                .anyMatch(a -> RisqueToolMatcher.isCriticalKeyword(a.risqueLibelle()));
+
+        String alertLevel;
+        int total = alignments.size();
+        if (validatedCritical) {
+            alertLevel = "ALERT";
+        } else if (ecartes == total) {
+            alertLevel = "OK";
+        } else {
+            alertLevel = "WARNING";
+        }
+
+        String primary = total + " risque" + (total > 1 ? "s" : "");
+        String secondary = valides + " validé" + (valides > 1 ? "s" : "")
+                + " · " + ecartes + " écarté" + (ecartes > 1 ? "s" : "")
+                + " · " + aCreuser + " à creuser";
+
+        return new DashboardTile(
+                "F-195-risques-summary",
+                "DIAGNOSTIC",
+                "Risques — analyse avocat",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-196 SF-196-01 — Tile dashboard agrégeant les questions complémentaires
+     * F-94 matérialisées sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code primaryValue} : N total questions matérialisées</li>
+     *   <li>{@code secondaryValue} : "X répondues · Y en attente"</li>
+     *   <li>{@code alertLevel = WARNING} si ≥ 1 question en attente, {@code OK} sinon</li>
+     * </ul>
+     *
+     * <p>Thème {@code DOCUMENTS} (cohérent F-194 — les réponses aux questions
+     * "Avez-vous X ?" se matérialisent in fine en pièces).</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-196 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromAiQuestionsAlignment(UUID caseFileId) {
+        if (aiQuestionAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<AiQuestionAlignment> alignments = aiQuestionAlignmentService
+                .deserializeAlignment(latest.get().getAiQuestionsAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long repondues = alignments.stream()
+                .filter(a -> a.answerText() != null && !a.answerText().isBlank())
+                .count();
+        int total = alignments.size();
+        long enAttente = total - repondues;
+
+        String alertLevel = enAttente > 0 ? "WARNING" : "OK";
+        String primary = total + " question" + (total > 1 ? "s" : "");
+        String secondary = repondues + " répondue" + (repondues > 1 ? "s" : "")
+                + " · " + enAttente + " en attente";
+
+        return new DashboardTile(
+                "F-196-questions-summary",
+                "DOCUMENTS",
+                "Questions complémentaires — réponses avocat",
+                primary,
+                secondary,
+                alertLevel);
     }
 
     private void addSafely(List<DashboardTile> tiles, Supplier<DashboardTile> supplier) {

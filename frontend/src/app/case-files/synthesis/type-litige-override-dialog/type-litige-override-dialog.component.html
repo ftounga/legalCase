@@ -1,0 +1,52 @@
+<h2 mat-dialog-title class="dialog-title">Préciser le type de litige</h2>
+<mat-dialog-content class="dialog-content">
+  @if (iaDetectedLabel) {
+    <p class="ia-reminder">
+      <span class="ia-reminder__label">Détecté par l'analyse :</span>
+      <span class="ia-reminder__value">{{ iaDetectedLabel }}</span>
+    </p>
+  }
+  <p class="dialog-help">
+    Choisissez le type de litige que vous retenez pour ce dossier. Votre choix
+    sera utilisé en priorité par les outils décisionnels au prochain run de
+    Synthèse enrichie.
+  </p>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Type retenu</mat-label>
+    <mat-select
+        [ngModel]="selectedCode()"
+        (ngModelChange)="onCodeChange($event)"
+        [disabled]="saving()"
+        required>
+      @for (opt of options; track opt.value) {
+        <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Raison (facultatif)</mat-label>
+    <textarea matInput
+              rows="3"
+              [maxlength]="RAISON_MAX_LENGTH"
+              [ngModel]="raison()"
+              (ngModelChange)="onRaisonInput($event)"
+              [disabled]="saving()"
+              placeholder="Ex : motif économique évident dans la lettre, le client souhaite tester cet angle…">
+    </textarea>
+    <mat-hint align="end">{{ raison().length }} / {{ RAISON_MAX_LENGTH }}</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-button type="button" (click)="cancel()" [disabled]="saving()">Annuler</button>
+  <button mat-flat-button color="primary" type="button"
+          (click)="save()"
+          [disabled]="!canSave()">
+    @if (saving()) {
+      <mat-spinner diameter="18" class="save-spinner"></mat-spinner>
+    }
+    Sauvegarder
+  </button>
+</mat-dialog-actions>

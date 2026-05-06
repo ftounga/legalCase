@@ -1,4 +1,5 @@
 import { Component, DestroyRef, Input, OnInit, Optional, ViewContainerRef, inject, signal, computed } from '@angular/core';
+import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -88,20 +89,34 @@ export class CaseDashboardComponent implements OnInit {
 
   /**
    * F-167 SF-167-05 — riskScore tile rendue isolément (non groupée par thème).
+   *
+   * <p>F-195 SF-195-02 — Quand `scoreRisqueAvocat` est présent (l'avocat a
+   * écarté au moins un risque), on affiche les 2 valeurs côte à côte :
+   * <code>Score IA brut : X · Score validé avocat : Y</code>. La couleur de
+   * la bordure suit le score validé avocat (qui prime visuellement — c'est
+   * la décision finale). Sinon comportement original (1 score).</p>
    */
   readonly riskScoreTile = computed<RiskScoreTile | null>(() => {
     const d = this.dashboard();
     if (!d || d.riskScore == null) return null;
+    const scoreAvocat = d.scoreRisqueAvocat ?? null;
+    const hasDualScore = scoreAvocat != null;
+    const primary = hasDualScore
+      ? `IA brut : ${d.riskScore} % · Validé avocat : ${scoreAvocat} %`
+      : `${d.riskScore} %`;
+    // Quand le score avocat existe, il prime pour la couleur de la card —
+    // c'est la décision finale (l'avocat a écarté certains risques).
+    const colorScore = hasDualScore ? scoreAvocat! : d.riskScore;
     return {
       toolId: 'risk-score',
       title: 'ÉVALUATION DES RISQUES',
       icon: 'speed',
       summary: {
         label: 'Score',
-        primaryValue: `${d.riskScore} %`,
+        primaryValue: primary,
         secondaryValue: d.riskLevel ?? undefined,
       },
-      metierAlertLevel: this.riskAlertLevel(d.riskScore),
+      metierAlertLevel: this.riskAlertLevel(colorScore),
     };
   });
 
@@ -149,6 +164,9 @@ export class CaseDashboardComponent implements OnInit {
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
   private readonly vcr = inject(ViewContainerRef);
+  // F-192 SF-192-02 — navigation depuis tile RETAINED_PISTES_SUMMARY vers
+  // /synthesis#section-pistes (pas de modal, pas d'outil à instancier).
+  private readonly router = inject(Router);
 
   constructor(
     private dashboardService: CaseDashboardService,
@@ -171,6 +189,48 @@ export class CaseDashboardComponent implements OnInit {
    * toolId est inconnu : no-op + console.warn (cohérent avec resolveEntry).
    */
   openGenericTool(toolId: string): void {
+    // F-192 SF-192-02 — tile résumé Pistes stratégiques retenues : pas un
+    // outil décisionnel instanciable, on redirige vers la synthèse avec
+    // scroll vers le bloc Pistes stratégiques (anchor `section-pistes`,
+    // déjà rendu par SynthesisComponent / F-176 SF-176-02).
+    if (toolId === 'RETAINED_PISTES_SUMMARY') {
+      this.router.navigate(
+        ['/case-files', this.caseFileId, 'synthesis'],
+        { fragment: 'section-pistes' },
+      );
+      return;
+    }
+    // F-194 SF-194-02 — tile résumé Pièces manquantes markables : pas un
+    // outil décisionnel instanciable, on redirige vers la synthèse avec
+    // scroll vers le bloc Pièces (anchor `section-pieces`).
+    if (toolId === 'F-194-pieces-summary') {
+      this.router.navigate(
+        ['/case-files', this.caseFileId, 'synthesis'],
+        { fragment: 'section-pieces' },
+      );
+      return;
+    }
+    // F-195 SF-195-02 — tile résumé Risques markables : pas un outil
+    // décisionnel instanciable, on redirige vers la synthèse avec scroll
+    // vers le bloc Risques (anchor `section-risques`).
+    if (toolId === 'F-195-risques-summary') {
+      this.router.navigate(
+        ['/case-files', this.caseFileId, 'synthesis'],
+        { fragment: 'section-risques' },
+      );
+      return;
+    }
+    // F-196 SF-196-02 — tile résumé Questions complémentaires (F-94) : pas un
+    // outil décisionnel instanciable, on redirige vers la synthèse avec scroll
+    // vers le bloc Questions (anchor `section-questions`, déjà rendu par
+    // SynthesisComponent / F-94).
+    if (toolId === 'F-196-questions-summary') {
+      this.router.navigate(
+        ['/case-files', this.caseFileId, 'synthesis'],
+        { fragment: 'section-questions' },
+      );
+      return;
+    }
     const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
     if (!entry) {
       // eslint-disable-next-line no-console

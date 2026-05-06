@@ -40,6 +40,11 @@ export const DEMO_VIDEOS: DemoVideo[] = [
     title: 'Démo droit de l\'immigration',
     subtitle: 'Un dossier analysé de bout en bout : titre de séjour, recours, pièces',
   },
+  {
+    videoId: '78hEuoD_L_4',
+    title: 'Démo droit de la famille',
+    subtitle: 'Un dossier analysé de bout en bout : divorce, étapes, pièces',
+  },
 ];
 
 @Component({
@@ -62,7 +67,7 @@ export class LandingComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly selectedVideoId = signal<string>(DEMO_VIDEOS[0].videoId);
   readonly videoEmbedUrl = computed<SafeResourceUrl>(() =>
     this.sanitizer.bypassSecurityTrustResourceUrl(
-      `https://www.youtube.com/embed/${this.selectedVideoId()}?rel=0`
+      `https://www.youtube-nocookie.com/embed/${this.selectedVideoId()}?rel=0`
     )
   );
 

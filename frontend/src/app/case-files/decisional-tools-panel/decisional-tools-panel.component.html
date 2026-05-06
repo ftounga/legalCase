@@ -32,6 +32,9 @@
                       [icon]="meta.icon"
                       [title]="meta.label"
                       [prefillCount]="prefillCountFor(item.toolId)"
+                      [retainedPistesBadge]="retainedPistesBadgeFor(item.toolId)"
+                      [piecesBadge]="piecesBadgeFor(item.toolId)"
+                      [risquesBadge]="risquesBadgeFor(item.toolId)"
                       [flashing]="(progressService?.flashedToolIds()?.has(item.toolId)) ?? false"
                       (open)="openTool(item.toolId, item.entry)">
                     </app-decision-tool-card>

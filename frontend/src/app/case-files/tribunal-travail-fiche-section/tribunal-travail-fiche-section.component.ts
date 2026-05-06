@@ -69,6 +69,11 @@ export class TribunalTravailFicheSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /**
+   * F-194 SF-194-02 — Libellés des pièces taggées « OBTENUE » alignées
+   * sur cet outil. V1 = passif (signal d'aide visuel forward-compat).
+   */
+  @Input() piecesObtenues?: string[] | null;
 
   // SF-173-02 : snapshots signal pour que `computed` réagissent.
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);

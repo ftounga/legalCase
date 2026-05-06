@@ -27,4 +27,14 @@ export interface DashboardResponse {
 
   // F-167 SF-167-01 / SF-167-05 — Liste générique de tiles décisionnelles.
   tiles?: DashboardTile[];
+
+  /**
+   * F-195 SF-195-02 — Score de risque recomputé excluant les risques marqués
+   * ECARTE par l'avocat. Persisté côté backend dans
+   * `case_analyses.score_risque_avocat_json`. Renseigné uniquement quand
+   * l'avocat a tagué au moins un risque ECARTE (sinon `null` — le score IA
+   * brut `riskScore` reste suffisant). Affiché en complément de `riskScore`
+   * dans la tile riskScore (`Score IA brut : X · Score validé avocat : Y`).
+   */
+  scoreRisqueAvocat?: number | null;
 }

@@ -69,11 +69,34 @@ class SentryJobReportingTest {
     private final fr.ailegalcase.document.DocumentRepository documentRepository =
             mock(fr.ailegalcase.document.DocumentRepository.class);
 
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService =
+            mock(RetainedPisteAlignmentService.class);
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService =
+            mock(ProcedureCheckAlignmentService.class);
+    private final PieceManquanteAlignmentService pieceManquanteAlignmentService =
+            mock(PieceManquanteAlignmentService.class);
+    private final PieceManquanteStatusService pieceManquanteStatusService =
+            mock(PieceManquanteStatusService.class);
+    private final RisqueAlignmentService risqueAlignmentService =
+            mock(RisqueAlignmentService.class);
+    private final RisqueStatusService risqueStatusService =
+            mock(RisqueStatusService.class);
+    private final AiQuestionAlignmentService aiQuestionAlignmentService =
+            mock(AiQuestionAlignmentService.class);
+    private final TypeLitigeOverrideService typeLitigeOverrideService =
+            mock(TypeLitigeOverrideService.class);
+
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, strategicOptionService, statutoryDeadlineService, legalReferentialService,
+            chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
+            procedureCheckAlignmentService,
+            pieceManquanteAlignmentService, pieceManquanteStatusService,
+            risqueAlignmentService, risqueStatusService,
+            aiQuestionAlignmentService,
+            typeLitigeOverrideService,
+            statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 
@@ -93,6 +116,12 @@ class SentryJobReportingTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
+        // F-194 SF-194-01 — stub par défaut pour collectForEnrichment (sinon NPE dans prepareEnrichedAnalysis)
+        when(pieceManquanteStatusService.collectForEnrichment(any()))
+                .thenReturn(PieceManquanteStatusService.EnrichmentSnapshot.empty());
+        // F-195 SF-195-01 — stub par défaut risques
+        when(risqueStatusService.collectForEnrichment(any()))
+                .thenReturn(RisqueStatusService.EnrichmentSnapshot.empty());
     }
 
     @AfterEach

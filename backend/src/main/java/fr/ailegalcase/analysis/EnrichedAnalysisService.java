@@ -135,6 +135,14 @@ public class EnrichedAnalysisService {
     private final ChatMessageRepository chatMessageRepository;
     private final ProcedureCheckService procedureCheckService;
     private final StrategicOptionService strategicOptionService;
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService;
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
+    private final PieceManquanteAlignmentService pieceManquanteAlignmentService;
+    private final PieceManquanteStatusService pieceManquanteStatusService;
+    private final RisqueAlignmentService risqueAlignmentService;
+    private final RisqueStatusService risqueStatusService;
+    private final AiQuestionAlignmentService aiQuestionAlignmentService;
+    private final TypeLitigeOverrideService typeLitigeOverrideService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
@@ -166,6 +174,14 @@ public class EnrichedAnalysisService {
                                    ChatMessageRepository chatMessageRepository,
                                    ProcedureCheckService procedureCheckService,
                                    StrategicOptionService strategicOptionService,
+                                   RetainedPisteAlignmentService retainedPisteAlignmentService,
+                                   ProcedureCheckAlignmentService procedureCheckAlignmentService,
+                                   PieceManquanteAlignmentService pieceManquanteAlignmentService,
+                                   PieceManquanteStatusService pieceManquanteStatusService,
+                                   RisqueAlignmentService risqueAlignmentService,
+                                   RisqueStatusService risqueStatusService,
+                                   AiQuestionAlignmentService aiQuestionAlignmentService,
+                                   TypeLitigeOverrideService typeLitigeOverrideService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
@@ -187,6 +203,14 @@ public class EnrichedAnalysisService {
         this.chatMessageRepository = chatMessageRepository;
         this.procedureCheckService = procedureCheckService;
         this.strategicOptionService = strategicOptionService;
+        this.retainedPisteAlignmentService = retainedPisteAlignmentService;
+        this.procedureCheckAlignmentService = procedureCheckAlignmentService;
+        this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
+        this.pieceManquanteStatusService = pieceManquanteStatusService;
+        this.risqueAlignmentService = risqueAlignmentService;
+        this.risqueStatusService = risqueStatusService;
+        this.aiQuestionAlignmentService = aiQuestionAlignmentService;
+        this.typeLitigeOverrideService = typeLitigeOverrideService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
@@ -389,9 +413,55 @@ public class EnrichedAnalysisService {
                     previousAnalysis.getId(), e);
             strategicSnapshot = StrategicOptionService.EnrichmentSnapshot.empty();
         }
+        // F-194 SF-194-01 — snapshot statuts pièces avocat pour 3 sections prompt enrichi
+        // ([Pièces déjà obtenues] / [Pièces non applicables] / [Pièces à demander]).
+        PieceManquanteStatusService.EnrichmentSnapshot piecesSnapshot;
+        try {
+            piecesSnapshot = pieceManquanteStatusService.collectForEnrichment(caseFileId);
+            if (piecesSnapshot == null) {
+                piecesSnapshot = PieceManquanteStatusService.EnrichmentSnapshot.empty();
+            }
+        } catch (Exception e) {
+            log.warn("F-194: pieces collectForEnrichment failed for caseFile {} — enriched analysis will proceed without it",
+                    caseFileId, e);
+            piecesSnapshot = PieceManquanteStatusService.EnrichmentSnapshot.empty();
+        }
+        // F-195 SF-195-01 — snapshot statuts risques avocat pour 2 sections prompt enrichi
+        // ([Risques validés par votre avocat — à approfondir] / [Risques écartés — NE PAS re-proposer]).
+        RisqueStatusService.EnrichmentSnapshot risquesSnapshot;
+        try {
+            risquesSnapshot = risqueStatusService.collectForEnrichment(caseFileId);
+            if (risquesSnapshot == null) {
+                risquesSnapshot = RisqueStatusService.EnrichmentSnapshot.empty();
+            }
+        } catch (Exception e) {
+            log.warn("F-195: risques collectForEnrichment failed for caseFile {} — enriched analysis will proceed without it",
+                    caseFileId, e);
+            risquesSnapshot = RisqueStatusService.EnrichmentSnapshot.empty();
+        }
+        // F-197 SF-197-01 — snapshot override avocat (type_litige Travail FR ou
+        // type_procedure Immigration) lu sur l'analyse précédente. Injecté comme
+        // section [Type litige fixé par l'avocat] dans le prompt pour cadrer l'IA
+        // sur le type imposé (pas de tentative de re-détection).
+        TypeLitigeOverrideService.OverrideSnapshot overrideSnapshot = null;
+        try {
+            String pT = previousAnalysis.getTypeLitigeAvocatOverride();
+            String pP = previousAnalysis.getTypeProcedureAvocatOverride();
+            String pR = previousAnalysis.getTypeOverrideRaison();
+            if (pT != null || pP != null) {
+                overrideSnapshot = new TypeLitigeOverrideService.OverrideSnapshot(pT, pP, pR);
+            }
+        } catch (Exception e) {
+            log.warn("F-197: override snapshot read failed for previousAnalysis {} — enriched analysis will proceed without it",
+                    previousAnalysis.getId(), e);
+        }
+
         String basePrompt = buildEnrichedPrompt(caseFileId, previousAnalysis.getAnalysisResult(), chatSummary,
                 nonCompliantChecks, toCheckChecks, verifiedChecks,
-                strategicSnapshot.retainedTexts(), strategicSnapshot.discardedTexts());
+                strategicSnapshot.retainedTexts(), strategicSnapshot.discardedTexts(),
+                piecesSnapshot.obtenues(), piecesSnapshot.nonApplicables(), piecesSnapshot.aDemander(),
+                risquesSnapshot.valides(), risquesSnapshot.ecartes(), risquesSnapshot.aCreuser(),
+                overrideSnapshot);
         // F-146 SF-146-01 : préfixe le prompt avec la liste des pièces pour que
         // la re-synthèse enrichie produise aussi des sourceRef précis.
         String piecesContext = piecesPromptContext.buildContextForCaseFile(caseFileId);
@@ -433,6 +503,65 @@ public class EnrichedAnalysisService {
                 strategicOptionService.propagateRetainedAndDiscarded(previousAnalysisId, enrichedAnalysis);
             } catch (Exception e) {
                 log.warn("Fail-open: strategic options persistence/propagation failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-192 SF-192-01 : matérialise l'alignement RETAINED → outils, propage pieces/délais.
+            // Doit être APRÈS propagateRetainedAndDiscarded pour lire les pistes RETAINED clonées.
+            try {
+                retainedPisteAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: retained pistes materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-193 SF-193-01 : matérialise l'alignement procedure_checks F-96 → outils,
+            // propage pieces NON_COMPLIANT + délais TO_CHECK. Doit être APRÈS F-192 pour
+            // garder un ordre cohérent (chacun fail-open, pas de dépendance technique).
+            try {
+                procedureCheckAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: procedure checks materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-194 SF-194-01 : matérialise l'alignement pièces (statut avocat overlay sur
+            // pieces_manquantes IA), propage les délais auto PIECE_A_DEMANDER. Doit être
+            // APRÈS F-192 + F-193 (qui peuvent injecter des entrées pieces_manquantes que
+            // F-194 doit voir pour calculer son alignement).
+            try {
+                pieceManquanteAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: pieces manquantes materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-195 SF-195-01 : matérialise l'alignement risques (statut avocat overlay sur
+            // le tableau risques IA) + recompute score_risque_avocat parallèle excluant les
+            // ÉCARTÉ. Doit être APRÈS F-192/F-193/F-194 — l'ordre est cohérent (chacun
+            // fail-open, pas de dépendance technique). Cohérence F-IA-02 STRICTE : le
+            // score_risque IA brut N'est PAS modifié.
+            try {
+                risqueAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: risques materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-196 SF-196-01 : matérialise l'alignement questions complémentaires F-94
+            // (réponses avocat → pieces auto via mapping keyword statique). Doit être
+            // APRÈS F-192/F-193/F-194/F-195 — l'ordre est cohérent (chacun fail-open,
+            // pas de dépendance technique). Cohérence F-94 STRICTE : les tables
+            // ai_questions / ai_question_answers ne sont PAS modifiées.
+            try {
+                aiQuestionAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: ai questions materialization failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-197 SF-197-01 : clone l'override avocat (type_litige_avocat_override /
+            // type_procedure_avocat_override / type_override_raison) depuis l'analyse
+            // précédente vers la nouvelle. Évite à l'avocat de re-saisir à chaque run.
+            // Fail-open : si la lecture/écriture échoue, le run continue sans override.
+            try {
+                typeLitigeOverrideService.cloneOverrideFromPrevious(previousAnalysisId, enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: type litige override clone failed for enriched analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,
@@ -530,13 +659,63 @@ public class EnrichedAnalysisService {
                                 List<String> nonCompliantChecks, List<String> toCheckChecks,
                                 List<String> verifiedChecks) {
         return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
-                nonCompliantChecks, toCheckChecks, verifiedChecks, List.of(), List.of());
+                nonCompliantChecks, toCheckChecks, verifiedChecks, List.of(), List.of(),
+                List.of(), List.of(), List.of());
+    }
+
+    /** Overload F-176 (sans pieces statuts F-194) — utilisé par les tests existants. */
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks,
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions) {
+        return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks,
+                retainedStrategicOptions, discardedStrategicOptions,
+                List.of(), List.of(), List.of());
+    }
+
+    /** Overload F-194 (sans risques statuts F-195) — utilisé par les tests existants. */
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks,
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions,
+                                List<String> piecesObtenues, List<String> piecesNonApplicables,
+                                List<String> piecesADemander) {
+        return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks,
+                retainedStrategicOptions, discardedStrategicOptions,
+                piecesObtenues, piecesNonApplicables, piecesADemander,
+                List.of(), List.of(), List.of());
+    }
+
+    /** Overload F-195 (sans override avocat F-197) — utilisé par les tests existants. */
+    String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
+                                List<String> nonCompliantChecks, List<String> toCheckChecks,
+                                List<String> verifiedChecks,
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions,
+                                List<String> piecesObtenues, List<String> piecesNonApplicables,
+                                List<String> piecesADemander,
+                                List<String> risquesValides,
+                                List<RisqueStatusService.EcarteEntry> risquesEcartes,
+                                List<String> risquesACreuser) {
+        return buildEnrichedPrompt(caseFileId, previousAnalysisResult, chatSummary,
+                nonCompliantChecks, toCheckChecks, verifiedChecks,
+                retainedStrategicOptions, discardedStrategicOptions,
+                piecesObtenues, piecesNonApplicables, piecesADemander,
+                risquesValides, risquesEcartes, risquesACreuser,
+                null);
     }
 
     String buildEnrichedPrompt(UUID caseFileId, String previousAnalysisResult, String chatSummary,
                                 List<String> nonCompliantChecks, List<String> toCheckChecks,
                                 List<String> verifiedChecks,
-                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions) {
+                                List<String> retainedStrategicOptions, List<String> discardedStrategicOptions,
+                                List<String> piecesObtenues, List<String> piecesNonApplicables,
+                                List<String> piecesADemander,
+                                List<String> risquesValides,
+                                List<RisqueStatusService.EcarteEntry> risquesEcartes,
+                                List<String> risquesACreuser,
+                                TypeLitigeOverrideService.OverrideSnapshot overrideSnapshot) {
         List<AiQuestion> questions = aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId);
 
         List<AiQuestion> answeredQuestions = questions.stream()
@@ -597,6 +776,62 @@ public class EnrichedAnalysisService {
         if (discardedStrategicOptions != null && !discardedStrategicOptions.isEmpty()) {
             prompt.append("\n\n[Pistes stratégiques écartées — NE PAS re-proposer]\n");
             discardedStrategicOptions.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        // F-194 SF-194-01 — 3 sections statuts pièces avocat
+        if (piecesObtenues != null && !piecesObtenues.isEmpty()) {
+            prompt.append("\n\n[Pièces déjà obtenues — ne pas réclamer]\n");
+            piecesObtenues.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        if (piecesNonApplicables != null && !piecesNonApplicables.isEmpty()) {
+            prompt.append("\n\n[Pièces non applicables au dossier — ne pas mentionner]\n");
+            piecesNonApplicables.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        if (piecesADemander != null && !piecesADemander.isEmpty()) {
+            prompt.append("\n\n[Pièces à demander au client — pousser explicitement dans la nouvelle synthèse]\n");
+            piecesADemander.forEach(p -> prompt.append("- ").append(p).append("\n"));
+        }
+
+        // F-195 SF-195-01 — sections risques curés par l'avocat
+        if (risquesValides != null && !risquesValides.isEmpty()) {
+            prompt.append("\n\n[Risques validés par votre avocat — à approfondir]\n");
+            risquesValides.forEach(r -> prompt.append("- ").append(r).append("\n"));
+        }
+
+        if (risquesEcartes != null && !risquesEcartes.isEmpty()) {
+            prompt.append("\n\n[Risques écartés — NE PAS re-proposer]\n");
+            for (RisqueStatusService.EcarteEntry e : risquesEcartes) {
+                prompt.append("- ").append(e.libelle());
+                if (e.raison() != null && !e.raison().isBlank()) {
+                    prompt.append(" (raison : ").append(e.raison()).append(")");
+                }
+                prompt.append("\n");
+            }
+        }
+
+        if (risquesACreuser != null && !risquesACreuser.isEmpty()) {
+            prompt.append("\n\n[Risques en cours d'instruction par votre avocat]\n");
+            risquesACreuser.forEach(r -> prompt.append("- ").append(r).append("\n"));
+        }
+
+        // F-197 SF-197-01 — section override avocat sur le type_litige (Travail) ou
+        // type_procedure (Immigration). Instruit l'IA de cadrer son analyse sur le
+        // type imposé par l'avocat (pas de tentative de re-détection sur ce champ).
+        if (overrideSnapshot != null
+                && (overrideSnapshot.typeLitige() != null || overrideSnapshot.typeProcedure() != null)) {
+            prompt.append("\n\n[Type litige fixé par l'avocat]\n");
+            if (overrideSnapshot.typeLitige() != null) {
+                prompt.append("- type_litige_detecte = ").append(overrideSnapshot.typeLitige()).append("\n");
+            }
+            if (overrideSnapshot.typeProcedure() != null) {
+                prompt.append("- type_procedure_detectee = ").append(overrideSnapshot.typeProcedure()).append("\n");
+            }
+            if (overrideSnapshot.raison() != null && !overrideSnapshot.raison().isBlank()) {
+                prompt.append("Raison de l'avocat : ").append(overrideSnapshot.raison()).append("\n");
+            }
+            prompt.append("CONSIGNE : cadre ton analyse sur ce type imposé. Ne tente pas de le re-détecter ; reflète-le tel quel dans la sortie JSON.\n");
         }
 
         return prompt.toString();

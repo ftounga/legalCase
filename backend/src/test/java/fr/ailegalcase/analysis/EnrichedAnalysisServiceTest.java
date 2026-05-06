@@ -49,12 +49,34 @@ class EnrichedAnalysisServiceTest {
             mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
     private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
     private final StrategicOptionService strategicOptionService = mock(StrategicOptionService.class);
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService =
+            mock(RetainedPisteAlignmentService.class);
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService =
+            mock(ProcedureCheckAlignmentService.class);
+    private final PieceManquanteAlignmentService pieceManquanteAlignmentService =
+            mock(PieceManquanteAlignmentService.class);
+    private final PieceManquanteStatusService pieceManquanteStatusService =
+            mock(PieceManquanteStatusService.class);
+    private final RisqueAlignmentService risqueAlignmentService =
+            mock(RisqueAlignmentService.class);
+    private final RisqueStatusService risqueStatusService =
+            mock(RisqueStatusService.class);
+    private final AiQuestionAlignmentService aiQuestionAlignmentService =
+            mock(AiQuestionAlignmentService.class);
+    private final TypeLitigeOverrideService typeLitigeOverrideService =
+            mock(TypeLitigeOverrideService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, strategicOptionService, statutoryDeadlineService, legalReferentialService,
+            chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
+            procedureCheckAlignmentService,
+            pieceManquanteAlignmentService, pieceManquanteStatusService,
+            risqueAlignmentService, risqueStatusService,
+            aiQuestionAlignmentService,
+            typeLitigeOverrideService,
+            statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 
@@ -73,6 +95,12 @@ class EnrichedAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
+        // F-194 SF-194-01 — stub par défaut pour collectForEnrichment (sinon NPE dans prepareEnrichedAnalysis)
+        when(pieceManquanteStatusService.collectForEnrichment(any()))
+                .thenReturn(PieceManquanteStatusService.EnrichmentSnapshot.empty());
+        // F-195 SF-195-01 — stub par défaut risques (sinon NPE dans prepareEnrichedAnalysis)
+        when(risqueStatusService.collectForEnrichment(any()))
+                .thenReturn(RisqueStatusService.EnrichmentSnapshot.empty());
     }
 
     @AfterEach
@@ -123,6 +151,43 @@ class EnrichedAnalysisServiceTest {
 
         // Usage enregistré
         verify(usageEventService).record(caseFileId, userId, JobType.ENRICHED_ANALYSIS, 400, 200);
+
+        // F-192 SF-192-01 — la matérialisation est appelée à la fin du run
+        verify(retainedPisteAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    // F-192 SF-192-01 : si la matérialisation jette, le run réussit quand même (fail-open).
+    @Test
+    void consumeReAnalysis_materializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{\"faits\":[]}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[\"enrichi\"]}", "claude-sonnet-4-6", 100, 50));
+
+        // F-192 — la matérialisation jette
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(retainedPisteAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Le run termine en DONE quand même
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(2)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
     }
 
     // U-02 : erreur LLM → analyse FAILED, job FAILED
@@ -685,6 +750,463 @@ class EnrichedAnalysisServiceTest {
         CaseAnalysis last = captor.getValue();
         assertThat(last.getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(last.getAnalysisResult()).contains("fallback");
+    }
+
+    // ====================================================================
+    //  F-194 SF-194-01 — sections prompt enrichi pieces statuts avocat
+    // ====================================================================
+
+    @Test
+    void buildEnrichedPrompt_withPiecesObtenues_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of("Contrat de travail original"), List.of(), List.of());
+
+        assertThat(prompt).contains("[Pièces déjà obtenues — ne pas réclamer]");
+        assertThat(prompt).contains("- Contrat de travail original");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withPiecesNonApplicables_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of("Convention BTP"), List.of());
+
+        assertThat(prompt).contains("[Pièces non applicables au dossier — ne pas mentionner]");
+        assertThat(prompt).contains("- Convention BTP");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withPiecesADemander_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of("Lettre de licenciement"));
+
+        assertThat(prompt).contains("[Pièces à demander au client — pousser explicitement dans la nouvelle synthèse]");
+        assertThat(prompt).contains("- Lettre de licenciement");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withAllThreePiecesStatuses_injectsThreeSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of("Contrat"), List.of("Convention BTP"),
+                List.of("Lettre"));
+
+        assertThat(prompt).contains("[Pièces déjà obtenues — ne pas réclamer]");
+        assertThat(prompt).contains("[Pièces non applicables au dossier — ne pas mentionner]");
+        assertThat(prompt).contains("[Pièces à demander au client — pousser explicitement dans la nouvelle synthèse]");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withoutPiecesStatuses_omitsAllThreeSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of());
+
+        assertThat(prompt).doesNotContain("[Pièces déjà obtenues");
+        assertThat(prompt).doesNotContain("[Pièces non applicables");
+        assertThat(prompt).doesNotContain("[Pièces à demander");
+    }
+
+    @Test
+    void consumeReAnalysis_callsPiecesMaterialization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // F-194 — le service de matérialisation pièces est appelé à la fin du run
+        verify(pieceManquanteAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    @Test
+    void consumeReAnalysis_piecesMaterializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-sonnet-4-6", 100, 50));
+
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(pieceManquanteAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Le run termine en DONE quand même
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // ====================================================================
+    //  F-195 SF-195-01 — sections prompt enrichi risques statuts avocat
+    // ====================================================================
+
+    @Test
+    void buildEnrichedPrompt_withRisquesValides_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of("Harcèlement moral subi"), List.of(), List.of());
+
+        assertThat(prompt).contains("[Risques validés par votre avocat — à approfondir]");
+        assertThat(prompt).contains("- Harcèlement moral subi");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withRisquesEcartesAvecRaison_injectsSectionWithReason() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(),
+                List.of(new RisqueStatusService.EcarteEntry(
+                        "Clause non-concurrence abusive", "Délai expiré")),
+                List.of());
+
+        assertThat(prompt).contains("[Risques écartés — NE PAS re-proposer]");
+        assertThat(prompt).contains("- Clause non-concurrence abusive");
+        assertThat(prompt).contains("(raison : Délai expiré)");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withRisquesACreuser_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of("Discrimination"));
+
+        assertThat(prompt).contains("[Risques en cours d'instruction par votre avocat]");
+        assertThat(prompt).contains("- Discrimination");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withoutRisquesStatuses_omitsAllRisquesSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of());
+
+        assertThat(prompt).doesNotContain("[Risques validés");
+        assertThat(prompt).doesNotContain("[Risques écartés");
+        assertThat(prompt).doesNotContain("[Risques en cours d'instruction");
+    }
+
+    @Test
+    void consumeReAnalysis_callsRisquesMaterialization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // F-195 — le service de matérialisation risques est appelé à la fin du run
+        verify(risqueAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    @Test
+    void consumeReAnalysis_risquesMaterializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(risqueAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // ====================================================================
+    //  F-196 SF-196-01 — matérialisation questions complémentaires
+    // ====================================================================
+
+    @Test
+    void consumeReAnalysis_callsAiQuestionsMaterialization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // F-196 — le service de matérialisation questions complémentaires est appelé à la fin du run
+        verify(aiQuestionAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    @Test
+    void consumeReAnalysis_aiQuestionsMaterializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(aiQuestionAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Le run termine en DONE quand même (fail-open F-196)
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // ──────────────────────────── F-197 SF-197-01 — override avocat ─────────────────────────────
+
+    // U-F197-01 : buildEnrichedPrompt sans override → pas de section [Type litige fixé par l'avocat]
+    @Test
+    void buildEnrichedPrompt_noOverride_omitsTypeLitigeSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                null);
+
+        assertThat(prompt).doesNotContain("[Type litige fixé par l'avocat]");
+    }
+
+    // U-F197-02 : buildEnrichedPrompt avec override travail → section présente
+    @Test
+    void buildEnrichedPrompt_withTypeLitigeOverride_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        TypeLitigeOverrideService.OverrideSnapshot snapshot =
+                new TypeLitigeOverrideService.OverrideSnapshot(
+                        "LICENCIEMENT_ECONOMIQUE", null, "Avocat conviction");
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                snapshot);
+
+        assertThat(prompt).contains("[Type litige fixé par l'avocat]");
+        assertThat(prompt).contains("type_litige_detecte = LICENCIEMENT_ECONOMIQUE");
+        assertThat(prompt).contains("Avocat conviction");
+        assertThat(prompt).contains("CONSIGNE");
+    }
+
+    // U-F197-03 : buildEnrichedPrompt avec override immigration → section avec type_procedure
+    @Test
+    void buildEnrichedPrompt_withTypeProcedureOverride_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        TypeLitigeOverrideService.OverrideSnapshot snapshot =
+                new TypeLitigeOverrideService.OverrideSnapshot(
+                        null, "OQTF_AVEC_DELAI", null);
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(),
+                snapshot);
+
+        assertThat(prompt).contains("[Type litige fixé par l'avocat]");
+        assertThat(prompt).contains("type_procedure_detectee = OQTF_AVEC_DELAI");
+    }
+
+    // U-F197-04 : finalize → cloneOverrideFromPrevious appelé même si pas d'override IA
+    @Test
+    void consumeReAnalysis_callsCloneOverrideOnFinalization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{\"faits\":[\"f1\"]}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+        previousAnalysis.setTypeLitigeAvocatOverride("LICENCIEMENT_ECONOMIQUE");
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Vérifie que cloneOverrideFromPrevious a bien été appelé sur la nouvelle analyse
+        verify(typeLitigeOverrideService, times(1))
+                .cloneOverrideFromPrevious(any(), any(CaseAnalysis.class));
+    }
+
+    // U-F197-05 : prompt enrichi inclut la section override quand previousAnalysis l'a
+    @Test
+    void prepareEnrichedAnalysis_previousHasOverride_promptIncludesSection() {
+        UUID caseFileId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        fr.ailegalcase.workspace.Workspace ws = new fr.ailegalcase.workspace.Workspace();
+        ws.setLegalDomain("DROIT_DU_TRAVAIL");
+        ws.setCountry("FRANCE");
+        caseFile.setWorkspace(ws);
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setId(UUID.randomUUID());
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+        previousAnalysis.setTypeLitigeAvocatOverride("HARCELEMENT_MORAL");
+        previousAnalysis.setTypeOverrideRaison("avocat conviction");
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        EnrichedAnalysisService.PreparedEnrichedAnalysis prepared =
+                service.prepareEnrichedAnalysis(new ReAnalysisMessage(caseFileId));
+
+        assertThat(prepared).isNotNull();
+        assertThat(prepared.prompt()).contains("[Type litige fixé par l'avocat]");
+        assertThat(prepared.prompt()).contains("HARCELEMENT_MORAL");
+        assertThat(prepared.prompt()).contains("avocat conviction");
     }
 
     private AiQuestion answeredQuestion(UUID caseFileId, String text) {

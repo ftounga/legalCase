@@ -98,6 +98,11 @@ public class DecisionToolVisibilityService {
      * DONE du dossier. Retourne une map `trigger_field -> set de trigger_values`.
      *
      * Tolère l'absence d'analyse (map vide) et les JSON mal formés (skip + log).
+     *
+     * <p>F-197 SF-197-01 — applique l'override avocat en priorité sur les valeurs
+     * IA brutes pour les champs {@code type_litige_detecte} (Travail FR) et
+     * {@code type_procedure_detectee} (Immigration). Les autres champs restent
+     * inchangés (lecture IA pure).</p>
      */
     private Map<String, Set<String>> extractDetectedSituations(UUID caseFileId) {
         CaseAnalysis latest = caseAnalysisRepository
@@ -117,7 +122,28 @@ public class DecisionToolVisibilityService {
         Map<String, Set<String>> detected = new HashMap<>();
         addIfPresent(detected, "type_rupture", readString(root.path("compensation_data").path("type_rupture")));
         addIfPresent(detected, "type_rupture", readString(root.path("type_rupture")));
-        addIfPresent(detected, "type_procedure_detectee", readString(root.path("type_procedure_detectee")));
+
+        // F-197 SF-197-01 — type_procedure : override avocat prioritaire sur IA.
+        String typeProcedureOverride = latest.getTypeProcedureAvocatOverride();
+        if (typeProcedureOverride != null && !typeProcedureOverride.isBlank()) {
+            addIfPresent(detected, "type_procedure_detectee", typeProcedureOverride);
+        } else {
+            addIfPresent(detected, "type_procedure_detectee", readString(root.path("type_procedure_detectee")));
+        }
+
+        // F-197 SF-197-01 — type_litige : override avocat prioritaire sur IA.
+        // L'override est aussi propagé vers les trigger_field réellement utilisés par
+        // les règles de visibilité (type_rupture, motif_nullite_pressenti, etc.) pour
+        // que F-DT-11/12/13/20 etc. s'activent même si l'IA n'a pas peuplé ces champs
+        // ou les a peuplés différemment.
+        String typeLitigeOverride = latest.getTypeLitigeAvocatOverride();
+        if (typeLitigeOverride != null && !typeLitigeOverride.isBlank()) {
+            addIfPresent(detected, "type_litige_detecte", typeLitigeOverride);
+            propagateTypeLitigeOverrideTriggers(detected, typeLitigeOverride);
+        } else {
+            addIfPresent(detected, "type_litige_detecte", readString(root.path("type_litige_detecte")));
+        }
+
         addIfPresent(detected, "type_recours_code", readString(root.path("type_recours_code")));
         addIfPresent(detected, "type_titre_sejour_code", readString(root.path("type_titre_sejour_code")));
         addIfPresent(detected, "regime_matrimonial",
@@ -153,6 +179,37 @@ public class DecisionToolVisibilityService {
         addBooleanFlagIfTrue(detected, travailNode, "urgence_procedurale");
         addBooleanFlagIfTrue(detected, travailNode, "contestation_are_envisagee");
         return detected;
+    }
+
+    /**
+     * F-197 SF-197-01 — propage l'override {@code type_litige_avocat_override} vers les
+     * trigger_field réellement utilisés par les règles de visibilité Travail FR
+     * (cf. migrations 193 + 199), pour que les outils {@code F-DT-11/12/13/20/21/24/...}
+     * s'activent quand l'avocat surcharge la classification IA.
+     *
+     * <p>Mapping :
+     * <ul>
+     *   <li>LICENCIEMENT_SANS_CAUSE_REELLE → {@code type_rupture=LICENCIEMENT}</li>
+     *   <li>LICENCIEMENT_ECONOMIQUE → {@code type_rupture=LICENCIEMENT_ECONOMIQUE}</li>
+     *   <li>PRISE_ACTE_RUPTURE → {@code type_rupture=PRISE_ACTE}</li>
+     *   <li>HARCELEMENT_MORAL → {@code motif_nullite_pressenti=HARCELEMENT_MORAL}</li>
+     *   <li>DISCRIMINATION → {@code motif_nullite_pressenti=DISCRIMINATION}</li>
+     *   <li>HEURES_SUPPLEMENTAIRES → {@code heures_sup_mentionnees=PRESENT}</li>
+     *   <li>RAPPEL_SALAIRE → {@code rappel_salaire_detecte=true}</li>
+     * </ul>
+     */
+    private static void propagateTypeLitigeOverrideTriggers(Map<String, Set<String>> detected,
+                                                             String typeLitigeOverride) {
+        switch (typeLitigeOverride) {
+            case "LICENCIEMENT_SANS_CAUSE_REELLE" -> addIfPresent(detected, "type_rupture", "LICENCIEMENT");
+            case "LICENCIEMENT_ECONOMIQUE" -> addIfPresent(detected, "type_rupture", "LICENCIEMENT_ECONOMIQUE");
+            case "PRISE_ACTE_RUPTURE" -> addIfPresent(detected, "type_rupture", "PRISE_ACTE");
+            case "HARCELEMENT_MORAL" -> addIfPresent(detected, "motif_nullite_pressenti", "HARCELEMENT_MORAL");
+            case "DISCRIMINATION" -> addIfPresent(detected, "motif_nullite_pressenti", "DISCRIMINATION");
+            case "HEURES_SUPPLEMENTAIRES" -> addIfPresent(detected, "heures_sup_mentionnees", "PRESENT");
+            case "RAPPEL_SALAIRE" -> addIfPresent(detected, "rappel_salaire_detecte", "true");
+            default -> { /* no-op */ }
+        }
     }
 
     /**

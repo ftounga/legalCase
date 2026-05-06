@@ -20,6 +20,11 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
+import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
 const VALID_RECOURS_CODES = new Set([
   'RECOURS_GRACIEUX_PREFET', 'RECOURS_CONTENTIEUX_TA', 'RECOURS_CNDA',
@@ -41,6 +46,7 @@ export type IM06CoherenceAlert = CoherenceAlert<IM06AlertField>;
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
+    ProcedureChecksOutputComponent,
   ],
   templateUrl: './immigration-recours-section.component.html',
   styleUrl: './immigration-recours-section.component.scss'
@@ -50,12 +56,53 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'RECOURS IMMIGRATION';
   static readonly TOOL_ICON = 'gavel';
 
+  /**
+   * F-192 SF-192-02 — Pattern miroir de `getRetainedPistesBadge` exposé sur
+   * F-IM-05. Filtre `pistesRetenues` sur `toolIdCible === 'F-IM-06-recours'`
+   * et calcule le verdict `aligned`/`divergent`/`none` pour le pill or de la
+   * card du panel F-IA-04 (cohérence visuelle SF-177-13).
+   */
+  static getRetainedPistesBadge(input: {
+    pistesRetenues?: RetainedPisteAlignment[] | null;
+  }): RetainedPistesBadge {
+    const all = Array.isArray(input.pistesRetenues) ? input.pistesRetenues : [];
+    const filtered = all.filter(p => p.toolIdCible === 'F-IM-06-recours');
+    if (filtered.length === 0) return { kind: 'none', count: 0 };
+    const hasDivergent = filtered.some(p => p.matchStatus === 'DIVERGENT');
+    const hasAligned = filtered.some(p => p.matchStatus === 'ALIGNED');
+    if (hasDivergent) return { kind: 'divergent', count: filtered.length };
+    if (hasAligned) return { kind: 'aligned', count: filtered.length };
+    return { kind: 'none', count: 0 };
+  }
+
+  /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
+  static getProcedureChecksBadge(input: {
+    proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  }): ProcedureChecksBadge {
+    return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
   @Input() caseFileId!: string;
   @Input() caseFileTitle: string = '';
   @Input() aiData?: ImmigrationExtractedData | null;
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /** F-193 SF-193-02 — alignement F-96 pré-filtré sur cet outil. */
+  @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  /**
+   * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec
+   * l'outil F-IM-06. Pré-filtré côté panel (TOOL_REGISTRY) sur
+   * `toolIdCible === 'F-IM-06-recours'`. Affichage pur — n'altère ni le
+   * formulaire de saisie, ni la génération de recours.
+   */
+  @Input() pistesRetenues?: RetainedPisteAlignment[] | null;
+  /**
+   * F-194 SF-194-02 — Libellés des pièces taggées « OBTENUE » par l'avocat
+   * et alignées sur cet outil (pré-filtrées par le panel). V1 = passif
+   * (signal d'aide visuel forward-compat).
+   */
+  @Input() piecesObtenues?: string[] | null;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
@@ -134,6 +181,21 @@ export class ImmigrationRecoursSectionComponent implements OnInit, OnChanges {
     const values = Object.values(this.coherenceAlerts());
     return { total: values.length, blockers: 0 };
   });
+
+  // F-192 SF-192-02 — pistes retenues filtrées par matchStatus pour la sortie outil.
+  retainedPistesAligned = computed(() =>
+    (this.pistesRetenues ?? []).filter(p => p.matchStatus === 'ALIGNED'),
+  );
+  retainedPistesDivergent = computed(() =>
+    (this.pistesRetenues ?? []).filter(p => p.matchStatus === 'DIVERGENT'),
+  );
+  retainedPistesNotAnalyzed = computed(() =>
+    (this.pistesRetenues ?? []).filter(p => p.matchStatus === 'NOT_ANALYZED'),
+  );
+  hasRetainedPistesAligned = computed(() => this.retainedPistesAligned().length > 0);
+  hasRetainedPistesNonRecommended = computed(
+    () => this.retainedPistesDivergent().length + this.retainedPistesNotAnalyzed().length > 0,
+  );
 
   ngOnInit(): void {
     // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.

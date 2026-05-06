@@ -321,4 +321,84 @@ describe('ImmigrationRecoursSectionComponent', () => {
     expect(alert?.contributors).toContain('PIECE_MANQUANTE');
     expect(alert?.source).toBe('MULTI');
   });
+
+  // F-192 SF-192-02 — sortie outil enrichie : badge convergence + bloc
+  // « Stratégies retenues par vous (non recommandées) ».
+  describe('F-192 SF-192-02 — sortie outil pistes retenues', () => {
+    const PISTE_ALIGNED_RECOURS = {
+      pisteId: 'pa',
+      texte: 'Déposer recours TA dans le délai',
+      baseJuridique: 'L.512-1 CJA',
+      horizonTemporel: 'Court terme',
+      conditions: ['Délai 30 jours'],
+      toolIdCible: 'F-IM-06-recours',
+      matchStatus: 'ALIGNED' as const,
+    };
+    const PISTE_DIVERGENT_RECOURS = {
+      pisteId: 'pd',
+      texte: 'Référé liberté',
+      baseJuridique: 'L.521-2 CJA',
+      horizonTemporel: 'Urgence',
+      conditions: ['Atteinte grave à liberté fondamentale'],
+      toolIdCible: 'F-IM-06-recours',
+      matchStatus: 'DIVERGENT' as const,
+    };
+
+    function initWithRecours(): void {
+      fixture.detectChanges();
+      httpMock.expectOne(API_URL).flush(MOCK_RESPONSE);
+      flushSE();
+      component.collapsed.set(false);
+      fixture.detectChanges();
+    }
+
+    it('CA-06 ALIGNED : badge or « Aligné avec une piste retenue » rendu', () => {
+      component.pistesRetenues = [PISTE_ALIGNED_RECOURS];
+      initWithRecours();
+      const native: HTMLElement = fixture.nativeElement;
+      expect(native.querySelector('[data-testid="retained-piste-aligned-badge"]')).not.toBeNull();
+    });
+
+    it('CA-06 DIVERGENT : bloc séparé rendu avec texte + base juridique', () => {
+      component.pistesRetenues = [PISTE_DIVERGENT_RECOURS];
+      initWithRecours();
+      const native: HTMLElement = fixture.nativeElement;
+      const block = native.querySelector('[data-testid="retained-pistes-divergent-block"]');
+      expect(block).not.toBeNull();
+      expect(block!.textContent).toContain('Référé liberté');
+      expect(block!.textContent).toContain('L.521-2 CJA');
+    });
+
+    it('CA-06 sans pistes : aucun bloc ni badge', () => {
+      component.pistesRetenues = [];
+      initWithRecours();
+      const native: HTMLElement = fixture.nativeElement;
+      expect(native.querySelector('[data-testid="retained-piste-aligned-badge"]')).toBeNull();
+      expect(native.querySelector('[data-testid="retained-pistes-divergent-block"]')).toBeNull();
+    });
+
+    it('getRetainedPistesBadge — 1 ALIGNED → kind=aligned, count=1', () => {
+      expect(
+        ImmigrationRecoursSectionComponent.getRetainedPistesBadge({
+          pistesRetenues: [PISTE_ALIGNED_RECOURS],
+        }),
+      ).toEqual({ kind: 'aligned', count: 1 });
+    });
+
+    it('getRetainedPistesBadge — DIVERGENT prioritaire sur ALIGNED', () => {
+      expect(
+        ImmigrationRecoursSectionComponent.getRetainedPistesBadge({
+          pistesRetenues: [PISTE_ALIGNED_RECOURS, PISTE_DIVERGENT_RECOURS],
+        }),
+      ).toEqual({ kind: 'divergent', count: 2 });
+    });
+
+    it('getRetainedPistesBadge — pistes mappées F-IM-05 ignorées (autre tool)', () => {
+      expect(
+        ImmigrationRecoursSectionComponent.getRetainedPistesBadge({
+          pistesRetenues: [{ ...PISTE_ALIGNED_RECOURS, toolIdCible: 'F-IM-05-arbre-decisionnel-titre' }],
+        }),
+      ).toEqual({ kind: 'none', count: 0 });
+    });
+  });
 });

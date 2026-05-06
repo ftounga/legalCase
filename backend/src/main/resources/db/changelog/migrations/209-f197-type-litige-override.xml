@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      F-197 SF-197-01 — Override avocat du `type_litige_detecte` (Travail FR) et
+      `type_procedure_detectee` (Immigration FR/BE) calculés par l'IA.
+
+      Architecture single-value (pas trichotomie) — 3 colonnes nullable directement
+      sur `case_analyses`. Au run de Synthèse enrichie suivant, l'override est
+      cloné depuis l'analyse précédente vers la nouvelle, et `DecisionToolVisibilityService`
+      lit l'override en priorité sur les valeurs IA brutes (type_litige_detecte /
+      type_procedure_detectee).
+
+      Cohérence F-176 stricte : PUT override = persistance pure, aucun side-effect.
+      Tous les effets matérialisés au prochain run.
+    -->
+
+    <changeSet id="209-f197-add-type-litige-avocat-override" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="type_litige_avocat_override" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="209-f197-add-type-procedure-avocat-override" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="type_procedure_avocat_override" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="209-f197-add-type-override-raison" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="type_override_raison" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

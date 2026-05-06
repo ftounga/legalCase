@@ -125,6 +125,12 @@ class CaseFileDashboardServiceTest {
     private Belgian9terRepository belgian9terRepo;
     private Belgian40bisRepository belgian40bisRepo;
     private Belgian40terRepository belgian40terRepo;
+    private fr.ailegalcase.analysis.RetainedPisteAlignmentService retainedPisteAlignmentService;
+    private fr.ailegalcase.analysis.ProcedureCheckAlignmentService procedureCheckAlignmentService;
+    private fr.ailegalcase.analysis.PieceManquanteAlignmentService pieceManquanteAlignmentService;
+    private fr.ailegalcase.analysis.RisqueAlignmentService risqueAlignmentService;
+    private fr.ailegalcase.analysis.AiQuestionAlignmentService aiQuestionAlignmentService;
+    private fr.ailegalcase.analysis.CaseAnalysisRepository analysisRepositoryMock;
 
     private CaseFileDashboardService service;
 
@@ -216,6 +222,20 @@ class CaseFileDashboardServiceTest {
         belgian9terRepo = mock(Belgian9terRepository.class);
         belgian40bisRepo = mock(Belgian40bisRepository.class);
         belgian40terRepo = mock(Belgian40terRepository.class);
+        retainedPisteAlignmentService = mock(fr.ailegalcase.analysis.RetainedPisteAlignmentService.class);
+        when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        procedureCheckAlignmentService = mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class);
+        when(procedureCheckAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        pieceManquanteAlignmentService = mock(fr.ailegalcase.analysis.PieceManquanteAlignmentService.class);
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        risqueAlignmentService = mock(fr.ailegalcase.analysis.RisqueAlignmentService.class);
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        aiQuestionAlignmentService = mock(fr.ailegalcase.analysis.AiQuestionAlignmentService.class);
+        when(aiQuestionAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        // F-194 SF-194-01 — mock CaseAnalysisRepository pour tests tile alignment
+        analysisRepositoryMock = mock(fr.ailegalcase.analysis.CaseAnalysisRepository.class);
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                any(), any())).thenReturn(java.util.Optional.empty());
 
         // Default empties — chaque test surcharge ce qu'il a besoin.
         when(licenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -310,7 +330,7 @@ class CaseFileDashboardServiceTest {
                 /* caseFileRepository */ null,
                 /* workspaceMemberRepository */ null,
                 /* currentUserResolver */ null,
-                /* analysisRepository */ null,
+                analysisRepositoryMock,
                 licenciementRepo, indemniteRepo, ruptureConvIndemniteRepo, ancienneteRepo,
                 titleDecisionRepo, workRightRepo, recoursRepo,
                 partageRepo, gardeRepo, divorceRepo, changementStatutRepo,
@@ -342,7 +362,12 @@ class CaseFileDashboardServiceTest {
                 aesMetiersTensionRepo, asileAvanceRepo, naturalisationRepo,
                 regimeAlgerienRepo, mineursImmigrationRepo, mesuresEloignementRepo,
                 annexe13BeRepo, belgian9bisRepo, belgian9terRepo,
-                belgian40bisRepo, belgian40terRepo);
+                belgian40bisRepo, belgian40terRepo,
+                retainedPisteAlignmentService,
+                procedureCheckAlignmentService,
+                pieceManquanteAlignmentService,
+                risqueAlignmentService,
+                aiQuestionAlignmentService);
     }
 
     @Test
@@ -1192,5 +1217,291 @@ class CaseFileDashboardServiceTest {
             e.setResultData(objectMapper.writeValueAsString(r));
             when(belgian9terRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
         } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    // ====================================================================
+    //  F-194 SF-194-01 — tests tile pieces manquantes markables
+    // ====================================================================
+
+    @Test
+    void f194Tile_aDemanderRecent_levelOk() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now()); // récent
+        a.setPiecesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("Contrat",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null)));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f194).isNotNull();
+        assertThat(f194.theme()).isEqualTo("DOCUMENTS");
+        assertThat(f194.alertLevel()).isEqualTo("OK");
+        assertThat(f194.primaryValue()).isEqualTo("1 pièce");
+        assertThat(f194.secondaryValue()).contains("1 à demander");
+    }
+
+    @Test
+    void f194Tile_aDemanderStale_levelWarning() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now().minus(java.time.Duration.ofDays(8)));
+        a.setPiecesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("Contrat",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null)));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f194).isNotNull();
+        assertThat(f194.alertLevel()).isEqualTo("WARNING");
+    }
+
+    @Test
+    void f194Tile_mixStatuses_correctSecondary() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setPiecesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("A",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null),
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("B",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null),
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("C",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_OBTENUE, null, null),
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("D",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_NON_APPLICABLE, null, null)));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f194).isNotNull();
+        assertThat(f194.primaryValue()).isEqualTo("4 pièces");
+        assertThat(f194.secondaryValue()).contains("2 à demander")
+                .contains("1 obtenue")
+                .contains("1 non applicable");
+        assertThat(f194.alertLevel()).isEqualTo("OK"); // récent
+    }
+
+    @Test
+    void f194Tile_emptyAlignment_returnsNoTile() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
+
+        var tiles = service.assembleTiles(caseFileId);
+        assertThat(tiles.stream().anyMatch(t -> "F-194-pieces-summary".equals(t.toolId()))).isFalse();
+    }
+
+    // ====================================================================
+    //  F-195 SF-195-01 — tests tile risques markables
+    // ====================================================================
+
+    @Test
+    void f195Tile_validatedCriticalKeyword_levelAlert() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("Harcèlement moral subi",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_VALIDE, null, List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f195 = tiles.stream().filter(t -> "F-195-risques-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f195).isNotNull();
+        assertThat(f195.theme()).isEqualTo("DIAGNOSTIC");
+        assertThat(f195.alertLevel()).isEqualTo("ALERT");
+        assertThat(f195.primaryValue()).isEqualTo("1 risque");
+        assertThat(f195.secondaryValue()).contains("1 validé");
+    }
+
+    @Test
+    void f195Tile_validatedNonCritical_levelWarning() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("Discrimination liée au sexe",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_VALIDE, null, List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f195 = tiles.stream().filter(t -> "F-195-risques-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f195).isNotNull();
+        assertThat(f195.alertLevel()).isEqualTo("WARNING");
+    }
+
+    @Test
+    void f195Tile_allEcartes_levelOk() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("R1",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_ECARTE, "raison", List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R2",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_ECARTE, "raison2", List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f195 = tiles.stream().filter(t -> "F-195-risques-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f195).isNotNull();
+        assertThat(f195.alertLevel()).isEqualTo("OK");
+        assertThat(f195.primaryValue()).isEqualTo("2 risques");
+        assertThat(f195.secondaryValue()).contains("2 écartés");
+    }
+
+    @Test
+    void f195Tile_mixStatuses_correctSecondary() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setRisquesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.RisqueAlignment("Discrimination",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_VALIDE, null, List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R2",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_ECARTE, "raison", List.of()),
+                new fr.ailegalcase.analysis.RisqueAlignment("R3",
+                        fr.ailegalcase.analysis.RisqueStatus.STATUT_A_CREUSER, null, List.of())));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f195 = tiles.stream().filter(t -> "F-195-risques-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f195).isNotNull();
+        assertThat(f195.primaryValue()).isEqualTo("3 risques");
+        assertThat(f195.secondaryValue()).contains("1 validé")
+                .contains("1 écarté")
+                .contains("1 à creuser");
+        // Discrimination = pas critique → WARNING
+        assertThat(f195.alertLevel()).isEqualTo("WARNING");
+    }
+
+    @Test
+    void f195Tile_emptyAlignment_returnsNoTile() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(risqueAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
+
+        var tiles = service.assembleTiles(caseFileId);
+        assertThat(tiles.stream().anyMatch(t -> "F-195-risques-summary".equals(t.toolId()))).isFalse();
+    }
+
+    // ====================================================================
+    //  F-196 SF-196-01 — tests tile questions complémentaires
+    // ====================================================================
+
+    @Test
+    void f196Tile_allAnswered_levelOk() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setAiQuestionsAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(aiQuestionAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.AiQuestionAlignment(UUID.randomUUID(), "oui",
+                        "Lettre de licenciement", "PIECE_OBTENUE"),
+                new fr.ailegalcase.analysis.AiQuestionAlignment(UUID.randomUUID(), "non",
+                        "Contrat de travail", "PIECE_MANQUANTE")));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f196 = tiles.stream().filter(t -> "F-196-questions-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f196).isNotNull();
+        assertThat(f196.theme()).isEqualTo("DOCUMENTS");
+        assertThat(f196.alertLevel()).isEqualTo("OK");
+        assertThat(f196.primaryValue()).isEqualTo("2 questions");
+        assertThat(f196.secondaryValue()).contains("2 répondues").contains("0 en attente");
+    }
+
+    @Test
+    void f196Tile_someUnanswered_levelWarning() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setAiQuestionsAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(aiQuestionAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.AiQuestionAlignment(UUID.randomUUID(), "oui",
+                        "Lettre de licenciement", "PIECE_OBTENUE"),
+                new fr.ailegalcase.analysis.AiQuestionAlignment(UUID.randomUUID(), null,
+                        null, "INFO_ONLY"),
+                new fr.ailegalcase.analysis.AiQuestionAlignment(UUID.randomUUID(), "",
+                        null, "INFO_ONLY")));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f196 = tiles.stream().filter(t -> "F-196-questions-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f196).isNotNull();
+        assertThat(f196.alertLevel()).isEqualTo("WARNING");
+        assertThat(f196.primaryValue()).isEqualTo("3 questions");
+        assertThat(f196.secondaryValue()).contains("1 répondue").contains("2 en attente");
+    }
+
+    @Test
+    void f196Tile_emptyAlignment_returnsNoTile() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(aiQuestionAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
+
+        var tiles = service.assembleTiles(caseFileId);
+        assertThat(tiles.stream().anyMatch(t -> "F-196-questions-summary".equals(t.toolId()))).isFalse();
     }
 }

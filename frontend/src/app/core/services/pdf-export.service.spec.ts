@@ -2,6 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { PdfExportService } from './pdf-export.service';
 import { CaseAnalysisResult } from '../models/case-analysis.model';
 import { CaseFile } from '../models/case-file.model';
+import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
+import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
+import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
+import { RisqueAlignment } from '../models/risque-alignment.model';
+import { AiQuestionAlignment } from '../models/ai-question-alignment.model';
 
 const mockCaseFile: Partial<CaseFile> = { id: '1', title: 'Affaire Dupont c/ SA Renault' };
 
@@ -354,5 +359,1072 @@ describe('PdfExportService', () => {
     const doc = service.buildDocument(mockCaseFile as CaseFile, synWithoutLiquidation) as any;
     const s = JSON.stringify(doc.content);
     expect(s).not.toContain('Liquidation de communauté');
+  });
+
+  // --- F-192 SF-192-03 : section « Stratégies retenues » dans l'export PDF synthèse ---
+
+  const pisteAligned: RetainedPisteAlignment = {
+    pisteId: 'p-1',
+    texte: 'Demander un titre Passeport Talent — Chercheur',
+    baseJuridique: 'L.421-14 CESEDA',
+    horizonTemporel: '3 mois',
+    conditions: ['Diplôme master', 'Convention d\'accueil'],
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'ALIGNED',
+  };
+
+  const pisteDivergent: RetainedPisteAlignment = {
+    pisteId: 'p-2',
+    texte: 'Engager un recours hiérarchique',
+    baseJuridique: 'L.214-1 CESEDA',
+    horizonTemporel: '2 mois',
+    conditions: [],
+    toolIdCible: 'F-IM-06-recours',
+    matchStatus: 'DIVERGENT',
+  };
+
+  const pisteNotAnalyzed: RetainedPisteAlignment = {
+    pisteId: 'p-3',
+    texte: 'Stratégie X',
+    baseJuridique: null,
+    horizonTemporel: null,
+    conditions: [],
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'NOT_ANALYZED',
+  };
+
+  const pisteNoTargetTool: RetainedPisteAlignment = {
+    pisteId: 'p-4',
+    texte: 'Demander un divorce par consentement mutuel',
+    baseJuridique: 'art. 230 Code civil',
+    horizonTemporel: '6 mois',
+    conditions: ['Accord des deux époux'],
+    toolIdCible: null,
+    matchStatus: 'NO_TARGET_TOOL',
+  };
+
+  const labelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-IM-05-arbre-decisionnel-titre': 'TITRE DE SÉJOUR RECOMMANDÉ',
+      'F-IM-06-recours': 'RECOURS IMMIGRATION',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-192-03 CA-02: buildDocument(_, _, []) → aucune section Stratégies retenues', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, []) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Stratégies retenues');
+  });
+
+  it('SF-192-03 CA-02: buildDocument(_, _, undefined) → aucune section Stratégies retenues', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Stratégies retenues');
+  });
+
+  it('SF-192-03 CA-03: piste ALIGNED → badge ✅ Stratégie alignée avec l\'outil <label>', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).toContain('Passeport Talent');
+    expect(s).toContain('✅ Stratégie alignée avec l\'outil TITRE DE SÉJOUR RECOMMANDÉ');
+  });
+
+  it('SF-192-03 CA-04: piste DIVERGENT → badge ⚠️ Stratégie divergente avec l\'outil <label>', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteDivergent], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⚠️ Stratégie divergente avec l\'outil RECOURS IMMIGRATION');
+  });
+
+  it('SF-192-03 CA-05: piste NOT_ANALYZED → badge ⏳ Outil <label> non encore analysé', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteNotAnalyzed], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⏳ Outil TITRE DE SÉJOUR RECOMMANDÉ non encore analysé');
+  });
+
+  it('SF-192-03 CA-06: piste NO_TARGET_TOOL → texte affiché, AUCUN badge alignement', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteNoTargetTool], labelResolver) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).toContain('Demander un divorce par consentement mutuel');
+    expect(s).not.toContain('✅ Stratégie alignée');
+    expect(s).not.toContain('⚠️ Stratégie divergente');
+    expect(s).not.toContain('⏳ Outil');
+  });
+
+  it('SF-192-03 CA-01: section insérée APRÈS la page de garde, AVANT la timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(mockCaseFile as CaseFile, synWithTimeline, [pisteAligned], labelResolver) as any;
+    const content: any[] = doc.content;
+    const flat = JSON.stringify(content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const timelineIdx = flat.indexOf('Chronologie');
+    const coverIdx = flat.indexOf('Synthèse'); // page de garde contient "Synthèse enrichie/initiale"
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(coverIdx).toBeGreaterThan(-1);
+    expect(coverIdx).toBeLessThan(stratIdx);
+    expect(stratIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-192-03 CA-07: conditions affichées en liste à puces (ul pdfmake)', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('"ul"');
+    expect(flat).toContain('Diplôme master');
+    expect(flat).toContain("Convention d'accueil");
+  });
+
+  it('SF-192-03 CA-08: base juridique en JetBrainsMono italique taille 9', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('"font":"JetBrainsMono"');
+    // L.421-14 CESEDA est rendu avec font JetBrainsMono + italics + fontSize 9
+    expect(flat).toContain('L.421-14 CESEDA');
+    // Recherche du bloc baseJuridique avec ses props caractéristiques
+    expect(flat).toMatch(/"text":"L\.421-14 CESEDA","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-192-03: lookup label échoue → toolId brut affiché', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], noResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('F-IM-05-arbre-decisionnel-titre');
+  });
+
+  it('SF-192-03: plusieurs pistes → séparateur navy entre chaque', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [pisteAligned, pisteDivergent], labelResolver) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('Passeport Talent');
+    expect(flat).toContain('Engager un recours hiérarchique');
+    // Le séparateur est un canvas line — on vérifie qu'il y a bien au moins une ligne navy entre les pistes
+    expect(flat).toContain('"type":"line"');
+  });
+
+  // --- F-193 SF-193-03 : section « Conformité procédurale validée par votre avocat » ---
+
+  const checkAligned: ProcedureCheckAlignment = {
+    checkId: 'c-1',
+    libelle: 'Motif principal du séjour confirmé : TRAVAIL',
+    critereCode: 'IM05_MOTIF',
+    statut: 'VERIFIED',
+    expectedValue: 'TRAVAIL',
+    raison: null,
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'ALIGNED',
+  };
+
+  const checkNonCompliant: ProcedureCheckAlignment = {
+    checkId: 'c-2',
+    libelle: 'Lettre de licenciement notifiée hors délai',
+    critereCode: 'LICENCIEMENT_NOTIFICATION',
+    statut: 'NON_COMPLIANT',
+    expectedValue: null,
+    raison: 'Notification reçue 8 jours après l\'entretien préalable',
+    toolIdCible: 'F-DT-08-validite-licenciement',
+    matchStatus: 'NON_COMPLIANT_FLAG',
+  };
+
+  const checkToVerify: ProcedureCheckAlignment = {
+    checkId: 'c-3',
+    libelle: 'Convention collective applicable à confirmer',
+    critereCode: null,
+    statut: 'TO_CHECK',
+    expectedValue: null,
+    raison: null,
+    toolIdCible: 'F-DT-09-comparateur-indemnites',
+    matchStatus: 'TO_VERIFY_FLAG',
+  };
+
+  const checkNoTargetTool: ProcedureCheckAlignment = {
+    checkId: 'c-4',
+    libelle: 'Vérifier la compétence territoriale du conseil',
+    critereCode: null,
+    statut: 'VERIFIED',
+    expectedValue: null,
+    raison: null,
+    toolIdCible: null,
+    matchStatus: 'NO_TARGET_TOOL',
+  };
+
+  const checksLabelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-IM-05-arbre-decisionnel-titre': 'TITRE DE SÉJOUR RECOMMANDÉ',
+      'F-DT-08-validite-licenciement': 'VALIDITÉ LICENCIEMENT',
+      'F-DT-09-comparateur-indemnites': 'COMPARATEUR INDEMNITÉS',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-193-03 CA-02: buildDocument(_, _, [], _, []) → aucune section Conformité procédurale', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis, [], undefined, []) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-02: buildDocument(_, _, _, _, undefined) → aucune section Conformité procédurale', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-04 (cas d\'erreur): tous les checks en NO_TARGET_TOOL → section incluse, libellés sans suffixe outil', () => {
+    // Mini-spec § Cas d'erreur : « Tous les checks en NO_TARGET_TOOL →
+    // Section incluse, listant les checks sans suffixe → <label outil> ».
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkNoTargetTool],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Conformité procédurale');
+    expect(s).toContain('Vérifier la compétence territoriale du conseil');
+    // Aucun suffixe outil (le check n'a pas de toolIdCible)
+    expect(s).not.toMatch(/→ [A-Z]/);
+  });
+
+  it('SF-193-03 CA-03: check ALIGNED → sous-bloc ✅ Vérifications confirmées + suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🔍 Conformité procédurale validée par votre avocat');
+    expect(s).toContain('✅ Vérifications confirmées');
+    expect(s).toContain('Motif principal du séjour confirmé');
+    expect(s).toContain('→ TITRE DE SÉJOUR RECOMMANDÉ');
+  });
+
+  it('SF-193-03 CA-04: check NON_COMPLIANT_FLAG → sous-bloc ❌ Points non conformes + raison', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkNonCompliant],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('❌ Points non conformes');
+    expect(s).toContain('Lettre de licenciement notifiée hors délai');
+    expect(s).toContain('Notification reçue 8 jours après');
+    expect(s).toContain('→ VALIDITÉ LICENCIEMENT');
+  });
+
+  it('SF-193-03 CA-05: check TO_VERIFY_FLAG → sous-bloc ⏳ Points à vérifier', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkToVerify],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⏳ Points à vérifier');
+    expect(s).toContain('Convention collective applicable à confirmer');
+    expect(s).toContain('→ COMPARATEUR INDEMNITÉS');
+  });
+
+  it('SF-193-03 CA-06: check NO_TARGET_TOOL parmi des ALIGNED → libellé sans suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned, checkNoTargetTool],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🔍 Conformité procédurale');
+    expect(s).toContain('Vérifier la compétence territoriale du conseil');
+    // Le check NO_TARGET_TOOL ne doit avoir aucun suffixe → ne pas trouver de "→ " devant son libellé
+    // (le check ALIGNED en a un mais c'est l'autre item)
+    expect(s).toContain('→ TITRE DE SÉJOUR RECOMMANDÉ');
+  });
+
+  it('SF-193-03 CA-07 mix: 3 sous-blocs simultanés (ALIGNED + NON_COMPLIANT + TO_VERIFY)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned, checkNonCompliant, checkToVerify],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('✅ Vérifications confirmées');
+    expect(s).toContain('❌ Points non conformes');
+    expect(s).toContain('⏳ Points à vérifier');
+  });
+
+  it('SF-193-03 CA-08: section Conformité procédurale insérée APRÈS Stratégies retenues et AVANT Timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      synWithTimeline,
+      [pisteAligned],
+      labelResolver,
+      [checkAligned],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const checksIdx = flat.indexOf('🔍 Conformité procédurale');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(checksIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(stratIdx).toBeLessThan(checksIdx);
+    expect(checksIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-193-03 CA-10 fail-open indépendant: pistes succès + checks vide → section pistes uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [pisteAligned],
+      labelResolver,
+      [],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('🔍 Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-10 fail-open indépendant: pistes vide + checks succès → section checks uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🎯 Stratégies retenues');
+    expect(s).toContain('🔍 Conformité procédurale');
+  });
+
+  it('SF-193-03 CA-11: suffixe outil rendu en JetBrainsMono italique 9', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      checksLabelResolver,
+      [checkAligned],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toMatch(/"text":"→ TITRE DE SÉJOUR RECOMMANDÉ","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-193-03: lookup label échoue → toolIdCible brut affiché en suffixe', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      noResolver,
+      [checkAligned],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ F-IM-05-arbre-decisionnel-titre');
+  });
+
+  // --- F-194 SF-194-03 : section « 📎 Pièces à demander au client » ---
+
+  const pieceADemander: PieceManquanteAlignment = {
+    pieceLibelle: 'Bulletins de salaire des 12 derniers mois',
+    statut: 'A_DEMANDER',
+    toolIdsCibles: ['F-DT-09-comparateur-indemnites'],
+    destinataire: null,
+    raisonNonApp: null,
+  };
+
+  const pieceADemanderPrefecture: PieceManquanteAlignment = {
+    pieceLibelle: 'Récépissé de demande de titre de séjour',
+    statut: 'A_DEMANDER',
+    toolIdsCibles: [],
+    destinataire: 'Préfecture',
+    raisonNonApp: null,
+  };
+
+  const pieceObtenue: PieceManquanteAlignment = {
+    pieceLibelle: 'Contrat de travail',
+    statut: 'OBTENUE',
+    toolIdsCibles: [],
+    destinataire: null,
+    raisonNonApp: null,
+  };
+
+  const pieceNonApplicable: PieceManquanteAlignment = {
+    pieceLibelle: 'Avenant temps partiel',
+    statut: 'NON_APPLICABLE',
+    toolIdsCibles: [],
+    destinataire: null,
+    raisonNonApp: 'Salarié à temps plein',
+  };
+
+  const piecesLabelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-DT-09-comparateur-indemnites': 'COMPARATEUR INDEMNITÉS',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-194-03 CA-02: buildDocument(_, _, _, _, _, []) → aucune section Pièces à demander', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], []
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03 CA-02: buildDocument sans piecesAlignment → aucune section', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03 CA-02: piecesAlignment = null → aucune section (fail-open)', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], null as any
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03: aucune pièce À_DEMANDER (que des OBTENUE) → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [pieceObtenue]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces à demander au client');
+  });
+
+  it('SF-194-03 CA-01: ≥ 1 pièce À_DEMANDER → section incluse avec titre + libellé pièce', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('📎 Pièces à demander au client');
+    expect(s).toContain('Bulletins de salaire des 12 derniers mois');
+    expect(s).toContain('Pour avancer sur votre dossier');
+  });
+
+  it('SF-194-03 CA-03: layout tableau case à cocher (☐) + colonnes Pièce + Destinataire + Date butoir', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('☐');
+    expect(s).toContain('À fournir');
+    expect(s).toContain('Pièce');
+    expect(s).toContain('Destinataire');
+    expect(s).toContain('Date butoir');
+  });
+
+  it('SF-194-03 CA-04: titre proéminent — fond or léger PIECES_BG + bordure or ACCENT', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // Titre fontSize 18 bold + fillColor or léger
+    expect(flat).toMatch(/"text":"📎 Pièces à demander au client","fontSize":18,"bold":true/);
+    expect(flat).toContain('"fillColor":"#FBF4E2"');
+  });
+
+  it('SF-194-03 CA-05 destinataire renseigné: "Préfecture" affiché tel quel', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemanderPrefecture]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Préfecture');
+  });
+
+  it('SF-194-03 CA-05 destinataire absent: défaut "Client"', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    // pieceADemander a destinataire null → fallback "Client"
+    expect(s).toContain('Client');
+  });
+
+  it('SF-194-03 CA-06 date butoir: today + 14j formatée JJ/MM/AAAA en JetBrainsMono', () => {
+    // Calcule la date butoir attendue (today + 14j) en local
+    const expected = new Date();
+    expected.setDate(expected.getDate() + 14);
+    const dd = String(expected.getDate()).padStart(2, '0');
+    const mm = String(expected.getMonth() + 1).padStart(2, '0');
+    const yyyy = expected.getFullYear();
+    const expectedStr = `${dd}/${mm}/${yyyy}`;
+
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain(expectedStr);
+    // Le rendu de la date est en JetBrainsMono fontSize 9
+    expect(flat).toMatch(new RegExp(`"text":"${expectedStr.replace(/\//g, '\\/')}","font":"JetBrainsMono","fontSize":9`));
+  });
+
+  it('SF-194-03 CA-07 sous-blocs compteurs: OBTENUE et NON_APPLICABLE affichés en sous-bloc petit', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      mockSynthesis,
+      [],
+      piecesLabelResolver,
+      [],
+      [pieceADemander, pieceObtenue, pieceNonApplicable],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('✅ Pièces déjà reçues : 1');
+    expect(s).toContain('🚫 Pièces non applicables au dossier : 1');
+    // Le libellé des OBTENUE / NON_APPLICABLE n'est PAS listé (compteur seulement)
+    expect(s).not.toContain('Contrat de travail');
+    expect(s).not.toContain('Avenant temps partiel');
+  });
+
+  it('SF-194-03 CA-07: aucune OBTENUE / NON_APPLICABLE → compteurs absents', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Pièces déjà reçues');
+    expect(s).not.toContain('Pièces non applicables');
+  });
+
+  it('SF-194-03 CA-08 ordre: F-192 → F-193 → F-194 → Timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      synWithTimeline,
+      [pisteAligned],
+      labelResolver,
+      [checkAligned],
+      [pieceADemander],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const checksIdx = flat.indexOf('🔍 Conformité procédurale');
+    const piecesIdx = flat.indexOf('📎 Pièces à demander');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(checksIdx).toBeGreaterThan(-1);
+    expect(piecesIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(stratIdx).toBeLessThan(checksIdx);
+    expect(checksIdx).toBeLessThan(piecesIdx);
+    expect(piecesIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-194-03 CA-10 fail-open indépendant: F-192/F-193 vides + F-194 succès → section pièces uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [pieceADemander]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('🔍 Conformité procédurale');
+    expect(s).toContain('📎 Pièces à demander');
+  });
+
+  it('SF-194-03 CA-10 fail-open indépendant: F-192 succès + F-194 vide → section pistes seulement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [pisteAligned], labelResolver, [], []
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('📎 Pièces à demander');
+  });
+
+  it('SF-194-03 suffixe outil: lookup → label outil cible affiché en JetBrainsMono italique 9', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ COMPARATEUR INDEMNITÉS');
+    expect(flat).toMatch(/"text":"→ COMPARATEUR INDEMNITÉS","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-194-03: lookup label échoue → toolId brut affiché en suffixe', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], noResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ F-DT-09-comparateur-indemnites');
+  });
+
+  it('SF-194-03: pièce sans toolIdsCibles → aucun suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemanderPrefecture]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // Pas de suffixe → on ne doit pas trouver de "→ " devant un identifiant en majuscules
+    // (le check isolé sur ce libellé : pas de "→ " du tout puisque c'est l'unique pièce)
+    expect(flat).toContain('Récépissé de demande de titre de séjour');
+    expect(flat).not.toMatch(/→ [A-Z]/);
+  });
+
+  it('SF-194-03 CA-12: page break après la section', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], piecesLabelResolver, [], [pieceADemander]
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // Au moins un pageBreak: 'after' présent dans le flux après le titre pièces
+    const piecesIdx = flat.indexOf('📎 Pièces à demander');
+    const tail = flat.substring(piecesIdx);
+    expect(tail).toContain('"pageBreak":"after"');
+  });
+
+  // ----------------------------------------------------------------------
+  // F-195 SF-195-03 : section « ⚠️ Risques retenus par votre avocat »
+  // ----------------------------------------------------------------------
+
+  const risqueValideStandard: RisqueAlignment = {
+    risqueLibelle: 'Requalification du contrat possible',
+    statut: 'VALIDE',
+    toolIdsCibles: ['F-DT-08-validite-licenciement'],
+    raisonEcarte: null,
+  };
+
+  const risqueValideSansOutil: RisqueAlignment = {
+    risqueLibelle: 'Risque retenu sans mapping outil',
+    statut: 'VALIDE',
+    toolIdsCibles: [],
+    raisonEcarte: null,
+  };
+
+  const risqueValideHarcelement: RisqueAlignment = {
+    risqueLibelle: 'Harcèlement moral subi par le salarié',
+    statut: 'VALIDE',
+    toolIdsCibles: ['F-DT-12-harcelement-licenciement-nul'],
+    raisonEcarte: null,
+  };
+
+  const risqueValideExpulsion: RisqueAlignment = {
+    risqueLibelle: 'OQTF imminente — risque d\'expulsion',
+    statut: 'VALIDE',
+    toolIdsCibles: ['F-IM-08'],
+    raisonEcarte: null,
+  };
+
+  const risqueACreuser: RisqueAlignment = {
+    risqueLibelle: 'Risque à creuser',
+    statut: 'A_CREUSER',
+    toolIdsCibles: [],
+    raisonEcarte: null,
+  };
+
+  const risqueEcarte: RisqueAlignment = {
+    risqueLibelle: 'Clause non-concurrence abusive',
+    statut: 'ECARTE',
+    toolIdsCibles: ['F-DT-24'],
+    raisonEcarte: 'Clause non présente au contrat',
+  };
+
+  const risquesLabelResolver = (toolId: string): string | null => {
+    const labels: Record<string, string> = {
+      'F-DT-08-validite-licenciement': 'VALIDITÉ LICENCIEMENT',
+      'F-DT-12-harcelement-licenciement-nul': 'HARCELEMENT LICENCIEMENT NUL',
+      'F-IM-08': 'OQTF DECISIONS',
+    };
+    return labels[toolId] ?? null;
+  };
+
+  it('SF-195-03 CA-07 fail-open: buildDocument(_, _, _, _, _, _, []) → aucune section Risques retenus', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], []
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 CA-07 fail-open: buildDocument sans risquesAlignment → aucune section', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 CA-07 fail-open: risquesAlignment = null → aucune section', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], null as any
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 : aucun risque VALIDÉ (que des A_CREUSER + ECARTE) → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [],
+      [risqueACreuser, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 : ≥ 1 risque VALIDÉ → section incluse avec titre + libellé risque', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('⚠️ Risques retenus par votre avocat');
+    expect(s).toContain('Requalification du contrat possible');
+  });
+
+  it('SF-195-03 : titre fontSize 16 bold navy + liseré or par défaut', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toMatch(/"text":"⚠️ Risques retenus par votre avocat","fontSize":16,"bold":true/);
+  });
+
+  it('SF-195-03 suffixe outil: lookup → label outil cible affiché en JetBrainsMono italique 9', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ VALIDITÉ LICENCIEMENT');
+    expect(flat).toMatch(/"text":"→ VALIDITÉ LICENCIEMENT","font":"JetBrainsMono","fontSize":9,"italics":true/);
+  });
+
+  it('SF-195-03 : lookup label échoue → toolId brut affiché en suffixe', () => {
+    const noResolver = (_toolId: string): string | null => null;
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], noResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('→ F-DT-08-validite-licenciement');
+  });
+
+  it('SF-195-03 : risque VALIDÉ sans toolIdsCibles → aucun suffixe outil', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideSansOutil],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('Risque retenu sans mapping outil');
+    expect(flat).not.toMatch(/→ [A-Z]/);
+  });
+
+  it('SF-195-03 keyword critique « harcèlement » → pictogramme 🔴 + liseré rouge ERROR', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideHarcelement],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    // pictogramme 🔴 (au lieu du ⚠️ par défaut)
+    expect(flat).toContain('🔴');
+    // liseré gauche en couleur ERROR (#C0392B) — palette critique
+    expect(flat).toContain('"fillColor":"#C0392B"');
+  });
+
+  it('SF-195-03 keyword critique « expulsion » → pictogramme 🔴', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideExpulsion],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('🔴');
+  });
+
+  it('SF-195-03 risque VALIDÉ standard (non critique) → pictogramme ⚠️ + liseré or ACCENT', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    expect(flat).toContain('⚠️');
+    // liseré gauche en or (#C9973A) — palette charte navy/or par défaut
+    expect(flat).toContain('"fillColor":"#C9973A"');
+    // pas de 🔴 sur ce risque non critique
+    expect(flat).not.toContain('🔴');
+  });
+
+  it('SF-195-03 sous-bloc compteur ÉCARTÉS: rendu si ≥ 1 ECARTE', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('❌ Risques écartés : 1');
+    // libellé du risque écarté NON listé (compteur seul, cohérent F-194)
+    expect(s).not.toContain('Clause non-concurrence abusive');
+  });
+
+  it('SF-195-03 : aucun ECARTE → compteur écartés absent', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Risques écartés');
+  });
+
+  it('SF-195-03 score: riskScore IA brut + riskScoreAvocat → sous-titre « Score validé avocat : Y / 100 (vs IA brut : X / 100) »', () => {
+    const synWithScores: CaseAnalysisResult = {
+      ...mockSynthesis,
+      riskScore: 78,
+      // Champ optionnel ajouté par SF-195-01 (lecture défensive côté frontend)
+      // — typé via cast pour compatibilité avec le type V1.
+      ...({ riskScoreAvocat: 52 } as any),
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synWithScores, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Score validé avocat : 52 / 100 (vs IA brut : 78 / 100)');
+  });
+
+  it('SF-195-03 score: riskScoreAvocat seul → sous-titre « Score validé avocat : Y / 100 »', () => {
+    const synAvocatOnly: CaseAnalysisResult = {
+      ...mockSynthesis,
+      riskScore: null,
+      ...({ riskScoreAvocat: 65 } as any),
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synAvocatOnly, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Score validé avocat : 65 / 100');
+    expect(s).not.toContain('vs IA brut');
+  });
+
+  it('SF-195-03 score: aucun score disponible → sous-titre score absent', () => {
+    const synNoScores: CaseAnalysisResult = {
+      ...mockSynthesis,
+      riskScore: null,
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synNoScores, [], risquesLabelResolver, [], [],
+      [risqueValideStandard],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('Score validé avocat');
+    expect(s).not.toContain('Score IA brut');
+  });
+
+  it('SF-195-03 ordre sections: F-192 → F-193 → F-194 → F-195 → Timeline', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Événement test' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile,
+      synWithTimeline,
+      [pisteAligned],
+      labelResolver,
+      [checkAligned],
+      [pieceADemander],
+      [risqueValideStandard],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const stratIdx = flat.indexOf('🎯 Stratégies retenues');
+    const checksIdx = flat.indexOf('🔍 Conformité procédurale');
+    const piecesIdx = flat.indexOf('📎 Pièces à demander');
+    const risquesIdx = flat.indexOf('⚠️ Risques retenus par votre avocat');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(stratIdx).toBeGreaterThan(-1);
+    expect(checksIdx).toBeGreaterThan(-1);
+    expect(piecesIdx).toBeGreaterThan(-1);
+    expect(risquesIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(stratIdx).toBeLessThan(checksIdx);
+    expect(checksIdx).toBeLessThan(piecesIdx);
+    expect(piecesIdx).toBeLessThan(risquesIdx);
+    expect(risquesIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-195-03 fail-open indépendant: F-192/F-193/F-194 vides + F-195 succès → section risques uniquement', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [risqueValideStandard]
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('🎯 Stratégies retenues');
+    expect(s).not.toContain('🔍 Conformité procédurale');
+    expect(s).not.toContain('📎 Pièces à demander');
+    expect(s).toContain('⚠️ Risques retenus par votre avocat');
+  });
+
+  it('SF-195-03 plusieurs risques VALIDÉS (mix critique / standard) + écartés → liste + compteur', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], risquesLabelResolver, [], [],
+      [risqueValideHarcelement, risqueValideStandard, risqueEcarte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Harcèlement moral subi par le salarié');
+    expect(s).toContain('Requalification du contrat possible');
+    expect(s).toContain('🔴'); // pictogramme critique pour harcèlement
+    expect(s).toContain('⚠️'); // pictogramme standard pour l'autre
+    expect(s).toContain('❌ Risques écartés : 1');
+  });
+
+  // ============================================================
+  // F-196 SF-196-03 : section « ❓ Réponses aux questions complémentaires »
+  // ============================================================
+
+  const questionRepondueOui: AiQuestionAlignment = {
+    questionId: 'q1',
+    questionText: 'Avez-vous reçu la lettre de licenciement ?',
+    answerText: 'oui',
+    pieceLibelleDeduit: 'Lettre de licenciement',
+    statutDeduction: 'PIECE_OBTENUE',
+  };
+
+  const questionRepondueNon: AiQuestionAlignment = {
+    questionId: 'q2',
+    questionText: 'Avez-vous le contrat de travail ?',
+    answerText: 'non',
+    pieceLibelleDeduit: 'Contrat de travail',
+    statutDeduction: 'PIECE_MANQUANTE',
+  };
+
+  const questionInfoOnly: AiQuestionAlignment = {
+    questionId: 'q3',
+    questionText: 'Combien d\'années d\'ancienneté ?',
+    answerText: '7 ans',
+    pieceLibelleDeduit: null,
+    statutDeduction: 'INFO_ONLY',
+  };
+
+  const questionNonRepondue: AiQuestionAlignment = {
+    questionId: 'q4',
+    questionText: 'Avez-vous des fiches de paie ?',
+    answerText: null,
+    pieceLibelleDeduit: null,
+    statutDeduction: undefined,
+  };
+
+  it('SF-196-03: aucune question alignment → section omise (fail-open)', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: aiQuestionsAlignment vide → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: aucune question répondue → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionNonRepondue],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: ≥ 1 question répondue OUI avec pièce déduite → section + Q&R + suffix pièce', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionRepondueOui],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('❓ Réponses aux questions complémentaires');
+    expect(s).toContain('Avez-vous reçu la lettre de licenciement ?');
+    expect(s).toContain('oui');
+    expect(s).toContain('✅ Pièce confirmée');
+    expect(s).toContain('Lettre de licenciement');
+  });
+
+  it('SF-196-03: question répondue NON avec pièce manquante → suffix « pièce à demander »', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionRepondueNon],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Avez-vous le contrat de travail ?');
+    expect(s).toContain('📩 Pièce à demander');
+    expect(s).toContain('Contrat de travail');
+  });
+
+  it('SF-196-03: INFO_ONLY (pas de pièce déduite) → pas de suffix pièce', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionInfoOnly],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Combien d\'années d\'ancienneté ?');
+    expect(s).toContain('7 ans');
+    expect(s).not.toContain('Pièce confirmée');
+    expect(s).not.toContain('Pièce à demander');
+    expect(s).not.toContain('Pièce déduite');
+  });
+
+  it('SF-196-03: mix répondues + non répondues → seules les répondues incluses', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [],
+      [questionRepondueOui, questionNonRepondue, questionRepondueNon],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Avez-vous reçu la lettre de licenciement ?');
+    expect(s).toContain('Avez-vous le contrat de travail ?');
+    expect(s).not.toContain('Avez-vous des fiches de paie ?');
+  });
+
+  it('SF-196-03: ordre canonique → questions APRÈS risques et AVANT chronologie', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Licenciement' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synWithTimeline,
+      [], undefined, [], [], [risqueValideStandard], [questionRepondueOui],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const risquesIdx = flat.indexOf('⚠️ Risques retenus par votre avocat');
+    const questionsIdx = flat.indexOf('❓ Réponses aux questions complémentaires');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(risquesIdx).toBeGreaterThan(-1);
+    expect(questionsIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(risquesIdx).toBeLessThan(questionsIdx);
+    expect(questionsIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-196-03: question avec answerText vide ("   ") → exclue (filtre trim)', () => {
+    const qEmpty: AiQuestionAlignment = {
+      questionId: 'q5',
+      questionText: 'Question',
+      answerText: '   ',
+      pieceLibelleDeduit: null,
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [qEmpty],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: question avec questionText manquant → fallback "(Question non disponible)"', () => {
+    const qSansTexte: AiQuestionAlignment = {
+      questionId: 'q6',
+      questionText: undefined,
+      answerText: 'réponse libre',
+      pieceLibelleDeduit: null,
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [qSansTexte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('(Question non disponible)');
+    expect(s).toContain('réponse libre');
   });
 });

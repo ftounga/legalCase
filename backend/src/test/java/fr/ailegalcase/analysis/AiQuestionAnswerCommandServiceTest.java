@@ -101,6 +101,38 @@ class AiQuestionAnswerCommandServiceTest {
         assertThat(questionCaptor.getValue().getAnsweredAt()).isNotNull();
     }
 
+    // F-196 SF-196-01 régression : la PUT/POST réponse F-94 N'ALTÈRE PAS
+    // pieces_manquantes (toute matérialisation est différée au prochain run
+    // de Synthèse enrichie via AiQuestionAlignmentService.materializeForAnalysis).
+    @Test
+    void answer_doesNotTouchPiecesManquantes_F94StrictRegression() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+
+        Workspace workspace = workspace(workspaceId);
+        User user = user();
+        AiQuestion question = question(questionId, workspace);
+        question.setQuestionText("Avez-vous reçu la lettre de licenciement ?");
+
+        setupAuth(user, workspace);
+        when(aiQuestionRepository.findById(questionId)).thenReturn(Optional.of(question));
+        when(aiQuestionAnswerRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // Réponse "oui" sur question avec libellé pièce → ne doit PAS créer
+        // de pieces_manquantes côté F-94 (strictement pur).
+        service.answer(questionId, "oui", oidcUser, "GOOGLE", null);
+
+        // Aucun appel à AiQuestionAlignmentService ni CaseAnalysisRepository :
+        // F-94 n'a aucune dépendance vers ces composants.
+        // (Vérifié structurellement par le constructeur AiQuestionAnswerCommandService
+        //  qui ne reçoit ni l'un ni l'autre — preuve compile-time que la PUT
+        //  reste pure.)
+        // Sanity : seul ai_question_answers + ai_questions sont modifiés.
+        verify(aiQuestionAnswerRepository, times(1)).save(any());
+        verify(aiQuestionRepository, times(1)).save(any());
+    }
+
     // U-03 : question d'un autre workspace → 404
     @Test
     void answer_otherWorkspace_throws404() {

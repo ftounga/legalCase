@@ -150,7 +150,26 @@
   @if (synthesisBadges().length > 0) {
     <div class="synthesis-grid" role="navigation" aria-label="Navigation vers les blocs de synthèse">
       @for (badge of synthesisBadges(); track badge.id) {
-        @if (badge.popup) {
+        @if (badge.dialog === 'type-litige-override') {
+          <!-- F-197 SF-197-02 — badge "Type de litige" : clic ouvre le dialog override.
+               Si override avocat posé : palette or (DESIGN_SYSTEM accent #C9973A) +
+               sublabel "modifié par vous" + icône edit_note. -->
+          <button type="button"
+                  class="synthesis-badge synthesis-badge--type-litige"
+                  [class.synthesis-badge--type-litige-overridden]="badge.overridden"
+                  (click)="openTypeLitigeOverrideDialog()"
+                  [attr.aria-label]="'Type de litige : ' + (badge.valueLabel ?? '') + (badge.overridden ? ' (modifié par vous)' : '') + ' — cliquer pour modifier'">
+            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+            <span class="synthesis-badge__label">{{ badge.label }}</span>
+            @if (badge.valueLabel) {
+              <span class="synthesis-badge__value">{{ badge.valueLabel }}</span>
+            }
+            @if (badge.sublabel) {
+              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+            }
+            <mat-icon class="synthesis-badge__edit-hint">edit</mat-icon>
+          </button>
+        } @else if (badge.popup) {
           <button type="button"
                   class="synthesis-badge"
                   [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
@@ -276,20 +295,65 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.risques.length }} risque(s)</mat-panel-description>
           </mat-expansion-panel-header>
-          <ol class="synthesis-list" [@listStagger]="synthesis()!.risques.length">
+          <!-- F-195 SF-195-02 — UI markable : 3 boutons statut + champ raisonEcarte -->
+          <ul class="risques-list" [@listStagger]="synthesis()!.risques.length">
             @for (item of synthesis()!.risques; track $index) {
-              <li @fadeInUp>
-                {{ item.texte }}
-                @if (item.sourceRef || item.source) {
-                  <app-source-ref
-                    [sourceRef]="item.sourceRef"
-                    [legacySource]="resolveSource(item.source)"
-                    [extrait]="item.extrait"
-                    [caseFileId]="caseFile()!.id" />
-                }
+              <li class="risque-item" @fadeInUp [attr.id]="'risque-' + $index">
+                <div class="risque-content">
+                  <p class="risque-texte">
+                    {{ item.texte }}
+                    @if (item.sourceRef || item.source) {
+                      <app-source-ref
+                        [sourceRef]="item.sourceRef"
+                        [legacySource]="resolveSource(item.source)"
+                        [extrait]="item.extrait"
+                        [caseFileId]="caseFile()!.id" />
+                    }
+                  </p>
+                  @if (risqueStatusFor(item.texte) === 'ECARTE') {
+                    <mat-form-field appearance="outline" class="risque-raison-field">
+                      <mat-label>Raison (optionnel)</mat-label>
+                      <input matInput
+                             [value]="risqueRaisonFor(item.texte)"
+                             (input)="onRisqueRaisonInput(item.texte, $any($event.target).value)"
+                             (blur)="onRisqueRaisonBlur(item.texte)"
+                             placeholder="Ex. Risque levé à l'amiable" />
+                    </mat-form-field>
+                  }
+                </div>
+                <div class="risque-actions">
+                  @if (updatingRisqueLibelle() === item.texte) {
+                    <mat-spinner diameter="20" class="risque-spinner"></mat-spinner>
+                  } @else {
+                    <button class="risque-status-btn risque-status-btn--creuser"
+                            [class.risque-status-btn--active]="isRisqueStatusActive(item.texte, 'A_CREUSER')"
+                            (click)="updateRisqueStatus(item.texte, 'A_CREUSER')"
+                            matTooltip="À creuser"
+                            aria-label="Marquer comme à creuser">
+                      <mat-icon>search</mat-icon>
+                      À creuser
+                    </button>
+                    <button class="risque-status-btn risque-status-btn--valide"
+                            [class.risque-status-btn--active]="isRisqueStatusActive(item.texte, 'VALIDE')"
+                            (click)="updateRisqueStatus(item.texte, 'VALIDE')"
+                            matTooltip="Validé"
+                            aria-label="Marquer comme validé">
+                      <mat-icon>check_circle</mat-icon>
+                      Validé
+                    </button>
+                    <button class="risque-status-btn risque-status-btn--ecarte"
+                            [class.risque-status-btn--active]="isRisqueStatusActive(item.texte, 'ECARTE')"
+                            (click)="updateRisqueStatus(item.texte, 'ECARTE')"
+                            matTooltip="Écarté"
+                            aria-label="Marquer comme écarté">
+                      <mat-icon>block</mat-icon>
+                      Écarté
+                    </button>
+                  }
+                </div>
               </li>
             }
-          </ol>
+          </ul>
         </mat-expansion-panel>
       }
 
@@ -333,9 +397,67 @@
             </mat-panel-title>
             <mat-panel-description>{{ synthesis()!.piecesManquantes.length }} pièce(s) à fournir</mat-panel-description>
           </mat-expansion-panel-header>
-          <ul class="synthesis-list" [@listStagger]="synthesis()!.piecesManquantes.length">
+          <!-- F-194 SF-194-02 — UI markable : 3 boutons statut + champ raison + select destinataire -->
+          <ul class="pieces-list" [@listStagger]="synthesis()!.piecesManquantes.length">
             @for (item of synthesis()!.piecesManquantes; track $index) {
-              <li @fadeInUp [attr.id]="'piece-' + $index">{{ item }}</li>
+              <li class="piece-item" @fadeInUp [attr.id]="'piece-' + $index">
+                <div class="piece-content">
+                  <p class="piece-texte">{{ item }}</p>
+                  @if (pieceStatusFor(item) === 'A_DEMANDER') {
+                    <mat-form-field appearance="outline" class="piece-destinataire-field">
+                      <mat-label>Destinataire (optionnel)</mat-label>
+                      <mat-select
+                        [value]="pieceDestinataireFor(item)"
+                        (selectionChange)="onPieceDestinataireChange(item, $event.value)">
+                        <mat-option value="">— non précisé —</mat-option>
+                        @for (option of pieceDestinataireOptions; track option) {
+                          <mat-option [value]="option">{{ option }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  }
+                  @if (pieceStatusFor(item) === 'NON_APPLICABLE') {
+                    <mat-form-field appearance="outline" class="piece-raison-field">
+                      <mat-label>Raison (optionnel)</mat-label>
+                      <input matInput
+                             [value]="pieceRaisonFor(item)"
+                             (input)="onPieceRaisonInput(item, $any($event.target).value)"
+                             (blur)="onPieceRaisonBlur(item)"
+                             placeholder="Ex. Concubinage simple, pas de mariage" />
+                    </mat-form-field>
+                  }
+                </div>
+                <div class="piece-actions">
+                  @if (updatingPieceLibelle() === item) {
+                    <mat-spinner diameter="20" class="piece-spinner"></mat-spinner>
+                  } @else {
+                    <button class="piece-status-btn piece-status-btn--demander"
+                            [class.piece-status-btn--active]="isPieceStatusActive(item, 'A_DEMANDER')"
+                            (click)="updatePieceStatus(item, 'A_DEMANDER')"
+                            matTooltip="À demander"
+                            aria-label="Marquer comme à demander">
+                      <mat-icon>mark_email_read</mat-icon>
+                      À demander
+                    </button>
+                    <button class="piece-status-btn piece-status-btn--obtenue"
+                            [class.piece-status-btn--active]="isPieceStatusActive(item, 'OBTENUE')"
+                            (click)="updatePieceStatus(item, 'OBTENUE')"
+                            matTooltip="Obtenue"
+                            aria-label="Marquer comme obtenue">
+                      <mat-icon>check_circle</mat-icon>
+                      Obtenue
+                    </button>
+                    <button class="piece-status-btn piece-status-btn--non-applicable"
+                            [class.piece-status-btn--active]="isPieceStatusActive(item, 'NON_APPLICABLE')"
+                            (click)="updatePieceStatus(item, 'NON_APPLICABLE')"
+                            matTooltip="Non applicable"
+                            aria-label="Marquer comme non applicable">
+                      <mat-icon>block</mat-icon>
+                      Non applicable
+                    </button>
+                  }
+                </div>
+              </li>
             }
           </ul>
         </mat-expansion-panel>

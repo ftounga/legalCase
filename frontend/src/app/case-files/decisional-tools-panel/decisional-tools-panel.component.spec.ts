@@ -36,7 +36,27 @@ describe('DecisionToolsPanelComponent', () => {
     component.caseFileId = CASE_FILE_ID;
   });
 
+  // F-192 SF-192-02 — le panel charge aussi `retained-pistes-alignment` au mount.
+  // Les tests qui ne s'en occupent pas directement laissent l'appel ouvert :
+  // on le flush silencieusement via afterEach pour préserver `httpMock.verify()`.
   afterEach(() => {
+    httpMock.match(r => r.url.endsWith('/retained-pistes-alignment'))
+      .forEach(r => {
+        // takeUntilDestroyed peut canceller la requête avant le flush ; on
+        // l'ignore (pas de leak réel, les requêtes cancellées ne polluent
+        // pas verify()).
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
+    // F-194 SF-194-02 — idem pour pieces-manquantes-alignment.
+    httpMock.match(r => r.url.endsWith('/pieces-manquantes-alignment'))
+      .forEach(r => {
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
+    // F-195 SF-195-02 — idem pour risques-alignment.
+    httpMock.match(r => r.url.endsWith('/risques-alignment'))
+      .forEach(r => {
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
     httpMock.verify();
   });
 
@@ -136,6 +156,65 @@ describe('DecisionToolsPanelComponent', () => {
     expect(inputs['aiData']).toEqual({ inferredChecklistType: 'X' });
     expect(inputs['triggerEvents']).toEqual([{ e: 1 }]);
     expect(inputs['piecesManquantes']).toEqual({ p: 1 });
+  });
+
+  // F-194 SF-194-02 — F-DT-04 reçoit `piecesObtenues` extrait de l'alignement
+  it('F-194 SF-194-02 — F-DT-04 receives piecesObtenues from piecesAlignment signal', () => {
+    component.piecesAlignment.set([
+      {
+        pieceLibelle: 'Contrat de travail',
+        statut: 'OBTENUE',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+        destinataire: null,
+        raisonNonApp: null,
+      },
+      {
+        pieceLibelle: 'Lettre de licenciement',
+        statut: 'A_DEMANDER',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+        destinataire: 'Client',
+        raisonNonApp: null,
+      },
+      {
+        pieceLibelle: 'Acte de mariage',
+        statut: 'OBTENUE',
+        toolIdsCibles: ['F-FA-07-checklist-divorce'],
+        destinataire: null,
+        raisonNonApp: null,
+      },
+    ]);
+
+    const entry = component.resolveEntry('F-DT-04-fiche-prudhomale')!;
+    const inputs = component.componentInputsFor(entry);
+
+    // Seules les pièces statut OBTENUE pour F-DT-04 doivent remonter.
+    expect(inputs['piecesObtenues']).toEqual(['Contrat de travail']);
+  });
+
+  // F-194 SF-194-02 — piecesBadgeFor calcule le verdict pour la card panel
+  it('F-194 SF-194-02 — piecesBadgeFor computes badge from filtered alignment', () => {
+    component.piecesAlignment.set([
+      {
+        pieceLibelle: 'Pièce 1',
+        statut: 'A_DEMANDER',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+      },
+      {
+        pieceLibelle: 'Pièce 2',
+        statut: 'OBTENUE',
+        toolIdsCibles: ['F-DT-04-fiche-prudhomale'],
+      },
+    ]);
+    const badge = component.piecesBadgeFor('F-DT-04-fiche-prudhomale');
+    expect(badge).not.toBeNull();
+    expect(badge!.kind).toBe('missing');
+    expect(badge!.counts.aDemander).toBe(1);
+    expect(badge!.counts.obtenues).toBe(1);
+  });
+
+  it('F-194 SF-194-02 — piecesBadgeFor returns null when none mapped', () => {
+    component.piecesAlignment.set([]);
+    expect(component.piecesBadgeFor('F-DT-04-fiche-prudhomale')).toBeNull();
   });
 
   // F-177 SF-177-12 — la card du panel doit afficher le badge `auto_awesome`
@@ -289,6 +368,72 @@ describe('DecisionToolsPanelComponent', () => {
     ]);
   });
 
+  // ── F-197 SF-197-02 — Override avocat propagé via aiData ─────────────────
+
+  it('F-197 SF-197-02 — aucun override : aiData passé tel quel (no-op)', () => {
+    component.synthesis = {
+      travailExtractedData: { salaireBrutMensuel: 2500, motifLicenciement: 'X' },
+    };
+    component.typeLitigeOverride = null;
+
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    const inputs = component.componentInputsFor(entry);
+
+    // typeLitigeAvocatOverride absent (no-op gracieux)
+    expect(inputs['aiData']).toEqual({ salaireBrutMensuel: 2500, motifLicenciement: 'X' });
+  });
+
+  it('F-197 SF-197-02 — override Travail FR : aiData.typeLitigeAvocatOverride posé', () => {
+    component.synthesis = {
+      travailExtractedData: { salaireBrutMensuel: 3000 },
+    };
+    component.typeLitigeOverride = {
+      typeLitigeAvocat: 'LICENCIEMENT_ECONOMIQUE',
+      typeProcedureAvocat: null,
+      raison: null,
+    };
+
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    const inputs = component.componentInputsFor(entry);
+
+    // Le tool F-DT-07 ne forwarde que `caseFileId` + `aiData` (closure inputs).
+    // L'override est injecté dans le `aiData` via `augmentSynthesisWithOverride()`.
+    expect(inputs['aiData']).toEqual({
+      salaireBrutMensuel: 3000,
+      typeLitigeAvocatOverride: 'LICENCIEMENT_ECONOMIQUE',
+    });
+  });
+
+  it('F-197 SF-197-02 — override Immigration : immigrationExtractedData.typeProcedureAvocatOverride posé', () => {
+    component.synthesis = {
+      immigrationExtractedData: { typeProcedureDetectee: 'OQTF_AVEC_DELAI' },
+    };
+    component.typeLitigeOverride = {
+      typeLitigeAvocat: null,
+      typeProcedureAvocat: 'OQTF_SANS_DELAI',
+      raison: 'Détection IA erronée',
+    };
+
+    const entry = component.resolveEntry('F-IM-08-oqtf-avec-delai-fr')!;
+    const inputs = component.componentInputsFor(entry);
+
+    expect((inputs['aiData'] as any).typeProcedureAvocatOverride).toBe('OQTF_SANS_DELAI');
+  });
+
+  it('F-197 SF-197-02 — synthesis null : retour null sans crash', () => {
+    component.synthesis = null;
+    component.typeLitigeOverride = {
+      typeLitigeAvocat: 'PRISE_ACTE_RUPTURE',
+      typeProcedureAvocat: null,
+      raison: null,
+    };
+
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    const inputs = component.componentInputsFor(entry);
+    // aiData = ctx.synthesis?.travailExtractedData → undefined si synthesis est null
+    expect(inputs['aiData']).toBeUndefined();
+  });
+
   // ── SF-169-01 — Grid 2 colonnes + groupement par thème métier ────────────
 
   it('SF-169-01 T-01: THEME_BY_TOOL_ID couvre tous les tool_ids du TOOL_REGISTRY', () => {
@@ -428,7 +573,27 @@ describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRe
     component.caseFileId = CASE_FILE_ID;
   });
 
+  // F-192 SF-192-02 — le panel charge aussi `retained-pistes-alignment` au mount.
+  // Les tests qui ne s'en occupent pas directement laissent l'appel ouvert :
+  // on le flush silencieusement via afterEach pour préserver `httpMock.verify()`.
   afterEach(() => {
+    httpMock.match(r => r.url.endsWith('/retained-pistes-alignment'))
+      .forEach(r => {
+        // takeUntilDestroyed peut canceller la requête avant le flush ; on
+        // l'ignore (pas de leak réel, les requêtes cancellées ne polluent
+        // pas verify()).
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
+    // F-194 SF-194-02 — idem pour pieces-manquantes-alignment.
+    httpMock.match(r => r.url.endsWith('/pieces-manquantes-alignment'))
+      .forEach(r => {
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
+    // F-195 SF-195-02 — idem pour risques-alignment.
+    httpMock.match(r => r.url.endsWith('/risques-alignment'))
+      .forEach(r => {
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
     httpMock.verify();
   });
 

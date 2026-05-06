@@ -71,6 +71,14 @@ export class PrudhomeFicheSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /**
+   * F-194 SF-194-02 — Libellés des pièces taggées « OBTENUE » par l'avocat
+   * et alignées sur cet outil (pré-filtrées par le panel via `piecesAlignment`
+   * et `piecesObtenuesFor(toolId)`). Sert à signaler à l'avocat les pièces
+   * déjà reçues (signal d'aide visuel — V1 : passif, V2 = pré-cochage des
+   * checklist correspondantes).
+   */
+  @Input() piecesObtenues?: string[] | null;
 
   // SF-173-01 : snapshots signal pour que les `computed` réagissent.
   private aiDataSignal = signal<TravailExtractedData | null | undefined>(undefined);
