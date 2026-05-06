@@ -239,6 +239,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   @Input() caseFileTitle = '';
   @Input() procedureChecks: any[] = [];
   @Input() aiQuestions: any[] = [];
+  // F-190 SF-190-03 — compteur "X/7 sections reçues" propagé au banner.
+  @Input() streamingSectionsReceived: number | null = null;
+  @Input() streamingSectionsExpected = 0;
   /**
    * F-197 SF-197-02 — Override avocat single-value du type de litige
    * (Travail FR) ou type de procédure (Immigration). Si présent, prend

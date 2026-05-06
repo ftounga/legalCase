@@ -69,6 +69,7 @@ import { ImmigrationStrategyComparatorSectionComponent } from '../immigration-st
 import { DivorceConsentementScoringSectionComponent } from '../divorce-consentement-scoring-section/divorce-consentement-scoring-section.component';
 import { DivorceConsentementScoring, DivorceConsentementValidityDetection, ImmigrationStrategyScenario, ImmigrationTriggerEvent } from '../../core/models/case-analysis.model';
 import { CaseAnalysisPartialResponse, CaseAnalysisPartialSections, CaseAnalysisResult, CaseAnalysisVersionSummary, CompensationEstimate, PensionAlimentaireEstimate, PrestationCompensatoireEstimate, LiquidationCommunaute } from '../../core/models/case-analysis.model';
+import { STREAMING_EXPECTED_SECTIONS, StreamingSection } from './streaming-sections';
 import { AiQuestion } from '../../core/models/ai-question.model';
 import { ChatMessage } from '../../core/models/chat-message.model';
 import { ProcedureCheck, ProcedureCheckStatus } from '../../core/models/procedure-check.model';
@@ -105,32 +106,6 @@ interface SynthesisBadge {
    */
   dialog?: 'type-litige-override';
 }
-
-/**
- * F-190 SF-190-01 — descripteur d'une section attendue dans le streaming.
- * `id` correspond à la clé snake_case côté backend ; `anchor` cible le panel
- * de la pile inférieure pour le scroll-to-block.
- */
-interface StreamingSection {
-  id: keyof CaseAnalysisPartialSections;
-  label: string;
-  anchor: string | null;
-}
-
-/**
- * F-190 SF-190-01 — liste fixe des 7 sections visibles dans la synthèse.
- * Les champs `*_extracted_data` ne sont pas comptés (consommés par F-IA-04,
- * pas affichés dans la synthèse).
- */
-const STREAMING_EXPECTED_SECTIONS: readonly StreamingSection[] = [
-  { id: 'timeline',           label: 'Chronologie',       anchor: 'section-timeline' },
-  { id: 'faits',              label: 'Faits',             anchor: 'section-faits' },
-  { id: 'points_juridiques',  label: 'Points juridiques', anchor: 'section-points-juridiques' },
-  { id: 'risques',            label: 'Risques',           anchor: 'section-risques' },
-  { id: 'questions_ouvertes', label: 'Questions ouvertes', anchor: 'section-questions-ouvertes' },
-  { id: 'pieces_manquantes',  label: 'Pièces manquantes', anchor: 'section-pieces' },
-  { id: 'risk_level',         label: 'Niveau de risque',  anchor: null },
-] as const;
 
 @Component({
   selector: 'app-synthesis',

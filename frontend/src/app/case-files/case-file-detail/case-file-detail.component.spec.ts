@@ -72,6 +72,7 @@ describe('CaseFileDetailComponent', () => {
   let caseNoteServiceSpy: jest.Mocked<CaseNoteService>;
   let caseDeadlineServiceSpy: jest.Mocked<CaseDeadlineService>;
   let analyticsServiceSpy: jest.Mocked<AnalyticsService>;
+  let analysisEventsSubject: Subject<any>;
 
   beforeEach(async () => {
     caseNoteServiceSpy = jasmine.createSpyObj('CaseNoteService', ['list', 'create', 'update', 'delete']);
@@ -84,7 +85,7 @@ describe('CaseFileDetailComponent', () => {
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'uploadWithProgress', 'downloadUrl', 'delete']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
-    caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis']);
+    caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis', 'getPartial']);
     caseAnalysisCommandServiceSpy = jasmine.createSpyObj('CaseAnalysisCommandService', ['triggerAnalysis']);
     aiQuestionServiceSpy = jasmine.createSpyObj('AiQuestionService', ['getQuestions']);
     aiQuestionAnswerServiceSpy = jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']);
@@ -106,6 +107,7 @@ describe('CaseFileDetailComponent', () => {
     documentServiceSpy.downloadUrl.mockReturnValue('/api/v1/case-files/cf1/documents/doc1/download');
     analysisJobServiceSpy.getJobs.mockReturnValue(of([]));
     caseAnalysisServiceSpy.getAnalysis.mockReturnValue(throwError(() => new Error('404')));
+    caseAnalysisServiceSpy.getPartial.mockReturnValue(throwError(() => new Error('404')));
     aiQuestionServiceSpy.getQuestions.mockReturnValue(of([]));
     aiQuestionAnswerServiceSpy.submitAnswer.mockReturnValue(of(undefined));
     reAnalysisServiceSpy.reAnalyze.mockReturnValue(of(undefined));
@@ -129,10 +131,13 @@ describe('CaseFileDetailComponent', () => {
         { provide: ReAnalysisService, useValue: reAnalysisServiceSpy },
         { provide: WorkspaceMemberService, useValue: workspaceMemberServiceSpy },
         { provide: CaseFileStatsService, useValue: caseFileStatsServiceSpy },
-        {
-          provide: GlobalAnalysisNotificationService,
-          useValue: { events$: new Subject(), track: jest.fn() }
-        },
+        (() => {
+          analysisEventsSubject = new Subject<any>();
+          return {
+            provide: GlobalAnalysisNotificationService,
+            useValue: { events$: analysisEventsSubject.asObservable(), track: jest.fn() }
+          };
+        })(),
         {
           provide: AuthService,
           useValue: { currentUser: signal({ id: 'user-1', email: 'owner@test.com', firstName: null, lastName: null, provider: 'GOOGLE', isSuperAdmin: false }) }
@@ -1527,6 +1532,44 @@ describe('CaseFileDetailComponent', () => {
       analysisJobServiceSpy.getJobs.mockReturnValueOnce(of(failedJobs));
       component.loadAnalysisJobs('cf1');
       expect(warnSpy).toHaveBeenCalledTimes(1); // pas de second log
+    });
+  });
+
+  // F-190 SF-190-03 — compteur "X/7 sections reçues" dans le bandeau de progression.
+  describe('SF-190-03 — streamingProgress (compteur sections)', () => {
+    it('streamingProgress() retourne {received: 0, expected: 7} quand lastPartial est null', () => {
+      component.lastPartial.set(null);
+      const progress = component.streamingProgress();
+      expect(progress).toEqual({ received: 0, expected: 7 });
+    });
+
+    it('streamingProgress() compte les sections présentes dans lastPartial', () => {
+      component.lastPartial.set({
+        sections: {
+          timeline: 'des faits chronologiques',
+          faits: 'des faits',
+          points_juridiques: 'analyse juridique'
+        }
+      } as any);
+      const progress = component.streamingProgress();
+      expect(progress).toEqual({ received: 3, expected: 7 });
+    });
+
+    it('event PARTIAL CASE_ANALYSIS → caseAnalysisService.getPartial appelé et lastPartial mis à jour', () => {
+      const partialResponse = {
+        sections: { timeline: 'A', faits: 'B' }
+      };
+      caseAnalysisServiceSpy.getPartial.mockReturnValue(of(partialResponse as any));
+
+      analysisEventsSubject.next({
+        caseFileId: 'cf1',
+        status: 'PARTIAL',
+        jobType: 'CASE_ANALYSIS'
+      });
+
+      expect(caseAnalysisServiceSpy.getPartial).toHaveBeenCalledWith('cf1');
+      expect(component.lastPartial()).toEqual(partialResponse);
+      expect(component.streamingProgress()).toEqual({ received: 2, expected: 7 });
     });
   });
 

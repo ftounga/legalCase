@@ -24,9 +24,23 @@
     animation: pulse 1.6s ease-in-out infinite;
   }
 
-  &__label {
+  &__text {
     flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.25;
+  }
+
+  &__label {
     font-weight: 500;
+  }
+
+  &__sections {
+    font-size: 12px;
+    font-weight: 400;
+    color: #4A5868;
+    font-variant-numeric: tabular-nums;
   }
 
   &__bar {
