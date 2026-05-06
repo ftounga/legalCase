@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      F-192 SF-192-01 — Matérialisation des pistes stratégiques retenues au run
+      de Synthèse enrichie.
+
+      Cette migration ajoute :
+        (a) la colonne `case_analyses.retained_pistes_alignment_json` (TEXT NULL)
+            qui stocke un tableau JSON [{pisteId, texte, baseJuridique,
+            horizonTemporel, conditions, toolIdCible, matchStatus}] calculé et
+            persisté par RetainedPisteAlignmentService.materializeForAnalysis()
+            à la fin de EnrichedAnalysisService.run.
+
+        (b) un élargissement de `case_deadlines.source` de VARCHAR(10) à
+            VARCHAR(20) pour accueillir la nouvelle valeur `PISTE_RETENUE`
+            (13 caractères) sans collision avec les valeurs existantes
+            (`MANUAL`, `STATUTORY`, `IA`, `AVOCAT`).
+
+      Aucune migration n'est nécessaire pour `pieces_manquantes.source` :
+      cette structure n'a pas de table dédiée, les pieces vivent dans le JSON
+      `case_analyses.analysis_result` (objet `pieces_manquantes`). La nouvelle
+      valeur d'enum `PISTE_RETENUE` y est portée par
+      RetainedPisteAlignmentService au moment de la matérialisation, sans
+      contrainte SQL à élargir.
+    -->
+
+    <changeSet id="205-f192-add-retained-pistes-alignment-json" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="retained_pistes_alignment_json" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="205-f192-widen-case-deadlines-source" author="ailegalcase">
+        <modifyDataType tableName="case_deadlines"
+                        columnName="source"
+                        newDataType="VARCHAR(20)"/>
+    </changeSet>
+
+</databaseChangeLog>

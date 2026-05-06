@@ -125,6 +125,7 @@ class CaseFileDashboardServiceTest {
     private Belgian9terRepository belgian9terRepo;
     private Belgian40bisRepository belgian40bisRepo;
     private Belgian40terRepository belgian40terRepo;
+    private fr.ailegalcase.analysis.RetainedPisteAlignmentService retainedPisteAlignmentService;
 
     private CaseFileDashboardService service;
 
@@ -216,6 +217,8 @@ class CaseFileDashboardServiceTest {
         belgian9terRepo = mock(Belgian9terRepository.class);
         belgian40bisRepo = mock(Belgian40bisRepository.class);
         belgian40terRepo = mock(Belgian40terRepository.class);
+        retainedPisteAlignmentService = mock(fr.ailegalcase.analysis.RetainedPisteAlignmentService.class);
+        when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
 
         // Default empties — chaque test surcharge ce qu'il a besoin.
         when(licenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -342,7 +345,8 @@ class CaseFileDashboardServiceTest {
                 aesMetiersTensionRepo, asileAvanceRepo, naturalisationRepo,
                 regimeAlgerienRepo, mineursImmigrationRepo, mesuresEloignementRepo,
                 annexe13BeRepo, belgian9bisRepo, belgian9terRepo,
-                belgian40bisRepo, belgian40terRepo);
+                belgian40bisRepo, belgian40terRepo,
+                retainedPisteAlignmentService);
     }
 
     @Test

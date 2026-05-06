@@ -69,11 +69,15 @@ class SentryJobReportingTest {
     private final fr.ailegalcase.document.DocumentRepository documentRepository =
             mock(fr.ailegalcase.document.DocumentRepository.class);
 
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService =
+            mock(RetainedPisteAlignmentService.class);
+
     private final EnrichedAnalysisService enrichedAnalysisService = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, strategicOptionService, statutoryDeadlineService, legalReferentialService,
+            chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
+            statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 

@@ -49,12 +49,15 @@ class EnrichedAnalysisServiceTest {
             mock(fr.ailegalcase.document.DocumentExtractionRepository.class);
     private final PiecesPromptContext piecesPromptContext = mock(PiecesPromptContext.class);
     private final StrategicOptionService strategicOptionService = mock(StrategicOptionService.class);
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService =
+            mock(RetainedPisteAlignmentService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
-            chatMessageRepository, procedureCheckService, strategicOptionService, statutoryDeadlineService, legalReferentialService,
+            chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
+            statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
 
@@ -123,6 +126,43 @@ class EnrichedAnalysisServiceTest {
 
         // Usage enregistré
         verify(usageEventService).record(caseFileId, userId, JobType.ENRICHED_ANALYSIS, 400, 200);
+
+        // F-192 SF-192-01 — la matérialisation est appelée à la fin du run
+        verify(retainedPisteAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    // F-192 SF-192-01 : si la matérialisation jette, le run réussit quand même (fail-open).
+    @Test
+    void consumeReAnalysis_materializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{\"faits\":[]}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[\"enrichi\"]}", "claude-sonnet-4-6", 100, 50));
+
+        // F-192 — la matérialisation jette
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(retainedPisteAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Le run termine en DONE quand même
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, times(2)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
     }
 
     // U-02 : erreur LLM → analyse FAILED, job FAILED
