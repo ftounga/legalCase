@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.CaseAnalysisResponse;
+import fr.ailegalcase.analysis.PieceManquanteAlignment;
+import fr.ailegalcase.analysis.PieceManquanteAlignmentService;
+import fr.ailegalcase.analysis.PieceManquanteStatus;
 import fr.ailegalcase.analysis.ProcedureCheckAlignment;
 import fr.ailegalcase.analysis.ProcedureCheckAlignmentService;
 import fr.ailegalcase.analysis.RetainedPisteAlignment;
@@ -130,6 +133,8 @@ public class CaseFileDashboardService {
     private final RetainedPisteAlignmentService retainedPisteAlignmentService;
     // F-193 SF-193-01 — checks F-96 matérialisés sur la dernière analyse DONE.
     private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
+    // F-194 SF-194-01 — pièces manquantes markables matérialisées sur la dernière analyse DONE.
+    private final PieceManquanteAlignmentService pieceManquanteAlignmentService;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -222,7 +227,8 @@ public class CaseFileDashboardService {
                                      Belgian40bisRepository belgian40bisRepo,
                                      Belgian40terRepository belgian40terRepo,
                                      RetainedPisteAlignmentService retainedPisteAlignmentService,
-                                     ProcedureCheckAlignmentService procedureCheckAlignmentService) {
+                                     ProcedureCheckAlignmentService procedureCheckAlignmentService,
+                                     PieceManquanteAlignmentService pieceManquanteAlignmentService) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -316,6 +322,7 @@ public class CaseFileDashboardService {
         this.belgian40terRepo = belgian40terRepo;
         this.retainedPisteAlignmentService = retainedPisteAlignmentService;
         this.procedureCheckAlignmentService = procedureCheckAlignmentService;
+        this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
     }
 
     @Transactional(readOnly = true)
@@ -447,6 +454,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromRetainedPistesAlignment(caseFileId));
         // ── F-193 SF-193-01 — checks F-96 matérialisés ─────────────────────
         addSafely(tiles, () -> tileFromProcedureChecksAlignment(caseFileId));
+        // ── F-194 SF-194-01 — pièces manquantes markables matérialisées ───
+        addSafely(tiles, () -> tileFromPiecesManquantesAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
     }
@@ -548,6 +557,67 @@ public class CaseFileDashboardService {
                 "F-193-procedure-checks-summary",
                 "DELAIS",
                 "Conformité procédurale",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-194 SF-194-01 — Tile dashboard agrégeant les pièces manquantes
+     * markables matérialisées sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code primaryValue} : N total pièces matérialisées</li>
+     *   <li>{@code secondaryValue} : "X à demander · Y obtenues · Z non applicables"</li>
+     *   <li>{@code alertLevel = WARNING} si ≥ 1 {@code A_DEMANDER} ET dernier run > 7 jours</li>
+     *   <li>{@code alertLevel = OK} sinon</li>
+     * </ul>
+     *
+     * <p>Thème {@code DOCUMENTS} (différent de F-192 DIAGNOSTIC, F-193 DELAIS) —
+     * les pièces relèvent naturellement du thème DOCUMENTS.</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-194 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromPiecesManquantesAlignment(UUID caseFileId) {
+        if (pieceManquanteAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<PieceManquanteAlignment> alignments = pieceManquanteAlignmentService
+                .deserializeAlignment(latest.get().getPiecesAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long aDemander = alignments.stream()
+                .filter(a -> PieceManquanteStatus.STATUT_A_DEMANDER.equals(a.statut()))
+                .count();
+        long obtenues = alignments.stream()
+                .filter(a -> PieceManquanteStatus.STATUT_OBTENUE.equals(a.statut()))
+                .count();
+        long nonApplicables = alignments.stream()
+                .filter(a -> PieceManquanteStatus.STATUT_NON_APPLICABLE.equals(a.statut()))
+                .count();
+
+        // alertLevel WARNING si ≥ 1 A_DEMANDER ET dernier run > 7j (rappel à l'avocat)
+        String alertLevel = "OK";
+        if (aDemander > 0) {
+            java.time.Instant updatedAt = latest.get().getUpdatedAt();
+            if (updatedAt != null && updatedAt.isBefore(java.time.Instant.now().minus(java.time.Duration.ofDays(7)))) {
+                alertLevel = "WARNING";
+            }
+        }
+
+        int total = alignments.size();
+        String primary = total + " pièce" + (total > 1 ? "s" : "");
+        String secondary = aDemander + " à demander · " + obtenues + " obtenue"
+                + (obtenues > 1 ? "s" : "") + " · " + nonApplicables + " non applicable"
+                + (nonApplicables > 1 ? "s" : "");
+
+        return new DashboardTile(
+                "F-194-pieces-summary",
+                "DOCUMENTS",
+                "Pièces — état des demandes client",
                 primary,
                 secondary,
                 alertLevel);

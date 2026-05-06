@@ -127,6 +127,8 @@ class CaseFileDashboardServiceTest {
     private Belgian40terRepository belgian40terRepo;
     private fr.ailegalcase.analysis.RetainedPisteAlignmentService retainedPisteAlignmentService;
     private fr.ailegalcase.analysis.ProcedureCheckAlignmentService procedureCheckAlignmentService;
+    private fr.ailegalcase.analysis.PieceManquanteAlignmentService pieceManquanteAlignmentService;
+    private fr.ailegalcase.analysis.CaseAnalysisRepository analysisRepositoryMock;
 
     private CaseFileDashboardService service;
 
@@ -222,6 +224,12 @@ class CaseFileDashboardServiceTest {
         when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
         procedureCheckAlignmentService = mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class);
         when(procedureCheckAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        pieceManquanteAlignmentService = mock(fr.ailegalcase.analysis.PieceManquanteAlignmentService.class);
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        // F-194 SF-194-01 — mock CaseAnalysisRepository pour tests tile alignment
+        analysisRepositoryMock = mock(fr.ailegalcase.analysis.CaseAnalysisRepository.class);
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                any(), any())).thenReturn(java.util.Optional.empty());
 
         // Default empties — chaque test surcharge ce qu'il a besoin.
         when(licenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -316,7 +324,7 @@ class CaseFileDashboardServiceTest {
                 /* caseFileRepository */ null,
                 /* workspaceMemberRepository */ null,
                 /* currentUserResolver */ null,
-                /* analysisRepository */ null,
+                analysisRepositoryMock,
                 licenciementRepo, indemniteRepo, ruptureConvIndemniteRepo, ancienneteRepo,
                 titleDecisionRepo, workRightRepo, recoursRepo,
                 partageRepo, gardeRepo, divorceRepo, changementStatutRepo,
@@ -350,7 +358,8 @@ class CaseFileDashboardServiceTest {
                 annexe13BeRepo, belgian9bisRepo, belgian9terRepo,
                 belgian40bisRepo, belgian40terRepo,
                 retainedPisteAlignmentService,
-                procedureCheckAlignmentService);
+                procedureCheckAlignmentService,
+                pieceManquanteAlignmentService);
     }
 
     @Test
@@ -1200,5 +1209,100 @@ class CaseFileDashboardServiceTest {
             e.setResultData(objectMapper.writeValueAsString(r));
             when(belgian9terRepo.findByCaseFileId(any())).thenReturn(Optional.of(e));
         } catch (Exception ex) { throw new RuntimeException(ex); }
+    }
+
+    // ====================================================================
+    //  F-194 SF-194-01 — tests tile pieces manquantes markables
+    // ====================================================================
+
+    @Test
+    void f194Tile_aDemanderRecent_levelOk() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now()); // récent
+        a.setPiecesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("Contrat",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null)));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f194).isNotNull();
+        assertThat(f194.theme()).isEqualTo("DOCUMENTS");
+        assertThat(f194.alertLevel()).isEqualTo("OK");
+        assertThat(f194.primaryValue()).isEqualTo("1 pièce");
+        assertThat(f194.secondaryValue()).contains("1 à demander");
+    }
+
+    @Test
+    void f194Tile_aDemanderStale_levelWarning() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now().minus(java.time.Duration.ofDays(8)));
+        a.setPiecesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("Contrat",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null)));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f194).isNotNull();
+        assertThat(f194.alertLevel()).isEqualTo("WARNING");
+    }
+
+    @Test
+    void f194Tile_mixStatuses_correctSecondary() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        a.setPiecesAlignmentJson("[]");
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of(
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("A",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null),
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("B",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_A_DEMANDER, null, null),
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("C",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_OBTENUE, null, null),
+                new fr.ailegalcase.analysis.PieceManquanteAlignment("D",
+                        fr.ailegalcase.analysis.PieceManquanteStatus.STATUT_NON_APPLICABLE, null, null)));
+
+        var tiles = service.assembleTiles(caseFileId);
+        var f194 = tiles.stream().filter(t -> "F-194-pieces-summary".equals(t.toolId()))
+                .findFirst().orElse(null);
+        assertThat(f194).isNotNull();
+        assertThat(f194.primaryValue()).isEqualTo("4 pièces");
+        assertThat(f194.secondaryValue()).contains("2 à demander")
+                .contains("1 obtenue")
+                .contains("1 non applicable");
+        assertThat(f194.alertLevel()).isEqualTo("OK"); // récent
+    }
+
+    @Test
+    void f194Tile_emptyAlignment_returnsNoTile() {
+        UUID caseFileId = UUID.randomUUID();
+        fr.ailegalcase.analysis.CaseAnalysis a = new fr.ailegalcase.analysis.CaseAnalysis();
+        a.setAnalysisStatus(fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        a.setUpdatedAt(java.time.Instant.now());
+        when(analysisRepositoryMock.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE))
+                .thenReturn(Optional.of(a));
+        when(pieceManquanteAlignmentService.deserializeAlignment(any())).thenReturn(List.of());
+
+        var tiles = service.assembleTiles(caseFileId);
+        assertThat(tiles.stream().anyMatch(t -> "F-194-pieces-summary".equals(t.toolId()))).isFalse();
     }
 }

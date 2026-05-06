@@ -53,6 +53,10 @@ class EnrichedAnalysisServiceTest {
             mock(RetainedPisteAlignmentService.class);
     private final ProcedureCheckAlignmentService procedureCheckAlignmentService =
             mock(ProcedureCheckAlignmentService.class);
+    private final PieceManquanteAlignmentService pieceManquanteAlignmentService =
+            mock(PieceManquanteAlignmentService.class);
+    private final PieceManquanteStatusService pieceManquanteStatusService =
+            mock(PieceManquanteStatusService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
@@ -60,6 +64,7 @@ class EnrichedAnalysisServiceTest {
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
             chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
             procedureCheckAlignmentService,
+            pieceManquanteAlignmentService, pieceManquanteStatusService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);
@@ -79,6 +84,9 @@ class EnrichedAnalysisServiceTest {
             a.setAnalysisStatus(AnalysisStatus.PROCESSING);
             return Optional.of(a);
         });
+        // F-194 SF-194-01 — stub par défaut pour collectForEnrichment (sinon NPE dans prepareEnrichedAnalysis)
+        when(pieceManquanteStatusService.collectForEnrichment(any()))
+                .thenReturn(PieceManquanteStatusService.EnrichmentSnapshot.empty());
     }
 
     @AfterEach
@@ -728,6 +736,143 @@ class EnrichedAnalysisServiceTest {
         CaseAnalysis last = captor.getValue();
         assertThat(last.getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
         assertThat(last.getAnalysisResult()).contains("fallback");
+    }
+
+    // ====================================================================
+    //  F-194 SF-194-01 — sections prompt enrichi pieces statuts avocat
+    // ====================================================================
+
+    @Test
+    void buildEnrichedPrompt_withPiecesObtenues_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of("Contrat de travail original"), List.of(), List.of());
+
+        assertThat(prompt).contains("[Pièces déjà obtenues — ne pas réclamer]");
+        assertThat(prompt).contains("- Contrat de travail original");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withPiecesNonApplicables_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of("Convention BTP"), List.of());
+
+        assertThat(prompt).contains("[Pièces non applicables au dossier — ne pas mentionner]");
+        assertThat(prompt).contains("- Convention BTP");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withPiecesADemander_injectsSection() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of("Lettre de licenciement"));
+
+        assertThat(prompt).contains("[Pièces à demander au client — pousser explicitement dans la nouvelle synthèse]");
+        assertThat(prompt).contains("- Lettre de licenciement");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withAllThreePiecesStatuses_injectsThreeSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of("Contrat"), List.of("Convention BTP"),
+                List.of("Lettre"));
+
+        assertThat(prompt).contains("[Pièces déjà obtenues — ne pas réclamer]");
+        assertThat(prompt).contains("[Pièces non applicables au dossier — ne pas mentionner]");
+        assertThat(prompt).contains("[Pièces à demander au client — pousser explicitement dans la nouvelle synthèse]");
+    }
+
+    @Test
+    void buildEnrichedPrompt_withoutPiecesStatuses_omitsAllThreeSections() {
+        UUID caseFileId = UUID.randomUUID();
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+
+        String prompt = service.buildEnrichedPrompt(caseFileId, "{}", null,
+                List.of(), List.of(), List.of(),
+                List.of(), List.of(),
+                List.of(), List.of(), List.of());
+
+        assertThat(prompt).doesNotContain("[Pièces déjà obtenues");
+        assertThat(prompt).doesNotContain("[Pièces non applicables");
+        assertThat(prompt).doesNotContain("[Pièces à demander");
+    }
+
+    @Test
+    void consumeReAnalysis_callsPiecesMaterialization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // F-194 — le service de matérialisation pièces est appelé à la fin du run
+        verify(pieceManquanteAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    @Test
+    void consumeReAnalysis_piecesMaterializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{}", "claude-sonnet-4-6", 100, 50));
+
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(pieceManquanteAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Le run termine en DONE quand même
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
     }
 
     private AiQuestion answeredQuestion(UUID caseFileId, String text) {

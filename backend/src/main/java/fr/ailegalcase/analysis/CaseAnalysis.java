@@ -77,6 +77,28 @@ public class CaseAnalysis {
     @Column(name = "procedure_checks_alignment_json", columnDefinition = "TEXT")
     private String procedureChecksAlignmentJson;
 
+    /**
+     * F-194 SF-194-01 — alignement matérialisé des pièces manquantes (statuts avocat) de cette
+     * analyse, avec propagation auto vers {@code case_deadlines} (source {@code PIECE_A_DEMANDER})
+     * pour les pièces statut {@code A_DEMANDER}. Calculé une fois en fin de run de Synthèse
+     * enrichie par {@code PieceManquanteAlignmentService.materializeForAnalysis}, APRÈS les
+     * hooks F-192 et F-193.
+     *
+     * <p>Schéma : tableau d'objets
+     * {@code [{"pieceLibelle":..., "statut":"A_DEMANDER|OBTENUE|NON_APPLICABLE",
+     * "destinataire":..., "raisonNonApp":...}]}.
+     *
+     * <p>Cohérence F-92 STRICTE : ce champ est un overlay calculé, le JSON
+     * {@code pieces_manquantes} dans {@code analysis_result} N'EST PAS modifié par
+     * la matérialisation F-194 (à la différence de F-192/F-193 qui injectent des entrées
+     * pieces_manquantes).</p>
+     *
+     * <p>{@code null} pour les analyses pré-F-194 ou les runs où la matérialisation a échoué
+     * (fail-open) — l'endpoint {@code /pieces-manquantes-alignment} retourne {@code []} dans ce cas.</p>
+     */
+    @Column(name = "pieces_alignment_json", columnDefinition = "TEXT")
+    private String piecesAlignmentJson;
+
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 

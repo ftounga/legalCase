@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      F-194 SF-194-01 — Pièces manquantes markables + matérialisation au run de
+      Synthèse enrichie.
+
+      Pattern miroir F-192 SF-192-01 (migration 205) + F-193 SF-193-01 (migration
+      206), avec une nouveauté : nouvelle table `piece_manquante_status` qui
+      stocke le statut avocat trichotomique par libellé normalisé (overlay sur
+      le JSON `pieces_manquantes` de `case_analyses.analysis_result` qui reste
+      la source de vérité IA — F-92 préservé strictement).
+
+      Cette migration ajoute :
+
+        (a) la table `piece_manquante_status` :
+            - id UUID PRIMARY KEY
+            - case_file_id UUID NOT NULL (FK case_files.id)
+            - workspace_id UUID NOT NULL (FK workspaces.id) — isolation stricte
+            - piece_libelle_normalise VARCHAR(500) NOT NULL — trim().toLowerCase()
+            - piece_libelle_original VARCHAR(500) NOT NULL — pour ré-affichage
+            - statut VARCHAR(20) NOT NULL — A_DEMANDER / OBTENUE / NON_APPLICABLE
+            - raison_non_app TEXT NULL — obligatoire si statut = NON_APPLICABLE
+            - destinataire VARCHAR(200) NULL — "client" / "ex-employeur" / etc.
+            - created_at / updated_at TIMESTAMP NOT NULL
+            - UNIQUE (case_file_id, piece_libelle_normalise) — idempotence PUT
+
+        (b) la colonne `case_analyses.pieces_alignment_json TEXT NULL` qui stocke
+            un tableau JSON [{pieceLibelle, statut, destinataire, raisonNonApp}]
+            calculé et persisté par PieceManquanteAlignmentService.materializeForAnalysis()
+            à la fin de EnrichedAnalysisService.run (APRÈS hooks F-192 + F-193).
+
+        (c) un élargissement de `case_deadlines.source` de VARCHAR(40) à
+            VARCHAR(50) pour accueillir la nouvelle valeur `PIECE_A_DEMANDER`
+            (16 caractères) sans collision avec les valeurs existantes
+            (`MANUAL`, `STATUTORY`, `IA`, `AVOCAT`, `PISTE_RETENUE` introduit
+            par F-192, `PROCEDURE_CHECK_NON_COMPLIANT` (28 car) et
+            `PROCEDURE_CHECK_TO_CHECK` (24 car) introduits par F-193).
+            VARCHAR(50) couvre largement, anticipe les valeurs F-195 / F-197.
+
+      Cohérence F-92 STRICTE : aucune modification du schéma `pieces_manquantes`
+      JSON. Le PUT statut F-194 N'altère PAS l'analysis_result — l'overlay
+      `piece_manquante_status` est joint au runtime par PieceManquanteAlignmentService
+      pour produire `pieces_alignment_json`.
+    -->
+
+    <changeSet id="207-f194-create-piece-manquante-status" author="ailegalcase">
+        <createTable tableName="piece_manquante_status">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="case_file_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_pms_case_file"
+                             references="case_files(id)"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_pms_workspace"
+                             references="workspaces(id)"/>
+            </column>
+            <column name="piece_libelle_normalise" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="piece_libelle_original" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="statut" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="raison_non_app" type="TEXT"/>
+            <column name="destinataire" type="VARCHAR(200)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="piece_manquante_status"
+                columnNames="case_file_id, piece_libelle_normalise"
+                constraintName="uq_pms_case_file_piece_norm"/>
+
+        <createIndex tableName="piece_manquante_status"
+                     indexName="idx_pms_case_file">
+            <column name="case_file_id"/>
+        </createIndex>
+
+        <createIndex tableName="piece_manquante_status"
+                     indexName="idx_pms_workspace">
+            <column name="workspace_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="207-f194-add-pieces-alignment-json" author="ailegalcase">
+        <addColumn tableName="case_analyses">
+            <column name="pieces_alignment_json" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="207-f194-widen-case-deadlines-source" author="ailegalcase">
+        <modifyDataType tableName="case_deadlines"
+                        columnName="source"
+                        newDataType="VARCHAR(50)"/>
+    </changeSet>
+
+</databaseChangeLog>
