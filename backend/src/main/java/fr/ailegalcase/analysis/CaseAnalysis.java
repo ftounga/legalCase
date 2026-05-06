@@ -99,6 +99,41 @@ public class CaseAnalysis {
     @Column(name = "pieces_alignment_json", columnDefinition = "TEXT")
     private String piecesAlignmentJson;
 
+    /**
+     * F-195 SF-195-01 — alignement matérialisé des risques (statuts avocat trichotomiques)
+     * de cette analyse, calculé une fois en fin de run de Synthèse enrichie par
+     * {@code RisqueAlignmentService.materializeForAnalysis}, APRÈS les hooks F-192,
+     * F-193 et F-194.
+     *
+     * <p>Schéma : tableau d'objets
+     * {@code [{"risqueLibelle":..., "statut":"A_CREUSER|VALIDE|ECARTE",
+     * "raisonEcarte":..., "toolIdsCibles":[...]}]}.
+     *
+     * <p>Cohérence F-IA-02 STRICTE : ce champ est un overlay calculé, le JSON
+     * {@code risques} dans {@code analysis_result} N'EST PAS modifié par la
+     * matérialisation F-195.</p>
+     *
+     * <p>{@code null} pour les analyses pré-F-195 ou les runs où la matérialisation a échoué
+     * (fail-open) — l'endpoint {@code /risques-alignment} retourne {@code []} dans ce cas.</p>
+     */
+    @Column(name = "risques_alignment_json", columnDefinition = "TEXT")
+    private String risquesAlignmentJson;
+
+    /**
+     * F-195 SF-195-01 — score risque recomputé excluant les risques ÉCARTÉ par
+     * l'avocat (parallèle au {@code score_risque} IA brut). Le score IA brut
+     * reste inchangé dans {@link #riskScore} / {@link #riskLevel} (cohérence
+     * F-IA-02 stricte) ; F-195 produit un score "validé avocat" séparé pour
+     * permettre à l'UI d'afficher les 2 valeurs (transparence).
+     *
+     * <p>Schéma : objet
+     * {@code {"niveau":"FAIBLE|MOYEN|ELEVE","valeur":N,"totalRisques":N,
+     * "risquesValides":N,"risquesEcartes":N,"risquesACreuser":N,
+     * "scoreIaBrut":N,"niveauIaBrut":"..."}}.
+     */
+    @Column(name = "score_risque_avocat_json", columnDefinition = "TEXT")
+    private String scoreRisqueAvocatJson;
+
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 

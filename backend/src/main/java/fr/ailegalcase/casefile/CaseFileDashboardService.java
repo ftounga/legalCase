@@ -11,6 +11,10 @@ import fr.ailegalcase.analysis.ProcedureCheckAlignment;
 import fr.ailegalcase.analysis.ProcedureCheckAlignmentService;
 import fr.ailegalcase.analysis.RetainedPisteAlignment;
 import fr.ailegalcase.analysis.RetainedPisteAlignmentService;
+import fr.ailegalcase.analysis.RisqueAlignment;
+import fr.ailegalcase.analysis.RisqueAlignmentService;
+import fr.ailegalcase.analysis.RisqueStatus;
+import fr.ailegalcase.analysis.RisqueToolMatcher;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
@@ -135,6 +139,8 @@ public class CaseFileDashboardService {
     private final ProcedureCheckAlignmentService procedureCheckAlignmentService;
     // F-194 SF-194-01 — pièces manquantes markables matérialisées sur la dernière analyse DONE.
     private final PieceManquanteAlignmentService pieceManquanteAlignmentService;
+    // F-195 SF-195-01 — risques markables matérialisés sur la dernière analyse DONE.
+    private final RisqueAlignmentService risqueAlignmentService;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -228,7 +234,8 @@ public class CaseFileDashboardService {
                                      Belgian40terRepository belgian40terRepo,
                                      RetainedPisteAlignmentService retainedPisteAlignmentService,
                                      ProcedureCheckAlignmentService procedureCheckAlignmentService,
-                                     PieceManquanteAlignmentService pieceManquanteAlignmentService) {
+                                     PieceManquanteAlignmentService pieceManquanteAlignmentService,
+                                     RisqueAlignmentService risqueAlignmentService) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -323,6 +330,7 @@ public class CaseFileDashboardService {
         this.retainedPisteAlignmentService = retainedPisteAlignmentService;
         this.procedureCheckAlignmentService = procedureCheckAlignmentService;
         this.pieceManquanteAlignmentService = pieceManquanteAlignmentService;
+        this.risqueAlignmentService = risqueAlignmentService;
     }
 
     @Transactional(readOnly = true)
@@ -337,15 +345,19 @@ public class CaseFileDashboardService {
         // Risk score from latest analysis
         Integer riskScore = null;
         String riskLevel = null;
+        // F-195 SF-195-01 — score recomputé excluant ÉCARTÉ (parallèle, F-IA-02 préservé).
+        String scoreRisqueAvocatJson = null;
         var latestAnalysis = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
                 caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
         if (latestAnalysis.isPresent()) {
             riskScore = latestAnalysis.get().getRiskScore();
             riskLevel = latestAnalysis.get().getRiskLevel();
+            scoreRisqueAvocatJson = latestAnalysis.get().getScoreRisqueAvocatJson();
         }
 
         return new CaseFileDashboardResponse(
                 caseFileId, cf.getLegalDomain(), riskScore, riskLevel,
+                scoreRisqueAvocatJson,
                 assembleTiles(caseFileId)
         );
     }
@@ -456,6 +468,8 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromProcedureChecksAlignment(caseFileId));
         // ── F-194 SF-194-01 — pièces manquantes markables matérialisées ───
         addSafely(tiles, () -> tileFromPiecesManquantesAlignment(caseFileId));
+        // ── F-195 SF-195-01 — risques markables matérialisés ───────────────
+        addSafely(tiles, () -> tileFromRisquesAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
     }
@@ -618,6 +632,74 @@ public class CaseFileDashboardService {
                 "F-194-pieces-summary",
                 "DOCUMENTS",
                 "Pièces — état des demandes client",
+                primary,
+                secondary,
+                alertLevel);
+    }
+
+    /**
+     * F-195 SF-195-01 — Tile dashboard agrégeant les risques markables
+     * matérialisés sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code primaryValue} : N total risques matérialisés</li>
+     *   <li>{@code secondaryValue} : "X validés · Y écartés · Z à creuser"</li>
+     *   <li>{@code alertLevel = ALERT} si ≥ 1 VALIDÉ avec keyword critique
+     *       (harcèlement / violence / expulsion / dilapidation)</li>
+     *   <li>{@code alertLevel = OK} si tous les risques sont écartés</li>
+     *   <li>{@code alertLevel = WARNING} sinon (au moins un VALIDÉ ou À_CREUSER)</li>
+     * </ul>
+     *
+     * <p>Thème {@code DIAGNOSTIC} (cohérent F-192 — les risques relèvent du
+     * diagnostic, pas des délais ni des documents).</p>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-195 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromRisquesAlignment(UUID caseFileId) {
+        if (risqueAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<RisqueAlignment> alignments = risqueAlignmentService
+                .deserializeAlignment(latest.get().getRisquesAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long valides = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_VALIDE.equals(a.statut()))
+                .count();
+        long ecartes = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_ECARTE.equals(a.statut()))
+                .count();
+        long aCreuser = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_A_CREUSER.equals(a.statut()))
+                .count();
+
+        // alertLevel ALERT si ≥ 1 VALIDÉ avec keyword critique
+        boolean validatedCritical = alignments.stream()
+                .filter(a -> RisqueStatus.STATUT_VALIDE.equals(a.statut()))
+                .anyMatch(a -> RisqueToolMatcher.isCriticalKeyword(a.risqueLibelle()));
+
+        String alertLevel;
+        int total = alignments.size();
+        if (validatedCritical) {
+            alertLevel = "ALERT";
+        } else if (ecartes == total) {
+            alertLevel = "OK";
+        } else {
+            alertLevel = "WARNING";
+        }
+
+        String primary = total + " risque" + (total > 1 ? "s" : "");
+        String secondary = valides + " validé" + (valides > 1 ? "s" : "")
+                + " · " + ecartes + " écarté" + (ecartes > 1 ? "s" : "")
+                + " · " + aCreuser + " à creuser";
+
+        return new DashboardTile(
+                "F-195-risques-summary",
+                "DIAGNOSTIC",
+                "Risques — analyse avocat",
                 primary,
                 secondary,
                 alertLevel);
