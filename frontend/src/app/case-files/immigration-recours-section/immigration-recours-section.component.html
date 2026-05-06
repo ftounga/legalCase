@@ -134,10 +134,67 @@
             </div>
           }
 
+          <!-- F-192 SF-192-02 — Convergence : badge or « Retenu par vous »
+               sur le verdict du recours quand au moins une piste 🟢 retenue
+               est ALIGNED (priorité visuelle, à côté de la deadline). -->
+          @if (hasRetainedPistesAligned()) {
+            <div class="retained-badge-row" data-testid="retained-piste-aligned-badge">
+              <span class="rec-badge rec-badge--retenu">
+                <mat-icon>push_pin</mat-icon> Aligné avec une piste retenue par vous
+              </span>
+            </div>
+          }
+
           <div class="deadline-info">
             <mat-icon>schedule</mat-icon>
             <span>Date limite de dépôt : <strong>{{ recours()!.dateLimite }}</strong></span>
           </div>
+
+          <!-- F-192 SF-192-02 — Stratégies retenues par vous non recommandées
+               (DIVERGENT + NOT_ANALYZED). -->
+          @if (hasRetainedPistesNonRecommended()) {
+            <section class="td-subsection retained-pistes-divergent"
+                     data-testid="retained-pistes-divergent-block">
+              <header class="td-header">
+                <mat-icon>push_pin</mat-icon>
+                <span>Stratégies retenues par vous (non recommandées)</span>
+              </header>
+              @for (piste of retainedPistesDivergent(); track piste.pisteId) {
+                <article class="retained-piste-card retained-piste-card--divergent">
+                  <p class="retained-piste-texte">{{ piste.texte }}</p>
+                  @if (piste.baseJuridique) {
+                    <p class="retained-piste-base"><span class="retained-piste-label">Base juridique :</span>
+                      <code>{{ piste.baseJuridique }}</code>
+                    </p>
+                  }
+                  @if (piste.conditions.length > 0) {
+                    <ul class="retained-piste-conditions">
+                      @for (cond of piste.conditions; track cond) {
+                        <li>{{ cond }}</li>
+                      }
+                    </ul>
+                  }
+                  <p class="retained-piste-explain">
+                    Cette stratégie n'apparaît pas dans le top recommandé. Vérifiez les conditions ci-dessus.
+                  </p>
+                </article>
+              }
+              @for (piste of retainedPistesNotAnalyzed(); track piste.pisteId) {
+                <article class="retained-piste-card retained-piste-card--not-analyzed">
+                  <p class="retained-piste-texte">{{ piste.texte }}</p>
+                  @if (piste.baseJuridique) {
+                    <p class="retained-piste-base"><span class="retained-piste-label">Base juridique :</span>
+                      <code>{{ piste.baseJuridique }}</code>
+                    </p>
+                  }
+                  <p class="retained-piste-explain retained-piste-explain--pending">
+                    <mat-icon>hourglass_empty</mat-icon>
+                    Outil pas encore lancé — relancez l'analyse pour comparer.
+                  </p>
+                </article>
+              }
+            </section>
+          }
 
           <div class="document-section">
             <h4 class="doc-section-title">En-tête</h4>

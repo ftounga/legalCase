@@ -6,6 +6,18 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecisionToolSummary, MetierAlertLevel, formatSummary } from '../decision-tool-summary.model';
 
 /**
+ * F-192 SF-192-02 — Verdict du badge `🎯` affiché sur la card du panel
+ * F-IA-04 quand au moins une piste 🟢 RETAINED de la synthèse est mappée
+ * sur l'outil. Calculé via static `getRetainedPistesBadge` exposé par chaque
+ * composant outil instrumenté.
+ */
+export type RetainedPistesBadgeKind = 'aligned' | 'divergent' | 'none';
+export interface RetainedPistesBadgeInput {
+  kind: RetainedPistesBadgeKind;
+  count: number;
+}
+
+/**
  * F-177 SF-177-01 — Card réutilisable pour outil décisionnel.
  *
  * Rend un titre + verdict synthétique + jusqu'à 3 badges en coin (pré-fill IA, alerte F-IA-03,
@@ -33,6 +45,12 @@ export class DecisionToolCardComponent {
   @Input() prefillCount: number | null = null;
   @Input() coherenceAlertCount: number | null = null;
   @Input() metierAlertLevel: MetierAlertLevel | null = null;
+  /**
+   * F-192 SF-192-02 — Affiche un pill or `🎯 Aligné/Divergence stratégie
+   * retenue (N)` à côté du pill `auto_awesome` quand `kind ≠ 'none'`. `null`
+   * (composant non instrumenté) → pill silencieusement masqué.
+   */
+  @Input() retainedPistesBadge: RetainedPistesBadgeInput | null = null;
   @Input() disabled = false;
   @Input() flashing = false;
 
@@ -76,6 +94,36 @@ export class DecisionToolCardComponent {
 
   protected get coherenceTooltip(): string {
     return `${this.coherenceAlertCount} alerte(s) de cohérence IA`;
+  }
+
+  protected get showRetainedPistesBadge(): boolean {
+    return (
+      this.retainedPistesBadge !== null
+      && this.retainedPistesBadge.kind !== 'none'
+      && this.retainedPistesBadge.count > 0
+    );
+  }
+
+  protected get retainedPistesBadgeLabel(): string {
+    if (!this.retainedPistesBadge) return '';
+    const n = this.retainedPistesBadge.count;
+    return this.retainedPistesBadge.kind === 'aligned'
+      ? `Aligné stratégie retenue (${n})`
+      : `Divergence stratégie retenue (${n})`;
+  }
+
+  protected get retainedPistesBadgeTooltip(): string {
+    if (!this.retainedPistesBadge) return '';
+    return this.retainedPistesBadge.kind === 'aligned'
+      ? `${this.retainedPistesBadge.count} piste(s) 🟢 retenue(s) alignée(s) avec cet outil`
+      : `${this.retainedPistesBadge.count} piste(s) 🟢 retenue(s) divergente(s) du recommandé`;
+  }
+
+  protected get retainedPistesBadgeClass(): string {
+    if (!this.retainedPistesBadge) return '';
+    return this.retainedPistesBadge.kind === 'aligned'
+      ? 'tool-card__badge--retained-aligned'
+      : 'tool-card__badge--retained-divergent';
   }
 
   protected onClick(): void {

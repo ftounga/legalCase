@@ -19,6 +19,19 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+
+/**
+ * F-192 SF-192-02 — Verdict utilisé par la card du panel F-IA-04 pour afficher
+ * un pill or `🎯 Aligné`/`🎯 Divergence` à côté du pill `auto_awesome`. Calculé
+ * via static helper `getRetainedPistesBadge()` — pattern miroir `getPrefillCount`
+ * (SF-177-12), permet l'affichage AVANT instanciation du composant outil.
+ */
+export type RetainedPistesBadgeKind = 'aligned' | 'divergent' | 'none';
+export interface RetainedPistesBadge {
+  kind: RetainedPistesBadgeKind;
+  count: number;
+}
 
 const MOTIFS_ENUM = new Set(['TRAVAIL', 'ETUDES', 'FAMILLE', 'ASILE', 'AUTRE']);
 
@@ -161,6 +174,37 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     return count;
   }
 
+  /**
+   * F-192 SF-192-02 — Pattern miroir de `getPrefillCount` : permet au panel
+   * F-IA-04 d'afficher le pill or `🎯 Aligné stratégie retenue (N)` ou
+   * `🎯 Divergence stratégie retenue (N)` AVANT instanciation du composant.
+   *
+   * <p>Règles V1 :
+   * <ul>
+   *   <li>0 piste avec `toolIdCible = F-IM-05-arbre-decisionnel-titre` →
+   *   `kind = 'none'`, `count = 0`.</li>
+   *   <li>≥ 1 piste `DIVERGENT` (priorité) → `kind = 'divergent'`,
+   *   `count = total filtré sur ce tool` (ALIGNED + DIVERGENT + NOT_ANALYZED).</li>
+   *   <li>≥ 1 piste `ALIGNED` et 0 DIVERGENT → `kind = 'aligned'`,
+   *   `count = total filtré`.</li>
+   *   <li>Que des `NOT_ANALYZED` → `kind = 'none'` (pas encore comparé).</li>
+   * </ul></p>
+   */
+  static getRetainedPistesBadge(input: {
+    pistesRetenues?: RetainedPisteAlignment[] | null;
+  }): RetainedPistesBadge {
+    const all = Array.isArray(input.pistesRetenues) ? input.pistesRetenues : [];
+    const filtered = all.filter(
+      p => p.toolIdCible === 'F-IM-05-arbre-decisionnel-titre',
+    );
+    if (filtered.length === 0) return { kind: 'none', count: 0 };
+    const hasDivergent = filtered.some(p => p.matchStatus === 'DIVERGENT');
+    const hasAligned = filtered.some(p => p.matchStatus === 'ALIGNED');
+    if (hasDivergent) return { kind: 'divergent', count: filtered.length };
+    if (hasAligned) return { kind: 'aligned', count: filtered.length };
+    return { kind: 'none', count: 0 };
+  }
+
   @Input() caseFileId!: string;
   @Input() aiData?: ImmigrationExtractedData | null;
   /** SF-IM-05-04 : événements déclencheurs F-150 — priorité sur aiData pour déduire motif+situation. */
@@ -168,6 +212,14 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /**
+   * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec
+   * l'outil F-IM-05. Pré-filtré côté panel via `TOOL_REGISTRY.inputs(ctx)`
+   * sur `toolIdCible === 'F-IM-05-arbre-decisionnel-titre'`. Affichage pur :
+   * la sortie outil affiche les badges/blocs « Stratégies retenues par vous »
+   * sans modifier le formulaire ni la décision IA.
+   */
+  @Input() pistesRetenues?: RetainedPisteAlignment[] | null;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 
@@ -260,6 +312,23 @@ export class ImmigrationTitleDecisionSectionComponent implements OnInit, OnChang
     const values = Object.values(this.coherenceAlerts());
     return { total: values.length, blockers: 0 };
   });
+
+  // F-192 SF-192-02 — pistes retenues filtrées par matchStatus pour la sortie outil.
+  // Les @Input changent par référence ; on lit `this.pistesRetenues` directement
+  // (les computed sont recalculés à chaque CD via les signals d'inputs ci-dessus).
+  retainedPistesAligned = computed(() =>
+    (this.pistesRetenues ?? []).filter(p => p.matchStatus === 'ALIGNED'),
+  );
+  retainedPistesDivergent = computed(() =>
+    (this.pistesRetenues ?? []).filter(p => p.matchStatus === 'DIVERGENT'),
+  );
+  retainedPistesNotAnalyzed = computed(() =>
+    (this.pistesRetenues ?? []).filter(p => p.matchStatus === 'NOT_ANALYZED'),
+  );
+  hasRetainedPistesAligned = computed(() => this.retainedPistesAligned().length > 0);
+  hasRetainedPistesNonRecommended = computed(
+    () => this.retainedPistesDivergent().length + this.retainedPistesNotAnalyzed().length > 0,
+  );
 
   ngOnInit(): void {
     // F-177 SF-177-03b : appliqué dès le mount pour le mode modal.

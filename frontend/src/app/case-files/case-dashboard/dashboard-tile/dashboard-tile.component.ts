@@ -38,6 +38,12 @@ export class DashboardTileComponent {
   @Output() open = new EventEmitter<string>();
 
   iconForTheme(theme: string): string {
+    // F-192 SF-192-02 — la tile résumé pistes retenues utilise une icône
+    // dédiée (push_pin) pour signal visuel cohérent avec les badges or des
+    // sorties outils + pills cards panel F-IA-04.
+    if (this.tile?.toolId === 'RETAINED_PISTES_SUMMARY') {
+      return 'push_pin';
+    }
     switch (theme) {
       case 'INDEMNITES':
         return 'euro';

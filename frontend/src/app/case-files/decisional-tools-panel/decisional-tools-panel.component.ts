@@ -22,6 +22,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
+import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
 import { DecisionToolCardComponent } from './decision-tool-card/decision-tool-card.component';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
 import { DecisionalToolsProgressBannerComponent } from './decisional-tools-progress-banner.component';
@@ -130,6 +133,13 @@ export interface DecisionToolContext {
   caseFileTitle: string;
   procedureChecks: any[];
   aiQuestions: any[];
+  /**
+   * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec les
+   * outils décisionnels. Lu via `RetainedPisteAlignmentService` au montage du
+   * dossier ; rafraîchi à la réception de l'event SSE `ENRICHED_ANALYSIS DONE`
+   * via `CaseDashboardRefreshService` (cohérence F-176 stricte).
+   */
+  pistesRetenues?: import('../../core/models/retained-piste-alignment.model').RetainedPisteAlignment[];
 }
 
 export interface DecisionToolRegistryEntry {
@@ -170,6 +180,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
+  private readonly retainedPistesService = inject(RetainedPisteAlignmentService, { optional: true });
   private readonly modalService = inject(DecisionToolModalService);
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
@@ -185,6 +196,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
 
   readonly loading = signal(false);
   readonly visibility = signal<VisibleToolSet | null>(null);
+
+  /**
+   * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec les
+   * outils décisionnels. Cache local. Refresh : (1) au mount du dossier,
+   * (2) à chaque émission `CaseDashboardRefreshService.refresh$` (qui est lui-
+   * même déclenché à la fin du run de Synthèse enrichie via les events SSE
+   * F-185/F-190 — cohérence F-176 stricte).
+   */
+  readonly retainedPistes = signal<RetainedPisteAlignment[]>([]);
 
   /**
    * Registre des outils décisionnels. Chaque entrée déclare son composant
@@ -562,6 +582,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-192 SF-192-02 : pistes 🟢 RETAINED filtrées sur cet outil.
+          pistesRetenues: (ctx.pistesRetenues ?? []).filter(
+            p => p.toolIdCible === 'F-IM-05-arbre-decisionnel-titre',
+          ),
         }),
       }],
       ['F-IM-06-recours', {
@@ -573,6 +597,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-192 SF-192-02 : pistes 🟢 RETAINED filtrées sur cet outil.
+          pistesRetenues: (ctx.pistesRetenues ?? []).filter(
+            p => p.toolIdCible === 'F-IM-06-recours',
+          ),
         }),
       }],
       ['F-IM-07-droit-au-travail', {
@@ -1440,6 +1468,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     if (this.caseFileId) {
       this.loadVisibility(true);
+      this.loadRetainedPistes();
     }
     if (this.refreshService) {
       this.refreshService.refresh$
@@ -1447,6 +1476,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         .subscribe(() => {
           if (this.caseFileId) {
             this.loadVisibility(false);
+            // F-192 SF-192-02 — re-fetch alignement à chaque run de Synthèse
+            // enrichie (cohérence F-176 stricte). Le PUT statut piste ne
+            // déclenche PAS triggerRefresh (cf. CA-12), donc le re-fetch ici
+            // ne s'enclenche que post-analyse — comportement voulu.
+            this.loadRetainedPistes();
           }
         });
     }
@@ -1455,7 +1489,26 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['caseFileId'] && !changes['caseFileId'].firstChange && this.caseFileId) {
       this.loadVisibility(true);
+      this.loadRetainedPistes();
     }
+  }
+
+  /**
+   * F-192 SF-192-02 — Charge l'alignement persisté côté backend. Fail-open :
+   * `[]` si endpoint indisponible (le service log un warn). OnPush-safe :
+   * mutation via `signal.set()` qui déclenche la CD nativement.
+   */
+  private loadRetainedPistes(): void {
+    if (!this.retainedPistesService) {
+      this.retainedPistes.set([]);
+      return;
+    }
+    this.retainedPistesService.getForCaseFile(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => this.retainedPistes.set(list),
+        error: () => this.retainedPistes.set([]),
+      });
   }
 
   private loadVisibility(showSpinner: boolean): void {
@@ -1557,7 +1610,33 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       caseFileTitle: this.caseFileTitle,
       procedureChecks: this.procedureChecks,
       aiQuestions: this.aiQuestions,
+      // F-192 SF-192-02 : alignement chargé via RetainedPisteAlignmentService.
+      pistesRetenues: this.retainedPistes(),
     });
+  }
+
+  /**
+   * F-192 SF-192-02 — Badge piste 🟢 retenue à afficher sur la card du panel
+   * pour un toolId. Lit le static `getRetainedPistesBadge` (s'il existe) du
+   * composant outil. Retourne `null` si :
+   *   - le composant n'est pas instrumenté SF-192-02 (forward-compat),
+   *   - ou aucune piste ne mappe ce toolId,
+   *   - ou le static throw (log 1× via try/catch).
+   */
+  retainedPistesBadgeFor(toolId: string): RetainedPistesBadge | null {
+    const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
+    if (!entry) return null;
+    const candidate = entry.component as unknown as {
+      getRetainedPistesBadge?: (input: { pistesRetenues?: RetainedPisteAlignment[] }) => RetainedPistesBadge;
+    };
+    if (typeof candidate.getRetainedPistesBadge !== 'function') return null;
+    try {
+      const badge = candidate.getRetainedPistesBadge({ pistesRetenues: this.retainedPistes() });
+      if (!badge || badge.kind === 'none' || badge.count <= 0) return null;
+      return badge;
+    } catch {
+      return null;
+    }
   }
 
   /**

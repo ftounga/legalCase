@@ -198,6 +198,54 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('F-192 SF-192-02 — pill or pistes retenues', () => {
+    it('CA-07 aligned : pill or visible avec count quand kind=aligned', () => {
+      component.retainedPistesBadge = { kind: 'aligned', count: 3 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--retained-aligned')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('3');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('push_pin');
+    });
+
+    it('CA-07 divergent : pill or contour visible quand kind=divergent', () => {
+      component.retainedPistesBadge = { kind: 'divergent', count: 2 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--retained-divergent')).toBe(true);
+    });
+
+    it('CA-07 none : pill absent quand kind=none', () => {
+      component.retainedPistesBadge = { kind: 'none', count: 0 };
+      fixture.detectChanges();
+      expect(badge('[data-testid="retained-pistes-badge"]')).toBeNull();
+    });
+
+    it('CA-07 null : pill absent quand input null', () => {
+      component.retainedPistesBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="retained-pistes-badge"]')).toBeNull();
+    });
+
+    it('CA-07 aria-label aligned reflète le count', () => {
+      component.retainedPistesBadge = { kind: 'aligned', count: 4 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe('Aligné stratégie retenue (4)');
+    });
+
+    it('CA-07 aria-label divergent reflète le count', () => {
+      component.retainedPistesBadge = { kind: 'divergent', count: 1 };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="retained-pistes-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe('Divergence stratégie retenue (1)');
+    });
+  });
+
   describe('SF-159-02 — flashing input', () => {
     it('ajoute la classe tool-card--flashing quand flashing=true', () => {
       component.flashing = true;
