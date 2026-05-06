@@ -12,6 +12,7 @@ import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
 import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
 import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
 import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
+import { RisqueAlignment } from '../models/risque-alignment.model';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -25,6 +26,17 @@ const BG = '#F5F6FA';
 // F-194 SF-194-03 — fond or léger (teinte claire d'ACCENT) pour le bandeau
 // titre proéminent de la section « 📎 Pièces à demander au client ».
 const PIECES_BG = '#FBF4E2';
+// F-195 SF-195-03 — keywords critiques qui amplifient visuellement un risque
+// VALIDÉ (pictogramme 🔴 + liseré rouge `ERROR` au lieu du ⚠️ + or par défaut).
+// Liste alignée sur le mapping `RisqueToolMatcher` SF-195-01 (harcèlement →
+// F-DT-12, violence → F-FA-14, expulsion → F-IM-08, dilapidation → F-FA-15).
+const RISQUE_CRITICAL_KEYWORDS = [
+  'harcèlement',
+  'harcelement',
+  'violence',
+  'expulsion',
+  'dilapidation',
+];
 
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
@@ -36,6 +48,7 @@ export class PdfExportService {
     toolLabelResolver?: (toolId: string) => string | null,
     procedureChecksAlignment?: ProcedureCheckAlignment[],
     piecesAlignment?: PieceManquanteAlignment[],
+    risquesAlignment?: RisqueAlignment[],
   ): void {
     import('pdfmake/build/pdfmake').then(pdfMakeModule => {
       import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
@@ -50,6 +63,7 @@ export class PdfExportService {
           toolLabelResolver,
           procedureChecksAlignment,
           piecesAlignment,
+          risquesAlignment,
         ) as TDocumentDefinitions;
         const fileName = this.buildFileName(caseFile.title, synthesis);
         pdfMake.createPdf(docDefinition).download(fileName);
@@ -64,6 +78,7 @@ export class PdfExportService {
     toolLabelResolver?: (toolId: string) => string | null,
     procedureChecksAlignment?: ProcedureCheckAlignment[],
     piecesAlignment?: PieceManquanteAlignment[],
+    risquesAlignment?: RisqueAlignment[],
   ): object {
     const isEnriched = synthesis.analysisType === 'ENRICHED';
     const exportDate = new Date().toLocaleDateString('fr-FR', {
@@ -79,6 +94,7 @@ export class PdfExportService {
       ...this.buildStrategiesRetenuesSection(retainedPistes, toolLabelResolver),
       ...this.buildProcedureChecksSection(procedureChecksAlignment, toolLabelResolver),
       ...this.buildPiecesADemanderSection(piecesAlignment, toolLabelResolver),
+      ...this.buildRisquesValidesSection(risquesAlignment, synthesis, toolLabelResolver),
       ...this.buildSections(synthesis),
     ];
 
@@ -705,6 +721,230 @@ export class PdfExportService {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
     return `${dd}/${mm}/${yyyy}`;
+  }
+
+  /**
+   * F-195 SF-195-03 — Section « ⚠️ Risques retenus par votre avocat »
+   * insérée APRÈS la section « 📎 Pièces à demander » F-194 et AVANT la
+   * chronologie / faits / etc.
+   *
+   * Comportement :
+   *   - `risquesAlignment` vide ou non fourni → tableau vide (section
+   *     omise, fail-open).
+   *   - Aucun risque statut VALIDÉ → section omise (cas nominal — les
+   *     risques À_CREUSER restent affichés dans le bloc « Risques »
+   *     classique de la synthèse, les ÉCARTÉ sont consultables là aussi
+   *     mais non mis en évidence ici).
+   *   - ≥ 1 risque VALIDÉ → bloc par risque (libellé Inter 11 + suffixe
+   *     `→ <label outil>` JetBrainsMono italique 9 si toolIdsCibles[0] est
+   *     non null). Liseré or à gauche par défaut, liseré rouge `ERROR` si
+   *     keyword critique (harcèlement / violence / expulsion /
+   *     dilapidation) — pictogramme `🔴` au lieu de `⚠️` dans ce cas.
+   *   - Sous-titre « Score validé avocat : Y / 100 (vs IA brut : X / 100) »
+   *     affiché si `synthesis.riskScore` ou `synthesis.riskScoreAvocat`
+   *     présents (cohérent CA-03 mini-spec — fail-open si l'un absent).
+   *
+   * Fail-open indépendant : l'échec des sections F-192 / F-193 / F-194
+   * n'empêche pas la section F-195 — chacune est conditionnée à son propre
+   * tableau.
+   */
+  private buildRisquesValidesSection(
+    risquesAlignment: RisqueAlignment[] | undefined | null,
+    synthesis: CaseAnalysisResult,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!risquesAlignment || risquesAlignment.length === 0) {
+      return [];
+    }
+
+    const valides = risquesAlignment.filter(r => r.statut === 'VALIDE');
+    const ecartes = risquesAlignment.filter(r => r.statut === 'ECARTE');
+
+    if (valides.length === 0) {
+      // Cas nominal : aucun risque retenu → section omise (les écartés
+      // n'ont pas de mise en évidence dédiée — restent visibles dans la
+      // synthèse normale).
+      return [];
+    }
+
+    const sections: object[] = [];
+
+    // Titre proéminent (taille 16 bold navy, cohérent mini-spec) + liseré
+    // or léger (rouge réservé aux cas keyword critique uniquement, par
+    // ligne de risque — palette charte navy/or par défaut).
+    sections.push({
+      table: {
+        widths: ['*'],
+        body: [[{
+          text: '⚠️ Risques retenus par votre avocat',
+          fontSize: 16,
+          bold: true,
+          color: PRIMARY,
+          margin: [12, 8, 12, 8],
+          fillColor: SURFACE,
+        }]],
+      },
+      layout: {
+        hLineWidth: () => 0.8,
+        vLineWidth: () => 0.8,
+        hLineColor: () => ACCENT,
+        vLineColor: () => ACCENT,
+      },
+      margin: [0, 0, 0, 8],
+    });
+
+    // Sous-titre score validé / IA brut si l'un des deux est dispo (CA-03)
+    const scoreSubtitle = this.formatRisqueScoreSubtitle(synthesis);
+    if (scoreSubtitle) {
+      sections.push({
+        text: scoreSubtitle,
+        font: 'JetBrainsMono',
+        fontSize: 11,
+        color: TEXT_SECONDARY,
+        margin: [0, 0, 0, 12],
+      });
+    }
+
+    // Un bloc par risque VALIDÉ : pictogramme + libellé + suffixe outil.
+    valides.forEach((risque, idx) => {
+      const isCritical = this.isRisqueCritical(risque.risqueLibelle);
+      sections.push(this.buildRisqueValideBloc(risque, isCritical, toolLabelResolver, idx));
+    });
+
+    // Sous-bloc compteur ÉCARTÉS (cohérent F-194 — pas de liste détaillée
+    // pour ne pas allonger inutilement le PDF).
+    if (ecartes.length > 0) {
+      sections.push({
+        text: `❌ Risques écartés : ${ecartes.length}`,
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 8, 0, 0],
+      });
+    }
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+
+    return sections;
+  }
+
+  /**
+   * F-195 SF-195-03 — bloc visuel pour un risque VALIDÉ.
+   *
+   * Liseré or à gauche par défaut (charte navy/or), liseré rouge `ERROR`
+   * + pictogramme `🔴` quand le libellé contient un keyword critique
+   * (harcèlement / violence / expulsion / dilapidation) — palette rouge
+   * réservée aux alertes critiques (DESIGN_SYSTEM.md).
+   */
+  private buildRisqueValideBloc(
+    risque: RisqueAlignment,
+    isCritical: boolean,
+    toolLabelResolver: ((toolId: string) => string | null) | undefined,
+    idx: number,
+  ): object {
+    const borderColor = isCritical ? ERROR : ACCENT;
+    const fillColor = idx % 2 === 0 ? BG : SURFACE;
+    const picto = isCritical ? '🔴' : '⚠️';
+
+    const stack: object[] = [
+      {
+        columns: [
+          {
+            width: 22,
+            text: picto,
+            fontSize: 12,
+            margin: [0, 1, 0, 0],
+          },
+          {
+            width: '*',
+            text: risque.risqueLibelle,
+            fontSize: 11,
+            color: TEXT,
+          },
+        ],
+      },
+    ];
+
+    const firstToolId = (risque.toolIdsCibles && risque.toolIdsCibles.length > 0)
+      ? risque.toolIdsCibles[0]
+      : null;
+    if (firstToolId) {
+      const resolvedLabel = toolLabelResolver ? toolLabelResolver(firstToolId) : null;
+      const label = (resolvedLabel && resolvedLabel.trim().length > 0)
+        ? resolvedLabel
+        : firstToolId;
+      stack.push({
+        text: `→ ${label}`,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [22, 2, 0, 0],
+      });
+    }
+
+    // Liseré or (ou rouge) à gauche du bloc (cellule étroite teintée).
+    return {
+      table: {
+        widths: [3, '*'],
+        body: [[
+          { text: '', fillColor: borderColor, border: [false, false, false, false] },
+          { stack, fillColor, margin: [8, 6, 8, 6], border: [false, false, false, false] },
+        ]],
+      },
+      layout: {
+        hLineWidth: () => 0,
+        vLineWidth: () => 0,
+        paddingLeft: () => 0,
+        paddingRight: () => 0,
+        paddingTop: () => 0,
+        paddingBottom: () => 0,
+      },
+      margin: [0, 0, 0, 4],
+    };
+  }
+
+  /**
+   * F-195 SF-195-03 — détecte si un libellé de risque contient un keyword
+   * critique (insensible à la casse + à la diacritique pour
+   * « harcèlement » / « harcelement »). Cohérent avec
+   * `RisqueToolMatcher` SF-195-01.
+   */
+  private isRisqueCritical(libelle: string): boolean {
+    if (!libelle) return false;
+    const lower = libelle.toLowerCase();
+    return RISQUE_CRITICAL_KEYWORDS.some(k => lower.includes(k));
+  }
+
+  /**
+   * F-195 SF-195-03 — produit le sous-titre score validé avocat / IA brut
+   * si l'un des deux scores est disponible. Le champ optionnel
+   * `riskScoreAvocat` est lu de façon défensive (le backend SF-195-01 peut
+   * ne pas être encore mergé — fail-open : sous-titre omis).
+   *
+   * Format :
+   *   - Les deux présents : « Score validé avocat : Y / 100 (vs IA brut : X / 100) »
+   *   - Avocat seul       : « Score validé avocat : Y / 100 »
+   *   - IA brut seul      : « Score IA brut : X / 100 »
+   *   - Aucun             : null (sous-titre omis)
+   */
+  private formatRisqueScoreSubtitle(synthesis: CaseAnalysisResult): string | null {
+    const ia = synthesis?.riskScore;
+    // Le champ `riskScoreAvocat` peut ne pas exister sur le type V1 ; on
+    // l'accède de façon défensive (fail-open en attendant SF-195-01).
+    const avocat = (synthesis as unknown as { riskScoreAvocat?: number | null })?.riskScoreAvocat;
+    const iaPresent = typeof ia === 'number' && Number.isFinite(ia);
+    const avocatPresent = typeof avocat === 'number' && Number.isFinite(avocat);
+    if (avocatPresent && iaPresent) {
+      return `Score validé avocat : ${avocat} / 100 (vs IA brut : ${ia} / 100)`;
+    }
+    if (avocatPresent) {
+      return `Score validé avocat : ${avocat} / 100`;
+    }
+    if (iaPresent) {
+      return `Score IA brut : ${ia} / 100`;
+    }
+    return null;
   }
 
   private buildSections(synthesis: CaseAnalysisResult): object[] {
