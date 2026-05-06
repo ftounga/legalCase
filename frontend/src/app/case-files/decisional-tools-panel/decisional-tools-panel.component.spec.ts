@@ -36,7 +36,17 @@ describe('DecisionToolsPanelComponent', () => {
     component.caseFileId = CASE_FILE_ID;
   });
 
+  // F-192 SF-192-02 — le panel charge aussi `retained-pistes-alignment` au mount.
+  // Les tests qui ne s'en occupent pas directement laissent l'appel ouvert :
+  // on le flush silencieusement via afterEach pour préserver `httpMock.verify()`.
   afterEach(() => {
+    httpMock.match(r => r.url.endsWith('/retained-pistes-alignment'))
+      .forEach(r => {
+        // takeUntilDestroyed peut canceller la requête avant le flush ; on
+        // l'ignore (pas de leak réel, les requêtes cancellées ne polluent
+        // pas verify()).
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
     httpMock.verify();
   });
 
@@ -428,7 +438,17 @@ describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRe
     component.caseFileId = CASE_FILE_ID;
   });
 
+  // F-192 SF-192-02 — le panel charge aussi `retained-pistes-alignment` au mount.
+  // Les tests qui ne s'en occupent pas directement laissent l'appel ouvert :
+  // on le flush silencieusement via afterEach pour préserver `httpMock.verify()`.
   afterEach(() => {
+    httpMock.match(r => r.url.endsWith('/retained-pistes-alignment'))
+      .forEach(r => {
+        // takeUntilDestroyed peut canceller la requête avant le flush ; on
+        // l'ignore (pas de leak réel, les requêtes cancellées ne polluent
+        // pas verify()).
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
     httpMock.verify();
   });
 

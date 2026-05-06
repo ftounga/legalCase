@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { Router } from '@angular/router';
 import { CaseDashboardComponent } from './case-dashboard.component';
 import { CaseDashboardService } from '../../core/services/case-dashboard.service';
 import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
@@ -40,6 +41,7 @@ describe('CaseDashboardComponent — refresh integration (SF-IA-02-03)', () => {
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: CaseDashboardRefreshService, useValue: refreshService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -153,6 +155,7 @@ describe('CaseDashboardComponent — SF-167-05 grouping + sort + empty state', (
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -258,6 +261,7 @@ describe('CaseDashboardComponent — SF-184-01 verdictsCount', () => {
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -343,6 +347,7 @@ describe('CaseDashboardComponent — openGenericTool (SF-167-01 / SF-167-05)', (
         provideNoopAnimations(),
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
       ],
     }).compileComponents();
 
@@ -370,5 +375,74 @@ describe('CaseDashboardComponent — openGenericTool (SF-167-01 / SF-167-05)', (
     expect(modalService.open).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
+  });
+});
+
+// F-192 SF-192-02 — tile RETAINED_PISTES_SUMMARY rendue + clic navigation
+// vers /synthesis#section-pistes (pas d'ouverture modal d'outil).
+describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY tile', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+
+  const dashboardWithRetained: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'IMMIGRATION',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'RETAINED_PISTES_SUMMARY',
+        theme: 'DIAGNOSTIC',
+        label: 'Stratégies retenues',
+        primaryValue: '3 retenues',
+        secondaryValue: '1 en divergence',
+        alertLevel: 'WARNING',
+      },
+    ],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithRetained)) } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    router = { navigate: jest.fn() } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: router },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+  });
+
+  it('CA-08 tile RETAINED_PISTES_SUMMARY rendue dans le thème DIAGNOSTIC', () => {
+    fixture.detectChanges();
+    const sections = component.themeSections();
+    const diag = sections.find(s => s.key === 'DIAGNOSTIC');
+    expect(diag).toBeDefined();
+    expect(diag!.tiles[0].toolId).toBe('RETAINED_PISTES_SUMMARY');
+    expect(diag!.tiles[0].label).toBe('Stratégies retenues');
+    const html: string = fixture.nativeElement.innerHTML;
+    expect(html).toContain('Stratégies retenues');
+  });
+
+  it('CA-09 clic tile RETAINED_PISTES_SUMMARY → router.navigate vers /synthesis#section-pistes', () => {
+    fixture.detectChanges();
+    component.openGenericTool('RETAINED_PISTES_SUMMARY');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-pistes' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
   });
 });

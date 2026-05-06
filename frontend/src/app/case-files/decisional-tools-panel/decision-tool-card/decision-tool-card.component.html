@@ -23,6 +23,16 @@
           <span class="tool-card__badge-count">{{ prefillCount }}</span>
         </span>
       }
+      @if (showRetainedPistesBadge) {
+        <span
+          [ngClass]="['tool-card__badge', 'tool-card__badge--retained', retainedPistesBadgeClass]"
+          [matTooltip]="retainedPistesBadgeTooltip"
+          [attr.aria-label]="retainedPistesBadgeLabel"
+          data-testid="retained-pistes-badge">
+          <mat-icon aria-hidden="true">push_pin</mat-icon>
+          <span class="tool-card__badge-count">{{ retainedPistesBadge!.count }}</span>
+        </span>
+      }
       @if (showCoherenceBadge) {
         <span
           class="tool-card__badge tool-card__badge--coherence"

@@ -422,3 +422,152 @@ describe('ImmigrationTitleDecisionSectionComponent.getPrefillCount', () => {
     ).toBe(2); // motif + situationFamiliale (no nationaliteUe → no aiData)
   });
 });
+
+// F-192 SF-192-02 — sortie outil enrichie (badge top-1 + bloc pistes
+// retenues non recommandées) + helper getRetainedPistesBadge.
+describe('ImmigrationTitleDecisionSectionComponent — F-192 SF-192-02', () => {
+  let component: ImmigrationTitleDecisionSectionComponent;
+  let fixture: ComponentFixture<ImmigrationTitleDecisionSectionComponent>;
+  let httpMock: HttpTestingController;
+
+  const CASE_FILE_ID = '11111111-1111-1111-1111-111111111111';
+  const API_URL = `/api/v1/case-files/${CASE_FILE_ID}/immigration/title-decision`;
+  const MOCK_RESPONSE = {
+    caseFileId: CASE_FILE_ID,
+    country: 'FRANCE',
+    nationaliteUe: false,
+    motif: 'TRAVAIL',
+    duree: 'LONG_SEJOUR',
+    situationFamiliale: null,
+    recommendations: [{
+      code: 'CARTE_PLURIANNUELLE_PASSEPORT_TALENT',
+      label: 'Passeport talent — Chercheur',
+      country: 'FRANCE',
+      motif: 'TRAVAIL',
+      conditions: 'Doctorat',
+      pieces: ['Diplôme'],
+      delaiMoyenJours: 90,
+    }],
+  };
+
+  const PISTE_ALIGNED = {
+    pisteId: 'p1',
+    texte: 'Demander Passeport Talent — Chercheur',
+    baseJuridique: 'L.421-14 CESEDA',
+    horizonTemporel: 'Court terme',
+    conditions: ['Doctorat obtenu'],
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'ALIGNED' as const,
+  };
+  const PISTE_DIVERGENT = {
+    pisteId: 'p2',
+    texte: 'Tenter régularisation 10 ans',
+    baseJuridique: 'L.435-1 CESEDA',
+    horizonTemporel: 'Long terme',
+    conditions: ['Présence > 10 ans'],
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'DIVERGENT' as const,
+  };
+  const PISTE_NOT_ANALYZED = {
+    pisteId: 'p3',
+    texte: 'Demander VLS-TS Salarié',
+    baseJuridique: null,
+    horizonTemporel: null,
+    conditions: [],
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+    matchStatus: 'NOT_ANALYZED' as const,
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ImmigrationTitleDecisionSectionComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideAnimationsAsync(),
+      ],
+    }).compileComponents();
+    httpMock = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(ImmigrationTitleDecisionSectionComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = CASE_FILE_ID;
+  });
+
+  afterEach(() => httpMock.verify());
+
+  function initWithDecision(): void {
+    fixture.detectChanges();
+    httpMock.expectOne(API_URL).flush(MOCK_RESPONSE);
+    httpMock.match(r => r.url.endsWith('/source-explanations')).forEach(r => r.flush([]));
+    component.collapsed.set(false);
+    fixture.detectChanges();
+  }
+
+  it('CA-04 sans pistes : aucun bloc supplémentaire ni badge or', () => {
+    component.pistesRetenues = [];
+    initWithDecision();
+    const native: HTMLElement = fixture.nativeElement;
+    expect(native.querySelector('[data-testid="retained-piste-aligned-badge"]')).toBeNull();
+    expect(native.querySelector('[data-testid="retained-pistes-divergent-block"]')).toBeNull();
+  });
+
+  it('CA-02 convergence ALIGNED : badge or « Retenu par vous » sur top-1 + pas de bloc divergent', () => {
+    component.pistesRetenues = [PISTE_ALIGNED];
+    initWithDecision();
+    expect(component.hasRetainedPistesAligned()).toBe(true);
+    const native: HTMLElement = fixture.nativeElement;
+    expect(native.querySelector('[data-testid="retained-piste-aligned-badge"]')).not.toBeNull();
+    expect(native.querySelector('[data-testid="retained-pistes-divergent-block"]')).toBeNull();
+  });
+
+  it('CA-03 divergence DIVERGENT : bloc « Stratégies retenues par vous (non recommandées) » rendu', () => {
+    component.pistesRetenues = [PISTE_DIVERGENT];
+    initWithDecision();
+    const native: HTMLElement = fixture.nativeElement;
+    const block = native.querySelector('[data-testid="retained-pistes-divergent-block"]');
+    expect(block).not.toBeNull();
+    expect(block!.textContent).toContain('Tenter régularisation 10 ans');
+    expect(block!.textContent).toContain('L.435-1 CESEDA');
+    expect(block!.textContent).toContain("Cette stratégie n'apparaît pas dans le top recommandé");
+  });
+
+  it('CA-05 NOT_ANALYZED : mention « Outil pas encore lancé »', () => {
+    component.pistesRetenues = [PISTE_NOT_ANALYZED];
+    initWithDecision();
+    const native: HTMLElement = fixture.nativeElement;
+    const block = native.querySelector('[data-testid="retained-pistes-divergent-block"]');
+    expect(block).not.toBeNull();
+    expect(block!.textContent).toContain('Outil pas encore lancé');
+  });
+
+  // getRetainedPistesBadge static helper (pattern miroir getPrefillCount).
+  it('getRetainedPistesBadge — 0 piste → kind=none, count=0', () => {
+    expect(ImmigrationTitleDecisionSectionComponent.getRetainedPistesBadge({})).toEqual({
+      kind: 'none', count: 0,
+    });
+  });
+
+  it('getRetainedPistesBadge — 2 ALIGNED → kind=aligned, count=2', () => {
+    expect(
+      ImmigrationTitleDecisionSectionComponent.getRetainedPistesBadge({
+        pistesRetenues: [PISTE_ALIGNED, { ...PISTE_ALIGNED, pisteId: 'pX' }],
+      }),
+    ).toEqual({ kind: 'aligned', count: 2 });
+  });
+
+  it('getRetainedPistesBadge — 1 ALIGNED + 1 DIVERGENT → kind=divergent (priorité), count=2', () => {
+    expect(
+      ImmigrationTitleDecisionSectionComponent.getRetainedPistesBadge({
+        pistesRetenues: [PISTE_ALIGNED, PISTE_DIVERGENT],
+      }),
+    ).toEqual({ kind: 'divergent', count: 2 });
+  });
+
+  it('getRetainedPistesBadge — pistes mappées sur autre toolId ignorées', () => {
+    expect(
+      ImmigrationTitleDecisionSectionComponent.getRetainedPistesBadge({
+        pistesRetenues: [{ ...PISTE_ALIGNED, toolIdCible: 'F-IM-06-recours' }],
+      }),
+    ).toEqual({ kind: 'none', count: 0 });
+  });
+});
