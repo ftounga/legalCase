@@ -41,6 +41,18 @@ import { RisqueStatusService } from '../../core/services/risque-status.service';
 import { RisqueStatutValue } from '../../core/models/risque-status.model';
 import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
+import {
+  TypeLitigeOverrideResponse,
+  TypeLitigeOverrideDomain,
+  TYPE_LITIGE_TRAVAIL_FR_LABELS,
+  TYPE_PROCEDURE_IMMIGRATION_LABELS,
+  resolveOverrideDomain,
+} from '../../core/models/type-litige-override.model';
+import {
+  TypeLitigeOverrideDialogComponent,
+  TypeLitigeOverrideDialogData,
+} from './type-litige-override-dialog/type-litige-override-dialog.component';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
@@ -77,6 +89,19 @@ interface SynthesisBadge {
   anchor: string;
   route?: string[];
   popup?: 'pieces' | 'questions-ouvertes';
+  /**
+   * F-197 SF-197-02 — pour le badge "Type de litige" : valeur affichée
+   * (libellé FR du type retenu). Si {@code overridden} est `true`, le badge
+   * affiche le badge or "modifié par vous" et l'icône `edit_note`.
+   */
+  valueLabel?: string | null;
+  overridden?: boolean;
+  /**
+   * F-197 SF-197-02 — déclencheur d'ouverture du dialog override. Distinct
+   * de {@code popup} (pour les blocs courts) et de {@code route} (pages
+   * dédiées) — précédence : dialog > popup > route > anchor.
+   */
+  dialog?: 'type-litige-override';
 }
 
 /**
@@ -210,6 +235,17 @@ export class SynthesisComponent implements OnInit, OnDestroy {
   /** Risque en cours de PUT (libellé) — affiche un spinner sur la ligne. */
   updatingRisqueLibelle = signal<string | null>(null);
 
+  /**
+   * F-197 SF-197-02 — Override avocat single-value du type de litige (Travail
+   * FR) ou du type de procédure (Immigration). Lu une fois au montage du
+   * dossier via {@link TypeLitigeOverrideService}, mis à jour localement
+   * après PUT depuis le dialog. Cohérence F-176 stricte : aucun re-fetch
+   * synthèse, aucun refresh outils déclenché par le PUT — la propagation
+   * outils se fait au prochain run de Synthèse enrichie via
+   * {@code ENRICHED_ANALYSIS DONE}.
+   */
+  readonly typeLitigeOverride = signal<TypeLitigeOverrideResponse | null>(null);
+
   // F-160 SF-160-02 — paginators indépendants par bloc (checklist + questions)
   // Numéro de version actuellement affiché par bloc (peut diverger de la version
   // synthèse globale pour comparer la checklist d'une itération avec les questions
@@ -272,6 +308,25 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     const optionsRetainedCount = this.optionsRetained().length;
     const risquesCount = syn.risques?.length ?? 0;
     const riskLevel = syn.riskLevel ?? null;
+
+    // F-197 SF-197-02 — badge "Type de litige" : visible uniquement si une
+    // valeur est connue (IA détectée OU override avocat) et si le domaine
+    // supporte l'override (TRAVAIL_FR / IMMIGRATION).
+    const typeLitigeLabel = this.currentTypeLitigeLabel();
+    const typeLitigeOverridden = this.typeLitigeIsOverridden();
+    const typeLitigeDomain = this.typeLitigeOverrideDomain();
+    const typeLitigeBadge: SynthesisBadge | null = (typeLitigeLabel && typeLitigeDomain) ? {
+      id: 'type-litige',
+      label: 'Type de litige',
+      icon: typeLitigeOverridden ? 'edit_note' : 'fact_check',
+      iconClass: typeLitigeOverridden ? 'panel-icon--type-litige-override' : 'panel-icon--type-litige',
+      count: 1,
+      sublabel: typeLitigeOverridden ? 'modifié par vous' : null,
+      anchor: 'section-type-litige',
+      valueLabel: typeLitigeLabel,
+      overridden: typeLitigeOverridden,
+      dialog: 'type-litige-override',
+    } : null;
 
     const all: SynthesisBadge[] = [
       {
@@ -355,7 +410,11 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         popup: 'questions-ouvertes',
       },
     ];
-    return all.filter(b => b.count > 0);
+    const filtered = all.filter(b => b.count > 0);
+    // F-197 SF-197-02 — préfixer le badge "Type de litige" en tête de grille
+    // (saillant : c'est l'action la plus impactante de F-197 — change la
+    // visibilité des outils + le pre-fill).
+    return typeLitigeBadge ? [typeLitigeBadge, ...filtered] : filtered;
   });
 
   /**
@@ -373,6 +432,92 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     } else if (attempt < 5) {
       setTimeout(() => this.scrollToBlock(anchorId, attempt + 1), 200);
     }
+  }
+
+  /**
+   * F-197 SF-197-02 — Récupère l'override courant. Fail-open silencieux :
+   * en cas d'erreur (timeout, 5xx), l'override reste à `null` et le badge
+   * "Type de litige" affiche la valeur IA brute (CA-09).
+   */
+  private loadTypeLitigeOverride(caseFileId: string): void {
+    this.typeLitigeOverrideService.getForCaseFile(caseFileId).subscribe({
+      next: response => this.typeLitigeOverride.set(response ?? null),
+      error: () => this.typeLitigeOverride.set(null),
+    });
+  }
+
+  /**
+   * F-197 SF-197-02 — Code du type de litige actuellement retenu (override
+   * avocat si présent, sinon valeur IA détectée). Utilisé pour le badge
+   * grille F-162 et passé en `iaDetectedCode` au dialog override.
+   */
+  readonly currentTypeLitigeCode = computed<string | null>(() => {
+    const override = this.typeLitigeOverride();
+    if (override) {
+      const code = override.typeLitigeAvocat ?? override.typeProcedureAvocat ?? null;
+      if (code) return code;
+    }
+    return this.synthesis()?.typeLitigeDetecte ?? null;
+  });
+
+  /**
+   * F-197 SF-197-02 — `true` si un override avocat est posé (badge or, icône
+   * `edit_note` "modifié par vous").
+   */
+  readonly typeLitigeIsOverridden = computed<boolean>(() => {
+    const o = this.typeLitigeOverride();
+    return !!o && (!!o.typeLitigeAvocat || !!o.typeProcedureAvocat);
+  });
+
+  /**
+   * F-197 SF-197-02 — Libellé FR avocat-friendly du code retenu (lookup dans
+   * les 2 maps Travail FR / Immigration). Si le code n'existe pas dans les
+   * libellés (rétro-compat ou code IA exotique), retourne le code tel quel.
+   */
+  readonly currentTypeLitigeLabel = computed<string | null>(() => {
+    const code = this.currentTypeLitigeCode();
+    if (!code) return null;
+    const t = TYPE_LITIGE_TRAVAIL_FR_LABELS as Record<string, string>;
+    if (t[code]) return t[code];
+    const i = TYPE_PROCEDURE_IMMIGRATION_LABELS as Record<string, string>;
+    if (i[code]) return i[code];
+    return code;
+  });
+
+  /**
+   * F-197 SF-197-02 — Domaine cible pour le dialog override (TRAVAIL_FR ou
+   * IMMIGRATION) résolu depuis {@link CaseFile#legalDomain}. Null si le
+   * domaine ne supporte pas l'override (V1 : famille exclu).
+   */
+  readonly typeLitigeOverrideDomain = computed<TypeLitigeOverrideDomain | null>(() => {
+    return resolveOverrideDomain(this.caseFile()?.legalDomain);
+  });
+
+  /**
+   * F-197 SF-197-02 — Ouvre le dialog override. Au close avec une réponse
+   * non-undefined, met à jour le signal local {@link #typeLitigeOverride}.
+   * Cohérence F-176 stricte : aucun re-fetch synthèse, aucun refresh outils.
+   */
+  openTypeLitigeOverrideDialog(): void {
+    const cfId = this.caseFile()?.id;
+    const domain = this.typeLitigeOverrideDomain();
+    if (!cfId || !domain) return;
+    const data: TypeLitigeOverrideDialogData = {
+      caseFileId: cfId,
+      domain,
+      current: this.typeLitigeOverride(),
+      iaDetectedCode: this.synthesis()?.typeLitigeDetecte ?? null,
+    };
+    const ref = this.dialog.open<
+      TypeLitigeOverrideDialogComponent,
+      TypeLitigeOverrideDialogData,
+      TypeLitigeOverrideResponse
+    >(TypeLitigeOverrideDialogComponent, { data, width: '520px', maxWidth: '92vw' });
+    ref.afterClosed().subscribe(result => {
+      if (result === undefined) return;
+      this.typeLitigeOverride.set(result);
+      this.cdr.markForCheck();
+    });
   }
 
   /** F-162 SF-162-06 — ouvre un dialog modal pour un bloc court. */
@@ -422,6 +567,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private pieceManquanteAlignmentService: PieceManquanteAlignmentService,
     private risqueStatusService: RisqueStatusService,
     private risqueAlignmentService: RisqueAlignmentService,
+    private typeLitigeOverrideService: TypeLitigeOverrideService,
   ) {}
 
   ngOnInit(): void {
@@ -431,6 +577,10 @@ export class SynthesisComponent implements OnInit, OnDestroy {
         this.caseFile.set(cf);
         this.loadVersions(id);
         this.loadChatHistory(id);
+        // F-197 SF-197-02 — fail-open silencieux (CA-09) : si le GET échoue,
+        // on garde l'override à null et le badge "Type de litige" affiche
+        // simplement la valeur IA détectée.
+        this.loadTypeLitigeOverride(id);
         this.timeService.loadEntries(id).subscribe({
           next: () => this.timeEntries.set(this.timeService.entries()),
           error: () => {}

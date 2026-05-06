@@ -135,6 +135,15 @@ export interface CaseAnalysisResult {
   divorceConsentementValidityDetection?: DivorceConsentementValidityDetection | null;
   /** F-152 : scoring calculé (null si détection absente). */
   divorceConsentementScoring?: DivorceConsentementScoring | null;
+  /**
+   * F-197 SF-197-02 : type de litige (Travail FR) ou type de procédure
+   * (Immigration) tel que détecté par l'IA, projeté top-level pour permettre
+   * l'affichage badge "Type litige" dans la grille F-162 et le rappel dans
+   * le dialog override. Renseigné par le backend depuis le JSON brut de
+   * l'analyse (`type_litige_detecte` Travail FR / `type_procedure_detectee`
+   * Immigration). Null hors Travail FR / Immigration ou si non détecté.
+   */
+  typeLitigeDetecte?: string | null;
 }
 
 /**
@@ -276,6 +285,23 @@ export interface TravailExtractedData {
    * No-op gracieux si absent — pipeline IA peut le brancher ultérieurement.
    */
   ageDemandeurAnnees?: number | null;
+  /**
+   * F-197 SF-197-02 : type de litige tel qu'il a été détecté par le pipeline
+   * IA (Travail FR uniquement). Présent pour permettre aux outils
+   * décisionnels de raisonner sur le type IA brut, indépendamment de
+   * l'override avocat ({@link #typeLitigeAvocatOverride}). Renseigné
+   * post-pipeline IA via projection JSON `type_litige_detecte`.
+   */
+  typeLitigeDetecte?: string | null;
+  /**
+   * F-197 SF-197-02 : override avocat single-value du type de litige (Travail
+   * FR). Si présent, prend précédence sur {@link #typeLitigeDetecte} pour le
+   * pré-remplissage des outils décisionnels au prochain run de Synthèse
+   * enrichie (F-DT-08/09/10/11/12/13). Null tant qu'aucun override n'a été
+   * posé. Persisté côté backend dans la table `case_file_type_litige_override`
+   * (cf. SF-197-01).
+   */
+  typeLitigeAvocatOverride?: string | null;
 }
 
 /** SF-155-04 : agrégat heures sup (totaux déclarés 25 % / 50 % / hors contingent). */
@@ -319,6 +345,15 @@ export interface ImmigrationExtractedData {
   motifOqtCodeBe?: string | null;
   /** Indices factuels d'un transfert imminent vers CRA ou frontière (signal critique). */
   transfertImminentDetected?: boolean | null;
+  /**
+   * F-197 SF-197-02 : override avocat single-value du type de procédure
+   * (Immigration). Si présent, prend précédence sur {@link #typeProcedureDetectee}
+   * pour le pré-remplissage des outils décisionnels au prochain run de
+   * Synthèse enrichie (F-IM-08/20). Null tant qu'aucun override n'a été
+   * posé. Persisté côté backend dans la table `case_file_type_litige_override`
+   * (cf. SF-197-01).
+   */
+  typeProcedureAvocatOverride?: string | null;
 }
 
 export interface CaseAnalysisVersionSummary {

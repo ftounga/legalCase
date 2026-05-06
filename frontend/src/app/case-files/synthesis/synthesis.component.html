@@ -150,7 +150,26 @@
   @if (synthesisBadges().length > 0) {
     <div class="synthesis-grid" role="navigation" aria-label="Navigation vers les blocs de synthèse">
       @for (badge of synthesisBadges(); track badge.id) {
-        @if (badge.popup) {
+        @if (badge.dialog === 'type-litige-override') {
+          <!-- F-197 SF-197-02 — badge "Type de litige" : clic ouvre le dialog override.
+               Si override avocat posé : palette or (DESIGN_SYSTEM accent #C9973A) +
+               sublabel "modifié par vous" + icône edit_note. -->
+          <button type="button"
+                  class="synthesis-badge synthesis-badge--type-litige"
+                  [class.synthesis-badge--type-litige-overridden]="badge.overridden"
+                  (click)="openTypeLitigeOverrideDialog()"
+                  [attr.aria-label]="'Type de litige : ' + (badge.valueLabel ?? '') + (badge.overridden ? ' (modifié par vous)' : '') + ' — cliquer pour modifier'">
+            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+            <span class="synthesis-badge__label">{{ badge.label }}</span>
+            @if (badge.valueLabel) {
+              <span class="synthesis-badge__value">{{ badge.valueLabel }}</span>
+            }
+            @if (badge.sublabel) {
+              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+            }
+            <mat-icon class="synthesis-badge__edit-hint">edit</mat-icon>
+          </button>
+        } @else if (badge.popup) {
           <button type="button"
                   class="synthesis-badge"
                   [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"

@@ -27,6 +27,8 @@ import { RisqueStatusService } from '../../core/services/risque-status.service';
 import { RisqueStatus } from '../../core/models/risque-status.model';
 import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
+import { TypeLitigeOverrideResponse } from '../../core/models/type-litige-override.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -153,6 +155,11 @@ describe('SynthesisComponent', () => {
         { provide: RisqueStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as RisqueStatus)), updateStatus: jest.fn().mockReturnValue(of({} as RisqueStatus)) } },
         // F-195 SF-195-03 — stub GET alignement risques. Les tests dédiés override via .mockReturnValue
         { provide: RisqueAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RisqueAlignment[])) } },
+        // F-197 SF-197-02 — stub GET/PUT override type litige. Les tests dédiés override via .mockReturnValue
+        { provide: TypeLitigeOverrideService, useValue: {
+          getForCaseFile: jest.fn().mockReturnValue(of({ typeLitigeAvocat: null, typeProcedureAvocat: null, raison: null } as TypeLitigeOverrideResponse)),
+          update: jest.fn().mockReturnValue(of({} as TypeLitigeOverrideResponse)),
+        } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
         { provide: ProcedureCheckService, useValue: procedureCheckService },
         { provide: StrategicOptionService, useValue: strategicOptionService },
@@ -1881,6 +1888,211 @@ describe('SynthesisComponent', () => {
       const args = matDialogMock.open.mock.calls[0];
       expect(args[1].data.title).toBe('Questions ouvertes');
       expect(args[1].data.items).toEqual(['q1', 'q2']);
+    });
+  });
+
+  // F-197 SF-197-02 — badge "Type de litige" dans la grille F-162 + dialog override.
+  describe('F-197 SF-197-02 type litige override', () => {
+    // Setup helper : dossier Travail FR avec un override null par défaut.
+    const setupTravailFr = () => {
+      const caseFileService = TestBed.inject(CaseFileService) as any;
+      caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier T1', legalDomain: 'DROIT_DU_TRAVAIL' }));
+    };
+
+    const setupImmigration = () => {
+      const caseFileService = TestBed.inject(CaseFileService) as any;
+      caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier I1', legalDomain: 'DROIT_IMMIGRATION' }));
+    };
+
+    it('CA-01 : badge "Type de litige" présent dans la grille F-162 quand IA détecte un type (Travail FR)', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge).toBeTruthy();
+      expect(badge?.valueLabel).toBe('Licenciement sans cause réelle et sérieuse');
+      expect(badge?.overridden).toBe(false);
+      expect(badge?.dialog).toBe('type-litige-override');
+    });
+
+    it('badge "Type de litige" en tête de grille (saillant)', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'HEURES_SUPPLEMENTAIRES',
+        timeline: [{ date: '2026-01-01', evenement: 'evt' }],
+      } as any));
+      fixture.detectChanges();
+
+      const ids = component.synthesisBadges().map(b => b.id);
+      expect(ids[0]).toBe('type-litige');
+    });
+
+    it('CA-05 : override avocat pré-sélectionné → badge en mode "modifié par vous" (palette or)', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(of({
+        typeLitigeAvocat: 'PRISE_ACTE_RUPTURE',
+        typeProcedureAvocat: null,
+        raison: 'Test stratégique',
+      } as TypeLitigeOverrideResponse));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge?.overridden).toBe(true);
+      expect(badge?.valueLabel).toBe('Prise d\'acte de rupture');
+      expect(badge?.sublabel).toBe('modifié par vous');
+      expect(badge?.icon).toBe('edit_note');
+    });
+
+    it('CA-09 : fail-open silencieux si GET override 5xx → override reste null, badge IA brute', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'DISCRIMINATION',
+      } as any));
+      fixture.detectChanges();
+
+      expect(component.typeLitigeOverride()).toBeNull();
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge?.overridden).toBe(false);
+      expect(badge?.valueLabel).toBe('Discrimination');
+    });
+
+    it('CA-02 : openTypeLitigeOverrideDialog → ouvre MatDialog avec domain TRAVAIL_FR', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_ECONOMIQUE',
+      } as any));
+      fixture.detectChanges();
+
+      matDialogMock.open.mockClear();
+      component.openTypeLitigeOverrideDialog();
+
+      expect(matDialogMock.open).toHaveBeenCalledTimes(1);
+      const args = matDialogMock.open.mock.calls[0];
+      expect(args[1].data.caseFileId).toBe(CASE_FILE_ID);
+      expect(args[1].data.domain).toBe('TRAVAIL_FR');
+      expect(args[1].data.iaDetectedCode).toBe('LICENCIEMENT_ECONOMIQUE');
+    });
+
+    it('Immigration : openTypeLitigeOverrideDialog → ouvre MatDialog avec domain IMMIGRATION', () => {
+      setupImmigration();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'OQTF_AVEC_DELAI',
+      } as any));
+      fixture.detectChanges();
+
+      matDialogMock.open.mockClear();
+      component.openTypeLitigeOverrideDialog();
+
+      const args = matDialogMock.open.mock.calls[0];
+      expect(args[1].data.domain).toBe('IMMIGRATION');
+    });
+
+    it('CA-06 : afterClosed avec response → met à jour signal local SANS triggerRefresh (cohérence F-176)', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'RAPPEL_SALAIRE',
+      } as any));
+      fixture.detectChanges();
+
+      // Ouverture du dialog
+      component.openTypeLitigeOverrideDialog();
+
+      // Simule la fermeture du dialog avec une réponse PUT 200
+      const newOverride: TypeLitigeOverrideResponse = {
+        typeLitigeAvocat: 'HARCELEMENT_MORAL',
+        typeProcedureAvocat: null,
+        raison: 'Faits clairs de harcèlement',
+      };
+      dialogResultSubject.next(newOverride);
+
+      expect(component.typeLitigeOverride()).toEqual(newOverride);
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge?.overridden).toBe(true);
+      expect(badge?.valueLabel).toBe('Harcèlement moral');
+    });
+
+    it('afterClosed undefined (Annuler) → signal NON modifié', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(of({
+        typeLitigeAvocat: 'DISCRIMINATION',
+        typeProcedureAvocat: null,
+        raison: null,
+      } as TypeLitigeOverrideResponse));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+      const before = component.typeLitigeOverride();
+
+      component.openTypeLitigeOverrideDialog();
+      dialogResultSubject.next(undefined);
+
+      expect(component.typeLitigeOverride()).toEqual(before);
+    });
+
+    it('domaine famille (DROIT_FAMILLE) → pas de badge Type de litige (V1 hors scope)', () => {
+      const caseFileService = TestBed.inject(CaseFileService) as any;
+      caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'D', legalDomain: 'DROIT_FAMILLE' }));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge).toBeUndefined();
+    });
+
+    it('aucun typeLitigeDetecte ET aucun override → pas de badge Type de litige', () => {
+      setupTravailFr();
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      const badge = component.synthesisBadges().find(b => b.id === 'type-litige');
+      expect(badge).toBeUndefined();
+    });
+
+    it('currentTypeLitigeCode : override Travail FR > IA détectée', () => {
+      setupTravailFr();
+      const overrideService = TestBed.inject(TypeLitigeOverrideService) as any;
+      overrideService.getForCaseFile.mockReturnValue(of({
+        typeLitigeAvocat: 'PRISE_ACTE_RUPTURE',
+        typeProcedureAvocat: null,
+        raison: null,
+      } as TypeLitigeOverrideResponse));
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of({
+        ...makeSynthesis(1, 'STANDARD'),
+        typeLitigeDetecte: 'LICENCIEMENT_SANS_CAUSE_REELLE',
+      } as any));
+      fixture.detectChanges();
+
+      expect(component.currentTypeLitigeCode()).toBe('PRISE_ACTE_RUPTURE');
     });
   });
 

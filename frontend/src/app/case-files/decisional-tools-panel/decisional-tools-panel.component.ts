@@ -146,6 +146,20 @@ export interface DecisionToolContext {
   procedureChecks: any[];
   aiQuestions: any[];
   /**
+   * F-197 SF-197-02 — Override avocat single-value du type de litige (Travail
+   * FR) ou du type de procédure (Immigration). Lu via
+   * {@link TypeLitigeOverrideService} dans le composant parent (`<app-synthesis>`
+   * ou `<app-case-dashboard>`) puis transmis au panel via le signal SSE
+   * `ENRICHED_ANALYSIS DONE` (cohérence F-176 stricte). Si présent, prend
+   * précédence sur la valeur IA brute pour le pré-remplissage des outils
+   * décisionnels.
+   *
+   * <p>Rappel : le PUT statut depuis le dialog override ne déclenche AUCUN
+   * refresh côté frontend — la propagation outils se fait au prochain run de
+   * Synthèse enrichie.</p>
+   */
+  typeLitigeOverride?: import('../../core/models/type-litige-override.model').TypeLitigeOverrideResponse | null;
+  /**
    * F-192 SF-192-02 — Alignement IA des pistes 🟢 RETAINED (F-176) avec les
    * outils décisionnels. Lu via `RetainedPisteAlignmentService` au montage du
    * dossier ; rafraîchi à la réception de l'event SSE `ENRICHED_ANALYSIS DONE`
@@ -225,6 +239,15 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   @Input() caseFileTitle = '';
   @Input() procedureChecks: any[] = [];
   @Input() aiQuestions: any[] = [];
+  /**
+   * F-197 SF-197-02 — Override avocat single-value du type de litige
+   * (Travail FR) ou type de procédure (Immigration). Si présent, prend
+   * précédence sur la valeur IA brute pour le pré-remplissage des outils
+   * décisionnels (lecture via le helper {@link #augmentSynthesisWithOverride}).
+   * Lu une fois au montage du dossier dans le composant parent ; aucun
+   * refresh côté frontend après PUT (cohérence F-176 stricte).
+   */
+  @Input() typeLitigeOverride: import('../../core/models/type-litige-override.model').TypeLitigeOverrideResponse | null = null;
 
   readonly loading = signal(false);
   readonly visibility = signal<VisibleToolSet | null>(null);
@@ -1721,7 +1744,13 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   componentInputsFor(entry: DecisionToolRegistryEntry): Record<string, unknown> {
     return entry.inputs({
       caseFileId: this.caseFileId,
-      synthesis: this.synthesis,
+      // F-197 SF-197-02 : la synthèse passée aux outils est augmentée avec
+      // l'override avocat (single-value typeLitige Travail FR / typeProcedure
+      // Immigration). L'override prend précédence sur la valeur IA pour le
+      // pré-remplissage. Cohérence F-176 stricte : l'override n'est consommé
+      // qu'à l'instant de l'instanciation des outils, le PUT n'est jamais
+      // suivi d'un refresh frontend.
+      synthesis: this.augmentSynthesisWithOverride(this.synthesis, this.typeLitigeOverride),
       workspaceCountry: this.workspaceCountry,
       caseFileTitle: this.caseFileTitle,
       procedureChecks: this.procedureChecks,
@@ -1732,7 +1761,57 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       piecesAlignment: this.piecesAlignment(),
       // F-195 SF-195-02 : alignement chargé via RisqueAlignmentService.
       risquesAlignment: this.risquesAlignment(),
+      // F-197 SF-197-02 : exposé brut au cas où un outil veut raisonner sur
+      // la présence/absence d'un override (badge "modifié par vous" UI).
+      typeLitigeOverride: this.typeLitigeOverride,
     });
+  }
+
+  /**
+   * F-197 SF-197-02 — Helper : retourne une copie de la synthèse dans
+   * laquelle :
+   * <ul>
+   *   <li>{@code travailExtractedData.typeLitigeAvocatOverride} est posé à la
+   *       valeur de l'override Travail FR (si présent).</li>
+   *   <li>{@code immigrationExtractedData.typeProcedureAvocatOverride} est
+   *       posé à la valeur de l'override Immigration (si présent).</li>
+   * </ul>
+   *
+   * <p>Les outils décisionnels qui veulent privilégier l'override appellent
+   * en interne {@code aiData.typeLitigeAvocatOverride ?? aiData.typeLitigeDetecte}.
+   * Aucun outil existant n'est modifié par cette SF — seul le contrat de
+   * passage est étendu (tools peuvent ignorer le champ s'ils ne l'utilisent
+   * pas, no-op gracieux).</p>
+   *
+   * <p>Si {@code synthesis} est null ou si {@code override} est null, retourne
+   * la synthèse telle quelle (no-op).</p>
+   */
+  private augmentSynthesisWithOverride(
+    synthesis: any | null,
+    override: import('../../core/models/type-litige-override.model').TypeLitigeOverrideResponse | null,
+  ): any | null {
+    if (!synthesis || !override) return synthesis;
+    const travailOverride = override.typeLitigeAvocat ?? null;
+    const immigrationOverride = override.typeProcedureAvocat ?? null;
+    if (!travailOverride && !immigrationOverride) return synthesis;
+    const augmented: any = { ...synthesis };
+    if (travailOverride && synthesis.travailExtractedData) {
+      augmented.travailExtractedData = {
+        ...synthesis.travailExtractedData,
+        typeLitigeAvocatOverride: travailOverride,
+      };
+    } else if (travailOverride) {
+      augmented.travailExtractedData = { typeLitigeAvocatOverride: travailOverride };
+    }
+    if (immigrationOverride && synthesis.immigrationExtractedData) {
+      augmented.immigrationExtractedData = {
+        ...synthesis.immigrationExtractedData,
+        typeProcedureAvocatOverride: immigrationOverride,
+      };
+    } else if (immigrationOverride) {
+      augmented.immigrationExtractedData = { typeProcedureAvocatOverride: immigrationOverride };
+    }
+    return augmented;
   }
 
   /**
