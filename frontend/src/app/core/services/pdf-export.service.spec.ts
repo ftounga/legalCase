@@ -6,6 +6,7 @@ import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model
 import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
 import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
 import { RisqueAlignment } from '../models/risque-alignment.model';
+import { AiQuestionAlignment } from '../models/ai-question-alignment.model';
 
 const mockCaseFile: Partial<CaseFile> = { id: '1', title: 'Affaire Dupont c/ SA Renault' };
 
@@ -1273,5 +1274,157 @@ describe('PdfExportService', () => {
     expect(s).toContain('🔴'); // pictogramme critique pour harcèlement
     expect(s).toContain('⚠️'); // pictogramme standard pour l'autre
     expect(s).toContain('❌ Risques écartés : 1');
+  });
+
+  // ============================================================
+  // F-196 SF-196-03 : section « ❓ Réponses aux questions complémentaires »
+  // ============================================================
+
+  const questionRepondueOui: AiQuestionAlignment = {
+    questionId: 'q1',
+    questionText: 'Avez-vous reçu la lettre de licenciement ?',
+    answerText: 'oui',
+    pieceLibelleDeduit: 'Lettre de licenciement',
+    statutDeduction: 'PIECE_OBTENUE',
+  };
+
+  const questionRepondueNon: AiQuestionAlignment = {
+    questionId: 'q2',
+    questionText: 'Avez-vous le contrat de travail ?',
+    answerText: 'non',
+    pieceLibelleDeduit: 'Contrat de travail',
+    statutDeduction: 'PIECE_MANQUANTE',
+  };
+
+  const questionInfoOnly: AiQuestionAlignment = {
+    questionId: 'q3',
+    questionText: 'Combien d\'années d\'ancienneté ?',
+    answerText: '7 ans',
+    pieceLibelleDeduit: null,
+    statutDeduction: 'INFO_ONLY',
+  };
+
+  const questionNonRepondue: AiQuestionAlignment = {
+    questionId: 'q4',
+    questionText: 'Avez-vous des fiches de paie ?',
+    answerText: null,
+    pieceLibelleDeduit: null,
+    statutDeduction: undefined,
+  };
+
+  it('SF-196-03: aucune question alignment → section omise (fail-open)', () => {
+    const doc = service.buildDocument(mockCaseFile as CaseFile, mockSynthesis) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: aiQuestionsAlignment vide → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: aucune question répondue → section omise', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionNonRepondue],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: ≥ 1 question répondue OUI avec pièce déduite → section + Q&R + suffix pièce', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionRepondueOui],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('❓ Réponses aux questions complémentaires');
+    expect(s).toContain('Avez-vous reçu la lettre de licenciement ?');
+    expect(s).toContain('oui');
+    expect(s).toContain('✅ Pièce confirmée');
+    expect(s).toContain('Lettre de licenciement');
+  });
+
+  it('SF-196-03: question répondue NON avec pièce manquante → suffix « pièce à demander »', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionRepondueNon],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Avez-vous le contrat de travail ?');
+    expect(s).toContain('📩 Pièce à demander');
+    expect(s).toContain('Contrat de travail');
+  });
+
+  it('SF-196-03: INFO_ONLY (pas de pièce déduite) → pas de suffix pièce', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [questionInfoOnly],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Combien d\'années d\'ancienneté ?');
+    expect(s).toContain('7 ans');
+    expect(s).not.toContain('Pièce confirmée');
+    expect(s).not.toContain('Pièce à demander');
+    expect(s).not.toContain('Pièce déduite');
+  });
+
+  it('SF-196-03: mix répondues + non répondues → seules les répondues incluses', () => {
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [],
+      [questionRepondueOui, questionNonRepondue, questionRepondueNon],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('Avez-vous reçu la lettre de licenciement ?');
+    expect(s).toContain('Avez-vous le contrat de travail ?');
+    expect(s).not.toContain('Avez-vous des fiches de paie ?');
+  });
+
+  it('SF-196-03: ordre canonique → questions APRÈS risques et AVANT chronologie', () => {
+    const synWithTimeline: CaseAnalysisResult = {
+      ...mockSynthesis,
+      timeline: [{ date: '01/01/2024', evenement: 'Licenciement' }],
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, synWithTimeline,
+      [], undefined, [], [], [risqueValideStandard], [questionRepondueOui],
+    ) as any;
+    const flat = JSON.stringify(doc.content);
+    const risquesIdx = flat.indexOf('⚠️ Risques retenus par votre avocat');
+    const questionsIdx = flat.indexOf('❓ Réponses aux questions complémentaires');
+    const timelineIdx = flat.indexOf('Chronologie');
+    expect(risquesIdx).toBeGreaterThan(-1);
+    expect(questionsIdx).toBeGreaterThan(-1);
+    expect(timelineIdx).toBeGreaterThan(-1);
+    expect(risquesIdx).toBeLessThan(questionsIdx);
+    expect(questionsIdx).toBeLessThan(timelineIdx);
+  });
+
+  it('SF-196-03: question avec answerText vide ("   ") → exclue (filtre trim)', () => {
+    const qEmpty: AiQuestionAlignment = {
+      questionId: 'q5',
+      questionText: 'Question',
+      answerText: '   ',
+      pieceLibelleDeduit: null,
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [qEmpty],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).not.toContain('❓ Réponses aux questions complémentaires');
+  });
+
+  it('SF-196-03: question avec questionText manquant → fallback "(Question non disponible)"', () => {
+    const qSansTexte: AiQuestionAlignment = {
+      questionId: 'q6',
+      questionText: undefined,
+      answerText: 'réponse libre',
+      pieceLibelleDeduit: null,
+    };
+    const doc = service.buildDocument(
+      mockCaseFile as CaseFile, mockSynthesis, [], undefined, [], [], [], [qSansTexte],
+    ) as any;
+    const s = JSON.stringify(doc.content);
+    expect(s).toContain('(Question non disponible)');
+    expect(s).toContain('réponse libre');
   });
 });

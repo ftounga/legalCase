@@ -13,6 +13,7 @@ import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model
 import { ProcedureCheckAlignment } from '../models/procedure-check-alignment.model';
 import { PieceManquanteAlignment } from '../models/piece-manquante-alignment.model';
 import { RisqueAlignment } from '../models/risque-alignment.model';
+import { AiQuestionAlignment } from '../models/ai-question-alignment.model';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -49,6 +50,7 @@ export class PdfExportService {
     procedureChecksAlignment?: ProcedureCheckAlignment[],
     piecesAlignment?: PieceManquanteAlignment[],
     risquesAlignment?: RisqueAlignment[],
+    aiQuestionsAlignment?: AiQuestionAlignment[],
   ): void {
     import('pdfmake/build/pdfmake').then(pdfMakeModule => {
       import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
@@ -64,6 +66,7 @@ export class PdfExportService {
           procedureChecksAlignment,
           piecesAlignment,
           risquesAlignment,
+          aiQuestionsAlignment,
         ) as TDocumentDefinitions;
         const fileName = this.buildFileName(caseFile.title, synthesis);
         pdfMake.createPdf(docDefinition).download(fileName);
@@ -79,6 +82,7 @@ export class PdfExportService {
     procedureChecksAlignment?: ProcedureCheckAlignment[],
     piecesAlignment?: PieceManquanteAlignment[],
     risquesAlignment?: RisqueAlignment[],
+    aiQuestionsAlignment?: AiQuestionAlignment[],
   ): object {
     const isEnriched = synthesis.analysisType === 'ENRICHED';
     const exportDate = new Date().toLocaleDateString('fr-FR', {
@@ -95,6 +99,7 @@ export class PdfExportService {
       ...this.buildProcedureChecksSection(procedureChecksAlignment, toolLabelResolver),
       ...this.buildPiecesADemanderSection(piecesAlignment, toolLabelResolver),
       ...this.buildRisquesValidesSection(risquesAlignment, synthesis, toolLabelResolver),
+      ...this.buildAiQuestionsSection(aiQuestionsAlignment),
       ...this.buildSections(synthesis),
     ];
 
@@ -945,6 +950,106 @@ export class PdfExportService {
       return `Score IA brut : ${ia} / 100`;
     }
     return null;
+  }
+
+  /**
+   * F-196 SF-196-03 — Section « ❓ Réponses aux questions complémentaires »
+   * insérée APRÈS « Risques validés par votre avocat » (F-195) et AVANT la
+   * chronologie / faits.
+   *
+   * Comportement :
+   *   - aiQuestionsAlignment vide / non fourni → tableau vide (section omise,
+   *     fail-open identique aux 4 sections F-192..F-195).
+   *   - Filtre sur `answerText` non null/non vide → seules les questions
+   *     RÉPONDUES par l'avocat sont incluses au PDF (les non répondues
+   *     restent visibles dans la synthèse écran F-94).
+   *   - ≥ 1 question répondue → titre navy 16/bold + sous-titre + liste Q&R
+   *     avec pictogramme `❓`. Suffixe « → Pièce déduite : <libellé> » si
+   *     `pieceLibelleDeduit` non null (signal positif PIECE_OBTENUE ou
+   *     manquante PIECE_MANQUANTE).
+   */
+  private buildAiQuestionsSection(
+    aiQuestionsAlignment?: AiQuestionAlignment[],
+  ): object[] {
+    if (!aiQuestionsAlignment || aiQuestionsAlignment.length === 0) {
+      return [];
+    }
+
+    const repondues = aiQuestionsAlignment.filter(
+      q => q.answerText !== null && q.answerText !== undefined && q.answerText.trim().length > 0,
+    );
+    if (repondues.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [
+      {
+        text: '❓ Réponses aux questions complémentaires',
+        fontSize: 16,
+        bold: true,
+        color: PRIMARY,
+        margin: [0, 0, 0, 6],
+      },
+      {
+        text: 'Réponses fournies par votre avocat aux questions complémentaires posées par l\'IA pour préciser le diagnostic.',
+        fontSize: 10,
+        color: TEXT_SECONDARY,
+        italics: true,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    for (const q of repondues) {
+      sections.push(this.buildAiQuestionBloc(q));
+    }
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  private buildAiQuestionBloc(q: AiQuestionAlignment): object {
+    const stack: object[] = [];
+
+    const questionText = q.questionText && q.questionText.trim().length > 0
+      ? q.questionText
+      : '(Question non disponible)';
+
+    stack.push({
+      text: [
+        { text: '❓ ', color: ACCENT, fontSize: 11 },
+        { text: questionText, color: PRIMARY, fontSize: 11, bold: true },
+      ],
+      margin: [0, 0, 0, 4],
+    });
+
+    stack.push({
+      text: q.answerText ?? '',
+      font: 'JetBrainsMono',
+      italics: true,
+      fontSize: 9,
+      color: TEXT,
+      margin: [12, 0, 0, 4],
+    });
+
+    if (q.pieceLibelleDeduit && q.pieceLibelleDeduit.trim().length > 0) {
+      const prefix = q.statutDeduction === 'PIECE_OBTENUE'
+        ? '✅ Pièce confirmée'
+        : q.statutDeduction === 'PIECE_MANQUANTE'
+          ? '📩 Pièce à demander'
+          : '→ Pièce déduite';
+      stack.push({
+        text: `${prefix} : ${q.pieceLibelleDeduit}`,
+        fontSize: 9,
+        color: TEXT_SECONDARY,
+        margin: [12, 0, 0, 8],
+      });
+    } else {
+      stack.push({ text: '', margin: [0, 0, 0, 8] });
+    }
+
+    return { stack };
   }
 
   private buildSections(synthesis: CaseAnalysisResult): object[] {

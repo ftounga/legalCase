@@ -27,6 +27,8 @@ import { RisqueStatusService } from '../../core/services/risque-status.service';
 import { RisqueStatus } from '../../core/models/risque-status.model';
 import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { AiQuestionAlignmentService } from '../../core/services/ai-question-alignment.service';
+import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
 import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
 import { TypeLitigeOverrideResponse } from '../../core/models/type-litige-override.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -155,6 +157,7 @@ describe('SynthesisComponent', () => {
         { provide: RisqueStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as RisqueStatus)), updateStatus: jest.fn().mockReturnValue(of({} as RisqueStatus)) } },
         // F-195 SF-195-03 — stub GET alignement risques. Les tests dédiés override via .mockReturnValue
         { provide: RisqueAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RisqueAlignment[])) } },
+        { provide: AiQuestionAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as AiQuestionAlignment[])) } },
         // F-197 SF-197-02 — stub GET/PUT override type litige. Les tests dédiés override via .mockReturnValue
         { provide: TypeLitigeOverrideService, useValue: {
           getForCaseFile: jest.fn().mockReturnValue(of({ typeLitigeAvocat: null, typeProcedureAvocat: null, raison: null } as TypeLitigeOverrideResponse)),
@@ -669,6 +672,48 @@ describe('SynthesisComponent', () => {
     expect(args[4]).toEqual([]);
     expect(args[5]).toEqual([]);
     expect(args[6]).toEqual(risques);
+  });
+
+  // F-196 SF-196-03 : exportPdf appelle AiQuestionAlignmentService EN PARALLÈLE
+  it('SF-196-03 exportPdf → AiQuestionAlignmentService.getForCaseFile appelé en parallèle, questions passées en 8ᵉ argument', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const questionsService = TestBed.inject(AiQuestionAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    const questions: AiQuestionAlignment[] = [
+      {
+        questionId: 'q1',
+        questionText: 'Avez-vous reçu la lettre de licenciement ?',
+        answerText: 'oui',
+        pieceLibelleDeduit: 'Lettre de licenciement',
+        statutDeduction: 'PIECE_OBTENUE',
+      },
+    ];
+    questionsService.getForCaseFile.mockReturnValue(of(questions));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(questionsService.getForCaseFile).toHaveBeenCalledWith(CASE_FILE_ID);
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[7]).toEqual(questions);
+  });
+
+  // F-196 SF-196-03 : endpoint questions erreur → export quand même appelé avec [] en 8ᵉ argument
+  it('SF-196-03 exportPdf → AiQuestionAlignmentService erreur, export appelé avec aiQuestionsAlignment []', () => {
+    const pdfExportService = TestBed.inject(PdfExportService) as jest.Mocked<PdfExportService>;
+    const questionsService = TestBed.inject(AiQuestionAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+    questionsService.getForCaseFile.mockReturnValue(throwError(() => ({ status: 500 })));
+
+    component.caseFile.set({ id: CASE_FILE_ID, title: 'Test', legalDomain: 'DROIT_DU_TRAVAIL', description: null, status: 'OPEN', createdAt: '', lastDocumentDeletedAt: null, riskLevel: null, riskScore: null });
+    component.synthesis.set(makeSynthesis(1, 'STANDARD'));
+
+    component.exportPdf();
+
+    expect(pdfExportService.export).toHaveBeenCalled();
+    const args = pdfExportService.export.mock.calls[0];
+    expect(args[7]).toEqual([]);
   });
 
   // T-16 : onVersionChange réinitialise editingQuestionId

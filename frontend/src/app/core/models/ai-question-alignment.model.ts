@@ -45,7 +45,16 @@ export type AiQuestionStatutDeduction = 'PIECE_OBTENUE' | 'PIECE_MANQUANTE' | 'I
  */
 export interface AiQuestionAlignment {
   questionId: string;
+  /**
+   * Libellé exact de la question telle que produite par l'IA (optionnel).
+   * Utilisé par l'export PDF SF-196-03 pour afficher la Q&R.
+   */
+  questionText?: string;
   answerText?: string | null;
   pieceLibelleDeduit?: string | null;
-  statutDeduction: AiQuestionStatutDeduction;
+  /**
+   * Optionnel — INFO_ONLY si la réponse n'a pas de pièce déduite, undefined
+   * autorisé pour les questions non répondues.
+   */
+  statutDeduction?: AiQuestionStatutDeduction;
 }
