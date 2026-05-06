@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { forkJoin, of, Subscription } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, LowerCasePipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -27,6 +28,8 @@ import { ProcedureCheckService } from '../../core/services/procedure-check.servi
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
 import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { ProcedureCheckAlignmentService } from '../../core/services/procedure-check-alignment.service';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
@@ -362,7 +365,8 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private strategicOptionService: StrategicOptionService,
     private timeService: TimeService,
     private dialog: MatDialog,
-    private retainedPisteAlignmentService: RetainedPisteAlignmentService
+    private retainedPisteAlignmentService: RetainedPisteAlignmentService,
+    private procedureCheckAlignmentService: ProcedureCheckAlignmentService
   ) {}
 
   ngOnInit(): void {
@@ -958,12 +962,22 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     const cf = this.caseFile();
     const syn = this.synthesis();
     if (!cf || !syn) return;
-    // F-192 SF-192-03 — récupère les pistes 🟢 Retenue + alignement avec l'outil
-    // cible avant l'export. Fail-open : timeout / 404 / 500 → service renvoie [].
-    // L'export est jamais bloqué (cf. CA-10).
-    this.retainedPisteAlignmentService.getForCaseFile(cf.id).subscribe({
-      next: (retainedPistes) => this.runPdfExport(cf, syn, retainedPistes),
-      error: () => this.runPdfExport(cf, syn, []),
+    // F-192 SF-192-03 — pistes 🟢 Retenue + alignement outil cible.
+    // F-193 SF-193-03 — checks F-96 + alignement outil cible.
+    // Les 2 services sont chargés EN PARALLÈLE via forkJoin. Fail-open
+    // INDÉPENDANT : si l'un échoue, l'autre est utilisé quand même (catchError
+    // local par stream). L'export PDF n'est jamais bloqué (CA-09 + CA-10).
+    forkJoin({
+      retainedPistes: this.retainedPisteAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as RetainedPisteAlignment[])),
+      ),
+      procedureChecksAlignment: this.procedureCheckAlignmentService.getForCaseFile(cf.id).pipe(
+        catchError(() => of([] as ProcedureCheckAlignment[])),
+      ),
+    }).subscribe({
+      next: ({ retainedPistes, procedureChecksAlignment }) =>
+        this.runPdfExport(cf, syn, retainedPistes, procedureChecksAlignment),
+      error: () => this.runPdfExport(cf, syn, [], []),
     });
   }
 
@@ -971,9 +985,16 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     cf: CaseFile,
     syn: CaseAnalysisResult,
     retainedPistes: RetainedPisteAlignment[],
+    procedureChecksAlignment: ProcedureCheckAlignment[],
   ): void {
     try {
-      this.pdfExportService.export(cf, syn, retainedPistes, (toolId) => this.resolveToolLabel(toolId));
+      this.pdfExportService.export(
+        cf,
+        syn,
+        retainedPistes,
+        (toolId) => this.resolveToolLabel(toolId),
+        procedureChecksAlignment,
+      );
       this.analyticsService.trackEvent('pdf_exported');
     } catch {
       this.snackBar.open('Erreur lors de la génération du PDF', 'Fermer', {
