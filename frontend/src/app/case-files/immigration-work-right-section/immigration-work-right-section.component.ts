@@ -19,6 +19,9 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
+import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
 const FR_TITRE_CODES = new Set([
   'VLS_TS_ETUDIANT', 'VLS_TS_SALARIE', 'CST_SALARIE', 'CARTE_PLURIANNUELLE',
@@ -55,6 +58,7 @@ export type IM07CoherenceAlert = CoherenceAlert<IM07AlertField>;
     MatProgressSpinnerModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
+    ProcedureChecksOutputComponent,
   ],
   templateUrl: './immigration-work-right-section.component.html',
   styleUrl: './immigration-work-right-section.component.scss'
@@ -99,6 +103,13 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
     return 0;
   }
 
+  /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
+  static getProcedureChecksBadge(input: {
+    proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  }): ProcedureChecksBadge {
+    return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   // SF-155-11 : inputs IA (tous optionnels — null-safe partout).
@@ -106,6 +117,8 @@ export class ImmigrationWorkRightSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /** F-193 SF-193-02 — alignement F-96 pré-filtré sur cet outil. */
+  @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   // F-177 SF-177-03b : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 

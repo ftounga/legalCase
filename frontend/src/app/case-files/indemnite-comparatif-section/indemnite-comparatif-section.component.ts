@@ -20,6 +20,9 @@ import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { CoherencePopoverTriggerDirective } from '../../shared/coherence-popover/coherence-popover-trigger.directive';
 import { CoherenceAlert, CoherenceAlertSource } from '../../shared/coherence-popover/coherence-alert.model';
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
+import { ProcedureCheckAlignment } from '../../core/models/procedure-check-alignment.model';
+import { ProcedureChecksOutputComponent } from '../decisional-tools-panel/procedure-checks-output/procedure-checks-output.component';
+import { computeBadge, ProcedureChecksBadge } from '../decisional-tools-panel/procedure-check-badge.helper';
 
 interface TypeRuptureOption {
   value: string;
@@ -61,6 +64,7 @@ const TYPES_BE: TypeRuptureOption[] = [
     MatInputModule, MatProgressSpinnerModule,
     MatTooltipModule,
     CoherencePopoverTriggerDirective,
+    ProcedureChecksOutputComponent,
   ],
   templateUrl: './indemnite-comparatif-section.component.html',
   styleUrl: './indemnite-comparatif-section.component.scss'
@@ -70,6 +74,13 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   static readonly TOOL_LABEL = 'COMPARATEUR INDEMNITÉS';
   static readonly TOOL_ICON = 'euro_symbol';
 
+  /** F-193 SF-193-02 — Pattern miroir cf. licenciement-section. */
+  static getProcedureChecksBadge(input: {
+    proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
+  }): ProcedureChecksBadge {
+    return computeBadge(Array.isArray(input.proceduresChecksAlignment) ? input.proceduresChecksAlignment : []);
+  }
+
   @Input() caseFileId!: string;
   @Input() workspaceCountry: string = 'FRANCE';
   @Input() aiData?: TravailExtractedData | null;
@@ -77,6 +88,8 @@ export class IndemniteComparatifSectionComponent implements OnInit, OnChanges {
   @Input() procedureChecks?: ProcedureCheck[] | null;
   @Input() aiQuestions?: AiQuestion[] | null;
   @Input() piecesManquantes?: PieceManquanteEntry[] | null;
+  /** F-193 SF-193-02 — alignement F-96 pré-filtré sur cet outil. */
+  @Input() proceduresChecksAlignment?: ProcedureCheckAlignment[] | null;
   // F-177 SF-177-03 : force l'expansion (mode modal F-177).
   @Input() forceExpanded = false;
 

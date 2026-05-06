@@ -205,6 +205,47 @@
     color: #7A5D1F;
     border: 1px solid #C9973A;
   }
+
+  /* F-193 SF-193-02 — pill « 🔍 Procédure (V/N/T) » : pattern visuel miroir
+     du pill retained (or) mais avec icône `verified` et 3 variantes selon
+     la criticité. Rouge SUBTIL pour non_compliant (border + couleur texte,
+     pas de fond rouge plein — règle DESIGN_SYSTEM.md). */
+  &--procedures {
+    width: auto;
+    min-width: 56px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 13px;
+    gap: 4px;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+    font-size: 12px;
+    font-weight: 700;
+
+    mat-icon {
+      width: 14px;
+      height: 14px;
+      font-size: 14px;
+    }
+  }
+
+  &--procedures-verified {
+    background: rgba(201, 151, 58, 0.18);
+    color: #7A5D1F;
+    border: 1px solid #C9973A;
+  }
+
+  &--procedures-non-compliant {
+    /* Rouge SUBTIL : pas de fond rouge plein, juste contour + texte rouge. */
+    background: #FDF6F6;
+    color: #7A2222;
+    border: 1px solid #C62828;
+  }
+
+  &--procedures-to-verify {
+    background: #F2F4F8;
+    color: #1A3A5C;
+    border: 1px solid #B8BFC9;
+  }
 }
 
 .tool-card__body {

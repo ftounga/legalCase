@@ -18,6 +18,24 @@ export interface RetainedPistesBadgeInput {
 }
 
 /**
+ * F-193 SF-193-02 — Verdict du pill `🔍 Procédure (V/N/T)` affiché sur la
+ * card du panel F-IA-04 quand au moins un check F-96 est aligné sur l'outil.
+ * Calculé via le helper partagé `procedure-check-badge.helper.ts` exposé via
+ * static `getProcedureChecksBadge` par chaque composant outil instrumenté.
+ */
+export type ProcedureChecksBadgeKind =
+  | 'verified'
+  | 'non_compliant'
+  | 'to_verify'
+  | 'mixed'
+  | 'none';
+
+export interface ProcedureChecksBadgeInput {
+  kind: ProcedureChecksBadgeKind;
+  counts: { verified: number; nonCompliant: number; toVerify: number };
+}
+
+/**
  * F-177 SF-177-01 — Card réutilisable pour outil décisionnel.
  *
  * Rend un titre + verdict synthétique + jusqu'à 3 badges en coin (pré-fill IA, alerte F-IA-03,
@@ -51,6 +69,14 @@ export class DecisionToolCardComponent {
    * (composant non instrumenté) → pill silencieusement masqué.
    */
   @Input() retainedPistesBadge: RetainedPistesBadgeInput | null = null;
+  /**
+   * F-193 SF-193-02 — Affiche un pill `🔍 Procédure (V/N/T)` à côté des
+   * autres pills quand `kind ≠ 'none'`. Couleur selon kind :
+   * verified=or, non_compliant=rouge subtil, to_verify=gris, mixed=or
+   * (priorité visuelle : non_compliant l'emporte si présent dans counts).
+   * `null` (composant non instrumenté) → pill silencieusement masqué.
+   */
+  @Input() proceduresChecksBadge: ProcedureChecksBadgeInput | null = null;
   @Input() disabled = false;
   @Input() flashing = false;
 
@@ -124,6 +150,53 @@ export class DecisionToolCardComponent {
     return this.retainedPistesBadge.kind === 'aligned'
       ? 'tool-card__badge--retained-aligned'
       : 'tool-card__badge--retained-divergent';
+  }
+
+  /* F-193 SF-193-02 — pill « 🔍 Procédure (V/N/T) ». */
+  protected get showProceduresChecksBadge(): boolean {
+    if (!this.proceduresChecksBadge) return false;
+    if (this.proceduresChecksBadge.kind === 'none') return false;
+    const c = this.proceduresChecksBadge.counts;
+    return c.verified + c.nonCompliant + c.toVerify > 0;
+  }
+
+  /** Formate les compteurs en `V/N/T` (vérifié / non conforme / à vérifier). */
+  protected get proceduresChecksBadgeLabel(): string {
+    const c = this.proceduresChecksBadge?.counts;
+    if (!c) return '';
+    return `${c.verified}/${c.nonCompliant}/${c.toVerify}`;
+  }
+
+  protected get proceduresChecksBadgeAriaLabel(): string {
+    const c = this.proceduresChecksBadge?.counts;
+    if (!c) return '';
+    return `Vérifications procédurales : ${c.verified} confirmée(s), ${c.nonCompliant} non conforme(s), ${c.toVerify} à vérifier`;
+  }
+
+  protected get proceduresChecksBadgeTooltip(): string {
+    const c = this.proceduresChecksBadge?.counts;
+    if (!c) return '';
+    const parts: string[] = [];
+    if (c.verified > 0) parts.push(`${c.verified} confirmée(s)`);
+    if (c.nonCompliant > 0) parts.push(`${c.nonCompliant} non conforme(s)`);
+    if (c.toVerify > 0) parts.push(`${c.toVerify} à vérifier`);
+    return parts.length > 0 ? `Vérifications procédurales — ${parts.join(', ')}` : '';
+  }
+
+  /**
+   * Couleur visuelle. La règle du DESIGN_SYSTEM.md veut le rouge réservé aux
+   * alertes critiques : on l'utilise en pill subtil (fond chaud très clair
+   * + texte rouge foncé) plutôt qu'en fond rouge plein. Mixed retombe sur
+   * la priorité visuelle (non_compliant > to_verify > verified) pour
+   * préserver l'attention de l'avocat.
+   */
+  protected get proceduresChecksBadgeClass(): string {
+    if (!this.proceduresChecksBadge) return '';
+    const c = this.proceduresChecksBadge.counts;
+    if (c.nonCompliant > 0) return 'tool-card__badge--procedures-non-compliant';
+    if (c.toVerify > 0) return 'tool-card__badge--procedures-to-verify';
+    if (c.verified > 0) return 'tool-card__badge--procedures-verified';
+    return '';
   }
 
   protected onClick(): void {

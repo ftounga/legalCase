@@ -1,0 +1,107 @@
+/* F-193 SF-193-02 — Bloc partagé Vérifications procédurales (sortie outil).
+ * Palette navy/or DESIGN_SYSTEM.md ; rouge SUBTIL pour NON_COMPLIANT
+ * (border-left fin, fond chaud très pâle — pas de fond rouge plein, le rouge
+ * dominant reste réservé aux alertes critiques système). */
+
+.procedure-checks-output {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pc-subsection {
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #FFFCF6;
+
+  &--verified {
+    border-left: 4px solid #C9973A;
+    background: #FFFCF6;
+
+    .pc-header { color: #7A5D1F; }
+    .pc-header-icon { color: #C9973A; }
+  }
+
+  &--non-compliant {
+    /* Rouge SUBTIL : border-left fin + fond chaud très clair, pas de rouge plein. */
+    border-left: 4px solid #C62828;
+    background: #FDF6F6;
+
+    .pc-header { color: #7A2222; }
+    .pc-header-icon { color: #C62828; }
+  }
+
+  &--to-verify {
+    border-left: 4px solid #B8BFC9;
+    background: #F7F8FA;
+
+    .pc-header { color: #1A3A5C; }
+    .pc-header-icon { color: #6B7280; }
+  }
+}
+
+.pc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
+
+  .pc-header-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.pc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #0B2147;
+
+  & + & {
+    border-top: 1px solid rgba(11, 33, 71, 0.08);
+    padding-top: 8px;
+  }
+}
+
+.pc-libelle {
+  font-weight: 500;
+}
+
+.pc-expected,
+.pc-raison {
+  font-size: 12px;
+  color: #1A3A5C;
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: rgba(11, 33, 71, 0.04);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+}
+
+.pc-raison {
+  font-style: italic;
+  color: #7A2222;
+}

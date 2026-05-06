@@ -246,6 +246,62 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('F-193 SF-193-02 — pill « 🔍 Procédure (V/N/T) »', () => {
+    it('CA-07 verified : pill or visible quand kind=verified avec compteurs V/N/T', () => {
+      component.proceduresChecksBadge = {
+        kind: 'verified',
+        counts: { verified: 3, nonCompliant: 0, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="procedures-checks-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--procedures-verified')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('3/0/0');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('verified');
+    });
+
+    it('CA-08 non_compliant : pill rouge subtil visible (priorité visuelle)', () => {
+      component.proceduresChecksBadge = {
+        kind: 'non_compliant',
+        counts: { verified: 0, nonCompliant: 2, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="procedures-checks-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--procedures-non-compliant')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('0/2/0');
+    });
+
+    it('CA-07 mixed (1 ALIGNED + 1 NON_COMPLIANT) → pill rouge subtil (non_compliant > verified)', () => {
+      component.proceduresChecksBadge = {
+        kind: 'mixed',
+        counts: { verified: 1, nonCompliant: 1, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="procedures-checks-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--procedures-non-compliant')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('1/1/0');
+    });
+
+    it('CA-07 none → pill absent quand kind=none', () => {
+      component.proceduresChecksBadge = {
+        kind: 'none',
+        counts: { verified: 0, nonCompliant: 0, toVerify: 0 },
+      };
+      fixture.detectChanges();
+      expect(badge('[data-testid="procedures-checks-badge"]')).toBeNull();
+    });
+
+    it('CA-07 null → pill absent (composant non instrumenté SF-193-02)', () => {
+      component.proceduresChecksBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="procedures-checks-badge"]')).toBeNull();
+    });
+  });
+
   describe('SF-159-02 — flashing input', () => {
     it('ajoute la classe tool-card--flashing quand flashing=true', () => {
       component.flashing = true;

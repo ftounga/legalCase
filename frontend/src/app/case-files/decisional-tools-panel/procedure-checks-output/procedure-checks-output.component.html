@@ -1,0 +1,64 @@
+@if (hasAny()) {
+  <div class="procedure-checks-output" data-testid="procedure-checks-output">
+
+    @if (aligned().length > 0) {
+      <section class="pc-subsection pc-subsection--verified"
+               data-testid="pc-verified-block">
+        <header class="pc-header">
+          <mat-icon class="pc-header-icon">check_circle</mat-icon>
+          <span>Vérifications confirmées par votre avocat</span>
+        </header>
+        <ul class="pc-list">
+          @for (check of aligned(); track check.checkId) {
+            <li class="pc-item pc-item--verified">
+              <span class="pc-libelle">{{ check.libelle }}</span>
+              @if (check.expectedValue) {
+                <span class="pc-expected">
+                  Valeur retenue : <code>{{ check.expectedValue }}</code>
+                </span>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (nonCompliant().length > 0) {
+      <section class="pc-subsection pc-subsection--non-compliant"
+               data-testid="pc-non-compliant-block">
+        <header class="pc-header">
+          <mat-icon class="pc-header-icon">warning</mat-icon>
+          <span>Points non conformes signalés</span>
+        </header>
+        <ul class="pc-list">
+          @for (check of nonCompliant(); track check.checkId) {
+            <li class="pc-item pc-item--non-compliant">
+              <span class="pc-libelle">{{ check.libelle }}</span>
+              @if (check.raison) {
+                <span class="pc-raison">Motif : {{ check.raison }}</span>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (toVerify().length > 0) {
+      <section class="pc-subsection pc-subsection--to-verify"
+               data-testid="pc-to-verify-block">
+        <header class="pc-header">
+          <mat-icon class="pc-header-icon">help_outline</mat-icon>
+          <span>Points à vérifier</span>
+        </header>
+        <ul class="pc-list">
+          @for (check of toVerify(); track check.checkId) {
+            <li class="pc-item pc-item--to-verify">
+              <span class="pc-libelle">{{ check.libelle }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+  </div>
+}
