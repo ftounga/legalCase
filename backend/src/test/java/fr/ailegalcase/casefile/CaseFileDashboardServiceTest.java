@@ -126,6 +126,7 @@ class CaseFileDashboardServiceTest {
     private Belgian40bisRepository belgian40bisRepo;
     private Belgian40terRepository belgian40terRepo;
     private fr.ailegalcase.analysis.RetainedPisteAlignmentService retainedPisteAlignmentService;
+    private fr.ailegalcase.analysis.ProcedureCheckAlignmentService procedureCheckAlignmentService;
 
     private CaseFileDashboardService service;
 
@@ -219,6 +220,8 @@ class CaseFileDashboardServiceTest {
         belgian40terRepo = mock(Belgian40terRepository.class);
         retainedPisteAlignmentService = mock(fr.ailegalcase.analysis.RetainedPisteAlignmentService.class);
         when(retainedPisteAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
+        procedureCheckAlignmentService = mock(fr.ailegalcase.analysis.ProcedureCheckAlignmentService.class);
+        when(procedureCheckAlignmentService.deserializeAlignment(any())).thenReturn(java.util.List.of());
 
         // Default empties — chaque test surcharge ce qu'il a besoin.
         when(licenciementRepo.findByCaseFileId(any())).thenReturn(Optional.empty());
@@ -346,7 +349,8 @@ class CaseFileDashboardServiceTest {
                 regimeAlgerienRepo, mineursImmigrationRepo, mesuresEloignementRepo,
                 annexe13BeRepo, belgian9bisRepo, belgian9terRepo,
                 belgian40bisRepo, belgian40terRepo,
-                retainedPisteAlignmentService);
+                retainedPisteAlignmentService,
+                procedureCheckAlignmentService);
     }
 
     @Test

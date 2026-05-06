@@ -51,12 +51,15 @@ class EnrichedAnalysisServiceTest {
     private final StrategicOptionService strategicOptionService = mock(StrategicOptionService.class);
     private final RetainedPisteAlignmentService retainedPisteAlignmentService =
             mock(RetainedPisteAlignmentService.class);
+    private final ProcedureCheckAlignmentService procedureCheckAlignmentService =
+            mock(ProcedureCheckAlignmentService.class);
 
     private final EnrichedAnalysisService service = new EnrichedAnalysisService(
             caseAnalysisRepository, caseFileRepository, aiQuestionRepository,
             aiQuestionAnswerRepository, analysisJobRepository, anthropicService, usageEventService, eventPublisher,
             analysisDocumentSnapshotService, analysisQaSnapshotService, analysisLimitsProperties,
             chatMessageRepository, procedureCheckService, strategicOptionService, retainedPisteAlignmentService,
+            procedureCheckAlignmentService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
             documentRepository, documentExtractionRepository, piecesPromptContext);

@@ -591,4 +591,82 @@ class ProcedureCheckServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Statut invalide");
     }
+
+    /**
+     * F-96 + F-193 SF-193-01 — CA-15 cohérence F-96 strict :
+     * {@code updateStatus} reste un PUT pur. AUCUN side-effect F-193
+     * (pieces_manquantes, case_deadlines, alignment, dashboard tile) n'est
+     * déclenché. Tous les effets F-193 sont gating Synthèse enrichie.
+     *
+     * <p>Pattern miroir
+     * {@code StrategicOptionServiceTest.updateStatus_RETAINED_isPurePut_*}
+     * (F-176 + F-192).</p>
+     */
+    @Test
+    void updateStatus_NON_COMPLIANT_isPurePut_noPiecesNoDeadlinesNoAlignment() {
+        UUID checkId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
+
+        fr.ailegalcase.auth.User user = new fr.ailegalcase.auth.User();
+        Workspace ws = new Workspace();
+        try {
+            java.lang.reflect.Field idField = Workspace.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(ws, workspaceId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(ws);
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+
+        ProcedureCheck check = new ProcedureCheck();
+        check.setStatut(ProcedureCheckStatus.TO_CHECK);
+        check.setDescription("Convocation à entretien préalable");
+        when(procedureCheckRepository.findByIdAndWorkspaceId(checkId, workspaceId))
+                .thenReturn(Optional.of(check));
+        when(procedureCheckRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ProcedureCheckResponse response = service.updateStatus(checkId, "NON_COMPLIANT", null, null);
+
+        assertThat(response.statut()).isEqualTo("NON_COMPLIANT");
+        // 1 save du check ; rien d'autre.
+        verify(procedureCheckRepository, times(1)).save(any());
+        // F-193 cohérence stricte : aucune mutation de l'analyse parente
+        verify(caseAnalysisRepository, never()).save(any());
+        // Et aucun appel à un éventuel ProcedureCheckAlignmentService — non
+        // injecté dans ProcedureCheckService (cohérence par construction).
+    }
+
+    @Test
+    void updateStatus_VERIFIED_isPurePut() {
+        UUID checkId = UUID.randomUUID();
+        UUID workspaceId = UUID.randomUUID();
+
+        fr.ailegalcase.auth.User user = new fr.ailegalcase.auth.User();
+        Workspace ws = new Workspace();
+        try {
+            java.lang.reflect.Field idField = Workspace.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(ws, workspaceId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(ws);
+        when(currentUserResolver.resolve(any(), any(), any())).thenReturn(user);
+        when(workspaceMemberRepository.findByUserAndPrimaryTrue(user)).thenReturn(Optional.of(member));
+
+        ProcedureCheck check = new ProcedureCheck();
+        check.setStatut(ProcedureCheckStatus.TO_CHECK);
+        when(procedureCheckRepository.findByIdAndWorkspaceId(checkId, workspaceId))
+                .thenReturn(Optional.of(check));
+        when(procedureCheckRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateStatus(checkId, "VERIFIED", null, null);
+
+        verify(procedureCheckRepository, times(1)).save(any());
+        verify(caseAnalysisRepository, never()).save(any());
+    }
 }
