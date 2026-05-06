@@ -12,17 +12,23 @@ import { RisqueAlignment } from '../models/risque-alignment.model';
  *   {@code GET /api/v1/case-files/{id}/risques-alignment}
  *
  * <p>Comportement fail-open : 404, 500, timeout > 5 s → retourne `[]`.
- * Pattern miroir {@link RetainedPisteAlignmentService} (F-192) +
+ * Les sorties outils omettent silencieusement les pré-flags
+ * `risquesValides` et la tile dashboard {@code F-195-risques-summary}
+ * n'apparaît pas — pattern miroir
+ * {@link RetainedPisteAlignmentService} (F-192) +
  * {@link ProcedureCheckAlignmentService} (F-193) +
  * {@link PieceManquanteAlignmentService} (F-194).</p>
  *
  * <p>Refresh :
  * <ol>
- *   <li>Au mount du dossier (call initial).</li>
+ *   <li>Au mount du dossier (call initial dans
+ *   `<app-decisional-tools-panel>` / `<app-case-dashboard>` / synthèse pour
+ *   l'export PDF SF-195-03).</li>
  *   <li>À l'event SSE `ENRICHED_ANALYSIS DONE` propagé via
  *   `CaseDashboardRefreshService.refresh$`. <strong>Le PUT statut risque
  *   ne déclenche PAS de refresh côté frontend</strong> — cohérence stricte
- *   avec F-176 / F-192 / F-193 / F-194.</li>
+ *   avec F-176 / F-192 / F-193 / F-194 (le statut est un acte sans
+ *   matérialisation immédiate dans les outils).</li>
  * </ol></p>
  *
  * <p><strong>Contrat figé en avance</strong> : ce service précède le merge de

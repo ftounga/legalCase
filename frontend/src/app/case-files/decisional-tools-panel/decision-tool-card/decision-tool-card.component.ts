@@ -60,6 +60,36 @@ export interface PiecesBadgeInput {
 }
 
 /**
+ * F-195 SF-195-02 — Verdict du pill `⚠️ Risques (V/E)` affiché sur la card du
+ * panel F-IA-04 quand au moins un risque est mappé sur cet outil. Calculé via
+ * le helper partagé `risque-badge.helper.ts` exposé via static
+ * `getRisquesBadge` par chaque composant outil instrumenté (ou alimenté
+ * directement par le panel via `getRisquesBadgeFor`).
+ *
+ * Couleurs (palette navy/or DESIGN_SYSTEM.md, rouge subtil réservé aux
+ * VALIDÉ critiques) :
+ *   - validated          : or plein (risque confirmé non critique)
+ *   - validated_critical : rouge subtil (border + texte rouge — seul usage
+ *     justifié pour signaler un risque critique validé : harcèlement, violence,
+ *     expulsion, dilapidation)
+ *   - mixed              : or contour (mix VALIDE + ECARTE non critique)
+ *   - discarded          : gris (risques uniquement ECARTE)
+ *   - to_explore         : navy contour (uniquement A_CREUSER, statut implicite)
+ */
+export type RisquesBadgeKind =
+  | 'validated'
+  | 'validated_critical'
+  | 'mixed'
+  | 'discarded'
+  | 'to_explore'
+  | 'none';
+
+export interface RisquesBadgeInput {
+  kind: RisquesBadgeKind;
+  counts: { aCreuser: number; valides: number; ecartes: number };
+}
+
+/**
  * F-177 SF-177-01 — Card réutilisable pour outil décisionnel.
  *
  * Rend un titre + verdict synthétique + jusqu'à 3 badges en coin (pré-fill IA, alerte F-IA-03,
@@ -109,6 +139,19 @@ export class DecisionToolCardComponent {
    * =gris. `null` (composant non instrumenté) → pill silencieusement masqué.
    */
   @Input() piecesBadge: PiecesBadgeInput | null = null;
+  /**
+   * F-195 SF-195-02 — Affiche un pill `⚠️ Risques (V/E)` (Valides / Ecartés)
+   * à côté des autres pills quand `kind ≠ 'none'`. Couleur selon kind :
+   *   - validated_critical : rouge subtil (priorité visuelle absolue,
+   *     keyword critique : harcèlement / violence / expulsion / dilapidation)
+   *   - validated          : or plein (priorité visuelle haute, risque
+   *     confirmé non critique)
+   *   - mixed              : or contour (mix valides + écartés)
+   *   - discarded          : gris (uniquement écartés)
+   *   - to_explore         : navy contour (uniquement A_CREUSER implicite)
+   * `null` (composant non instrumenté) → pill silencieusement masqué.
+   */
+  @Input() risquesBadge: RisquesBadgeInput | null = null;
   @Input() disabled = false;
   @Input() flashing = false;
 
@@ -277,6 +320,64 @@ export class DecisionToolCardComponent {
     if (c.obtenues > 0) return 'tool-card__badge--pieces-obtained';
     if (c.nonApplicable > 0) return 'tool-card__badge--pieces-not-applicable';
     return '';
+  }
+
+  /* F-195 SF-195-02 — pill « ⚠️ Risques (V/E) ». */
+  protected get showRisquesBadge(): boolean {
+    if (!this.risquesBadge) return false;
+    if (this.risquesBadge.kind === 'none') return false;
+    const c = this.risquesBadge.counts;
+    return c.aCreuser + c.valides + c.ecartes > 0;
+  }
+
+  /** Formate les compteurs en `V/E` (Valides / Ecartés) — affichage compact. */
+  protected get risquesBadgeLabel(): string {
+    const c = this.risquesBadge?.counts;
+    if (!c) return '';
+    return `${c.valides}/${c.ecartes}`;
+  }
+
+  protected get risquesBadgeAriaLabel(): string {
+    const c = this.risquesBadge?.counts;
+    if (!c) return '';
+    return `Risques : ${c.valides} validé(s), ${c.ecartes} écarté(s), ${c.aCreuser} à creuser`;
+  }
+
+  protected get risquesBadgeTooltip(): string {
+    const c = this.risquesBadge?.counts;
+    if (!c) return '';
+    const parts: string[] = [];
+    if (c.valides > 0) parts.push(`${c.valides} validé(s)`);
+    if (c.ecartes > 0) parts.push(`${c.ecartes} écarté(s)`);
+    if (c.aCreuser > 0) parts.push(`${c.aCreuser} à creuser`);
+    return parts.length > 0 ? `Risques — ${parts.join(', ')}` : '';
+  }
+
+  /**
+   * Couleur visuelle. Palette navy/or/gris DESIGN_SYSTEM.md. Le rouge subtil
+   * (border + texte rouge, pas de fond plein) est réservé au kind
+   * `validated_critical` — seul usage justifié de la palette rouge dans le
+   * panneau F-IA-04 cohérent avec la règle "rouge réservé alerte critique".
+   *
+   * Priorité (déterminée par le helper en amont) :
+   * validated_critical > validated > mixed > discarded > to_explore.
+   */
+  protected get risquesBadgeClass(): string {
+    if (!this.risquesBadge) return '';
+    switch (this.risquesBadge.kind) {
+      case 'validated_critical':
+        return 'tool-card__badge--risques-validated-critical';
+      case 'validated':
+        return 'tool-card__badge--risques-validated';
+      case 'mixed':
+        return 'tool-card__badge--risques-mixed';
+      case 'discarded':
+        return 'tool-card__badge--risques-discarded';
+      case 'to_explore':
+        return 'tool-card__badge--risques-to-explore';
+      default:
+        return '';
+    }
   }
 
   protected onClick(): void {

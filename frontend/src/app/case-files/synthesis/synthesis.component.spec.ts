@@ -23,6 +23,8 @@ import { PieceManquanteStatusService } from '../../core/services/piece-manquante
 import { PieceManquanteStatus } from '../../core/models/piece-manquante-status.model';
 import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueStatusService } from '../../core/services/risque-status.service';
+import { RisqueStatus } from '../../core/models/risque-status.model';
 import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -42,7 +44,7 @@ const CASE_FILE_ID = 'cf-1';
 const makeItem = (texte: string, source: string | null = null, extrait: string | null = null): AnalysisItem =>
   ({ texte, source, extrait });
 
-const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = [], riskLevel: string | null = null, riskScore: number | null = null) => ({
+const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', piecesManquantes: string[] = [], riskLevel: string | null = null, riskScore: number | null = null, risques: AnalysisItem[] = []) => ({
   id: `analysis-${version}`,
   version,
   analysisType,
@@ -50,7 +52,7 @@ const makeSynthesis = (version: number, analysisType: 'STANDARD' | 'ENRICHED', p
   timeline: [],
   faits: [makeItem('fait1')],
   pointsJuridiques: [],
-  risques: [],
+  risques,
   questionsOuvertes: [],
   piecesManquantes,
   riskLevel,
@@ -147,6 +149,8 @@ describe('SynthesisComponent', () => {
         { provide: PieceManquanteStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)), updateStatus: jest.fn().mockReturnValue(of({} as PieceManquanteStatus)) } },
         // F-194 SF-194-03 — stub GET alignement pièces. Les tests dédiés override via .mockReturnValue
         { provide: PieceManquanteAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as PieceManquanteAlignment[])) } },
+        // F-195 SF-195-02 — stub PUT statut risque. Les tests dédiés override via .mockReturnValue
+        { provide: RisqueStatusService, useValue: { update: jest.fn().mockReturnValue(of({} as RisqueStatus)), updateStatus: jest.fn().mockReturnValue(of({} as RisqueStatus)) } },
         // F-195 SF-195-03 — stub GET alignement risques. Les tests dédiés override via .mockReturnValue
         { provide: RisqueAlignmentService, useValue: { getForCaseFile: jest.fn().mockReturnValue(of([] as RisqueAlignment[])) } },
         { provide: DocxExportService, useValue: jasmine.createSpyObj('DocxExportService', ['export']) },
@@ -833,6 +837,131 @@ describe('SynthesisComponent', () => {
       fixture.detectChanges();
       expect(component.pieceStatusFor('Contrat de travail')).toBe('A_DEMANDER');
       expect(component.isPieceStatusActive('Contrat de travail', 'A_DEMANDER')).toBe(true);
+    });
+  });
+
+  // F-195 SF-195-02 — UI markable risques : 3 boutons rendus + clic → PUT
+  describe('F-195 SF-195-02 markable risques', () => {
+    const RISQUE_HARC = 'Harcèlement moral subi';
+    const RISQUE_PRESC = 'Risque de prescription';
+
+    beforeEach(() => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(
+        of(makeSynthesis(1, 'STANDARD', [], null, null, [
+          makeItem(RISQUE_HARC),
+          makeItem(RISQUE_PRESC),
+        ])),
+      );
+    });
+
+    // CA-01 : 3 boutons statut rendus pour chaque risque
+    it('CA-01 renders 3 status buttons for each risque', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      const html = el.innerHTML;
+      expect(html).toContain('risque-status-btn--creuser');
+      expect(html).toContain('risque-status-btn--valide');
+      expect(html).toContain('risque-status-btn--ecarte');
+    });
+
+    // CA-01 : clic VALIDE → PUT updateStatus avec libellé original + statut VALIDE
+    it('CA-01 click VALIDE → updateStatus called with libelle + VALIDE', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        risqueLibelleOriginal: RISQUE_HARC,
+        statut: 'VALIDE',
+      } as RisqueStatus));
+      fixture.detectChanges();
+
+      component.updateRisqueStatus(RISQUE_HARC, 'VALIDE');
+
+      expect(statusService.updateStatus).toHaveBeenCalledWith(
+        CASE_FILE_ID,
+        RISQUE_HARC,
+        'VALIDE',
+        { raisonEcarte: null },
+      );
+      expect(component.risqueStatusFor(RISQUE_HARC)).toBe('VALIDE');
+    });
+
+    // CA-02 : ECARTE → champ raison + PUT inclut la raison au blur
+    it('CA-02 ECARTE click → status updated, blur with raison → PUT inclut raison', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        risqueLibelleOriginal: RISQUE_PRESC,
+        statut: 'ECARTE',
+      } as RisqueStatus));
+      fixture.detectChanges();
+
+      component.updateRisqueStatus(RISQUE_PRESC, 'ECARTE');
+      component.onRisqueRaisonInput(RISQUE_PRESC, 'Acte interruptif retrouvé');
+      component.onRisqueRaisonBlur(RISQUE_PRESC);
+
+      expect(statusService.updateStatus).toHaveBeenLastCalledWith(
+        CASE_FILE_ID,
+        RISQUE_PRESC,
+        'ECARTE',
+        { raisonEcarte: 'Acte interruptif retrouvé' },
+      );
+    });
+
+    // CA-05 : régression critique — PUT NE déclenche AUCUN refresh côté UI
+    it('CA-05 PUT statut → AUCUN re-fetch alignement (cohérence F-176 stricte)', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      const pisteService = TestBed.inject(RetainedPisteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      const piecesService = TestBed.inject(PieceManquanteAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      const checksService = TestBed.inject(ProcedureCheckAlignmentService) as unknown as { getForCaseFile: jest.Mock };
+      statusService.updateStatus.mockReturnValue(of({
+        risqueLibelleOriginal: RISQUE_HARC,
+        statut: 'VALIDE',
+      } as RisqueStatus));
+      fixture.detectChanges();
+
+      const callsBefore = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (piecesService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksService.getForCaseFile as jest.Mock).mock.calls.length;
+
+      component.updateRisqueStatus(RISQUE_HARC, 'VALIDE');
+
+      const callsAfter = (pisteService.getForCaseFile as jest.Mock).mock.calls.length
+        + (piecesService.getForCaseFile as jest.Mock).mock.calls.length
+        + (checksService.getForCaseFile as jest.Mock).mock.calls.length;
+      expect(callsAfter).toBe(callsBefore);
+      // versions non rechargées
+      expect(caseAnalysisService.getVersions).toHaveBeenCalledTimes(1);
+    });
+
+    // CA-erreur : erreur PUT → snackbar + rollback statut au précédent
+    it('CA-erreur PUT error → snackbar + rollback statut', () => {
+      const statusService = TestBed.inject(RisqueStatusService) as unknown as { updateStatus: jest.Mock };
+      const snack = TestBed.inject(MatSnackBar) as unknown as { open: jest.Mock };
+      snack.open = jest.fn();
+      statusService.updateStatus.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+      fixture.detectChanges();
+
+      // Initial : pas d'entrée → A_CREUSER implicite
+      component.updateRisqueStatus(RISQUE_HARC, 'VALIDE');
+
+      // Rollback : entrée supprimée du cache
+      expect(component.risqueStatusFor(RISQUE_HARC)).toBe('A_CREUSER');
+      expect(snack.open).toHaveBeenCalled();
+    });
+
+    // CA-10 : palette navy/or/gris DESIGN_SYSTEM.md (pas de rouge sur les boutons)
+    it('CA-10 button classes follow DESIGN_SYSTEM (navy/or/gris — pas de rouge)', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.risque-status-btn--creuser')).toBeTruthy();
+      expect(el.querySelector('.risque-status-btn--valide')).toBeTruthy();
+      expect(el.querySelector('.risque-status-btn--ecarte')).toBeTruthy();
+    });
+
+    // Helper : risqueStatusFor par défaut = A_CREUSER (statut implicite)
+    it('risqueStatusFor defaults to A_CREUSER for un-tagged risque', () => {
+      fixture.detectChanges();
+      expect(component.risqueStatusFor(RISQUE_HARC)).toBe('A_CREUSER');
+      expect(component.isRisqueStatusActive(RISQUE_HARC, 'A_CREUSER')).toBe(true);
     });
   });
 

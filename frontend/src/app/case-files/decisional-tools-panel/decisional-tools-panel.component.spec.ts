@@ -52,6 +52,11 @@ describe('DecisionToolsPanelComponent', () => {
       .forEach(r => {
         try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
       });
+    // F-195 SF-195-02 — idem pour risques-alignment.
+    httpMock.match(r => r.url.endsWith('/risques-alignment'))
+      .forEach(r => {
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
     httpMock.verify();
   });
 
@@ -515,6 +520,11 @@ describe('DecisionToolsPanelComponent — SF-IA-04-04 refresh on CaseDashboardRe
       });
     // F-194 SF-194-02 — idem pour pieces-manquantes-alignment.
     httpMock.match(r => r.url.endsWith('/pieces-manquantes-alignment'))
+      .forEach(r => {
+        try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
+      });
+    // F-195 SF-195-02 — idem pour risques-alignment.
+    httpMock.match(r => r.url.endsWith('/risques-alignment'))
       .forEach(r => {
         try { r.flush([], { status: 200, statusText: 'OK' }); } catch { /* cancelled */ }
       });

@@ -1,6 +1,8 @@
+import { RisqueStatutValue } from './risque-status.model';
+
 /**
  * F-195 SF-195-02 — Alignement matérialisé entre un risque taggé par l'avocat
- * et les outils décisionnels qui en dépendent.
+ * dans la synthèse et les outils décisionnels qui en dépendent.
  *
  * Miroir du DTO `RisqueAlignmentResponse` exposé par le backend (cf. SF-195-01).
  * Pattern jumeau de {@link RetainedPisteAlignment} (F-192),
@@ -26,8 +28,6 @@
  * SF-195-02 (frontend) et SF-195-01 (backend), pattern utilisé pour SF-193-03
  * et SF-194-03. Réconciliation au merge des PRs parallèles.</p>
  */
-export type RisqueStatutValue = 'A_CREUSER' | 'VALIDE' | 'ECARTE';
-
 export interface RisqueAlignment {
   risqueLibelle: string;
   statut: RisqueStatutValue;

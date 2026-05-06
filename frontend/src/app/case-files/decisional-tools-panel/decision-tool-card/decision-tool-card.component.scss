@@ -291,6 +291,63 @@
     color: #6B7A8D;
     border: 1px solid #B8BFC9;
   }
+
+  /* F-195 SF-195-02 — pill « ⚠️ Risques (V/E) » : pattern visuel miroir des
+     pills procedures/pieces. Palette navy/or/gris DESIGN_SYSTEM.md. Le rouge
+     SUBTIL (border + texte, pas de fond rouge plein) est réservé au kind
+     `validated_critical` — seul usage justifié dans F-19X cohérent avec la
+     règle "rouge réservé alerte critique". */
+  &--risques {
+    width: auto;
+    min-width: 48px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 13px;
+    gap: 4px;
+    font-family: 'JetBrains Mono', 'Inter', monospace;
+    font-size: 12px;
+    font-weight: 700;
+
+    mat-icon {
+      width: 14px;
+      height: 14px;
+      font-size: 14px;
+    }
+  }
+
+  &--risques-validated-critical {
+    /* Rouge SUBTIL : fond chaud très clair + border + texte rouge foncé. */
+    background: #FDF6F6;
+    color: #7A2222;
+    border: 1px solid #C62828;
+  }
+
+  &--risques-validated {
+    /* Or plein — risque confirmé non critique. */
+    background: #C9973A;
+    color: #FFFFFF;
+  }
+
+  &--risques-mixed {
+    /* Or contour — mix VALIDE + ECARTE non critique. */
+    background: rgba(201, 151, 58, 0.18);
+    color: #7A5D1F;
+    border: 1px solid #C9973A;
+  }
+
+  &--risques-discarded {
+    /* Gris — uniquement ECARTE (cohérent F-176 statut DISCARDED). */
+    background: #F2F4F8;
+    color: #6B7A8D;
+    border: 1px solid #B8BFC9;
+  }
+
+  &--risques-to-explore {
+    /* Navy contour — uniquement A_CREUSER implicite. */
+    background: rgba(26, 58, 92, 0.10);
+    color: #1A3A5C;
+    border: 1px solid #1A3A5C;
+  }
 }
 
 .tool-card__body {

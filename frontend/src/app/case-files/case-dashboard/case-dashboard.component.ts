@@ -89,20 +89,34 @@ export class CaseDashboardComponent implements OnInit {
 
   /**
    * F-167 SF-167-05 — riskScore tile rendue isolément (non groupée par thème).
+   *
+   * <p>F-195 SF-195-02 — Quand `scoreRisqueAvocat` est présent (l'avocat a
+   * écarté au moins un risque), on affiche les 2 valeurs côte à côte :
+   * <code>Score IA brut : X · Score validé avocat : Y</code>. La couleur de
+   * la bordure suit le score validé avocat (qui prime visuellement — c'est
+   * la décision finale). Sinon comportement original (1 score).</p>
    */
   readonly riskScoreTile = computed<RiskScoreTile | null>(() => {
     const d = this.dashboard();
     if (!d || d.riskScore == null) return null;
+    const scoreAvocat = d.scoreRisqueAvocat ?? null;
+    const hasDualScore = scoreAvocat != null;
+    const primary = hasDualScore
+      ? `IA brut : ${d.riskScore} % · Validé avocat : ${scoreAvocat} %`
+      : `${d.riskScore} %`;
+    // Quand le score avocat existe, il prime pour la couleur de la card —
+    // c'est la décision finale (l'avocat a écarté certains risques).
+    const colorScore = hasDualScore ? scoreAvocat! : d.riskScore;
     return {
       toolId: 'risk-score',
       title: 'ÉVALUATION DES RISQUES',
       icon: 'speed',
       summary: {
         label: 'Score',
-        primaryValue: `${d.riskScore} %`,
+        primaryValue: primary,
         secondaryValue: d.riskLevel ?? undefined,
       },
-      metierAlertLevel: this.riskAlertLevel(d.riskScore),
+      metierAlertLevel: this.riskAlertLevel(colorScore),
     };
   });
 
@@ -193,6 +207,16 @@ export class CaseDashboardComponent implements OnInit {
       this.router.navigate(
         ['/case-files', this.caseFileId, 'synthesis'],
         { fragment: 'section-pieces' },
+      );
+      return;
+    }
+    // F-195 SF-195-02 — tile résumé Risques markables : pas un outil
+    // décisionnel instanciable, on redirige vers la synthèse avec scroll
+    // vers le bloc Risques (anchor `section-risques`).
+    if (toolId === 'F-195-risques-summary') {
+      this.router.navigate(
+        ['/case-files', this.caseFileId, 'synthesis'],
+        { fragment: 'section-risques' },
       );
       return;
     }

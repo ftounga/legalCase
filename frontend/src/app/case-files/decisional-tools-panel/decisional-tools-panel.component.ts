@@ -26,12 +26,18 @@ import { RetainedPisteAlignmentService } from '../../core/services/retained-pist
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
 import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
+import { RisqueAlignment } from '../../core/models/risque-alignment.model';
 import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
-import { DecisionToolCardComponent, PiecesBadgeInput } from './decision-tool-card/decision-tool-card.component';
+import { DecisionToolCardComponent, PiecesBadgeInput, RisquesBadgeInput } from './decision-tool-card/decision-tool-card.component';
 import {
   computePiecesBadge,
   piecesObtenuesFor,
 } from './piece-manquante-badge.helper';
+import {
+  computeRisquesBadge,
+  risquesValidesFor,
+} from './risque-badge.helper';
 import { DecisionToolModalService } from './decision-tool-modal/decision-tool-modal.service';
 import { DecisionalToolsProgressBannerComponent } from './decisional-tools-progress-banner.component';
 import { DecisionalToolsProgressService } from './decisional-tools-progress.service';
@@ -155,6 +161,15 @@ export interface DecisionToolContext {
    * ne déclenche AUCUN refresh côté frontend — cohérence F-176 stricte).
    */
   piecesAlignment?: import('../../core/models/piece-manquante-alignment.model').PieceManquanteAlignment[];
+  /**
+   * F-195 SF-195-02 — Alignement matérialisé risques ↔ outils. Pré-filtré
+   * côté entry par toolId pour ne passer aux composants outils que la sous-
+   * liste des risques qui les concernent. Pattern miroir
+   * {@link PieceManquanteAlignment} (F-194). Refresh exclusif au run de
+   * Synthèse enrichie (PUT statut risque ne déclenche AUCUN refresh côté
+   * frontend — cohérence F-176 stricte).
+   */
+  risquesAlignment?: import('../../core/models/risque-alignment.model').RisqueAlignment[];
 }
 
 export interface DecisionToolRegistryEntry {
@@ -197,6 +212,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
   private readonly retainedPistesService = inject(RetainedPisteAlignmentService, { optional: true });
   private readonly piecesAlignmentService = inject(PieceManquanteAlignmentService, { optional: true });
+  private readonly risqueAlignmentService = inject(RisqueAlignmentService, { optional: true });
   private readonly modalService = inject(DecisionToolModalService);
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
@@ -229,6 +245,16 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
    * Synthèse enrichie). Le PUT statut pièce ne déclenche PAS de refresh.
    */
   readonly piecesAlignment = signal<PieceManquanteAlignment[]>([]);
+
+  /**
+   * F-195 SF-195-02 — Alignement risques ↔ outils. Cache local.
+   * Refresh : (1) au mount du dossier, (2) à chaque émission
+   * `CaseDashboardRefreshService.refresh$` (déclenchée à la fin du run de
+   * Synthèse enrichie). Le PUT statut risque ne déclenche PAS de refresh
+   * (cohérence F-176 stricte — la matérialisation risque → outil ne se fait
+   * qu'au prochain run de Synthèse enrichie).
+   */
+  readonly risquesAlignment = signal<RisqueAlignment[]>([]);
 
   /**
    * Registre des outils décisionnels. Chaque entrée déclare son composant
@@ -324,6 +350,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-195 SF-195-02 : libellés des risques statut VALIDE alignés sur cet outil
+          // (ex. "harcèlement moral subi" → flag visuel "risque validé" sur la card).
+          risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-11-harcelement-licenciement-nul'),
         }),
       }],
       ['F-DT-16-licenciement-nul-detection', {
@@ -351,6 +380,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-195 SF-195-02 : libellés des risques statut VALIDE alignés
+          // (ex. "discrimination" → flag visuel "risque validé").
+          risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-12-discrimination-dommages-interets'),
         }),
       }],
       ['F-DT-13-licenciement-economique', {
@@ -537,6 +569,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           procedureChecks: ctx.procedureChecks,
           aiQuestions: ctx.aiQuestions,
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
+          // F-195 SF-195-02 : libellés des risques statut VALIDE alignés
+          // (ex. "clause non-concurrence abusive" → flag visuel ; ECARTE
+          // → masquage potentiel via F-IA-04).
+          risquesValides: risquesValidesFor(ctx.risquesAlignment, 'F-DT-24-non-concurrence'),
         }),
       }],
       ['F-132-rupture-amiable-info', {
@@ -1504,6 +1540,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       this.loadVisibility(true);
       this.loadRetainedPistes();
       this.loadPiecesAlignment();
+      this.loadRisquesAlignment();
     }
     if (this.refreshService) {
       this.refreshService.refresh$
@@ -1519,6 +1556,9 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
             // F-194 SF-194-02 — idem pour les pièces. PUT statut pièce ne
             // déclenche PAS de refresh, seul le run de Synthèse enrichie le fait.
             this.loadPiecesAlignment();
+            // F-195 SF-195-02 — idem pour les risques. PUT statut risque ne
+            // déclenche PAS de refresh, seul le run de Synthèse enrichie le fait.
+            this.loadRisquesAlignment();
           }
         });
     }
@@ -1529,6 +1569,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       this.loadVisibility(true);
       this.loadRetainedPistes();
       this.loadPiecesAlignment();
+      this.loadRisquesAlignment();
     }
   }
 
@@ -1565,6 +1606,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       .subscribe({
         next: list => this.piecesAlignment.set(list),
         error: () => this.piecesAlignment.set([]),
+      });
+  }
+
+  /**
+   * F-195 SF-195-02 — Charge l'alignement risques ↔ outils. Fail-open : `[]`
+   * si endpoint indisponible (le service log un warn). OnPush-safe :
+   * mutation via `signal.set()` qui déclenche la CD nativement.
+   */
+  private loadRisquesAlignment(): void {
+    if (!this.risqueAlignmentService) {
+      this.risquesAlignment.set([]);
+      return;
+    }
+    this.risqueAlignmentService.getForCaseFile(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => this.risquesAlignment.set(list),
+        error: () => this.risquesAlignment.set([]),
       });
   }
 
@@ -1671,6 +1730,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       pistesRetenues: this.retainedPistes(),
       // F-194 SF-194-02 : alignement chargé via PieceManquanteAlignmentService.
       piecesAlignment: this.piecesAlignment(),
+      // F-195 SF-195-02 : alignement chargé via RisqueAlignmentService.
+      risquesAlignment: this.risquesAlignment(),
     });
   }
 
@@ -1685,6 +1746,21 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     const all = this.piecesAlignment();
     const filtered = all.filter(p => Array.isArray(p.toolIdsCibles) && p.toolIdsCibles.includes(toolId));
     const badge = computePiecesBadge(filtered);
+    if (badge.kind === 'none') return null;
+    return badge;
+  }
+
+  /**
+   * F-195 SF-195-02 — Calcule le badge risques (V/E) à afficher sur la card
+   * du panel pour un toolId. Fait à partir du signal `risquesAlignment`
+   * filtré sur `toolIdsCibles`. Pattern miroir `piecesBadgeFor` (F-194).
+   * Retourne `null` si aucun risque n'est mappé à cet outil — la pill est
+   * silencieusement masquée par le card via `showRisquesBadge`.
+   */
+  risquesBadgeFor(toolId: string): RisquesBadgeInput | null {
+    const all = this.risquesAlignment();
+    const filtered = all.filter(r => Array.isArray(r.toolIdsCibles) && r.toolIdsCibles.includes(toolId));
+    const badge = computeRisquesBadge(filtered);
     if (badge.kind === 'none') return null;
     return badge;
   }

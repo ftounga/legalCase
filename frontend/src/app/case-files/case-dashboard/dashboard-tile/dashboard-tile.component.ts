@@ -50,6 +50,12 @@ export class DashboardTileComponent {
     if (this.tile?.toolId === 'F-194-pieces-summary') {
       return 'description';
     }
+    // F-195 SF-195-02 — la tile résumé risques utilise `warning` (cohérent
+    // thème DIAGNOSTIC + nature du bloc Risques de la synthèse) pour la
+    // distinguer des autres tiles diagnostiques (health_and_safety).
+    if (this.tile?.toolId === 'F-195-risques-summary') {
+      return 'warning';
+    }
     switch (theme) {
       case 'INDEMNITES':
         return 'euro';

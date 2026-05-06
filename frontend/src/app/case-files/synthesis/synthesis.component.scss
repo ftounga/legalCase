@@ -1295,3 +1295,129 @@
     }
   }
 }
+
+/* F-195 SF-195-02 — UI markable des risques (bloc Risques de la synthèse).
+   Pattern miroir F-194 SF-194-02. Palette navy/or/gris DESIGN_SYSTEM.md.
+   Le rouge plein est réservé à l'alerte critique (kind validated_critical
+   sur la card panel F-IA-04 — pas ici, les boutons restent navy/or/gris). */
+.risques-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.risque-item {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #E0E4EA;
+  border-left: 4px solid #C9973A;
+  border-radius: 8px;
+  background: #FFFFFF;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.risque-content {
+  flex: 1 1 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.risque-texte {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  color: #1A3A5C;
+  line-height: 1.45;
+}
+
+.risque-raison-field {
+  margin-top: 4px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.risque-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.risque-spinner {
+  margin: 0 8px;
+}
+
+.risque-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  border: 1.5px solid;
+  background: transparent;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  mat-icon {
+    font-size: 15px;
+    width: 15px;
+    height: 15px;
+  }
+
+  &--creuser {
+    /* navy — risque à creuser (statut implicite par défaut) */
+    border-color: #1A3A5C;
+    color: #1A3A5C;
+
+    &.risque-status-btn--active {
+      background: #1A3A5C;
+      color: #FFFFFF;
+    }
+
+    &:hover:not(.risque-status-btn--active) {
+      background: #EEF2F7;
+    }
+  }
+
+  &--valide {
+    /* or — risque confirmé par l'avocat */
+    border-color: #C9973A;
+    color: #8B6F3D;
+
+    &.risque-status-btn--active {
+      background: #C9973A;
+      color: #FFFFFF;
+    }
+
+    &:hover:not(.risque-status-btn--active) {
+      background: #FAF5EA;
+    }
+  }
+
+  &--ecarte {
+    /* gris — risque écarté (cohérent F-176 statut DISCARDED) */
+    border-color: #6B7A8D;
+    color: #6B7A8D;
+
+    &.risque-status-btn--active {
+      background: #6B7A8D;
+      color: #FFFFFF;
+    }
+
+    &:hover:not(.risque-status-btn--active) {
+      background: #F2F4F8;
+    }
+  }
+}
