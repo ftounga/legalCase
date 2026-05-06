@@ -368,6 +368,72 @@ describe('DecisionToolsPanelComponent', () => {
     ]);
   });
 
+  // ── F-197 SF-197-02 — Override avocat propagé via aiData ─────────────────
+
+  it('F-197 SF-197-02 — aucun override : aiData passé tel quel (no-op)', () => {
+    component.synthesis = {
+      travailExtractedData: { salaireBrutMensuel: 2500, motifLicenciement: 'X' },
+    };
+    component.typeLitigeOverride = null;
+
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    const inputs = component.componentInputsFor(entry);
+
+    // typeLitigeAvocatOverride absent (no-op gracieux)
+    expect(inputs['aiData']).toEqual({ salaireBrutMensuel: 2500, motifLicenciement: 'X' });
+  });
+
+  it('F-197 SF-197-02 — override Travail FR : aiData.typeLitigeAvocatOverride posé', () => {
+    component.synthesis = {
+      travailExtractedData: { salaireBrutMensuel: 3000 },
+    };
+    component.typeLitigeOverride = {
+      typeLitigeAvocat: 'LICENCIEMENT_ECONOMIQUE',
+      typeProcedureAvocat: null,
+      raison: null,
+    };
+
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    const inputs = component.componentInputsFor(entry);
+
+    // Le tool F-DT-07 ne forwarde que `caseFileId` + `aiData` (closure inputs).
+    // L'override est injecté dans le `aiData` via `augmentSynthesisWithOverride()`.
+    expect(inputs['aiData']).toEqual({
+      salaireBrutMensuel: 3000,
+      typeLitigeAvocatOverride: 'LICENCIEMENT_ECONOMIQUE',
+    });
+  });
+
+  it('F-197 SF-197-02 — override Immigration : immigrationExtractedData.typeProcedureAvocatOverride posé', () => {
+    component.synthesis = {
+      immigrationExtractedData: { typeProcedureDetectee: 'OQTF_AVEC_DELAI' },
+    };
+    component.typeLitigeOverride = {
+      typeLitigeAvocat: null,
+      typeProcedureAvocat: 'OQTF_SANS_DELAI',
+      raison: 'Détection IA erronée',
+    };
+
+    const entry = component.resolveEntry('F-IM-08-oqtf-avec-delai-fr')!;
+    const inputs = component.componentInputsFor(entry);
+
+    expect((inputs['aiData'] as any).typeProcedureAvocatOverride).toBe('OQTF_SANS_DELAI');
+  });
+
+  it('F-197 SF-197-02 — synthesis null : retour null sans crash', () => {
+    component.synthesis = null;
+    component.typeLitigeOverride = {
+      typeLitigeAvocat: 'PRISE_ACTE_RUPTURE',
+      typeProcedureAvocat: null,
+      raison: null,
+    };
+
+    const entry = component.resolveEntry('F-DT-07-anciennete-conges-prime')!;
+    const inputs = component.componentInputsFor(entry);
+    // aiData = ctx.synthesis?.travailExtractedData → undefined si synthesis est null
+    expect(inputs['aiData']).toBeUndefined();
+  });
+
   // ── SF-169-01 — Grid 2 colonnes + groupement par thème métier ────────────
 
   it('SF-169-01 T-01: THEME_BY_TOOL_ID couvre tous les tool_ids du TOOL_REGISTRY', () => {

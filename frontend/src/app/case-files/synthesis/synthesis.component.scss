@@ -1123,6 +1123,74 @@
   line-height: 1.2;
 }
 
+// F-197 SF-197-02 — badge "Type de litige" : dispose 4 zones (icon, label,
+// value, sublabel) plutôt que le compteur (pas pertinent : single-value).
+// L'icône edit en bas à droite signale l'action "modifier".
+.synthesis-badge--type-litige {
+  grid-template-areas:
+    'icon  label    edit'
+    'icon  value    edit'
+    'icon  sublabel edit';
+  grid-template-columns: 32px 1fr 20px;
+  position: relative;
+
+  .synthesis-badge__value {
+    grid-area: value;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-primary, #1A3A5C);
+    line-height: 1.3;
+  }
+
+  .synthesis-badge__edit-hint {
+    grid-area: edit;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-secondary, #6B7A8D);
+    align-self: center;
+    transition: color 0.15s ease;
+  }
+
+  &:hover .synthesis-badge__edit-hint {
+    color: var(--color-accent, #C9973A);
+  }
+}
+
+// F-197 SF-197-02 — état "modifié par vous" : palette or (DESIGN_SYSTEM
+// accent #C9973A) + bordure or + chevron edit en or pour signaler la
+// présence d'un override avocat.
+.synthesis-badge--type-litige-overridden {
+  border-color: var(--color-accent, #C9973A);
+  background: #FAF6E8;
+
+  .synthesis-badge__value {
+    color: var(--color-accent, #C9973A);
+  }
+
+  .synthesis-badge__sublabel {
+    color: var(--color-accent, #C9973A);
+    font-weight: 500;
+  }
+
+  .synthesis-badge__icon {
+    color: var(--color-accent, #C9973A);
+  }
+
+  .synthesis-badge__edit-hint {
+    color: var(--color-accent, #C9973A);
+  }
+}
+
+.panel-icon--type-litige {
+  color: var(--color-primary, #1A3A5C);
+}
+
+.panel-icon--type-litige-override {
+  color: var(--color-accent, #C9973A);
+}
+
 @media (max-width: 720px) {
   .synthesis-grid {
     grid-template-columns: 1fr;

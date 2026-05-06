@@ -7,6 +7,7 @@ import { CaseFileStatusService } from '../../core/services/case-file-status.serv
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
 import { AiQuestionService } from '../../core/services/ai-question.service';
 import { AiQuestionAnswerService } from '../../core/services/ai-question-answer.service';
@@ -156,6 +157,11 @@ describe('CaseFileDetailComponent', () => {
         { provide: MatSnackBar, useValue: snackBarSpy },
         { provide: MatDialog, useValue: dialogSpy },
         { provide: WorkspaceService, useValue: workspaceServiceSpy },
+        // F-197 SF-197-02 — stub GET override (par défaut : aucun override posé).
+        { provide: TypeLitigeOverrideService, useValue: {
+          getForCaseFile: jest.fn().mockReturnValue(of({ typeLitigeAvocat: null, typeProcedureAvocat: null, raison: null })),
+          update: jest.fn().mockReturnValue(of({})),
+        } },
         provideRouter([]),
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: 'cf1' }) } } },
         provideAnimationsAsync(),

@@ -26,6 +26,8 @@ import { CaseFileStatusService } from '../../core/services/case-file-status.serv
 import { DocumentService } from '../../core/services/document.service';
 import { AnalysisJobService } from '../../core/services/analysis-job.service';
 import { CaseAnalysisService } from '../../core/services/case-analysis.service';
+import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
+import { TypeLitigeOverrideResponse } from '../../core/models/type-litige-override.model';
 import { CaseAnalysisCommandService } from '../../core/services/case-analysis-command.service';
 import { ReAnalysisService } from '../../core/services/re-analysis.service';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -101,6 +103,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   readonly docsCollapsed = signal(false);
   currentMemberRole = signal<string | null>(null);
   workspaceCountry = signal<string>('FRANCE');
+  /**
+   * F-197 SF-197-02 — Override avocat single-value du type de litige (Travail
+   * FR) ou type de procédure (Immigration). Lu une fois au montage du
+   * dossier, propagé via `[typeLitigeOverride]` au panel
+   * `<app-decisional-tools-panel>` pour pré-fill outils. Cohérence F-176
+   * stricte : aucun re-fetch, aucun refresh outils déclenché par le PUT
+   * depuis la synthèse.
+   */
+  typeLitigeOverride = signal<TypeLitigeOverrideResponse | null>(null);
 
   // true between upload success and first backend confirmation that new doc analysis started
   private docAnalysisPending = signal(false);
@@ -338,7 +349,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     private procedureCheckService: ProcedureCheckService,
     private dashboardRefreshService: CaseDashboardRefreshService,
     private ocrRetryService: OcrRetryService,
-    protected quotaErrorState: QuotaErrorStateService
+    protected quotaErrorState: QuotaErrorStateService,
+    private typeLitigeOverrideService: TypeLitigeOverrideService,
   ) {}
 
   // SF-171-02 : signal des codes 402 qui doivent désactiver les boutons d'analyse.
@@ -407,6 +419,12 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         this.loadAnalysisJobs(id);
         this.loadStats(id);
         this.loadDeadlines(id);
+        // F-197 SF-197-02 — fail-open silencieux (CA-09) : si le GET échoue,
+        // l'override reste à null, le panel utilise la valeur IA brute.
+        this.typeLitigeOverrideService.getForCaseFile(id).subscribe({
+          next: response => this.typeLitigeOverride.set(response ?? null),
+          error: () => this.typeLitigeOverride.set(null),
+        });
         this.setupVisibilityRefetch(id);
       },
       error: () => {
