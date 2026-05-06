@@ -56,6 +56,12 @@ export class DashboardTileComponent {
     if (this.tile?.toolId === 'F-195-risques-summary') {
       return 'warning';
     }
+    // F-196 SF-196-02 — la tile résumé questions complémentaires utilise
+    // `quiz` (cohérent thème DOCUMENTS + nature du bloc Questions F-94 de la
+    // synthèse) pour la distinguer de la tile pièces (description).
+    if (this.tile?.toolId === 'F-196-questions-summary') {
+      return 'quiz';
+    }
     switch (theme) {
       case 'INDEMNITES':
         return 'euro';

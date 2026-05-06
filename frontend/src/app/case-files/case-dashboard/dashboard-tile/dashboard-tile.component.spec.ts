@@ -63,6 +63,19 @@ describe('DashboardTileComponent', () => {
     expect(component.iconForTheme('UNKNOWN_THEME')).toBe('extension');
   });
 
+  // F-196 SF-196-02 — la tile résumé questions complémentaires utilise `quiz`.
+  it('returns `quiz` icon for F-196-questions-summary tile (overrides DOCUMENTS theme)', () => {
+    component.tile = {
+      toolId: 'F-196-questions-summary',
+      theme: 'DOCUMENTS',
+      label: 'Questions complémentaires',
+      primaryValue: '5 questions',
+      secondaryValue: '3 répondues · 2 en attente',
+      alertLevel: 'WARNING',
+    };
+    expect(component.iconForTheme('DOCUMENTS')).toBe('quiz');
+  });
+
   it('summaryFromTile builds DecisionToolSummary from DashboardTile fields', () => {
     component.tile = baseTile;
     const s = component.summaryFromTile();
