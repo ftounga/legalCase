@@ -46,6 +46,21 @@ public class CaseAnalysis {
     @Column(name = "partial_state", columnDefinition = "TEXT")
     private String partialState;
 
+    /**
+     * F-192 SF-192-01 — alignement matérialisé des pistes stratégiques RETAINED de cette analyse
+     * vers les outils décisionnels du dossier (statique JSON, calculé une fois en fin de run
+     * de Synthèse enrichie par {@code RetainedPisteAlignmentService.materializeForAnalysis}).
+     *
+     * <p>Schéma : tableau d'objets
+     * {@code [{"pisteId":..., "texte":..., "baseJuridique":..., "horizonTemporel":...,
+     * "conditions":[...], "toolIdCible":..., "matchStatus":"ALIGNED|DIVERGENT|NOT_ANALYZED|NO_TARGET_TOOL"}]}.
+     *
+     * <p>{@code null} pour les analyses pré-F-192 ou les runs où la matérialisation a échoué
+     * (fail-open) — l'endpoint {@code /retained-pistes-alignment} retourne {@code []} dans ce cas.</p>
+     */
+    @Column(name = "retained_pistes_alignment_json", columnDefinition = "TEXT")
+    private String retainedPistesAlignmentJson;
+
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 

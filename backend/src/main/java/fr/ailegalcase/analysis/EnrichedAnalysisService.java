@@ -135,6 +135,7 @@ public class EnrichedAnalysisService {
     private final ChatMessageRepository chatMessageRepository;
     private final ProcedureCheckService procedureCheckService;
     private final StrategicOptionService strategicOptionService;
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService;
     private final StatutoryDeadlineService statutoryDeadlineService;
     private final fr.ailegalcase.referential.LegalReferentialService legalReferentialService;
     private final SourceExplanationGenerator sourceExplanationGenerator;
@@ -166,6 +167,7 @@ public class EnrichedAnalysisService {
                                    ChatMessageRepository chatMessageRepository,
                                    ProcedureCheckService procedureCheckService,
                                    StrategicOptionService strategicOptionService,
+                                   RetainedPisteAlignmentService retainedPisteAlignmentService,
                                    StatutoryDeadlineService statutoryDeadlineService,
                                    fr.ailegalcase.referential.LegalReferentialService legalReferentialService,
                                    SourceExplanationGenerator sourceExplanationGenerator,
@@ -187,6 +189,7 @@ public class EnrichedAnalysisService {
         this.chatMessageRepository = chatMessageRepository;
         this.procedureCheckService = procedureCheckService;
         this.strategicOptionService = strategicOptionService;
+        this.retainedPisteAlignmentService = retainedPisteAlignmentService;
         this.statutoryDeadlineService = statutoryDeadlineService;
         this.legalReferentialService = legalReferentialService;
         this.sourceExplanationGenerator = sourceExplanationGenerator;
@@ -433,6 +436,14 @@ public class EnrichedAnalysisService {
                 strategicOptionService.propagateRetainedAndDiscarded(previousAnalysisId, enrichedAnalysis);
             } catch (Exception e) {
                 log.warn("Fail-open: strategic options persistence/propagation failed for enriched analysis {}: {}",
+                        enrichedAnalysis.getId(), e.getMessage());
+            }
+            // F-192 SF-192-01 : matérialise l'alignement RETAINED → outils, propage pieces/délais.
+            // Doit être APRÈS propagateRetainedAndDiscarded pour lire les pistes RETAINED clonées.
+            try {
+                retainedPisteAlignmentService.materializeForAnalysis(enrichedAnalysis);
+            } catch (Exception e) {
+                log.warn("Fail-open: retained pistes materialization failed for enriched analysis {}: {}",
                         enrichedAnalysis.getId(), e.getMessage());
             }
             statutoryDeadlineService.createStatutoryDeadlines(enrichedAnalysis,

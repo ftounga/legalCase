@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.ailegalcase.analysis.CaseAnalysis;
 import fr.ailegalcase.analysis.CaseAnalysisRepository;
 import fr.ailegalcase.analysis.CaseAnalysisResponse;
+import fr.ailegalcase.analysis.RetainedPisteAlignment;
+import fr.ailegalcase.analysis.RetainedPisteAlignmentService;
 import fr.ailegalcase.auth.User;
 import fr.ailegalcase.shared.CurrentUserResolver;
 import fr.ailegalcase.shared.OAuthProviderResolver;
@@ -122,6 +124,8 @@ public class CaseFileDashboardService {
     private final Belgian9terRepository belgian9terRepo;
     private final Belgian40bisRepository belgian40bisRepo;
     private final Belgian40terRepository belgian40terRepo;
+    // F-192 SF-192-01 — pistes RETAINED matérialisées sur la dernière analyse DONE.
+    private final RetainedPisteAlignmentService retainedPisteAlignmentService;
 
     public CaseFileDashboardService(ObjectMapper objectMapper, CaseFileRepository caseFileRepository,
                                      WorkspaceMemberRepository workspaceMemberRepository,
@@ -212,7 +216,8 @@ public class CaseFileDashboardService {
                                      Belgian9bisRepository belgian9bisRepo,
                                      Belgian9terRepository belgian9terRepo,
                                      Belgian40bisRepository belgian40bisRepo,
-                                     Belgian40terRepository belgian40terRepo) {
+                                     Belgian40terRepository belgian40terRepo,
+                                     RetainedPisteAlignmentService retainedPisteAlignmentService) {
         this.objectMapper = objectMapper;
         this.caseFileRepository = caseFileRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
@@ -304,6 +309,7 @@ public class CaseFileDashboardService {
         this.belgian9terRepo = belgian9terRepo;
         this.belgian40bisRepo = belgian40bisRepo;
         this.belgian40terRepo = belgian40terRepo;
+        this.retainedPisteAlignmentService = retainedPisteAlignmentService;
     }
 
     @Transactional(readOnly = true)
@@ -431,8 +437,58 @@ public class CaseFileDashboardService {
         addSafely(tiles, () -> tileFromBelgian9terAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromBelgian40bisAnalysis(caseFileId));
         addSafely(tiles, () -> tileFromBelgian40terAnalysis(caseFileId));
+        // ── F-192 SF-192-01 — pistes RETAINED matérialisées ───────────────────
+        addSafely(tiles, () -> tileFromRetainedPistesAlignment(caseFileId));
         tiles.sort(Comparator.comparing(DashboardTile::toolId));
         return tiles;
+    }
+
+    /**
+     * F-192 SF-192-01 — Tile dashboard agrégeant les pistes stratégiques
+     * RETAINED matérialisées sur la dernière analyse {@code DONE} du dossier.
+     *
+     * <ul>
+     *   <li>{@code alertLevel = ALERT} si ≥ 1 piste {@code DIVERGENT}</li>
+     *   <li>{@code alertLevel = WARNING} si 0 {@code DIVERGENT} mais ≥ 1
+     *       {@code NOT_ANALYZED}</li>
+     *   <li>{@code alertLevel = OK} sinon</li>
+     * </ul>
+     *
+     * <p>Renvoie {@code null} si aucune analyse {@code DONE} ou si l'alignement
+     * matérialisé est vide (analyse legacy pré-F-192 ou run dans lequel la
+     * matérialisation a échoué fail-open).</p>
+     */
+    private DashboardTile tileFromRetainedPistesAlignment(UUID caseFileId) {
+        if (retainedPisteAlignmentService == null || analysisRepository == null) return null;
+        var latest = analysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(
+                caseFileId, fr.ailegalcase.analysis.AnalysisStatus.DONE);
+        if (latest.isEmpty()) return null;
+        List<RetainedPisteAlignment> alignments = retainedPisteAlignmentService
+                .deserializeAlignment(latest.get().getRetainedPistesAlignmentJson());
+        if (alignments == null || alignments.isEmpty()) return null;
+
+        long divergent = alignments.stream()
+                .filter(a -> RetainedPisteAlignment.STATUS_DIVERGENT.equals(a.matchStatus()))
+                .count();
+        long notAnalyzed = alignments.stream()
+                .filter(a -> RetainedPisteAlignment.STATUS_NOT_ANALYZED.equals(a.matchStatus()))
+                .count();
+
+        String alertLevel;
+        if (divergent > 0) alertLevel = "ALERT";
+        else if (notAnalyzed > 0) alertLevel = "WARNING";
+        else alertLevel = "OK";
+
+        String primary = alignments.size() + " retenue" + (alignments.size() > 1 ? "s" : "");
+        String secondary = divergent + " en divergence";
+
+        return new DashboardTile(
+                "F-192-retained-pistes-summary",
+                "DIAGNOSTIC",
+                "Pistes stratégiques retenues",
+                primary,
+                secondary,
+                alertLevel);
     }
 
     private void addSafely(List<DashboardTile> tiles, Supplier<DashboardTile> supplier) {
