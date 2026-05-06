@@ -380,6 +380,96 @@ describe('DecisionToolCardComponent', () => {
     });
   });
 
+  describe('F-195 SF-195-02 — pill « ⚠️ Risques (V/E) »', () => {
+    it('validated_critical : pill rouge subtil visible (priorité visuelle absolue)', () => {
+      component.risquesBadge = {
+        kind: 'validated_critical',
+        counts: { aCreuser: 0, valides: 1, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-validated-critical')).toBe(true);
+      const count = pill!.querySelector('.tool-card__badge-count');
+      expect(count!.textContent?.trim()).toBe('1/0');
+      const icon = pill!.querySelector('mat-icon');
+      expect(icon!.textContent?.trim()).toBe('warning');
+    });
+
+    it('validated : pill or plein quand risque non critique validé', () => {
+      component.risquesBadge = {
+        kind: 'validated',
+        counts: { aCreuser: 0, valides: 2, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-validated')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('2/0');
+    });
+
+    it('mixed : pill or contour quand VALIDE + ECARTE non critique', () => {
+      component.risquesBadge = {
+        kind: 'mixed',
+        counts: { aCreuser: 0, valides: 1, ecartes: 1 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-mixed')).toBe(true);
+      expect(pill!.querySelector('.tool-card__badge-count')!.textContent?.trim()).toBe('1/1');
+    });
+
+    it('discarded : pill gris quand uniquement ECARTE', () => {
+      component.risquesBadge = {
+        kind: 'discarded',
+        counts: { aCreuser: 0, valides: 0, ecartes: 1 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-discarded')).toBe(true);
+    });
+
+    it('to_explore : pill navy contour quand uniquement A_CREUSER', () => {
+      component.risquesBadge = {
+        kind: 'to_explore',
+        counts: { aCreuser: 2, valides: 0, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill).not.toBeNull();
+      expect(pill!.classList.contains('tool-card__badge--risques-to-explore')).toBe(true);
+    });
+
+    it('none → pill absent', () => {
+      component.risquesBadge = {
+        kind: 'none',
+        counts: { aCreuser: 0, valides: 0, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      expect(badge('[data-testid="risques-badge"]')).toBeNull();
+    });
+
+    it('null → pill absent (composant non instrumenté SF-195-02)', () => {
+      component.risquesBadge = null;
+      fixture.detectChanges();
+      expect(badge('[data-testid="risques-badge"]')).toBeNull();
+    });
+
+    it('aria-label reflète les compteurs', () => {
+      component.risquesBadge = {
+        kind: 'validated',
+        counts: { aCreuser: 1, valides: 2, ecartes: 0 },
+      };
+      fixture.detectChanges();
+      const pill = badge('[data-testid="risques-badge"]');
+      expect(pill!.getAttribute('aria-label')).toBe(
+        'Risques : 2 validé(s), 0 écarté(s), 1 à creuser',
+      );
+    });
+  });
+
   describe('SF-159-02 — flashing input', () => {
     it('ajoute la classe tool-card--flashing quand flashing=true', () => {
       component.flashing = true;

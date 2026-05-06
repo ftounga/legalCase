@@ -37,6 +37,8 @@ import { PieceManquanteStatusService } from '../../core/services/piece-manquante
 import { PIECE_DESTINATAIRES, PieceManquanteStatutValue } from '../../core/models/piece-manquante-status.model';
 import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueStatusService } from '../../core/services/risque-status.service';
+import { RisqueStatutValue } from '../../core/models/risque-status.model';
 import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
@@ -189,6 +191,22 @@ export class SynthesisComponent implements OnInit, OnDestroy {
   readonly pieceDestinataireOptions = PIECE_DESTINATAIRES;
   /** F-194 SF-194-02 — utilitaire OnPush : forcer la CD après mutation signal. */
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * F-195 SF-195-02 — Cache des statuts risques taggés localement par
+   * l'avocat. Clé = libellé original du risque (issu de l'IA), valeur =
+   * statut. Utilisé pour la mise en évidence du bouton actif. Optimistic
+   * update : `set` au clic, rollback (delete) si le PUT remonte une erreur.
+   *
+   * <p>Ce signal NE déclenche PAS de re-fetch alignement post-PUT — cohérence
+   * F-176 stricte : la matérialisation risque → outil ne se fait qu'au
+   * prochain run de Synthèse enrichie via SSE `ENRICHED_ANALYSIS DONE`.</p>
+   */
+  risqueStatuses = signal<Record<string, RisqueStatutValue>>({});
+  /** Saisie locale `raisonEcarte` par risque (clé = libellé). PUT à blur. */
+  risqueRaisons = signal<Record<string, string>>({});
+  /** Risque en cours de PUT (libellé) — affiche un spinner sur la ligne. */
+  updatingRisqueLibelle = signal<string | null>(null);
 
   // F-160 SF-160-02 — paginators indépendants par bloc (checklist + questions)
   // Numéro de version actuellement affiché par bloc (peut diverger de la version
@@ -399,7 +417,8 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private retainedPisteAlignmentService: RetainedPisteAlignmentService,
     private procedureCheckAlignmentService: ProcedureCheckAlignmentService,
     private pieceManquanteStatusService: PieceManquanteStatusService,
-    private pieceManquanteAlignmentService: PieceManquanteAlignmentService
+    private pieceManquanteAlignmentService: PieceManquanteAlignmentService,
+    private risqueStatusService: RisqueStatusService,
   ) {}
 
   ngOnInit(): void {
@@ -858,6 +877,93 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     this.pieceDestinataires.update(m => ({ ...m, [libelle]: value }));
     if (this.pieceStatusFor(libelle) !== 'A_DEMANDER') return;
     this.updatePieceStatus(libelle, 'A_DEMANDER');
+  }
+
+  /**
+   * F-195 SF-195-02 — Récupère le statut courant d'un risque (clé = libellé
+   * original). Tant que l'avocat n'a pas tagué : statut implicite
+   * `A_CREUSER`. Cohérent avec la sémantique backend (l'absence d'entrée DB
+   * = risque à creuser).
+   */
+  risqueStatusFor(libelle: string): RisqueStatutValue {
+    return this.risqueStatuses()[libelle] ?? 'A_CREUSER';
+  }
+
+  /** F-195 SF-195-02 — bouton actif si statut courant correspond. */
+  isRisqueStatusActive(libelle: string, statut: RisqueStatutValue): boolean {
+    return this.risqueStatusFor(libelle) === statut;
+  }
+
+  risqueRaisonFor(libelle: string): string {
+    return this.risqueRaisons()[libelle] ?? '';
+  }
+
+  /**
+   * F-195 SF-195-02 — Tag d'un risque avec un nouveau statut. PUT optimiste :
+   * UI mise à jour immédiatement, rollback si erreur. AUCUN refresh
+   * (pas de `triggerRefresh`, pas de `loadAlignment`) — cohérence F-176
+   * stricte. La matérialisation risque → outil arrive seule au prochain run
+   * Synthèse enrichie (via SSE `ENRICHED_ANALYSIS DONE`).
+   */
+  updateRisqueStatus(libelle: string, statut: RisqueStatutValue): void {
+    if (this.updatingRisqueLibelle() === libelle) return;
+    const cf = this.caseFile();
+    if (!cf) return;
+    const previous = this.risqueStatuses()[libelle];
+    // Optimistic update.
+    this.risqueStatuses.update(map => ({ ...map, [libelle]: statut }));
+    this.updatingRisqueLibelle.set(libelle);
+    this.cdr.markForCheck();
+
+    const raisonEcarte = statut === 'ECARTE'
+      ? (this.risqueRaisons()[libelle] ?? null) || null
+      : null;
+
+    this.risqueStatusService
+      .updateStatus(cf.id, libelle, statut, { raisonEcarte })
+      .subscribe({
+        next: response => {
+          this.updatingRisqueLibelle.set(null);
+          if (response?.raisonEcarte != null) {
+            this.risqueRaisons.update(m => ({ ...m, [libelle]: response.raisonEcarte ?? '' }));
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.updatingRisqueLibelle.set(null);
+          // Rollback statut.
+          this.risqueStatuses.update(map => {
+            const next = { ...map };
+            if (previous !== undefined) {
+              next[libelle] = previous;
+            } else {
+              delete next[libelle];
+            }
+            return next;
+          });
+          this.cdr.markForCheck();
+          this.snackBar.open(
+            'Erreur lors de la mise à jour du risque',
+            'Fermer',
+            { duration: 4000, panelClass: ['snack-error'] },
+          );
+        },
+      });
+  }
+
+  /**
+   * F-195 SF-195-02 — Capture la saisie raison ECARTE (input local). Le PUT
+   * est déclenché à blur via `onRisqueRaisonBlur` — évite un PUT à chaque
+   * caractère.
+   */
+  onRisqueRaisonInput(libelle: string, value: string): void {
+    this.risqueRaisons.update(m => ({ ...m, [libelle]: value }));
+  }
+
+  onRisqueRaisonBlur(libelle: string): void {
+    if (this.risqueStatusFor(libelle) !== 'ECARTE') return;
+    // Re-déclenche un PUT avec la raison saisie.
+    this.updateRisqueStatus(libelle, 'ECARTE');
   }
 
   checkStatusLabel(statut: ProcedureCheckStatus): string {

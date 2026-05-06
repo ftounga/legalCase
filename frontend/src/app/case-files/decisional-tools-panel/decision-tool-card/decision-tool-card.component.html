@@ -53,6 +53,16 @@
           <span class="tool-card__badge-count">{{ piecesBadgeLabel }}</span>
         </span>
       }
+      @if (showRisquesBadge) {
+        <span
+          [ngClass]="['tool-card__badge', 'tool-card__badge--risques', risquesBadgeClass]"
+          [matTooltip]="risquesBadgeTooltip"
+          [attr.aria-label]="risquesBadgeAriaLabel"
+          data-testid="risques-badge">
+          <mat-icon aria-hidden="true">warning</mat-icon>
+          <span class="tool-card__badge-count">{{ risquesBadgeLabel }}</span>
+        </span>
+      }
       @if (showCoherenceBadge) {
         <span
           class="tool-card__badge tool-card__badge--coherence"
