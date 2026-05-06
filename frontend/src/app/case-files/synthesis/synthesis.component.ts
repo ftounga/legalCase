@@ -25,6 +25,10 @@ import { PdfExportService } from '../../core/services/pdf-export.service';
 import { DocxExportService } from '../../core/services/docx-export.service';
 import { ProcedureCheckService } from '../../core/services/procedure-check.service';
 import { StrategicOptionService } from '../../core/services/strategic-option.service';
+import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { DecisionToolsPanelComponent } from '../decisional-tools-panel/decisional-tools-panel.component';
+import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
 import { DiscardReasonDialogComponent, DiscardReasonDialogData } from './discard-reason-dialog.component';
 import { SynthesisShortBlockDialogComponent, SynthesisShortBlockDialogData } from '../synthesis-short-block-dialog/synthesis-short-block-dialog.component';
@@ -357,7 +361,8 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private procedureCheckService: ProcedureCheckService,
     private strategicOptionService: StrategicOptionService,
     private timeService: TimeService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private retainedPisteAlignmentService: RetainedPisteAlignmentService
   ) {}
 
   ngOnInit(): void {
@@ -953,14 +958,40 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     const cf = this.caseFile();
     const syn = this.synthesis();
     if (!cf || !syn) return;
+    // F-192 SF-192-03 — récupère les pistes 🟢 Retenue + alignement avec l'outil
+    // cible avant l'export. Fail-open : timeout / 404 / 500 → service renvoie [].
+    // L'export est jamais bloqué (cf. CA-10).
+    this.retainedPisteAlignmentService.getForCaseFile(cf.id).subscribe({
+      next: (retainedPistes) => this.runPdfExport(cf, syn, retainedPistes),
+      error: () => this.runPdfExport(cf, syn, []),
+    });
+  }
+
+  private runPdfExport(
+    cf: CaseFile,
+    syn: CaseAnalysisResult,
+    retainedPistes: RetainedPisteAlignment[],
+  ): void {
     try {
-      this.pdfExportService.export(cf, syn);
+      this.pdfExportService.export(cf, syn, retainedPistes, (toolId) => this.resolveToolLabel(toolId));
       this.analyticsService.trackEvent('pdf_exported');
     } catch {
       this.snackBar.open('Erreur lors de la génération du PDF', 'Fermer', {
         duration: 4000, panelClass: ['snack-error']
       });
     }
+  }
+
+  /**
+   * F-192 SF-192-03 — résolution `toolId → TOOL_LABEL` via TOOL_REGISTRY du
+   * panel F-IA-04. Retourne `null` si le toolId n'est pas connu (defensive).
+   */
+  private resolveToolLabel(toolId: string): string | null {
+    if (!toolId) return null;
+    const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);
+    if (!entry) return null;
+    const meta = getToolMetadata(entry.component);
+    return meta?.label ?? null;
   }
 
   exportDocx(): void {

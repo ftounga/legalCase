@@ -9,6 +9,7 @@ import { TribunalTravailFiche } from '../models/tribunal-travail-fiche.model';
 import { ImmigrationChecklist } from '../models/immigration-checklist.model';
 import { RecoursResponse } from '../models/immigration-recours.model';
 import { LEGALCASE_LOGO_BASE64 } from '../assets/logo-base64';
+import { RetainedPisteAlignment } from '../models/retained-piste-alignment.model';
 
 const PRIMARY = '#1A3A5C';
 const ACCENT = '#C9973A';
@@ -23,21 +24,31 @@ const BG = '#F5F6FA';
 @Injectable({ providedIn: 'root' })
 export class PdfExportService {
 
-  export(caseFile: CaseFile, synthesis: CaseAnalysisResult): void {
+  export(
+    caseFile: CaseFile,
+    synthesis: CaseAnalysisResult,
+    retainedPistes?: RetainedPisteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): void {
     import('pdfmake/build/pdfmake').then(pdfMakeModule => {
       import('pdfmake/build/vfs_fonts').then(vfsFontsModule => {
         const pdfMake = (pdfMakeModule.default || pdfMakeModule) as any;
         const vfsFonts = (vfsFontsModule.default || vfsFontsModule) as any;
         pdfMake.vfs = vfsFonts.pdfMake ? vfsFonts.pdfMake.vfs : vfsFonts.vfs;
 
-        const docDefinition = this.buildDocument(caseFile, synthesis) as TDocumentDefinitions;
+        const docDefinition = this.buildDocument(caseFile, synthesis, retainedPistes, toolLabelResolver) as TDocumentDefinitions;
         const fileName = this.buildFileName(caseFile.title, synthesis);
         pdfMake.createPdf(docDefinition).download(fileName);
       });
     });
   }
 
-  buildDocument(caseFile: CaseFile, synthesis: CaseAnalysisResult): object {
+  buildDocument(
+    caseFile: CaseFile,
+    synthesis: CaseAnalysisResult,
+    retainedPistes?: RetainedPisteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
     const isEnriched = synthesis.analysisType === 'ENRICHED';
     const exportDate = new Date().toLocaleDateString('fr-FR', {
       day: '2-digit', month: 'long', year: 'numeric'
@@ -49,6 +60,7 @@ export class PdfExportService {
     const content: object[] = [
       ...this.buildCoverPage(caseFile.title, isEnriched, versionLabel, exportDate),
       { text: '', pageBreak: 'after' },
+      ...this.buildStrategiesRetenuesSection(retainedPistes, toolLabelResolver),
       ...this.buildSections(synthesis),
     ];
 
@@ -136,6 +148,155 @@ export class PdfExportService {
         alignment: 'center',
       },
     ];
+  }
+
+  /**
+   * F-192 SF-192-03 — Section « 🎯 Stratégies retenues » insérée juste après
+   * la page de garde (avant la chronologie / faits / etc.).
+   *
+   * Comportement :
+   *   - retainedPistes vide ou non fourni → tableau vide (section omise, fail-open)
+   *   - ≥ 1 piste RETAINED → titre de section + un bloc par piste (texte +
+   *     baseJuridique + horizonTemporel + conditions + badge alignement),
+   *     séparés par une ligne navy fine.
+   *
+   * Badge alignement (selon `matchStatus`) :
+   *   - ALIGNED        → ✅ Stratégie alignée avec l'outil <label>      (or)
+   *   - DIVERGENT      → ⚠️ Stratégie divergente avec l'outil <label>   (navy souligné)
+   *   - NOT_ANALYZED   → ⏳ Outil <label> non encore analysé
+   *   - NO_TARGET_TOOL → pas de badge (pistes Famille/Travail V1)
+   *
+   * Le `toolLabelResolver` (fourni par le SynthesisComponent) lit
+   * `TOOL_LABEL` static via `TOOL_REGISTRY` du panel F-IA-04. Defensive :
+   * si le resolver retourne `null` ou si non fourni, le toolId brut est
+   * affiché.
+   */
+  private buildStrategiesRetenuesSection(
+    retainedPistes?: RetainedPisteAlignment[],
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object[] {
+    if (!retainedPistes || retainedPistes.length === 0) {
+      return [];
+    }
+
+    const sections: object[] = [
+      {
+        text: '🎯 Stratégies retenues',
+        fontSize: 16,
+        bold: true,
+        color: PRIMARY,
+        margin: [0, 0, 0, 12],
+      },
+    ];
+
+    retainedPistes.forEach((piste, index) => {
+      sections.push(this.buildPisteBlock(piste, toolLabelResolver));
+      if (index < retainedPistes.length - 1) {
+        sections.push({
+          canvas: [
+            { type: 'line', x1: 0, y1: 0, x2: 500, y2: 0, lineWidth: 0.5, lineColor: PRIMARY },
+          ],
+          margin: [0, 8, 0, 8],
+        });
+      }
+    });
+
+    sections.push({ text: '', margin: [0, 0, 0, 16] });
+    sections.push({ text: '', pageBreak: 'after' });
+
+    return sections;
+  }
+
+  /** F-192 SF-192-03 — un bloc par piste retenue. */
+  private buildPisteBlock(
+    piste: RetainedPisteAlignment,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object {
+    const stack: object[] = [
+      { text: piste.texte, fontSize: 11, color: TEXT, margin: [0, 0, 0, 4] },
+    ];
+
+    if (piste.baseJuridique) {
+      stack.push({
+        text: piste.baseJuridique,
+        font: 'JetBrainsMono',
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 0, 0, 4],
+      });
+    }
+
+    if (piste.horizonTemporel) {
+      stack.push({
+        text: `Horizon : ${piste.horizonTemporel}`,
+        fontSize: 9,
+        italics: true,
+        color: TEXT_SECONDARY,
+        margin: [0, 0, 0, 4],
+      });
+    }
+
+    if (piste.conditions && piste.conditions.length > 0) {
+      stack.push({
+        ul: piste.conditions.map(c => ({ text: c, fontSize: 9, color: TEXT })),
+        margin: [0, 2, 0, 4],
+      });
+    }
+
+    const badge = this.buildAlignmentBadge(piste, toolLabelResolver);
+    if (badge) {
+      stack.push(badge);
+    }
+
+    return { stack, margin: [0, 0, 0, 8] };
+  }
+
+  /**
+   * F-192 SF-192-03 — badge d'alignement avec l'outil cible.
+   * Retourne `null` pour `NO_TARGET_TOOL` (pistes Famille/Travail V1).
+   */
+  private buildAlignmentBadge(
+    piste: RetainedPisteAlignment,
+    toolLabelResolver?: (toolId: string) => string | null,
+  ): object | null {
+    const status = piste.matchStatus;
+    if (status === 'NO_TARGET_TOOL') {
+      return null;
+    }
+    const toolId = piste.toolIdCible ?? '';
+    const resolvedLabel = toolLabelResolver ? toolLabelResolver(toolId) : null;
+    const label = (resolvedLabel && resolvedLabel.trim().length > 0) ? resolvedLabel : toolId;
+
+    switch (status) {
+      case 'ALIGNED':
+        return {
+          text: `✅ Stratégie alignée avec l'outil ${label}`,
+          fontSize: 10,
+          bold: true,
+          color: ACCENT,
+          margin: [0, 4, 0, 0],
+        };
+      case 'DIVERGENT':
+        return {
+          text: `⚠️ Stratégie divergente avec l'outil ${label}`,
+          fontSize: 10,
+          bold: true,
+          color: PRIMARY,
+          decoration: 'underline',
+          margin: [0, 4, 0, 0],
+        };
+      case 'NOT_ANALYZED':
+        return {
+          text: `⏳ Outil ${label} non encore analysé`,
+          fontSize: 10,
+          italics: true,
+          color: TEXT_SECONDARY,
+          margin: [0, 4, 0, 0],
+        };
+      default:
+        return null;
+    }
   }
 
   private buildSections(synthesis: CaseAnalysisResult): object[] {
