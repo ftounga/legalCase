@@ -61,6 +61,8 @@ class EnrichedAnalysisServiceTest {
             mock(RisqueAlignmentService.class);
     private final RisqueStatusService risqueStatusService =
             mock(RisqueStatusService.class);
+    private final AiQuestionAlignmentService aiQuestionAlignmentService =
+            mock(AiQuestionAlignmentService.class);
     private final TypeLitigeOverrideService typeLitigeOverrideService =
             mock(TypeLitigeOverrideService.class);
 
@@ -72,6 +74,7 @@ class EnrichedAnalysisServiceTest {
             procedureCheckAlignmentService,
             pieceManquanteAlignmentService, pieceManquanteStatusService,
             risqueAlignmentService, risqueStatusService,
+            aiQuestionAlignmentService,
             typeLitigeOverrideService,
             statutoryDeadlineService, legalReferentialService,
             sourceExplanationGenerator, sourceExplanationService,
@@ -1009,6 +1012,70 @@ class EnrichedAnalysisServiceTest {
 
         service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
 
+        ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
+        verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
+        assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);
+    }
+
+    // ====================================================================
+    //  F-196 SF-196-01 — matérialisation questions complémentaires
+    // ====================================================================
+
+    @Test
+    void consumeReAnalysis_callsAiQuestionsMaterialization() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // F-196 — le service de matérialisation questions complémentaires est appelé à la fin du run
+        verify(aiQuestionAlignmentService, times(1)).materializeForAnalysis(any());
+    }
+
+    @Test
+    void consumeReAnalysis_aiQuestionsMaterializationThrows_runStillCompletes() {
+        UUID caseFileId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        CaseFile caseFile = new CaseFile();
+        CaseAnalysis previousAnalysis = new CaseAnalysis();
+        previousAnalysis.setAnalysisResult("{}");
+        previousAnalysis.setAnalysisStatus(AnalysisStatus.DONE);
+
+        when(analysisJobRepository.findByCaseFileIdAndJobType(caseFileId, JobType.ENRICHED_ANALYSIS))
+                .thenReturn(Optional.empty());
+        when(analysisJobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(caseAnalysisRepository.findFirstByCaseFileIdAndAnalysisStatusOrderByUpdatedAtDesc(caseFileId, AnalysisStatus.DONE))
+                .thenReturn(Optional.of(previousAnalysis));
+        when(caseFileRepository.findById(caseFileId)).thenReturn(Optional.of(caseFile));
+        when(caseFileRepository.findCreatedByUserIdById(caseFileId)).thenReturn(Optional.of(userId));
+        when(caseAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(aiQuestionRepository.findByCaseFileIdOrderByOrderIndex(caseFileId)).thenReturn(List.of());
+        when(anthropicService.analyzeWithSystemCache(any(), any(), anyInt())).thenReturn(
+                new AnthropicResult("{\"faits\":[]}", "claude-sonnet-4-6", 100, 50));
+
+        org.mockito.Mockito.doThrow(new RuntimeException("DB lock"))
+                .when(aiQuestionAlignmentService).materializeForAnalysis(any());
+
+        service.consumeReAnalysis(new ReAnalysisMessage(caseFileId));
+
+        // Le run termine en DONE quand même (fail-open F-196)
         ArgumentCaptor<CaseAnalysis> captor = ArgumentCaptor.forClass(CaseAnalysis.class);
         verify(caseAnalysisRepository, atLeast(1)).save(captor.capture());
         assertThat(captor.getValue().getAnalysisStatus()).isEqualTo(AnalysisStatus.DONE);

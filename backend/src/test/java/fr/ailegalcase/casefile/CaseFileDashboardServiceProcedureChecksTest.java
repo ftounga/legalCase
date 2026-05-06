@@ -134,7 +134,8 @@ class CaseFileDashboardServiceProcedureChecksTest {
                 retainedPisteAlignmentService,
                 procedureCheckAlignmentService,
                 pieceManquanteAlignmentServiceForTest(),
-                risqueAlignmentServiceForTest());
+                risqueAlignmentServiceForTest(),
+                aiQuestionAlignmentServiceForTest());
     }
 
     /** F-194 SF-194-01 — mock du service avec deserializeAlignment vide pour ne pas perturber les tests F-193. */
@@ -149,6 +150,14 @@ class CaseFileDashboardServiceProcedureChecksTest {
     private fr.ailegalcase.analysis.RisqueAlignmentService risqueAlignmentServiceForTest() {
         fr.ailegalcase.analysis.RisqueAlignmentService m =
                 mock(fr.ailegalcase.analysis.RisqueAlignmentService.class);
+        when(m.deserializeAlignment(any())).thenReturn(List.of());
+        return m;
+    }
+
+    /** F-196 SF-196-01 — mock du service avec deserializeAlignment vide. */
+    private fr.ailegalcase.analysis.AiQuestionAlignmentService aiQuestionAlignmentServiceForTest() {
+        fr.ailegalcase.analysis.AiQuestionAlignmentService m =
+                mock(fr.ailegalcase.analysis.AiQuestionAlignmentService.class);
         when(m.deserializeAlignment(any())).thenReturn(List.of());
         return m;
     }

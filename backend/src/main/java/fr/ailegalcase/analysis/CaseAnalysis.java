@@ -167,6 +167,27 @@ public class CaseAnalysis {
     @Column(name = "type_override_raison", columnDefinition = "TEXT")
     private String typeOverrideRaison;
 
+    /**
+     * F-196 SF-196-01 — alignement matérialisé des réponses aux questions
+     * complémentaires F-94 de cette analyse, calculé une fois en fin de run de
+     * Synthèse enrichie par {@code AiQuestionAlignmentService.materializeForAnalysis},
+     * APRÈS les hooks F-192, F-193, F-194 et F-195.
+     *
+     * <p>Schéma : tableau d'objets
+     * {@code [{"questionId":..., "answerText":..., "pieceLibelleDeduit":...,
+     * "statutDeduction":"PIECE_OBTENUE|PIECE_MANQUANTE|INFO_ONLY"}]}.
+     *
+     * <p>Cohérence F-94 STRICTE : ce champ est un overlay calculé. Les tables
+     * {@code ai_questions} et {@code ai_question_answers} ne sont PAS modifiées
+     * par F-196. La PUT réponse F-94 reste pure (pas de side-effect pieces).</p>
+     *
+     * <p>{@code null} pour les analyses pré-F-196 ou les runs où la matérialisation
+     * a échoué (fail-open) — l'endpoint {@code /ai-questions-alignment} retourne
+     * {@code []} dans ce cas.</p>
+     */
+    @Column(name = "ai_questions_alignment_json", columnDefinition = "TEXT")
+    private String aiQuestionsAlignmentJson;
+
     @Column(name = "model_used", length = 100)
     private String modelUsed;
 
