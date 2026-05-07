@@ -1,7 +1,19 @@
-# Radar stratégique — trajectoire corporate / B2B juristes d'entreprise
+# Radar stratégique — extensions du produit LegalCase (corporate / B2B juristes d'entreprise)
 
 > **Statut** : registre vivant des signaux faibles. Pas une roadmap, pas une feature au PRODUCT_SPEC.md.
 > Hors V1. Ne devient un sujet d'engagement de roadmap que **si les critères d'activation sont réunis**.
+
+> **Périmètre** : ce fichier trace les **extensions du produit LegalCase** vers des cibles ou scope adjacents (DRH/juriste d'entreprise, multi-pays Europe, plateforme cabinet). Il **n'est pas** le bon endroit pour les pivots totaux où LegalCase est mis en pause / abandonné — ceux-ci sont tracés dans `docs/radar-pivots-totaux.md`. Et il n'est pas le bon endroit pour la décision business model (lifestyle vs levée seed) — celle-ci est tracée dans `docs/radar-business-model.md`.
+
+## ⚠️ Garde-fou discipline — à relire avant chaque réflexion
+
+3 questions critiques qui doivent rester en tête à chaque consultation de ce radar :
+
+1. **Pourquoi explorer une extension alors que LegalCase n'a pas été validé auprès d'un seul client payant ?** Tracer une trajectoire candidate ne dispense pas de prouver le PMF du produit actuel.
+2. **Coder est-il devenu plus confortable que vendre ?** Aucune nouvelle trajectoire ne sauve l'évitement de la vente — au contraire, elle l'amplifie. Si la réponse à cette question est honnête "oui", l'action n'est PAS d'enrichir ce radar mais de forcer 30 entretiens prospects en 30 jours.
+3. **Le seuil non-négociable** : aucune extension ne devient un sujet d'engagement de roadmap avant **30 K€ MRR atteint en bootstrap sur la cible avocat actuelle**. En dessous, ce radar reste un observatoire passif — pas une feuille de route.
+
+**Tracer ≠ pivoter ≠ engager.** Ce fichier accumule des signaux pour décision future, il ne décide pas à ta place et ne justifie aucune dépense produit/marketing maintenant.
 
 ## Pourquoi ce document existe
 
@@ -61,8 +73,9 @@ Chaque signal documenté avec : date, source, formulation, interprétation, poid
 | # | Date | Source | Contenu | Interprétation | Poids |
 |---|------|--------|---------|----------------|-------|
 | 1 | 2026-05-07 | Daniel GASPARD (avocat Charleroi, 1 an avant retraite, retour mail M-64 vague 2/3) | *"Vous devriez aussi sérieusement développer l'outil dans les matières commerciales et financières car les entreprises seraient susceptibles d'être intéressées, en tout cas les juristes d'entreprise."* | Signal direct sur la cible juriste d'entreprise. Argument retenu : volume + capacité financière entreprises. Vient d'un avocat senior expérimenté qui a en plus fourni une intro nominale (fs@centrius.be). | **Moyen** (signal direct mais 1 source) |
+| 2 | 2026-05-05 | 2ᵉ analyse Claude (sollicitée en tant qu'expert externe — recommandation Option A.2 *"Pivot RH/DRH avec ta base actuelle, le moins risqué"*) | Analyse structurée détaillée : **buyer = DRH ou Directeur Affaires Sociales** d'entreprise 200+ salariés (~10 000 cibles FR + 30 000 ETI EU), **use case = gestion contentieux prud'homaux internalisés** (l'entreprise comme employeur), **réutilisation 90 % de LegalCase tel quel** (le moteur ne change pas, seulement messaging/UI/pricing), **ARPU 800-3000 €/mois** (vs 99-429 € avocat), **cycle de vente 1-3 mois** (vs 3-6 mois avocat), **NRR 130 % naturel** (les entreprises ajoutent des modules), **acheteur récurrent** (1 entreprise = ré-achat continu). ROI quantifiable : *"vous évitez 50 K€/an d'erreur de calcul d'indemnité"*. Recommandé comme « le pivot le moins risqué » : on ne jette rien, on réoriente, on garde les premiers clients avocats. Estimation revenus : Y1 100-200 K€ ARR, Y2 400-700 K€, Y3 800 K€-1.5 M€. | **2ᵉ source convergente avec signal #1** (cible juriste d'entreprise / DRH). Quantification rigoureuse de l'opportunité. Compteur de signaux passe à 2/5. | **Fort** (analyse structurée + chiffres + même cible que signal #1) |
 
-> Pour ajouter un nouveau signal : copier la ligne ci-dessus, incrémenter le numéro, dater, citer la source verbatim.
+> Pour ajouter un nouveau signal : copier la ligne ci-dessus, incrémenter le numéro, dater, citer la source verbatim. Distinguer source externe (avocat / prospect / expert) vs analyse interne (un assistant qui réfléchit n'est pas une preuve marché — c'est une hypothèse à valider).
 
 ## Critères d'activation
 
@@ -84,6 +97,30 @@ Tant qu'aucun de ces seuils n'est franchi : **pas d'engagement roadmap**, pas de
 - **Ne pas** ouvrir de campagne marketing dédiée juristes d'entreprise (LinkedIn legal-ops, salons CFO, etc.)
 - **Ne pas** modifier le pricing F-123 pour ajouter un palier "Enterprise"
 - **Ne pas** présenter la roadmap publiquement (pitch / talks) avec une trajectoire corporate annoncée
+
+## Autres extensions candidates (placeholders sans signal externe pour l'instant)
+
+Au-delà de la trajectoire DRH/juriste d'entreprise (signaux #1-2 ci-dessus), 2 autres extensions du produit ont été évoquées en analyse interne. Aucune n'a de signal externe documenté à ce jour — placeholders pour traçabilité.
+
+### Extension géographique — multi-pays Europe
+
+**Idée** : étendre la couverture LegalCase au-delà de FR + BE vers ES + IT + DE + NL.
+
+**Rationnel théorique** : multiplie le TAM par ~10 (Europe = 1.2 M avocats vs ~90 K en FR+BE), reste sur la même cible (avocat individuel / petit cabinet), réutilise l'infrastructure F-IA-04 (visibilité conditionnelle par pays + domaine).
+
+**Pré-requis durs** : recrutement juristes locaux (5-10 personnes), localisation UI 5-6 langues, droit local par pays. Coût d'exécution 2-3 ans, équipe 15-20 personnes.
+
+**Statut** : pas un sujet à 18 mois — exige stabilisation V1 + traction FR/BE convaincante d'abord. Pas de signal externe enregistré, ne devient sujet qu'avec ≥ 1 demande spontanée d'avocat hors FR/BE, ou ≥ 2 prospects spontanés FR/BE soulignant le manque de couverture transfrontalière.
+
+### Extension scope — plateforme verticale OS du cabinet
+
+**Idée** : devenir non plus un outil dans le cabinet d'avocats mais **l'OS du cabinet** (agenda + facturation + GED + outils décisionnels + chat client). Concurrents : Diapaz, Septeo, Secib (FR), Diapaz, Cogex (BE).
+
+**Rationnel théorique** : ARPU 10× supérieur (1500-3000 €/mois par cabinet vs 99-429 €), switching cost massif, marché identique mais position centrale au lieu de complémentaire. C'est ce qu'a fait Doctrine (recherche jurisprudentielle → plateforme cabinet complète).
+
+**Pré-requis durs** : développement très lourd (6-12 SF F-XXX par module), intégrations (compta, signature électronique, e-mail), équipe 8-15 personnes. Difficilement compatible avec le mode solo / lifestyle.
+
+**Statut** : signal opposé même observé — les concurrents établis (Diapaz, Septeo, Secib) ont une avance massive sur ce périmètre. Pas un terrain de différenciation pour LegalCase. Pas de signal externe à ce jour, ne devient sujet qu'avec ≥ 3 cabinets clients explicitement intéressés à remplacer leur OS actuel par LegalCase étendu.
 
 ## Réévaluation
 
