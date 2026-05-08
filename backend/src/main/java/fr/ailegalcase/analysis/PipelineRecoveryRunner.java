@@ -26,9 +26,16 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>Hors scope : `DOCUMENT_ANALYSIS` jobs (déjà géré F-147), recovery basé sur
  * lease/heartbeat (overkill V1).
  *
- * <p>Grace window 30s : on ne tue pas les analyses créées dans les 30 dernières
- * secondes pour ne pas false-positive pendant un rolling update où l'ancien pod
- * a démarré une analyse juste avant d'être killé et le nouveau pod prend la suite.
+ * <p>Grace window 600s (10 min) — F-226 SF-226-01 (2026-05-07) : élargie de 30s
+ * à 600s pour empêcher le HPA scale-up de tuer des analyses encore actives sur
+ * un autre pod. Cas réel staging Immigration Chen 16 (2026-05-07) : enriched
+ * analysis 224s OK mais barre rouge UI car HPA a scaled-up à mi-parcours et le
+ * nouveau pod a marqué FAILED l'analyse en cours sur le pod d'origine. Les
+ * analyses lourdes (3-5 min) sont désormais protégées. Trade-off accepté : une
+ * analyse réellement zombie reste PROCESSING jusqu'à 10 min après création (vs
+ * 30s avant), mais 99% des analyses légitimes ne sont plus killées à tort. Les
+ * timeouts streaming Anthropic (~5 min) couvrent la majorité des cas réels de
+ * crash silencieux. Pattern heartbeat différé en V2.
  */
 @Component
 @Profile({"local", "prod"})
@@ -58,7 +65,7 @@ public class PipelineRecoveryRunner {
     private final int graceSeconds;
 
     public PipelineRecoveryRunner(JdbcTemplate jdbcTemplate,
-                                  @Value("${pipeline.recovery.grace-seconds:30}") int graceSeconds) {
+                                  @Value("${pipeline.recovery.grace-seconds:600}") int graceSeconds) {
         this.jdbcTemplate = jdbcTemplate;
         this.graceSeconds = graceSeconds;
     }
@@ -79,6 +86,8 @@ public class PipelineRecoveryRunner {
      */
     @Transactional
     public RecoveryResult runRecovery() {
+        log.info("Pipeline recovery starting — grace window {}s", graceSeconds);
+
         int caseAnalysesMarked = jdbcTemplate.update(STALE_CASE_ANALYSES_SQL, graceSeconds);
         int jobsMarked = jdbcTemplate.update(STALE_JOBS_SQL, graceSeconds);
 

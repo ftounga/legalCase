@@ -706,8 +706,16 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
               j => j.status === 'PENDING' || j.status === 'PROCESSING'
             );
             const caseAnalysisDone = updated.some(j => j.jobType === 'CASE_ANALYSIS' && j.status === 'DONE');
+            const enrichedAnalysisDone = updated.some(j => j.jobType === 'ENRICHED_ANALYSIS' && j.status === 'DONE');
             const questionsDone = updated.some(j => j.jobType === 'QUESTION_GENERATION' && (j.status === 'DONE' || j.status === 'FAILED'));
             const waitingForQuestions = caseAnalysisDone && !questionsDone;
+            // F-227 SF-227-01 — fallback si SSE DONE event missed during navigation
+            // (re-track sur SseNotificationService ne replay pas les événements). Le
+            // polling tick recharge la synthèse à la transition PROCESSING→DONE.
+            // Idempotent grâce à `lastCompletedSynthesisVersion` dans loadSynthesis.
+            if (caseAnalysisDone || enrichedAnalysisDone) {
+              this.loadSynthesis(caseFileId);
+            }
             // SF-148-04 : continuer le polling tant qu'au moins une pièce est
             // en enrichissement visuel (LegalCase Vision, async post-pipeline).
             const stillVision = this.visionPendingCount() > 0;
