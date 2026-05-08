@@ -15,6 +15,16 @@ import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignme
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
 import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
+import { BadgeNavigationService } from '../synthesis-badges/badge-navigation.service';
+
+/**
+ * F-229 SF-229-01 — stub réutilisé par tous les describe pour intercepter les
+ * appels `BadgeNavigationService.go(key, caseFileId, contextData?)` lancés
+ * depuis `openGenericTool` (tiles "résumé").
+ */
+function makeBadgeNavigationStub(): { go: jest.Mock } {
+  return { go: jest.fn() };
+}
 
 /**
  * F-228 SF-228-01 — bundle vide par défaut pour les tests qui ne s'occupent
@@ -415,7 +425,7 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
   let component: CaseDashboardComponent;
   let dashboardService: jest.Mocked<CaseDashboardService>;
   let modalService: jest.Mocked<DecisionToolModalService>;
-  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+  let badgeNavigation: { go: jest.Mock };
 
   const dashboardWithRetained: DashboardResponse = {
     caseFileId: 'case-1',
@@ -437,7 +447,7 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
   beforeEach(async () => {
     dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithRetained)) } as any;
     modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
-    router = { navigate: jest.fn() } as any;
+    badgeNavigation = makeBadgeNavigationStub();
 
     await TestBed.configureTestingModule({
       imports: [CaseDashboardComponent],
@@ -446,7 +456,8 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
         { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
-        { provide: Router, useValue: router },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: BadgeNavigationService, useValue: badgeNavigation },
       ],
     }).compileComponents();
 
@@ -467,13 +478,10 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
     expect(html).toContain('Stratégies retenues');
   });
 
-  it('CA-09 clic tile RETAINED_PISTES_SUMMARY → router.navigate vers /synthesis#section-pistes', () => {
+  it('CA-06 (F-229) clic tile RETAINED_PISTES_SUMMARY → BadgeNavigationService.go("pistes", caseFileId)', () => {
     fixture.detectChanges();
     component.openGenericTool('RETAINED_PISTES_SUMMARY');
-    expect(router.navigate).toHaveBeenCalledWith(
-      ['/case-files', 'case-1', 'synthesis'],
-      { fragment: 'section-pistes' },
-    );
+    expect(badgeNavigation.go).toHaveBeenCalledWith('pistes', 'case-1');
     expect(modalService.open).not.toHaveBeenCalled();
   });
 });
@@ -485,7 +493,7 @@ describe('CaseDashboardComponent — F-194 SF-194-02 pieces-summary tile', () =>
   let component: CaseDashboardComponent;
   let dashboardService: jest.Mocked<CaseDashboardService>;
   let modalService: jest.Mocked<DecisionToolModalService>;
-  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+  let badgeNavigation: { go: jest.Mock };
 
   const dashboardWithPieces: DashboardResponse = {
     caseFileId: 'case-1',
@@ -507,7 +515,7 @@ describe('CaseDashboardComponent — F-194 SF-194-02 pieces-summary tile', () =>
   beforeEach(async () => {
     dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithPieces)) } as any;
     modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
-    router = { navigate: jest.fn() } as any;
+    badgeNavigation = makeBadgeNavigationStub();
 
     await TestBed.configureTestingModule({
       imports: [CaseDashboardComponent],
@@ -516,7 +524,8 @@ describe('CaseDashboardComponent — F-194 SF-194-02 pieces-summary tile', () =>
         { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
-        { provide: Router, useValue: router },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: BadgeNavigationService, useValue: badgeNavigation },
       ],
     }).compileComponents();
 
@@ -537,14 +546,27 @@ describe('CaseDashboardComponent — F-194 SF-194-02 pieces-summary tile', () =>
     expect(html).toContain('Pièces');
   });
 
-  it('CA-09 clic tile F-194-pieces-summary → router.navigate vers /synthesis#section-pieces', () => {
+  it('CA-06 (F-229) clic tile F-194-pieces-summary → BadgeNavigationService.go("pieces", caseFileId, ctx)', () => {
+    component.synthesis = { piecesManquantes: ['Contrat', 'Bulletin'] };
     fixture.detectChanges();
     component.openGenericTool('F-194-pieces-summary');
-    expect(router.navigate).toHaveBeenCalledWith(
-      ['/case-files', 'case-1', 'synthesis'],
-      { fragment: 'section-pieces' },
-    );
+    expect(badgeNavigation.go).toHaveBeenCalledWith('pieces', 'case-1', {
+      popupItems: ['Contrat', 'Bulletin'],
+      popupTitle: 'Pièces manquantes',
+      popupIcon: 'report_problem',
+    });
     expect(modalService.open).not.toHaveBeenCalled();
+  });
+
+  it('CA-06 (F-229) clic tile F-194-pieces-summary sans synthesis → popupItems=[] (fail-open)', () => {
+    component.synthesis = null;
+    fixture.detectChanges();
+    component.openGenericTool('F-194-pieces-summary');
+    expect(badgeNavigation.go).toHaveBeenCalledWith('pieces', 'case-1', {
+      popupItems: [],
+      popupTitle: 'Pièces manquantes',
+      popupIcon: 'report_problem',
+    });
   });
 });
 
@@ -555,7 +577,7 @@ describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () =
   let component: CaseDashboardComponent;
   let dashboardService: jest.Mocked<CaseDashboardService>;
   let modalService: jest.Mocked<DecisionToolModalService>;
-  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+  let badgeNavigation: { go: jest.Mock };
 
   const dashboardWithRisques: DashboardResponse = {
     caseFileId: 'case-1',
@@ -577,7 +599,7 @@ describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () =
   beforeEach(async () => {
     dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithRisques)) } as any;
     modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
-    router = { navigate: jest.fn() } as any;
+    badgeNavigation = makeBadgeNavigationStub();
 
     await TestBed.configureTestingModule({
       imports: [CaseDashboardComponent],
@@ -586,7 +608,8 @@ describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () =
         { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
-        { provide: Router, useValue: router },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: BadgeNavigationService, useValue: badgeNavigation },
       ],
     }).compileComponents();
 
@@ -607,13 +630,10 @@ describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () =
     expect(html).toContain('Risques');
   });
 
-  it('clic tile F-195-risques-summary → router.navigate vers /synthesis#section-risques', () => {
+  it('CA-06 (F-229) clic tile F-195-risques-summary → BadgeNavigationService.go("risques", caseFileId)', () => {
     fixture.detectChanges();
     component.openGenericTool('F-195-risques-summary');
-    expect(router.navigate).toHaveBeenCalledWith(
-      ['/case-files', 'case-1', 'synthesis'],
-      { fragment: 'section-risques' },
-    );
+    expect(badgeNavigation.go).toHaveBeenCalledWith('risques', 'case-1');
     expect(modalService.open).not.toHaveBeenCalled();
   });
 });
@@ -625,7 +645,7 @@ describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', ()
   let component: CaseDashboardComponent;
   let dashboardService: jest.Mocked<CaseDashboardService>;
   let modalService: jest.Mocked<DecisionToolModalService>;
-  let router: jest.Mocked<Pick<Router, 'navigate'>>;
+  let badgeNavigation: { go: jest.Mock };
 
   const dashboardWithQuestions: DashboardResponse = {
     caseFileId: 'case-1',
@@ -647,7 +667,7 @@ describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', ()
   beforeEach(async () => {
     dashboardService = { get: jest.fn().mockReturnValue(of(dashboardWithQuestions)) } as any;
     modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
-    router = { navigate: jest.fn() } as any;
+    badgeNavigation = makeBadgeNavigationStub();
 
     await TestBed.configureTestingModule({
       imports: [CaseDashboardComponent],
@@ -656,7 +676,8 @@ describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', ()
         { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
-        { provide: Router, useValue: router },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: BadgeNavigationService, useValue: badgeNavigation },
       ],
     }).compileComponents();
 
@@ -680,13 +701,10 @@ describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', ()
     expect(html).toContain('Questions complémentaires');
   });
 
-  it('CA-02 clic tile F-196-questions-summary → router.navigate vers /synthesis#section-questions', () => {
+  it('CA-06 (F-229) clic tile F-196-questions-summary → BadgeNavigationService.go("questions", caseFileId)', () => {
     fixture.detectChanges();
     component.openGenericTool('F-196-questions-summary');
-    expect(router.navigate).toHaveBeenCalledWith(
-      ['/case-files', 'case-1', 'synthesis'],
-      { fragment: 'section-questions' },
-    );
+    expect(badgeNavigation.go).toHaveBeenCalledWith('questions', 'case-1');
     expect(modalService.open).not.toHaveBeenCalled();
   });
 });
@@ -836,6 +854,7 @@ describe('CaseDashboardComponent — F-228 SF-228-01 ctx alignements', () => {
   };
 
   let loaderStub: { loadAll: jest.Mock };
+  let badgeNavigation: { go: jest.Mock };
 
   beforeEach(async () => {
     dashboardService = {
@@ -843,6 +862,7 @@ describe('CaseDashboardComponent — F-228 SF-228-01 ctx alignements', () => {
     } as any;
     modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
     loaderStub = makeAlignmentsLoaderStub(fullBundle);
+    badgeNavigation = makeBadgeNavigationStub();
 
     await TestBed.configureTestingModule({
       imports: [CaseDashboardComponent],
@@ -852,6 +872,7 @@ describe('CaseDashboardComponent — F-228 SF-228-01 ctx alignements', () => {
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: BadgeNavigationService, useValue: badgeNavigation },
       ],
     }).compileComponents();
 
@@ -925,25 +946,25 @@ describe('CaseDashboardComponent — F-228 SF-228-01 ctx alignements', () => {
     expect(loaderStub.loadAll).toHaveBeenCalledTimes(1);
   });
 
-  it('CA-09 tile résumé RETAINED_PISTES_SUMMARY continue à naviguer vers /synthesis (hors scope F-229)', () => {
-    const router = TestBed.inject(Router);
+  it('CA-09 (F-229) tile résumé RETAINED_PISTES_SUMMARY délègue à BadgeNavigationService.go("pistes")', () => {
+    const badge = TestBed.inject(BadgeNavigationService) as unknown as { go: jest.Mock };
     fixture.detectChanges();
     component.openGenericTool('RETAINED_PISTES_SUMMARY');
-    expect(router.navigate).toHaveBeenCalledWith(
-      ['/case-files', 'case-1', 'synthesis'],
-      { fragment: 'section-pistes' },
-    );
+    expect(badge.go).toHaveBeenCalledWith('pistes', 'case-1');
     expect(modalService.open).not.toHaveBeenCalled();
   });
 
-  it('CA-09 tile résumé F-194-pieces-summary continue à naviguer vers /synthesis (hors scope F-229)', () => {
-    const router = TestBed.inject(Router);
+  it('CA-09 (F-229) tile résumé F-194-pieces-summary délègue à BadgeNavigationService.go("pieces", ctx)', () => {
+    const badge = TestBed.inject(BadgeNavigationService) as unknown as { go: jest.Mock };
+    // synthesis fixé dans le beforeEach (immigrationExtractedData) — n'a pas
+    // de piecesManquantes, donc on attend [] dans contextData.
     fixture.detectChanges();
     component.openGenericTool('F-194-pieces-summary');
-    expect(router.navigate).toHaveBeenCalledWith(
-      ['/case-files', 'case-1', 'synthesis'],
-      { fragment: 'section-pieces' },
-    );
+    expect(badge.go).toHaveBeenCalledWith('pieces', 'case-1', {
+      popupItems: [],
+      popupTitle: 'Pièces manquantes',
+      popupIcon: 'report_problem',
+    });
     expect(modalService.open).not.toHaveBeenCalled();
   });
 });

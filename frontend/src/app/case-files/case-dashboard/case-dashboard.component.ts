@@ -1,5 +1,4 @@
 import { Component, DestroyRef, Input, OnInit, Optional, ViewContainerRef, inject, signal, computed } from '@angular/core';
-import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,6 +17,7 @@ import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignme
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
 import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
+import { BadgeNavigationService } from '../synthesis-badges/badge-navigation.service';
 
 /**
  * F-167 SF-167-05 — Tile riskScore (non cliquable). Conservée à part car
@@ -184,12 +184,13 @@ export class CaseDashboardComponent implements OnInit {
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
   private readonly vcr = inject(ViewContainerRef);
-  // F-192 SF-192-02 — navigation depuis tile RETAINED_PISTES_SUMMARY vers
-  // /synthesis#section-pistes (pas de modal, pas d'outil à instancier).
-  private readonly router = inject(Router);
   // F-228 SF-228-01 — loader partagé qui charge les 4 alignements en parallèle
   // (forkJoin + fail-open par stream). Symétrie avec `<app-decisional-tools-panel>`.
   private readonly alignmentsLoader = inject(DecisionToolAlignmentsLoader);
+  // F-229 SF-229-01 — résout les tiles "résumé" du dashboard sur la cible
+  // canonique du badge F-162 équivalent (popup pour pieces, sous-page pour
+  // risques, anchor scroll pour pistes/questions).
+  private readonly badgeNavigation = inject(BadgeNavigationService);
 
   constructor(
     private dashboardService: CaseDashboardService,
@@ -246,46 +247,33 @@ export class CaseDashboardComponent implements OnInit {
    * toolId est inconnu : no-op + console.warn (cohérent avec resolveEntry).
    */
   openGenericTool(toolId: string): void {
-    // F-192 SF-192-02 — tile résumé Pistes stratégiques retenues : pas un
-    // outil décisionnel instanciable, on redirige vers la synthèse avec
-    // scroll vers le bloc Pistes stratégiques (anchor `section-pistes`,
-    // déjà rendu par SynthesisComponent / F-176 SF-176-02).
+    // F-229 SF-229-01 — les 4 tiles "résumé" du dashboard décisionnel sont
+    // désormais alignées sur les cibles canoniques de la grille de badges
+    // F-162 via {@link BadgeNavigationService}. Mismatches corrigés :
+    //   - RETAINED_PISTES_SUMMARY  → anchor `section-pistes` (scroll inline)
+    //   - F-194-pieces-summary     → popup `SynthesisShortBlockDialogComponent`
+    //   - F-195-risques-summary    → sous-page `/synthesis/risques`
+    //   - F-196-questions-summary  → anchor `section-questions` (scroll inline)
+    // Audit visuel CA-09 : clic d'une tile résumé doit ouvrir EXACTEMENT
+    // la même chose que le badge F-162 équivalent.
     if (toolId === 'RETAINED_PISTES_SUMMARY') {
-      this.router.navigate(
-        ['/case-files', this.caseFileId, 'synthesis'],
-        { fragment: 'section-pistes' },
-      );
+      this.badgeNavigation.go('pistes', this.caseFileId);
       return;
     }
-    // F-194 SF-194-02 — tile résumé Pièces manquantes markables : pas un
-    // outil décisionnel instanciable, on redirige vers la synthèse avec
-    // scroll vers le bloc Pièces (anchor `section-pieces`).
     if (toolId === 'F-194-pieces-summary') {
-      this.router.navigate(
-        ['/case-files', this.caseFileId, 'synthesis'],
-        { fragment: 'section-pieces' },
-      );
+      this.badgeNavigation.go('pieces', this.caseFileId, {
+        popupItems: this.synthesis?.piecesManquantes ?? [],
+        popupTitle: 'Pièces manquantes',
+        popupIcon: 'report_problem',
+      });
       return;
     }
-    // F-195 SF-195-02 — tile résumé Risques markables : pas un outil
-    // décisionnel instanciable, on redirige vers la synthèse avec scroll
-    // vers le bloc Risques (anchor `section-risques`).
     if (toolId === 'F-195-risques-summary') {
-      this.router.navigate(
-        ['/case-files', this.caseFileId, 'synthesis'],
-        { fragment: 'section-risques' },
-      );
+      this.badgeNavigation.go('risques', this.caseFileId);
       return;
     }
-    // F-196 SF-196-02 — tile résumé Questions complémentaires (F-94) : pas un
-    // outil décisionnel instanciable, on redirige vers la synthèse avec scroll
-    // vers le bloc Questions (anchor `section-questions`, déjà rendu par
-    // SynthesisComponent / F-94).
     if (toolId === 'F-196-questions-summary') {
-      this.router.navigate(
-        ['/case-files', this.caseFileId, 'synthesis'],
-        { fragment: 'section-questions' },
-      );
+      this.badgeNavigation.go('questions', this.caseFileId);
       return;
     }
     const entry = DecisionToolsPanelComponent.TOOL_REGISTRY.get(toolId);

@@ -60,6 +60,7 @@ import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contrac
 import { StrategicOption, StrategicOptionStatus } from '../../core/models/strategic-option.model';
 import { DiscardReasonDialogComponent, DiscardReasonDialogData } from './discard-reason-dialog.component';
 import { SynthesisShortBlockDialogComponent, SynthesisShortBlockDialogData } from '../synthesis-short-block-dialog/synthesis-short-block-dialog.component';
+import { BadgeKey, BadgeNavigationService } from '../synthesis-badges/badge-navigation.service';
 import { CaseFile } from '../../core/models/case-file.model';
 import { fadeInUp, listStagger } from '../../shared/animations';
 import { SourceRefComponent } from '../../shared/source-ref/source-ref.component';
@@ -497,6 +498,72 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * F-229 SF-229-01 — résout l'identifiant d'un badge F-162 vers la clé
+   * {@link BadgeKey} correspondante dans le service de navigation partagé.
+   * Renvoie `null` pour les badges qui ne sont pas exposés au service
+   * (`type-litige` — dialog override hors scope F-229 ; `checklist` — anchor
+   * scroll local sans tile dashboard équivalente ; `questions-ouvertes` —
+   * popup couvert par {@link openPopup} mais pas de tile dashboard).
+   */
+  private mapBadgeIdToKey(badgeId: string): BadgeKey | null {
+    switch (badgeId) {
+      case 'pistes':
+      case 'pieces':
+      case 'risques':
+      case 'questions':
+      case 'timeline':
+      case 'faits':
+      case 'points-juridiques':
+        return badgeId;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * F-229 SF-229-01 — handler unifié de clic sur un badge F-162. Délègue à
+   * {@link BadgeNavigationService} pour les clés exposées (assure l'alignement
+   * strict avec les tiles "résumé" du dashboard décisionnel). Fallback sur
+   * les handlers locaux pour `type-litige` (dialog override F-197),
+   * `checklist` (anchor scroll local) et `questions-ouvertes` (popup local —
+   * pas de tile dashboard équivalente, on garde {@link openPopup}).
+   */
+  onBadgeClick(badge: SynthesisBadge): void {
+    if (badge.dialog === 'type-litige-override') {
+      this.openTypeLitigeOverrideDialog();
+      return;
+    }
+    const key = this.mapBadgeIdToKey(badge.id);
+    const cfId = this.caseFile()?.id ?? null;
+    if (key && cfId) {
+      const ctx = this.buildBadgeContext(badge);
+      this.badgeNavigation.go(key, cfId, ctx);
+      return;
+    }
+    if (badge.popup) {
+      this.openPopup(badge.popup);
+      return;
+    }
+    this.scrollToBlock(badge.anchor);
+  }
+
+  /**
+   * F-229 SF-229-01 — construit les données contextuelles pour les
+   * destinations popup. Pour `pieces` : items = `synthesis().piecesManquantes`.
+   * Pour les autres destinations, retourne `undefined` (ignoré par le service).
+   */
+  private buildBadgeContext(badge: SynthesisBadge) {
+    if (badge.id === 'pieces') {
+      return {
+        popupItems: this.synthesis()?.piecesManquantes ?? [],
+        popupTitle: 'Pièces manquantes',
+        popupIcon: 'report_problem',
+      };
+    }
+    return undefined;
+  }
+
   /** F-162 SF-162-06 — ouvre un dialog modal pour un bloc court. */
   openPopup(kind: 'pieces' | 'questions-ouvertes'): void {
     const syn = this.synthesis();
@@ -546,6 +613,7 @@ export class SynthesisComponent implements OnInit, OnDestroy {
     private risqueAlignmentService: RisqueAlignmentService,
     private aiQuestionAlignmentService: AiQuestionAlignmentService,
     private typeLitigeOverrideService: TypeLitigeOverrideService,
+    private badgeNavigation: BadgeNavigationService,
   ) {}
 
   ngOnInit(): void {
@@ -567,6 +635,19 @@ export class SynthesisComponent implements OnInit, OnDestroy {
       error: () => {
         this.loading.set(false);
         this.snackBar.open('Dossier introuvable', 'Fermer', { duration: 4000, panelClass: ['snack-error'] });
+      }
+    });
+
+    // F-229 SF-229-01 — CA-04 : scroll automatique vers le bloc cible quand
+    // l'URL contient un fragment (ex. /case-files/:id/synthesis#section-pistes
+    // navigué depuis une tile dashboard via {@link BadgeNavigationService}).
+    // Le scrollToBlock existant a un retry 5×200 ms qui couvre le cas où la
+    // synthesis() n'est pas encore signalée au moment de l'émission du
+    // fragment. À chaque émission non-vide on relance le scroll — utile si
+    // le user clique deux fois la même tile (force le rescroll).
+    this.route.fragment?.subscribe(fragment => {
+      if (fragment) {
+        this.scrollToBlock(fragment);
       }
     });
 

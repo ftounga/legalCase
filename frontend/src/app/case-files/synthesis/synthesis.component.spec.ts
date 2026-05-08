@@ -31,6 +31,7 @@ import { AiQuestionAlignmentService } from '../../core/services/ai-question-alig
 import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
 import { TypeLitigeOverrideService } from '../../core/services/type-litige-override.service';
 import { TypeLitigeOverrideResponse } from '../../core/models/type-litige-override.model';
+import { BadgeNavigationService } from '../synthesis-badges/badge-navigation.service';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError, Subject, NEVER } from 'rxjs';
 import { GlobalAnalysisNotificationService } from '../../core/services/global-analysis-notification.service';
@@ -102,6 +103,8 @@ describe('SynthesisComponent', () => {
   let strategicOptionService: jest.Mocked<StrategicOptionService>;
   let matDialogMock: { open: jest.Mock };
   let dialogResultSubject: Subject<string | null | undefined>;
+  // F-229 SF-229-01 — stub partagé du service de navigation des badges F-162.
+  let badgeNavigationMock: { go: jest.Mock };
 
   beforeEach(async () => {
     caseAnalysisService = jasmine.createSpyObj('CaseAnalysisService', ['getVersions', 'getByVersion', 'getAnalysis', 'getPartial']);
@@ -117,6 +120,9 @@ describe('SynthesisComponent', () => {
     matDialogMock = {
       open: jest.fn().mockReturnValue({ afterClosed: () => dialogResultSubject.asObservable() } as Partial<MatDialogRef<unknown>>)
     };
+    // F-229 SF-229-01 — stub injecté côté providers pour isoler les
+    // navigations badges (CA-07).
+    badgeNavigationMock = { go: jest.fn() };
 
     const caseFileService = jasmine.createSpyObj('CaseFileService', ['getById']);
     caseFileService.getById.mockReturnValue(of({ id: CASE_FILE_ID, title: 'Dossier test' }));
@@ -171,6 +177,8 @@ describe('SynthesisComponent', () => {
         { provide: DocumentService, useValue: { list: jest.fn().mockReturnValue(of([])) } },
         // F-185 SF-185-01 — stub pour éviter l'EventSource réel et neutraliser le canal events$.
         { provide: GlobalAnalysisNotificationService, useValue: { track: jest.fn(), events$: NEVER } },
+        // F-229 SF-229-01 — stub du service de navigation des badges F-162.
+        { provide: BadgeNavigationService, useValue: badgeNavigationMock },
       ]
     }).compileComponents();
 
@@ -1933,6 +1941,116 @@ describe('SynthesisComponent', () => {
       const args = matDialogMock.open.mock.calls[0];
       expect(args[1].data.title).toBe('Questions ouvertes');
       expect(args[1].data.items).toEqual(['q1', 'q2']);
+    });
+  });
+
+  // F-229 SF-229-01 — handler unifié `onBadgeClick` + subscription `route.fragment`.
+  // CA-07 (mini-spec) : clic sur un badge → BadgeNavigationService.go(key)
+  // pour les keys exposées (pistes, pieces, risques, questions, timeline,
+  // faits, points-juridiques) ; fallback local pour checklist + questions-
+  // ouvertes (popup) + type-litige (dialog override).
+  describe('F-229 SF-229-01 unified badge handler + fragment scroll', () => {
+    // CA-07 T-01 : badge "pistes" cliqué → service.go('pistes', cfId).
+    it('CA-07 T-01: onBadgeClick(pistes) → BadgeNavigationService.go("pistes")', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      strategicOptionService.list.mockReturnValue(of([
+        makeOption('o-1', 0, 'Piste A', 'TO_STUDY'),
+      ]));
+      fixture.detectChanges();
+
+      const pistesBadge = component.synthesisBadges().find(b => b.id === 'pistes');
+      expect(pistesBadge).toBeDefined();
+      component.onBadgeClick(pistesBadge!);
+      expect(badgeNavigationMock.go).toHaveBeenCalledWith('pistes', CASE_FILE_ID, undefined);
+    });
+
+    // CA-07 T-02 : badge "pieces" cliqué → service.go('pieces', cfId, ctx)
+    // avec items = synthesis().piecesManquantes (build context).
+    it('CA-07 T-02: onBadgeClick(pieces) → BadgeNavigationService.go("pieces", cfId, ctx avec items)', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD', ['Contrat', 'Bulletin'])));
+      fixture.detectChanges();
+
+      const piecesBadge = component.synthesisBadges().find(b => b.id === 'pieces');
+      expect(piecesBadge).toBeDefined();
+      component.onBadgeClick(piecesBadge!);
+      expect(badgeNavigationMock.go).toHaveBeenCalledWith('pieces', CASE_FILE_ID, {
+        popupItems: ['Contrat', 'Bulletin'],
+        popupTitle: 'Pièces manquantes',
+        popupIcon: 'report_problem',
+      });
+    });
+
+    // CA-07 T-03 : badge "risques" cliqué → service.go('risques', cfId).
+    it('CA-07 T-03: onBadgeClick(risques) → BadgeNavigationService.go("risques")', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      const syn = {
+        ...makeSynthesis(1, 'STANDARD'),
+        risques: [makeItem('r1')],
+      } as any;
+      caseAnalysisService.getByVersion.mockReturnValue(of(syn));
+      fixture.detectChanges();
+
+      const risquesBadge = component.synthesisBadges().find(b => b.id === 'risques');
+      expect(risquesBadge).toBeDefined();
+      component.onBadgeClick(risquesBadge!);
+      expect(badgeNavigationMock.go).toHaveBeenCalledWith('risques', CASE_FILE_ID, undefined);
+    });
+
+    // CA-07 T-04 : badge "checklist" cliqué → fallback scrollToBlock local
+    // (pas de mapping BadgeKey, pas de tile dashboard équivalente).
+    it('CA-07 T-04: onBadgeClick(checklist) → fallback scrollToBlock local (pas d\'appel service)', () => {
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      procedureCheckService.list.mockReturnValue(of([makeCheck('c-1', 0)]));
+      fixture.detectChanges();
+
+      const checklistBadge = component.synthesisBadges().find(b => b.id === 'checklist');
+      expect(checklistBadge).toBeDefined();
+
+      // jsdom n'expose pas scrollIntoView ; on stub scrollToBlock pour isoler
+      // le test (fallback). Le test vérifie que le service de navigation
+      // n'est PAS appelé pour la key non exposée `checklist`, et que
+      // scrollToBlock est invoqué avec l'ancre canonique.
+      const scrollSpy = jest.spyOn(component, 'scrollToBlock').mockImplementation(() => {});
+      component.onBadgeClick(checklistBadge!);
+      expect(badgeNavigationMock.go).not.toHaveBeenCalled();
+      expect(scrollSpy).toHaveBeenCalledWith('section-checklist');
+    });
+
+    // CA-07 T-05 : route.fragment émis au mount (synthèse déjà chargée) →
+    // scrollToBlock invoqué avec la valeur du fragment.
+    it('CA-07 T-05: route.fragment émis → scrollToBlock(fragment) appelé', () => {
+      // Patcher la route pour exposer un Observable fragment.
+      const route = TestBed.inject(ActivatedRoute) as any;
+      const fragmentSubject = new Subject<string | null>();
+      route.fragment = fragmentSubject.asObservable();
+
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      // Spy scrollToBlock pour observer l'appel.
+      const spy = jest.spyOn(component, 'scrollToBlock').mockImplementation(() => {});
+      fragmentSubject.next('section-pistes');
+      expect(spy).toHaveBeenCalledWith('section-pistes');
+    });
+
+    // CA-07 T-06 : route.fragment vide/null → scrollToBlock NON invoqué.
+    it('CA-07 T-06: route.fragment null/empty → scrollToBlock NON appelé', () => {
+      const route = TestBed.inject(ActivatedRoute) as any;
+      const fragmentSubject = new Subject<string | null>();
+      route.fragment = fragmentSubject.asObservable();
+
+      caseAnalysisService.getVersions.mockReturnValue(of([makeVersion(1, 'STANDARD')]));
+      caseAnalysisService.getByVersion.mockReturnValue(of(makeSynthesis(1, 'STANDARD')));
+      fixture.detectChanges();
+
+      const spy = jest.spyOn(component, 'scrollToBlock').mockImplementation(() => {});
+      fragmentSubject.next(null);
+      fragmentSubject.next('');
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 

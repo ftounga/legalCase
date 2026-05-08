@@ -169,44 +169,40 @@
             }
             <mat-icon class="synthesis-badge__edit-hint">edit</mat-icon>
           </button>
-        } @else if (badge.popup) {
-          <button type="button"
-                  class="synthesis-badge"
-                  [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
-                  (click)="openPopup(badge.popup)"
-                  [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
-            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
-            <span class="synthesis-badge__count">{{ badge.count }}</span>
-            <span class="synthesis-badge__label">{{ badge.label }}</span>
-            @if (badge.sublabel) {
-              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
-            }
-          </button>
-        } @else if (badge.route) {
-          <a class="synthesis-badge"
-             [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
-             [routerLink]="badge.route"
-             [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
-            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
-            <span class="synthesis-badge__count">{{ badge.count }}</span>
-            <span class="synthesis-badge__label">{{ badge.label }}</span>
-            @if (badge.sublabel) {
-              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
-            }
-          </a>
         } @else {
-          <button type="button"
-                  class="synthesis-badge"
-                  [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
-                  (click)="scrollToBlock(badge.anchor)"
-                  [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
-            <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
-            <span class="synthesis-badge__count">{{ badge.count }}</span>
-            <span class="synthesis-badge__label">{{ badge.label }}</span>
-            @if (badge.sublabel) {
-              <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
-            }
-          </button>
+          <!-- F-229 SF-229-01 — handler unifié : délègue à BadgeNavigationService
+               pour les keys exposées (pistes, pieces, risques, questions,
+               timeline, faits, points-juridiques) ; fallback sur scrollToBlock
+               local pour checklist + questions-ouvertes (pas de cible canonique
+               F-162 partagée avec le dashboard). Les badges route conservent
+               le rendu `<a routerLink>` pour préserver l'accessibilité (right-
+               click "ouvrir dans un nouvel onglet"). -->
+          @if (badge.route) {
+            <a class="synthesis-badge"
+               [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
+               [routerLink]="badge.route"
+               [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
+              <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+              <span class="synthesis-badge__count">{{ badge.count }}</span>
+              <span class="synthesis-badge__label">{{ badge.label }}</span>
+              @if (badge.sublabel) {
+                <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+              }
+            </a>
+          } @else {
+            <button type="button"
+                    class="synthesis-badge"
+                    [class.synthesis-badge--alert]="badge.id === 'risques' && synthesis()?.riskLevel === 'ELEVE'"
+                    (click)="onBadgeClick(badge)"
+                    [attr.aria-label]="badge.label + ' : ' + badge.count + ' élément(s)'">
+              <mat-icon class="synthesis-badge__icon panel-icon" [class]="'panel-icon ' + badge.iconClass">{{ badge.icon }}</mat-icon>
+              <span class="synthesis-badge__count">{{ badge.count }}</span>
+              <span class="synthesis-badge__label">{{ badge.label }}</span>
+              @if (badge.sublabel) {
+                <span class="synthesis-badge__sublabel">{{ badge.sublabel }}</span>
+              }
+            </button>
+          }
         }
       }
     </div>
