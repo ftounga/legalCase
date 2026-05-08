@@ -85,7 +85,8 @@ describe('CaseFileDetailComponent', () => {
     caseFileStatusServiceSpy = jasmine.createSpyObj('CaseFileStatusService', ['close', 'reopen', 'delete']);
     documentServiceSpy = jasmine.createSpyObj('DocumentService', ['list', 'upload', 'uploadWithProgress', 'downloadUrl', 'delete']);
     analysisJobServiceSpy = jasmine.createSpyObj('AnalysisJobService', ['getJobs']);
-    caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis', 'getPartial']);
+    caseAnalysisServiceSpy = jasmine.createSpyObj('CaseAnalysisService', ['getAnalysis', 'getPartial', 'getVersions']);
+    (caseAnalysisServiceSpy as any).getVersions.mockReturnValue(of([]));
     caseAnalysisCommandServiceSpy = jasmine.createSpyObj('CaseAnalysisCommandService', ['triggerAnalysis']);
     aiQuestionServiceSpy = jasmine.createSpyObj('AiQuestionService', ['getQuestions']);
     aiQuestionAnswerServiceSpy = jasmine.createSpyObj('AiQuestionAnswerService', ['submitAnswer']);
@@ -1011,6 +1012,101 @@ describe('CaseFileDetailComponent', () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
+  });
+
+  // F-227 SF-227-01 : polling tick recharge la synthèse à la transition PROCESSING→DONE
+  // Bug origine : SSE re-track après navigation /synthesis ↔ /case-files/:id rate l'event DONE,
+  // le polling le détecte mais n'appelait pas loadSynthesis → synthèse figée.
+  describe('F-227 SF-227-01 — polling tick recharge synthèse à PROCESSING→DONE', () => {
+    const buildJob = (jobType: any, status: any): AnalysisJob => ({
+      jobType, status, totalItems: 1, processedItems: 1, progressPercentage: 100,
+    });
+    const makeResult = (version: number): any => ({
+      id: 'a' + version, version, analysisType: 'STANDARD', status: 'DONE',
+      timeline: [], faits: [], pointsJuridiques: [], risques: [], questionsOuvertes: [],
+      piecesManquantes: [], pointsProcedure: [],
+      compensationEstimate: null, belgianCompensationEstimate: null,
+      pensionAlimentaireEstimate: null, prestationCompensatoireEstimate: null,
+      liquidationCommunaute: null, travailExtractedData: null,
+      immigrationExtractedData: null, licenciementValidityDetection: null,
+      ruptureConvValidityDetection: null, piecesManquantesDetails: null,
+      analysisDocuments: [],
+    });
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+    afterEach(() => {
+      component['stopPolling']();
+      jest.useRealTimers();
+    });
+
+    // T-CA-03 : tick polling N+1 avec CASE_ANALYSIS DONE → loadSynthesis appelé
+    it('T-CA-03 : polling tick CASE_ANALYSIS DONE → loadSynthesis appelé', () => {
+      // Démarrage du polling : jobs PROCESSING au mount → setInterval enregistré
+      analysisJobServiceSpy.getJobs.mockReturnValueOnce(of([
+        buildJob('CASE_ANALYSIS', 'PROCESSING'),
+      ]));
+      component.loadAnalysisJobs('cf1');
+
+      // Reset du spy pour isoler les appels du tick polling
+      caseAnalysisServiceSpy.getAnalysis.mockClear();
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValue(of(null));
+
+      // Tick : transition PROCESSING → DONE
+      analysisJobServiceSpy.getJobs.mockReturnValue(of([
+        buildJob('CASE_ANALYSIS', 'DONE'),
+        buildJob('QUESTION_GENERATION', 'DONE'),
+      ]));
+      jest.advanceTimersByTime(3000);
+
+      expect(caseAnalysisServiceSpy.getAnalysis).toHaveBeenCalledWith('cf1');
+    });
+
+    // T-CA-04 : tick polling DONE répété → triggerRefresh non re-appelé (déduplication via version)
+    it('T-CA-04 : tick polling DONE répété → triggerRefresh appelé une seule fois max', () => {
+      const refreshSpy = jest.spyOn(component['dashboardRefreshService'], 'triggerRefresh');
+
+      // Premier load synthèse hors polling → version 1 baseline (pas de refresh)
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValueOnce(of(makeResult(1)));
+      component.loadSynthesis('cf1');
+      expect(refreshSpy).not.toHaveBeenCalled();
+
+      // Polling démarre (PROCESSING)
+      analysisJobServiceSpy.getJobs.mockReturnValueOnce(of([
+        buildJob('CASE_ANALYSIS', 'PROCESSING'),
+      ]));
+      component.loadAnalysisJobs('cf1');
+      refreshSpy.mockClear();
+
+      // Tick avec DONE + même version 1 → loadSynthesis appelé MAIS triggerRefresh non
+      analysisJobServiceSpy.getJobs.mockReturnValue(of([
+        buildJob('CASE_ANALYSIS', 'DONE'),
+        buildJob('QUESTION_GENERATION', 'DONE'),
+      ]));
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValue(of(makeResult(1)));
+      jest.advanceTimersByTime(3000);
+
+      expect(refreshSpy).not.toHaveBeenCalled();
+    });
+
+    // T-CA-05 : symétrie ENRICHED_ANALYSIS DONE → loadSynthesis appelé
+    it('T-CA-05 : polling tick ENRICHED_ANALYSIS DONE → loadSynthesis appelé', () => {
+      analysisJobServiceSpy.getJobs.mockReturnValueOnce(of([
+        buildJob('ENRICHED_ANALYSIS', 'PROCESSING'),
+      ]));
+      component.loadAnalysisJobs('cf1');
+
+      caseAnalysisServiceSpy.getAnalysis.mockClear();
+      caseAnalysisServiceSpy.getAnalysis.mockReturnValue(of(null));
+
+      analysisJobServiceSpy.getJobs.mockReturnValue(of([
+        buildJob('ENRICHED_ANALYSIS', 'DONE'),
+      ]));
+      jest.advanceTimersByTime(3000);
+
+      expect(caseAnalysisServiceSpy.getAnalysis).toHaveBeenCalledWith('cf1');
+    });
   });
 
   // SF-121-04 : step 2 FAILED dès qu'au moins 1 doc est FAILED (règle "any failed")
