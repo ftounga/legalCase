@@ -22,12 +22,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { debounceTime } from 'rxjs';
 import { CaseFileService, VisibleToolSet } from '../../core/services/case-file.service';
 import { CaseDashboardRefreshService } from '../case-dashboard/case-dashboard-refresh.service';
-import { RetainedPisteAlignmentService } from '../../core/services/retained-piste-alignment.service';
 import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
-import { PieceManquanteAlignmentService } from '../../core/services/piece-manquante-alignment.service';
 import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
-import { RisqueAlignmentService } from '../../core/services/risque-alignment.service';
 import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
+import { DecisionToolAlignmentsLoader } from '../decision-tools-shared/decision-tool-alignments.loader';
 import { RetainedPistesBadge } from '../immigration-title-decision-section/immigration-title-decision-section.component';
 import { DecisionToolCardComponent, PiecesBadgeInput, RisquesBadgeInput } from './decision-tool-card/decision-tool-card.component';
 import {
@@ -184,6 +183,17 @@ export interface DecisionToolContext {
    * frontend — cohérence F-176 stricte).
    */
   risquesAlignment?: import('../../core/models/risque-alignment.model').RisqueAlignment[];
+  /**
+   * F-196 SF-196-02 / F-228 SF-228-01 — Alignement questions complémentaires
+   * (F-94) ↔ outils. Disponible côté ctx pour permettre à un composant outil
+   * d'inférer les pièces déduites des réponses de l'avocat (cohérence avec
+   * `synthesis.piecesManquantesDetails` enrichies au prochain run de Synthèse
+   * enrichie). Pattern miroir
+   * {@link RetainedPisteAlignment} (F-192) +
+   * {@link PieceManquanteAlignment} (F-194) +
+   * {@link RisqueAlignment} (F-195).
+   */
+  aiQuestionsAlignment?: import('../../core/models/ai-question-alignment.model').AiQuestionAlignment[];
 }
 
 export interface DecisionToolRegistryEntry {
@@ -224,9 +234,11 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
   private readonly refreshService = inject(CaseDashboardRefreshService, { optional: true });
-  private readonly retainedPistesService = inject(RetainedPisteAlignmentService, { optional: true });
-  private readonly piecesAlignmentService = inject(PieceManquanteAlignmentService, { optional: true });
-  private readonly risqueAlignmentService = inject(RisqueAlignmentService, { optional: true });
+  // F-228 SF-228-01 : loader partagé qui charge les 4 alignements en parallèle
+  // (forkJoin + fail-open par stream). Remplace les 3 services individuels
+  // précédents (RetainedPisteAlignmentService / PieceManquanteAlignmentService /
+  // RisqueAlignmentService) — code réutilisé par <app-case-dashboard>.
+  private readonly alignmentsLoader = inject(DecisionToolAlignmentsLoader);
   private readonly modalService = inject(DecisionToolModalService);
   // SF-177-14 — propagé au modal pour que les outils héritent de l'injector
   // tree de case-file-detail (CaseDashboardRefreshService notamment).
@@ -281,6 +293,14 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
    * qu'au prochain run de Synthèse enrichie).
    */
   readonly risquesAlignment = signal<RisqueAlignment[]>([]);
+
+  /**
+   * F-196 SF-196-02 / F-228 SF-228-01 — Alignement questions complémentaires
+   * (F-94) ↔ outils. Cache local. Refresh aligné sur les 3 autres alignements
+   * (mount + SSE `ENRICHED_ANALYSIS DONE` via
+   * `CaseDashboardRefreshService.refresh$`). Pattern miroir.
+   */
+  readonly aiQuestionsAlignment = signal<AiQuestionAlignment[]>([]);
 
   /**
    * Registre des outils décisionnels. Chaque entrée déclare son composant
@@ -1564,9 +1584,7 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   ngOnInit(): void {
     if (this.caseFileId) {
       this.loadVisibility(true);
-      this.loadRetainedPistes();
-      this.loadPiecesAlignment();
-      this.loadRisquesAlignment();
+      this.loadAlignments();
     }
     if (this.refreshService) {
       this.refreshService.refresh$
@@ -1574,17 +1592,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
         .subscribe(() => {
           if (this.caseFileId) {
             this.loadVisibility(false);
-            // F-192 SF-192-02 — re-fetch alignement à chaque run de Synthèse
-            // enrichie (cohérence F-176 stricte). Le PUT statut piste ne
-            // déclenche PAS triggerRefresh (cf. CA-12), donc le re-fetch ici
-            // ne s'enclenche que post-analyse — comportement voulu.
-            this.loadRetainedPistes();
-            // F-194 SF-194-02 — idem pour les pièces. PUT statut pièce ne
-            // déclenche PAS de refresh, seul le run de Synthèse enrichie le fait.
-            this.loadPiecesAlignment();
-            // F-195 SF-195-02 — idem pour les risques. PUT statut risque ne
-            // déclenche PAS de refresh, seul le run de Synthèse enrichie le fait.
-            this.loadRisquesAlignment();
+            // F-228 SF-228-01 — re-fetch des 4 alignements à chaque run de
+            // Synthèse enrichie (cohérence F-176 stricte). Le PUT statut
+            // piste/pièce/risque/réponse F-94 ne déclenche PAS triggerRefresh
+            // (cf. CA-12 F-192/F-194/F-195/F-196), donc le re-fetch ici ne
+            // s'enclenche que post-analyse — comportement voulu.
+            this.loadAlignments();
           }
         });
     }
@@ -1593,63 +1606,37 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['caseFileId'] && !changes['caseFileId'].firstChange && this.caseFileId) {
       this.loadVisibility(true);
-      this.loadRetainedPistes();
-      this.loadPiecesAlignment();
-      this.loadRisquesAlignment();
+      this.loadAlignments();
     }
   }
 
   /**
-   * F-192 SF-192-02 — Charge l'alignement persisté côté backend. Fail-open :
-   * `[]` si endpoint indisponible (le service log un warn). OnPush-safe :
-   * mutation via `signal.set()` qui déclenche la CD nativement.
+   * F-228 SF-228-01 — Charge les 4 alignements en parallèle via le loader
+   * partagé `DecisionToolAlignmentsLoader` (forkJoin + fail-open par stream).
+   * Remplace les 3 méthodes `loadRetainedPistes` / `loadPiecesAlignment` /
+   * `loadRisquesAlignment` précédentes + ajoute `aiQuestionsAlignment`.
+   *
+   * <p>OnPush-safe : mutation via `signal.set()` qui déclenche la CD
+   * nativement. Refresh exclusif au run de Synthèse enrichie (PUT statut
+   * piste/pièce/risque + PUT réponse F-94 ne déclenchent PAS de refresh —
+   * cohérence F-176 stricte).</p>
    */
-  private loadRetainedPistes(): void {
-    if (!this.retainedPistesService) {
-      this.retainedPistes.set([]);
-      return;
-    }
-    this.retainedPistesService.getForCaseFile(this.caseFileId)
+  private loadAlignments(): void {
+    this.alignmentsLoader.loadAll(this.caseFileId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: list => this.retainedPistes.set(list),
-        error: () => this.retainedPistes.set([]),
-      });
-  }
-
-  /**
-   * F-194 SF-194-02 — Charge l'alignement pièces ↔ outils. Fail-open : `[]`
-   * si endpoint indisponible (le service log un warn). OnPush-safe :
-   * mutation via `signal.set()` qui déclenche la CD nativement.
-   */
-  private loadPiecesAlignment(): void {
-    if (!this.piecesAlignmentService) {
-      this.piecesAlignment.set([]);
-      return;
-    }
-    this.piecesAlignmentService.getForCaseFile(this.caseFileId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: list => this.piecesAlignment.set(list),
-        error: () => this.piecesAlignment.set([]),
-      });
-  }
-
-  /**
-   * F-195 SF-195-02 — Charge l'alignement risques ↔ outils. Fail-open : `[]`
-   * si endpoint indisponible (le service log un warn). OnPush-safe :
-   * mutation via `signal.set()` qui déclenche la CD nativement.
-   */
-  private loadRisquesAlignment(): void {
-    if (!this.risqueAlignmentService) {
-      this.risquesAlignment.set([]);
-      return;
-    }
-    this.risqueAlignmentService.getForCaseFile(this.caseFileId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: list => this.risquesAlignment.set(list),
-        error: () => this.risquesAlignment.set([]),
+        next: (bundle) => {
+          this.retainedPistes.set(bundle.retainedPistes);
+          this.piecesAlignment.set(bundle.piecesAlignment);
+          this.risquesAlignment.set(bundle.risquesAlignment);
+          this.aiQuestionsAlignment.set(bundle.aiQuestionsAlignment);
+        },
+        error: () => {
+          this.retainedPistes.set([]);
+          this.piecesAlignment.set([]);
+          this.risquesAlignment.set([]);
+          this.aiQuestionsAlignment.set([]);
+        },
       });
   }
 
@@ -1758,12 +1745,12 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
       caseFileTitle: this.caseFileTitle,
       procedureChecks: this.procedureChecks,
       aiQuestions: this.aiQuestions,
-      // F-192 SF-192-02 : alignement chargé via RetainedPisteAlignmentService.
+      // F-228 SF-228-01 : 4 alignements chargés en parallèle via
+      // DecisionToolAlignmentsLoader (cf. `loadAlignments()`).
       pistesRetenues: this.retainedPistes(),
-      // F-194 SF-194-02 : alignement chargé via PieceManquanteAlignmentService.
       piecesAlignment: this.piecesAlignment(),
-      // F-195 SF-195-02 : alignement chargé via RisqueAlignmentService.
       risquesAlignment: this.risquesAlignment(),
+      aiQuestionsAlignment: this.aiQuestionsAlignment(),
       // F-197 SF-197-02 : exposé brut au cas où un outil veut raisonner sur
       // la présence/absence d'un override (badge "modifié par vous" UI).
       typeLitigeOverride: this.typeLitigeOverride,

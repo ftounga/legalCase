@@ -10,9 +10,14 @@ import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
 import { DashboardTileComponent } from './dashboard-tile/dashboard-tile.component';
 import { DecisionToolCardComponent } from '../decisional-tools-panel/decision-tool-card/decision-tool-card.component';
 import { DecisionToolModalService } from '../decisional-tools-panel/decision-tool-modal/decision-tool-modal.service';
-import { DecisionToolsPanelComponent, ThemeKey } from '../decisional-tools-panel/decisional-tools-panel.component';
+import { DecisionToolsPanelComponent, ThemeKey, DecisionToolContext } from '../decisional-tools-panel/decisional-tools-panel.component';
 import { getToolMetadata } from '../decisional-tools-panel/decision-tool.contract';
 import { DecisionToolSummary, MetierAlertLevel } from '../decisional-tools-panel/decision-tool-summary.model';
+import { DecisionToolAlignmentsLoader } from '../decision-tools-shared/decision-tool-alignments.loader';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
 
 /**
  * F-167 SF-167-05 — Tile riskScore (non cliquable). Conservée à part car
@@ -86,6 +91,21 @@ export class CaseDashboardComponent implements OnInit {
 
   loading = signal(false);
   dashboard = signal<DashboardResponse | null>(null);
+
+  /**
+   * F-228 SF-228-01 — Cache local des 4 alignements IA ↔ outils consommés par
+   * le ctx de `entry.inputs(ctx)` lors de l'ouverture d'un outil décisionnel
+   * depuis le dashboard. Pattern miroir
+   * `<app-decisional-tools-panel>` (F-IA-04). Refresh : (1) au mount du
+   * dossier, (2) à chaque émission `CaseDashboardRefreshService.refresh$`
+   * (déclenchée à la fin du run de Synthèse enrichie via les events SSE
+   * F-185/F-190). Le PUT statut piste/pièce/risque + PUT réponse F-94 ne
+   * déclenchent PAS de refresh — cohérence F-176 stricte.
+   */
+  readonly retainedPistes = signal<RetainedPisteAlignment[]>([]);
+  readonly piecesAlignment = signal<PieceManquanteAlignment[]>([]);
+  readonly risquesAlignment = signal<RisqueAlignment[]>([]);
+  readonly aiQuestionsAlignment = signal<AiQuestionAlignment[]>([]);
 
   /**
    * F-167 SF-167-05 — riskScore tile rendue isolément (non groupée par thème).
@@ -167,6 +187,9 @@ export class CaseDashboardComponent implements OnInit {
   // F-192 SF-192-02 — navigation depuis tile RETAINED_PISTES_SUMMARY vers
   // /synthesis#section-pistes (pas de modal, pas d'outil à instancier).
   private readonly router = inject(Router);
+  // F-228 SF-228-01 — loader partagé qui charge les 4 alignements en parallèle
+  // (forkJoin + fail-open par stream). Symétrie avec `<app-decisional-tools-panel>`.
+  private readonly alignmentsLoader = inject(DecisionToolAlignmentsLoader);
 
   constructor(
     private dashboardService: CaseDashboardService,
@@ -175,11 +198,45 @@ export class CaseDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.reload(true);
+    this.loadAlignments();
     if (this.refreshService) {
       this.refreshService.refresh$
         .pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.reload(false));
+        .subscribe(() => {
+          this.reload(false);
+          // F-228 SF-228-01 — re-fetch des 4 alignements à chaque run de
+          // Synthèse enrichie (cohérence F-176 stricte). Le PUT statut
+          // piste/pièce/risque + PUT réponse F-94 ne déclenchent PAS
+          // triggerRefresh, donc le re-fetch ici ne s'enclenche que post-
+          // analyse — comportement voulu.
+          this.loadAlignments();
+        });
     }
+  }
+
+  /**
+   * F-228 SF-228-01 — Charge les 4 alignements en parallèle via le loader
+   * partagé. Fail-open par stream (cf. {@link DecisionToolAlignmentsLoader}).
+   * OnPush-safe : mutation via `signal.set()` qui déclenche la CD nativement.
+   */
+  private loadAlignments(): void {
+    if (!this.caseFileId) return;
+    this.alignmentsLoader.loadAll(this.caseFileId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (bundle) => {
+          this.retainedPistes.set(bundle.retainedPistes);
+          this.piecesAlignment.set(bundle.piecesAlignment);
+          this.risquesAlignment.set(bundle.risquesAlignment);
+          this.aiQuestionsAlignment.set(bundle.aiQuestionsAlignment);
+        },
+        error: () => {
+          this.retainedPistes.set([]);
+          this.piecesAlignment.set([]);
+          this.risquesAlignment.set([]);
+          this.aiQuestionsAlignment.set([]);
+        },
+      });
   }
 
   /**
@@ -238,14 +295,25 @@ export class CaseDashboardComponent implements OnInit {
       return;
     }
     const meta = getToolMetadata(entry.component);
-    const inputs = entry.inputs({
+    // F-228 SF-228-01 — ctx symétrique au panel F-IA-04 (cf.
+    // `decisional-tools-panel.component.ts:1758+ componentInputsFor`).
+    // Sans ces 4 alignements, les outils ouverts depuis le dashboard
+    // recevaient un ctx amputé → bug staging Immigration Chen 17 du
+    // 2026-05-08 (popup `<app-immigration-title-decision-section>` perdait
+    // ses pistes stratégiques entre le 1er et le 2nd clic).
+    const ctx: DecisionToolContext = {
       caseFileId: this.caseFileId,
       synthesis: this.synthesis,
       workspaceCountry: this.workspaceCountry,
       caseFileTitle: '',
       procedureChecks: this.procedureChecks,
       aiQuestions: this.aiQuestions,
-    });
+      pistesRetenues: this.retainedPistes(),
+      piecesAlignment: this.piecesAlignment(),
+      risquesAlignment: this.risquesAlignment(),
+      aiQuestionsAlignment: this.aiQuestionsAlignment(),
+    };
+    const inputs = entry.inputs(ctx);
     this.modalService.open({
       toolId,
       title: meta?.label ?? toolId,

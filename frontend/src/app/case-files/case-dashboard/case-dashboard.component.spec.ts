@@ -7,6 +7,32 @@ import { CaseDashboardRefreshService } from './case-dashboard-refresh.service';
 import { DashboardResponse, DashboardTile as BackendDashboardTile } from '../../core/models/case-dashboard.model';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { DecisionToolModalService } from '../decisional-tools-panel/decision-tool-modal/decision-tool-modal.service';
+import {
+  DecisionToolAlignmentsLoader,
+  DecisionToolAlignments,
+} from '../decision-tools-shared/decision-tool-alignments.loader';
+import { RetainedPisteAlignment } from '../../core/models/retained-piste-alignment.model';
+import { PieceManquanteAlignment } from '../../core/models/piece-manquante-alignment.model';
+import { RisqueAlignment } from '../../core/models/risque-alignment.model';
+import { AiQuestionAlignment } from '../../core/models/ai-question-alignment.model';
+
+/**
+ * F-228 SF-228-01 — bundle vide par défaut pour les tests qui ne s'occupent
+ * pas explicitement des alignements. Évite la dépendance HttpClient qui n'est
+ * pas provided dans le TestBed du dashboard.
+ */
+const EMPTY_ALIGNMENTS: DecisionToolAlignments = {
+  retainedPistes: [],
+  piecesAlignment: [],
+  risquesAlignment: [],
+  aiQuestionsAlignment: [],
+};
+
+function makeAlignmentsLoaderStub(
+  bundle: DecisionToolAlignments = EMPTY_ALIGNMENTS,
+): { loadAll: jest.Mock } {
+  return { loadAll: jest.fn().mockReturnValue(of(bundle)) };
+}
 
 /**
  * F-167 SF-167-05 — Tests Jest du tableau de bord décisionnel après fusion
@@ -39,6 +65,7 @@ describe('CaseDashboardComponent — refresh integration (SF-IA-02-03)', () => {
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: CaseDashboardRefreshService, useValue: refreshService },
         { provide: Router, useValue: { navigate: jest.fn() } },
@@ -153,6 +180,7 @@ describe('CaseDashboardComponent — SF-167-05 grouping + sort + empty state', (
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: { navigate: jest.fn() } },
@@ -259,6 +287,7 @@ describe('CaseDashboardComponent — SF-184-01 verdictsCount', () => {
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: { navigate: jest.fn() } },
@@ -345,6 +374,7 @@ describe('CaseDashboardComponent — openGenericTool (SF-167-01 / SF-167-05)', (
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: { navigate: jest.fn() } },
@@ -413,6 +443,7 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: router },
@@ -482,6 +513,7 @@ describe('CaseDashboardComponent — F-194 SF-194-02 pieces-summary tile', () =>
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: router },
@@ -551,6 +583,7 @@ describe('CaseDashboardComponent — F-195 SF-195-02 risques-summary tile', () =
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: router },
@@ -620,6 +653,7 @@ describe('CaseDashboardComponent — F-196 SF-196-02 questions-summary tile', ()
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: modalService },
         { provide: Router, useValue: router },
@@ -669,6 +703,7 @@ describe('CaseDashboardComponent — F-195 SF-195-02 dual riskScore', () => {
       imports: [CaseDashboardComponent],
       providers: [
         provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: makeAlignmentsLoaderStub() },
         { provide: CaseDashboardService, useValue: dashboardService },
         { provide: DecisionToolModalService, useValue: { open: jest.fn() } },
         { provide: Router, useValue: { navigate: jest.fn() } },
@@ -725,4 +760,247 @@ describe('CaseDashboardComponent — F-195 SF-195-02 dual riskScore', () => {
     const risk = component.riskScoreTile();
     expect(risk!.summary.primaryValue).toBe('50 %');
   });
+});
+
+// F-228 SF-228-01 — ctx d'ouverture des outils enrichi avec les 4 alignements
+// IA (pistes retenues, pièces obtenues, risques validés, questions). Symétrie
+// stricte avec le panel F-IA-04 — bug staging Immigration Chen 17 du
+// 2026-05-08 : popup `<app-immigration-title-decision-section>` perdait ses
+// pistes stratégiques entre le 1er et le 2nd clic.
+describe('CaseDashboardComponent — F-228 SF-228-01 ctx alignements', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let component: CaseDashboardComponent;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let modalService: jest.Mocked<DecisionToolModalService>;
+
+  const dashboardWithImmigrationTile: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'IMMIGRATION',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [
+      {
+        toolId: 'F-IM-05-arbre-decisionnel-titre',
+        theme: 'DIAGNOSTIC',
+        label: 'Titre de séjour recommandé',
+        primaryValue: 'VPF',
+        secondaryValue: null,
+        alertLevel: 'OK',
+      },
+    ],
+  };
+
+  // Bundle représentatif : 1 piste pertinente pour l'outil cible + 1 piste
+  // pour un autre outil (ne doit PAS être propagée par le filtre toolIdCible).
+  const piste1: RetainedPisteAlignment = {
+    pisteId: 'p-1',
+    texte: 'Demander un titre VPF',
+    conditions: [],
+    matchStatus: 'ALIGNED',
+    toolIdCible: 'F-IM-05-arbre-decisionnel-titre',
+  };
+  const pisteOtherTool: RetainedPisteAlignment = {
+    pisteId: 'p-2',
+    texte: 'Vie privée et familiale',
+    conditions: [],
+    matchStatus: 'ALIGNED',
+    toolIdCible: 'F-IM-06-recours',
+  };
+  const pieceObtenue: PieceManquanteAlignment = {
+    pieceLibelle: 'Justificatif de domicile',
+    statut: 'OBTENUE',
+    toolIdsCibles: ['F-IM-05-arbre-decisionnel-titre'],
+  };
+  const pieceManquanteOther: PieceManquanteAlignment = {
+    pieceLibelle: 'Acte de naissance',
+    statut: 'A_DEMANDER',
+    toolIdsCibles: ['F-IM-05-arbre-decisionnel-titre'],
+  };
+  const risqueOqtf: RisqueAlignment = {
+    risqueLibelle: 'Risque OQTF',
+    statut: 'VALIDE',
+    toolIdsCibles: ['F-IM-08-oqtf-avec-delai-fr'],
+  };
+  const aiQuestion: AiQuestionAlignment = {
+    questionId: 'q-1',
+    answerText: 'Marié à une Française',
+    statutDeduction: 'PIECE_OBTENUE',
+    pieceLibelleDeduit: 'Acte de mariage',
+  };
+
+  const fullBundle: DecisionToolAlignments = {
+    retainedPistes: [piste1, pisteOtherTool],
+    piecesAlignment: [pieceObtenue, pieceManquanteOther],
+    risquesAlignment: [risqueOqtf],
+    aiQuestionsAlignment: [aiQuestion],
+  };
+
+  let loaderStub: { loadAll: jest.Mock };
+
+  beforeEach(async () => {
+    dashboardService = {
+      get: jest.fn().mockReturnValue(of(dashboardWithImmigrationTile)),
+    } as any;
+    modalService = { open: jest.fn().mockReturnValue({ close: jest.fn() }) } as any;
+    loaderStub = makeAlignmentsLoaderStub(fullBundle);
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: loaderStub },
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: DecisionToolModalService, useValue: modalService },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    component = fixture.componentInstance;
+    component.caseFileId = 'case-1';
+    component.workspaceCountry = 'FRANCE';
+    component.synthesis = {
+      immigrationExtractedData: { nationalite: 'CN' },
+    };
+  });
+
+  it('CA-07 charge les 4 alignements au mount via DecisionToolAlignmentsLoader', () => {
+    fixture.detectChanges();
+    expect(loaderStub.loadAll).toHaveBeenCalledWith('case-1');
+    expect(component.retainedPistes()).toEqual([piste1, pisteOtherTool]);
+    expect(component.piecesAlignment()).toEqual([pieceObtenue, pieceManquanteOther]);
+    expect(component.risquesAlignment()).toEqual([risqueOqtf]);
+    expect(component.aiQuestionsAlignment()).toEqual([aiQuestion]);
+  });
+
+  it('CA-07-A openGenericTool propage pistesRetenues filtrées par toolIdCible', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-IM-05-arbre-decisionnel-titre');
+    expect(modalService.open).toHaveBeenCalledTimes(1);
+    const args = modalService.open.mock.calls[0][0];
+    // Filtre toolIdCible : seule piste1 doit remonter, pisteOtherTool est exclue.
+    expect(args.inputs['pistesRetenues']).toEqual([piste1]);
+  });
+
+  it('CA-07-B openGenericTool propage piecesObtenues filtrées (statut OBTENUE + toolId)', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-IM-05-arbre-decisionnel-titre');
+    const args = modalService.open.mock.calls[0][0];
+    // Filtre statut=OBTENUE + toolId : seul pieceObtenue (statut OBTENUE) ;
+    // pieceManquanteOther (A_DEMANDER) ne remonte pas.
+    expect(args.inputs['piecesObtenues']).toEqual(['Justificatif de domicile']);
+  });
+
+  it('CA-07-C openGenericTool propage aiData (immigrationExtractedData) depuis synthesis', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-IM-05-arbre-decisionnel-titre');
+    const args = modalService.open.mock.calls[0][0];
+    expect(args.inputs['aiData']).toEqual({ nationalite: 'CN' });
+  });
+
+  it('CA-07-D openGenericTool propage aiQuestions (input direct) + procedureChecks', () => {
+    component.aiQuestions = [{ id: 'q-1', text: 'Date arrivée ?' }];
+    component.procedureChecks = [{ code: 'CHECK_X', status: 'OK' }];
+    fixture.detectChanges();
+    component.openGenericTool('F-IM-05-arbre-decisionnel-titre');
+    const args = modalService.open.mock.calls[0][0];
+    expect(args.inputs['aiQuestions']).toEqual([{ id: 'q-1', text: 'Date arrivée ?' }]);
+    expect(args.inputs['procedureChecks']).toEqual([{ code: 'CHECK_X', status: 'OK' }]);
+  });
+
+  it('CA-08 close + ré-ouverture passe les mêmes inputs (signals d\'alignement non resetés)', () => {
+    fixture.detectChanges();
+    component.openGenericTool('F-IM-05-arbre-decisionnel-titre');
+    const firstCall = modalService.open.mock.calls[0][0];
+
+    // Simule fermeture + ré-ouverture (le composant est toujours monté ; les
+    // signals d'alignement ne sont pas resetés entre les ouvertures).
+    component.openGenericTool('F-IM-05-arbre-decisionnel-titre');
+    const secondCall = modalService.open.mock.calls[1][0];
+
+    expect(secondCall.inputs['pistesRetenues']).toEqual(firstCall.inputs['pistesRetenues']);
+    expect(secondCall.inputs['piecesObtenues']).toEqual(firstCall.inputs['piecesObtenues']);
+    expect(secondCall.inputs['aiData']).toEqual(firstCall.inputs['aiData']);
+    // Pas de re-fetch loader entre les ouvertures (loader appelé 1 fois au mount).
+    expect(loaderStub.loadAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('CA-09 tile résumé RETAINED_PISTES_SUMMARY continue à naviguer vers /synthesis (hors scope F-229)', () => {
+    const router = TestBed.inject(Router);
+    fixture.detectChanges();
+    component.openGenericTool('RETAINED_PISTES_SUMMARY');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-pistes' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+
+  it('CA-09 tile résumé F-194-pieces-summary continue à naviguer vers /synthesis (hors scope F-229)', () => {
+    const router = TestBed.inject(Router);
+    fixture.detectChanges();
+    component.openGenericTool('F-194-pieces-summary');
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', 'case-1', 'synthesis'],
+      { fragment: 'section-pieces' },
+    );
+    expect(modalService.open).not.toHaveBeenCalled();
+  });
+});
+
+// F-228 SF-228-01 — re-fetch des alignements à chaque emission
+// `CaseDashboardRefreshService.refresh$` (debounce 300ms).
+describe('CaseDashboardComponent — F-228 SF-228-01 refresh alignements', () => {
+  let fixture: ComponentFixture<CaseDashboardComponent>;
+  let dashboardService: jest.Mocked<CaseDashboardService>;
+  let refreshService: CaseDashboardRefreshService;
+  let loaderStub: { loadAll: jest.Mock };
+
+  const emptyDashboard: DashboardResponse = {
+    caseFileId: 'case-1',
+    legalDomain: 'TRAVAIL',
+    riskScore: null,
+    riskLevel: null,
+    tiles: [],
+  };
+
+  beforeEach(async () => {
+    dashboardService = { get: jest.fn().mockReturnValue(of(emptyDashboard)) } as any;
+    refreshService = new CaseDashboardRefreshService();
+    loaderStub = makeAlignmentsLoaderStub();
+
+    await TestBed.configureTestingModule({
+      imports: [CaseDashboardComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: DecisionToolAlignmentsLoader, useValue: loaderStub },
+        { provide: CaseDashboardService, useValue: dashboardService },
+        { provide: CaseDashboardRefreshService, useValue: refreshService },
+        { provide: DecisionToolModalService, useValue: { open: jest.fn() } },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CaseDashboardComponent);
+    fixture.componentInstance.caseFileId = 'case-1';
+  });
+
+  it('re-fetch alignements à chaque emission refresh$ (debounce 300ms)', fakeAsync(() => {
+    fixture.detectChanges();
+    expect(loaderStub.loadAll).toHaveBeenCalledTimes(1);
+
+    refreshService.triggerRefresh();
+    tick(300);
+    expect(loaderStub.loadAll).toHaveBeenCalledTimes(2);
+  }));
+
+  it('coalesces bursts of triggerRefresh() via debounce (1 re-fetch après 3 emissions rapprochées)', fakeAsync(() => {
+    fixture.detectChanges();
+    refreshService.triggerRefresh();
+    refreshService.triggerRefresh();
+    refreshService.triggerRefresh();
+    tick(300);
+    // 1 mount + 1 debounced re-fetch = 2 appels (pas 4).
+    expect(loaderStub.loadAll).toHaveBeenCalledTimes(2);
+  }));
 });
