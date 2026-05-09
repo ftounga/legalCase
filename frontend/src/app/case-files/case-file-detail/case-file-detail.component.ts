@@ -62,6 +62,70 @@ import { fadeInUp, listStagger } from '../../shared/animations';
 import { TimerWidgetComponent } from '../../shared/timer-widget/timer-widget.component';
 import { QuotaErrorBannerComponent } from '../../shared/quota-error-banner/quota-error-banner.component';
 
+/**
+ * SF-230-02 — Types image acceptés pour upload natif (validés contentType côté client).
+ * HEIC/WebP sont autorisés ; le pipeline backend (SF-230-01) prend ensuite le relais.
+ */
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/webp'] as const;
+
+/** SF-230-02 — Extensions image autorisées (fallback si contentType vide ou générique). */
+export const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.webp'] as const;
+
+/** SF-230-02 — Extensions documents non-image autorisées historiquement. */
+export const ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt'] as const;
+
+/** SF-230-02 — Liste blanche complète d'extensions autorisées (documents + images). */
+export const ALLOWED_FILE_EXTENSIONS = [
+  ...ALLOWED_DOCUMENT_EXTENSIONS,
+  ...ALLOWED_IMAGE_EXTENSIONS,
+] as const;
+
+/**
+ * SF-230-02 — Limite de taille spécifique aux images (10 Mo).
+ * Plus restrictif que la limite globale 50 Mo car une photo iPhone 4K HEIC ≈ 5-8 Mo.
+ */
+export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** SF-230-02 — Détection MIME type d'une image autorisée. */
+function isImageContentType(contentType: string | null | undefined): boolean {
+  if (!contentType) return false;
+  return (ALLOWED_IMAGE_TYPES as readonly string[]).includes(contentType.toLowerCase());
+}
+
+/** SF-230-02 — Extension fichier (utile pour HEIC qui n'a parfois pas de MIME du navigateur). */
+function fileExtension(filename: string): string {
+  const idx = filename.lastIndexOf('.');
+  return idx >= 0 ? filename.substring(idx).toLowerCase() : '';
+}
+
+/**
+ * SF-230-02 — Détecte si un fichier est une image autorisée (par contentType ou extension).
+ * Tolère le cas HEIC où certains navigateurs ne renseignent pas le MIME type.
+ */
+function isAllowedImageFile(file: File): boolean {
+  if (isImageContentType(file.type)) return true;
+  const ext = fileExtension(file.name);
+  return (ALLOWED_IMAGE_EXTENSIONS as readonly string[]).includes(ext);
+}
+
+/**
+ * SF-230-02 — Détecte si un fichier est un HEIC (les navigateurs ne décodent pas
+ * HEIC nativement → on affiche un placeholder plutôt qu'une thumbnail.)
+ */
+function isHeicFile(file: File): boolean {
+  if (file.type?.toLowerCase() === 'image/heic') return true;
+  return fileExtension(file.name) === '.heic';
+}
+
+/**
+ * SF-230-02 — Le fichier est-il un format supporté par l'app (extension présente
+ * dans la liste blanche) ? Permet de rejeter `.svg`/`.gif` même si la dialog OS
+ * "tous fichiers" les a laissés passer.
+ */
+function isSupportedFileExtension(file: File): boolean {
+  return (ALLOWED_FILE_EXTENSIONS as readonly string[]).includes(fileExtension(file.name));
+}
+
 @Component({
   selector: 'app-case-file-detail',
   standalone: true,
@@ -291,6 +355,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   canCompare = signal(false);
   deletingDocId = signal<string | null>(null);
   pendingFiles = signal<File[]>([]);
+  /**
+   * SF-230-02 — Cache des URLs `blob:` générées via `URL.createObjectURL` pour
+   * prévisualiser les images sélectionnées (clé = nom du fichier).
+   * Les URLs sont systématiquement révoquées après upload, retrait du panier
+   * ou destruction du composant pour éviter toute fuite mémoire.
+   */
+  pendingThumbnails = signal<Map<string, string>>(new Map());
   /** SF-122-07 : si coché (défaut), un PDF scanné déclenche l'OCR Textract en
    * fallback. Si décoché, le scan reste non analysable (aucun appel AWS, quota
    * préservé). L'avocat pourra toujours réactiver l'OCR a posteriori via le
@@ -485,6 +556,9 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       document.removeEventListener('visibilitychange', this.visibilityHandler);
       this.visibilityHandler = null;
     }
+    // SF-230-02 : nettoie les URLs `blob:` restantes au cas où l'utilisateur
+    // quitte la page sans avoir uploadé les fichiers en attente.
+    this.revokeAllThumbnails();
   }
 
   // SF-186-01 — refetch défensif au retour de visibilité (focus tab, retour sur
@@ -1159,9 +1233,46 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     if (!files.length) return;
 
     const MAX_SIZE = 50 * 1024 * 1024;
-    const oversized = files.filter(f => f.size > MAX_SIZE);
-    const valid = files.filter(f => f.size <= MAX_SIZE);
 
+    // SF-230-02 : 3 niveaux de validation côté client (avant tout appel serveur).
+    //   1) Extension dans la liste blanche (rejette `.svg`, `.gif` etc. même si
+    //      la dialog OS "tous fichiers" les a laissés passer).
+    //   2) Taille image plus restrictive (10 Mo) que documents (50 Mo).
+    //   3) Taille globale (50 Mo) pour les documents.
+    const unsupported: File[] = [];
+    const oversizedImages: File[] = [];
+    const oversized: File[] = [];
+    const valid: File[] = [];
+
+    for (const f of files) {
+      if (!isSupportedFileExtension(f)) {
+        unsupported.push(f);
+        continue;
+      }
+      const isImage = isAllowedImageFile(f);
+      if (isImage && f.size > MAX_IMAGE_SIZE_BYTES) {
+        oversizedImages.push(f);
+        continue;
+      }
+      if (!isImage && f.size > MAX_SIZE) {
+        oversized.push(f);
+        continue;
+      }
+      valid.push(f);
+    }
+
+    if (unsupported.length > 0) {
+      this.snackBar.open(
+        `${unsupported.length} fichier(s) au format non supporté ignoré(s). Formats acceptés : PDF, DOC, DOCX, TXT, JPG, PNG, HEIC, WebP.`,
+        'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+      );
+    }
+    if (oversizedImages.length > 0) {
+      this.snackBar.open(
+        `${oversizedImages.length} image(s) rejetée(s) : taille max 10 Mo par image.`,
+        'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+      );
+    }
     if (oversized.length > 0) {
       this.snackBar.open(
         `${oversized.length} fichier(s) rejeté(s) : taille max 50 Mo.`,
@@ -1170,6 +1281,18 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     }
 
     if (valid.length > 0) {
+      // SF-230-02 : génère une URL `blob:` pour les images non-HEIC.
+      // HEIC : pas de thumbnail (placeholder textuel côté template).
+      this.pendingThumbnails.update(map => {
+        const next = new Map(map);
+        for (const f of valid) {
+          if (next.has(f.name)) continue;
+          if (isAllowedImageFile(f) && !isHeicFile(f)) {
+            next.set(f.name, URL.createObjectURL(f));
+          }
+        }
+        return next;
+      });
       this.pendingFiles.update(current => [...current, ...valid]);
       // SF-170-02 : auto-déplie la section Documents. Si l'avocat avait replié manuellement,
       // la liste pendingFiles et le bouton "Uploader les documents" doivent redevenir visibles.
@@ -1178,7 +1301,38 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
   }
 
   removePendingFile(file: File): void {
+    this.revokeThumbnailFor(file.name);
     this.pendingFiles.update(files => files.filter(f => f !== file));
+  }
+
+  /** SF-230-02 — Le fichier en attente est-il un HEIC ? Utilisé par le template
+   *  pour afficher un placeholder textuel à la place de la thumbnail. */
+  isHeicPendingFile(file: File): boolean {
+    return isHeicFile(file);
+  }
+
+  /** SF-230-02 — Révoque l'URL `blob:` associée à un fichier en attente
+   *  et la retire du cache. No-op si pas d'URL connue. */
+  private revokeThumbnailFor(filename: string): void {
+    const map = this.pendingThumbnails();
+    const url = map.get(filename);
+    if (!url) return;
+    URL.revokeObjectURL(url);
+    const next = new Map(map);
+    next.delete(filename);
+    this.pendingThumbnails.set(next);
+  }
+
+  /** SF-230-02 — Révoque toutes les URLs `blob:` connues (appelé après upload
+   *  ou destruction du composant). */
+  private revokeAllThumbnails(): void {
+    const map = this.pendingThumbnails();
+    for (const url of map.values()) {
+      URL.revokeObjectURL(url);
+    }
+    if (map.size > 0) {
+      this.pendingThumbnails.set(new Map());
+    }
   }
 
   uploadPendingFiles(): void {
@@ -1215,6 +1369,10 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       this.uploading.set(false);
       this.fileUploadProgresses.set(new Map());
       this.pendingFiles.set([]);
+      // SF-230-02 : révoque toutes les URLs `blob:` générées pour les thumbnails
+      // images après upload. Évite la fuite mémoire (chaque blob retenu = ~taille
+      // image × N fichiers).
+      this.revokeAllThumbnails();
       this.ocrFormsMode.set(false); // SF-122-03 : reset après chaque batch
       this.ocrEnabled.set(true);    // SF-122-07 : reset après chaque batch
 

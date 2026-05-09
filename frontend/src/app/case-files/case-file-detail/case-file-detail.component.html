@@ -103,7 +103,7 @@
           @if (documents().length > 0) {
             <span class="td-chip">{{ documents().length }} document{{ documents().length > 1 ? 's' : '' }}</span>
           }
-          <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt" multiple hidden (change)="onFileSelected($event)">
+          <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic,.webp" multiple hidden (change)="onFileSelected($event)">
           <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn"
                   (click)="triggerUpload(); $event.stopPropagation()"
                   [disabled]="!canUpload()">
@@ -146,11 +146,30 @@
           <div class="pending-files-list">
             @for (file of pendingFiles(); track file.name) {
               <div class="pending-file-row">
-                <mat-icon class="pending-file-icon">insert_drive_file</mat-icon>
+                <!-- SF-230-02 : aperçu vignette pour images natives, sinon icône + placeholder HEIC. -->
+                @if (pendingThumbnails().get(file.name); as thumbUrl) {
+                  <img class="pending-file-thumb"
+                       [src]="thumbUrl"
+                       [alt]="'Aperçu de ' + file.name"
+                       width="48"
+                       height="48">
+                } @else if (isHeicPendingFile(file)) {
+                  <div class="pending-file-thumb pending-file-thumb--heic"
+                       [attr.aria-label]="'Image HEIC ' + file.name"
+                       title="Image HEIC — sera traitée à l'upload">
+                    <mat-icon class="pending-file-thumb-icon">image</mat-icon>
+                    <span class="pending-file-thumb-label">HEIC</span>
+                  </div>
+                } @else {
+                  <mat-icon class="pending-file-icon">insert_drive_file</mat-icon>
+                }
                 <div class="pending-file-info">
                   <div class="pending-file-top">
                     <span class="pending-file-name">{{ file.name }}</span>
                     <span class="pending-file-size">{{ formatSize(file.size) }}</span>
+                    @if (isHeicPendingFile(file)) {
+                      <span class="pending-file-heic-hint">Image HEIC — sera traitée à l'upload</span>
+                    }
                     @if (!uploading()) {
                       <button mat-icon-button (click)="removePendingFile(file)" title="Retirer">
                         <mat-icon>close</mat-icon>
