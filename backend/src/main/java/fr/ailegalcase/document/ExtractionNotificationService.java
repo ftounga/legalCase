@@ -98,6 +98,9 @@ public class ExtractionNotificationService {
             case OCR_FAILED -> "Reconnaissance OCR impossible — réessayer ou envoyer un autre document";
             case OCR_UNSUPPORTED_SIZE -> "Document trop volumineux pour l'OCR (max 5 Mo / 11 pages)";
             case OCR_QUOTA_EXCEEDED -> "Quota OCR atteint — voir votre espace Abonnement pour acheter des pages supplémentaires";
+            case VIDEO_EXTRACTION_TIMEOUT -> "Analyse vidéo trop longue — vérifier la durée (max 60s) puis réessayer";
+            case VIDEO_EXTRACTION_FAILED -> "Vidéo illisible ou corrompue — vérifier le format MP4/MOV puis réessayer";
+            case VISION_API_ERROR -> "Service d'analyse visuelle indisponible — réessayer dans quelques minutes";
         };
     }
 }

@@ -485,6 +485,103 @@ class DocumentControllerIT {
                 .andExpect(status().isNotFound());
     }
 
+    // ── SF-231-01 : ingestion vidéo MP4 / MOV ────────────────────────────
+
+    // I-VIDEO-01 : upload MP4 valide avec header durée 12s → 201
+    @Test
+    void upload_videoMp4_withValidDurationHeader_returns201() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", "fake mp4 content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "12")
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.contentType").value("video/mp4"))
+                .andExpect(jsonPath("$.originalFilename").value("video.mp4"));
+    }
+
+    // I-VIDEO-02 : upload MOV valide → 201
+    @Test
+    void upload_videoQuicktime_withValidDurationHeader_returns201() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "clip.mov", "video/quicktime", "fake mov content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "30")
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.contentType").value("video/quicktime"));
+    }
+
+    // I-VIDEO-03 : upload MP4 sans header durée → 400
+    @Test
+    void upload_videoMp4_withoutDurationHeader_returns400() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", "fake mp4 content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-VIDEO-04 : upload MP4 avec durée > 60s → 400 VIDEO_TOO_LONG
+    @Test
+    void upload_videoMp4_durationExceedsLimit_returns400() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", "fake mp4 content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "90")
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-VIDEO-05 : upload MP4 > 100 Mo → 413 PAYLOAD_TOO_LARGE
+    @Test
+    void upload_videoMp4_oversize_returns413() throws Exception {
+        // Génère 101 Mo (~1 octet de plus que la limite)
+        byte[] hugePayload = new byte[101 * 1024 * 1024];
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "huge.mp4", "video/mp4", hugePayload);
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "30")
+                        .with(authentication(auth)))
+                .andExpect(status().isPayloadTooLarge());
+    }
+
+    // I-VIDEO-06 : isolation workspace — vidéo postée sur un dossier d'un autre WS → 404
+    @Test
+    void upload_videoMp4_otherWorkspace_returns404() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", "fake mp4 content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + otherCaseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "12")
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // I-VIDEO-07 : durée invalide (zéro) → 400
+    @Test
+    void upload_videoMp4_zeroDuration_returns400() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "video.mp4", "video/mp4", "fake".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "0")
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
         Map<String, Object> claims = Map.of(
                 "sub", sub, "email", email, "iss", "https://accounts.google.com");

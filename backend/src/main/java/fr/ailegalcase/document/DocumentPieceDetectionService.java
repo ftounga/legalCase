@@ -173,6 +173,16 @@ public class DocumentPieceDetectionService {
             return;
         }
 
+        // SF-231-01 : pour les vidéos, ExtractionService a déjà créé une DocumentPiece
+        // PHOTO avec visualDescription — on ne doit PAS la supprimer ni laisser Sonnet
+        // détecter de nouvelles pièces à partir de la description visuelle.
+        String contentType = extraction.getDocument().getContentType();
+        if (contentType != null && (contentType.equals("video/mp4") || contentType.equals("video/quicktime"))) {
+            log.debug("Extraction {} is a video — skipping piece detection (handled by ExtractionService)",
+                    extractionId);
+            return;
+        }
+
         UUID documentId = extraction.getDocument().getId();
 
         // SF-145-09 : résout le legalDomain du workspace pour filtrer les types

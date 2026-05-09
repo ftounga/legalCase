@@ -39,10 +39,20 @@ public class DocumentService {
             "image/jpeg",
             "image/png",
             "image/heic",
-            "image/webp"
+            "image/webp",
+            // SF-231-01 : ingestion vidéo MP4/MOV (taille / durée validées dans validateFile + upload).
+            "video/mp4",
+            "video/quicktime"
     );
 
-    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB
+    /** SF-231-01 : content types vidéo nécessitant la validation header X-Video-Duration-Seconds. */
+    private static final Set<String> VIDEO_CONTENT_TYPES = Set.of("video/mp4", "video/quicktime");
+
+    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB (PDF/DOC)
+    /** SF-231-01 : limite spécifique vidéo, plus haute que les documents (100 Mo / 60 s max). */
+    private static final long MAX_VIDEO_FILE_SIZE = 100L * 1024 * 1024;
+    /** SF-231-01 : durée maximale d'une vidéo (en secondes). Au-delà → 400 VIDEO_TOO_LONG. */
+    private static final long MAX_VIDEO_DURATION_SECONDS = 60L;
 
     private final DocumentRepository documentRepository;
     private final DocumentExtractionRepository extractionRepository;
@@ -53,6 +63,7 @@ public class DocumentService {
     private final ApplicationEventPublisher eventPublisher;
     private final PlanLimitService planLimitService;
     private final DocumentPieceRepository documentPieceRepository;
+    private final fr.ailegalcase.video.VideoQuotaService videoQuotaService;
 
     public DocumentService(DocumentRepository documentRepository,
                            DocumentExtractionRepository extractionRepository,
@@ -62,7 +73,8 @@ public class DocumentService {
                            StorageService storageService,
                            ApplicationEventPublisher eventPublisher,
                            PlanLimitService planLimitService,
-                           DocumentPieceRepository documentPieceRepository) {
+                           DocumentPieceRepository documentPieceRepository,
+                           fr.ailegalcase.video.VideoQuotaService videoQuotaService) {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
         this.caseFileRepository = caseFileRepository;
@@ -72,6 +84,7 @@ public class DocumentService {
         this.eventPublisher = eventPublisher;
         this.planLimitService = planLimitService;
         this.documentPieceRepository = documentPieceRepository;
+        this.videoQuotaService = videoQuotaService;
     }
 
     private static final int PRESIGNED_URL_EXPIRATION_MINUTES = 15;
@@ -132,21 +145,35 @@ public class DocumentService {
     /** Surcharge rétrocompat — garde les callers existants (tests, autres services) qui ne passent pas le flag. */
     @Transactional
     public DocumentResponse upload(UUID caseFileId, MultipartFile file, OidcUser oidcUser, String provider, Principal principal) {
-        return upload(caseFileId, file, false, true, oidcUser, provider, principal);
+        return upload(caseFileId, file, false, true, null, oidcUser, provider, principal);
     }
 
     /** Surcharge rétrocompat SF-122-03 : ocrEnabled défaut true. */
     @Transactional
     public DocumentResponse upload(UUID caseFileId, MultipartFile file, boolean ocrFormsMode,
                                     OidcUser oidcUser, String provider, Principal principal) {
-        return upload(caseFileId, file, ocrFormsMode, true, oidcUser, provider, principal);
+        return upload(caseFileId, file, ocrFormsMode, true, null, oidcUser, provider, principal);
     }
 
+    /** Surcharge rétrocompat SF-122-07 : pas de durée vidéo. */
     @Transactional
     public DocumentResponse upload(UUID caseFileId, MultipartFile file, boolean ocrFormsMode,
                                     boolean ocrEnabled,
                                     OidcUser oidcUser, String provider, Principal principal) {
-        validateFile(file);
+        return upload(caseFileId, file, ocrFormsMode, ocrEnabled, null, oidcUser, provider, principal);
+    }
+
+    /**
+     * SF-231-01 : variante incluant {@code videoDurationSeconds} (header
+     * {@code X-Video-Duration-Seconds}). Obligatoire pour les contentTypes vidéo,
+     * ignoré sinon. La validation rejette les vidéos > 60 s ou > 100 Mo.
+     */
+    @Transactional
+    public DocumentResponse upload(UUID caseFileId, MultipartFile file, boolean ocrFormsMode,
+                                    boolean ocrEnabled,
+                                    Long videoDurationSeconds,
+                                    OidcUser oidcUser, String provider, Principal principal) {
+        validateFile(file, videoDurationSeconds);
 
         User user = resolveUser(oidcUser, provider, principal);
         Workspace workspace = resolveWorkspace(user);
@@ -157,6 +184,12 @@ public class DocumentService {
         if (docCount >= maxDocs) {
             throw new PaymentRequiredException(PaymentRequiredCode.DOCUMENT_LIMIT_EXCEEDED,
                     "Limite de documents atteinte pour votre plan.");
+        }
+
+        // SF-231-01 : hook quota vidéo (no-op tant que SF-231-03 n'est pas livrée).
+        if (isVideoContentType(file.getContentType())) {
+            videoQuotaService.checkVideoQuotaForUpload(workspace.getId(),
+                    videoDurationSeconds == null ? 0L : videoDurationSeconds);
         }
 
         String storageKey = buildStorageKey(workspace.getId(), caseFileId, file.getOriginalFilename());
@@ -183,18 +216,45 @@ public class DocumentService {
         return toResponse(document);
     }
 
-    private void validateFile(MultipartFile file) {
+    private void validateFile(MultipartFile file, Long videoDurationSeconds) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is required");
-        }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File exceeds maximum size of 50 MB");
         }
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Unsupported file type. Allowed: PDF, DOC, DOCX, TXT, JPG, PNG, HEIC, WebP");
+                    "Unsupported file type. Allowed: PDF, DOC, DOCX, TXT, JPG, PNG, HEIC, WebP, MP4, MOV");
         }
+
+        // SF-231-01 : vidéos ont leur propre limite de taille (100 Mo) et exigent
+        // le header X-Video-Duration-Seconds.
+        if (isVideoContentType(contentType)) {
+            if (file.getSize() > MAX_VIDEO_FILE_SIZE) {
+                throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
+                        "Video exceeds maximum size of 100 MB");
+            }
+            if (videoDurationSeconds == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Header X-Video-Duration-Seconds is required for video uploads");
+            }
+            if (videoDurationSeconds <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Invalid X-Video-Duration-Seconds value");
+            }
+            if (videoDurationSeconds > MAX_VIDEO_DURATION_SECONDS) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "VIDEO_TOO_LONG: video exceeds maximum duration of "
+                                + MAX_VIDEO_DURATION_SECONDS + " seconds");
+            }
+        } else {
+            if (file.getSize() > MAX_FILE_SIZE) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File exceeds maximum size of 50 MB");
+            }
+        }
+    }
+
+    private static boolean isVideoContentType(String contentType) {
+        return contentType != null && VIDEO_CONTENT_TYPES.contains(contentType);
     }
 
     private User resolveUser(OidcUser oidcUser, String provider, Principal principal) {

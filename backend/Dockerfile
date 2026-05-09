@@ -17,6 +17,11 @@ RUN ./mvnw clean package -DskipTests -q
 FROM eclipse-temurin:21-jre-alpine AS run
 WORKDIR /app
 
+# SF-231-01 : ffmpeg requis pour l'extraction de frames vidéo (VideoFrameExtractor).
+# Image Alpine → installé via apk. Taille ajoutée : ~50 Mo.
+# Le binaire est sur /usr/bin/ffmpeg (cf. app.video.ffmpeg-path par défaut).
+RUN apk add --no-cache ffmpeg
+
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
