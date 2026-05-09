@@ -284,4 +284,128 @@ describe('ReferentialEditDialogComponent — formulaires typés', () => {
     c.jalons.at(0).get('offsetDays')?.setValue(2000);
     expect(c.jalons.at(0).get('offsetDays')?.hasError('max')).toBe(true);
   });
+
+  // ----- SF-225-01 : 5 types orphelins -----
+
+  // EDT-15 : CONVENTION_PREAVIS
+  it('EDT-15 : CONVENTION_PREAVIS → champs article + matrice JSON, sérialise correctement', () => {
+    const initial = '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":1}]},"article":"CCN Banque art. 27"}';
+    const c = createComponent('CONVENTION_PREAVIS', initial);
+    expect(c.form.get('preavisArticle')?.value).toBe('CCN Banque art. 27');
+    const fonctionsRaw = c.form.get('preavisFonctions')?.value as string;
+    expect(fonctionsRaw).toContain('OUVRIER');
+    c.form.get('preavisArticle')?.setValue('CCN Banque art. 28');
+    c.submit();
+    const result = mockDialogRef.close.calls.mostRecent().args[0];
+    const parsed = JSON.parse(result.valueJson);
+    expect(parsed.article).toBe('CCN Banque art. 28');
+    expect(parsed.fonctions.OUVRIER).toBeDefined();
+    expect(parsed.fonctions.OUVRIER[0].mois).toBe(1);
+  });
+
+  it('EDT-15 bis : CONVENTION_PREAVIS → matrice JSON invalide → form invalide', () => {
+    const c = createComponent('CONVENTION_PREAVIS', '{"fonctions":{},"article":"X"}');
+    c.form.get('preavisFonctions')?.setValue('not-json{');
+    expect(c.form.get('preavisFonctions')?.hasError('invalidJson')).toBe(true);
+    expect(c.form.invalid).toBe(true);
+  });
+
+  // EDT-16 : TRAVAIL_PROCEDURE_JALONS
+  it('EDT-16 : TRAVAIL_PROCEDURE_JALONS → FormArray procedureJalons (label, offsetDays, articleRef)', () => {
+    const j = '[{"label":"BCO","offsetDays":45,"articleRef":"R.1452-3"},{"label":"Jugement","offsetDays":270,"articleRef":"R.1454-25"}]';
+    const c = createComponent('TRAVAIL_PROCEDURE_JALONS', j);
+    expect(c.procedureJalons.length).toBe(2);
+    expect(c.procedureJalons.at(0).get('label')?.value).toBe('BCO');
+    expect(c.procedureJalons.at(0).get('articleRef')?.value).toBe('R.1452-3');
+    c.addProcedureJalon();
+    c.procedureJalons.at(2).get('label')?.setValue('Notification');
+    c.procedureJalons.at(2).get('offsetDays')?.setValue(330);
+    c.procedureJalons.at(2).get('articleRef')?.setValue('R.1454-26');
+    c.submit();
+    const result = mockDialogRef.close.calls.mostRecent().args[0];
+    const parsed = JSON.parse(result.valueJson);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBe(3);
+    expect(parsed[2]).toEqual({ label: 'Notification', offsetDays: 330, articleRef: 'R.1454-26' });
+  });
+
+  it('EDT-16 bis : TRAVAIL_PROCEDURE_JALONS → articleRef vide est omis du payload', () => {
+    const c = createComponent('TRAVAIL_PROCEDURE_JALONS', '[{"label":"X","offsetDays":1,"articleRef":""}]');
+    c.submit();
+    const result = mockDialogRef.close.calls.mostRecent().args[0];
+    const parsed = JSON.parse(result.valueJson);
+    expect(parsed[0]).toEqual({ label: 'X', offsetDays: 1 });
+    expect('articleRef' in parsed[0]).toBe(false);
+  });
+
+  it('EDT-16 ter : TRAVAIL_PROCEDURE_JALONS → schéma non-tableau → fallback JSON', () => {
+    const c = createComponent('TRAVAIL_PROCEDURE_JALONS', '{"not":"array"}');
+    expect(c.form.get('valueJson')).not.toBeNull();
+    expect(c.form.get('procedureJalons')).toBeNull();
+  });
+
+  // EDT-17 : FAMILLE_PROCEDURE_JALONS (même builder)
+  it('EDT-17 : FAMILLE_PROCEDURE_JALONS → FormArray procedureJalons fonctionne', () => {
+    const j = '[{"label":"Dépôt","offsetDays":0,"articleRef":"CJ Art. 572bis"}]';
+    const c = createComponent('FAMILLE_PROCEDURE_JALONS', j);
+    expect(c.procedureJalons.length).toBe(1);
+    expect(c.procedureJalons.at(0).get('label')?.value).toBe('Dépôt');
+    c.submit();
+    const result = mockDialogRef.close.calls.mostRecent().args[0];
+    const parsed = JSON.parse(result.valueJson);
+    expect(parsed[0].label).toBe('Dépôt');
+    expect(parsed[0].articleRef).toBe('CJ Art. 572bis');
+  });
+
+  // EDT-18 : MAJEURS_PROTEGES_REGIMES
+  it('EDT-18 : MAJEURS_PROTEGES_REGIMES → 5 champs typés, sérialise correctement', () => {
+    const m = '{"articles":["Cciv 425","Cciv 440"],"delaiProcedureMois":8,"delaiInitialAnsMax":5,"renouvelable":true,"criteresEligibilite":["A","B"]}';
+    const c = createComponent('MAJEURS_PROTEGES_REGIMES', m);
+    expect(c.form.get('mpDelaiProcedure')?.value).toBe(8);
+    expect(c.form.get('mpDureeInitiale')?.value).toBe(5);
+    expect(c.form.get('mpRenouvelable')?.value).toBe(true);
+    expect(c.form.get('mpArticles')?.value).toContain('Cciv 425');
+    expect(c.form.get('mpCriteres')?.value).toContain('A');
+    c.form.get('mpDelaiProcedure')?.setValue(10);
+    c.form.get('mpRenouvelable')?.setValue(false);
+    c.form.get('mpCriteres')?.setValue('A\nB\nC\n');
+    c.submit();
+    const result = mockDialogRef.close.calls.mostRecent().args[0];
+    const parsed = JSON.parse(result.valueJson);
+    expect(parsed.delaiProcedureMois).toBe(10);
+    expect(parsed.delaiInitialAnsMax).toBe(5);
+    expect(parsed.renouvelable).toBe(false);
+    expect(parsed.articles).toEqual(['Cciv 425', 'Cciv 440']);
+    expect(parsed.criteresEligibilite).toEqual(['A', 'B', 'C']);
+  });
+
+  it('EDT-18 bis : MAJEURS_PROTEGES_REGIMES → délai procédure invalide si > 60', () => {
+    const c = createComponent('MAJEURS_PROTEGES_REGIMES', '{"articles":["X"],"delaiProcedureMois":8,"delaiInitialAnsMax":5,"renouvelable":true,"criteresEligibilite":["X"]}');
+    c.form.get('mpDelaiProcedure')?.setValue(120);
+    expect(c.form.get('mpDelaiProcedure')?.hasError('max')).toBe(true);
+    expect(c.form.invalid).toBe(true);
+  });
+
+  // EDT-19 : IM21_VALIDITY_CRITERES
+  it('EDT-19 : IM21_VALIDITY_CRITERES → toggle binaire + description, sérialise correctement', () => {
+    const i = '{"binaire":true,"description":"Le demandeur est-il en situation régulière ?"}';
+    const c = createComponent('IM21_VALIDITY_CRITERES', i);
+    expect(c.form.get('im21Binaire')?.value).toBe(true);
+    expect(c.form.get('im21Description')?.value).toBe('Le demandeur est-il en situation régulière ?');
+    c.form.get('im21Binaire')?.setValue(false);
+    c.form.get('im21Description')?.setValue('Critère reformulé');
+    c.submit();
+    const result = mockDialogRef.close.calls.mostRecent().args[0];
+    expect(JSON.parse(result.valueJson)).toEqual({
+      binaire: false,
+      description: 'Critère reformulé',
+    });
+  });
+
+  it('EDT-19 bis : IM21_VALIDITY_CRITERES → description vide → form invalide', () => {
+    const c = createComponent('IM21_VALIDITY_CRITERES', '{"binaire":true,"description":"X"}');
+    c.form.get('im21Description')?.setValue('');
+    expect(c.form.get('im21Description')?.hasError('required')).toBe(true);
+    expect(c.form.invalid).toBe(true);
+  });
 });

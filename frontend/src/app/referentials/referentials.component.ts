@@ -67,6 +67,12 @@ const SECTION_LABELS: Record<string, string> = {
   GARDE_MODES:            'Modes de garde',
   DIVORCE_ETAPES:         'Étapes divorce',
   DIVORCE_PIECES:         'Pièces divorce',
+  // SF-225-01 : 5 types orphelins UX
+  CONVENTION_PREAVIS:           'Convention collective — Préavis',
+  TRAVAIL_PROCEDURE_JALONS:     'Droit du travail — Jalons procéduraux',
+  FAMILLE_PROCEDURE_JALONS:     'Droit de la famille — Jalons procéduraux',
+  MAJEURS_PROTEGES_REGIMES:     'Majeurs protégés — Régimes',
+  IM21_VALIDITY_CRITERES:       'Immigration — Critères de validité (F-IM-21)',
 };
 
 @Component({
@@ -312,6 +318,25 @@ export class ReferentialsComponent implements OnInit {
           const article = val.article ? `Référence : ${val.article}.` : '';
           return (years + article).trim() || undefined;
         }
+        // ----- SF-225-01 : fallback structuré pour les 5 types orphelins -----
+        case 'CONVENTION_PREAVIS': {
+          const article = val.article ? `Référence : ${val.article}.` : '';
+          const fonctions = val?.fonctions && typeof val.fonctions === 'object'
+            ? `Catégories couvertes : ${Object.keys(val.fonctions).join(', ')}. ` : '';
+          return (fonctions + article).trim() || undefined;
+        }
+        case 'TRAVAIL_PROCEDURE_JALONS':
+        case 'FAMILLE_PROCEDURE_JALONS': {
+          if (!Array.isArray(val)) return undefined;
+          return `Calendrier procédural — ${val.length} jalon${val.length > 1 ? 's' : ''}.`;
+        }
+        case 'MAJEURS_PROTEGES_REGIMES': {
+          const delai = val.delaiProcedureMois != null ? `Délai procédure : ${val.delaiProcedureMois} mois. ` : '';
+          const dureeMax = val.delaiInitialAnsMax != null ? `Durée initiale max : ${val.delaiInitialAnsMax} ans. ` : '';
+          return (delai + dureeMax).trim() || undefined;
+        }
+        case 'IM21_VALIDITY_CRITERES':
+          return val.description;
         default:
           return undefined;
       }
@@ -498,6 +523,36 @@ export class ReferentialsComponent implements OnInit {
           const desc = val.description ?? '—';
           return `${prefix}${desc}`;
         }
+        // ----- SF-225-01 : 5 types orphelins -----
+        case 'CONVENTION_PREAVIS': {
+          const fonctions = val?.fonctions && typeof val.fonctions === 'object' ? Object.keys(val.fonctions) : [];
+          const article = val?.article ?? '—';
+          if (fonctions.length === 0) return `Préavis CCN · ${article}`;
+          return `Préavis CCN — ${fonctions.length} catégorie${fonctions.length > 1 ? 's' : ''} (${fonctions.join(', ')}) · ${article}`;
+        }
+        case 'TRAVAIL_PROCEDURE_JALONS':
+        case 'FAMILLE_PROCEDURE_JALONS': {
+          if (!Array.isArray(val)) return '—';
+          return (val as { label: string; offsetDays: number; articleRef?: string }[])
+            .map(j => {
+              const ref = j.articleRef ? ` [${j.articleRef}]` : '';
+              return `${j.label} (J+${j.offsetDays})${ref}`;
+            })
+            .join('\n');
+        }
+        case 'MAJEURS_PROTEGES_REGIMES': {
+          const articles = Array.isArray(val?.articles) ? val.articles.length : 0;
+          const delai = val?.delaiProcedureMois != null ? `${val.delaiProcedureMois} mois` : '—';
+          const dureeMax = val?.delaiInitialAnsMax != null ? `${val.delaiInitialAnsMax} ans` : '—';
+          const renouv = val?.renouvelable ? 'renouvelable' : 'non renouvelable';
+          const nbCriteres = Array.isArray(val?.criteresEligibilite) ? val.criteresEligibilite.length : 0;
+          return `Délai procédure : ${delai} · Durée initiale max : ${dureeMax} (${renouv}) · ${articles} article${articles > 1 ? 's' : ''} · ${nbCriteres} critère${nbCriteres > 1 ? 's' : ''} d'éligibilité`;
+        }
+        case 'IM21_VALIDITY_CRITERES': {
+          const binaire = val?.binaire ? 'Critère binaire (Oui/Non)' : 'Critère non binaire';
+          const desc = val?.description ?? '—';
+          return `${binaire} — ${desc}`;
+        }
         default:
           return JSON.stringify(val, null, 2);
       }
@@ -524,6 +579,12 @@ export class ReferentialsComponent implements OnInit {
       case 'GARDE_MODES':             return 'child_care';
       case 'DIVORCE_ETAPES':          return 'list_alt';
       case 'DIVORCE_PIECES':          return 'description';
+      // ----- SF-225-01 : 5 types orphelins -----
+      case 'CONVENTION_PREAVIS':           return 'description';
+      case 'TRAVAIL_PROCEDURE_JALONS':     return 'event_note';
+      case 'FAMILLE_PROCEDURE_JALONS':     return 'event_note';
+      case 'MAJEURS_PROTEGES_REGIMES':     return 'accessibility';
+      case 'IM21_VALIDITY_CRITERES':       return 'verified';
       default:                        return 'info';
     }
   }
