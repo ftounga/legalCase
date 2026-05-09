@@ -1126,7 +1126,7 @@ class CaseFileDashboardServiceTest {
         UUID caseFileId = UUID.randomUUID();
 
         DashboardTile tile = service.assembleTiles(caseFileId).stream()
-                .filter(t -> "F-IM-08-oqtf-avec-delai".equals(t.toolId()))
+                .filter(t -> "F-IM-08-oqtf-avec-delai-fr".equals(t.toolId()))
                 .findFirst().orElseThrow();
         assertThat(tile.theme()).isEqualTo("DELAIS");
         assertThat(tile.label()).isEqualTo("OQTF avec délai");

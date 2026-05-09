@@ -6,9 +6,10 @@ import { BadgeNavigationService } from './badge-navigation.service';
 import { SynthesisShortBlockDialogComponent } from '../synthesis-short-block-dialog/synthesis-short-block-dialog.component';
 
 /**
- * F-229 SF-229-01 — couvre la résolution {@link BadgeKey} → destination pour
- * les 7 clés exposées (CA-05). Mocke {@link Router} et {@link MatDialog} ;
- * les composants destination ne sont pas instanciés.
+ * F-229 SF-229-01 / SF-229-03 — couvre la résolution {@link BadgeKey} →
+ * destination pour les 8 clés exposées (CA-05 + CA-11 SF-229-03). Mocke
+ * {@link Router} et {@link MatDialog} ; les composants destination ne sont
+ * pas instanciés.
  */
 describe('BadgeNavigationService', () => {
   let service: BadgeNavigationService;
@@ -103,5 +104,16 @@ describe('BadgeNavigationService', () => {
     expect(router.navigate).toHaveBeenCalledWith(
       ['/case-files', CASE_FILE_ID, 'synthesis', 'points-juridiques'],
     );
+  });
+
+  // F-229 SF-229-03 (2026-05-09) — clé `checklist` ajoutée pour la tile résumé
+  // F-193-procedure-checks-summary (procedure checks F-96 matérialisés).
+  it('CA-11 (SF-229-03) T-08: go("checklist") → router.navigate vers /synthesis avec fragment section-checklist', () => {
+    service.go('checklist', CASE_FILE_ID);
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/case-files', CASE_FILE_ID, 'synthesis'],
+      { fragment: 'section-checklist' },
+    );
+    expect(dialog.open).not.toHaveBeenCalled();
   });
 });

@@ -2339,7 +2339,7 @@ public class CaseFileDashboardService {
                 String primary = r.statutDelaiRecours() != null ? r.statutDelaiRecours() : "—";
                 String secondary = r.joursRestantsAvantExpirationDelai() + " j restants";
                 return new DashboardTile(
-                        "F-IM-08-oqtf-avec-delai",
+                        "F-IM-08-oqtf-avec-delai-fr",
                         "DELAIS",
                         "OQTF avec délai",
                         primary,
@@ -2363,7 +2363,7 @@ public class CaseFileDashboardService {
                 String primary = r.statutDelaiRecours() != null ? r.statutDelaiRecours() : "—";
                 String secondary = r.heuresRestantes() + " h restantes (recours 48h)";
                 return new DashboardTile(
-                        "F-IM-08-oqtf-sans-delai",
+                        "F-IM-08-oqtf-sans-delai-fr",
                         "DELAIS",
                         "OQTF sans délai",
                         primary,
@@ -2383,7 +2383,7 @@ public class CaseFileDashboardService {
                 String secondary = "Suspension : " + r.scoreSuccessProbabiliteSuspension()
                         + "/100 — Liberté : " + r.scoreSuccessProbabiliteLiberte() + "/100";
                 return new DashboardTile(
-                        "F-IM-08-referes-admin",
+                        "F-IM-08-referes-admin-fr",
                         "DELAIS",
                         "Référés admin",
                         primary,
@@ -2560,7 +2560,7 @@ public class CaseFileDashboardService {
                 String secondary = (dispositif != null ? dispositif + " — " : "")
                         + r.ageAnnees() + " ans";
                 return new DashboardTile(
-                        "F-IM-19-mineurs-immigration",
+                        "F-IM-19-mineurs",
                         "DIAGNOSTIC",
                         "Mineurs étrangers",
                         primary,

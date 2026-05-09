@@ -9,12 +9,21 @@ import {
 /**
  * F-229 SF-229-01 — clés de navigation supportées par le service.
  *
- * <p>Sept clés initiales correspondant aux blocs canoniques de la grille de
- * badges F-162 qui possèdent une cible déterministe (page dédiée, popup ou
- * scroll vers une ancre dans la page synthèse). Les clés `type-litige` (F-197,
- * dialog override sur synthesis uniquement) et `checklist` (anchor uniquement,
- * pas de tile dashboard équivalente) ne sont volontairement pas exposées —
- * elles restent gérées localement par {@link SynthesisComponent}.</p>
+ * <p>Huit clés correspondant aux blocs canoniques de la grille de badges
+ * F-162 qui possèdent une cible déterministe (page dédiée, popup ou scroll
+ * vers une ancre dans la page synthèse) :
+ * `pistes`, `pieces`, `risques`, `questions`, `timeline`, `faits`,
+ * `points-juridiques`, `checklist`.</p>
+ *
+ * <p>F-229 SF-229-03 (2026-05-09) — la clé `checklist` est désormais exposée
+ * pour la tile résumé `F-193-procedure-checks-summary` (procedure checks F-96
+ * matérialisés). Le commentaire d'origine indiquait qu'il n'y avait pas de
+ * tile équivalente — F-193 SF-193-01 a précisément ajouté cette tile, donc
+ * il faut une cible canonique partagée avec le badge F-162 `checklist`.</p>
+ *
+ * <p>La clé `type-litige` (F-197, dialog override sur synthesis uniquement)
+ * reste volontairement non exposée — elle est gérée localement par
+ * {@link SynthesisComponent}.</p>
  */
 export type BadgeKey =
   | 'pistes'
@@ -23,7 +32,8 @@ export type BadgeKey =
   | 'questions'
   | 'timeline'
   | 'faits'
-  | 'points-juridiques';
+  | 'points-juridiques'
+  | 'checklist';
 
 /**
  * F-229 SF-229-01 — données contextuelles fournies par l'appelant pour les
@@ -52,9 +62,10 @@ export interface BadgeContextData {
  *
  * <p>Consommateurs initiaux :
  * <ol>
- *   <li>{@link CaseDashboardComponent#openGenericTool} — pour les 4 tiles
- *   "résumé" (`RETAINED_PISTES_SUMMARY`, `F-194-pieces-summary`,
- *   `F-195-risques-summary`, `F-196-questions-summary`).</li>
+ *   <li>{@link CaseDashboardComponent#openGenericTool} — pour les 5 tiles
+ *   "résumé" (`F-192-retained-pistes-summary`, `F-193-procedure-checks-summary`,
+ *   `F-194-pieces-summary`, `F-195-risques-summary`,
+ *   `F-196-questions-summary`).</li>
  *   <li>{@link SynthesisComponent} — pour les badges de la grille F-162 qui
  *   correspondent aux clés exposées (les badges restent visuellement
  *   identiques, seul le handler de clic passe par le service).</li>
@@ -107,6 +118,14 @@ export class BadgeNavigationService {
         return;
       case 'points-juridiques':
         this.router.navigate(['/case-files', caseFileId, 'synthesis', 'points-juridiques']);
+        return;
+      case 'checklist':
+        // F-229 SF-229-03 — anchor cohérent avec badge F-162 `checklist`
+        // (cf. `synthesis.component.ts:362` anchor `section-checklist`).
+        this.router.navigate(
+          ['/case-files', caseFileId, 'synthesis'],
+          { fragment: 'section-checklist' },
+        );
         return;
     }
   }

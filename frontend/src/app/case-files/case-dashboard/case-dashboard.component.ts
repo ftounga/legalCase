@@ -247,13 +247,14 @@ export class CaseDashboardComponent implements OnInit {
    * toolId est inconnu : no-op + console.warn (cohérent avec resolveEntry).
    */
   openGenericTool(toolId: string): void {
-    // F-229 SF-229-01 — les 4 tiles "résumé" du dashboard décisionnel sont
+    // F-229 SF-229-01 — les 5 tiles "résumé" du dashboard décisionnel sont
     // désormais alignées sur les cibles canoniques de la grille de badges
     // F-162 via {@link BadgeNavigationService}. Mismatches corrigés :
-    //   - F-192-retained-pistes-summary → anchor `section-pistes` (scroll inline)
-    //   - F-194-pieces-summary          → popup `SynthesisShortBlockDialogComponent`
-    //   - F-195-risques-summary         → sous-page `/synthesis/risques`
-    //   - F-196-questions-summary       → anchor `section-questions` (scroll inline)
+    //   - F-192-retained-pistes-summary  → anchor `section-pistes` (scroll inline)
+    //   - F-193-procedure-checks-summary → anchor `section-checklist` (scroll inline)
+    //   - F-194-pieces-summary           → popup `SynthesisShortBlockDialogComponent`
+    //   - F-195-risques-summary          → sous-page `/synthesis/risques`
+    //   - F-196-questions-summary        → anchor `section-questions` (scroll inline)
     // Audit visuel CA-09 : clic d'une tile résumé doit ouvrir EXACTEMENT
     // la même chose que le badge F-162 équivalent.
     // F-229 SF-229-02 (2026-05-09) — alignement avec le toolId backend
@@ -261,8 +262,18 @@ export class CaseDashboardComponent implements OnInit {
     // L'ancien check `'RETAINED_PISTES_SUMMARY'` (UPPERCASE snake) ne matchait
     // pas, le clic était silencieux (console.warn + return). Bug staging
     // Immigration Chen 17 du 2026-05-09.
+    // F-229 SF-229-03 (2026-05-09) — handler F-193-procedure-checks-summary
+    // ajouté (orphelin sinon → console.warn + return). Symétrie avec les 4
+    // autres tiles résumé.
     if (toolId === 'F-192-retained-pistes-summary') {
       this.badgeNavigation.go('pistes', this.caseFileId);
+      return;
+    }
+    // F-229 SF-229-03 — tile résumé F-193 SF-193-01 procedure checks F-96
+    // matérialisés. Renvoie vers anchor `section-checklist` (cohérent badge
+    // F-162 `checklist`).
+    if (toolId === 'F-193-procedure-checks-summary') {
+      this.badgeNavigation.go('checklist', this.caseFileId);
       return;
     }
     if (toolId === 'F-194-pieces-summary') {
