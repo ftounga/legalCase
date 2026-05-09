@@ -36,8 +36,87 @@
     </div>
   </div>
 
-  <mat-dialog-content class="preview-content" [class.preview-content--with-sidebar]="hasPieces() && !isVideo()">
-    @if (isVideo()) {
+  <mat-dialog-content class="preview-content" [class.preview-content--with-sidebar]="hasPieces() && !isVideo() && !isImage()">
+    @if (isImage()) {
+      <!-- SF-232-01 : aperçu image (JPG / PNG / HEIC / WebP). -->
+      <div class="preview-main image-main">
+        <div class="image-preview-wrapper" data-testid="image-preview-wrapper">
+          @if (imageLoadFailed()) {
+            <div class="image-preview-placeholder" data-testid="image-preview-placeholder">
+              <mat-icon>broken_image</mat-icon>
+              <div class="image-preview-placeholder-title">Aperçu indisponible</div>
+              <div class="image-preview-placeholder-body">
+                Le navigateur n'a pas pu charger cette image. Le pipeline d'extraction (OCR + Legal Vision) reste appliqué — le texte et la description visuelle apparaissent ci-dessous.
+              </div>
+            </div>
+          } @else {
+            <a [href]="imageUrl()" target="_blank" rel="noopener" aria-label="Ouvrir l'image en plein format">
+              <img class="image-preview"
+                   data-testid="image-preview"
+                   [src]="imageUrl()"
+                   [alt]="p.fileName"
+                   (error)="onImageError()">
+            </a>
+          }
+        </div>
+
+        @if (selectedPiece()?.visionStatus === 'PENDING' && !selectedPiece()?.visualDescription) {
+          <div class="vision-panel vision-panel--pending">
+            <div class="vision-panel-header">
+              <mat-spinner diameter="14"></mat-spinner>
+              <span class="vision-panel-title">Analyse visuelle en cours…</span>
+            </div>
+            <div class="vision-panel-body">
+              LegalCase Vision inspecte cette pièce pour compléter le texte OCR. Rouvrez cette fenêtre dans quelques instants pour voir la description.
+            </div>
+          </div>
+        } @else if (selectedPiece()?.visualDescription) {
+          <div class="vision-panel">
+            <div class="vision-panel-header">
+              <mat-icon class="vision-panel-icon">visibility</mat-icon>
+              <span class="vision-panel-title">Description visuelle (LegalCase Vision)</span>
+            </div>
+            <div class="vision-panel-body">{{ selectedPiece()!.visualDescription }}</div>
+          </div>
+        }
+
+        @if (p.extractionStatus === 'FAILED') {
+          <div class="alert alert-error">
+            <mat-icon>error</mat-icon>
+            <div>
+              <div class="alert-title">Extraction échouée</div>
+              <div class="alert-body">
+                Cette image ne sera pas prise en compte par l'IA.
+                @if (p.failureReason) { Motif : {{ p.failureReason }}. }
+              </div>
+            </div>
+          </div>
+        } @else if (p.extractionStatus !== 'DONE') {
+          <div class="alert alert-info">
+            <mat-icon>hourglass_empty</mat-icon>
+            <div class="alert-body">Extraction en cours — revenez dans quelques instants.</div>
+          </div>
+        } @else if (isTextEmpty()) {
+          <div class="alert alert-info">
+            <mat-icon>info</mat-icon>
+            <div>
+              <div class="alert-title">Aucun texte OCR détecté</div>
+              <div class="alert-body">
+                Image pure sans texte lisible. Consultez la description <strong>LegalCase Vision</strong> ci-dessus pour la qualification automatique de la scène.
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="extracted-text-wrapper">
+            <div class="extracted-text-header">
+              <span class="preview-badge" [class]="badgeClass()">{{ badgeLabel() }}</span>
+              <span class="preview-stat">{{ p.charCount | number }} caractères extraits</span>
+            </div>
+            <pre class="extracted-text">{{ p.extractedText }}</pre>
+          </div>
+        }
+      </div>
+    } @else if (isVideo()) {
       <!-- SF-231-02 : aperçu vidéo (player HTML5 + thumbnail strip + Legal Vision). -->
       <div class="preview-main video-main">
         @if (videoVisualDescription()) {
