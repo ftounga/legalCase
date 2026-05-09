@@ -19,8 +19,10 @@ spring:
             scope: openid, email, profile
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 55MB
+      # SF-231-01 : élargi à 100 Mo pour autoriser les uploads vidéo MP4/MOV
+      # (rejet > 100 Mo géré dans DocumentService.validateFile avec 413).
+      max-file-size: 100MB
+      max-request-size: 105MB
   mail:
     host: ${MAIL_HOST:}
     port: ${MAIL_PORT:587}
@@ -138,6 +140,16 @@ app:
         - JUGEMENT_DIVORCE
         - LIVRET_FAMILLE
         - JUSTIFICATIF_REVENUS
+
+  # SF-231-01 : extraction de frames vidéo via ffmpeg + Vision multi-frames.
+  # ffmpeg installé dans l'image Docker backend (cf. Dockerfile : apk add ffmpeg).
+  # Limites alignées sur DocumentService.MAX_VIDEO_* (rejet upload > 60 s ou > 100 Mo).
+  video:
+    max-duration-seconds: 60
+    max-size-mb: 100
+    frame-count: 5
+    ffmpeg-path: ${FFMPEG_PATH:/usr/bin/ffmpeg}
+    ffmpeg-timeout-seconds: 30
 
   stripe:
     enabled: false

@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -40,11 +41,18 @@ class ExtractionServiceTest {
 
     @Mock private DocumentRepository documentRepository;
     @Mock private DocumentExtractionRepository extractionRepository;
+    @Mock private DocumentPieceRepository documentPieceRepository;
     @Mock private StorageService storageService;
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private OcrService ocrService;
     @Mock private WorkspaceRepository workspaceRepository;
     @Mock private OcrRunningFlagService ocrRunningFlagService;
+    @Mock private fr.ailegalcase.video.VideoFrameExtractor videoFrameExtractor;
+    @Mock private fr.ailegalcase.analysis.AnthropicService anthropicService;
+    private fr.ailegalcase.video.VideoFrameExtractorProperties videoProps =
+            new fr.ailegalcase.video.VideoFrameExtractorProperties();
+    private fr.ailegalcase.document.vision.VisionProperties visionProps =
+            new fr.ailegalcase.document.vision.VisionProperties();
 
     private ExtractionService service;
 
@@ -53,9 +61,9 @@ class ExtractionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ExtractionService(documentRepository, extractionRepository,
+        service = new ExtractionService(documentRepository, extractionRepository, documentPieceRepository,
                 storageService, eventPublisher, ocrService, workspaceRepository,
-                ocrRunningFlagService);
+                ocrRunningFlagService, videoFrameExtractor, videoProps, anthropicService, visionProps);
         // SF-122-01 : par défaut, OCR indisponible — les tests existants SF-121-01
         // continuent de valider le comportement "texte vide → FAILED EMPTY_TEXT" sur non-PDF
         // (pour PDF, le fallback OCR est testé séparément dans OcrServiceTest + I-ES-OCR-*).
@@ -495,5 +503,126 @@ class ExtractionServiceTest {
     private byte[] imageBytes() {
         return new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
                 0, 0x10, 0x4A, 0x46, 0x49, 0x46};
+    }
+
+    // ── SF-231-01 : ingestion vidéo MP4 / MOV ────────────────────────────
+
+    // U-EXT-VIDEO-01 : video/mp4 → délègue à VideoFrameExtractor + Vision, persiste DocumentPiece + extracted_text
+    @Test
+    void extract_videoMp4_callsFfmpegAndVision_persistsDescriptionAndPiece() throws IOException {
+        byte[] videoBytes = "fake mp4 bytes".getBytes();
+        when(storageService.download(STORAGE_KEY)).thenReturn(videoBytes);
+        java.util.List<byte[]> frames = java.util.List.of(
+                pngBytes(), pngBytes(), pngBytes(), pngBytes(), pngBytes());
+        when(videoFrameExtractor.extract5Frames(any())).thenReturn(frames);
+        fr.ailegalcase.analysis.AnthropicResult visionResult =
+                new fr.ailegalcase.analysis.AnthropicResult("Scène extérieure, parking de nuit, ...",
+                        "claude-haiku-4-5-20251001", 100, 200, "end_turn");
+        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), eq("image/png"),
+                anyString(), anyInt())).thenReturn(visionResult);
+
+        service.extract(DOC_ID, STORAGE_KEY, "video/mp4");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        assertThat(saved.getExtractedText()).contains("Scène extérieure");
+        verify(anthropicService).analyzeWithImages(anyString(), anyString(), eq(frames),
+                eq("image/png"), anyString(), eq(2000));
+        // Une DocumentPiece PHOTO doit être persistée avec visualDescription
+        ArgumentCaptor<DocumentPiece> pieceCaptor = ArgumentCaptor.forClass(DocumentPiece.class);
+        verify(documentPieceRepository).save(pieceCaptor.capture());
+        DocumentPiece piece = pieceCaptor.getValue();
+        assertThat(piece.getType()).isEqualTo(DocumentPieceType.PHOTO);
+        assertThat(piece.getVisualDescription()).contains("Scène extérieure");
+        assertThat(piece.getVisionStatus()).isEqualTo(VisionStatus.DONE);
+        assertThat(piece.getVisionModel()).isNotNull();
+        verify(eventPublisher).publishEvent(any(ExtractionDoneEvent.class));
+    }
+
+    // U-EXT-VIDEO-02 : video/quicktime → même comportement
+    @Test
+    void extract_videoQuicktime_callsFfmpegAndVision() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn("fake mov bytes".getBytes());
+        when(videoFrameExtractor.extract5Frames(any())).thenReturn(
+                java.util.List.of(pngBytes(), pngBytes(), pngBytes(), pngBytes(), pngBytes()));
+        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
+                .thenReturn(new fr.ailegalcase.analysis.AnthropicResult("description", "claude-haiku-4-5", 50, 80, "end_turn"));
+
+        service.extract(DOC_ID, STORAGE_KEY, "video/quicktime");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        verify(videoFrameExtractor).extract5Frames(any());
+    }
+
+    // U-EXT-VIDEO-03 : ffmpeg timeout → FAILED VIDEO_EXTRACTION_TIMEOUT
+    @Test
+    void extract_videoMp4_ffmpegTimeout_marksFailedTimeout() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn("fake mp4".getBytes());
+        when(videoFrameExtractor.extract5Frames(any())).thenThrow(
+                new fr.ailegalcase.video.VideoExtractionException(
+                        fr.ailegalcase.video.VideoExtractionException.Reason.VIDEO_EXTRACTION_TIMEOUT,
+                        "ffmpeg timeout"));
+
+        service.extract(DOC_ID, STORAGE_KEY, "video/mp4");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.VIDEO_EXTRACTION_TIMEOUT);
+        verify(eventPublisher, never()).publishEvent(any(ExtractionDoneEvent.class));
+    }
+
+    // U-EXT-VIDEO-04 : ffmpeg failed (vidéo corrompue) → FAILED VIDEO_EXTRACTION_FAILED
+    @Test
+    void extract_videoMp4_ffmpegFailed_marksFailed() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn("corrupt mp4".getBytes());
+        when(videoFrameExtractor.extract5Frames(any())).thenThrow(
+                new fr.ailegalcase.video.VideoExtractionException(
+                        fr.ailegalcase.video.VideoExtractionException.Reason.VIDEO_EXTRACTION_FAILED,
+                        "ffmpeg exit 1"));
+
+        service.extract(DOC_ID, STORAGE_KEY, "video/mp4");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.VIDEO_EXTRACTION_FAILED);
+    }
+
+    // U-EXT-VIDEO-05 : Vision API en erreur → FAILED VISION_API_ERROR
+    @Test
+    void extract_videoMp4_visionApiError_marksFailedVisionApiError() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn("fake mp4".getBytes());
+        when(videoFrameExtractor.extract5Frames(any())).thenReturn(
+                java.util.List.of(pngBytes(), pngBytes(), pngBytes(), pngBytes(), pngBytes()));
+        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
+                .thenThrow(new RuntimeException("Anthropic 503"));
+
+        service.extract(DOC_ID, STORAGE_KEY, "video/mp4");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.VISION_API_ERROR);
+    }
+
+    // U-EXT-VIDEO-06 : Vision retourne description vide → FAILED VIDEO_EXTRACTION_FAILED
+    @Test
+    void extract_videoMp4_visionEmptyResponse_marksFailed() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn("fake mp4".getBytes());
+        when(videoFrameExtractor.extract5Frames(any())).thenReturn(
+                java.util.List.of(pngBytes(), pngBytes(), pngBytes(), pngBytes(), pngBytes()));
+        when(anthropicService.analyzeWithImages(anyString(), anyString(), any(), anyString(), anyString(), anyInt()))
+                .thenReturn(new fr.ailegalcase.analysis.AnthropicResult("   ", "claude-haiku-4-5", 50, 5, "end_turn"));
+
+        service.extract(DOC_ID, STORAGE_KEY, "video/mp4");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.VIDEO_EXTRACTION_FAILED);
+    }
+
+    /** Faux PNG minimal (header magique). Suffisant pour les tests qui mockent AnthropicService. */
+    private byte[] pngBytes() {
+        return new byte[] { (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A,
+                0x00, 0x00, 0x00, 0x0D, 'I', 'H', 'D', 'R' };
     }
 }

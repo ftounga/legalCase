@@ -22,5 +22,11 @@ public enum ExtractionFailureReason {
     /** SF-122-01 : document trop volumineux pour l'API Textract sync (>5 Mo ou >11 pages). */
     OCR_UNSUPPORTED_SIZE,
     /** SF-122-02 : quota OCR mensuel ou hard cap journalier dépassé. */
-    OCR_QUOTA_EXCEEDED
+    OCR_QUOTA_EXCEEDED,
+    /** SF-231-01 : ffmpeg n'a pas terminé l'extraction de frames dans le délai. */
+    VIDEO_EXTRACTION_TIMEOUT,
+    /** SF-231-01 : ffmpeg a échoué (vidéo corrompue, format invalide, frame manquant). */
+    VIDEO_EXTRACTION_FAILED,
+    /** SF-231-01 : Vision API en erreur lors de l'analyse des frames vidéo. */
+    VISION_API_ERROR
 }

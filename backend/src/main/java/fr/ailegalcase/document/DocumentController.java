@@ -157,9 +157,12 @@ public class DocumentController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "ocrFormsMode", required = false, defaultValue = "false") boolean ocrFormsMode,
             @RequestParam(value = "ocrEnabled", required = false, defaultValue = "true") boolean ocrEnabled,
+            // SF-231-01 : durée vidéo en secondes (lue depuis videoElement.duration côté
+            // frontend). Obligatoire pour video/mp4 et video/quicktime, ignoré sinon.
+            @RequestHeader(value = "X-Video-Duration-Seconds", required = false) Long videoDurationSeconds,
             @AuthenticationPrincipal OidcUser oidcUser,
             Principal principal) {
-        return documentService.upload(caseFileId, file, ocrFormsMode, ocrEnabled, oidcUser,
-                OAuthProviderResolver.resolve(principal), principal);
+        return documentService.upload(caseFileId, file, ocrFormsMode, ocrEnabled, videoDurationSeconds,
+                oidcUser, OAuthProviderResolver.resolve(principal), principal);
     }
 }
