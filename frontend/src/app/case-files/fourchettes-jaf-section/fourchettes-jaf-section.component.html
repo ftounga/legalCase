@@ -1,0 +1,42 @@
+<div class="fourchettes-jaf-section">
+  @if (hasData) {
+    <div class="jaf-block">
+      <p class="jaf-intro">
+        Fourchettes observées en jurisprudence JAF (p25 / médiane / p75) — comparateur
+        synthétique des estimations livrées par les outils Famille FR.
+      </p>
+      <div class="jaf-grid">
+        @for (entry of entries; track entry.category) {
+          <div class="jaf-row" [matTooltip]="entry.range.sourceRef">
+            <div class="jaf-row-header">
+              <span class="jaf-category">{{ entry.category }}</span>
+              <span class="jaf-source">{{ entry.range.label }}</span>
+            </div>
+            <div class="jaf-values">
+              <div class="jaf-value-cell">
+                <span class="jaf-value-label">p25</span>
+                <span class="jaf-value-amount">{{ formatEuros(entry.range.p25) }}</span>
+              </div>
+              <div class="jaf-value-cell jaf-value-cell--median">
+                <span class="jaf-value-label">médiane</span>
+                <span class="jaf-value-amount">{{ formatEuros(entry.range.p50) }}</span>
+              </div>
+              <div class="jaf-value-cell">
+                <span class="jaf-value-label">p75</span>
+                <span class="jaf-value-amount">{{ formatEuros(entry.range.p75) }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+      <p class="jaf-disclaimer">
+        Estimations indicatives — la décision du juge reste discrétionnaire.
+      </p>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <mat-icon>info</mat-icon>
+      <p>Aucune fourchette jurisprudentielle JAF disponible (données insuffisantes pour calibrer).</p>
+    </div>
+  }
+</div>

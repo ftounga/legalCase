@@ -136,6 +136,14 @@ import { TransactionSectionComponent } from '../transaction-section/transaction-
 import { AesEtudiantSectionComponent } from '../aes-etudiant-section/aes-etudiant-section.component';
 import { AesHumanitaireSectionComponent } from '../aes-humanitaire-section/aes-humanitaire-section.component';
 import { DivorceDesunionBeSectionComponent } from '../divorce-desunion-be-section/divorce-desunion-be-section.component';
+// F-198 : rattrapage des 5 outils Famille FR DELETE par migration 191. Wrappers
+// présentationnels qui rendent les estimations IA (pension alimentaire, prestation
+// compensatoire, liquidation communauté, divorce CM scoring, fourchettes JAF).
+import { PrestationCompensatoireSectionComponent } from '../prestation-compensatoire-section/prestation-compensatoire-section.component';
+import { PensionAlimentaireSectionComponent } from '../pension-alimentaire-section/pension-alimentaire-section.component';
+import { LiquidationCommunauteSectionComponent } from '../liquidation-communaute-section/liquidation-communaute-section.component';
+import { DivorceCmScoringSectionComponent } from '../divorce-cm-scoring-section/divorce-cm-scoring-section.component';
+import { FourchettesJafSectionComponent } from '../fourchettes-jaf-section/fourchettes-jaf-section.component';
 
 export interface DecisionToolContext {
   caseFileId: string;
@@ -627,6 +635,33 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           caseFileId: ctx.caseFileId,
         }),
       }],
+      // F-198 SF-198-01 : restauration de F-FA-01-prestation-compensatoire
+      // (DELETE par migration 191, restauré par migration 212). Wrapper
+      // présentationnel sur synthesis.prestationCompensatoireEstimate.
+      ['F-FA-01-prestation-compensatoire', {
+        component: PrestationCompensatoireSectionComponent,
+        inputs: (ctx) => ({
+          synthesis: ctx.synthesis,
+        }),
+      }],
+      // F-198 SF-198-02 : restauration de F-FA-02-pension-alimentaire (DELETE
+      // par migration 191, restauré par migration 212). Wrapper présentationnel
+      // sur synthesis.pensionAlimentaireEstimate (incluant fourchette JAF F-153).
+      ['F-FA-02-pension-alimentaire', {
+        component: PensionAlimentaireSectionComponent,
+        inputs: (ctx) => ({
+          synthesis: ctx.synthesis,
+        }),
+      }],
+      // F-198 SF-198-03 : restauration de F-FA-04-liquidation-communaute (DELETE
+      // par migration 191, restauré par migration 212). Wrapper présentationnel
+      // sur synthesis.liquidationCommunaute.
+      ['F-FA-04-liquidation-communaute', {
+        component: LiquidationCommunauteSectionComponent,
+        inputs: (ctx) => ({
+          synthesis: ctx.synthesis,
+        }),
+      }],
       ['F-FA-05-partage-immobilier', {
         component: PartageImmobilierSectionComponent,
         inputs: (ctx) => ({
@@ -675,6 +710,24 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
           piecesManquantes: ctx.synthesis?.piecesManquantesDetails,
           // F-194 SF-194-02 : libellés des pièces statut OBTENUE alignées sur cet outil.
           piecesObtenues: piecesObtenuesFor(ctx.piecesAlignment, 'F-FA-07-checklist-divorce'),
+        }),
+      }],
+      // F-198 SF-198-04 : restauration de F-152-divorce-consentement-scoring
+      // (DELETE par migration 191, restauré par migration 212). Wrapper qui
+      // délègue au composant F-152 existant (présentationnel pur).
+      ['F-152-divorce-consentement-scoring', {
+        component: DivorceCmScoringSectionComponent,
+        inputs: (ctx) => ({
+          synthesis: ctx.synthesis,
+        }),
+      }],
+      // F-198 SF-198-05 : restauration de F-153-fourchettes-jaf (DELETE par
+      // migration 191, restauré par migration 212). Wrapper qui agrège les
+      // jurisprudenceRange p25/p50/p75 livrées par F-153.
+      ['F-153-fourchettes-jaf', {
+        component: FourchettesJafSectionComponent,
+        inputs: (ctx) => ({
+          synthesis: ctx.synthesis,
         }),
       }],
       ['F-IM-01-checklist-pieces', {
@@ -1492,6 +1545,10 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-DT-35-contestation-are-fr', 'INDEMNITES'],
     ['F-132-rupture-conv-indemnite', 'INDEMNITES'],
     ['F-FA-15-recompenses', 'INDEMNITES'],
+    // F-198 SF-198-01/02/05 : rattrapage des outils Famille FR DELETE par migration 191.
+    ['F-FA-01-prestation-compensatoire', 'INDEMNITES'],
+    ['F-FA-02-pension-alimentaire', 'INDEMNITES'],
+    ['F-153-fourchettes-jaf', 'INDEMNITES'],
 
     // ── Validité & contestation ────────────────────────────────────────
     ['F-DT-08-licenciement-validity', 'VALIDITE'],
@@ -1514,6 +1571,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-FA-18-reconnaissance-paternelle', 'VALIDITE'],
     ['F-FA-18-possession-etat', 'VALIDITE'],
     ['F-FA-24-testament-validite', 'VALIDITE'],
+    // F-198 SF-198-04 : rattrapage F-152 (DELETE par migration 191).
+    ['F-152-divorce-consentement-scoring', 'VALIDITE'],
 
     // ── Délais & procédure ─────────────────────────────────────────────
     ['F-DT-03-prescription-litige', 'DELAIS'],
@@ -1558,6 +1617,8 @@ export class DecisionToolsPanelComponent implements OnInit, OnChanges {
     ['F-IM-19-mineurs', 'DIAGNOSTIC'],
     ['F-FA-05-partage-immobilier', 'DIAGNOSTIC'],
     ['F-FA-06-calendrier-garde', 'DIAGNOSTIC'],
+    // F-198 SF-198-03 : rattrapage F-FA-04 (DELETE par migration 191).
+    ['F-FA-04-liquidation-communaute', 'DIAGNOSTIC'],
     ['F-FA-16-communaute-universelle', 'DIAGNOSTIC'],
     ['F-FA-17-partage-judiciaire', 'DIAGNOSTIC'],
     ['F-FA-18-adoption', 'DIAGNOSTIC'],

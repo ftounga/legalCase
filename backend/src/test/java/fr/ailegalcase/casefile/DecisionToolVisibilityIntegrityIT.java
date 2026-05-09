@@ -79,6 +79,10 @@ class DecisionToolVisibilityIntegrityIT {
             "F-DT-33-at-mp",
             "F-DT-34-refere-prudhomal",
             "F-DT-35-contestation-are-fr",
+            // F-198 : rattrapage des 5 outils Famille FR DELETE par migration 191.
+            "F-FA-01-prestation-compensatoire",
+            "F-FA-02-pension-alimentaire",
+            "F-FA-04-liquidation-communaute",
             "F-FA-05-partage-immobilier",
             "F-FA-06-calendrier-garde",
             "F-FA-07-checklist-divorce",
@@ -138,7 +142,10 @@ class DecisionToolVisibilityIntegrityIT {
             "F-IM-20-mesures-eloignement",
             "F-132-rupture-amiable-info",
             "F-132-rupture-conv-indemnite",
-            "F-136-travail-procedure"
+            "F-136-travail-procedure",
+            // F-198 SF-198-04/05 : rattrapage F-152 / F-153 DELETE par migration 191.
+            "F-152-divorce-consentement-scoring",
+            "F-153-fourchettes-jaf"
     );
 
     @Test

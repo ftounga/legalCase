@@ -1,0 +1,17 @@
+/* SF-198-04 — wrapper transparent autour de divorce-consentement-scoring-section. */
+
+.divorce-cm-scoring-section {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #6B7A8D;
+  font-size: 13px;
+
+  mat-icon { color: #1A3A5C; flex-shrink: 0; }
+  p { margin: 0; }
+}

@@ -1,0 +1,12 @@
+<div class="divorce-cm-scoring-section">
+  @if (hasData) {
+    <app-divorce-consentement-scoring-section
+      [detection]="detection"
+      [scoring]="scoring" />
+  } @else {
+    <div class="empty-state">
+      <mat-icon>info</mat-icon>
+      <p>Aucune analyse de validité divorce CM disponible (procédure non détectée).</p>
+    </div>
+  }
+</div>
