@@ -166,11 +166,12 @@ class DocumentControllerIT {
                 .andExpect(jsonPath("$.caseFileId").value(caseFileId.toString()));
     }
 
-    // I-02 : type non supporté → 400
+    // I-02 : type non supporté → 400 (SF-230-01 : image/png est maintenant accepté
+    // pour upload natif, donc on teste un type vraiment hors-scope : image/svg+xml)
     @Test
     void upload_unsupportedType_returns400() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
-                "file", "image.png", "image/png", "image data".getBytes());
+                "file", "image.svg", "image/svg+xml", "<svg/>".getBytes());
 
         mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
                         .file(file)
@@ -383,6 +384,103 @@ class DocumentControllerIT {
     @Test
     void delete_docInOtherWorkspace_returns404() throws Exception {
         mockMvc.perform(delete("/api/v1/case-files/" + otherCaseFileId + "/documents/" + UUID.randomUUID())
+                        .with(authentication(auth)))
+                .andExpect(status().isNotFound());
+    }
+
+    // ========================================================================
+    // SF-230-01 — upload natif des images JPG/PNG/HEIC/WebP
+    // ========================================================================
+
+    // I-IMG-01 : upload image JPG valide → 201 + contentType image/jpeg persisté
+    @Test
+    void upload_validJpeg_returns201() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "preuve.jpg", "image/jpeg", "JPEG content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.originalFilename").value("preuve.jpg"))
+                .andExpect(jsonPath("$.contentType").value("image/jpeg"))
+                .andExpect(jsonPath("$.caseFileId").value(caseFileId.toString()));
+    }
+
+    // I-IMG-02 : upload image PNG valide → 201
+    @Test
+    void upload_validPng_returns201() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "screenshot.png", "image/png", "PNG content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.contentType").value("image/png"));
+    }
+
+    // I-IMG-03 : upload image HEIC valide → 201 (format Apple courant)
+    @Test
+    void upload_validHeic_returns201() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "photo.heic", "image/heic", "HEIC content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.contentType").value("image/heic"));
+    }
+
+    // I-IMG-04 : upload image WebP valide → 201
+    @Test
+    void upload_validWebp_returns201() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "image.webp", "image/webp", "WebP content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .with(authentication(auth)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.contentType").value("image/webp"));
+    }
+
+    // I-IMG-05 : upload image SVG → 400 (toujours hors scope, garde anti-régression)
+    @Test
+    void upload_imageSvg_returns400() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "vector.svg", "image/svg+xml", "<svg/>".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-IMG-06 : upload image GIF → 400 (non listée dans SF-230-01 — animations
+    // non supportées, format hors-scope)
+    @Test
+    void upload_imageGif_returns400() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "anim.gif", "image/gif", "GIF89a content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .with(authentication(auth)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // I-IMG-07 : isolation workspace — upload image dans un dossier d'un autre
+    // workspace → 404 (respect strict de l'isolation, identique au cas PDF)
+    @Test
+    void upload_jpegInOtherWorkspaceCaseFile_returns404() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "preuve.jpg", "image/jpeg", "JPEG content".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + otherCaseFileId + "/documents")
+                        .file(file)
                         .with(authentication(auth)))
                 .andExpect(status().isNotFound());
     }

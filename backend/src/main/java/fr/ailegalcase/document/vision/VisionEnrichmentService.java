@@ -133,8 +133,13 @@ public class VisionEnrichmentService {
             log.warn("Document {} not found — skipping vision enrichment", documentId);
             return;
         }
-        if (!isPdf(document)) {
-            log.info("Document {} is not a PDF ({}) — skipping vision enrichment",
+        // SF-230-01 : accepte aussi les images natives JPG/PNG/WebP (HEIC non supporté
+        // par Anthropic Vision — skipped). Le bytes téléchargé sera utilisé directement
+        // sans rasterisation PDF (cf. enrichPendingPiece + renderPiecePages).
+        boolean isPdf = isPdf(document);
+        boolean isVisionImage = isVisionCompatibleImage(document);
+        if (!isPdf && !isVisionImage) {
+            log.info("Document {} content type ({}) not supported by Vision — skipping",
                     documentId, document.getContentType());
             return;
         }
@@ -145,11 +150,12 @@ public class VisionEnrichmentService {
         List<UUID> pendingPieceIds = self.markEligibleAsPending(documentId, legalDomain, textByPage);
         if (pendingPieceIds.isEmpty()) return;
 
-        byte[] pdfBytes = storageService.download(document.getStorageKey());
+        byte[] sourceBytes = storageService.download(document.getStorageKey());
+        String contentType = document.getContentType();
 
         // Phase 2 — enrichissement pièce par pièce.
         for (UUID pieceId : pendingPieceIds) {
-            self.enrichPendingPiece(pieceId, pdfBytes);
+            self.enrichPendingPiece(pieceId, sourceBytes, contentType);
         }
     }
 
@@ -177,12 +183,22 @@ public class VisionEnrichmentService {
     /**
      * Phase 2 : appelle Anthropic + update status. Transaction dédiée pour que
      * chaque pièce bascule individuellement visible côté frontend.
+     *
+     * @param sourceBytes bytes du document source (PDF ou image originale)
+     * @param contentType content type du document — détermine si on rasterise
+     *                    (PDF) ou si on envoie les bytes directs (image SF-230-01)
      */
     @Transactional
-    public void enrichPendingPiece(UUID pieceId, byte[] pdfBytes) {
+    public void enrichPendingPiece(UUID pieceId, byte[] sourceBytes, String contentType) {
         DocumentPiece piece = pieceRepository.findById(pieceId).orElse(null);
         if (piece == null || piece.getVisionStatus() != VisionStatus.PENDING) return;
-        enrichPieceSafely(piece, pdfBytes);
+        enrichPieceSafely(piece, sourceBytes, contentType);
+    }
+
+    /** Surcharge rétrocompat — défaut PDF (cf. SF-148-01 avant SF-230-01). */
+    @Transactional
+    public void enrichPendingPiece(UUID pieceId, byte[] pdfBytes) {
+        enrichPendingPiece(pieceId, pdfBytes, "application/pdf");
     }
 
     /**
@@ -232,10 +248,21 @@ public class VisionEnrichmentService {
         return props.getSkipTypesByDomain().getOrDefault(legalDomain, Set.of());
     }
 
-    private void enrichPieceSafely(DocumentPiece piece, byte[] pdfBytes) {
+    private void enrichPieceSafely(DocumentPiece piece, byte[] sourceBytes, String contentType) {
         try {
-            List<byte[]> pagePngs = renderPagesAsPng(pdfBytes, piece.getPageStart(), piece.getPageEnd());
-            if (pagePngs.isEmpty()) {
+            // SF-230-01 : si le document source est déjà une image native compatible
+            // Vision (JPG/PNG/WebP), envoyer les bytes directs sans rasterisation.
+            // Sinon (PDF), rasteriser les pages couvertes par la pièce.
+            List<byte[]> pageImages;
+            String mediaType;
+            if (isVisionCompatibleImageContentType(contentType)) {
+                pageImages = List.of(sourceBytes);
+                mediaType = contentType;
+            } else {
+                pageImages = renderPagesAsPng(sourceBytes, piece.getPageStart(), piece.getPageEnd());
+                mediaType = "image/png";
+            }
+            if (pageImages.isEmpty()) {
                 piece.setVisionStatus(VisionStatus.FAILED);
                 pieceRepository.save(piece);
                 return;
@@ -245,8 +272,8 @@ public class VisionEnrichmentService {
             AnthropicResult result = anthropicService.analyzeWithImages(
                     props.getModel(),
                     VISION_SYSTEM_PROMPT,
-                    pagePngs,
-                    "image/png",
+                    pageImages,
+                    mediaType,
                     userText,
                     props.getMaxTokens()
             );
@@ -346,5 +373,22 @@ public class VisionEnrichmentService {
     private boolean isPdf(Document document) {
         String ct = document.getContentType();
         return ct != null && ct.toLowerCase().contains("pdf");
+    }
+
+    /**
+     * SF-230-01 : true si le document est une image native directement consommable
+     * par Anthropic Vision (JPG/PNG/WebP). HEIC est exclu : Anthropic Vision ne
+     * le supporte pas et la conversion HEIC→PNG nécessite une lib tierce.
+     * Pour HEIC, l'OCR Textract reste utilisable mais l'enrichissement Vision est skippé.
+     */
+    private boolean isVisionCompatibleImage(Document document) {
+        return isVisionCompatibleImageContentType(document.getContentType());
+    }
+
+    /** Voir {@link #isVisionCompatibleImage(Document)}. */
+    private static boolean isVisionCompatibleImageContentType(String contentType) {
+        return "image/jpeg".equals(contentType)
+                || "image/png".equals(contentType)
+                || "image/webp".equals(contentType);
     }
 }
