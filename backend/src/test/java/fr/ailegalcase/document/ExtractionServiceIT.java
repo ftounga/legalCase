@@ -87,6 +87,7 @@ class ExtractionServiceIT {
         caseFile.setCreatedBy(user);
         caseFile.setTitle("Dossier extraction test");
         caseFile.setStatus("OPEN");
+        caseFile.setLegalDomain("DROIT_DU_TRAVAIL");
         caseFileRepository.save(caseFile);
 
         Document document = new Document();
@@ -131,16 +132,66 @@ class ExtractionServiceIT {
         assertThat(result.get().getExtractionMetadata()).contains("error");
     }
 
-    // E-03 : type non supporté → status FAILED
+    // E-03 : type non supporté → status FAILED (SF-230-01 : image/png est désormais
+    // routée vers OCR ; on teste donc un type vraiment hors-scope (image/svg+xml))
     @Test
     void extract_unsupportedContentType_createsFailedExtraction() {
         when(storageService.download(anyString()))
-                .thenReturn("some bytes".getBytes());
+                .thenReturn("<svg/>".getBytes());
+
+        extractionService.extract(documentId, storageKey, "image/svg+xml");
+
+        Optional<DocumentExtraction> result = extractionRepository.findByDocumentId(documentId);
+        assertThat(result).isPresent();
+        assertThat(result.get().getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(result.get().getFailureReason()).isEqualTo(ExtractionFailureReason.UNSUPPORTED_FORMAT);
+    }
+
+    // SF-230-01 E-04 : image PNG natif uploadée + OCR désactivé en test → FAILED EMPTY_TEXT
+    // (route correctement à travers le path image, sans IllegalArgumentException)
+    @Test
+    void extract_imagePng_routesToOcrPath_failsWithEmptyTextWhenOcrDisabled() {
+        when(storageService.download(anyString()))
+                .thenReturn(samplePngBytes());
 
         extractionService.extract(documentId, storageKey, "image/png");
 
         Optional<DocumentExtraction> result = extractionRepository.findByDocumentId(documentId);
         assertThat(result).isPresent();
+        // OCR désactivé en test (aws.textract.enabled=false) → tryOcr renvoie failure EMPTY_TEXT
         assertThat(result.get().getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(result.get().getFailureReason()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
+        // Doit avoir tenté l'OCR (extractor metadata mentionne "textract")
+        assertThat(result.get().getExtractionMetadata()).contains("textract");
+    }
+
+    // SF-230-01 E-05 : image JPEG natif uploadée → même comportement (path image)
+    @Test
+    void extract_imageJpeg_routesToOcrPath() {
+        when(storageService.download(anyString()))
+                .thenReturn(sampleJpegBytes());
+
+        extractionService.extract(documentId, storageKey, "image/jpeg");
+
+        Optional<DocumentExtraction> result = extractionRepository.findByDocumentId(documentId);
+        assertThat(result).isPresent();
+        assertThat(result.get().getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(result.get().getFailureReason()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
+        assertThat(result.get().getExtractionMetadata()).contains("textract");
+    }
+
+    /** Génère 32 bytes plausibles pour un PNG (header magic). Suffit pour OCR routing test. */
+    private byte[] samplePngBytes() {
+        return new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+                0, 0, 0, 13, 73, 72, 68, 82,
+                0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, (byte) 0xC4};
+    }
+
+    /** Génère bytes plausibles pour un JPEG (SOI + APP0 marker). Suffit pour OCR routing test. */
+    private byte[] sampleJpegBytes() {
+        return new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+                0, 0x10, 0x4A, 0x46, 0x49, 0x46, 0,
+                1, 1, 0, 0, 1, 0, 1, 0, 0,
+                (byte) 0xFF, (byte) 0xD9};
     }
 }

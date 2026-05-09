@@ -33,7 +33,13 @@ public class DocumentService {
             "application/pdf",
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "text/plain"
+            "text/plain",
+            // SF-230-01 : upload natif des pièces images. Textract accepte JPG/PNG/HEIC/WebP
+            // nativement — aucune conversion PDF intermédiaire côté backend ou côté avocat.
+            "image/jpeg",
+            "image/png",
+            "image/heic",
+            "image/webp"
     );
 
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB
@@ -187,7 +193,7 @@ public class DocumentService {
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Unsupported file type. Allowed: PDF, DOC, DOCX, TXT");
+                    "Unsupported file type. Allowed: PDF, DOC, DOCX, TXT, JPG, PNG, HEIC, WebP");
         }
     }
 

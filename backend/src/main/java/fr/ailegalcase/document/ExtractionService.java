@@ -25,12 +25,30 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class ExtractionService {
 
     private static final Logger log = LoggerFactory.getLogger(ExtractionService.class);
+
+    /**
+     * SF-230-01 : content types images supportés en upload natif (sans conversion PDF
+     * intermédiaire). Textract accepte JPG/PNG/HEIC/WebP nativement.
+     * Package-private pour testabilité (tests d'intégrité).
+     */
+    static final Set<String> IMAGE_CONTENT_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/heic",
+            "image/webp"
+    );
+
+    /** SF-230-01 : helper pour reconnaître un content type image supporté. */
+    private static boolean isSupportedImageContentType(String contentType) {
+        return contentType != null && IMAGE_CONTENT_TYPES.contains(contentType);
+    }
 
     private final DocumentRepository documentRepository;
     private final DocumentExtractionRepository extractionRepository;
@@ -85,16 +103,27 @@ public class ExtractionService {
 
             // SF-121-01 : détection du cas "texte vide" (PDF scanné sans couche texte).
             // SF-122-01 : sur PDF vide, tente un fallback OCR Textract avant de marquer FAILED.
+            // SF-230-01 : pour les uploads natifs d'images (JPG/PNG/HEIC/WebP), parseText
+            // retourne "" et on emprunte ici la même branche OCR (Textract accepte les
+            // bytes image directement, pas de rasterisation PDF intermédiaire).
+            boolean isImage = isSupportedImageContentType(contentType);
+            boolean ocrEligible = ("application/pdf".equals(contentType) || isImage);
             if (text == null || text.isBlank()) {
-                if ("application/pdf".equals(contentType) && docRef.isOcrEnabled()) {
-                    UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
+                if (ocrEligible && docRef.isOcrEnabled()) {
                     boolean formsMode = docRef.isOcrFormsMode(); // SF-122-03
                     // SF-144-01 : flag intermédiaire lu par le polling frontend.
                     // REQUIRES_NEW → commité même si la transaction courante n'a pas flushé.
                     ocrRunningFlagService.markOcrRunning(extraction.getId(), true);
                     OcrResult ocr;
                     try {
-                        ocr = ocrService.tryOcr(fileBytes, workspaceId, formsMode);
+                        // SF-230-01 : pour les images, route via extractFromImage
+                        // (Textract direct sur bytes image, pas de rasterisation PDF).
+                        if (isImage) {
+                            ocr = extractFromImage(fileBytes, contentType, docRef);
+                        } else {
+                            UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
+                            ocr = ocrService.tryOcr(fileBytes, workspaceId, formsMode);
+                        }
                     } finally {
                         ocrRunningFlagService.markOcrRunning(extraction.getId(), false);
                     }
@@ -224,6 +253,10 @@ public class ExtractionService {
                     extractFromDocx(fileBytes);
             case "application/msword" -> extractFromDoc(fileBytes);
             case "text/plain" -> new String(fileBytes, StandardCharsets.UTF_8);
+            // SF-230-01 : pour les images natives (JPG/PNG/HEIC/WebP), aucune extraction
+            // texte native — on retourne "" et le mécanisme empty-text → OCR Textract
+            // (extractFromImage) prend le relais. Pas de PDFTextStripper sur le path image.
+            case "image/jpeg", "image/png", "image/heic", "image/webp" -> "";
             default -> throw new IllegalArgumentException("Unsupported content type: " + contentType);
         };
     }
@@ -266,5 +299,38 @@ public class ExtractionService {
              WordExtractor extractor = new WordExtractor(doc)) {
             return extractor.getText();
         }
+    }
+
+    /**
+     * SF-230-01 : extraction d'une image native (JPG/PNG/HEIC/WebP) via OCR Textract direct.
+     *
+     * <p>Contrairement au PDF, on n'enrobe PAS l'image dans un PDF avant d'appeler
+     * Textract — Textract accepte directement les bytes image. Économie : pas
+     * d'overhead PDF, pas de dépendance PDFBox sur le path image.
+     *
+     * <p>Aucun PDFTextStripper n'est invoqué : une image n'a pas de couche texte
+     * native, l'extraction passe entièrement par Textract.
+     *
+     * <p>Si {@code docRef.isOcrEnabled()} est false, l'extraction est skippée et
+     * marquée FAILED EMPTY_TEXT par le caller (cf. branche dans {@link #extract}).
+     *
+     * <p>Quota OCR : 1 image = 1 page comptabilisée (pageCount renvoyé par
+     * {@code OcrService.tryOcr}, qui plafonne à 1 sur les images via le fallback
+     * {@code countPdfPages}).
+     *
+     * <p>Package-private pour permettre les tests d'intégrité de routing.
+     *
+     * @param fileBytes   bytes de l'image originale
+     * @param contentType {@code image/jpeg}, {@code image/png}, {@code image/heic}, {@code image/webp}
+     * @param docRef      document de référence (porte {@code ocrEnabled}, {@code ocrFormsMode}, workspace)
+     * @return résultat OCR (success+text+pageCount ou failure+motif)
+     */
+    OcrResult extractFromImage(byte[] fileBytes, String contentType, Document docRef) {
+        if (!isSupportedImageContentType(contentType)) {
+            throw new IllegalArgumentException("extractFromImage called with non-image contentType: " + contentType);
+        }
+        UUID workspaceId = docRef.getCaseFile().getWorkspace().getId();
+        boolean formsMode = docRef.isOcrFormsMode();
+        return ocrService.tryOcr(fileBytes, workspaceId, formsMode);
     }
 }

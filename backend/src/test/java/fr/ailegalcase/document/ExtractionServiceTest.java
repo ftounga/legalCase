@@ -339,4 +339,161 @@ class ExtractionServiceTest {
         verify(ocrRunningFlagService).markOcrRunning(any(), eq(true));
         verify(ocrRunningFlagService).markOcrRunning(any(), eq(false));
     }
+
+    // ========================================================================
+    // SF-230-01 — upload natif des images JPG/PNG/HEIC/WebP
+    // ========================================================================
+
+    // U-IMG-01 : image/jpeg + OCR success → DONE via Textract direct (pas de PDFTextStripper)
+    @Test
+    void extract_imageJpeg_ocrSuccess_marksDoneViaTextract() throws IOException {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        when(storageService.download(STORAGE_KEY)).thenReturn(imageBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("Texte image OCR", 1));
+
+        service.extract(DOC_ID, STORAGE_KEY, "image/jpeg");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        assertThat(saved.getExtractedText()).isEqualTo("Texte image OCR");
+        assertThat(saved.getFailureReason()).isNull();
+        assertThat(saved.getExtractionMetadata()).contains("textract").contains("\"pageCount\":1");
+        verify(eventPublisher).publishEvent(any(ExtractionDoneEvent.class));
+        // 1 image = 1 page comptée dans le quota OCR (formsMode=false)
+        verify(workspaceRepository).incrementOcrUsage(eq(workspaceId), eq(1),
+                any(java.time.LocalDate.class), any(java.time.LocalDate.class));
+    }
+
+    // U-IMG-02 : image/png → même flux OCR (parité)
+    @Test
+    void extract_imagePng_ocrSuccess_marksDoneViaTextract() throws IOException {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        when(storageService.download(STORAGE_KEY)).thenReturn(imageBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("PNG OCR text", 1));
+
+        service.extract(DOC_ID, STORAGE_KEY, "image/png");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        assertThat(saved.getExtractedText()).isEqualTo("PNG OCR text");
+    }
+
+    // U-IMG-03 : image/heic → même flux OCR (Textract supporte HEIC nativement)
+    @Test
+    void extract_imageHeic_ocrSuccess_marksDoneViaTextract() throws IOException {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        when(storageService.download(STORAGE_KEY)).thenReturn(imageBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("HEIC OCR text", 1));
+
+        service.extract(DOC_ID, STORAGE_KEY, "image/heic");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        assertThat(saved.getExtractedText()).isEqualTo("HEIC OCR text");
+    }
+
+    // U-IMG-04 : image/webp → même flux OCR
+    @Test
+    void extract_imageWebp_ocrSuccess_marksDoneViaTextract() throws IOException {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        when(storageService.download(STORAGE_KEY)).thenReturn(imageBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("WebP OCR text", 1));
+
+        service.extract(DOC_ID, STORAGE_KEY, "image/webp");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.DONE);
+        assertThat(saved.getExtractedText()).isEqualTo("WebP OCR text");
+    }
+
+    // U-IMG-05 : image/svg+xml (non supportée) → IllegalArgumentException → FAILED UNSUPPORTED_FORMAT
+    @Test
+    void extract_imageSvg_marksFailedWithUnsupportedFormatReason() throws IOException {
+        when(storageService.download(STORAGE_KEY)).thenReturn("<svg/>".getBytes());
+
+        service.extract(DOC_ID, STORAGE_KEY, "image/svg+xml");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.UNSUPPORTED_FORMAT);
+        verify(ocrService, never()).tryOcr(any(), any(), anyBoolean());
+    }
+
+    // U-IMG-06 : extractFromImage appelle OcrService.tryOcr quand isOcrEnabled=true
+    @Test
+    void extractFromImage_callsOcrServiceTryOcr_whenOcrEnabled() {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        Document docRef = documentRepository.getReferenceById(DOC_ID);
+        docRef.setOcrEnabled(true);
+        docRef.setOcrFormsMode(false);
+        when(ocrService.tryOcr(any(), eq(workspaceId), eq(false))).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.success("ocr text", 1));
+
+        fr.ailegalcase.ocr.OcrResult result = service.extractFromImage(imageBytes(), "image/jpeg", docRef);
+
+        assertThat(result.success()).isTrue();
+        assertThat(result.text()).isEqualTo("ocr text");
+        verify(ocrService).tryOcr(any(), eq(workspaceId), eq(false));
+    }
+
+    // U-IMG-07 : extractFromImage rejette explicitement un contentType non-image
+    @Test
+    void extractFromImage_rejectsNonImageContentType() {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        Document docRef = documentRepository.getReferenceById(DOC_ID);
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> service.extractFromImage(imageBytes(), "application/pdf", docRef));
+        verify(ocrService, never()).tryOcr(any(), any(), anyBoolean());
+    }
+
+    // U-IMG-08 : pour une image, parseText ne tente AUCUNE extraction texte native
+    // (pas de PDFTextStripper, pas de POI). Vérifié indirectement : un blob JPEG
+    // mal formé ne déclenche pas d'exception parsing — il passe directement à l'OCR.
+    @Test
+    void extract_imageJpegMalformed_doesNotInvokeNativeTextExtraction() throws IOException {
+        UUID workspaceId = UUID.randomUUID();
+        setupDocWithWorkspace(workspaceId);
+        when(storageService.download(STORAGE_KEY)).thenReturn("not a real jpeg".getBytes());
+        when(ocrService.tryOcr(any(), any(), anyBoolean())).thenReturn(
+                fr.ailegalcase.ocr.OcrResult.failure(ExtractionFailureReason.OCR_FAILED));
+
+        service.extract(DOC_ID, STORAGE_KEY, "image/jpeg");
+
+        DocumentExtraction saved = capturedFinalSave();
+        // Échec doit être OCR_FAILED (pas CORRUPTED — preuve que PDFBox/POI n'a pas tenté)
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.OCR_FAILED);
+        verify(ocrService).tryOcr(any(), any(), anyBoolean());
+    }
+
+    // U-IMG-09 : ocrEnabled=false sur une image → skip OCR, FAILED EMPTY_TEXT
+    @Test
+    void extract_imagePng_ocrDisabled_skipsTextract() throws IOException {
+        Document docRef = documentRepository.getReferenceById(DOC_ID);
+        docRef.setOcrEnabled(false);
+        when(storageService.download(STORAGE_KEY)).thenReturn(imageBytes());
+
+        service.extract(DOC_ID, STORAGE_KEY, "image/png");
+
+        DocumentExtraction saved = capturedFinalSave();
+        assertThat(saved.getExtractionStatus()).isEqualTo(ExtractionStatus.FAILED);
+        assertThat(saved.getFailureReason()).isEqualTo(ExtractionFailureReason.EMPTY_TEXT);
+        verify(ocrService, never()).tryOcr(any(), any(), anyBoolean());
+    }
+
+    /** Bytes minimalement plausibles pour une image (utilisés comme stub OCR). */
+    private byte[] imageBytes() {
+        return new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0,
+                0, 0x10, 0x4A, 0x46, 0x49, 0x46};
+    }
 }
