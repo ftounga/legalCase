@@ -773,6 +773,52 @@ class PlanLimitServiceTest {
         assertThat(service.getPlanCodeForWorkspace(wid)).isEqualTo("FREE");
     }
 
+    // ── SF-231-03 : Quotas vidéo mensuels ────────────────────────────────
+
+    @Test void U_PLS_VIDEO_01_getMonthlyVideoMinutes_FREE()       { assertThat(service.getMonthlyVideoMinutes("FREE")).isEqualTo(1); }
+    @Test void U_PLS_VIDEO_02_getMonthlyVideoMinutes_TRIAL()      { assertThat(service.getMonthlyVideoMinutes("TRIAL")).isEqualTo(1); }
+    @Test void U_PLS_VIDEO_03_getMonthlyVideoMinutes_SOLO()       { assertThat(service.getMonthlyVideoMinutes("SOLO")).isEqualTo(5); }
+    @Test void U_PLS_VIDEO_04_getMonthlyVideoMinutes_TEAM()       { assertThat(service.getMonthlyVideoMinutes("TEAM")).isEqualTo(30); }
+    @Test void U_PLS_VIDEO_05_getMonthlyVideoMinutes_PRO()        { assertThat(service.getMonthlyVideoMinutes("PRO")).isEqualTo(120); }
+    @Test void U_PLS_VIDEO_06_getMonthlyVideoMinutes_ENTERPRISE() { assertThat(service.getMonthlyVideoMinutes("ENTERPRISE")).isEqualTo(Integer.MAX_VALUE); }
+    @Test void U_PLS_VIDEO_07_getMonthlyVideoMinutes_unknown()    { assertThat(service.getMonthlyVideoMinutes("UNKNOWN")).isEqualTo(1); }
+    @Test void U_PLS_VIDEO_08_getMonthlyVideoMinutes_null()       { assertThat(service.getMonthlyVideoMinutes(null)).isEqualTo(1); }
+
+    @Test
+    void U_PLS_VIDEO_09_forWorkspace_solo_returns5() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("SOLO")));
+        assertThat(service.getMonthlyVideoMinutesForWorkspace(wid)).isEqualTo(5);
+    }
+
+    @Test
+    void U_PLS_VIDEO_10_forWorkspace_team_returns30() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("TEAM")));
+        assertThat(service.getMonthlyVideoMinutesForWorkspace(wid)).isEqualTo(30);
+    }
+
+    @Test
+    void U_PLS_VIDEO_11_forWorkspace_pro_returns120() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("PRO")));
+        assertThat(service.getMonthlyVideoMinutesForWorkspace(wid)).isEqualTo(120);
+    }
+
+    @Test
+    void U_PLS_VIDEO_12_forWorkspace_enterprise_returnsMax() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.of(subscriptionWithPlan("ENTERPRISE")));
+        assertThat(service.getMonthlyVideoMinutesForWorkspace(wid)).isEqualTo(Integer.MAX_VALUE);
+    }
+
+    @Test
+    void U_PLS_VIDEO_13_forWorkspace_noSubscription_returnsFreeDefault1() {
+        UUID wid = UUID.randomUUID();
+        when(subscriptionRepository.findByWorkspaceId(wid)).thenReturn(Optional.empty());
+        assertThat(service.getMonthlyVideoMinutesForWorkspace(wid)).isEqualTo(1);
+    }
+
     private Workspace workspaceWithOcrUsage(UUID id, int monthlyPages, int dailyPages, LocalDate lastReset) {
         Workspace ws = new Workspace();
         ws.setId(id);

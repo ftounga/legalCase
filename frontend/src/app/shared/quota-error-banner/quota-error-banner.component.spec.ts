@@ -50,6 +50,7 @@ describe('QuotaErrorBannerComponent', () => {
       ['CASE_FILE_OPEN_LIMIT_EXCEEDED', 'Limite de dossiers actifs atteinte', 'Upgrader le plan'],
       ['OCR_QUOTA_EXCEEDED', 'Quota OCR mensuel atteint', 'Upgrader le plan'],
       ['SEAT_LIMIT_EXCEEDED', 'Limite de sièges atteinte', 'Voir les plans'],
+      ['VIDEO_QUOTA_EXCEEDED', 'Quota vidéo mensuel atteint — passez au plan supérieur pour débloquer plus de minutes vidéo', 'Upgrader le plan'],
     ];
     for (const [code, title, primaryLabel] of cases) {
       it(`mappe ${code} → "${title}"`, () => {
@@ -100,6 +101,14 @@ describe('QuotaErrorBannerComponent', () => {
     const secondaryBtn = fixture.nativeElement.querySelector('.quota-banner__secondary');
     expect(secondaryBtn).not.toBeNull();
     expect(secondaryBtn.disabled).toBe(true);
+  });
+
+  // SF-231-03 — VIDEO_QUOTA_EXCEEDED : pas d'achat à la carte V1 (pas de bouton secondaire).
+  it('VIDEO_QUOTA_EXCEEDED — aucune action secondaire (pas d\'achat one-shot V1)', () => {
+    stateService.set({ code: 'VIDEO_QUOTA_EXCEEDED', message: 'msg', sourceUrl: '/api/v1/x', receivedAt: Date.now() });
+    fixture.detectChanges();
+    expect(component.mapping().secondaryLabel).toBeUndefined();
+    expect(component.mapping().secondaryDisabled).toBeUndefined();
   });
 
   it('input override `code` + `message` prime sur le state global', () => {

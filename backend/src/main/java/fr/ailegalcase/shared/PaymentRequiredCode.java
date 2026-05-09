@@ -12,5 +12,7 @@ public enum PaymentRequiredCode {
     DOCUMENT_LIMIT_EXCEEDED,
     CASE_FILE_OPEN_LIMIT_EXCEEDED,
     OCR_QUOTA_EXCEEDED,
-    SEAT_LIMIT_EXCEEDED
+    SEAT_LIMIT_EXCEEDED,
+    /** SF-231-03 : quota mensuel minutes vidéo dépassé (SOLO 5, TEAM 30, PRO 120). */
+    VIDEO_QUOTA_EXCEEDED
 }

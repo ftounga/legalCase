@@ -60,6 +60,13 @@ const QUOTA_MAPPINGS: Record<string, QuotaCodeMapping> = {
     primaryLabel: 'Voir les plans',
     primaryRoute: '/workspace/billing',
   },
+  // SF-231-03 — Quota mensuel minutes vidéo (SOLO 5 min, TEAM 30 min, PRO 120 min).
+  // Pas d'achat à la carte V1 (pas de bouton secondaire).
+  VIDEO_QUOTA_EXCEEDED: {
+    title: 'Quota vidéo mensuel atteint — passez au plan supérieur pour débloquer plus de minutes vidéo',
+    primaryLabel: 'Upgrader le plan',
+    primaryRoute: '/workspace/billing',
+  },
 };
 
 /**

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      F-231 SF-231-03 — Quotas mensuels minutes vidéo par plan.
+
+      Crée la table `workspace_video_usage` qui trace chaque upload vidéo
+      consommé pour le calcul des quotas mensuels (SOLO 5, TEAM 30, PRO 120,
+      TRIAL 1, ENTERPRISE illimité). Pattern miroir des quotas OCR (F-122)
+      mais avec un INSERT par upload (vs compteur agrégé sur la ligne workspace
+      pour OCR — choix : audit explicite par document + simplicité reset
+      mensuel via `WHERE year_month = ?`).
+
+      Colonnes :
+        - id : PK UUID, généré par JPA (GenerationType.UUID)
+        - workspace_id : FK workspaces.id, indexé pour la requête sum
+        - year_month : VARCHAR(7), format ISO `YYYY-MM` (ex: `2026-05`)
+        - minutes_consumed : INT >= 0, ceil(durationSeconds/60) arrondi au-dessus
+        - document_id : FK documents.id pour traçabilité (CASCADE delete pour
+          ne pas bloquer la suppression de document)
+        - created_at : TIMESTAMP, audit
+
+      Index :
+        - idx_wvu_workspace_month : (workspace_id, year_month) — query principale
+          `SELECT SUM(minutes_consumed) WHERE workspace_id = ? AND year_month = ?`
+        - idx_wvu_document : document_id — utilisé pour la cascade de suppression
+
+      Race condition : la requête sum + l'INSERT sont enveloppés dans une
+      transaction REPEATABLE_READ côté `VideoQuotaService`. En PostgreSQL ce
+      niveau d'isolation garantit qu'une lecture cohérente n'est pas affectée
+      par une autre transaction concurrente — si dépassement effectif, la
+      seconde transaction voit le total à jour au commit et lève 402.
+    -->
+
+    <changeSet id="211-create-workspace-video-usage" author="ailegalcase">
+        <createTable tableName="workspace_video_usage">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workspace_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wvu_workspace"
+                             references="workspaces(id)"/>
+            </column>
+            <column name="year_month" type="VARCHAR(7)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="minutes_consumed" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="document_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wvu_document"
+                             references="documents(id)"
+                             deleteCascade="true"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- CHECK minutes_consumed >= 0 (sécurité ligne par ligne, complémente la
+             validation Java côté `VideoQuotaService.checkAndConsumeVideoMinutes`). -->
+        <sql>
+            ALTER TABLE workspace_video_usage
+            ADD CONSTRAINT ck_wvu_minutes_nonneg CHECK (minutes_consumed >= 0)
+        </sql>
+
+        <createIndex tableName="workspace_video_usage"
+                     indexName="idx_wvu_workspace_month">
+            <column name="workspace_id"/>
+            <column name="year_month"/>
+        </createIndex>
+
+        <createIndex tableName="workspace_video_usage"
+                     indexName="idx_wvu_document">
+            <column name="document_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
