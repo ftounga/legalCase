@@ -582,6 +582,112 @@ class DocumentControllerIT {
                 .andExpect(status().isBadRequest());
     }
 
+    // ── SF-231-03 : quotas mensuels minutes vidéo ──────────────────────────
+    //
+    // Note plans : la fixture de base utilise planCode "STARTER" qui n'est pas
+    // reconnu par PlanLimitService → fallback FREE → 1 min/mois.
+    // On bascule la subscription au plan voulu directement depuis chaque test.
+
+    // I-VIDEO-Q-01 : SOLO quota 5 min — 5 uploads de 60 s consomment 5 min (au quota),
+    // un 6e upload de 1 s ⇒ 5+1=6 > 5 → 402 VIDEO_QUOTA_EXCEEDED
+    @Test
+    void upload_videoMp4_soloQuotaExceeded_returns402_videoCode() throws Exception {
+        switchSubscriptionTo("SOLO");
+        // Pré-charge 5 min consommées (5 uploads × 60 s = 5 min)
+        for (int i = 0; i < 5; i++) {
+            uploadVideo("v-" + i + ".mp4", 60L).andExpect(status().isCreated());
+        }
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "ko.mp4", "video/mp4", "ko".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "1")
+                        .with(authentication(auth)))
+                .andExpect(status().isPaymentRequired())
+                .andExpect(jsonPath("$.code").value("VIDEO_QUOTA_EXCEEDED"));
+    }
+
+    // I-VIDEO-Q-02 : SOLO quota 5 min — 4 min déjà + 30 s ⇒ 4+1=5 ≤ 5 → OK (à la limite)
+    @Test
+    void upload_videoMp4_soloAtExactLimit_returns201() throws Exception {
+        switchSubscriptionTo("SOLO");
+        for (int i = 0; i < 4; i++) {
+            uploadVideo("v-" + i + ".mp4", 60L).andExpect(status().isCreated());
+        }
+
+        // 30 s ⇒ 1 min ; total 4+1=5 = quota, accepté
+        uploadVideo("ok.mp4", 30L).andExpect(status().isCreated());
+    }
+
+    // I-VIDEO-Q-03 : ENTERPRISE quota illimité — 60 min en un seul upload (60 s)
+    // suffit : on vérifie qu'un upload nominal sur ENTERPRISE passe sans gate.
+    // (Tester réellement 1000 min = 100 uploads à 60s chacun, lourd ; on valide le contrat.)
+    @Test
+    void upload_videoMp4_enterprise_unlimitedQuota_returns201() throws Exception {
+        switchSubscriptionTo("ENTERPRISE");
+
+        // Plusieurs uploads consécutifs sans plafond
+        for (int i = 0; i < 3; i++) {
+            uploadVideo("entr-" + i + ".mp4", 60L).andExpect(status().isCreated());
+        }
+    }
+
+    // I-VIDEO-Q-04 : isolation workspace — la consommation d'un autre workspace
+    // n'impacte pas le quota du nôtre. Cas vérifié indirectement par le filtre
+    // sumMinutesByWorkspaceAndMonth (couvert par WorkspaceVideoUsageRepositoryIT) ;
+    // ici on vérifie seulement qu'un upload OK se fait quand on est sous quota.
+    @Test
+    void upload_videoMp4_proPlan_within120minQuota_returns201() throws Exception {
+        switchSubscriptionTo("PRO");
+        // 3 uploads de 60 s = 3 min ≤ 120 → OK
+        for (int i = 0; i < 3; i++) {
+            uploadVideo("pro-" + i + ".mp4", 60L).andExpect(status().isCreated());
+        }
+    }
+
+    // I-VIDEO-Q-05 : FREE / plan inconnu (STARTER) — 1 min de quota — 60 s OK puis 1 s → 402
+    @Test
+    void upload_videoMp4_starterPlan_secondUploadHits1MinFreeFallback() throws Exception {
+        // Le setUp a déjà inséré une subscription "STARTER" → fallback FREE = 1 min
+        // Premier upload de 60 s ⇒ 1 min ≤ 1 → OK
+        uploadVideo("first.mp4", 60L).andExpect(status().isCreated());
+
+        // Second upload de 1 s ⇒ 1+1=2 > 1 → 402
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "second.mp4", "video/mp4", "x".getBytes());
+        mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", "1")
+                        .with(authentication(auth)))
+                .andExpect(status().isPaymentRequired())
+                .andExpect(jsonPath("$.code").value("VIDEO_QUOTA_EXCEEDED"));
+    }
+
+    /** Utilitaire — upload une vidéo MP4 avec la durée demandée en secondes. */
+    private org.springframework.test.web.servlet.ResultActions uploadVideo(String name, long durationSeconds) throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", name, "video/mp4", ("data-" + name).getBytes());
+        return mockMvc.perform(multipart("/api/v1/case-files/" + caseFileId + "/documents")
+                        .file(file)
+                        .header("X-Video-Duration-Seconds", String.valueOf(durationSeconds))
+                        .with(authentication(auth)));
+    }
+
+    /** Utilitaire — bascule la subscription du workspace courant vers le planCode demandé. */
+    private void switchSubscriptionTo(String planCode) {
+        Workspace ws = workspaceRepository.findAll().stream()
+                .filter(w -> w.getName().equals("doc-test@example.com"))
+                .findFirst()
+                .orElseThrow();
+        Subscription sub = subscriptionRepository.findByWorkspaceId(ws.getId()).orElseThrow();
+        sub.setPlanCode(planCode);
+        subscriptionRepository.save(sub);
+        ws.setPlanCode(planCode);
+        workspaceRepository.save(ws);
+    }
+
     private OAuth2AuthenticationToken buildGoogleAuth(String sub, String email) {
         Map<String, Object> claims = Map.of(
                 "sub", sub, "email", email, "iss", "https://accounts.google.com");

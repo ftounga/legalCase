@@ -211,6 +211,17 @@ public class DocumentService {
         document.setOcrFormsMode(ocrFormsMode); // SF-122-03
         document.setOcrEnabled(ocrEnabled);     // SF-122-07
         documentRepository.save(document);
+
+        // SF-231-03 : enregistre la consommation vidéo APRÈS save() pour respecter
+        // la FK workspace_video_usage.document_id → documents.id. La méthode
+        // re-vérifie le quota sous REPEATABLE_READ et lève 402 si dépassement
+        // concurrent — la transaction @Transactional englobante rollback alors
+        // l'INSERT documents (le blob S3 reste — coût acceptable, garbage léger).
+        if (isVideoContentType(file.getContentType())) {
+            videoQuotaService.recordVideoUsage(workspace.getId(), document.getId(),
+                    videoDurationSeconds == null ? 0L : videoDurationSeconds);
+        }
+
         eventPublisher.publishEvent(new DocumentUploadedEvent(document.getId(), storageKey, file.getContentType()));
 
         return toResponse(document);

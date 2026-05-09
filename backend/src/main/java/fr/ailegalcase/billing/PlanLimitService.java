@@ -82,6 +82,20 @@ public class PlanLimitService {
     /** Hard cap journalier anti-abus, tous plans confondus. */
     static final int DAILY_OCR_PAGES_HARD_CAP = 500;
 
+    // ── Quotas vidéo mensuels (SF-231-03) ────────────────────────────────
+    /**
+     * Plafond mensuel de minutes vidéo consommées par workspace selon le plan.
+     * Calcul minutes = {@code Math.ceil(durationSeconds / 60.0)} (1 s = 1 min facturée).
+     * Reset au 1er du mois calendaire (UTC), pas de report.
+     */
+    static final int TRIAL_MONTHLY_VIDEO_MINUTES =     1;
+    static final int FREE_MONTHLY_VIDEO_MINUTES  =     1;
+    static final int SOLO_MONTHLY_VIDEO_MINUTES  =     5;
+    static final int TEAM_MONTHLY_VIDEO_MINUTES  =    30;
+    static final int PRO_MONTHLY_VIDEO_MINUTES   =   120;
+    /** ENTERPRISE / plan inconnu non facturé : illimité. */
+    static final int ENTERPRISE_MONTHLY_VIDEO_MINUTES = Integer.MAX_VALUE;
+
     private final SubscriptionRepository subscriptionRepository;
     private final UsageEventRepository usageEventRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -329,6 +343,37 @@ public class PlanLimitService {
     /** SF-122-04 : somme des pages OCR achetées (exposé pour l'UI billing). */
     public long getOcrPagesBought(UUID workspaceId) {
         return creditPurchaseService.getTotalOcrPagesBought(workspaceId);
+    }
+
+    // ── Quotas vidéo mensuels (SF-231-03) ────────────────────────────────
+
+    /**
+     * SF-231-03 : minutes vidéo autorisées pour le mois calendaire courant
+     * pour ce code de plan.
+     *
+     * @param planCode SOLO / TEAM / PRO / TRIAL / ENTERPRISE / FREE
+     * @return plafond mensuel ; {@link Integer#MAX_VALUE} pour ENTERPRISE / plan inconnu non facturé.
+     */
+    public int getMonthlyVideoMinutes(String planCode) {
+        if (planCode == null) return FREE_MONTHLY_VIDEO_MINUTES;
+        return switch (planCode) {
+            case "PRO"        -> PRO_MONTHLY_VIDEO_MINUTES;
+            case "TEAM"       -> TEAM_MONTHLY_VIDEO_MINUTES;
+            case "SOLO"       -> SOLO_MONTHLY_VIDEO_MINUTES;
+            case "TRIAL"      -> TRIAL_MONTHLY_VIDEO_MINUTES;
+            case "ENTERPRISE" -> ENTERPRISE_MONTHLY_VIDEO_MINUTES;
+            default           -> FREE_MONTHLY_VIDEO_MINUTES;
+        };
+    }
+
+    /**
+     * SF-231-03 : minutes vidéo autorisées pour le workspace (selon son plan actif).
+     * Aucune ligne d'abonnement → {@link #FREE_MONTHLY_VIDEO_MINUTES} (gate strict).
+     */
+    public int getMonthlyVideoMinutesForWorkspace(UUID workspaceId) {
+        return subscriptionRepository.findByWorkspaceId(workspaceId)
+                .map(sub -> getMonthlyVideoMinutes(sub.getPlanCode()))
+                .orElse(FREE_MONTHLY_VIDEO_MINUTES);
     }
 
     // ── Seats par plan (SF-123-02) ───────────────────────────────────────
