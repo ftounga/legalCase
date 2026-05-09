@@ -238,6 +238,94 @@ describe('DocumentPreviewDialogComponent', () => {
     });
   });
 
+  // SF-231-02 : aperçu vidéo (player HTML5 + thumbnail strip + Vision).
+  describe('SF-231-02 — video preview', () => {
+    const videoBase: DocumentPreview = {
+      ...base,
+      fileName: 'incident.mp4',
+      mimeType: 'video/mp4',
+      pageCount: null,
+      extractionMethod: 'NONE',
+      extractedText: 'Description Vision : altercation entre deux personnes…',
+      charCount: 60,
+      ocrPagesUsed: 0,
+      visualDescription: 'Description Vision : altercation entre deux personnes filmée en plan large.',
+      frameUrls: [
+        'https://s3.example/frame-1.png',
+        'https://s3.example/frame-2.png',
+        'https://s3.example/frame-3.png',
+        'https://s3.example/frame-4.png',
+        'https://s3.example/frame-5.png',
+      ],
+    };
+
+    it('U-V-01 — contentType vidéo → isVideo() true et videoUrl pointant vers /content', async () => {
+      await setup(videoBase);
+      expect(component.isVideo()).toBe(true);
+      expect(component.videoUrl()).toBe('/api/v1/case-files/cf-1/documents/d-1/content');
+    });
+
+    it('U-V-02 — contentType vidéo → player HTML5 affiché avec src signée', async () => {
+      await setup(videoBase);
+      const el: HTMLElement = fixture.nativeElement;
+      const video = el.querySelector('video[data-testid="video-player"]') as HTMLVideoElement | null;
+      expect(video).not.toBeNull();
+      expect(video!.getAttribute('controls')).not.toBeNull();
+      expect(video!.getAttribute('src')).toBe('/api/v1/case-files/cf-1/documents/d-1/content');
+    });
+
+    it('U-V-03 — 5 thumbnails affichées si frameUrls fournies', async () => {
+      await setup(videoBase);
+      const el: HTMLElement = fixture.nativeElement;
+      const strip = el.querySelector('[data-testid="video-frames-strip"]');
+      expect(strip).not.toBeNull();
+      const thumbs = el.querySelectorAll('.video-frame-thumb img');
+      expect(thumbs.length).toBe(5);
+      expect((thumbs[0] as HTMLImageElement).src).toContain('frame-1.png');
+    });
+
+    it('U-V-04 — frameUrls vide → 5 skeletons affichés (extraction en cours)', async () => {
+      await setup({ ...videoBase, frameUrls: [], extractionStatus: 'PROCESSING' });
+      const el: HTMLElement = fixture.nativeElement;
+      const skeletons = el.querySelectorAll('[data-testid="video-frame-skeleton"]');
+      expect(skeletons.length).toBe(5);
+      // Aucune vraie vignette
+      expect(el.querySelectorAll('.video-frame-thumb img').length).toBe(0);
+    });
+
+    it('U-V-05 — visualDescription affichée au-dessus du player (badge Legal Vision)', async () => {
+      await setup(videoBase);
+      const el: HTMLElement = fixture.nativeElement;
+      const panel = el.querySelector('.vision-panel-body');
+      expect(panel).not.toBeNull();
+      expect(panel!.textContent).toContain('altercation');
+      const title = el.querySelector('.vision-panel-title');
+      expect(title?.textContent).toContain('Legal Vision');
+    });
+
+    it('U-V-06 — visualDescription absente → pas de panneau Vision affiché', async () => {
+      await setup({ ...videoBase, visualDescription: null });
+      const el: HTMLElement = fixture.nativeElement;
+      // Il y a quand même la strip + player mais pas de panneau Vision
+      expect(el.querySelector('.vision-panel-body')).toBeNull();
+      expect(el.querySelector('video[data-testid="video-player"]')).not.toBeNull();
+    });
+
+    it('U-V-07 — contentType non vidéo → isVideo() false et pas de player', async () => {
+      await setup(base);
+      expect(component.isVideo()).toBe(false);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('video[data-testid="video-player"]')).toBeNull();
+      expect(el.querySelector('[data-testid="video-frames-strip"]')).toBeNull();
+    });
+
+    it('U-V-08 — extractionStatus FAILED sur vidéo → alerte Échec affichée', async () => {
+      await setup({ ...videoBase, extractionStatus: 'FAILED', failureReason: 'VIDEO_EXTRACTION_FAILED' as any });
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.textContent).toContain('Extraction visuelle échouée');
+    });
+  });
+
   // SF-145-08 : extractPagesRange unit tests (export pur)
   describe('SF-145-08 — extractPagesRange', () => {
     const text =
