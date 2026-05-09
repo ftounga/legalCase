@@ -121,6 +121,29 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
     return !!mt && mt.startsWith('video/');
   });
 
+  /** SF-232-01 : true si le document est une image (JPG / PNG / HEIC / WebP). */
+  readonly isImage = computed(() => {
+    const mt = this.preview()?.mimeType;
+    return !!mt && mt.startsWith('image/');
+  });
+
+  /**
+   * SF-232-01 : URL signée S3 du fichier image, consommée par le `<img [src]>`
+   * du dialog. Réutilise l'endpoint canonique `/content` déjà servi pour les
+   * PDF et les vidéos (aucun changement backend).
+   */
+  readonly imageUrl = computed<string>(() =>
+    `/api/v1/case-files/${this.data.caseFileId}/documents/${this.data.documentId}/content`
+  );
+
+  /** SF-232-01 : true quand l'image n'a pas pu être chargée (404, S3 expirée, HEIC sur navigateur incompatible). */
+  readonly imageLoadFailed = signal(false);
+
+  /** SF-232-01 : handler appelé quand le `<img>` échoue à charger — bascule sur le placeholder. */
+  onImageError(): void {
+    this.imageLoadFailed.set(true);
+  }
+
   /**
    * SF-231-02 : URL streaming signée S3 du fichier vidéo, consommée par le
    * `<video controls [src]>` du dialog. Réutilise l'endpoint canonique

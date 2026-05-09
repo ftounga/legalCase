@@ -326,6 +326,76 @@ describe('DocumentPreviewDialogComponent', () => {
     });
   });
 
+  // SF-232-01 : aperçu image (JPG / PNG / HEIC / WebP).
+  describe('SF-232-01 — image preview', () => {
+    const imageBase: DocumentPreview = {
+      ...base,
+      fileName: 'sms-conjoint.png',
+      mimeType: 'image/png',
+      pageCount: 1,
+      extractionMethod: 'OCR',
+      extractedText: 'Capture iMessage : "Tu vas voir ce qui va t\'arriver"',
+      charCount: 50,
+      ocrPagesUsed: 1,
+    };
+
+    it('T-IMG-01 — mimeType image/jpeg → isImage() true', async () => {
+      await setup({ ...imageBase, mimeType: 'image/jpeg' });
+      expect(component.isImage()).toBe(true);
+    });
+
+    it('T-IMG-02 — mimeType application/pdf → isImage() false', async () => {
+      await setup(base);
+      expect(component.isImage()).toBe(false);
+    });
+
+    it('T-IMG-03 — mimeType video/mp4 → isImage() false', async () => {
+      await setup({ ...base, mimeType: 'video/mp4' });
+      expect(component.isImage()).toBe(false);
+    });
+
+    it('T-IMG-04 — imageUrl() pointe sur /api/v1/case-files/{cf}/documents/{doc}/content', async () => {
+      await setup(imageBase);
+      expect(component.imageUrl()).toBe('/api/v1/case-files/cf-1/documents/d-1/content');
+    });
+
+    it('T-IMG-05 — image rendue dans le DOM si isImage() true', async () => {
+      await setup(imageBase);
+      const el: HTMLElement = fixture.nativeElement;
+      const img = el.querySelector('img[data-testid="image-preview"]') as HTMLImageElement | null;
+      expect(img).not.toBeNull();
+      expect(img!.getAttribute('src')).toBe('/api/v1/case-files/cf-1/documents/d-1/content');
+      expect(img!.getAttribute('alt')).toBe('sms-conjoint.png');
+    });
+
+    it('T-IMG-06 — image absente du DOM si isImage() false (PDF, vidéo)', async () => {
+      await setup(base); // PDF
+      expect(fixture.nativeElement.querySelector('img[data-testid="image-preview"]')).toBeNull();
+
+      await setup({ ...base, mimeType: 'video/mp4' });
+      expect(fixture.nativeElement.querySelector('img[data-testid="image-preview"]')).toBeNull();
+    });
+
+    it('T-IMG-07 — bloc texte extrait reste visible quand image en DONE', async () => {
+      await setup(imageBase);
+      const el: HTMLElement = fixture.nativeElement;
+      const pre = el.querySelector('pre.extracted-text');
+      expect(pre).not.toBeNull();
+      expect(pre!.textContent).toContain('Capture iMessage');
+    });
+
+    it('T-IMG-08 — onImageError() bascule sur le placeholder', async () => {
+      await setup(imageBase);
+      expect(component.imageLoadFailed()).toBe(false);
+      component.onImageError();
+      fixture.detectChanges();
+      expect(component.imageLoadFailed()).toBe(true);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('[data-testid="image-preview-placeholder"]')).not.toBeNull();
+      expect(el.querySelector('img[data-testid="image-preview"]')).toBeNull();
+    });
+  });
+
   // SF-145-08 : extractPagesRange unit tests (export pur)
   describe('SF-145-08 — extractPagesRange', () => {
     const text =
