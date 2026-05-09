@@ -115,6 +115,34 @@ export class DocumentPreviewDialogComponent implements AfterViewInit {
 
   readonly isPdf = computed(() => this.preview()?.mimeType === 'application/pdf');
 
+  /** SF-231-02 : true si le document est une vidéo (MP4 / MOV). */
+  readonly isVideo = computed(() => {
+    const mt = this.preview()?.mimeType;
+    return !!mt && mt.startsWith('video/');
+  });
+
+  /**
+   * SF-231-02 : URL streaming signée S3 du fichier vidéo, consommée par le
+   * `<video controls [src]>` du dialog. Réutilise l'endpoint canonique
+   * `/api/v1/case-files/{cf}/documents/{doc}/content` déjà servi pour les
+   * PDF (Range request, lecture en streaming).
+   */
+  readonly videoUrl = computed<string>(() =>
+    `/api/v1/case-files/${this.data.caseFileId}/documents/${this.data.documentId}/content`
+  );
+
+  /**
+   * SF-231-02 : URLs des 5 vignettes (frames extraites par ffmpeg côté
+   * backend SF-231-01). Vide si extraction encore en cours → l'UI affiche
+   * un skeleton loader.
+   */
+  readonly frameUrls = computed<string[]>(() => this.preview()?.frameUrls ?? []);
+
+  /** SF-231-02 : description visuelle Legal Vision multi-frames de la vidéo. */
+  readonly videoVisualDescription = computed<string | null>(() =>
+    this.preview()?.visualDescription ?? null
+  );
+
   readonly pieceTypeIcon = documentPieceTypeIcon;
   readonly pieceTypeLabel = documentPieceTypeLabel;
 

@@ -1,8 +1,14 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpHeaders, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Document } from '../models/document.model';
 import { DocumentPreview } from '../models/document-preview.model';
+
+/** SF-231-02 : options additionnelles pour l'upload (durée vidéo en secondes). */
+export interface UploadOptions {
+  /** Durée vidéo arrondie en secondes (header `X-Video-Duration-Seconds`), uniquement pour MP4/MOV. */
+  videoDurationSeconds?: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
@@ -16,20 +22,28 @@ export class DocumentService {
     return this.http.get<Document[]>(this.apiUrl(caseFileId));
   }
 
-  upload(caseFileId: string, file: File, ocrFormsMode = false, ocrEnabled = true): Observable<Document> {
+  upload(caseFileId: string, file: File, ocrFormsMode = false, ocrEnabled = true, options: UploadOptions = {}): Observable<Document> {
     const formData = new FormData();
     formData.append('file', file);
     if (ocrFormsMode) formData.append('ocrFormsMode', 'true');
     if (!ocrEnabled) formData.append('ocrEnabled', 'false');
-    return this.http.post<Document>(this.apiUrl(caseFileId), formData);
+    let headers = new HttpHeaders();
+    if (options.videoDurationSeconds !== undefined && options.videoDurationSeconds !== null) {
+      headers = headers.set('X-Video-Duration-Seconds', String(options.videoDurationSeconds));
+    }
+    return this.http.post<Document>(this.apiUrl(caseFileId), formData, { headers });
   }
 
-  uploadWithProgress(caseFileId: string, file: File, ocrFormsMode = false, ocrEnabled = true): Observable<HttpEvent<Document>> {
+  uploadWithProgress(caseFileId: string, file: File, ocrFormsMode = false, ocrEnabled = true, options: UploadOptions = {}): Observable<HttpEvent<Document>> {
     const formData = new FormData();
     formData.append('file', file);
     if (ocrFormsMode) formData.append('ocrFormsMode', 'true');
     if (!ocrEnabled) formData.append('ocrEnabled', 'false');
-    const req = new HttpRequest('POST', this.apiUrl(caseFileId), formData, { reportProgress: true });
+    let headers = new HttpHeaders();
+    if (options.videoDurationSeconds !== undefined && options.videoDurationSeconds !== null) {
+      headers = headers.set('X-Video-Duration-Seconds', String(options.videoDurationSeconds));
+    }
+    const req = new HttpRequest('POST', this.apiUrl(caseFileId), formData, { reportProgress: true, headers });
     return this.http.request<Document>(req);
   }
 

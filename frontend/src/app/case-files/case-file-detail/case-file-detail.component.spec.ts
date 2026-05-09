@@ -476,6 +476,204 @@ describe('CaseFileDetailComponent', () => {
     });
   });
 
+  // ──────────────────────────────────────────────────────────────────────
+  // SF-231-02 : upload vidéo (validation taille + durée + header X-Video-Duration-Seconds)
+  // ──────────────────────────────────────────────────────────────────────
+  describe('SF-231-02 — upload vidéo MP4/MOV', () => {
+    /**
+     * Mock minimal de HTMLVideoElement pour piloter onloadedmetadata / onerror
+     * sans aucun parsing réel. Renvoie un objet exposé via createElement('video').
+     */
+    function installVideoMock(): {
+      duration: number;
+      triggerLoad: () => void;
+      triggerError: () => void;
+      lastInstance: any;
+    } {
+      const ctrl: any = { duration: 0, triggerLoad: null, triggerError: null, lastInstance: null };
+      const orig = document.createElement.bind(document);
+      jest.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        if (tag === 'video') {
+          const el: any = {
+            preload: '',
+            src: '',
+            duration: 0,
+            onloadedmetadata: null as null | (() => void),
+            onerror: null as null | (() => void),
+          };
+          ctrl.lastInstance = el;
+          ctrl.triggerLoad = () => {
+            el.duration = ctrl.duration;
+            if (typeof el.onloadedmetadata === 'function') el.onloadedmetadata();
+          };
+          ctrl.triggerError = () => {
+            if (typeof el.onerror === 'function') el.onerror();
+          };
+          return el;
+        }
+        return orig(tag);
+      });
+      // Stubs URL.createObjectURL / revokeObjectURL (jsdom ne les fournit pas).
+      (URL as any).createObjectURL = jest.fn(() => 'blob:mock');
+      (URL as any).revokeObjectURL = jest.fn();
+      return ctrl;
+    }
+
+    function makeVideoFile(name: string, type = 'video/mp4', size = 5 * 1024 * 1024): File {
+      const f = new File([new Uint8Array(0)], name, { type });
+      Object.defineProperty(f, 'size', { value: size });
+      return f;
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('T-V-01 — sélection MP4 valide (15 s) → ajout au panier + durée stockée', () => {
+      const ctrl = installVideoMock();
+      ctrl.duration = 15.4; // arrondi → 16 s
+
+      const video = makeVideoFile('clip.mp4', 'video/mp4', 10 * 1024 * 1024);
+      const event = { target: { files: [video], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+      // Lecture asynchrone : déclenche onloadedmetadata.
+      ctrl.triggerLoad();
+
+      expect(component.pendingFiles().length).toBe(1);
+      expect(component.pendingFiles()[0].name).toBe('clip.mp4');
+      expect(component.videoDurationsByName().get('clip.mp4')).toBe(16);
+      // Pas de snackbar erreur.
+      expect(snackBarSpy.open).not.toHaveBeenCalled();
+    });
+
+    it('T-V-02 — sélection MOV valide (video/quicktime) → ajout au panier', () => {
+      const ctrl = installVideoMock();
+      ctrl.duration = 30;
+
+      const video = makeVideoFile('clip.mov', 'video/quicktime', 8 * 1024 * 1024);
+      const event = { target: { files: [video], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+      ctrl.triggerLoad();
+
+      expect(component.pendingFiles().length).toBe(1);
+      expect(component.videoDurationsByName().get('clip.mov')).toBe(30);
+    });
+
+    it('T-V-03 — sélection MP4 > 60 s → snackbar erreur + pas d\'ajout', () => {
+      const ctrl = installVideoMock();
+      ctrl.duration = 90;
+
+      const video = makeVideoFile('long.mp4', 'video/mp4', 5 * 1024 * 1024);
+      const event = { target: { files: [video], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+      ctrl.triggerLoad();
+
+      expect(component.pendingFiles().length).toBe(0);
+      expect(component.videoDurationsByName().size).toBe(0);
+      expect(snackBarSpy.open).toHaveBeenCalled();
+      const msg = snackBarSpy.open.mock.calls[0][0] as string;
+      expect(msg).toContain('trop longue');
+    });
+
+    it('T-V-04 — sélection MP4 > 100 Mo → snackbar erreur + pas d\'ajout (pas de lecture durée)', () => {
+      installVideoMock();
+
+      const oversized = makeVideoFile('big.mp4', 'video/mp4', 110 * 1024 * 1024);
+      const event = { target: { files: [oversized], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(0);
+      expect(snackBarSpy.open).toHaveBeenCalled();
+      const msg = snackBarSpy.open.mock.calls[0][0] as string;
+      expect(msg).toContain('trop volumineuse');
+    });
+
+    it('T-V-05 — uploadPendingFiles d\'une vidéo → header X-Video-Duration-Seconds transmis', () => {
+      const ctrl = installVideoMock();
+      ctrl.duration = 22;
+
+      const video = makeVideoFile('clip.mp4');
+      component.onFileSelected({ target: { files: [video], value: '' } } as unknown as Event);
+      ctrl.triggerLoad();
+      expect(component.pendingFiles().length).toBe(1);
+
+      const newDoc: Document = { ...mockDocument, id: 'doc-vid', originalFilename: 'clip.mp4', contentType: 'video/mp4' };
+      documentServiceSpy.uploadWithProgress.mockReturnValue(of(new HttpResponse({ body: newDoc })));
+
+      component.uploadPendingFiles();
+
+      expect(documentServiceSpy.uploadWithProgress).toHaveBeenCalledWith(
+        'cf1', video, false, true,
+        expect.objectContaining({ videoDurationSeconds: 22 })
+      );
+      // Reset du Map après upload.
+      expect(component.videoDurationsByName().size).toBe(0);
+    });
+
+    it('T-V-06 — uploadPendingFiles d\'un PDF (non vidéo) → pas de videoDurationSeconds', () => {
+      const pdf = new File(['x'], 'doc.pdf', { type: 'application/pdf' });
+      component.pendingFiles.set([pdf]);
+      const newDoc: Document = { ...mockDocument };
+      documentServiceSpy.uploadWithProgress.mockReturnValue(of(new HttpResponse({ body: newDoc })));
+
+      component.uploadPendingFiles();
+
+      expect(documentServiceSpy.uploadWithProgress).toHaveBeenCalledWith(
+        'cf1', pdf, false, true,
+        expect.objectContaining({ videoDurationSeconds: undefined })
+      );
+    });
+
+    it('T-V-07 — onerror du <video> → snackbar erreur (format illisible)', () => {
+      const ctrl = installVideoMock();
+
+      const video = makeVideoFile('corrupt.mp4');
+      component.onFileSelected({ target: { files: [video], value: '' } } as unknown as Event);
+      ctrl.triggerError();
+
+      expect(component.pendingFiles().length).toBe(0);
+      expect(snackBarSpy.open).toHaveBeenCalled();
+      const msg = snackBarSpy.open.mock.calls[0][0] as string;
+      expect(msg).toContain('illisible');
+    });
+
+    it('T-V-08 — removePendingFile sur vidéo → durée nettoyée du Map', () => {
+      const ctrl = installVideoMock();
+      ctrl.duration = 10;
+
+      const video = makeVideoFile('clip.mp4');
+      component.onFileSelected({ target: { files: [video], value: '' } } as unknown as Event);
+      ctrl.triggerLoad();
+      expect(component.videoDurationsByName().get('clip.mp4')).toBe(10);
+
+      component.removePendingFile(video);
+      expect(component.videoDurationsByName().has('clip.mp4')).toBe(false);
+      expect(component.pendingFiles().length).toBe(0);
+    });
+
+    it('T-V-09 — sélection mixte (PDF + MP4) → PDF ajouté immédiatement, MP4 après onloadedmetadata', () => {
+      const ctrl = installVideoMock();
+      ctrl.duration = 12;
+
+      const pdf = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+      const video = makeVideoFile('b.mp4');
+      const event = { target: { files: [pdf, video], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+      // PDF déjà ajouté de façon synchrone.
+      expect(component.pendingFiles().some(f => f.name === 'a.pdf')).toBe(true);
+      // Vidéo pas encore (en attente metadata).
+      expect(component.pendingFiles().some(f => f.name === 'b.mp4')).toBe(false);
+
+      ctrl.triggerLoad();
+      expect(component.pendingFiles().some(f => f.name === 'b.mp4')).toBe(true);
+    });
+  });
+
   it('formatSize — octets', () => {
     expect(component.formatSize(500)).toBe('500 o');
   });

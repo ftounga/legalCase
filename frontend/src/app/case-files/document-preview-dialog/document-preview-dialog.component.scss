@@ -472,3 +472,79 @@
     border-bottom: 1px solid #e0e6ed;
   }
 }
+
+/* SF-231-02 : aperçu vidéo (player HTML5 + thumbnail strip + Vision). */
+.video-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.video-player-wrapper {
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.video-player {
+  display: block;
+  width: 100%;
+  max-height: 50vh;
+  background: #000;
+  outline: none;
+}
+
+.video-frames-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 0;
+}
+
+.video-frame-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid #E0E4EA;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f5f7fa;
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.video-frame-thumb:hover {
+  border-color: #C9973A;
+  transform: translateY(-1px);
+}
+
+.video-frame-thumb:focus-visible {
+  outline: 2px solid #C9973A;
+  outline-offset: 2px;
+}
+
+.video-frame-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-frame-thumb--skeleton {
+  background: linear-gradient(90deg, #f0f3f7 0%, #e8edf2 50%, #f0f3f7 100%);
+  background-size: 200% 100%;
+  animation: video-frame-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes video-frame-skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (max-width: 720px) {
+  .video-frames-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

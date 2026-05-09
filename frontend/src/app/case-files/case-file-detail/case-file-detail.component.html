@@ -103,7 +103,7 @@
           @if (documents().length > 0) {
             <span class="td-chip">{{ documents().length }} document{{ documents().length > 1 ? 's' : '' }}</span>
           }
-          <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic,.webp" multiple hidden (change)="onFileSelected($event)">
+          <input #fileInput type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.heic,.webp,.mp4,.mov" multiple hidden (change)="onFileSelected($event)">
           <button mat-raised-button color="primary" data-tour-target="upload-trigger-btn"
                   (click)="triggerUpload(); $event.stopPropagation()"
                   [disabled]="!canUpload()">

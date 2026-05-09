@@ -36,8 +36,68 @@
     </div>
   </div>
 
-  <mat-dialog-content class="preview-content" [class.preview-content--with-sidebar]="hasPieces()">
-    @if (hasPieces()) {
+  <mat-dialog-content class="preview-content" [class.preview-content--with-sidebar]="hasPieces() && !isVideo()">
+    @if (isVideo()) {
+      <!-- SF-231-02 : aperçu vidéo (player HTML5 + thumbnail strip + Legal Vision). -->
+      <div class="preview-main video-main">
+        @if (videoVisualDescription()) {
+          <div class="vision-panel">
+            <div class="vision-panel-header">
+              <mat-icon class="vision-panel-icon">visibility</mat-icon>
+              <span class="vision-panel-title">Description visuelle (Legal Vision)</span>
+            </div>
+            <div class="vision-panel-body">{{ videoVisualDescription() }}</div>
+          </div>
+        }
+
+        <div class="video-player-wrapper">
+          <video controls preload="metadata" class="video-player" [src]="videoUrl()" data-testid="video-player">
+            Votre navigateur ne supporte pas la lecture vidéo HTML5.
+          </video>
+        </div>
+
+        <div class="video-frames-strip" data-testid="video-frames-strip"
+             aria-label="Vignettes des frames extraites">
+          @if (frameUrls().length > 0) {
+            @for (frameUrl of frameUrls(); track frameUrl; let idx = $index) {
+              <a class="video-frame-thumb"
+                 [href]="frameUrl"
+                 target="_blank"
+                 rel="noopener"
+                 [attr.aria-label]="'Frame ' + (idx + 1) + ' (ouvrir en plein format)'">
+                <img [src]="frameUrl" [alt]="'Frame ' + (idx + 1)" loading="lazy">
+              </a>
+            }
+          } @else {
+            <!-- Skeleton loader si frames non encore disponibles. -->
+            @for (i of [1,2,3,4,5]; track i) {
+              <div class="video-frame-thumb video-frame-thumb--skeleton"
+                   data-testid="video-frame-skeleton"
+                   aria-hidden="true"></div>
+            }
+          }
+        </div>
+
+        @if (p.extractionStatus === 'FAILED') {
+          <div class="alert alert-error">
+            <mat-icon>error</mat-icon>
+            <div>
+              <div class="alert-title">Extraction visuelle échouée</div>
+              <div class="alert-body">
+                Cette vidéo ne sera pas prise en compte par l'IA.
+                @if (p.failureReason) { Motif : {{ p.failureReason }}. }
+              </div>
+            </div>
+          </div>
+        } @else if (p.extractionStatus !== 'DONE') {
+          <div class="alert alert-info">
+            <mat-icon>hourglass_empty</mat-icon>
+            <div class="alert-body">Extraction des frames en cours — revenez dans quelques instants.</div>
+          </div>
+        }
+      </div>
+    } @else {
+      @if (hasPieces()) {
       <aside class="pieces-sidebar">
         <div class="pieces-sidebar-header">
           Pièces identifiées ({{ pieces().length }})
@@ -75,7 +135,7 @@
           }
         </ul>
       </aside>
-    }
+      }
 
     <div class="preview-main">
       @if (hasPieces() && selectedPiece(); as sp) {
@@ -247,6 +307,7 @@
         </mat-tab-group>
       }
     </div>
+    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

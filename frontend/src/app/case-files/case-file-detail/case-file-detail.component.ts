@@ -74,10 +74,14 @@ export const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.web
 /** SF-230-02 — Extensions documents non-image autorisées historiquement. */
 export const ALLOWED_DOCUMENT_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt'] as const;
 
-/** SF-230-02 — Liste blanche complète d'extensions autorisées (documents + images). */
+/** SF-231-02 — Extensions vidéo autorisées (fallback si contentType vide). */
+export const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov'] as const;
+
+/** SF-230-02 / SF-231-02 — Liste blanche complète d'extensions autorisées (documents + images + vidéos). */
 export const ALLOWED_FILE_EXTENSIONS = [
   ...ALLOWED_DOCUMENT_EXTENSIONS,
   ...ALLOWED_IMAGE_EXTENSIONS,
+  ...ALLOWED_VIDEO_EXTENSIONS,
 ] as const;
 
 /**
@@ -85,6 +89,13 @@ export const ALLOWED_FILE_EXTENSIONS = [
  * Plus restrictif que la limite globale 50 Mo car une photo iPhone 4K HEIC ≈ 5-8 Mo.
  */
 export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** SF-231-02 : MIME types acceptés pour l'upload vidéo. */
+export const ALLOWED_VIDEO_TYPES: readonly string[] = ['video/mp4', 'video/quicktime'];
+/** SF-231-02 : taille max d'un fichier vidéo (100 Mo). */
+export const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024;
+/** SF-231-02 : durée max d'un fichier vidéo (60 s). */
+export const MAX_VIDEO_DURATION_SECONDS = 60;
 
 /** SF-230-02 — Détection MIME type d'une image autorisée. */
 function isImageContentType(contentType: string | null | undefined): boolean {
@@ -118,7 +129,7 @@ function isHeicFile(file: File): boolean {
 }
 
 /**
- * SF-230-02 — Le fichier est-il un format supporté par l'app (extension présente
+ * SF-230-02 / SF-231-02 — Le fichier est-il un format supporté par l'app (extension présente
  * dans la liste blanche) ? Permet de rejeter `.svg`/`.gif` même si la dialog OS
  * "tous fichiers" les a laissés passer.
  */
@@ -362,6 +373,13 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
    * ou destruction du composant pour éviter toute fuite mémoire.
    */
   pendingThumbnails = signal<Map<string, string>>(new Map());
+  /**
+   * SF-231-02 : durée arrondie en secondes par fichier vidéo en attente
+   * (clé = `file.name`). Renseignée par `onFileSelected` après lecture
+   * asynchrone de la durée HTML5, consommée par `uploadPendingFiles` pour
+   * envoyer le header `X-Video-Duration-Seconds` requis par le backend.
+   */
+  videoDurationsByName = signal<Map<string, number>>(new Map());
   /** SF-122-07 : si coché (défaut), un PDF scanné déclenche l'OCR Textract en
    * fallback. Si décoché, le scan reste non analysable (aucun appel AWS, quota
    * préservé). L'avocat pourra toujours réactiver l'OCR a posteriori via le
@@ -1234,6 +1252,11 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
     const MAX_SIZE = 50 * 1024 * 1024;
 
+    // SF-231-02 : sépare d'abord les vidéos — elles ont leur propre limite de taille
+    // (100 Mo) et un contrôle asynchrone de la durée géré par `validateAndAddVideo`.
+    const videos = files.filter(f => this.isVideoFile(f));
+    const nonVideos = files.filter(f => !this.isVideoFile(f));
+
     // SF-230-02 : 3 niveaux de validation côté client (avant tout appel serveur).
     //   1) Extension dans la liste blanche (rejette `.svg`, `.gif` etc. même si
     //      la dialog OS "tous fichiers" les a laissés passer).
@@ -1244,7 +1267,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const oversized: File[] = [];
     const valid: File[] = [];
 
-    for (const f of files) {
+    for (const f of nonVideos) {
       if (!isSupportedFileExtension(f)) {
         unsupported.push(f);
         continue;
@@ -1263,7 +1286,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
 
     if (unsupported.length > 0) {
       this.snackBar.open(
-        `${unsupported.length} fichier(s) au format non supporté ignoré(s). Formats acceptés : PDF, DOC, DOCX, TXT, JPG, PNG, HEIC, WebP.`,
+        `${unsupported.length} fichier(s) au format non supporté ignoré(s). Formats acceptés : PDF, DOC, DOCX, TXT, JPG, PNG, HEIC, WebP, MP4, MOV.`,
         'Fermer', { duration: 5000, panelClass: ['snack-error'] }
       );
     }
@@ -1298,11 +1321,82 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       // la liste pendingFiles et le bouton "Uploader les documents" doivent redevenir visibles.
       this.docsCollapsed.set(false);
     }
+
+    // SF-231-02 : validation taille + durée asynchrone pour chaque vidéo.
+    for (const video of videos) {
+      this.validateAndAddVideo(video);
+    }
+  }
+
+  /** SF-231-02 : true si le fichier est une vidéo MP4 ou MOV. */
+  private isVideoFile(file: File): boolean {
+    return ALLOWED_VIDEO_TYPES.includes(file.type);
+  }
+
+  /**
+   * SF-231-02 : valide une vidéo (taille + durée) et l'ajoute au panier si OK.
+   * - Taille > 100 Mo → snackbar erreur, pas d'ajout.
+   * - Lit la durée via HTML5 `<video>.onloadedmetadata`.
+   * - Durée > 60 s → snackbar erreur, pas d'ajout.
+   * - Sinon : ajoute au panier + stocke la durée arrondie pour l'upload.
+   */
+  private validateAndAddVideo(file: File): void {
+    if (file.size > MAX_VIDEO_SIZE_BYTES) {
+      this.snackBar.open(
+        `Vidéo « ${file.name} » trop volumineuse : 100 Mo max.`,
+        'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+      );
+      return;
+    }
+
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    const objectUrl = URL.createObjectURL(file);
+    video.src = objectUrl;
+    video.onloadedmetadata = () => {
+      const rawDuration = video.duration;
+      URL.revokeObjectURL(objectUrl);
+      if (!isFinite(rawDuration) || rawDuration <= 0) {
+        this.snackBar.open(
+          `Vidéo « ${file.name} » illisible : durée indéterminée.`,
+          'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+        );
+        return;
+      }
+      const duration = Math.ceil(rawDuration);
+      if (duration > MAX_VIDEO_DURATION_SECONDS) {
+        this.snackBar.open(
+          `Vidéo « ${file.name} » trop longue : ${MAX_VIDEO_DURATION_SECONDS} s max (durée détectée : ${duration} s).`,
+          'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+        );
+        return;
+      }
+      // OK : on enregistre la durée et on ajoute au panier.
+      this.videoDurationsByName.update(m => new Map(m).set(file.name, duration));
+      this.pendingFiles.update(current => [...current, file]);
+      this.docsCollapsed.set(false);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      this.snackBar.open(
+        `Vidéo « ${file.name} » illisible ou format non supporté.`,
+        'Fermer', { duration: 5000, panelClass: ['snack-error'] }
+      );
+    };
   }
 
   removePendingFile(file: File): void {
     this.revokeThumbnailFor(file.name);
     this.pendingFiles.update(files => files.filter(f => f !== file));
+    // SF-231-02 : nettoie la durée vidéo associée pour ne pas envoyer un
+    // header X-Video-Duration-Seconds périmé sur un futur fichier homonyme.
+    if (this.isVideoFile(file)) {
+      this.videoDurationsByName.update(m => {
+        const next = new Map(m);
+        next.delete(file.name);
+        return next;
+      });
+    }
   }
 
   /** SF-230-02 — Le fichier en attente est-il un HEIC ? Utilisé par le template
@@ -1348,8 +1442,15 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
     const ocrEnabled = this.ocrEnabled();
     // Cohérence : si OCR désactivé, forms mode ignoré (checkbox grisée côté UI)
     const effectiveFormsMode = ocrEnabled && formsMode;
-    const uploads = files.map(f =>
-      this.documentService.uploadWithProgress(caseFileId, f, effectiveFormsMode, ocrEnabled).pipe(
+    const durations = this.videoDurationsByName();
+    const uploads = files.map(f => {
+      // SF-231-02 : pour une vidéo, on transmet le header X-Video-Duration-Seconds
+      // (validation backend SF-231-01 — rejet 400 sinon).
+      const videoDurationSeconds = this.isVideoFile(f) ? durations.get(f.name) : undefined;
+      return this.documentService.uploadWithProgress(
+        caseFileId, f, effectiveFormsMode, ocrEnabled,
+        { videoDurationSeconds }
+      ).pipe(
         tap(event => {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             const pct = Math.round((event.loaded / event.total) * 100);
@@ -1359,8 +1460,8 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
         filter(event => event.type === HttpEventType.Response),
         map(event => (event as HttpResponse<Document>).body as Document),
         catchError(err => of({ error: err }))
-      )
-    );
+      );
+    });
 
     forkJoin(uploads).subscribe(results => {
       const succeeded = results.filter(r => !('error' in r)) as Document[];
@@ -1373,6 +1474,7 @@ export class CaseFileDetailComponent implements OnInit, OnDestroy {
       // images après upload. Évite la fuite mémoire (chaque blob retenu = ~taille
       // image × N fichiers).
       this.revokeAllThumbnails();
+      this.videoDurationsByName.set(new Map()); // SF-231-02 : reset après batch
       this.ocrFormsMode.set(false); // SF-122-03 : reset après chaque batch
       this.ocrEnabled.set(true);    // SF-122-07 : reset après chaque batch
 
