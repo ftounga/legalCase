@@ -220,6 +220,98 @@ describe('ReferentialsComponent — cas nominal (OWNER)', () => {
     const result = component.formatValue(entry, 'IMMIGRATION_TITLES');
     expect(result).toBe('not-json');
   });
+
+  // ----- SF-225-01 : 5 types orphelins -----
+
+  // REF-UI-23 : SECTION_LABELS humains pour les 5 types orphelins
+  it('REF-UI-23: SECTION_LABELS expose un libellé français pour les 5 types orphelins', () => {
+    // On vérifie via formatValue indirectement et via le rendu — mais le label
+    // est appliqué dans buildSections(). Test via vérification : un payload de
+    // chaque type produit un titre humain (pas le code DB) une fois mappé.
+    const expected: Record<string, string> = {
+      CONVENTION_PREAVIS:           'Convention collective — Préavis',
+      TRAVAIL_PROCEDURE_JALONS:     'Droit du travail — Jalons procéduraux',
+      FAMILLE_PROCEDURE_JALONS:     'Droit de la famille — Jalons procéduraux',
+      MAJEURS_PROTEGES_REGIMES:     'Majeurs protégés — Régimes',
+      IM21_VALIDITY_CRITERES:       'Immigration — Critères de validité (F-IM-21)',
+    };
+    // buildSections est privé — on l'invoque via le casting any (acceptable pour test).
+    for (const [type, label] of Object.entries(expected)) {
+      const sections = (component as any).buildSections({
+        domain: 'X',
+        sections: { [type]: [{ key: 'X', label: 'X', valueJson: '{}', isSystem: true }] },
+      });
+      expect(sections[0].title).toBe(label);
+    }
+  });
+
+  // REF-UI-24 : sectionIcon pour les 5 types orphelins
+  it('REF-UI-24: sectionIcon retourne une icône métier (pas info générique) pour les 5 types', () => {
+    expect(component.sectionIcon('CONVENTION_PREAVIS')).toBe('description');
+    expect(component.sectionIcon('TRAVAIL_PROCEDURE_JALONS')).toBe('event_note');
+    expect(component.sectionIcon('FAMILLE_PROCEDURE_JALONS')).toBe('event_note');
+    expect(component.sectionIcon('MAJEURS_PROTEGES_REGIMES')).toBe('accessibility');
+    expect(component.sectionIcon('IM21_VALIDITY_CRITERES')).toBe('verified');
+  });
+
+  // REF-UI-25 : formatValue CONVENTION_PREAVIS
+  it('REF-UI-25: formatValue CONVENTION_PREAVIS → mentionne catégories et article, pas de JSON brut', () => {
+    const entry = { key: 'IDCC_2120', label: 'Banque', isSystem: true,
+      valueJson: '{"fonctions":{"OUVRIER":[{"min":0,"max":6,"mois":1}],"CADRE":[{"min":0,"max":null,"mois":3}]},"article":"CCN Banque art. 27"}' };
+    const result = component.formatValue(entry, 'CONVENTION_PREAVIS');
+    expect(result).toContain('CCN Banque art. 27');
+    expect(result).toContain('OUVRIER');
+    expect(result).toContain('CADRE');
+    expect(result).toContain('catégorie');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-26 : formatValue TRAVAIL_PROCEDURE_JALONS
+  it('REF-UI-26: formatValue TRAVAIL_PROCEDURE_JALONS → liste lisible des jalons', () => {
+    const entry = { key: 'PRUDHOMMES_FR', label: 'Prud\'hommes', isSystem: true,
+      valueJson: '[{"label":"BCO","offsetDays":45,"articleRef":"R.1452-3"},{"label":"Jugement","offsetDays":270}]' };
+    const result = component.formatValue(entry, 'TRAVAIL_PROCEDURE_JALONS');
+    expect(result).toContain('BCO');
+    expect(result).toContain('J+45');
+    expect(result).toContain('R.1452-3');
+    expect(result).toContain('Jugement');
+    expect(result).toContain('J+270');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-27 : formatValue FAMILLE_PROCEDURE_JALONS
+  it('REF-UI-27: formatValue FAMILLE_PROCEDURE_JALONS → liste lisible', () => {
+    const entry = { key: 'TRIBUNAL_FAMILLE_BE', label: 'Tribunal famille BE', isSystem: true,
+      valueJson: '[{"label":"Dépôt requête","offsetDays":0,"articleRef":"CJ Art. 572bis"}]' };
+    const result = component.formatValue(entry, 'FAMILLE_PROCEDURE_JALONS');
+    expect(result).toContain('Dépôt requête');
+    expect(result).toContain('J+0');
+    expect(result).toContain('CJ Art. 572bis');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-28 : formatValue MAJEURS_PROTEGES_REGIMES
+  it('REF-UI-28: formatValue MAJEURS_PROTEGES_REGIMES → délais et nombre d\'articles/critères', () => {
+    const entry = { key: 'CURATELLE_SIMPLE', label: 'Curatelle simple', isSystem: true,
+      valueJson: '{"articles":["Cciv 425","Cciv 440"],"delaiProcedureMois":8,"delaiInitialAnsMax":5,"renouvelable":true,"criteresEligibilite":["A","B","C"]}' };
+    const result = component.formatValue(entry, 'MAJEURS_PROTEGES_REGIMES');
+    expect(result).toContain('8 mois');
+    expect(result).toContain('5 ans');
+    expect(result).toContain('renouvelable');
+    expect(result).toContain('2 articles');
+    expect(result).toContain('3 critères');
+    expect(result).not.toContain('{');
+  });
+
+  // REF-UI-29 : formatValue IM21_VALIDITY_CRITERES
+  it('REF-UI-29: formatValue IM21_VALIDITY_CRITERES → mention du caractère binaire et description', () => {
+    const entry = { key: 'IM21_REGULARITE_SEJOUR_FR', label: 'Régularité', isSystem: true,
+      valueJson: '{"binaire":true,"description":"Le demandeur est-il en situation régulière ?"}' };
+    const result = component.formatValue(entry, 'IM21_VALIDITY_CRITERES');
+    expect(result).toContain('binaire');
+    expect(result).toContain('Le demandeur est-il en situation régulière');
+    expect(result).not.toContain('{');
+  });
 });
 
 describe('ReferentialsComponent — erreur API', () => {

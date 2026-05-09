@@ -71,6 +71,8 @@ export class ReferentialEditDialogComponent {
   get convCongesSupp(): FormArray { return this.form.get('convCongesSupp') as FormArray; }
   get convPrimes(): FormArray     { return this.form.get('convPrimes') as FormArray; }
   get jalons(): FormArray         { return this.form.get('jalons') as FormArray; }
+  // SF-225-01 : FormArray pour les jalons procéduraux étendus (label, offsetDays, articleRef)
+  get procedureJalons(): FormArray { return this.form.get('procedureJalons') as FormArray; }
 
   // ---- Add / remove FormArray rows ---------------------------------------
 
@@ -96,6 +98,12 @@ export class ReferentialEditDialogComponent {
     this.jalons.push(this.buildJalonRow({ label: '', offsetDays: 0 }));
   }
   removeJalon(i: number): void { this.jalons.removeAt(i); }
+
+  // SF-225-01 : add/remove pour TRAVAIL_PROCEDURE_JALONS et FAMILLE_PROCEDURE_JALONS
+  addProcedureJalon(): void {
+    this.procedureJalons.push(this.buildProcedureJalonRow({ label: '', offsetDays: 0, articleRef: '' }));
+  }
+  removeProcedureJalon(i: number): void { this.procedureJalons.removeAt(i); }
 
   // ---- Form building ------------------------------------------------------
 
@@ -263,6 +271,56 @@ export class ReferentialEditDialogComponent {
         });
       }
 
+      // ----- SF-225-01 : 5 types orphelins -----
+
+      case 'CONVENTION_PREAVIS': {
+        // Structure : {fonctions: {OUVRIER:[{min,max,mois}], ...}, article: "..."}
+        // Édition de la matrice fonctions × tranches en JSON brut + champ article séparé
+        // (la structure est trop imbriquée pour un FormArray exhaustif simple).
+        const fonctionsJson = parsed?.fonctions
+          ? JSON.stringify(parsed.fonctions, null, 2)
+          : data.entry.valueJson;
+        return this.fb.group({
+          ...base,
+          preavisArticle:  [parsed?.article ?? '', [Validators.required, Validators.maxLength(200)]],
+          preavisFonctions: [fonctionsJson, [Validators.required, this.jsonValidator]],
+        });
+      }
+
+      case 'TRAVAIL_PROCEDURE_JALONS':
+      case 'FAMILLE_PROCEDURE_JALONS': {
+        if (!Array.isArray(parsed)) {
+          return this.fb.group({
+            ...base,
+            valueJson: [data.entry.valueJson, [Validators.required, this.jsonValidator]],
+          });
+        }
+        return this.fb.group({
+          ...base,
+          procedureJalons: this.fb.array(
+            parsed.map((j: any) => this.buildProcedureJalonRow(j ?? {})),
+            [Validators.required, minArrayLength(1)]
+          ),
+        });
+      }
+
+      case 'MAJEURS_PROTEGES_REGIMES':
+        return this.fb.group({
+          ...base,
+          mpDelaiProcedure:  [parsed?.delaiProcedureMois ?? 0, [Validators.required, Validators.min(0), Validators.max(60)]],
+          mpDureeInitiale:   [parsed?.delaiInitialAnsMax ?? 5, [Validators.required, Validators.min(1), Validators.max(20)]],
+          mpRenouvelable:    [parsed?.renouvelable ?? true],
+          mpArticles:        [Array.isArray(parsed?.articles) ? parsed.articles.join('\n') : '', Validators.required],
+          mpCriteres:        [Array.isArray(parsed?.criteresEligibilite) ? parsed.criteresEligibilite.join('\n') : '', Validators.required],
+        });
+
+      case 'IM21_VALIDITY_CRITERES':
+        return this.fb.group({
+          ...base,
+          im21Binaire:     [parsed?.binaire ?? true],
+          im21Description: [parsed?.description ?? '', [Validators.required, Validators.maxLength(1000)]],
+        });
+
       default:
         return this.fb.group({
           ...base,
@@ -299,6 +357,15 @@ export class ReferentialEditDialogComponent {
     return this.fb.group({
       label:      [j?.label ?? '', [Validators.required, Validators.maxLength(200)]],
       offsetDays: [j?.offsetDays ?? 0, [Validators.required, Validators.min(0), Validators.max(1825)]],
+    });
+  }
+
+  /** SF-225-01 : row builder pour TRAVAIL_PROCEDURE_JALONS / FAMILLE_PROCEDURE_JALONS (label, offsetDays, articleRef). */
+  private buildProcedureJalonRow(j: any): FormGroup {
+    return this.fb.group({
+      label:      [j?.label ?? '', [Validators.required, Validators.maxLength(200)]],
+      offsetDays: [j?.offsetDays ?? 0, [Validators.required, Validators.min(0), Validators.max(1825)]],
+      articleRef: [j?.articleRef ?? '', [Validators.maxLength(200)]],
     });
   }
 
@@ -439,6 +506,53 @@ export class ReferentialEditDialogComponent {
         }
         return v.valueJson;
       }
+
+      // ----- SF-225-01 : 5 types orphelins -----
+
+      case 'CONVENTION_PREAVIS': {
+        // On préserve les autres champs éventuels du JSON original (forward-compat).
+        let origParsed: any = {};
+        try { origParsed = JSON.parse(this.data.entry.valueJson); } catch { /* ignore */ }
+        let fonctions: any = origParsed.fonctions ?? {};
+        try { fonctions = JSON.parse(v.preavisFonctions as string); } catch { /* keep original */ }
+        return JSON.stringify({
+          ...origParsed,
+          fonctions,
+          article: v.preavisArticle,
+        });
+      }
+
+      case 'TRAVAIL_PROCEDURE_JALONS':
+      case 'FAMILLE_PROCEDURE_JALONS': {
+        if (Array.isArray(v.procedureJalons)) {
+          const jalons = (v.procedureJalons as any[]).map(j => {
+            const obj: { label: string; offsetDays: number; articleRef?: string } = {
+              label: j.label,
+              offsetDays: Number(j.offsetDays),
+            };
+            const ref = (j.articleRef ?? '').toString().trim();
+            if (ref.length > 0) obj.articleRef = ref;
+            return obj;
+          });
+          return JSON.stringify(jalons);
+        }
+        return v.valueJson;
+      }
+
+      case 'MAJEURS_PROTEGES_REGIMES':
+        return JSON.stringify({
+          articles: splitLines(v.mpArticles as string),
+          delaiProcedureMois: Number(v.mpDelaiProcedure),
+          delaiInitialAnsMax: Number(v.mpDureeInitiale),
+          renouvelable: !!v.mpRenouvelable,
+          criteresEligibilite: splitLines(v.mpCriteres as string),
+        });
+
+      case 'IM21_VALIDITY_CRITERES':
+        return JSON.stringify({
+          binaire: !!v.im21Binaire,
+          description: v.im21Description,
+        });
 
       default:
         return v.valueJson;

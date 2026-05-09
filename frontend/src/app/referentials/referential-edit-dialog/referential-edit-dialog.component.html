@@ -360,6 +360,165 @@
         </div>
       }
 
+      @case ('CONVENTION_PREAVIS') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Article CCN</mat-label>
+          <input matInput formControlName="preavisArticle" maxlength="200" />
+          @if (form.get('preavisArticle')?.hasError('required')) {
+            <mat-error>L'article de référence est obligatoire.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Matrice fonctions × tranches d'ancienneté (JSON)</mat-label>
+          <textarea matInput formControlName="preavisFonctions" rows="14" style="font-family: monospace; font-size: 13px;"></textarea>
+          <mat-hint>Format : OUVRIER, EMPLOYE, AGENT_MAITRISE, CADRE → tableau de tranches min/max/mois</mat-hint>
+          @if (form.get('preavisFonctions')?.hasError('invalidJson')) {
+            <mat-error>Format JSON invalide.</mat-error>
+          }
+          @if (form.get('preavisFonctions')?.hasError('required')) {
+            <mat-error>La matrice est obligatoire.</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      @case ('TRAVAIL_PROCEDURE_JALONS') {
+        @if (form.get('procedureJalons')) {
+          <div class="array-section">
+            <div class="array-section-header">
+              <h3>Jalons de la procédure travail</h3>
+              <button mat-stroked-button type="button" (click)="addProcedureJalon()">
+                <mat-icon>add</mat-icon> Ajouter un jalon
+              </button>
+            </div>
+            <div class="array-rows" formArrayName="procedureJalons">
+              @for (row of procedureJalons.controls; track $index; let i = $index) {
+                <div class="array-row" [formGroupName]="i">
+                  <mat-form-field appearance="outline" class="array-cell-wide">
+                    <mat-label>Libellé</mat-label>
+                    <input matInput formControlName="label" maxlength="200" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="array-cell">
+                    <mat-label>Offset (jours)</mat-label>
+                    <input matInput type="number" formControlName="offsetDays" min="0" max="1825" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="array-cell-wide">
+                    <mat-label>Article de référence</mat-label>
+                    <input matInput formControlName="articleRef" maxlength="200" />
+                  </mat-form-field>
+                  <button mat-icon-button type="button" (click)="removeProcedureJalon(i)" aria-label="Supprimer">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Valeur (JSON) — schéma inconnu</mat-label>
+            <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
+            @if (form.get('valueJson')?.hasError('invalidJson')) {
+              <mat-error>Format JSON invalide.</mat-error>
+            }
+          </mat-form-field>
+        }
+      }
+
+      @case ('FAMILLE_PROCEDURE_JALONS') {
+        @if (form.get('procedureJalons')) {
+          <div class="array-section">
+            <div class="array-section-header">
+              <h3>Jalons de la procédure famille</h3>
+              <button mat-stroked-button type="button" (click)="addProcedureJalon()">
+                <mat-icon>add</mat-icon> Ajouter un jalon
+              </button>
+            </div>
+            <div class="array-rows" formArrayName="procedureJalons">
+              @for (row of procedureJalons.controls; track $index; let i = $index) {
+                <div class="array-row" [formGroupName]="i">
+                  <mat-form-field appearance="outline" class="array-cell-wide">
+                    <mat-label>Libellé</mat-label>
+                    <input matInput formControlName="label" maxlength="200" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="array-cell">
+                    <mat-label>Offset (jours)</mat-label>
+                    <input matInput type="number" formControlName="offsetDays" min="0" max="1825" />
+                  </mat-form-field>
+                  <mat-form-field appearance="outline" class="array-cell-wide">
+                    <mat-label>Article de référence</mat-label>
+                    <input matInput formControlName="articleRef" maxlength="200" />
+                  </mat-form-field>
+                  <button mat-icon-button type="button" (click)="removeProcedureJalon(i)" aria-label="Supprimer">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Valeur (JSON) — schéma inconnu</mat-label>
+            <textarea matInput formControlName="valueJson" rows="6" style="font-family: monospace; font-size: 13px;"></textarea>
+            @if (form.get('valueJson')?.hasError('invalidJson')) {
+              <mat-error>Format JSON invalide.</mat-error>
+            }
+          </mat-form-field>
+        }
+      }
+
+      @case ('MAJEURS_PROTEGES_REGIMES') {
+        <div class="field-row">
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Délai procédure (mois)</mat-label>
+            <input matInput type="number" formControlName="mpDelaiProcedure" min="0" max="60" />
+            @if (form.get('mpDelaiProcedure')?.invalid) {
+              <mat-error>Entre 0 et 60.</mat-error>
+            }
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field-years">
+            <mat-label>Durée initiale max (ans)</mat-label>
+            <input matInput type="number" formControlName="mpDureeInitiale" min="1" max="20" />
+            @if (form.get('mpDureeInitiale')?.invalid) {
+              <mat-error>Entre 1 et 20.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+        <div class="toggle-row">
+          <mat-slide-toggle formControlName="mpRenouvelable" color="primary">
+            Mesure renouvelable
+          </mat-slide-toggle>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Articles (un par ligne)</mat-label>
+          <textarea matInput formControlName="mpArticles" rows="4"></textarea>
+          @if (form.get('mpArticles')?.hasError('required')) {
+            <mat-error>Au moins un article requis.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Critères d'éligibilité (un par ligne)</mat-label>
+          <textarea matInput formControlName="mpCriteres" rows="6"></textarea>
+          @if (form.get('mpCriteres')?.hasError('required')) {
+            <mat-error>Au moins un critère requis.</mat-error>
+          }
+        </mat-form-field>
+      }
+
+      @case ('IM21_VALIDITY_CRITERES') {
+        <div class="toggle-row">
+          <mat-slide-toggle formControlName="im21Binaire" color="primary">
+            Critère binaire (Oui / Non)
+          </mat-slide-toggle>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description du critère</mat-label>
+          <textarea matInput formControlName="im21Description" rows="4" maxlength="1000"></textarea>
+          <mat-hint align="end">{{ (form.get('im21Description')?.value?.length ?? 0) }}/1000</mat-hint>
+          @if (form.get('im21Description')?.hasError('required')) {
+            <mat-error>La description est obligatoire.</mat-error>
+          }
+        </mat-form-field>
+      }
+
       @case ('IMMIGRATION_JALONS') {
         @if (form.get('jalons')) {
           <div class="array-section">
