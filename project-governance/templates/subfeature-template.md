@@ -123,6 +123,98 @@ Si la subfeature introduit un composant partagé (`shared/`), un service applica
 
 ---
 
+## Conformité F-IA-04 (SF frontend décisionnelle)
+
+> Section **obligatoire** pour toute SF qui livre ou modifie un composant frontend décisionnel
+> (section type `<app-XXX-section>` consommant un endpoint POST/GET décisionnel et intégré au panel
+> F-IA-04 via `TOOL_REGISTRY`).
+>
+> Les 5 blocs ci-dessous sont **tous** à remplir, sans abréviation, avec les preuves attendues
+> (référence au composant canonique, captures de signal, tests Jest, etc.).
+>
+> **Pattern de référence** : `immigration-title-decision-section` (post-SF-177-12) — composant canonique
+> consensus issu des audits F-155 / F-IA-04 / F-177.
+> **Skill d'audit** : `ai-skills/frontend-coherence-audit.md` (à invoquer tous les 5 nouveaux composants).
+>
+> Si la SF n'est **pas** une SF frontend décisionnelle (ex : SF backend pure, SF infrastructure, SF
+> documentaire, SF marketing), cocher la case « Non applicable » ci-dessous **avec une justification
+> explicite** ; la section reste néanmoins présente dans la mini-spec pour traçabilité.
+>
+> - [ ] **Non applicable** — justification : […]
+
+### 1. Cohérence visuelle
+
+> Conformité au design system (`docs/DESIGN_SYSTEM.md`) et aux conventions des composants décisionnels.
+
+- [ ] **Palette statut** : navy/or pour info, vert pour OK, rouge **réservé** aux alertes critiques uniquement (jamais pour de l'info ou un avertissement modéré).
+- [ ] **Datepicker** : convention `<input type="date">` ou `<input type="datetime-local">` selon précision — **pas** `MatDatepicker`.
+- [ ] **Typographie** : `JetBrains Mono` pour `baseJuridique` et `formule` ; `Inter` pour le reste du contenu.
+- [ ] **Gate `workspaceCountry`** : si l'outil n'est pertinent que pour FR ou BE, afficher une **bannière info** explicite en cas de mismatch — **pas** de masquage silencieux.
+- [ ] **Erreurs** : `MatSnackBar` pour toute erreur utilisateur — **pas** d'`alert()`, **pas** de `confirm()`.
+- [ ] **Refresh dashboard** : `CaseDashboardRefreshService.triggerRefresh()` invoqué dans le `next:` du POST de validation (pattern SF-IA-02-03).
+
+### 2. Pré-fill IA (OBLIGATOIRE — FAIL si absent, pas WARN)
+
+> Sans pré-fill, l'avocat ressaisit ce que l'IA a déjà extrait. C'est un **bug produit**, pas une dette technique.
+> Pattern de référence : `immigration-title-decision-section.prefillFromAi()` + signals + handlers.
+
+- [ ] `@Input() aiData?` typé strictement (`TravailExtractedData` / `ImmigrationExtractedData` / `FamilleExtractedData` selon le domaine).
+- [ ] Méthode privée `prefillFromAi()` invoquée dans `ngOnInit()` **ET** `ngOnChanges()` (afin de couvrir le cas où `aiData` arrive après la première résolution).
+- [ ] Un signal `provenance<Field> = signal<'IA'|null>(null)` par champ pré-rempli (`provenanceMotif`, `provenanceNationalite`, etc.).
+- [ ] Un badge UI `auto_awesome` « Pré-rempli depuis l'analyse » à côté de chaque champ dont la provenance vaut `'IA'`.
+- [ ] Un handler `onXxxChange()` par champ pré-rempli, qui remet `provenance<Field>` à `null` dès que l'avocat modifie manuellement la valeur.
+
+### 3. Validation F-IA-03 (OBLIGATOIRE — FAIL si absent, pas WARN)
+
+> Sans validation F-IA-03 au changement, l'avocat peut saisir une valeur en contradiction directe avec
+> l'analyse IA sans alerte visuelle. C'est un **bug produit**.
+> Pattern de référence : `immigration-title-decision-section` (`buildMotifAlert`, `buildNationaliteAlert`,
+> `coherenceAlerts` computed, `alertsSummary` computed).
+
+- [ ] `coherenceAlerts = computed<Partial<Record<FieldName, CoherenceAlert>>>()` qui produit une alerte par field clé quand la valeur affichée diverge des 4 sources IA disponibles : `aiData`, `procedureChecks` (F-96), `aiQuestions`, `piecesManquantes`.
+- [ ] Hiérarchie de sources respectée : **F-96 > Question IA > IA détection > Pièce manquante** (règle F-IA-03). Quand plusieurs sources convergent, source de l'alerte = `'MULTI'`.
+- [ ] Directive `<app-coherence-popover-trigger>` câblée sur chaque field concerné — le popover affiche la divergence avec la source, sans blocage technique.
+- [ ] Helper partagé **`CoherenceAlertBuilder`** utilisé pour instancier les alertes (chemin obligatoire : `frontend/src/app/shared/coherence-popover/coherence-alert-builder.ts`). **Pas de définition locale ad hoc** d'interface `CoherenceAlert` — source de dette de convergence.
+
+### 4. TOOL_REGISTRY symétrique + `getPrefillCount(input)`
+
+> Toute entrée `TOOL_REGISTRY` doit être **strictement symétrique** aux autres outils décisionnels.
+> Le static `getPrefillCount()` permet au panel F-IA-04 d'afficher le badge « Pré-rempli par l'IA (N champs) »
+> AVANT l'instanciation effective du composant.
+
+- [ ] Entrée ajoutée dans `TOOL_REGISTRY` (`frontend/src/app/case-files/decisional-tools-panel/decisional-tools-panel.component.ts`) avec :
+  - `inputs: (ctx) => ({ caseFileId, workspaceCountry, aiData, procedureChecks, aiQuestions, piecesManquantes })` — toutes les sources IA nécessaires à la validation F-IA-03 sont passées.
+  - Constantes `TOOL_LABEL` et `TOOL_ICON` symétriques (pattern SF-177-03b/05/07).
+- [ ] Static `getPrefillCount(input: { aiData?, procedureChecks?, aiQuestions?, piecesManquantes?, triggerEvents?, workspaceCountry? }): number` exposé sur le composant.
+- [ ] **Parité stricte** entre `getPrefillCount()` et `prefillFromAi()` runtime : mêmes guards `typeof === 'string'`, mêmes mappings, mêmes conditions de pays. Toute divergence = bug (badge faux).
+- [ ] Tests Jest obligatoires : (a) **0 champs** pré-remplissables (return 0), (b) **M champs partiels** (cas mixte), (c) **N champs cas nominal** (tous remplis).
+- [ ] Le `tool_id` exposé est présent dans `KNOWN_FRONTEND_TOOL_IDS` du test `DecisionToolVisibilityIntegrityIT` (garde-fou F-164 SF-164-01) et toute migration Liquibase qui INSERT/UPDATE `decision_tool_visibility_rules` pour ce `tool_id` est cohérente.
+
+### 5. Parité des domaines métier (niveau ≥ 5)
+
+> S'applique aux SF qui livrent un outil décisionnel de **niveau ≥ 5** :
+> (5) Scoring / analyse de validité, (6) Comparateur / fourchettes, (7) Détection d'événement déclencheur.
+>
+> Pour les niveaux 1–4 (checklist, générateur de document, calculateur, arbre décisionnel), cocher
+> « Non applicable » avec justification explicite.
+
+- [ ] Niveau du tool décisionnel livré : [ ] 5 / [ ] 6 / [ ] 7 / [ ] 1–4 → **non applicable, justifier**.
+- [ ] Si niveau ≥ 5, lister explicitement pour chacun des 2 autres domaines :
+
+| Domaine | Équivalent existe ? | Si non → action |
+|---------|---------------------|-----------------|
+| Droit du travail | Oui (F-DT-XX) / Non | Feature jumelle au backlog (F-XXX) / non pertinent — justifier |
+| Immigration | Oui (F-IM-XX) / Non | Feature jumelle au backlog (F-XXX) / non pertinent — justifier |
+| Famille | Oui (F-FA-XX) / Non | Feature jumelle au backlog (F-XXX) / non pertinent — justifier |
+
+- [ ] Si l'équivalent manque dans un autre domaine sans qu'il soit ouvert au backlog, justifier explicitement pourquoi le concept n'est pas pertinent dans ce domaine. **Le silence vaut REFUS.**
+
+> Motivation : F-DT-08/09/10 livrées en avril 2026 pour le droit du travail seul, laissant Famille et
+> Immigration 3 niveaux en retard — corrigé via F-150/151/152/153 rétroactivement. La règle « Impact par
+> domaine métier » est préventive ; ce bloc 5 corrige l'asymétrie *avant* qu'elle se créée.
+
+---
+
 ## Critères d'acceptation
 
 > Chaque critère est vérifiable. Pas d'ambiguïté.
