@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="212-f198-restore-5-famille-fr-tools" author="legalcase">
+        <comment>
+            F-198 — Rattrapage des 5 outils décisionnels Famille FR DELETE par
+            la migration 191 (`191-realign-decision-tool-ids.xml`) au motif
+            qu'aucun composant frontend auto-suffisant n'existait à l'époque.
+
+            Pattern miroir de la migration 192 (race condition fix-up des 4
+            outils F-FA-18/F-FA-24) : on restaure les seeds maintenant que les
+            5 wrappers Angular auto-suffisants sont livrés par la même PR
+            (SF-198-01 à SF-198-05) :
+
+              - F-FA-01-prestation-compensatoire   → prestation-compensatoire-section
+              - F-FA-02-pension-alimentaire        → pension-alimentaire-section
+              - F-FA-04-liquidation-communaute     → liquidation-communaute-section
+              - F-152-divorce-consentement-scoring → divorce-cm-scoring-section (wrapper)
+              - F-153-fourchettes-jaf              → fourchettes-jaf-section
+
+            Layer choisi :
+              - F-FA-01 / F-FA-02 / F-FA-04 / F-153 : ALWAYS_ON (cf. seed initial
+                migration 105) — le composant gate sur `synthesis.{estimate}`
+                en interne et affiche un état vide si l'IA n'a pas extrait
+                de données.
+              - F-152 : CONTEXTUAL `type_procedure_detectee=DIVORCE_CONSENTEMENT_MUTUEL`
+                (cf. seed initial migration 105 ligne 173) — on restaure le
+                trigger original.
+
+            UUIDs : sous-espace `f1a04001-0000-0000-0000-ee0000019800` à `..05`
+            réservé à F-198. Pas de collision avec migration 192 qui utilise le
+            schéma `ee0000000187` à `ee0000000190` (suffixe = numéro de migration
+            d'origine sur 3 chiffres).
+
+            Audit source : `docs/features/F-191/audit-famille-fr-exhaustif.md`
+            §A.3 — "Outils mentionnés dans seeds initiaux mais sans frontend
+            complet (DELETE par migration 191 sans restauration)".
+
+            Test garde-fou : `DecisionToolVisibilityIntegrityIT` — la liste
+            `KNOWN_FRONTEND_TOOL_IDS` est mise à jour dans la même PR avec
+            les 5 nouveaux tool_id.
+        </comment>
+
+        <sql splitStatements="true">
+-- =========================================================================
+-- F-198 — Restauration des 5 seeds DELETE par migration 191 (Famille FR).
+-- =========================================================================
+
+-- F-FA-01 : prestation compensatoire (ALWAYS_ON, cf. migration 105 ligne 144).
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000019801', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-01-prestation-compensatoire', 'ALWAYS_ON', NULL, NULL, 10);
+
+-- F-FA-02 : pension alimentaire (ALWAYS_ON, cf. migration 105 ligne 146).
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000019802', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-02-pension-alimentaire', 'ALWAYS_ON', NULL, NULL, 20);
+
+-- F-FA-04 : liquidation de communauté (ALWAYS_ON, cf. migration 105 ligne 148).
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000019803', 'DROIT_FAMILLE', 'FRANCE', 'F-FA-04-liquidation-communaute', 'ALWAYS_ON', NULL, NULL, 30);
+
+-- F-152 : divorce consentement scoring (CONTEXTUAL sur type_procedure_detectee, cf. migration 105 ligne 173).
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000019804', 'DROIT_FAMILLE', 'FRANCE', 'F-152-divorce-consentement-scoring', 'CONTEXTUAL', 'type_procedure_detectee', 'DIVORCE_CONSENTEMENT_MUTUEL', 40);
+
+-- F-153 : fourchettes jurisprudentielles JAF (ALWAYS_ON, cf. migration 105 ligne 150).
+INSERT INTO decision_tool_visibility_rules (id, legal_domain, country, tool_id, layer, trigger_field, trigger_value, priority)
+VALUES ('f1a04001-0000-0000-0000-ee0000019805', 'DROIT_FAMILLE', 'FRANCE', 'F-153-fourchettes-jaf', 'ALWAYS_ON', NULL, NULL, 50);
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true">
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04001-0000-0000-0000-ee0000019801';
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04001-0000-0000-0000-ee0000019802';
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04001-0000-0000-0000-ee0000019803';
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04001-0000-0000-0000-ee0000019804';
+DELETE FROM decision_tool_visibility_rules WHERE id = 'f1a04001-0000-0000-0000-ee0000019805';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

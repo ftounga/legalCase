@@ -1,0 +1,100 @@
+/* SF-198-05 — palette navy/or famille (cf. DESIGN_SYSTEM.md). */
+
+.fourchettes-jaf-section {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.jaf-block { padding: 4px 0 8px; }
+
+.jaf-intro {
+  font-size: 13px;
+  color: #6B7A8D;
+  margin: 0 0 12px;
+}
+
+.jaf-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jaf-row {
+  border: 1px solid #E0E4EA;
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #FCFCFE;
+  cursor: help; /* tooltip sourceRef */
+}
+
+.jaf-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+
+  .jaf-category {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1C2B3A;
+  }
+
+  .jaf-source {
+    font-size: 11px;
+    color: #6B7A8D;
+    font-style: italic;
+  }
+}
+
+.jaf-values {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.jaf-value-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  background: #F4F6F9;
+  border-radius: 4px;
+
+  &--median {
+    background: #FAF1DA;
+    border: 1px solid #C9973A;
+  }
+
+  .jaf-value-label {
+    font-size: 11px;
+    color: #6B7A8D;
+    text-transform: lowercase;
+  }
+
+  .jaf-value-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 13px;
+    color: #1A3A5C;
+    margin-top: 2px;
+  }
+}
+
+.jaf-disclaimer {
+  font-size: 11px;
+  color: #6B7A8D;
+  font-style: italic;
+  margin: 12px 0 0;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  color: #6B7A8D;
+  font-size: 13px;
+
+  mat-icon { color: #1A3A5C; flex-shrink: 0; }
+  p { margin: 0; }
+}

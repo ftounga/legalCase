@@ -1,0 +1,54 @@
+<div class="pension-alimentaire-section">
+  @if (estimate; as e) {
+    <div class="compensation-block">
+      @if (e.donneesPartielles) {
+        <div class="compensation-warning">
+          <mat-icon class="compensation-warning__icon">warning_amber</mat-icon>
+          <span>Données partielles — vérifier les revenus et le nombre d'enfants</span>
+        </div>
+      }
+      <div class="compensation-grid">
+        <div class="compensation-row compensation-row--main">
+          <span class="compensation-label">Fourchette mensuelle</span>
+          <span class="compensation-value">{{ formatEuros(e.montantMin) }} – {{ formatEuros(e.montantMax) }} / mois</span>
+        </div>
+        <div class="compensation-row compensation-row--detail">
+          <span class="compensation-label">Revenus net débiteur</span>
+          <span class="compensation-value">{{ formatEuros(e.revenus) }}/mois</span>
+        </div>
+        <div class="compensation-row compensation-row--detail">
+          <span class="compensation-label">Enfants &amp; garde</span>
+          <span class="compensation-value">
+            {{ e.nbEnfants }} enfant(s) ·
+            {{ e.modeGarde === 'ALTERNEE' ? 'Garde alternée' : 'Garde exclusive' }}
+          </span>
+        </div>
+        <div class="compensation-row compensation-row--detail">
+          <span class="compensation-label">Barème</span>
+          <span class="compensation-value">
+            {{ e.pays === 'BELGIQUE' ? 'CGKR Belgique' : 'UNAF France' }}
+          </span>
+        </div>
+        @if (e.jurisprudenceRange; as r) {
+          <div class="compensation-row compensation-row--separator"></div>
+          <div class="compensation-row compensation-row--detail" [matTooltip]="r.sourceRef">
+            <span class="compensation-label">{{ r.label }}</span>
+            <span class="compensation-value">
+              {{ formatEuros(r.p25) }} <em>(p25)</em>
+              — {{ formatEuros(r.p50) }} <em>(médiane)</em>
+              — {{ formatEuros(r.p75) }} <em>(p75)</em>
+            </span>
+          </div>
+        }
+      </div>
+      <p class="compensation-disclaimer">
+        Estimation indicative — ne constitue pas un avis juridique
+      </p>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <mat-icon>info</mat-icon>
+      <p>Aucune donnée de pension alimentaire détectée dans l'analyse.</p>
+    </div>
+  }
+</div>

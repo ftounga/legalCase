@@ -1,0 +1,37 @@
+<div class="liquidation-communaute-section">
+  @if (liquidation; as l) {
+    <div class="compensation-block">
+      <div class="liquidation-header">
+        <span class="liquidation-header-label">Régime matrimonial détecté</span>
+        <span class="liquidation-header-value">{{ formatRegime(l.regimeMatrimonial) }}</span>
+      </div>
+
+      @for (section of sections; track section.titre) {
+        <div class="liquidation-section">
+          <div class="compensation-row compensation-row--main">
+            <span class="compensation-label">{{ section.titre }}</span>
+          </div>
+          @if (section.items.length === 0) {
+            <div class="compensation-row compensation-row--detail">
+              <span class="compensation-label" style="font-style:italic">Aucun bien détecté</span>
+            </div>
+          }
+          @for (item of section.items; track item.libelle) {
+            <div class="compensation-row compensation-row--detail">
+              <span class="compensation-label">{{ item.libelle }}</span>
+              <span class="compensation-value">{{ item.valeur != null ? formatEuros(item.valeur) : '—' }}</span>
+            </div>
+          }
+        </div>
+      }
+      <p class="compensation-disclaimer">
+        Inventaire extrait automatiquement — à vérifier et compléter avec les actes notariaux
+      </p>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <mat-icon>info</mat-icon>
+      <p>Aucun inventaire de communauté détecté dans l'analyse.</p>
+    </div>
+  }
+</div>
