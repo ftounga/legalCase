@@ -278,6 +278,204 @@ describe('CaseFileDetailComponent', () => {
     expect(snackBarSpy.open).toHaveBeenCalled();
   });
 
+  // ──────────────────────────────────────────────────────────────────────
+  // SF-230-02 : élargissement aux images natives + thumbnail preview
+  // ──────────────────────────────────────────────────────────────────────
+  describe('SF-230-02 — accept images natif + thumbnail preview', () => {
+    let createSpy: jest.SpyInstance;
+    let revokeSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      // Compteur d'URLs blob générées pour les assertions de révocation.
+      let counter = 0;
+      createSpy = jest.spyOn(URL, 'createObjectURL').mockImplementation(() => {
+        counter += 1;
+        return `blob:test-${counter}`;
+      });
+      revokeSpy = jest.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      createSpy.mockRestore();
+      revokeSpy.mockRestore();
+    });
+
+    function makeFile(name: string, type: string, size: number): File {
+      const f = new File(['x'], name, { type });
+      Object.defineProperty(f, 'size', { value: size });
+      return f;
+    }
+
+    it('SF-230-02 T-01: onFileSelected accepte un JPG < 10 Mo', () => {
+      const jpg = makeFile('photo.jpg', 'image/jpeg', 2 * 1024 * 1024);
+      const event = { target: { files: [jpg], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(1);
+      expect(component.pendingFiles()[0].name).toBe('photo.jpg');
+      // Une thumbnail blob:url a été générée pour le JPG.
+      expect(createSpy).toHaveBeenCalledTimes(1);
+      expect(component.pendingThumbnails().get('photo.jpg')).toBe('blob:test-1');
+    });
+
+    it('SF-230-02 T-02: onFileSelected rejette un JPG > 10 Mo + snackbar', () => {
+      const big = makeFile('huge.jpg', 'image/jpeg', 11 * 1024 * 1024);
+      const event = { target: { files: [big], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(0);
+      expect(snackBarSpy.open).toHaveBeenCalled();
+      expect(snackBarSpy.open.mock.calls[0][0]).toContain('10 Mo');
+      // Pas de blob URL générée pour un fichier rejeté.
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('SF-230-02 T-03: onFileSelected rejette un fichier .svg + snackbar', () => {
+      const svg = makeFile('logo.svg', 'image/svg+xml', 1024);
+      const event = { target: { files: [svg], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(0);
+      expect(snackBarSpy.open).toHaveBeenCalled();
+      expect(snackBarSpy.open.mock.calls[0][0]).toContain('non supporté');
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('SF-230-02 T-04: onFileSelected rejette un .gif + snackbar', () => {
+      const gif = makeFile('animation.gif', 'image/gif', 500 * 1024);
+      const event = { target: { files: [gif], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(0);
+      expect(snackBarSpy.open).toHaveBeenCalled();
+    });
+
+    it('SF-230-02 T-05: onFileSelected génère une thumbnail URL pour PNG', () => {
+      const png = makeFile('capture.png', 'image/png', 500 * 1024);
+      const event = { target: { files: [png], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(createSpy).toHaveBeenCalledWith(png);
+      expect(component.pendingThumbnails().get('capture.png')).toBe('blob:test-1');
+    });
+
+    it('SF-230-02 T-06: onFileSelected pour HEIC → pas de thumbnail (placeholder)', () => {
+      const heic = makeFile('iphone.heic', 'image/heic', 4 * 1024 * 1024);
+      const event = { target: { files: [heic], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(1);
+      // Pas d'URL blob pour HEIC (le navigateur ne le décode pas nativement).
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(component.pendingThumbnails().has('iphone.heic')).toBe(false);
+      expect(component.isHeicPendingFile(heic)).toBe(true);
+    });
+
+    it('SF-230-02 T-07: HEIC sans MIME (browser ne renseigne pas) reste accepté via extension', () => {
+      const heic = makeFile('iphone.HEIC', '', 3 * 1024 * 1024);
+      const event = { target: { files: [heic], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(1);
+      expect(component.isHeicPendingFile(heic)).toBe(true);
+    });
+
+    it('SF-230-02 T-08: WebP accepté + thumbnail générée', () => {
+      const webp = makeFile('shot.webp', 'image/webp', 800 * 1024);
+      const event = { target: { files: [webp], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(1);
+      expect(component.pendingThumbnails().get('shot.webp')).toBe('blob:test-1');
+    });
+
+    it('SF-230-02 T-09: PDF reste accepté (pas de régression)', () => {
+      const pdf = makeFile('contrat.pdf', 'application/pdf', 1024 * 1024);
+      const event = { target: { files: [pdf], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(1);
+      // Pas de thumbnail pour un PDF.
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(component.pendingThumbnails().has('contrat.pdf')).toBe(false);
+    });
+
+    it('SF-230-02 T-10: removePendingFile révoque l\'URL blob de la thumbnail', () => {
+      const jpg = makeFile('photo.jpg', 'image/jpeg', 1024 * 1024);
+      const event = { target: { files: [jpg], value: '' } } as unknown as Event;
+      component.onFileSelected(event);
+      expect(component.pendingThumbnails().get('photo.jpg')).toBe('blob:test-1');
+
+      component.removePendingFile(jpg);
+
+      expect(revokeSpy).toHaveBeenCalledWith('blob:test-1');
+      expect(component.pendingThumbnails().has('photo.jpg')).toBe(false);
+    });
+
+    it('SF-230-02 T-11: uploadPendingFiles révoque toutes les thumbnails après succès', () => {
+      const newDoc: Document = { ...mockDocument, id: 'doc-img', originalFilename: 'photo.jpg' };
+      documentServiceSpy.uploadWithProgress.mockReturnValue(of(new HttpResponse({ body: newDoc })));
+
+      const jpg = makeFile('photo.jpg', 'image/jpeg', 1024 * 1024);
+      const png = makeFile('capture.png', 'image/png', 500 * 1024);
+      component.onFileSelected({ target: { files: [jpg, png], value: '' } } as unknown as Event);
+      expect(component.pendingThumbnails().size).toBe(2);
+
+      component.uploadPendingFiles();
+
+      // Les 2 URLs blob ont été révoquées après upload.
+      expect(revokeSpy).toHaveBeenCalledWith('blob:test-1');
+      expect(revokeSpy).toHaveBeenCalledWith('blob:test-2');
+      expect(component.pendingThumbnails().size).toBe(0);
+    });
+
+    it('SF-230-02 T-12: uploadPendingFiles révoque les thumbnails même en cas d\'erreur', () => {
+      documentServiceSpy.uploadWithProgress.mockReturnValue(throwError(() => ({ status: 500 })));
+
+      const jpg = makeFile('photo.jpg', 'image/jpeg', 1024 * 1024);
+      component.onFileSelected({ target: { files: [jpg], value: '' } } as unknown as Event);
+      expect(component.pendingThumbnails().size).toBe(1);
+
+      component.uploadPendingFiles();
+
+      expect(revokeSpy).toHaveBeenCalledWith('blob:test-1');
+      expect(component.pendingThumbnails().size).toBe(0);
+    });
+
+    it('SF-230-02 T-13: ngOnDestroy révoque les thumbnails restantes (pas de fuite mémoire)', () => {
+      const jpg = makeFile('photo.jpg', 'image/jpeg', 1024 * 1024);
+      component.onFileSelected({ target: { files: [jpg], value: '' } } as unknown as Event);
+      expect(component.pendingThumbnails().size).toBe(1);
+
+      component.ngOnDestroy();
+
+      expect(revokeSpy).toHaveBeenCalledWith('blob:test-1');
+    });
+
+    it('SF-230-02 T-14: mix valide + invalide → seuls les valides ajoutés au panier', () => {
+      const jpg = makeFile('photo.jpg', 'image/jpeg', 1024 * 1024);
+      const svg = makeFile('logo.svg', 'image/svg+xml', 500);
+      const big = makeFile('big.jpg', 'image/jpeg', 12 * 1024 * 1024);
+      const event = { target: { files: [jpg, svg, big], value: '' } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(component.pendingFiles().length).toBe(1);
+      expect(component.pendingFiles()[0].name).toBe('photo.jpg');
+      // 2 snackbars distincts (unsupported + oversized image).
+      expect(snackBarSpy.open).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('formatSize — octets', () => {
     expect(component.formatSize(500)).toBe('500 o');
   });
