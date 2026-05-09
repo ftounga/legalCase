@@ -38,7 +38,7 @@ public final class RisqueToolMatcher {
     public static final String TOOL_NON_CONCURRENCE = "F-DT-24-non-concurrence";
 
     // ---- Immigration ----
-    public static final String TOOL_OQTF_AVEC_DELAI = "F-IM-08-oqtf-avec-delai";
+    public static final String TOOL_OQTF_AVEC_DELAI = "F-IM-08-oqtf-avec-delai-fr";
     public static final String TOOL_OQTF_SANS_DELAI = "F-IM-20-oqtf-sans-delai";
 
     // ---- Famille ----
