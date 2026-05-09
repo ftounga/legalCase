@@ -19,3 +19,7 @@ data:
   ANTHROPIC_MODEL: "claude-sonnet-4-6"
   ANTHROPIC_MODEL_FAST: "claude-haiku-4-5-20251001"
   BLOG_SCHEDULER_ENABLED: "true"
+  # F-148 : enrichissement visuel Claude Vision multimodale.
+  # Activé sur tous les environnements depuis 2026-05-09 (était patché in-place
+  # sur staging uniquement, oubli en prod corrigé via F-230 + F-231).
+  VISION_ENABLED: "true"
