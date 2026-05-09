@@ -250,13 +250,18 @@ export class CaseDashboardComponent implements OnInit {
     // F-229 SF-229-01 — les 4 tiles "résumé" du dashboard décisionnel sont
     // désormais alignées sur les cibles canoniques de la grille de badges
     // F-162 via {@link BadgeNavigationService}. Mismatches corrigés :
-    //   - RETAINED_PISTES_SUMMARY  → anchor `section-pistes` (scroll inline)
-    //   - F-194-pieces-summary     → popup `SynthesisShortBlockDialogComponent`
-    //   - F-195-risques-summary    → sous-page `/synthesis/risques`
-    //   - F-196-questions-summary  → anchor `section-questions` (scroll inline)
+    //   - F-192-retained-pistes-summary → anchor `section-pistes` (scroll inline)
+    //   - F-194-pieces-summary          → popup `SynthesisShortBlockDialogComponent`
+    //   - F-195-risques-summary         → sous-page `/synthesis/risques`
+    //   - F-196-questions-summary       → anchor `section-questions` (scroll inline)
     // Audit visuel CA-09 : clic d'une tile résumé doit ouvrir EXACTEMENT
     // la même chose que le badge F-162 équivalent.
-    if (toolId === 'RETAINED_PISTES_SUMMARY') {
+    // F-229 SF-229-02 (2026-05-09) — alignement avec le toolId backend
+    // `CaseFileDashboardService.java:525` ("F-192-retained-pistes-summary").
+    // L'ancien check `'RETAINED_PISTES_SUMMARY'` (UPPERCASE snake) ne matchait
+    // pas, le clic était silencieux (console.warn + return). Bug staging
+    // Immigration Chen 17 du 2026-05-09.
+    if (toolId === 'F-192-retained-pistes-summary') {
       this.badgeNavigation.go('pistes', this.caseFileId);
       return;
     }

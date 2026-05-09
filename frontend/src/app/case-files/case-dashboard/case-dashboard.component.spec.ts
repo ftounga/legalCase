@@ -418,9 +418,9 @@ describe('CaseDashboardComponent — openGenericTool (SF-167-01 / SF-167-05)', (
   });
 });
 
-// F-192 SF-192-02 — tile RETAINED_PISTES_SUMMARY rendue + clic navigation
+// F-192 SF-192-02 — tile F-192-retained-pistes-summary rendue + clic navigation
 // vers /synthesis#section-pistes (pas d'ouverture modal d'outil).
-describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY tile', () => {
+describe('CaseDashboardComponent — F-192 SF-192-02 F-192-retained-pistes-summary tile', () => {
   let fixture: ComponentFixture<CaseDashboardComponent>;
   let component: CaseDashboardComponent;
   let dashboardService: jest.Mocked<CaseDashboardService>;
@@ -434,7 +434,7 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
     riskLevel: null,
     tiles: [
       {
-        toolId: 'RETAINED_PISTES_SUMMARY',
+        toolId: 'F-192-retained-pistes-summary',
         theme: 'DIAGNOSTIC',
         label: 'Stratégies retenues',
         primaryValue: '3 retenues',
@@ -467,20 +467,20 @@ describe('CaseDashboardComponent — F-192 SF-192-02 RETAINED_PISTES_SUMMARY til
     component.workspaceCountry = 'FRANCE';
   });
 
-  it('CA-08 tile RETAINED_PISTES_SUMMARY rendue dans le thème DIAGNOSTIC', () => {
+  it('CA-08 tile F-192-retained-pistes-summary rendue dans le thème DIAGNOSTIC', () => {
     fixture.detectChanges();
     const sections = component.themeSections();
     const diag = sections.find(s => s.key === 'DIAGNOSTIC');
     expect(diag).toBeDefined();
-    expect(diag!.tiles[0].toolId).toBe('RETAINED_PISTES_SUMMARY');
+    expect(diag!.tiles[0].toolId).toBe('F-192-retained-pistes-summary');
     expect(diag!.tiles[0].label).toBe('Stratégies retenues');
     const html: string = fixture.nativeElement.innerHTML;
     expect(html).toContain('Stratégies retenues');
   });
 
-  it('CA-06 (F-229) clic tile RETAINED_PISTES_SUMMARY → BadgeNavigationService.go("pistes", caseFileId)', () => {
+  it('CA-06 (F-229) clic tile F-192-retained-pistes-summary → BadgeNavigationService.go("pistes", caseFileId)', () => {
     fixture.detectChanges();
-    component.openGenericTool('RETAINED_PISTES_SUMMARY');
+    component.openGenericTool('F-192-retained-pistes-summary');
     expect(badgeNavigation.go).toHaveBeenCalledWith('pistes', 'case-1');
     expect(modalService.open).not.toHaveBeenCalled();
   });
@@ -946,10 +946,10 @@ describe('CaseDashboardComponent — F-228 SF-228-01 ctx alignements', () => {
     expect(loaderStub.loadAll).toHaveBeenCalledTimes(1);
   });
 
-  it('CA-09 (F-229) tile résumé RETAINED_PISTES_SUMMARY délègue à BadgeNavigationService.go("pistes")', () => {
+  it('CA-09 (F-229) tile résumé F-192-retained-pistes-summary délègue à BadgeNavigationService.go("pistes")', () => {
     const badge = TestBed.inject(BadgeNavigationService) as unknown as { go: jest.Mock };
     fixture.detectChanges();
-    component.openGenericTool('RETAINED_PISTES_SUMMARY');
+    component.openGenericTool('F-192-retained-pistes-summary');
     expect(badge.go).toHaveBeenCalledWith('pistes', 'case-1');
     expect(modalService.open).not.toHaveBeenCalled();
   });
