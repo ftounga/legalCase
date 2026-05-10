@@ -39,6 +39,8 @@ import {
 import { CoherenceAlertBuilder } from '../../shared/coherence-popover/coherence-alert-builder';
 import { SourceExplanation } from '../../core/models/source-explanation.model';
 import { SourceExplanationService } from '../../core/services/source-explanation.service';
+import { PrefillCountInput } from '../decisional-tools-panel/decision-tool.contract';
+import { AesMetiersTensionPrefillRules } from './aes-metiers-tension-section-prefill-rules';
 
 /** Regex ISO strict YYYY-MM-DD. */
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -79,6 +81,15 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
   // F-177 SF-177-03b : metadata statique consommée par le panel pour rendre la card.
   static readonly TOOL_LABEL = 'AES MÉTIERS EN TENSION (FR)';
   static readonly TOOL_ICON = 'how_to_reg';
+
+  /**
+   * F-236 SF-236-02 — Délègue intégralement au helper pur partagé. Le runtime
+   * `prefillFromAi()` consomme les mêmes fonctions sur le même input —
+   * divergence runtime/static impossible par construction.
+   */
+  static getPrefillCount(input: PrefillCountInput): number {
+    return AesMetiersTensionPrefillRules.computePrefillCount(input);
+  }
 
   @Input() caseFileId!: string;
   @Input() workspaceCountry: 'FRANCE' | 'BELGIQUE' = 'FRANCE';
@@ -274,7 +285,8 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
   }
 
   /**
-   * SF-IM-09-05 : pré-remplissage depuis l'analyse IA.
+   * SF-IM-09-05 / F-236 SF-236-02 : pré-remplissage depuis l'analyse IA
+   * via le helper pur partagé `AesMetiersTensionPrefillRules`.
    *
    * IMPORTANT : aujourd'hui `ImmigrationExtractedData` n'expose pas
    * de `dateEntreeFrance`. Le champ reste vide jusqu'à ce que le
@@ -282,15 +294,14 @@ export class AesMetiersTensionSectionComponent implements OnInit, OnChanges {
    * pré-remplir `dateDepotDemande` (graceful no-op pour les autres).
    */
   private prefillFromAi(): void {
-    const ai = this.aiData;
-    if (!ai) return;
-
-    const depot = ai.dateDepotProcedure;
-    if (typeof depot === 'string' && ISO_DATE_RE.test(depot) && depot <= this.todayIso) {
-      if (!this.dateDepotDemande()) {
-        this.dateDepotDemande.set(depot);
-        this.provenanceDateDepotDemande.set('IA');
-      }
+    const input: PrefillCountInput = {
+      aiData: this.aiData,
+      workspaceCountry: this.workspaceCountry,
+    };
+    const depot = AesMetiersTensionPrefillRules.computeDateDepotDemande(input);
+    if (depot !== null && !this.dateDepotDemande()) {
+      this.dateDepotDemande.set(depot);
+      this.provenanceDateDepotDemande.set('IA');
     }
   }
 
